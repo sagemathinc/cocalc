@@ -10,6 +10,7 @@ import { CSSProperties, useState } from "react";
 import { useFrameContext } from "./hooks";
 import Draggable from "react-draggable";
 import { getPosition, MAX_ELEMENTS } from "./math";
+import { aspectRatioToNumber } from "./tools/frame";
 
 const baseHandleSize = 20;
 const handleColor = "#888";
@@ -112,6 +113,16 @@ export default function DragHandle({
         h += offset.h;
         x += offset.x;
         y += offset.y;
+
+        if (element.data?.aspectRatio) {
+          // We just preserve aspect ratio after drag.
+          // TODO: Obviously, we should also preseve aspect ratio
+          // during the drag.
+          const ar = aspectRatioToNumber(element.data?.aspectRatio);
+          if (ar) {
+            h = w / ar;
+          }
+        }
 
         setTimeout(() => {
           setPosition({ x: 0, y: 0 });

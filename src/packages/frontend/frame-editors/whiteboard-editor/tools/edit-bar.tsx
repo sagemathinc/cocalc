@@ -63,6 +63,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
           </>
         )}
         {!readOnly && <LockButton elements={elements} />}
+        {!(readOnly || isLocked(elements)) && <DeleteButton {...props} />}
         <OtherOperations {...props} />
       </div>
     </div>
@@ -80,7 +81,7 @@ interface ButtonProps {
   actions: Actions;
   elements: Element[];
 }
-/*
+
 function DeleteButton({ actions, elements }: ButtonProps) {
   return (
     <Tooltip title="Delete">
@@ -95,7 +96,7 @@ function DeleteButton({ actions, elements }: ButtonProps) {
       </Button>
     </Tooltip>
   );
-}*/
+}
 
 function ColorButton({ actions, elements }: ButtonProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);

@@ -94,6 +94,7 @@ import { getParams } from "./tools/tool-panel";
 
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
+import { aspectRatioToNumber } from "./tools/frame";
 
 import Cursors from "./cursors";
 
@@ -601,6 +602,13 @@ export default function Canvas({
       params = { data: getToolParams("icon") };
     } else if (selectedTool == "text") {
       params = { data: getToolParams("text") };
+    } else if (selectedTool == "frame") {
+      params = { data: getToolParams("frame") };
+      if (params.data.aspectRatio) {
+        const ar = aspectRatioToNumber(params.data.aspectRatio);
+        data.w = 500;
+        data.h = data.w / (ar != 0 ? ar : 1);
+      }
     } else if (selectedTool == "chat") {
       data.w = 375;
       data.h = 450;
@@ -621,7 +629,8 @@ export default function Canvas({
       selectedTool == "note" ||
       selectedTool == "code" ||
       selectedTool == "timer" ||
-      selectedTool == "chat"
+      selectedTool == "chat" ||
+      selectedTool == "frame"
     ) {
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);
@@ -701,8 +710,17 @@ export default function Canvas({
         if (selectedTool == "frame") {
           // make a frame at the selection.  Note that we put
           // it UNDER everything.
+          const data = getToolParams("frame");
+          if (data.aspectRatio) {
+            const ar = aspectRatioToNumber(data.aspectRatio);
+            console.log("ar", ar);
+            if (ar != 0) {
+              rect.h = rect.w / ar;
+            }
+          }
+
           const { id } = frame.actions.createElement(
-            { type: "frame", ...rect, z: transforms.zMin - 1 },
+            { type: "frame", ...rect, z: transforms.zMin - 1, data },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");

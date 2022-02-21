@@ -30,7 +30,7 @@ import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import IconSelect from "@cocalc/frontend/components/icon-select";
 import { getCountdownMoment } from "@cocalc/frontend/editors/stopwatch/stopwatch";
-
+import { AspectRatio } from "./frame";
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
 export type { Tool };
@@ -43,6 +43,7 @@ interface AllParams {
   countdown?: number;
   radius?: number;
   opacity?: number;
+  aspectRatio?: AspectRatio;
 }
 
 type ParamName = keyof AllParams;

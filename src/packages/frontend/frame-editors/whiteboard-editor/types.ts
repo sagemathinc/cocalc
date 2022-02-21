@@ -7,6 +7,7 @@ import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
+import { AspectRatio } from "./tools/frame";
 
 export type ElementType =
   | "text"
@@ -48,6 +49,7 @@ interface Data {
   state?: TimerState; // for timer
   time?: number; // used by timer
   total?: number; // used by timer
+  aspectRatio?: AspectRatio;
 }
 
 /*
