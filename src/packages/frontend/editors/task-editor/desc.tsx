@@ -15,7 +15,7 @@ import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
 import { DescriptionRendered } from "./desc-rendered";
-import { DescriptionEditor } from "./desc-editor";
+import DescriptionEditor from "./desc-editor";
 import { TaskActions } from "./actions";
 
 interface Props {

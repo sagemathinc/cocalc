@@ -434,7 +434,8 @@ export class TaskActions extends Actions<TaskState> {
   public set_task(
     task_id?: string,
     obj?: object,
-    setState: boolean = false
+    setState: boolean = false,
+    save: boolean = true // make new commit to syncdb state
   ): void {
     if (obj == null || this.is_closed) {
       return;
@@ -463,7 +464,9 @@ export class TaskActions extends Actions<TaskState> {
 
     obj["task_id"] = task_id;
     this.syncdb.set(obj);
-    this.syncdb.commit();
+    if (save) {
+      this.commit();
+    }
     if (setState) {
       // also set state directly in the tasks object locally
       // **immediately**; this would happen
@@ -605,7 +608,7 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.undo();
-    this.syncdb.commit();
+    this.commit();
   }
 
   public redo(): void {
@@ -613,6 +616,10 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.redo();
+    this.commit();
+  }
+
+  public commit(): void {
     this.syncdb.commit();
   }
 
@@ -666,8 +673,12 @@ export class TaskActions extends Actions<TaskState> {
     this.set_task(task_id, { due_date: date });
   }
 
-  public set_desc(task_id: string | undefined, desc: string): void {
-    this.set_task(task_id, { desc });
+  public set_desc(
+    task_id: string | undefined,
+    desc: string,
+    save: boolean = true
+  ): void {
+    this.set_task(task_id, { desc }, false, save);
   }
 
   public toggle_full_desc(task_id: string | undefined): void {
