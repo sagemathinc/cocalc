@@ -24,6 +24,8 @@ interface Props {
 }
 
 export const StartButton: React.FC<Props> = ({ project_id }) => {
+  const project_websockets = useTypedRedux("projects", "project_websockets");
+  const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
   const state = useMemo(() => {
     return project_map?.getIn([project_id, "state"]);
@@ -60,7 +62,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") == "running") {
+  if (state?.get("state") == "running" && connected) {
     return <></>;
   }
 
@@ -139,20 +141,23 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   }
 
   function render_normal_view() {
-    return (
-      <Alert
-        message={
-          <>
-            <span style={{ fontSize: "20pt", color: "#666" }}>
-              <ProjectState state={state} show_desc={allowed} />
-            </span>
-            {render_start_project_button()}
-            {!allowed && render_not_allowed()}
-          </>
-        }
-        type="warning"
-      />
-    );
+    let message;
+    if (state?.get("state") == "running" && !connected) {
+      message = (
+        <span style={{ fontSize: "20pt", color: "#666" }}>Connecting... <Icon name="cocalc-ring" spin /></span>
+      );
+    } else {
+      message = (
+        <>
+          <span style={{ fontSize: "20pt", color: "#666" }}>
+            <ProjectState state={state} show_desc={allowed} />
+          </span>
+          {render_start_project_button()}
+          {!allowed && render_not_allowed()}
+        </>
+      );
+    }
+    return <Alert message={message} type="warning" />;
   }
 
   return (
