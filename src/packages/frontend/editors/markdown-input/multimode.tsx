@@ -27,7 +27,7 @@ interface Props {
   fontSize?: number;
   height?: string;
   style?: CSSProperties;
-  autoFocus?: boolean;
+  autoFocus?: boolean;  // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
   enableUpload?: boolean;
   onUploadStart?: () => void;
@@ -172,7 +172,7 @@ export default function MultiMarkdownInput({
           lineWrapping={lineWrapping}
           height={height}
           style={style}
-          autoFocus={autoFocus}
+          autoFocus={focused}
           submitMentionsRef={submitMentionsRef}
           extraHelp={extraHelp}
           hideHelp={hideHelp}
@@ -237,7 +237,7 @@ export default function MultiMarkdownInput({
             }}
             cursors={cursorsMap}
             font_size={fontSize}
-            autoFocus={autoFocus}
+            autoFocus={focused}
             onFocus={() => {
               setFocused(true);
               onFocus?.();

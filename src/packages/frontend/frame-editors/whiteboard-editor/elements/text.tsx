@@ -88,6 +88,7 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        autoFocus
         minimal
         hideHelp
         onFocus={() => setEditFocus(true)}
