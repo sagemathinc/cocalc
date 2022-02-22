@@ -17,6 +17,7 @@ interface ToolDescription {
   config?: Set<ConfigParams>; // what you can configure *after* you place the item.
   hideFromToolbar?: boolean;
   readOnly?: boolean; // if true, show this tool even in readonly view
+  resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -49,12 +50,14 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "crosshair",
     tip: "Pen",
     config: new Set(["color", "radius"]),
+    resizable:true,
   },
   code: {
     icon: "jupyter",
     cursor: "crosshair",
     tip: "Jupyter Code Cell",
     config: new Set(["fontSize", "color", "radius"]),
+    resizable:true,
   },
   icon: {
     icon: "icons",

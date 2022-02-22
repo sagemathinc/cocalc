@@ -45,7 +45,12 @@ export default function DragHandle({
   });
   const frame = useFrameContext();
 
-  if (selectedElements.length > 1) {
+  if (selectedElements.length != 1) {
+    return null;
+  }
+
+  // TODO: many things should only be resized to naturally fit their content...
+  if (["text", "note"].includes(selectedElements[0].type)) {
     return null;
   }
 

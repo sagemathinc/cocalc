@@ -11,7 +11,7 @@ export const STYLE = {
   width: "100%",
   height: "100%",
   border: "1px solid lightgrey",
-  overflowY: "auto",
+  overflow: "hidden",
 } as CSSProperties;
 
 export default function Note({ element }: Props) {

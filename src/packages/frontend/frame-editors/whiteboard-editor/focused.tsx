@@ -82,7 +82,7 @@ export default function Focused({
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
   const locked = isLocked(selectedElements);
 
-  const dragHandles = useMemo(() => {
+  const resizeHandles = useMemo(() => {
     if (locked || readOnly) return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
@@ -237,7 +237,7 @@ export default function Focused({
               : undefined),
           }}
         >
-          {dragHandles}
+          {resizeHandles}
           {edgeCreationPoints}
         </div>
         <div
