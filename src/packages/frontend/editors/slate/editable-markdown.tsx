@@ -7,6 +7,7 @@
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
+import { RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
@@ -120,6 +121,8 @@ interface Props {
   autoFocus?: boolean;
   hideSearch?: boolean;
   saveDebounceMs?: number;
+  noVfill?: boolean;
+  divRef?: RefObject<HTMLDivElement>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -143,6 +146,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     autoFocus,
     hideSearch,
     saveDebounceMs,
+    noVfill,
+    divRef,
   }) => {
     if (disableWindowing == null) {
       disableWindowing = !USE_WINDOWING;
@@ -610,8 +615,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     );
     let body = (
       <div
-        className="smc-vfill"
-        style={{ overflow: "auto", backgroundColor: "white", ...style }}
+        ref={divRef}
+        className={noVfill ? undefined : "smc-vfill"}
+        style={{
+          overflow: noVfill ? undefined : "auto",
+          backgroundColor: "white",
+          ...style,
+        }}
       >
         {!hidePath && (
           <Path is_current={is_current} path={path} project_id={project_id} />
@@ -627,7 +637,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           hideSearch={hideSearch}
         />
         <div
-          className="smc-vfill"
+          className={noVfill ? undefined : "smc-vfill"}
           style={{
             ...STYLE,
             fontSize: font_size,

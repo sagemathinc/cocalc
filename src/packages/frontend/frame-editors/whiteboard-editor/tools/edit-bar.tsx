@@ -13,7 +13,7 @@ import { Actions } from "../actions";
 import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
-import { getPageSpan, rectSpan } from "../math";
+import { getPageSpan, rectSpan, DEFAULT_GAP } from "../math";
 import { ConfigParams, TOOLS } from "./spec";
 import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
 import LockButton, { isLocked } from "./lock-button";
@@ -424,7 +424,7 @@ export function pasteElements(actions, elements: Element[], frameId?: string) {
   const pastedElements = pasteFromInternalClipboard();
   const { x, y, w, h } = rectSpan(elements);
   const w2 = rectSpan(pastedElements).w;
-  const target = { x: x + w + 100 + w2 / 2, y: y + h / 2 };
+  const target = { x: x + w + w2 / 2 + DEFAULT_GAP, y: y + h / 2 };
   const ids = actions.insertElements(pastedElements, target);
   if (frameId) {
     actions.setSelectionMulti(frameId, ids);

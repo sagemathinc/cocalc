@@ -8,7 +8,14 @@ import { Popover } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
-import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  RefObject,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -27,7 +34,7 @@ interface Props {
   fontSize?: number;
   height?: string;
   style?: CSSProperties;
-  autoFocus?: boolean;  // note - this is broken on safari for the slate editor, but works on chrome and firefox.
+  autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
   enableUpload?: boolean;
   onUploadStart?: () => void;
@@ -52,6 +59,8 @@ interface Props {
   // from account_id to objects {x:number,y:number} that give the 0-based row and column
   // in the plain markdown text, as of course output by onCursors above.
   cursors?: ImmutableMap<string, any>;
+  noVfill?: boolean;
+  editorDivRef?: RefObject<HTMLDivElement>; // if in slate "editor" mode, this is the top-level div
 }
 
 export default function MultiMarkdownInput({
@@ -80,6 +89,8 @@ export default function MultiMarkdownInput({
   markdownToggleStyle,
   onCursors,
   cursors,
+  noVfill,
+  editorDivRef,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -199,6 +210,8 @@ export default function MultiMarkdownInput({
           className="smc-vfill"
         >
           <EditableMarkdown
+            divRef={editorDivRef}
+            noVfill={noVfill}
             value={value}
             is_current={true}
             hidePath

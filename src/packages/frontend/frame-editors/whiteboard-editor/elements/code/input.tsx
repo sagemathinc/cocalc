@@ -54,9 +54,17 @@ export default function Input({ element, focused, canvasScale }: Props) {
             frame.actions.runCodeElement({ id: element.id });
             // TODO: handle these cases
             if (e.altKey || e.metaKey) {
-              // this is "evaluate and make new cell"
+              // this is "evaluate and make new cell"...?
             } else if (e.shiftKey) {
               // this is "evaluate and move to next cell, making one if there isn't one."
+              const id = frame.actions.createAdjacentElement(
+                element.id,
+                "bottom"
+              );
+              if (!id) return;
+              frame.actions.setSelectedTool(frame.id, "select");
+              frame.actions.setSelection(frame.id, id);
+              frame.actions.centerElement(id);
             } else if (e.ctrlKey) {
               // this is "evaluate keeping focus", so nothing further to do.
             }

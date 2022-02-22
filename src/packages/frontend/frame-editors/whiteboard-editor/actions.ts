@@ -14,7 +14,7 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Element, Elements, Point, Rect } from "./types";
+import { Element, Elements, Point, Rect, Placement } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_WIDTH,
@@ -26,6 +26,7 @@ import {
   centerOfRect,
   translateRectsZ,
   roundRectParams,
+  moveRectAdjacent,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
@@ -57,9 +58,9 @@ export class Actions extends BaseActions<State> {
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
-          const obj = this._syncstring.get_one(key);
+          const element = this._syncstring.get_one(key);
           // @ts-ignore
-          elements = elements.set(id, obj);
+          elements = elements.set(id, element);
         }
       });
       if (elements !== elements0) {
@@ -67,6 +68,35 @@ export class Actions extends BaseActions<State> {
       }
     });
   }
+
+  /*
+  // repair data since we assume that each element is a rect.
+  // nothing should ever break that, but it's good to sanitize
+  // our data some to avoid broken whiteboards.
+  private ensureIsRect(obj: Partial<Element>) {
+    if (obj.id == null) return; // can't happen
+    let changed: boolean = false;
+    if (obj.x == null) {
+      obj.x = 0;
+      changed = true;
+    }
+    if (obj.y == null) {
+      obj.y = 0;
+      changed = true;
+    }
+    if (obj.w == null) {
+      obj.w = DEFAULT_WIDTH;
+      changed = true;
+    }
+    if (obj.h == null) {
+      obj.w = DEFAULT_HEIGHT;
+      changed = true;
+    }
+    if (changed) {
+      this.setElement({ obj, commit: false });
+    }
+  }
+  */
 
   // This mutates the cursors by putting the id in them.
   setCursors(id: string, cursors: object[], sideEffect?: boolean): void {
@@ -76,18 +106,55 @@ export class Actions extends BaseActions<State> {
     this._syncstring.set_cursor_locs(cursors, sideEffect);
   }
 
+  // Create element adjacent to the one with given id.
+  // It should be very similar to that one, but with empty content.
+  // No op if id doesn't exist.
+  createAdjacentElement(
+    id: string, // id of existing element
+    placement: Placement = "bottom"
+  ): string | undefined {
+    const element = this._syncstring.get_one({ id })?.toJS();
+    if (element == null) return;
+    delete element.z; // so it is placed at the top
+    if (element.str != null) {
+      element.str = "";
+    }
+    if (element.data?.output != null) {
+      // code cell
+      delete element.data.output;
+    }
+    moveRectAdjacent(element, placement);
+
+    // TODO: if we're creating
+    // a new element on top of an existing one of the same type,
+    // then just return id of that exiting one instead.
+    // Alternatively, we could move our new one down (say) until it
+    // doesn't intersect or cover anything.  UNCLEAR.
+
+    return this.createElement(element).id;
+  }
+
   setElement({
     obj,
     commit,
     cursors,
+    create,
   }: {
     obj: Partial<Element>;
     commit?: boolean;
     cursors?: object[];
+    create?: boolean;
   }): void {
     if (commit == null) commit = true;
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
+    }
+    if (!create && this._syncstring.get_one({ id: obj.id }) == null) {
+      // object already deleted, so setting it is a no-op
+      // This happens, e.g., if you delete a note while editing it,
+      // then unmounting the note causes a final save, though the object
+      // is already deleted at that point.
+      return;
     }
     // We always round x,y,w,h (if present) to nearest integers,
     // since this makes very little difference when rendering
@@ -144,10 +211,7 @@ export class Actions extends BaseActions<State> {
   }
 
   createElement(obj: Partial<Element>, commit: boolean = true): Element {
-    if (obj.id == null) {
-      const id = this.createId();
-      obj = { id, ...obj };
-    }
+    obj.id = this.createId(); // ensure a new id is used no matter what!
     if (obj.z == null) {
       // most calls to createElement should NOT resort to having to do this.
       obj.z = this.getPageSpan().zMax + 1;
@@ -158,7 +222,7 @@ export class Actions extends BaseActions<State> {
     if (obj.h == null) {
       obj.h = DEFAULT_HEIGHT;
     }
-    this.setElement({ obj, commit, cursors: [{}] });
+    this.setElement({ create: true, obj, commit, cursors: [{}] });
     return obj as Element;
   }
 
@@ -542,7 +606,19 @@ export class Actions extends BaseActions<State> {
     pasteElements(this, elements, frameId);
   }
 
-  gotoUser(account_id: string) {
+  centerElement(id: string, frameId?: string) {
+    const element = this.store.getIn(["elements", id])?.toJS();
+    if (element == null) return;
+    frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
+    this.setViewportCenter(frameId, centerOfRect(element));
+  }
+
+  scrollElementIntoView(id: string, frameId?: string) {
+    // TODO: for now just center it
+    this.centerElement(id, frameId);
+  }
+
+  gotoUser(account_id: string, frameId?: string) {
     const locs = this._syncstring
       .get_cursors(0)
       ?.getIn([account_id, "locs"])
@@ -550,10 +626,7 @@ export class Actions extends BaseActions<State> {
     if (locs == null) return; // no info
     for (const loc of locs) {
       if (loc.id != null) {
-        const element = this.store.getIn(["elements", loc.id])?.toJS();
-        if (element == null) return;
-        const id = this.show_focused_frame_of_type("whiteboard");
-        this.setViewportCenter(id, centerOfRect(element));
+        this.centerElement(loc.id, frameId);
         return;
       }
     }

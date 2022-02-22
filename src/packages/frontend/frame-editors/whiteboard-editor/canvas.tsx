@@ -797,7 +797,13 @@ export default function Canvas({
   };
 
   // convert from clientX,clientY to unscaled window coordinates,
-  function getMousePos(e): { x: number; y: number } | undefined {
+  function getMousePos(
+    e: {
+      clientX: number;
+      clientY: number;
+    } | null
+  ): { x: number; y: number } | undefined {
+    if (e == null) return;
     const c = canvasRef.current;
     if (c == null) return;
     const rect = c.getBoundingClientRect();

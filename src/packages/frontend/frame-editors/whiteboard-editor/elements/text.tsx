@@ -40,8 +40,8 @@ function EditText({
   const isMounted = useIsMountedRef();
   const [value, setValue] = useState<string>(element.str ?? "");
   const [editFocus, setEditFocus] = useState<boolean>(false);
-  const { actions } = useFrameContext();
-
+  const { actions, id: frameId } = useFrameContext();
+  const editorDivRef = useRef<HTMLDivElement>(null);
   const lastRemote = useRef<string>(element.str ?? "");
   const valueRef = useRef<string>(value);
   const setting = useRef<boolean>(false);
@@ -88,16 +88,40 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        noVfill
         autoFocus
         minimal
         hideHelp
+        editorDivRef={editorDivRef}
         onFocus={() => setEditFocus(true)}
         onBlur={() => setEditFocus(false)}
+        onShiftEnter={() => {
+          const id = actions.createAdjacentElement(element.id, "bottom");
+          if (!id) return;
+          actions.setSelectedTool(frameId, "select");
+          actions.setSelection(frameId, id);
+          actions.centerElement(id);
+        }}
         value={value}
         fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
         onChange={(value) => {
           valueRef.current = value;
           setValue(value);
+          setTimeout(() => {
+            // possibly adjust height.  We do this in the next render
+            // loop because sometimes when the change fires the dom
+            // hasn't updated the height of the containing div yet,
+            // so we end up setting the height 1 step behind reality.
+            const height = editorDivRef.current?.offsetHeight;
+            if (height != null) {
+              if (element.h != height) {
+                actions.setElement({
+                  obj: { id: element.id, h: height + 2 * PADDING + 2 + 15 },
+                  commit: false,
+                });
+              }
+            }
+          }, 0);
         }}
         editBarStyle={{
           top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,

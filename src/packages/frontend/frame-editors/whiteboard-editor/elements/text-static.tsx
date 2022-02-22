@@ -5,7 +5,7 @@ interface Props {
   element: Element;
 }
 
-export const PADDING = "10px";
+export const PADDING: number = 10;
 
 export default function Text({ element }: Props) {
   const style = { ...getStyle(element), padding: PADDING };

@@ -5,7 +5,7 @@ It seems like some basic trig, etc., is useful for this sort of editor!
 
 */
 
-import { Element, Point, Rect } from "./types";
+import { Element, Placement, Point, Rect } from "./types";
 import { cmp } from "@cocalc/util/misc";
 
 // We just declare a font size of 14 to be "zoom 100%".
@@ -17,6 +17,7 @@ export function fontSizeToZoom(size?: number): number {
 
 export const DEFAULT_WIDTH = 250;
 export const DEFAULT_HEIGHT = 100;
+export const DEFAULT_GAP = 15;
 
 // We assume that there are at most this many elements.
 // E.g., to map z-indexes to integers in a safe range.
@@ -401,4 +402,25 @@ export function roundRectParams(rect: Partial<Rect>) {
   if (rect.y !== undefined) rect.y = Math.round(rect.y);
   if (rect.w !== undefined) rect.w = Math.round(rect.w);
   if (rect.h !== undefined) rect.h = Math.round(rect.h);
+}
+
+// mutate rect moving it to be adjacent to where it is...
+export function moveRectAdjacent(
+  rect: Rect,
+  placement: Placement = "bottom",
+  gap = DEFAULT_GAP
+) {
+  const p: string = placement.toLowerCase();
+  if (p.includes("bottom")) {
+    rect.y += rect.h + gap;
+  }
+  if (p.includes("top")) {
+    rect.y -= rect.h + gap;
+  }
+  if (p.includes("right")) {
+    rect.x += rect.w + gap;
+  }
+  if (p.includes("left")) {
+    rect.x -= rect.w + gap;
+  }
 }

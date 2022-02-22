@@ -102,3 +102,18 @@ export type ElementMap = TypedMap<Element>;
 
 // Tasks is an immutable map from id to Element as a map.
 export type Elements = Map<string, ElementMap>;
+
+// Copied from what Antd does for tooltips: https://ant.design/components/tooltip/
+export type Placement =
+  | "top"
+  | "left"
+  | "right"
+  | "bottom"
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight"
+  | "leftTop"
+  | "leftBottom"
+  | "rightTop"
+  | "rightBottom";
