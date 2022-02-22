@@ -47,7 +47,7 @@ import {
   split,
   trunc,
 } from "@cocalc/util/misc";
-import { map } from "awaiting";
+import { delay, map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
 import { grading_state } from "../nbgrader/util";
@@ -879,6 +879,28 @@ ${details}
     );
   }
 
+  private async start_all_for_peer_grading(): Promise<void> {
+    // On cocalc.com, if the student projects get started specifically
+    // for the purposes of copying files to/from them, then they stop
+    // around a minute later.  This is very bad for peer grading, since
+    // so much copying occurs, and we end up with conflicts between
+    // projects starting to peer grade, then stop, then needing to be
+    // started again all at once.  We thus request that they all start,
+    // wait a few seconds for that "reason" for them to be running to
+    // take effect, and then do the copy.  This way the projects aren't
+    // automatically stopped after the copies happen.
+    const id = this.course_actions.set_activity({
+      desc: "Warming up all student projects for peer grading...",
+    });
+    this.course_actions.student_projects.action_all_student_projects("start");
+    // We request to start all projects simultaneously, and the system
+    // will start doing that.  I think it's no so much important that
+    // the projects are actually running, but that they were started
+    // before the copy operations started.
+    await delay(15 * 1000);
+    this.course_actions.clear_activity(id);
+  }
+
   public async peer_copy_to_all_students(
     assignment_id: string,
     new_only: boolean
@@ -894,6 +916,7 @@ ${details}
     // the *condition* to know if it is done depends on the store,
     // which defers when it gets updated.  Anyway, this line is critical:
     this.update_peer_assignment(assignment_id);
+    await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
       assignment_id,
@@ -914,6 +937,7 @@ ${details}
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy peer grading from students";
+    await this.start_all_for_peer_grading();
     await this.assignment_action_all_students(
       assignment_id,
       new_only,

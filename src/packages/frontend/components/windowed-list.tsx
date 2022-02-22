@@ -21,6 +21,7 @@
 //   I did implement everything first using react-virtualized, but react-window
 //   is definitely faster, and the overscan seems to work much better.
 
+import { ReactNode } from "react";
 import { delay } from "awaiting";
 
 import ResizeObserver from "resize-observer-polyfill";
@@ -37,7 +38,7 @@ export interface ScrollInfo extends ListOnScrollProps {
 
 import { React, Component, Rendered, CSS } from "../app-framework";
 
-interface Props {
+export interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
   row_size_estimator?: (index: number) => number | undefined; // optional row size estimator
@@ -47,7 +48,7 @@ interface Props {
     index: number;
     isScrolling?: boolean;
     isVisible?: boolean;
-  }) => Rendered; // renders row with given key (or index).
+  }) => ReactNode; // renders row with given key (or index).
   row_key: (index: number) => string | undefined; // map from row number to string key; must have unique stable keys!
   scroll_to_index?: number; // moves to this row during next render (but doesn't get stuck there!)
   scroll_top?: number;
