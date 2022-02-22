@@ -982,7 +982,6 @@ export default function Canvas({
               zIndex: MAX_ELEMENTS + 1,
               top: 0,
               left: 0,
-              border: "1px solid red",
             }}
           />
         )}

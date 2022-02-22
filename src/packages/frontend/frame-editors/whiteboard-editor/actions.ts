@@ -25,6 +25,7 @@ import {
   centerRectsAt,
   centerOfRect,
   translateRectsZ,
+  roundRectParams,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
@@ -88,6 +89,11 @@ export class Actions extends BaseActions<State> {
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
     }
+    // We always round x,y,w,h (if present) to nearest integers,
+    // since this makes very little difference when rendering
+    // (none at 100% zoom), and saves a lot of space in the
+    // JSON object representation.
+    roundRectParams(obj);
     this._syncstring.set(obj);
     if (
       obj.type != "edge" &&

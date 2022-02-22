@@ -394,3 +394,11 @@ function zIndexMap(elements: Element[]) {
   }
   return zMap;
 }
+
+// round any parameters of rectangle to nearest integers, mutating the rectangle.
+export function roundRectParams(rect: Partial<Rect>) {
+  if (rect.x !== undefined) rect.x = Math.round(rect.x);
+  if (rect.y !== undefined) rect.y = Math.round(rect.y);
+  if (rect.w !== undefined) rect.w = Math.round(rect.w);
+  if (rect.h !== undefined) rect.h = Math.round(rect.h);
+}
