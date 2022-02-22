@@ -45,13 +45,8 @@ import {
 import { UserMap } from "../../todo-types";
 import { Set } from "immutable";
 import { CourseActions } from "../actions";
-import {
-  ErrorDisplay,
-  Icon,
-  Tip,
-  MarkdownInput,
-  WindowedList,
-} from "../../components";
+import { ErrorDisplay, Icon, Tip, MarkdownInput } from "../../components";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -255,15 +250,12 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
         return this.render_no_handouts();
       }
       return (
-        <WindowedList
-          overscan_row_count={3}
-          estimated_row_size={50}
-          row_count={handouts.length}
-          row_renderer={({ key, index }) => this.render_handout(key, index)}
-          row_key={(index) =>
-            handouts[index] != null ? handouts[index].handout_id : undefined
-          }
-          cache_id={`course-handouts-${this.props.name}-${this.props.frame_id}`}
+        <ScrollableList
+          windowing={util.windowing(50)}
+          rowCount={handouts.length}
+          rowRenderer={({ key, index }) => this.render_handout(key, index)}
+          rowKey={(index) => handouts[index]?.handout_id ?? ""}
+          cacheId={`course-handouts-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
@@ -960,13 +952,12 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
   private render_students(): Rendered {
     const info = this.get_student_list();
     return (
-      <WindowedList
-        overscan_row_count={3}
-        estimated_row_size={65}
-        row_count={info.length}
-        row_renderer={({ key }) => this.render_student_info(key)}
-        row_key={(index) => this.get_student_list()[index]}
-        cache_id={`course-handout-${this.props.handout.get("handout_id")}-${
+      <ScrollableList
+        windowing={util.windowing(65)}
+        rowCount={info.length}
+        rowRenderer={({ key }) => this.render_student_info(key)}
+        rowKey={(index) => this.get_student_list()[index]}
+        cacheId={`course-handout-${this.props.handout.get("handout_id")}-${
           this.props.actions.name
         }-${this.props.frame_id}`}
       />
