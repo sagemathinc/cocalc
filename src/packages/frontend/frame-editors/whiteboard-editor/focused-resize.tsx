@@ -49,11 +49,6 @@ export default function DragHandle({
     return null;
   }
 
-  // TODO: many things should only be resized to naturally fit their content...
-  if (["text", "note"].includes(selectedElements[0].type)) {
-    return null;
-  }
-
   const style = {
     pointerEvents: "all", // because we sometimes turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],
@@ -127,6 +122,13 @@ export default function DragHandle({
           if (ar) {
             h = w / ar;
           }
+        }
+        if (["text", "note"].includes(selectedElements[0].type)) {
+          // only allow changing the WIDTH, not height - the height should get
+          // automatically determined by rendered content.
+          // TODO: need to make height get computed in next render loop.
+          // For now -- just reset the height to before the drag changed it.
+          h = element.h;
         }
 
         setTimeout(() => {
