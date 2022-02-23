@@ -346,6 +346,7 @@ const IconSpec = {
   lock: LockFilled,
   magic: { IconFont: "magic" },
   mail: MailOutlined,
+  map: { IconFont: "map" },
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,

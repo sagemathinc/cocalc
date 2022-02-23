@@ -27,7 +27,7 @@ const PREVIEW_THRESH = 0.07;
 const TOOLS = {
   map: {
     width: "35px",
-    icon: "sitemap" /* todo */,
+    icon: "map",
     tip: "Toggle map",
     click: (actions, id) => {
       actions.toggleMap(id);
