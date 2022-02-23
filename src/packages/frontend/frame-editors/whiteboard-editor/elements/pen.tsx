@@ -100,9 +100,12 @@ export function drawCurve({
   radius?: number;
   opacity?: number;
 }) {
+  if (path.length == 0) {
+    // empty path -- nothing to draw
+    return;
+  }
   // There's some useful MIT licensed code at https://github.com/embiem/react-canvas-draw
   // that inspired this.
-  if (path.length <= 1) return;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.strokeStyle = color ?? "#000";
@@ -111,6 +114,16 @@ export function drawCurve({
   }
 
   ctx.lineWidth = 2 * (radius ?? 0.5);
+
+  if (path.length <= 1) {
+    const p = path[0];
+    // draw a circle of the given radius at p.
+    ctx.moveTo(p.x, p.y);
+    ctx.beginPath();
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    return;
+  }
 
   let p1 = path[0];
   let p2 = path[1];

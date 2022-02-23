@@ -753,11 +753,13 @@ export default function Canvas({
         return;
       } else if (selectedTool == "pen") {
         const canvas = penCanvasRef.current;
-        if (canvas == null) return;
-        const ctx = canvas.getContext("2d");
-        if (ctx == null) return;
-        clearCanvas({ ctx });
-        if (mousePath.current == null || mousePath.current.length <= 1) {
+        if (canvas != null) {
+          const ctx = canvas.getContext("2d");
+          if (ctx != null) {
+            clearCanvas({ ctx });
+          }
+        }
+        if (mousePath.current == null || mousePath.current.length <= 0) {
           return;
         }
         ignoreNextClick.current = true;
@@ -790,8 +792,6 @@ export default function Canvas({
           if (y < yMin) yMin = y;
           if (y > yMax) yMax = y;
         }
-        if (path.length <= 1) return;
-
         for (const pt of path) {
           pt.x = pt.x - xMin;
           pt.y = pt.y - yMin;

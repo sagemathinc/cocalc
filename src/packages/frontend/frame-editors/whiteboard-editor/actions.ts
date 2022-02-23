@@ -100,6 +100,7 @@ export class Actions extends BaseActions<State> {
 
   // This mutates the cursors by putting the id in them.
   setCursors(id: string, cursors: object[], sideEffect?: boolean): void {
+    if (this._syncstring == null) return;
     for (const cursor of cursors) {
       cursor["id"] = id;
     }
@@ -113,6 +114,7 @@ export class Actions extends BaseActions<State> {
     id: string, // id of existing element
     placement: Placement = "bottom"
   ): string | undefined {
+    if (this._syncstring == null) return;
     const element = this._syncstring.get_one({ id })?.toJS();
     if (element == null) return;
     delete element.z; // so it is placed at the top
@@ -145,6 +147,7 @@ export class Actions extends BaseActions<State> {
     cursors?: object[];
     create?: boolean;
   }): void {
+    if (this._syncstring == null) return;
     if (commit == null) commit = true;
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
@@ -227,6 +230,7 @@ export class Actions extends BaseActions<State> {
   }
 
   delete(id: string, commit: boolean = true): void {
+    if(this._syncstring == null) return;
     this._syncstring.delete({ id });
     if (commit) {
       this.syncstring_commit();
@@ -360,16 +364,19 @@ export class Actions extends BaseActions<State> {
   }
 
   undo(_id?: string): void {
+    if(this._syncstring == null) return;
     this._syncstring.undo();
     this._syncstring.commit();
   }
 
   redo(_id?: string): void {
+    if(this._syncstring == null) return;
     this._syncstring.redo();
     this._syncstring.commit();
   }
 
   in_undo_mode(): boolean {
+    if(this._syncstring == null) return false;
     return this._syncstring.in_undo_mode();
   }
 
