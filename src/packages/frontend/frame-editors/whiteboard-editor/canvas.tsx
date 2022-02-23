@@ -875,13 +875,29 @@ export default function Canvas({
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
+      /*
+      NOTE/TODO: we are again scaling/redrawing the *entire* curve every time
+      we get new mouse move.  Curves are pretty small, and the canvas is limited
+      in size, so this is actually working and feels fast on devices I've tried.
+      But it would obviously be better to draw only what is new properly.
+      That said, do that with CARE because I did have one implementation of that
+      and so many lines were drawn on top of each other that highlighting
+      didn't look transparent during the preview.
+
+      The second bad thing about this is that the canvas is covering the entire
+      current span of all elements.  Thus as that gets large, the resolution of
+      the preview goes down further. It would be better to use a canvas that is
+      just over the visible viewport.
+
+      So what we have works fine now, but there's a lot of straightforward but
+      tedious room for improvement to make the preview look perfect as you draw.
+      */
+      clearCanvas({ ctx });
       ctx.restore();
       ctx.save();
       ctx.scale(penDPIFactor, penDPIFactor);
       const path: Point[] = [];
-      for (const point of mousePath.current.slice(
-        mousePath.current.length - 2
-      )) {
+      for (const point of mousePath.current) {
         path.push({
           x: point.x * canvasScaleRef.current,
           y: point.y * canvasScaleRef.current,
