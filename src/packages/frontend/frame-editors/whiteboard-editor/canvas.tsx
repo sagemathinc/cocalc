@@ -680,14 +680,25 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "pen") {
-      mousePath.current = [];
+      const point = getMousePos(e);
+      if (point == null) return;
+      mousePath.current = [point];
       ignoreNextClick.current = true;
       return;
     }
   };
 
   const onTouchStart = (e) => {
+    if (!isNavigator && selectedTool == "hand") {
+      // touch already does hand by default
+      return;
+    }
     onMouseDown(e.touches[0]);
+    // This is needed for all touch events when drawing, since otherwise the
+    // entire page gets selected randomly when doing things.
+    if (selectedTool == "pen") {
+      e.preventDefault();
+    }
   };
 
   const onMouseUp = (e) => {
@@ -796,7 +807,17 @@ export default function Canvas({
   };
 
   const onTouchEnd = (e) => {
+    if (!isNavigator && selectedTool == "hand") return;
     onMouseUp(e);
+    if (selectedTool == "pen") {
+      e.preventDefault();
+    }
+  };
+
+  const onTouchCancel = (e) => {
+    if (selectedTool == "pen") {
+      e.preventDefault();
+    }
   };
 
   // convert from clientX,clientY to unscaled window coordinates,
@@ -836,7 +857,6 @@ export default function Canvas({
       c.scrollLeft = scrollLeft - deltaX;
       return;
     }
-    mousePos.current = { clientX: e.clientX, clientY: e.clientY };
     if (mousePath.current == null) return;
     e.preventDefault?.(); // only makes sense for mouse not touch.
     if (selectedTool == "select" || selectedTool == "frame") {
@@ -880,7 +900,11 @@ export default function Canvas({
   };
 
   const onTouchMove = (e) => {
+    if (!isNavigator && selectedTool == "hand") return;
     onMouseMove(e.touches[0], true);
+    if (selectedTool == "pen") {
+      e.preventDefault();
+    }
   };
 
   return (
@@ -889,14 +913,10 @@ export default function Canvas({
       ref={canvasRef}
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
-        touchAction:
-          selectedTool == "select" || selectedTool == "pen"
-            ? "none"
-            : undefined,
-        userSelect:
-          selectedTool == "hand" || selectedTool == "select"
-            ? "none"
-            : undefined,
+        touchAction: ["select", "pen", "frame"].includes(selectedTool)
+          ? "none"
+          : undefined,
+        userSelect: "none",
         ...style,
       }}
       onClick={(evt) => {
@@ -922,6 +942,7 @@ export default function Canvas({
       onTouchStart={!isNavigator ? onTouchStart : undefined}
       onTouchMove={!isNavigator ? onTouchMove : undefined}
       onTouchEnd={!isNavigator ? onTouchEnd : undefined}
+      onTouchCancel={!isNavigator ? onTouchCancel : undefined}
       onCopy={
         !isNavigator
           ? (event: ClipboardEvent<HTMLDivElement>) => {

@@ -349,6 +349,7 @@ export class Actions extends BaseActions<State> {
   public setSelectedTool(frameId: string, selectedTool: Tool): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
+    this.clearSelection(frameId);
     this.set_frame_tree({
       id: frameId,
       selectedTool,
