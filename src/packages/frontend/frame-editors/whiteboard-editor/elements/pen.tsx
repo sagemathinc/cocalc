@@ -10,10 +10,15 @@ interface Props {
   element: Element;
 }
 
-const DPIFactor = 4;
+const DPIFactor = window.devicePixelRatio;
+
+// This is enforced by iPad/iOS... but is probably a good idea in general
+// to avoid using too much memory and making things slow.
+const MAX_CANVAS_SIZE = 4096;
 
 export default function Pen({ element }: Props) {
   const canvasRef = useRef<any>(null);
+  const scaleRef = useRef<number>(1);
   // We pad to shift things just a little so that parts of the curve that
   // are right on the edge of the canvas don't get partially truncated.
   // I tried doing this at various points in "the pipeline", and here at
@@ -45,21 +50,33 @@ export default function Pen({ element }: Props) {
     clearCanvas({ ctx });
     drawCurve({
       ctx,
-      path: decompressPath(path),
+      path: decompressPath(path, scaleRef.current),
       color: color ?? "black",
       radius: radius ?? 1,
       opacity,
+      scale: scaleRef.current,
     });
   }, [element]);
 
   const w = (element.w ?? 100) + 2 * pad;
   const h = (element.h ?? 100) + 2 * pad;
+  let scale;
+  if (w * DPIFactor <= MAX_CANVAS_SIZE && w * DPIFactor <= MAX_CANVAS_SIZE) {
+    scale = 1;
+  } else {
+    if (w >= h) {
+      scale = MAX_CANVAS_SIZE / (w * DPIFactor);
+    } else {
+      scale = MAX_CANVAS_SIZE / (h * DPIFactor);
+    }
+  }
+  scaleRef.current = scale;
   return (
     <div>
       <canvas
         ref={canvasRef}
-        width={w * DPIFactor}
-        height={h * DPIFactor}
+        width={scale * w * DPIFactor}
+        height={scale * h * DPIFactor}
         style={{
           width: `${w}px`,
           height: `${h}px`,
@@ -82,12 +99,14 @@ export function drawCurve({
   color,
   radius,
   opacity,
+  scale = 1,
 }: {
   ctx;
   path: Point[];
   color?: string;
   radius?: number;
   opacity?: number;
+  scale?: number;
 }) {
   // There's some useful MIT licensed code at https://github.com/embiem/react-canvas-draw
   // that inspired this.
@@ -99,7 +118,7 @@ export function drawCurve({
     ctx.globalAlpha = opacity;
   }
 
-  ctx.lineWidth = 2 * (radius ?? 0.5);
+  ctx.lineWidth = 2 * (radius ?? 0.5) * scale;
 
   let p1 = path[0];
   let p2 = path[1];

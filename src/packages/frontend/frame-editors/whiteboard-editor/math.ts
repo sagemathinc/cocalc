@@ -135,10 +135,20 @@ export function compressPath(path: Point[]): number[] {
   return v;
 }
 
-export function decompressPath(compressedPath: number[]): Point[] {
+export function decompressPath(compressedPath: number[], scale = 1): Point[] {
   const path: Point[] = [];
-  for (let i = 0; i < compressedPath.length; i += 2) {
-    path.push({ x: compressedPath[i], y: compressedPath[i + 1] });
+  if (scale == 1) {
+    // just in case the JIT is dumb?
+    for (let i = 0; i < compressedPath.length; i += 2) {
+      path.push({ x: compressedPath[i], y: compressedPath[i + 1] });
+    }
+  } else {
+    for (let i = 0; i < compressedPath.length; i += 2) {
+      path.push({
+        x: compressedPath[i] * scale,
+        y: compressedPath[i + 1] * scale,
+      });
+    }
   }
   return path;
 }
