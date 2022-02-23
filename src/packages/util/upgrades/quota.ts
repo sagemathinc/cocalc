@@ -178,6 +178,11 @@ export function isLicenseStatus(status?: unknown): status is LicenseStatus {
   return LicenseStatusOptions[status] != null;
 }
 
+export function licenseStatusProvidesUpgrades(status?: LicenseStatus) {
+  if (status == null) return false;
+  return status === "active" || status === "valid";
+}
+
 // it could be null in the moment when a license is removed via the UI
 export type QuotaSetting =
   | ((Upgrades | SiteLicenseQuotaSetting | {}) & { status?: LicenseStatus })

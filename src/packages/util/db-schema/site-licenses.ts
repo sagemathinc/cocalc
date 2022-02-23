@@ -22,12 +22,25 @@ import { Table } from "./types";
 import { SCHEMA } from "./index";
 import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
 import { SiteLicenseQuota } from "../types/site-licenses";
-import { LicenseIdleTimeouts } from "../consts/site-license";
+import {
+  LicenseIdleTimeouts,
+  untangleUptime,
+  Uptime,
+} from "../consts/site-license";
 
 export function describe_quota(
-  quota: SiteLicenseQuota,
+  quota: SiteLicenseQuota & { uptime?: Uptime },
   short?: boolean
 ): string {
+  // regarding quota.uptime: it is assumed that all calls already query using the schema defined
+  // in SiteLicenseQuota, but if not, we untangle the uptime field.
+  if (quota.uptime != null) {
+    const { always_running, idle_timeout } = untangleUptime(quota.uptime);
+    quota.always_running = always_running;
+    quota.idle_timeout = idle_timeout;
+    delete quota.uptime;
+  }
+
   let desc: string = "";
   if (!short) {
     desc =

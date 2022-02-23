@@ -28,6 +28,7 @@ import {
   LicenseStatus,
   isLicenseStatus,
   LicenseStatusOptions,
+  licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
@@ -489,18 +490,18 @@ const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   >(false);
   const user_map = useTypedRedux("users", "user_map");
 
-  function getLicenseStatus(): LicenseStatus | null {
+  function getLicenseStatus(): LicenseStatus | undefined {
     const status = upgrades?.get("status");
     if (isLicenseStatus(status)) {
       return status;
     } else {
-      return null;
+      return;
     }
   }
 
   // in doubt, we assume the best and the license is valid
   const license_status = getLicenseStatus();
-  const provides_upgrades = license_status === "valid";
+  const provides_upgrades = licenseStatusProvidesUpgrades(license_status);
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of

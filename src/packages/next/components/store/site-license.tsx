@@ -392,7 +392,7 @@ function CreateLicense() {
         <Form.Item
           label="GB shared RAM"
           name="ram"
-          initialValue={1}
+          initialValue={2}
           extra={
             showExplanations ? (
               <>
@@ -416,7 +416,7 @@ function CreateLicense() {
               onChange();
             }}
             units={"GB RAM"}
-            presets={[1, 2, 8, 16]}
+            presets={[1, 2, 3, 4, 8, 16]}
           />
         </Form.Item>{" "}
         <Form.Item

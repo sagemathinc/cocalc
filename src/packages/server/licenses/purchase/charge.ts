@@ -8,7 +8,10 @@ import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { getLogger } from "@cocalc/backend/logger";
-import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
+import {
+  LicenseIdleTimeoutsKeysOrdered,
+  untangleUptime,
+} from "@cocalc/util/consts/site-license";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -100,6 +103,9 @@ function getProductName(info): string {
   } else {
     period = "subscription";
   }
+
+  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
+
   let desc = describe_quota({
     user: info.user,
     ram: info.custom_ram,
@@ -108,7 +114,8 @@ function getProductName(info): string {
     dedicated_cpu: info.custom_dedicated_cpu,
     disk: info.custom_disk,
     member: info.custom_member,
-    always_running: info.always_running,
+    always_running,
+    idle_timeout,
   });
   desc += " - " + period;
   return desc;
@@ -122,7 +129,7 @@ function getProductMetadata(info): object {
     dedicated_ram: info.custom_dedicated_ram,
     dedicated_cpu: info.custom_dedicated_cpu,
     disk: info.custom_disk,
-    always_running: info.custom_always_running,
+    uptime: info.custom_uptime,
     member: info.custom_member,
     subscription: info.subscription,
     start: info.start?.toISOString(),
