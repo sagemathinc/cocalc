@@ -23,7 +23,7 @@ export default function Pen({ element }: Props) {
   // are right on the edge of the canvas don't get partially truncated.
   // I tried doing this at various points in "the pipeline", and here at
   // the renderer is optimal.
-  const pad = 2 * (element.data?.["radius"] ?? 1);
+  const pad = 2 * (element.data?.["radius"] ?? 1) * scaleRef.current;
 
   useEffect(() => {
     const canvas = canvasRef.current;

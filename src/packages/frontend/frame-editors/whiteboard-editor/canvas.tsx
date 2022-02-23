@@ -98,9 +98,7 @@ import { aspectRatioToNumber } from "./tools/frame";
 
 import Cursors from "./cursors";
 
-// I can't get this to work! :-(
-// When I can, this should be window.devicePixelRatio
-const penDPIFactor = 1;
+const penDPIFactor = window.devicePixelRatio;
 
 const MIDDLE_MOUSE_BUTTON = 1;
 
@@ -183,12 +181,6 @@ export default function Canvas({
   } | null>(null);
 
   const penCanvasRef = useRef<any>(null);
-  useEffect(() => {
-    const canvas = penCanvasRef.current;
-    if (canvas == null) return;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(penDPIFactor, penDPIFactor);
-  }, []);
 
   // Whenever the data <--> window transform params change,
   // ensure the current center of the viewport is preserved,
@@ -864,9 +856,12 @@ export default function Canvas({
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
+      ctx.restore();
+      ctx.save();
+      ctx.scale(penDPIFactor, penDPIFactor);
       const path: Point[] = [];
       for (const point of mousePath.current.slice(
-        mousePath.current.length - 3
+        mousePath.current.length - 2
       )) {
         path.push({
           x: point.x * canvasScaleRef.current,
