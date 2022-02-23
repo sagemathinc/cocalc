@@ -52,8 +52,8 @@ import {
   MarkdownInput,
   Space,
   Tip,
-  WindowedList,
 } from "../../components";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 import { STEPS, step_direction, step_verb, step_ready } from "../util";
 
@@ -256,17 +256,12 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
         return this.render_no_assignments();
       }
       return (
-        <WindowedList
-          overscan_row_count={3}
-          estimated_row_size={50}
-          row_count={assignments.length}
-          row_renderer={({ key, index }) => this.render_assignment(key, index)}
-          row_key={(index) =>
-            assignments[index] != null
-              ? assignments[index].assignment_id
-              : undefined
-          }
-          cache_id={`course-assignments-${this.props.name}-${this.props.frame_id}`}
+        <ScrollableList
+          windowing={util.windowing(50)}
+          rowCount={assignments.length}
+          rowRenderer={({ key, index }) => this.render_assignment(key, index)}
+          rowKey={(index) => assignments[index]?.assignment_id ?? ""}
+          cacheId={`course-assignments-${this.props.name}-${this.props.frame_id}`}
         />
       );
     }
@@ -1822,13 +1817,12 @@ class StudentListForAssignment extends Component<StudentListForAssignmentProps> 
   private render_students(): Rendered {
     const info = this.get_student_list();
     return (
-      <WindowedList
-        overscan_row_count={3}
-        estimated_row_size={65}
-        row_count={info.length}
-        row_renderer={({ key }) => this.render_student_info(key)}
-        row_key={(index) => this.get_student_list()[index]}
-        cache_id={`course-assignment-${this.props.assignment.get(
+      <ScrollableList
+        windowing={util.windowing(65)}
+        rowCount={info.length}
+        rowRenderer={({ key }) => this.render_student_info(key)}
+        rowKey={(index) => this.get_student_list()[index]}
+        cacheId={`course-assignment-${this.props.assignment.get(
           "assignment_id"
         )}-${this.props.name}-${this.props.frame_id}`}
       />

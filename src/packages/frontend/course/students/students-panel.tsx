@@ -8,6 +8,7 @@ import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 import { keys } from "underscore";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 // React libraries and components
 import {
@@ -30,14 +31,7 @@ import {
 import { Alert, Row, Col } from "antd";
 
 // CoCalc components
-import {
-  SearchInput,
-  WindowedList,
-  ErrorDisplay,
-  Icon,
-  Space,
-  Tip,
-} from "../../components";
+import { SearchInput, ErrorDisplay, Icon, Space, Tip } from "../../components";
 
 import * as util from "../util";
 import { ProjectMap, UserMap } from "../../todo-types";
@@ -750,11 +744,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return student as any;
     }
 
-    private render_student(student_id: string, index: number): Rendered {
+    private render_student(student_id: string, index: number) {
       const x = this.get_student_list().students[index];
-      if (x == null) return;
+      if (x == null) return null;
       const store = this.get_actions().get_store();
-      if (store == null) return;
+      if (store == null) return null;
       const name: StudentNameDescription = {
         full: store.get_student_name(x.student_id),
         first: x.first_name,
@@ -785,15 +779,14 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         return this.render_no_students();
       }
       return (
-        <WindowedList
-          overscan_row_count={5}
-          estimated_row_size={37}
-          row_count={students.length}
-          row_renderer={({ key, index }) => this.render_student(key, index)}
-          row_key={(index) =>
+        <ScrollableList
+          rowCount={students.length}
+          rowRenderer={({ key, index }) => this.render_student(key, index)}
+          rowKey={(index) =>
             students[index] != null ? students[index].student_id : undefined
           }
-          cache_id={`course-student-${this.props.name}-${this.props.frame_id}`}
+          cacheId={`course-student-${this.props.name}-${this.props.frame_id}`}
+          windowing={util.windowing(37)}
         />
       );
     }
