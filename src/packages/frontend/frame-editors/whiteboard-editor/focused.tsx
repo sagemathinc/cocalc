@@ -184,6 +184,7 @@ export default function Focused({
               bottom: `-${OFFSET / canvasScale}px`,
               left: `-${OFFSET / canvasScale}px`,
               transform: `scale(${1 / canvasScale})`,
+              pointerEvents: "all",
             }}
             name="reload"
           />
@@ -205,6 +206,7 @@ export default function Focused({
             left: `-${OFFSET / canvasScale}px`,
             visibility: isChanging ? "hidden" : undefined,
             transform: `scale(${1 / canvasScale})`,
+            pointerEvents: "all",
           }}
         />
       </Tooltip>
@@ -214,17 +216,30 @@ export default function Focused({
   const scale_y = element.h ? (element.h + offset.h) / element.h : 1;
 
   return (
-    <Position x={t.x} y={t.y} z={MAX_ELEMENTS + 1} w={pos.w} h={pos.h}>
+    <Position
+      x={t.x}
+      y={t.y}
+      z={MAX_ELEMENTS + 1}
+      w={pos.w}
+      h={pos.h}
+      style={
+        selectedElements.length == 1 &&
+        ["pen", "frame", "icon"].includes(selectedElements[0].type)
+          ? {
+              pointerEvents: "none", // otherwise entire element is blocked by this div
+            }
+          : undefined
+      }
+    >
       <div
         style={{
           visibility: isChanging ? "hidden" : undefined,
         }}
       >
-        <Cursors cursors={cursors} canvasScale={canvasScale}/>
+        <Cursors cursors={cursors} canvasScale={canvasScale} />
         {RotateControl}
         <div
           style={{
-            pointerEvents: "none", // otherwise entire element is blocked by this div
             zIndex: MAX_ELEMENTS + 2,
             position: "absolute",
             width: "100%",
@@ -235,6 +250,7 @@ export default function Focused({
                   transformOrigin: "center",
                 }
               : undefined),
+            pointerEvents: "none", // otherwise entire element is blocked by this div
           }}
         >
           {resizeHandles}
@@ -248,6 +264,7 @@ export default function Focused({
             left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
+            pointerEvents: "all",
           }}
         >
           <EditBar

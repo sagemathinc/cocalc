@@ -27,7 +27,6 @@ export default function LockButton({ elements }: Props) {
     </Button>
   );
   if (locked) {
-    console.log("wrapping in popconfirm");
     return (
       <Popconfirm
         title={"Unlock this?"}

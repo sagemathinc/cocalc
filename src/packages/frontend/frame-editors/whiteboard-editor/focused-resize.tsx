@@ -55,7 +55,7 @@ export default function DragHandle({
   }
 
   const style = {
-    pointerEvents: "all", // because we turn off pointer events for containing div
+    pointerEvents: "all", // because we sometimes turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],
     position: "absolute",
     background: "white",
