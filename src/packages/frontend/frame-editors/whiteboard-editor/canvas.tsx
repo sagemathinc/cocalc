@@ -717,7 +717,6 @@ export default function Canvas({
           const data = getToolParams("frame");
           if (data.aspectRatio) {
             const ar = aspectRatioToNumber(data.aspectRatio);
-            console.log("ar", ar);
             if (ar != 0) {
               rect.h = rect.w / ar;
             }
@@ -797,7 +796,7 @@ export default function Canvas({
   };
 
   const onTouchEnd = (e) => {
-    onMouseUp(e.touches[0]);
+    onMouseUp(e);
   };
 
   // convert from clientX,clientY to unscaled window coordinates,
@@ -890,7 +889,10 @@ export default function Canvas({
       ref={canvasRef}
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
-        touchAction: selectedTool == "pen" ? "none" : undefined,
+        touchAction:
+          selectedTool == "select" || selectedTool == "pen"
+            ? "none"
+            : undefined,
         userSelect:
           selectedTool == "hand" || selectedTool == "select"
             ? "none"

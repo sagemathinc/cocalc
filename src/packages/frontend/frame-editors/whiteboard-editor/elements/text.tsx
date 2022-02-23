@@ -84,7 +84,11 @@ function EditText({
 
   return (
     <div
-      style={{ ...getStyle(element), padding: PADDING, height: "100%" }}
+      style={{
+        ...getStyle(element),
+        padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
+        height: "100%",
+      }}
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
@@ -112,7 +116,9 @@ function EditText({
             // loop because sometimes when the change fires the dom
             // hasn't updated the height of the containing div yet,
             // so we end up setting the height 1 step behind reality.
-            const height = editorDivRef.current?.offsetHeight;
+            const elt = editorDivRef.current;
+            if (elt == null) return;
+            const height = elt.offsetHeight;
             if (height != null) {
               if (element.h != height) {
                 actions.setElement({
