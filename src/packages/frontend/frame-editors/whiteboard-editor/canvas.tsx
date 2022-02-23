@@ -88,7 +88,7 @@ import {
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
-import { clearCanvas, drawCurve } from "./elements/pen";
+import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 
 import { getParams } from "./tools/tool-panel";
 
@@ -98,7 +98,9 @@ import { aspectRatioToNumber } from "./tools/frame";
 
 import Cursors from "./cursors";
 
-const penDPIFactor = 1; // I can't get this to work! :-(
+// I can't get this to work! :-(
+// When I can, this should be window.devicePixelRatio
+const penDPIFactor = 1;
 
 const MIDDLE_MOUSE_BUTTON = 1;
 
@@ -145,10 +147,20 @@ export default function Canvas({
 
   const navDrag = useRef<null | { x0: number; y0: number }>(null);
   const innerCanvasRef = useRef<any>(null);
-  const transforms = useMemo(
-    () => getTransforms(elements, margin, canvasScale),
-    [elements, margin, canvasScale]
-  );
+
+  const canvasScaleRef = useRef<number>(1);
+  const transforms = useMemo(() => {
+    const t = getTransforms(elements, margin, canvasScale);
+    // also update the canvas scale, which is needed to keep
+    // the canvas preview layer (for the pen) from getting too big
+    // and wasting memory.
+    canvasScaleRef.current = getMaxCanvasSizeScale(
+      penDPIFactor * t.width,
+      penDPIFactor * t.height
+    );
+    return t;
+  }, [elements, margin, canvasScale]);
+
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
     scrollLeft: number;
@@ -852,10 +864,22 @@ export default function Canvas({
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
+      const path: Point[] = [];
+      for (const point of mousePath.current.slice(
+        mousePath.current.length - 3
+      )) {
+        path.push({
+          x: point.x * canvasScaleRef.current,
+          y: point.y * canvasScaleRef.current,
+        });
+      }
+      const { color, radius, opacity } = getToolParams("pen");
       drawCurve({
         ctx,
-        path: mousePath.current.slice(mousePath.current.length - 2),
-        ...getToolParams("pen"),
+        path,
+        color,
+        radius: canvasScaleRef.current * radius,
+        opacity,
       });
       return;
     }
@@ -978,8 +1002,8 @@ export default function Canvas({
         {!isNavigator && selectedTool == "pen" && (
           <canvas
             ref={penCanvasRef}
-            width={penDPIFactor * transforms.width}
-            height={penDPIFactor * transforms.height}
+            width={canvasScaleRef.current * penDPIFactor * transforms.width}
+            height={canvasScaleRef.current * penDPIFactor * transforms.height}
             style={{
               width: `${transforms.width}px`,
               height: `${transforms.height}px`,

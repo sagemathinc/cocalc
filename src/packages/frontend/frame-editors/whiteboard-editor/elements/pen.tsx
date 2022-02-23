@@ -52,31 +52,20 @@ export default function Pen({ element }: Props) {
       ctx,
       path: decompressPath(path, scaleRef.current),
       color: color ?? "black",
-      radius: radius ?? 1,
+      radius: (radius ?? 1) * scaleRef.current,
       opacity,
-      scale: scaleRef.current,
     });
   }, [element]);
 
   const w = (element.w ?? 100) + 2 * pad;
   const h = (element.h ?? 100) + 2 * pad;
-  let scale;
-  if (w * DPIFactor <= MAX_CANVAS_SIZE && w * DPIFactor <= MAX_CANVAS_SIZE) {
-    scale = 1;
-  } else {
-    if (w >= h) {
-      scale = MAX_CANVAS_SIZE / (w * DPIFactor);
-    } else {
-      scale = MAX_CANVAS_SIZE / (h * DPIFactor);
-    }
-  }
-  scaleRef.current = scale;
+  scaleRef.current = getMaxCanvasSizeScale(w * DPIFactor, h * DPIFactor);
   return (
     <div>
       <canvas
         ref={canvasRef}
-        width={scale * w * DPIFactor}
-        height={scale * h * DPIFactor}
+        width={scaleRef.current * w * DPIFactor}
+        height={scaleRef.current * h * DPIFactor}
         style={{
           width: `${w}px`,
           height: `${h}px`,
@@ -99,14 +88,12 @@ export function drawCurve({
   color,
   radius,
   opacity,
-  scale = 1,
 }: {
   ctx;
   path: Point[];
   color?: string;
   radius?: number;
   opacity?: number;
-  scale?: number;
 }) {
   // There's some useful MIT licensed code at https://github.com/embiem/react-canvas-draw
   // that inspired this.
@@ -118,7 +105,7 @@ export function drawCurve({
     ctx.globalAlpha = opacity;
   }
 
-  ctx.lineWidth = 2 * (radius ?? 0.5) * scale;
+  ctx.lineWidth = 2 * (radius ?? 0.5);
 
   let p1 = path[0];
   let p2 = path[1];
@@ -137,4 +124,18 @@ export function drawCurve({
   // Draw last line as a straight line.
   ctx.lineTo(p1.x, p1.y);
   ctx.stroke();
+}
+
+// Return a single scalar so that multiplying by it transforms
+// coordinates
+export function getMaxCanvasSizeScale(w: number, h: number): number {
+  if (w <= MAX_CANVAS_SIZE && w <= MAX_CANVAS_SIZE) {
+    return 1;
+  } else {
+    if (w >= h) {
+      return MAX_CANVAS_SIZE / w;
+    } else {
+      return MAX_CANVAS_SIZE / h;
+    }
+  }
 }
