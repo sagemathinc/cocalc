@@ -6,6 +6,7 @@ but in a way that is always present and with an additional
 high level map view.
 */
 
+import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
 import { ReactNode, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
@@ -57,7 +58,7 @@ const TOOLS = {
     },
   },
   zoom100: {
-    width: "45px",
+    width: "60px",
     icon: (fontSize) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
     tip: "Zoom to 100%",
     click: (actions, id) => {
@@ -104,7 +105,10 @@ export default function Navigation({ fontSize, elements }: Props) {
           display: "flex",
           flexDirection: "column",
           right: 0,
-          bottom: 0,
+          bottom:
+            IS_IOS || IS_IPAD
+              ? 30
+              : 0 /* hack due to bottom of screen gets scrolled away on ios */,
           width: `${width}px`,
           height: `${BAR_HEIGHT + (showMap ? height : 0)}px`,
         }}
