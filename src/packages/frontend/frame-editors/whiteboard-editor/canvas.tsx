@@ -309,14 +309,19 @@ export default function Canvas({
         x: rect.x + rect.w / 2 - offset,
         y: rect.y + rect.h / 2,
       });
-      const { scale } = fitRectToRect(rect, viewport);
+      let { scale } = fitRectToRect(rect, viewport);
       if (scale != 1) {
+        // put bounds on the *automatic* zoom we get from fitting to rect,
+        // since could easily get something totally insane, e.g., for a dot.
+        let newFontSize = Math.floor((font_size ?? ZOOM100) * scale);
+        if (newFontSize < ZOOM100 * 0.2) {
+          newFontSize = Math.round(ZOOM100 * 0.2);
+        } else if (newFontSize > ZOOM100 * 5) {
+          newFontSize = Math.round(ZOOM100 * 5);
+        }
         // ensure lastViewport is up to date before zooming.
         lastViewport.current = getViewportData();
-        frame.actions.set_font_size(
-          frame.id,
-          Math.floor((font_size ?? ZOOM100) * scale)
-        );
+        frame.actions.set_font_size(frame.id, newFontSize);
       }
     } finally {
       frame.actions.fitToScreen(frame.id, false);
@@ -756,8 +761,14 @@ export default function Canvas({
           return;
         }
         ignoreNextClick.current = true;
-        const toData = ({ x, y }) =>
-          pointRound(transforms.windowToDataNoScale(x, y));
+        // Rounding makes things look really bad when zoom is much greater
+        // than 100%, so if user is zoomed in doing something precise, we
+        // preserve the full points.
+        const toData =
+          font_size <= ZOOM100
+            ? ({ x, y }) => pointRound(transforms.windowToDataNoScale(x, y))
+            : ({ x, y }) => transforms.windowToDataNoScale(x, y);
+
         const { x, y } = toData(mousePath.current[0]);
         let xMin = x,
           xMax = x;
