@@ -211,13 +211,14 @@ function Radius({ actions, elements }: ButtonProps) {
     <Tooltip title="Radius (pixels)">
       <InputNumber
         style={{
-          width: "64px",
+          width: "70px",
           fontSize: "20px",
           color: "#666",
           paddingTop: "4px",
         }}
         min={0}
         max={maxRadius}
+        step={0.5}
         defaultValue={getRadius(elements)}
         onChange={(radius) => {
           // If radius is 0 we set radius to null, hence removing it, so will fallback to default value.
