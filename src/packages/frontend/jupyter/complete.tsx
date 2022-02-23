@@ -90,10 +90,10 @@ export function Complete({ actions, id, complete }: Props) {
       cursor: "pointer",
       top: top + "px",
       left: left + gutter + "px",
-      opacity: 0.95,
       zIndex: 10,
       width: 0,
       height: 0,
+      position: "absolute",
     };
   }
 

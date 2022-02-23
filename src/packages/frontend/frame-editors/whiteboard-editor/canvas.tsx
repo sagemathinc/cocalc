@@ -765,7 +765,7 @@ export default function Canvas({
         // than 100%, so if user is zoomed in doing something precise, we
         // preserve the full points.
         const toData =
-          font_size <= ZOOM100
+          fontSizeToZoom(font_size) < 1
             ? ({ x, y }) => pointRound(transforms.windowToDataNoScale(x, y))
             : ({ x, y }) => transforms.windowToDataNoScale(x, y);
 
@@ -919,7 +919,7 @@ export default function Canvas({
         ctx,
         path,
         color,
-        radius: canvasScaleRef.current * radius,
+        radius: canvasScaleRef.current * (radius ?? 1),
         opacity,
       });
       return;
@@ -940,9 +940,11 @@ export default function Canvas({
       ref={canvasRef}
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
-        touchAction: ["select", "pen", "frame"].includes(selectedTool)
-          ? "none"
-          : undefined,
+        touchAction:
+          typeof selectedTool == "string" &&
+          ["select", "pen", "frame"].includes(selectedTool)
+            ? "none"
+            : undefined,
         userSelect: "none",
         ...style,
       }}

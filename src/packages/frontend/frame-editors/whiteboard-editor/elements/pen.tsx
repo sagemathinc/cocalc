@@ -10,7 +10,12 @@ interface Props {
   element: Element;
 }
 
-const DPIFactor = window.devicePixelRatio;
+// this code is also run on the backend via nextjs for share server.
+declare var window;
+let DPIFactor = 1;
+try {
+  DPIFactor = window.devicePixelRatio;
+} catch (_err) {}
 
 // This is enforced by iPad/iOS... but is probably a good idea in general
 // to avoid using too much memory and making things slow.
