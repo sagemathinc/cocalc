@@ -6,7 +6,7 @@ import { ChatInput } from "@cocalc/frontend/chat/input";
 import { useFrameContext } from "../hooks";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
-import { Comment } from "antd";
+import { Button, Comment, Tooltip } from "antd";
 import { trunc_middle } from "@cocalc/util/misc";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -42,7 +42,7 @@ function Conversation({ element, focused }: Props) {
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
       {focused && (
-        <div style={{ height: "125px" }} className="nodrag">
+        <div style={{ height: "125px", display: "flex" }} className="nodrag">
           <ChatInput
             hideHelp
             height={"123px"}
@@ -52,7 +52,20 @@ function Conversation({ element, focused }: Props) {
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}
+            style={{ flex: 1 }}
           />
+          <Tooltip title="Send message (shift+enter)">
+            <Button
+              type="primary"
+              style={{ height: "100%", marginLeft: "5px" }}
+              onClick={() => {
+                actions.sendChat({ id: element.id, input });
+                setInput("");
+              }}
+            >
+              Send
+            </Button>
+          </Tooltip>
         </div>
       )}
     </div>

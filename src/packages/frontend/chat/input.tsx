@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CSSProperties } from "react";
 import { useRedux } from "../app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
@@ -17,6 +18,7 @@ interface Props {
   submitMentionsRef?: any;
   font_size?: number;
   hideHelp?: boolean;
+  style?: CSSProperties;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -44,6 +46,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       lineWrapping={true}
       hideHelp={props.hideHelp}
       autoFocus
+      style={props.style}
     />
   );
 };
