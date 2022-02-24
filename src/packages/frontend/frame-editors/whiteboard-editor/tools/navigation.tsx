@@ -96,6 +96,7 @@ export default function Navigation({ fontSize, elements }: Props) {
   }
   v.push(
     <Slider
+      key="slider"
       style={{ flex: 1 }}
       value={Math.round(100 * fontSizeToZoom(fontSize))}
       min={20}

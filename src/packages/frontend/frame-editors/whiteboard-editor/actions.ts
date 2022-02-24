@@ -31,7 +31,8 @@ import {
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
 import runCode from "./elements/code/run";
-import { lastMessageNumber } from "./elements/chat";
+import { getName } from "./elements/chat";
+import { lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import { pasteElements } from "./tools/edit-bar";
 
@@ -560,6 +561,11 @@ export class Actions extends BaseActions<State> {
     }
     const time = new Date().valueOf();
     const sender_id = this.redux.getStore("account").get_account_id();
+    // We also record (reasonably truncated) sender name, just in case
+    // they are no longer a collaborator with user who is looking at
+    // some version of this chat in the future.  Also, for public rendering,
+    // it is nice to have this.  Of course, user could change their name.
+    const sender_name = getName(sender_id);
     const last = lastMessageNumber(element);
     if (last >= 0) {
       // Check for case of multiple messages from the same sender in a row.
@@ -577,6 +583,7 @@ export class Actions extends BaseActions<State> {
               input: lastMessage.input + "\n\n" + input,
               time,
               sender_id,
+              sender_name,
             },
           },
           commit: true,
@@ -593,6 +600,7 @@ export class Actions extends BaseActions<State> {
           input,
           time,
           sender_id,
+          sender_name,
         },
       },
       commit: true,
