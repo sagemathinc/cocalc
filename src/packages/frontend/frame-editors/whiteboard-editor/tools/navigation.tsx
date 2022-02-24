@@ -9,7 +9,7 @@ high level map view.
 import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
 import { ReactNode, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { Button, Tooltip } from "antd";
+import { Button, Slider, Tooltip } from "antd";
 import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
 import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS, ZOOM100 } from "../math";
@@ -88,13 +88,24 @@ export default function Navigation({ fontSize, elements }: Props) {
     x: 0,
     y: 0,
   });
-  const { desc } = useFrameContext();
+  const { actions, desc, id } = useFrameContext();
   const width = desc.get("navWidth") ?? MAP_WIDTH;
   const height = desc.get("navHeight") ?? MAP_HEIGHT;
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     v.push(<Tool key={tool} tool={tool} fontSize={fontSize} />);
   }
+  v.push(
+    <Slider
+      style={{ flex: 1 }}
+      value={Math.round(100 * fontSizeToZoom(fontSize))}
+      min={20}
+      max={500}
+      onChange={(value) => {
+        actions.set_font_size(id, Math.round((ZOOM100 * value) / 100));
+      }}
+    />
+  );
   const showMap = !desc.get("hideMap") && elements != null;
   return (
     <>
