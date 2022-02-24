@@ -29,6 +29,11 @@ export default async function run({
     set({ state: cell.get("state"), output: cell.get("output")?.toJS() });
     if (cell.get("state") == "done") {
       store.removeListener("change", onChange);
+      // Useful for debugging since can then open the ipynb and see.
+      // However, NOT needed normally.  We might even come up with
+      // a way to make everything ephemeral...  On the other hand,
+      // saving properly could be useful for output images in published docs, etc.
+      jupyter_actions.syncdb.save();
     }
   }
   store.on("change", onChange);
