@@ -486,22 +486,15 @@ export default function Canvas({
           key="nav"
           position={{ x: 0, y: 0 }}
           scale={canvasScale}
-          onStart={(evt: MouseEvent) => {
-            // dragging also causes a click and
-            // the point of this is to prevent the click
-            // centering the rectangle. Also, we need the delta.
-            navDrag.current = { x0: evt.clientX, y0: evt.clientY };
+          onStart={() => {
+            ignoreNextClick.current = true;
           }}
-          onStop={(evt: MouseEvent) => {
-            if (!navDrag.current) return;
-            const { x0, y0 } = navDrag.current;
-            const visible = frame.desc.get("viewport")?.toJS();
+          onStop={(_, data) => {
             if (visible == null) return;
-            const ctr = centerOfRect(visible);
-            const { x, y } = evt;
+            const { x, y } = centerOfRect(visible);
             frame.actions.setViewportCenter(frame.id, {
-              x: ctr.x + (x - x0) / canvasScale,
-              y: ctr.y + (y - y0) / canvasScale,
+              x: x + data.x,
+              y: y + data.y,
             });
           }}
         >
@@ -570,6 +563,11 @@ export default function Canvas({
 
   // convert mouse event to coordinates in data space
   function evtToData(e): Point {
+    if (e.changedTouches?.length > 0) {
+      e = e.changedTouches[0];
+    } else if (e.touches?.length > 0) {
+      e = e.touches[0];
+    }
     const { clientX: x, clientY: y } = e;
     return windowToData(viewportToWindow({ x, y }));
   }
@@ -951,8 +949,8 @@ export default function Canvas({
       onClick={(evt) => {
         mousePath.current = null;
         if (isNavigator) {
-          if (navDrag.current) {
-            navDrag.current = null;
+          if (ignoreNextClick.current) {
+            ignoreNextClick.current = false;
             return;
           }
           frame.actions.setViewportCenter(frame.id, evtToData(evt));
