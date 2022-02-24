@@ -20,44 +20,27 @@ for students).
 import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
+import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
+import { SiteLicenseQuota } from "../types/site-licenses";
 import {
-  DedicatedDisk,
-  DedicatedVM,
-  dedicated_disk_display,
-} from "@cocalc/util/types/dedicated";
+  LicenseIdleTimeouts,
+  untangleUptime,
+  Uptime,
+} from "../consts/site-license";
 
-export interface Quota {
-  ram?: number;
-  dedicated_ram?: number;
-  cpu?: number;
-  dedicated_cpu?: number;
-  disk?: number;
-  always_running?: boolean;
-  member?: boolean;
-  user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | boolean;
-  dedicated_disk?: DedicatedDisk;
-}
+export function describe_quota(
+  quota: SiteLicenseQuota & { uptime?: Uptime },
+  short?: boolean
+): string {
+  // regarding quota.uptime: it is assumed that all calls already query using the schema defined
+  // in SiteLicenseQuota, but if not, we untangle the uptime field.
+  if (quota.uptime != null) {
+    const { always_running, idle_timeout } = untangleUptime(quota.uptime);
+    quota.always_running = always_running;
+    quota.idle_timeout = idle_timeout;
+    delete quota.uptime;
+  }
 
-// For typescript use of these from user side, we make this available:
-export interface SiteLicense {
-  id: string;
-  title?: string;
-  description?: string;
-  info?: object;
-  expires?: Date;
-  activates?: Date;
-  created: Date;
-  last_used?: Date;
-  managers?: string[];
-  restricted?: boolean;
-  upgrades?: object;
-  quota?: Quota;
-  run_limit?: number;
-  apply_limit?: number;
-}
-
-export function describe_quota(quota: Quota, short?: boolean): string {
   let desc: string = "";
   if (!short) {
     desc =
@@ -105,6 +88,13 @@ export function describe_quota(quota: Quota, short?: boolean): string {
   }
   if (quota.always_running) {
     v.push("always running");
+  } else {
+    if (quota.idle_timeout != null) {
+      const it = LicenseIdleTimeouts[quota.idle_timeout];
+      if (it != null) {
+        v.push(`${it.label} timeout`);
+      }
+    }
   }
   v.push("network"); // always provided, because we trust customers.
   desc += v.join(", ");

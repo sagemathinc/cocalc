@@ -11,7 +11,7 @@ query for everything for account with cancelled if everything they decided not t
 */
 
 import { Table } from "./types";
-import { Quota } from "./site-licenses";
+import { SiteLicenseQuota as Quota } from "../types/site-licenses";
 
 export type ProductType = "site-license";
 export type ProductDescription = Quota; // just for now.

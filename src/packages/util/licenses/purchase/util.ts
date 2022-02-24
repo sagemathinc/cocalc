@@ -4,9 +4,19 @@
  */
 
 import { isEqual } from "lodash";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import {
+  DedicatedDisk,
+  DedicatedDiskTypeNames,
+  DedicatedVM,
+} from "@cocalc/util/types/dedicated";
 import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import { dedicatedPrice } from "./dedicated";
+import {
+  LicenseIdleTimeouts,
+  requiresMemberhosting,
+  Uptime,
+} from "../../consts/site-license";
+import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -44,8 +54,8 @@ export interface PurchaseInfo {
   custom_cpu: number;
   custom_dedicated_cpu: number;
   custom_disk: number;
-  custom_always_running: boolean;
   custom_member: boolean;
+  custom_uptime: Uptime;
   dedicated_disk?: DedicatedDisk;
   dedicated_vm?: DedicatedVM;
   title?: string;
@@ -79,7 +89,7 @@ export function sanity_checks(info: PurchaseInfo) {
 
   for (const x of ["ram", "cpu", "disk", "dedicated_ram", "dedicated_cpu"]) {
     const field = "custom_" + x;
-    if (typeof info[field] != "number") {
+    if (typeof info[field] !== "number") {
       throw Error(`field "${field}" must be number`);
     }
     if (info[field] < 0 || info[field] > MAX[field]) {
@@ -87,9 +97,50 @@ export function sanity_checks(info: PurchaseInfo) {
     }
   }
 
-  for (const x of ["always_running", "member"]) {
+  if (info.dedicated_vm != null) {
+    const vmName = info.dedicated_vm;
+    if (typeof vmName !== "string")
+      throw new Error(`field dedicated_vm must be string`);
+    if (PRICES.vms[vmName] == null)
+      throw new Error(`field dedicated_vm ${vmName} not found`);
+  }
+
+  if (info.dedicated_disk != null) {
+    const dd = info.dedicated_disk;
+    if (typeof dd === "object") {
+      const { size_gb, type } = dd;
+      if (typeof size_gb !== "number") {
+        throw new Error(`field dedicated_disk.size must be number`);
+      }
+      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
+        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
+      }
+      if (typeof type !== "string" || !DedicatedDiskTypeNames.includes(type))
+        throw new Error(
+          `field dedicated_disk.type must be string and one of ${DedicatedDiskTypeNames.join(
+            ", "
+          )}`
+        );
+    }
+  }
+
+  if (info.custom_uptime == null || typeof info.custom_uptime !== "string") {
+    throw new Error(`field "custom_uptime" must be set`);
+  }
+
+  if (
+    LicenseIdleTimeouts[info.custom_uptime] == null &&
+    info.custom_uptime != ("always_running" as Uptime)
+  ) {
+    const tos = Object.keys(LicenseIdleTimeouts).join(", ");
+    throw new Error(
+      `field "custom_uptime" must be one of ${tos} or "always_running"`
+    );
+  }
+
+  for (const x of ["member"]) {
     const field = "custom_" + x;
-    if (typeof info[field] != "boolean") {
+    if (typeof info[field] !== "boolean") {
       throw Error(`field "${field}" must be boolean`);
     }
   }
@@ -224,13 +275,15 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_dedicated_ram,
     custom_dedicated_cpu,
     custom_disk,
-    custom_always_running,
     custom_member,
     dedicated_disk,
     dedicated_vm,
+    custom_uptime,
   } = info;
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
+
+  // TODO this is just a sketch, improve it
   if (!!dedicated_disk || !!dedicated_vm) {
     const cost = dedicatedPrice({
       start,
@@ -251,6 +304,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     };
   }
 
+  // this is set in the next if/else block
+  let custom_always_running = false;
   if (upgrade == "standard") {
     // set custom_* to what they would be:
     custom_ram = STANDARD.ram;
@@ -272,6 +327,13 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk = MAX.disk;
     custom_always_running = !!MAX.always_running;
     custom_member = !!MAX.member;
+  } else {
+    custom_always_running = custom_uptime === "always_running";
+  }
+
+  // member hosting is controlled by uptime
+  if (custom_always_running !== true && requiresMemberhosting(custom_uptime)) {
+    custom_member = true;
   }
 
   // We compute the cost for one project for one month.
@@ -292,11 +354,20 @@ export function compute_cost(info: PurchaseInfo): Cost {
       // for long-running computations that can be checkpointed and started.
       cost_per_project_per_month *= GCE_COSTS.non_pre_factor;
     }
+  } else {
+    // multiply by the idle_timeout factor
+    // the smallest idle_timeout has a factor of 1
+    const idle_timeout_spec = LicenseIdleTimeouts[custom_uptime];
+    if (idle_timeout_spec != null) {
+      cost_per_project_per_month *= idle_timeout_spec.priceFactor;
+    }
   }
+
   // If the project is member hosted, multiply the RAM/CPU cost by a factor.
   if (custom_member) {
     cost_per_project_per_month *= COSTS.custom_cost.member;
   }
+
   // Add the disk cost, which doesn't depend on how frequently the project
   // is used or the quality of hosting.
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;
