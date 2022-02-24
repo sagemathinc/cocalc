@@ -24,6 +24,7 @@ import {
   build_date,
   smc_git_rev,
   UNIT,
+  r_join,
 } from "./components";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { dict, YEAR } from "@cocalc/util/misc";
@@ -381,6 +382,7 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
   }
 );
 
+// TODO is this used?
 export function AccountCreationEmailInstructions() {
   return (
     <Redux>
@@ -389,59 +391,41 @@ export function AccountCreationEmailInstructions() {
   );
 }
 
-interface FooterRedux {
-  site_name: string;
-  organization_name: string;
-  terms_of_service_url: string;
-}
+export const Footer: React.FC = React.memo(() => {
+  const on = useTypedRedux("customize", "organization_name");
+  const tos = useTypedRedux("customize", "terms_of_service_url");
 
-const FooterElement = rclass<{}>(
-  class FooterComponent extends React.Component<FooterRedux> {
-    public static reduxProps = () => {
-      return {
-        customize: {
-          site_name: rtypes.string,
-          organization_name: rtypes.string,
-          terms_of_service_url: rtypes.string,
-        },
-      };
-    };
-    render() {
-      const on = this.props.organization_name;
-      const orga = on.length > 0 ? on : theme.COMPANY_NAME;
-      const tos = this.props.terms_of_service_url;
-      const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
-      const yt =
-        `Version ${smc_version} @ ${build_date}` +
-        ` | ${smc_git_rev.slice(0, 8)}`;
-      const style: React.CSSProperties = {
-        color: "gray",
-        textAlign: "center",
-        paddingBottom: `${UNIT}px`,
-      };
-      return (
-        <footer style={style}>
-          <hr />
-          <Space />
-          <A href={appBasePath}>
-            <SiteName /> by {orga} &middot;{" "}
-          </A>
-          <A href={join(appBasePath, "info/status")}>System Status &middot; </A>
-          <A href={TOSurl}>Terms of Service</A> &middot; <HelpEmailLink />{" "}
-          &middot; <span title={yt}>&copy; {YEAR}</span>
-        </footer>
-      );
-    }
+  const organizationName = on.length > 0 ? on : theme.COMPANY_NAME;
+  const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
+  const webappVersionInfo =
+    `Version ${smc_version} @ ${build_date}` + ` | ${smc_git_rev.slice(0, 8)}`;
+  const style: React.CSSProperties = {
+    color: "gray",
+    textAlign: "center",
+    paddingBottom: `${UNIT}px`,
+  };
+
+  function contents() {
+    const elements = [
+      <A href={appBasePath}>
+        <SiteName /> by {organizationName}
+      </A>,
+      <A href={SystemStatusUrl}>System Status</A>,
+      <A href={TOSurl}>Terms of Service</A>,
+      <HelpEmailLink />,
+      <span title={webappVersionInfo}>&copy; {YEAR}</span>,
+    ];
+    return r_join(elements, <> &middot; </>);
   }
-);
 
-export function Footer() {
   return (
-    <Redux>
-      <FooterElement />
-    </Redux>
+    <footer style={style}>
+      <hr />
+      <Space />
+      {contents()}
+    </footer>
   );
-}
+});
 
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
@@ -452,6 +436,7 @@ export const PolicyPricingPageUrl = join(appBasePath, "pricing");
 export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy");
 export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
 export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
+export const SystemStatusUrl = join(appBasePath, "info/status");
 
 import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
