@@ -6,7 +6,15 @@
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
 import { List } from "immutable";
-import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
+import {
+  redux,
+  Redux,
+  rclass,
+  rtypes,
+  Store,
+  Actions,
+  useTypedRedux,
+} from "./app-framework";
 import React from "react";
 import {
   A,
@@ -191,102 +199,54 @@ export function set_customize(obj) {
   actions.setState(obj);
 }
 
-interface Props0 {
-  text: React.ReactNode;
-  color?: string;
-}
-
-interface ReduxProps {
-  help_email: string;
-  _is_configured: boolean;
-}
-
-const HelpEmailLink0 = rclass<Props0>(
-  class HelpEmailLink extends React.Component<Props0 & ReduxProps> {
-    public static reduxProps() {
-      return {
-        customize: {
-          help_email: rtypes.string,
-          _is_configured: rtypes.bool,
-        },
-      };
-    }
-
-    public render() {
-      const style: React.CSSProperties = {};
-      if (this.props.color != undefined) {
-        style.color = this.props.color;
-      }
-
-      if (this.props._is_configured) {
-        if (this.props.help_email?.length > 0) {
-          return (
-            <A href={`mailto:${this.props.help_email}`} style={style}>
-              {this.props.text != undefined
-                ? this.props.text
-                : this.props.help_email}
-            </A>
-          );
-        } else {
-          return (
-            <span>
-              <em>
-                {"["}not configured{"]"}
-              </em>
-            </span>
-          );
-        }
-      } else {
-        return <Loading style={{ display: "inline" }} />;
-      }
-    }
-  }
-);
-
 interface HelpEmailLink {
   text?: React.ReactNode;
   color?: string;
 }
 
-export function HelpEmailLink(props: HelpEmailLink) {
-  return (
-    <Redux>
-      <HelpEmailLink0 text={props.text} color={props.color} />
-    </Redux>
-  );
-}
+export const HelpEmailLink: React.FC<HelpEmailLink> = React.memo(
+  (props: HelpEmailLink) => {
+    const { text, color } = props;
 
-interface SiteNameProps {
-  site_name: string;
-}
+    const help_email = useTypedRedux("customize", "help_email");
+    const _is_configured = useTypedRedux("customize", "_is_configured");
 
-const SiteName0 = rclass<{}>(
-  class SiteName extends React.Component<SiteNameProps> {
-    public static reduxProps() {
-      return {
-        customize: {
-          site_name: rtypes.string,
-        },
-      };
+    const style: React.CSSProperties = {};
+    if (color != null) {
+      style.color = color;
     }
 
-    public render(): JSX.Element {
-      if (this.props.site_name) {
-        return <span>{this.props.site_name}</span>;
+    if (_is_configured) {
+      if (help_email?.length > 0) {
+        return (
+          <A href={`mailto:${help_email}`} style={style}>
+            {text ?? help_email}
+          </A>
+        );
       } else {
-        return <Loading style={{ display: "inline" }} />;
+        return (
+          <span>
+            <em>
+              {"["}not configured{"]"}
+            </em>
+          </span>
+        );
       }
+    } else {
+      return <Loading style={{ display: "inline" }} />;
     }
   }
 );
 
-export function SiteName() {
-  return (
-    <Redux>
-      <SiteName0 />
-    </Redux>
-  );
-}
+export const SiteName: React.FC = React.memo(() => {
+  const site_name = useTypedRedux("customize", "site_name");
+
+  if (site_name != null) {
+    return <span>{site_name}</span>;
+  } else {
+    return <Loading style={{ display: "inline" }} />;
+  }
+});
 
 interface SiteDescriptionProps {
   style?: React.CSSProperties;
@@ -317,6 +277,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
   }
 );
 
+// TODO: not used?
 export function SiteDescription({ style }: { style?: React.CSSProperties }) {
   return (
     <Redux>
@@ -382,6 +343,7 @@ const CustomizeStringElement = rclass<CustomizeStringProps>(
   }
 );
 
+// TODO: not used?
 export function CustomizeString({ name }: CustomizeStringProps) {
   return (
     <Redux>
