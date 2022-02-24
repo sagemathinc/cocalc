@@ -154,6 +154,7 @@
     "universal-cookie": "^4.0.2",
     "use-async-effect": "^2.2.2",
     "use-debounce": "^7.0.1",
+    "use-resize-observer": "^8.0.0",
     "utility-types": "^3.10.0",
     "xss": "^1.0.9",
     "xterm": "^4.9.0",

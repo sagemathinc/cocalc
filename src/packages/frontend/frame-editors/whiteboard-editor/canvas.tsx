@@ -88,6 +88,7 @@ import {
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
+import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 
 import { getParams } from "./tools/tool-panel";
@@ -143,7 +144,6 @@ export default function Canvas({
   const canvasRef = useRef<any>(null);
   usePinchToZoom({ target: canvasRef, min: 5, max: 100, step: 2 });
 
-  const navDrag = useRef<null | { x0: number; y0: number }>(null);
   const innerCanvasRef = useRef<any>(null);
 
   const canvasScaleRef = useRef<number>(1);
@@ -186,6 +186,7 @@ export default function Canvas({
   // ensure the current center of the viewport is preserved,
   // to avoid major disorientation for the user.
   const lastViewport = useRef<Rect | undefined>(undefined);
+  const resize = useResizeObserver({ ref: canvasRef });
   useEffect(() => {
     if (isNavigator) return;
     const viewport = getViewportData();
@@ -206,6 +207,7 @@ export default function Canvas({
     transforms.xMax,
     transforms.yMin,
     transforms.yMax,
+    resize,
   ]);
 
   // If the viewport changes, but not because we just set it,
