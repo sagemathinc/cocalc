@@ -26,7 +26,9 @@ import {
 const TOOLS = {
   map: {
     width: "35px",
-    icon: ({ navMap }) => <Icon name={navMap == "map" ? "map" : "sitemap"} />,
+    icon: ({ navMap }) => (
+      <Icon name={navMap == "preview" ? "sitemap" : "map"} />
+    ),
     tip: "Full Map --> Outline Map --> Hide",
     click: (actions, id) => {
       actions.toggleMapType(id);
