@@ -205,6 +205,10 @@ export class Actions extends BaseActions<State> {
     return uuid().slice(0, 8);
   }
 
+  private getElement(id: string): Element | undefined {
+    return this.store.getIn(["elements", id])?.toJS();
+  }
+
   private getPageSpan(margin: number = 0) {
     const elements = (this.store
       .get("elements")
@@ -631,7 +635,7 @@ export class Actions extends BaseActions<State> {
   }
 
   centerElement(id: string, frameId?: string) {
-    const element = this.store.getIn(["elements", id])?.toJS();
+    const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
     this.setViewportCenter(frameId, centerOfRect(element));
@@ -654,6 +658,59 @@ export class Actions extends BaseActions<State> {
         return;
       }
     }
+  }
+
+  // Hide given elements
+  hideElements(elements: Element[], commit: boolean = true): void {
+    for (const element of elements) {
+      const { id, w, h } = element;
+      this.setElement({
+        obj: { id, hide: { w, h }, w: 30, h: 30 },
+        commit,
+        cursors: [{}],
+      });
+    }
+    if (commit) {
+      this.syncstring_commit();
+    }
+  }
+
+  // Show element with given id
+  unhideElements(elements: Element[], commit: boolean = true): void {
+    for (const element of elements) {
+      if (element?.hide == null) return;
+      const { w, h } = element.hide;
+      this.setElement({
+        obj: { id: element.id, hide: null as any, w, h },
+        commit,
+        cursors: [{}],
+      });
+    }
+    if (commit) {
+      this.syncstring_commit();
+    }
+  }
+
+  lockElements(elements: Element[]) {
+    for (const element of elements) {
+      this.setElement({
+        obj: { id: element.id, locked: true },
+        commit: false,
+        cursors: [{}],
+      });
+    }
+    this.syncstring_commit();
+  }
+
+  unlockElements(elements: Element[]) {
+    for (const element of elements) {
+      this.setElement({
+        obj: { id: element.id, locked: null as any },
+        commit: false,
+        cursors: [{}],
+      });
+    }
+    this.syncstring_commit();
   }
 }
 

@@ -1,4 +1,4 @@
-import { Button, Popconfirm } from "antd";
+import { Button, Popconfirm, Tooltip } from "antd";
 import { Element } from "../types";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { BUTTON_STYLE } from "./edit-bar";
@@ -12,19 +12,25 @@ export default function LockButton({ elements }: Props) {
   const { actions } = useFrameContext();
   let locked = isLocked(elements);
   const click = () => {
-    for (const element of elements) {
-      actions.setElement({
-        obj: { id: element.id, locked: !locked },
-        commit: false,
-        cursors: [{}],
-      });
+    if (locked) {
+      actions.unlockElements(elements);
+    } else {
+      actions.lockElements(elements);
     }
-    actions.syncstring_commit();
   };
   const btn = (
-    <Button style={BUTTON_STYLE} onClick={!locked ? click : undefined}>
-      <Icon name={`lock${!locked ? "-open" : ""}`} />
-    </Button>
+    <Tooltip
+      placement="bottom"
+      title={
+        locked
+          ? "Unlock objects so you can edit them"
+          : "Lock objects to prevent editing"
+      }
+    >
+      <Button style={BUTTON_STYLE} onClick={!locked ? click : undefined}>
+        <Icon name={`lock${!locked ? "-open" : ""}`} />
+      </Button>
+    </Tooltip>
   );
   if (locked) {
     return (

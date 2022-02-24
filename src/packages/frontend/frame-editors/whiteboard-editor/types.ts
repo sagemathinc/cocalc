@@ -96,6 +96,7 @@ export interface Element extends Rect {
   group?: string; // group id if object is part of a group
   rotate?: number; // angle in *radians*
   locked?: boolean;
+  hide?: { w: number; h: number }; // if set, hidden but had given width and height before hiding.
 }
 
 export type ElementMap = TypedMap<Element>;

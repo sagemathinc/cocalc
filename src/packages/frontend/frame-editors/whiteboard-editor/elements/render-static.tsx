@@ -20,6 +20,10 @@ export interface Props {
 }
 
 export default function RenderStatic(props) {
+  if (props.element.hide) {
+    // don't show hidden objects at all.
+    return null;
+  }
   switch (props.element.type) {
     case "text":
       return <Text {...props} />;

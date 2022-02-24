@@ -330,15 +330,40 @@ export default function Canvas({
     }
   }, [frame.desc.get("fitToScreen")]);
 
-  function processElement(element, isNavRectangle = false) {
+  function processElement(element, isNavRectangle = false, hideIcon = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindowNoScale(x, y, z);
 
+    if (element.hide != null && !hideIcon) {
+      // element is hidden...
+      if (readOnly || selectedTool != "select") {
+        // do not show at all for any tool except select.
+        return;
+      }
+      // render this instead.
+      return processElement(
+        {
+          id: element.id,
+          x: element.x,
+          y: element.y,
+          w: element.w,
+          h: element.h,
+          hide: element.hide,
+          type: "icon",
+          data: { icon: "eye-slash", fontSize: element.w - 2, color: "#666" },
+        },
+        false,
+        true
+      );
+    }
+
     if (previewMode && !isNavRectangle) {
       // This just shows blue boxes in the nav map, instead of actually
       // rendering something. It's probably faster and easier,
-      // but really rendering something is much more usable.
+      // but really rendering something is much more usable.  Sometimes this
+      // is more useful, e.g., with small text.  User can easily toggle to
+      // get this by clicking the map icon.
       return (
         <Position key={id} x={t.x} y={t.y} z={0} w={w} h={h}>
           <div

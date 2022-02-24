@@ -27,6 +27,7 @@ import EdgeCreate, {
 } from "./focused-edge-create";
 import Position from "./position";
 import { isLocked } from "./tools/lock-button";
+import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
 
 export const SELECTED_BORDER_COLOR = "#40a9ff";
@@ -81,9 +82,10 @@ export default function Focused({
   const isChanging =
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
   const locked = isLocked(selectedElements);
+  const hidden = isHidden(selectedElements);
 
   const resizeHandles = useMemo(() => {
-    if (locked || readOnly) return null;
+    if (locked || readOnly || hidden) return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
       for (const left of [true, false]) {
@@ -104,7 +106,7 @@ export default function Focused({
   }, [element, canvasScale]);
 
   const edgeCreationPoints = useMemo(() => {
-    if (selectedElements.length >= 2 || readOnly) return null;
+    if (selectedElements.length >= 2 || readOnly || hidden) return null;
     return ["top", "bottom", "left", "right"].map(
       (position: EdgeCreatePosition) => (
         <EdgeCreate
@@ -125,6 +127,7 @@ export default function Focused({
       selectedElements.length > 1 ||
       element.type == "code" ||
       locked ||
+      hidden ||
       readOnly
     ) {
       // TODO: implement a notion of rotate for multiple objects...?

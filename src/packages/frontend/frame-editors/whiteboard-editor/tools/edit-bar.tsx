@@ -17,6 +17,7 @@ import { getPageSpan, rectSpan, DEFAULT_GAP } from "../math";
 import { ConfigParams, TOOLS } from "./spec";
 import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
 import LockButton, { isLocked } from "./lock-button";
+import HideButton, { isHidden } from "./hide-button";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -41,6 +42,8 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
 
   if (elements.length == 0) return null;
   const props = { actions, elements, allElements, readOnly };
+  const hidden = isHidden(elements);
+  const locked = isLocked(elements);
 
   return (
     <div
@@ -53,7 +56,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
-        {!(readOnly || isLocked(elements)) && (
+        {!(readOnly || locked || hidden) && (
           <>
             {configParams.has("fontFamily") && <FontFamily {...props} />}
             {configParams.has("fontSize") && <FontSize {...props} />}
@@ -62,8 +65,9 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
             <GroupButton {...props} />
           </>
         )}
-        {!readOnly && <LockButton elements={elements} />}
-        {!(readOnly || isLocked(elements)) && <DeleteButton {...props} />}
+        {!readOnly && !hidden && <LockButton elements={elements} />}
+        {!readOnly && !locked && <HideButton elements={elements} />}
+        {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
         <OtherOperations {...props} />
       </div>
     </div>
@@ -314,6 +318,8 @@ function getFontFamily(elements: Element[]): string | undefined {
 
 function OtherOperations({ actions, elements, allElements, readOnly }) {
   const frame = useFrameContext();
+  const hidden = isHidden(elements);
+  const locked = isLocked(elements);
   const menu = (
     <Menu
       onClick={({ key }) => {
@@ -349,6 +355,14 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           deleteElements(actions, elements);
         } else if (key == "paste") {
           pasteElements(actions, elements, frame.id);
+        } else if (key == "lock") {
+          actions.lockElements(elements);
+        } else if (key == "unlock") {
+          actions.unlockElements(elements);
+        } else if (key == "hide") {
+          actions.hideElements(elements);
+        } else if (key == "unhide") {
+          actions.unhideElements(elements);
         }
       }}
     >
@@ -359,6 +373,10 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
       {!readOnly && <Menu.Item key="paste">Paste</Menu.Item>}
       {!readOnly && <Menu.Item key="duplicate">Duplicate</Menu.Item>}
       {!readOnly && <Menu.Item key="delete">Delete</Menu.Item>}
+      {!readOnly && !hidden && <Menu.Item key="hide">Hide</Menu.Item>}
+      {!readOnly && hidden && <Menu.Item key="unhide">Unhide</Menu.Item>}
+      {!readOnly && !locked && <Menu.Item key="lock">Lock</Menu.Item>}
+      {!readOnly && locked && <Menu.Item key="unlock">Unlock</Menu.Item>}
     </Menu>
   );
 
