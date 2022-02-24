@@ -560,6 +560,10 @@ export default function Canvas({
     const c = canvasRef.current;
     if (c == null) return;
     const { width: w, height: h } = c.getBoundingClientRect();
+    if (!w || !h) {
+      // this happens when canvas is hidden from screen (e.g., background tab).
+      return;
+    }
     return { x: c.scrollLeft, y: c.scrollTop, w, h };
   }
 
