@@ -23,17 +23,19 @@ import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left, trunc, unreachable } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
-import { describe_quota, Quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import {
   LicenseStatus,
   isLicenseStatus,
   LicenseStatusOptions,
+  licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 export type SiteLicenses = {
   [license_id: string]: Map<string, number> | null;
@@ -197,6 +199,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function renderStatusColor(status: LicenseStatus) {
     switch (status) {
       case "valid":
+      case "active":
         return "green";
       case "expired":
         return "darkred";
@@ -212,7 +215,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatus(rec: TableRow) {
-    const status: LicenseStatus = rec.status;
+    const status: LicenseStatus = rec.status ?? "valid";
     const color = renderStatusColor(status);
     const text = status === "expired" ? status.toUpperCase() : status;
     const style = status === "expired" ? { fontSize: "110%" } : {};
@@ -251,7 +254,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota: Quota | undefined = infos?.[rec.license_id]?.quota;
+    const quota: SiteLicenseQuota | undefined = infos?.[rec.license_id]?.quota;
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }
@@ -484,18 +487,18 @@ const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   >(false);
   const user_map = useTypedRedux("users", "user_map");
 
-  function getLicenseStatus(): LicenseStatus | null {
+  function getLicenseStatus(): LicenseStatus | undefined {
     const status = upgrades?.get("status");
     if (isLicenseStatus(status)) {
       return status;
     } else {
-      return null;
+      return;
     }
   }
 
   // in doubt, we assume the best and the license is valid
   const license_status = getLicenseStatus();
-  const provides_upgrades = license_status === "valid";
+  const provides_upgrades = licenseStatusProvidesUpgrades(license_status);
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of

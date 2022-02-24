@@ -16,9 +16,9 @@ Editing a quota
 import { Button, Checkbox, InputNumber, Row, Col } from "antd";
 import { A, Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "@cocalc/util/licenses/purchase/util";
 import { plural, round1 } from "@cocalc/util/misc";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -41,8 +41,8 @@ function render_explanation(s): JSX.Element {
 }
 
 interface Props {
-  quota: Quota;
-  onChange: (change: Quota) => void;
+  quota: SiteLicenseQuota;
+  onChange: (change: SiteLicenseQuota) => void;
   hideExtra?: boolean; // hide extra boxes, etc. -- this is used for admin editing, where they know what is up.
   disabled?: boolean;
   show_advanced_default?: boolean; // if the "advanced" part should pop up by default

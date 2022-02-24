@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 import { webapp_client } from "../../webapp-client";
 import { field_cmp, cmp_Date } from "@cocalc/util/misc";
-import { SiteLicense } from "@cocalc/util/db-schema/site-licenses";
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 
 type FunctionType = () => Promise<SiteLicense[]>;
 
