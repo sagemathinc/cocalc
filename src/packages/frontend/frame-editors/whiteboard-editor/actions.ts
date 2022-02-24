@@ -230,7 +230,7 @@ export class Actions extends BaseActions<State> {
   }
 
   delete(id: string, commit: boolean = true): void {
-    if(this._syncstring == null) return;
+    if (this._syncstring == null) return;
     this._syncstring.delete({ id });
     if (commit) {
       this.syncstring_commit();
@@ -364,19 +364,19 @@ export class Actions extends BaseActions<State> {
   }
 
   undo(_id?: string): void {
-    if(this._syncstring == null) return;
+    if (this._syncstring == null) return;
     this._syncstring.undo();
     this._syncstring.commit();
   }
 
   redo(_id?: string): void {
-    if(this._syncstring == null) return;
+    if (this._syncstring == null) return;
     this._syncstring.redo();
     this._syncstring.commit();
   }
 
   in_undo_mode(): boolean {
-    if(this._syncstring == null) return false;
+    if (this._syncstring == null) return false;
     return this._syncstring.in_undo_mode();
   }
 
@@ -384,10 +384,18 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, fitToScreen: state ? true : undefined });
   }
 
-  toggleMap(id: string): void {
+  toggleMapType(id: string): void {
     const node = this._get_frame_node(id);
     if (node == null) return;
-    this.set_frame_tree({ id, hideMap: !node.get("hideMap") });
+    let cur = node.get("navMap") ?? "map";
+    if (cur == "map") {
+      cur = "preview";
+    } else if (cur == "preview") {
+      cur = "hide";
+    } else {
+      cur = "map";
+    }
+    this.set_frame_tree({ id, navMap: cur });
   }
 
   // The viewport = exactly the part of the canvas that is VISIBLE to the user

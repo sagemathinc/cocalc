@@ -22,15 +22,14 @@ import {
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
 } from "../focused";
-const PREVIEW_THRESH = 0.07;
 
 const TOOLS = {
   map: {
     width: "35px",
-    icon: "map",
-    tip: "Toggle map",
+    icon: ({ navMap }) => <Icon name={navMap == "map" ? "map" : "sitemap"} />,
+    tip: "Full Map --> Outline Map --> Hide",
     click: (actions, id) => {
-      actions.toggleMap(id);
+      actions.toggleMapType(id);
     },
   },
   fit: {
@@ -59,7 +58,7 @@ const TOOLS = {
   },
   zoom100: {
     width: "60px",
-    icon: (fontSize) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
+    icon: ({ fontSize }) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
     tip: "Zoom to 100%",
     click: (actions, id) => {
       actions.set_font_size(id, ZOOM100);
@@ -106,7 +105,8 @@ export default function Navigation({ fontSize, elements }: Props) {
       }}
     />
   );
-  const showMap = !desc.get("hideMap") && elements != null;
+  const navMap = desc.get("navMap", "map");
+  const showMap = navMap != "hide" && elements != null;
   return (
     <>
       <div
@@ -124,13 +124,14 @@ export default function Navigation({ fontSize, elements }: Props) {
           height: `${BAR_HEIGHT + (showMap ? height : 0)}px`,
         }}
       >
-        {!desc.get("hideMap") && elements != null && (
+        {showMap && (
           <Map
             elements={elements}
             width={width}
             height={height}
             resize={resize}
             setResize={setResize}
+            navMap={navMap}
           />
         )}
         <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
@@ -157,6 +158,7 @@ export default function Navigation({ fontSize, elements }: Props) {
 function Tool({ tool, fontSize }) {
   const { actions, id, desc } = useFrameContext();
   const { icon, tip, click, width } = TOOLS[tool];
+  const navMap = desc.get("navMap", "map");
   return (
     <Tooltip placement="top" title={tip}>
       <Button
@@ -165,16 +167,20 @@ function Tool({ tool, fontSize }) {
         style={{
           width,
           fontSize: "16px",
-          color: tool == "map" && !desc.get("hideMap") ? "blue" : undefined,
+          color: tool == "map" && navMap != "hide" ? "blue" : undefined,
         }}
       >
-        {typeof icon == "string" ? <Icon name={icon} /> : icon(fontSize)}
+        {typeof icon == "string" ? (
+          <Icon name={icon} />
+        ) : (
+          icon({ fontSize, navMap })
+        )}
       </Button>
     </Tooltip>
   );
 }
 
-function Map({ elements, width, height, resize, setResize }) {
+function Map({ elements, width, height, resize, setResize, navMap }) {
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
@@ -190,7 +196,7 @@ function Map({ elements, width, height, resize, setResize }) {
     >
       <Canvas
         isNavigator
-        previewMode={scale <= PREVIEW_THRESH}
+        previewMode={navMap == "preview"}
         margin={10 / scale}
         elements={elements}
         scale={scale}
