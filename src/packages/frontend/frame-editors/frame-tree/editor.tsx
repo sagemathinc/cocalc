@@ -6,12 +6,11 @@
 import {
   React,
   CSS,
-  rclass,
-  rtypes,
-  Component,
   Rendered,
   project_redux_name,
-} from "../../app-framework";
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
   Loading,
@@ -25,8 +24,9 @@ import { is_different, filename_extension } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { AvailableFeatures } from "../../project_configuration";
 import { Map, Set } from "immutable";
+import { clone } from "lodash";
 
-interface FrameTreeEditorReactProps {
+interface FrameTreeEditorProps {
   name: string;
   actions: any;
   path: string;
@@ -37,259 +37,188 @@ interface FrameTreeEditorReactProps {
   tab_is_visible: boolean; // if the editor tab is active -- page/page.tsx
 }
 
-interface FrameTreeEditorReduxProps {
-  editor_settings?: Map<string, any>;
-  terminal?: Map<string, any>;
-  is_public: boolean;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  read_only: boolean;
-  is_loaded: boolean;
-  local_view_state: Map<string, any>;
-  error: string;
-  errorstyle: ErrorStyles;
-  cursors: Map<string, any>;
-  status: string;
-  load_time_estimate?: LoadingEstimate;
-  value?: string;
-  reload: Map<string, number>;
-  resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-  misspelled_words: Set<string>;
-  is_saving: boolean;
-  settings: Map<string, any>;
-  complete: Map<string, any>;
-  derived_file_types: Set<string>;
-  available_features: AvailableFeatures;
-  visible?: boolean;
+const LOADING_STYLE: CSS = {
+  fontSize: "40px",
+  textAlign: "center",
+  padding: "15px",
+  color: "#999",
+} as const;
+
+function shouldMemoize(prev, next): boolean {
+  return !is_different(prev, next, [
+    // do NOT include editor_spec below -- it is assumed to never change
+    "tab_is_visible",
+  ]);
 }
 
-type FrameTreeEditorProps = FrameTreeEditorReactProps &
-  FrameTreeEditorReduxProps;
+const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
+  (props: FrameTreeEditorProps) => {
+    const {
+      name,
+      actions,
+      path,
+      project_id,
+      format_bar,
+      format_bar_exclude,
+      tab_is_visible,
+    } = props;
 
-const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
-  private editor_spec: any = {};
-
-  constructor(props) {
-    super(props);
     // Copy the editor spec we will use for all future rendering
-    // into our private state variable, and also do some function
-    // evaluation (e.g,. if buttons is a function of the path).
-    for (const type in props.editor_spec) {
-      let spec = props.editor_spec[type];
-      this.editor_spec[type] = spec;
-    }
-  }
+    // into our private state variable
+    // TODO unclear: earlier, there was also the comment:
+    //      , and also do some function evaluation (e.g,. if buttons is a function of the path).
+    // shallow copy via lodash of props.editor_spec
+    const editor_spec = clone(props.editor_spec);
 
-  static reduxProps({ name, project_id }) {
     const project_store_name = project_redux_name(project_id);
-    return {
-      account: {
-        editor_settings: rtypes.immutable.Map,
-        terminal: rtypes.immutable.Map,
-      },
-      [name]: {
-        is_public: rtypes.bool.isRequired,
-        has_unsaved_changes: rtypes.bool.isRequired,
-        has_uncommitted_changes: rtypes.bool.isRequired,
-        read_only: rtypes.bool.isRequired,
-        is_loaded: rtypes.bool.isRequired,
-        local_view_state: rtypes.immutable.Map.isRequired,
-        error: rtypes.string.isRequired,
-        errorstyle: rtypes.string,
-        cursors: rtypes.immutable.Map.isRequired,
-        status: rtypes.string.isRequired,
-
-        load_time_estimate: rtypes.immutable.Map,
-        value: rtypes.string,
-
-        reload: rtypes.immutable.Map.isRequired,
-        resize: rtypes.number.isRequired, // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-        misspelled_words: rtypes.immutable.Set.isRequired,
-        is_saving: rtypes.bool.isRequired,
-
-        gutter_markers: rtypes.immutable.Map.isRequired,
-
-        settings: rtypes.immutable.Map.isRequired,
-
-        complete: rtypes.immutable.Map.isRequired,
-
-        derived_file_types: rtypes.immutable.Set,
-
-        visible: rtypes.bool,
-      },
-      [project_store_name]: {
-        available_features: rtypes.immutable.Map,
-      },
-    };
-  }
-
-  shouldComponentUpdate(next): boolean {
-    if (
-      this.props.editor_settings === undefined ||
-      next.editor_settings === undefined
-    )
-      return true;
-    return (
-      is_different(this.props, next, [
-        // do NOT include editor_spec below -- it is assumed to never change
-        "is_public",
-        "has_unsaved_changes",
-        "has_uncommitted_changes",
-        "read_only",
-        "is_loaded",
-        "local_view_state",
-        "error",
-        "errorstyle",
-        "cursors",
-        "status",
-        "load_time_estimate",
-        "value",
-        "reload",
-        "resize",
-        "misspelled_words",
-        "has_unsaved_changes",
-        "has_uncommitted_changes",
-        "is_saving",
-        "gutter_markers",
-        "editor_settings",
-        "terminal",
-        "settings",
-        "complete",
-        "derived_file_types",
-        "available_features",
-        "visible",
-        "tab_is_visible",
-      ]) ||
-      this.props.editor_settings.get("extra_button_bar") !==
-        next.editor_settings.get("extra_button_bar")
+    const available_features: AvailableFeatures = useRedux(
+      project_store_name,
+      "available_features"
     );
-  }
 
-  render_format_bar(): Rendered {
-    if (
-      this.props.format_bar &&
-      !this.props.is_public &&
-      this.props.editor_settings &&
-      this.props.editor_settings.get("extra_button_bar")
-    )
+    const editor_settings = useTypedRedux("account", "editor_settings");
+    const terminal = useTypedRedux("account", "terminal");
+
+    const is_public: boolean = useRedux(name, "is_public");
+    const has_unsaved_changes: boolean = useRedux(name, "has_unsaved_changes");
+    const has_uncommitted_changes: boolean = useRedux(
+      name,
+      "has_uncommitted_changes"
+    );
+    const read_only: boolean = useRedux(name, "read_only");
+    const is_loaded: boolean = useRedux(name, "is_loaded");
+    const local_view_state: Map<string, any> = useRedux(
+      name,
+      "local_view_state"
+    );
+    const error: string = useRedux(name, "error");
+    const errorstyle: ErrorStyles = useRedux(name, "errorstyle");
+    const cursors: Map<string, any> = useRedux(name, "cursors");
+    const status: string = useRedux(name, "status");
+    const load_time_estimate: LoadingEstimate | undefined = useRedux(
+      name,
+      "load_time_estimate"
+    );
+    const value: string | undefined = useRedux(name, "value");
+    const reload: Map<string, number> = useRedux(name, "reload");
+    // if changes, means that frames have been resized, so may need refreshing; passed to leaf
+    const resize: number = useRedux(name, "resize");
+    const misspelled_words: Set<string> = useRedux(name, "misspelled_words");
+    const is_saving: boolean = useRedux(name, "is_saving");
+    const settings: Map<string, any> = useRedux(name, "settings");
+    const complete: Map<string, any> = useRedux(name, "complete");
+    const derived_file_types: Set<string> = useRedux(
+      name,
+      "derived_file_types"
+    );
+    const visible: boolean | undefined = useRedux(name, "visible");
+
+    function render_format_bar(): Rendered {
+      if (
+        format_bar &&
+        !is_public &&
+        editor_settings &&
+        editor_settings.get("extra_button_bar")
+      )
+        return (
+          <FormatBar
+            actions={actions}
+            extension={filename_extension(path)}
+            exclude={format_bar_exclude}
+          />
+        );
+    }
+
+    function render_frame_tree(): Rendered {
+      if (!is_loaded) return;
+      const local = local_view_state;
+      const frame_tree = local.get("frame_tree");
+      const editor_state = local.get("editor_state");
       return (
-        <FormatBar
-          actions={this.props.actions}
-          extension={filename_extension(this.props.path)}
-          exclude={this.props.format_bar_exclude}
+        <div className={"smc-vfill"}>
+          <FrameTree
+            editor_spec={editor_spec}
+            name={name}
+            actions={actions}
+            frame_tree={frame_tree}
+            editor_state={editor_state}
+            project_id={project_id}
+            path={path}
+            active_id={local.get("active_id")}
+            full_id={local.get("full_id")}
+            font_size={local.get("font_size")}
+            is_only={frame_tree.get("type") !== "node"}
+            cursors={cursors}
+            read_only={read_only}
+            is_public={is_public}
+            value={value}
+            reload={reload}
+            resize={resize}
+            misspelled_words={misspelled_words}
+            has_unsaved_changes={has_unsaved_changes}
+            has_uncommitted_changes={has_uncommitted_changes}
+            is_saving={is_saving}
+            editor_settings={editor_settings}
+            terminal={terminal}
+            settings={settings}
+            status={status}
+            complete={complete}
+            derived_file_types={derived_file_types}
+            available_features={available_features}
+            local_view_state={local_view_state}
+            is_visible={visible ?? true}
+            tab_is_visible={tab_is_visible}
+          />
+        </div>
+      );
+    }
+
+    function render_error(): Rendered {
+      if (!error) return;
+      const style: CSS = {};
+      if (errorstyle === "monospace") {
+        style.fontFamily = "monospace";
+        style.whiteSpace = "pre-wrap";
+      }
+      return (
+        <ErrorDisplay
+          banner={true}
+          error={error}
+          onClose={() => actions.set_error("")}
+          style={style}
         />
       );
-  }
-
-  render_frame_tree(): Rendered {
-    if (!this.props.is_loaded) return;
-    const local = this.props.local_view_state;
-    const frame_tree = local.get("frame_tree");
-    const editor_state = local.get("editor_state");
-    return (
-      <div className={"smc-vfill"}>
-        <FrameTree
-          editor_spec={this.editor_spec}
-          name={this.props.name}
-          actions={this.props.actions}
-          frame_tree={frame_tree}
-          editor_state={editor_state}
-          project_id={this.props.project_id}
-          path={this.props.path}
-          active_id={local.get("active_id")}
-          full_id={local.get("full_id")}
-          font_size={local.get("font_size")}
-          is_only={frame_tree.get("type") !== "node"}
-          cursors={this.props.cursors}
-          read_only={this.props.read_only}
-          is_public={this.props.is_public}
-          value={this.props.value}
-          reload={this.props.reload}
-          resize={this.props.resize}
-          misspelled_words={this.props.misspelled_words}
-          has_unsaved_changes={this.props.has_unsaved_changes}
-          has_uncommitted_changes={this.props.has_uncommitted_changes}
-          is_saving={this.props.is_saving}
-          editor_settings={this.props.editor_settings}
-          terminal={this.props.terminal}
-          settings={this.props.settings}
-          status={this.props.status}
-          complete={this.props.complete}
-          derived_file_types={this.props.derived_file_types}
-          available_features={this.props.available_features}
-          local_view_state={this.props.local_view_state}
-          is_visible={this.props.visible ?? true}
-          tab_is_visible={this.props.tab_is_visible}
-        />
-      </div>
-    );
-  }
-
-  render_error(): Rendered {
-    if (!this.props.error) {
-      return;
     }
-    const style: CSS = {};
-    if (this.props.errorstyle === "monospace") {
-      style.fontFamily = "monospace";
-      style.whiteSpace = "pre-wrap";
-    }
-    return (
-      <ErrorDisplay
-        banner={true}
-        error={this.props.error}
-        onClose={() => this.props.actions.set_error("")}
-        style={style}
-      />
-    );
-  }
 
-  render_status_bar(): Rendered {
-    if (!this.props.is_loaded) {
-      return;
+    function render_status_bar(): Rendered {
+      if (!is_loaded) return;
+      if (!status) return;
+      return (
+        <StatusBar status={status} onClear={() => actions.set_status("")} />
+      );
     }
-    if (!this.props.status) {
-      return;
+
+    function render_loading(): Rendered {
+      if (is_loaded) return;
+      return (
+        <div className="smc-vfill" style={LOADING_STYLE}>
+          <Loading estimate={load_time_estimate} />
+        </div>
+      );
     }
-    return (
-      <StatusBar
-        status={this.props.status}
-        onClear={() => this.props.actions.set_status("")}
-      />
-    );
-  }
 
-  render_loading(): Rendered {
-    if (this.props.is_loaded) return;
-    return (
-      <div
-        className="smc-vfill"
-        style={{
-          fontSize: "40px",
-          textAlign: "center",
-          padding: "15px",
-          color: "#999",
-        }}
-      >
-        <Loading estimate={this.props.load_time_estimate} />
-      </div>
-    );
-  }
-
-  render(): Rendered {
     return (
       <div className="smc-vfill cc-frame-tree-editor">
-        {this.render_error()}
-        {this.render_format_bar()}
-        {this.render_loading()}
-        {this.render_frame_tree()}
-        {this.render_status_bar()}
+        {render_error()}
+        {render_format_bar()}
+        {render_loading()}
+        {render_frame_tree()}
+        {render_status_bar()}
       </div>
     );
-  }
-} as React.ComponentType<FrameTreeEditorReactProps>;
-
-const FrameTreeEditor = rclass(FrameTreeEditor0);
+  },
+  shouldMemoize
+);
 
 interface Options {
   display_name: string;
@@ -306,24 +235,24 @@ interface EditorProps {
   is_visible: boolean;
 }
 
-export function createEditor(opts: Options) {
-  class Editor extends Component<EditorProps, {}> {
-    public displayName: string = opts.display_name;
-
-    render(): JSX.Element {
-      return (
-        <FrameTreeEditor
-          actions={this.props.actions}
-          name={this.props.name}
-          path={this.props.path}
-          project_id={this.props.project_id}
-          format_bar={opts.format_bar}
-          format_bar_exclude={opts.format_bar_exclude}
-          editor_spec={opts.editor_spec}
-          tab_is_visible={this.props.is_visible}
-        />
-      );
-    }
-  }
+// this returns a function that creates a FrameTreeEditor for given Options.
+// memoization happens in FrameTreeEditor
+export function createEditor(opts: Options): React.FC<EditorProps> {
+  const Editor = (props: EditorProps) => {
+    const { actions, name, path, project_id, is_visible } = props;
+    return (
+      <FrameTreeEditor
+        actions={actions}
+        name={name}
+        path={path}
+        project_id={project_id}
+        format_bar={opts.format_bar}
+        format_bar_exclude={opts.format_bar_exclude}
+        editor_spec={opts.editor_spec}
+        tab_is_visible={is_visible}
+      />
+    );
+  };
+  Editor.displayName = opts.display_name;
   return Editor;
 }

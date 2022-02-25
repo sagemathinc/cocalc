@@ -40,9 +40,9 @@ import {
   Rendered,
   useState,
   useEffect,
-} from "../../app-framework";
-import { Loading } from "../../components";
-import { AvailableFeatures } from "../../project_configuration";
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
 import { is_safari } from "../generic/browser";
@@ -54,39 +54,40 @@ import { get_file_editor } from "./register";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
+import { AccountState } from "@cocalc/frontend/account/types";
 
 interface FrameTreeProps {
-  name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
   actions: Actions;
-  path: string; // assumed to never change -- all frames in same project
-  project_id: string; // assumed to never change -- all frames in same project
   active_id: string;
-  full_id: string;
-  frame_tree: Map<string, any>;
+  available_features: AvailableFeatures;
+  complete: Map<string, any>;
+  cursors: Map<string, any>;
+  derived_file_types: Set<string>;
+  editor_settings?: AccountState["editor_settings"];
+  editor_spec: EditorSpec;
   editor_state: EditorState; // IMPORTANT: change does NOT cause re-render (uncontrolled); only used for full initial render, on purpose, i.e., setting scroll positions.
   font_size: number;
+  frame_tree: Map<string, any>;
+  full_id: string;
+  has_uncommitted_changes: boolean;
+  has_unsaved_changes: boolean;
   is_only: boolean;
-  cursors: Map<string, any>;
-  read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   is_public: boolean;
-  value?: string;
-  editor_spec: EditorSpec;
+  is_saving: boolean;
+  is_visible: boolean;
+  local_view_state: Map<string, any>;
+  misspelled_words: Set<string>;
+  name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
+  path: string; // assumed to never change -- all frames in same project
+  project_id: string; // assumed to never change -- all frames in same project
+  read_only: boolean; // if true, then whole document considered read only (individual frames can still be via desc)
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
-  misspelled_words: Set<string>;
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  is_saving: boolean;
-  editor_settings?: Map<string, any>;
-  terminal?: Map<string, any>; // terminal settings from account
-  status: string;
   settings: Map<string, any>;
-  complete: Map<string, any>;
-  derived_file_types: Set<string>;
-  available_features: AvailableFeatures;
-  local_view_state: Map<string, any>;
-  is_visible: boolean;
+  status: string;
   tab_is_visible: boolean;
+  terminal?: Map<string, any>; // terminal settings from account
+  value?: string;
 }
 
 function shouldMemoize(prev, next) {

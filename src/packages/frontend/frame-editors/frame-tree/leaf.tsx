@@ -10,6 +10,7 @@ import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 import { Actions } from "../code-editor/actions";
 import { EditorDescription, EditorState, NodeDesc } from "./types";
+import { AccountState } from "@cocalc/frontend/account/types";
 
 const ERROR_STYLE: CSS = {
   maxWidth: "100%",
@@ -27,7 +28,7 @@ interface Props {
   font_size: number;
   editor_state: EditorState;
   active_id: string;
-  editor_settings?: Map<string, any>;
+  editor_settings?: AccountState["editor_settings"];
   terminal?: Map<string, any>;
   settings: Map<string, any>;
   status: string;
@@ -80,6 +81,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     tab_is_visible,
   } = props;
 
+  // Must be CamelCase
   const TheComponent = props.component as any;
 
   const read_only: boolean | undefined = useRedux(name, "read_only");
