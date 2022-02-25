@@ -4,12 +4,20 @@
  */
 
 import { Map, Set } from "immutable";
-import { Rendered, React, useRedux } from "../../app-framework";
-import { ErrorDisplay, Loading } from "../../components";
-import { AvailableFeatures } from "../../project_configuration";
+import { Rendered, React, useRedux, CSS } from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 import { Actions } from "../code-editor/actions";
 import { EditorDescription, EditorState, NodeDesc } from "./types";
+
+const ERROR_STYLE: CSS = {
+  maxWidth: "100%",
+  maxHeight: "30%",
+  fontFamily: "monospace",
+  fontSize: "85%",
+  whiteSpace: "pre-wrap",
+} as const;
 
 interface Props {
   name: string;
@@ -156,13 +164,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         banner={true}
         error={error}
         onClose={() => editor_actions.set_error("")}
-        body_style={{
-          maxWidth: "100%",
-          maxHeight: "30%",
-          fontFamily: "monospace",
-          fontSize: "85%",
-          whiteSpace: "pre-wrap",
-        }}
+        body_style={ERROR_STYLE}
       />
     );
   }
