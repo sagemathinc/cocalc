@@ -21,6 +21,8 @@ const MAX_PAGES = 1000;
 
 import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
+import { versions } from "@cocalc/cdn";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 /* IMPORTANT:
  - We do NOT install pdfjs-dist into the @cocalc/frontend module at all though we import it here!!
@@ -59,8 +61,11 @@ const doc_cache = new LRU(options);
 export const getDocument = reuseInFlight(async function (url: string) {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
+    const resDir = `pdfjs-dist-${versions["pdfjs-dist"]}`;
     doc = (await pdfjs_getDocument({
       url,
+      cMapUrl: `${appBasePath}/cdn/${resDir}/cmaps/`,
+      cMapPacked: true,
       disableStream: true,
       disableAutoFetch: true,
     }).promise) as unknown as PDFDocumentProxy;
