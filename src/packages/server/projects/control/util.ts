@@ -228,6 +228,8 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
     "sage_server.port",
     "sage_server.pid",
     "secret_token",
+    "start-timestamp.txt",
+    "session-id.txt",
   ]) {
     try {
       const val = (await readFile(join(data, path))).toString().trim();
@@ -236,6 +238,10 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
         if (pidIsRunning(pid)) {
           status[path] = pid;
         }
+      } else if (path == "start-timestamp.txt") {
+        status.start_ts = parseInt(val)
+      } else if (path == "session-id.txt") {
+        status.session_id = val;
       } else if (path.endsWith(".port")) {
         status[path] = parseInt(val);
       } else {
