@@ -86,7 +86,8 @@ interface ButtonProps {
   elements: Element[];
 }
 
-function DeleteButton({ actions, elements }: ButtonProps) {
+function DeleteButton({ elements }: ButtonProps) {
+  const { actions, id } = useFrameContext();
   return (
     <Tooltip title="Delete">
       <Button
@@ -94,6 +95,7 @@ function DeleteButton({ actions, elements }: ButtonProps) {
         type="text"
         onClick={() => {
           deleteElements(actions, elements);
+          actions.clearSelection(id);
         }}
       >
         <Icon name="trash" />

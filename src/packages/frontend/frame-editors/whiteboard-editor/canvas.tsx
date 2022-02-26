@@ -330,32 +330,19 @@ export default function Canvas({
     }
   }, [frame.desc.get("fitToScreen")]);
 
-  function processElement(element, isNavRectangle = false, hideIcon = false) {
+  function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindowNoScale(x, y, z);
 
-    if (element.hide != null && !hideIcon) {
+    if (element.hide != null) {
       // element is hidden...
-      if (readOnly || selectedTool != "select") {
-        // do not show at all for any tool except select.
+      if (readOnly || selectedTool != "select" || element.hide.frame) {
+        // do not show at all for any tool except select, or if hidden as
+        // part of a frame.
         return;
       }
-      // render this instead.
-      return processElement(
-        {
-          id: element.id,
-          x: element.x,
-          y: element.y,
-          w: element.w,
-          h: element.h,
-          hide: element.hide,
-          type: "icon",
-          data: { icon: "eye-slash", fontSize: element.w - 2, color: "#666" },
-        },
-        false,
-        true
-      );
+      // Now it will get rendered, but in a minified way.
     }
 
     if (previewMode && !isNavRectangle) {

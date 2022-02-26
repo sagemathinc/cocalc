@@ -27,6 +27,7 @@ import {
   translateRectsZ,
   roundRectParams,
   moveRectAdjacent,
+  getOverlappingElements,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
@@ -209,12 +210,12 @@ export class Actions extends BaseActions<State> {
     return this.store.getIn(["elements", id])?.toJS();
   }
 
+  private getElements(): Element[] {
+    return (elementsList(this.store.get("elements")) ?? []) as Element[];
+  }
+
   private getPageSpan(margin: number = 0) {
-    const elements = (this.store
-      .get("elements")
-      ?.valueSeq()
-      .filter((x) => x != null)
-      .toJS() ?? []) as Element[];
+    const elements = this.getElements();
     return getPageSpan(elements, margin);
   }
 
@@ -269,7 +270,7 @@ export class Actions extends BaseActions<State> {
       if (elements == null) return;
       const group = elements.getIn([id, "group"]);
       if (group) {
-        const ids = getGroup(elements, group);
+        const ids = this.getGroup(group).map((e) => e.id);
         if (ids.length > 1) {
           if (type == "toggle") {
             type = selection.includes(id) ? "remove" : "add";
@@ -318,8 +319,8 @@ export class Actions extends BaseActions<State> {
         const group = elements.getIn([id, "group"]);
         if (group && !groups.has(group)) {
           groups.add(group);
-          for (const id2 of getGroup(elements, group)) {
-            X.add(id2);
+          for (const e of this.getGroup(group)) {
+            X.add(e.id);
           }
         }
       }
@@ -661,30 +662,85 @@ export class Actions extends BaseActions<State> {
   }
 
   // Hide given elements
-  hideElements(elements: Element[], commit: boolean = true): void {
+  hideElements(
+    elements: Element[],
+    commit: boolean = true,
+    frame: string = ""
+  ): void {
+    if (elements.length == 0) return;
     for (const element of elements) {
-      const { id, w, h } = element;
-      this.setElement({
-        obj: { id, hide: { w, h }, w: 30, h: 30 },
-        commit,
-        cursors: [{}],
-      });
+      const { id, w, h, type } = element;
+      if (frame) {
+        // hiding as part of a frame; se set hide to record the frame,
+        // but do NOT change or save the w,h, since they won't be used, since
+        // this element will never be rendered.
+        this.setElement({
+          obj: { id, hide: { frame } },
+          commit: false,
+          cursors: [{}],
+        });
+      } else if (type == "frame") {
+        // hiding a frame
+        this.setElement({
+          obj: { id, hide: { w, h }, w: 30, h: 30 },
+          commit: false,
+          cursors: [{}],
+        });
+        // hiding a frame, so also hide all of the objects that intersect
+        // the frame, except the frame itself
+        const contents = getOverlappingElements(
+          this.getElements(),
+          element
+        ).filter((element) => element.id != id);
+        this.hideElements(contents, false, id);
+      } else {
+        // hiding a normal element.
+        this.setElement({
+          obj: { id, hide: { w, h }, w: 30, h: 30 },
+          commit: false,
+          cursors: [{}],
+        });
+      }
     }
     if (commit) {
       this.syncstring_commit();
     }
   }
 
-  // Show element with given id
+  // Show element with given id.  If you show a frame, then anything
+  // hidden because it overlapped the frame is also shown.
   unhideElements(elements: Element[], commit: boolean = true): void {
+    if (elements.length == 0) return;
     for (const element of elements) {
-      if (element?.hide == null) return;
-      const { w, h } = element.hide;
-      this.setElement({
-        obj: { id: element.id, hide: null as any, w, h },
-        commit,
-        cursors: [{}],
-      });
+      if (element?.hide == null) continue;
+      if (element.hide["frame"] != null) {
+        const obj: Partial<Element> = { id: element.id, hide: null as any };
+        if (element.hide.w != null) {
+          // subtle case: when you hide something in a frame, then hide the
+          // frame, then show that frame again....
+          obj.hide = { w: element.hide.w, h: element.hide.h };
+        }
+        this.setElement({
+          obj,
+          commit: false,
+          cursors: [{}],
+        });
+      } else {
+        const { w, h } = element.hide as { w: number; h: number };
+        this.setElement({
+          obj: { id: element.id, hide: null as any, w, h },
+          commit: false,
+          cursors: [{}],
+        });
+      }
+      if (element.type == "frame") {
+        // unhiding a frame, so also unhide everything that was hidden
+        // as part of hiding this frame.
+        const v: Element[] = this.getElements().filter(
+          (elt) => elt.hide?.["frame"] == element.id
+        );
+        this.unhideElements(v, false);
+      }
     }
     if (commit) {
       this.syncstring_commit();
@@ -692,6 +748,7 @@ export class Actions extends BaseActions<State> {
   }
 
   lockElements(elements: Element[]) {
+    if (elements.length == 0) return;
     for (const element of elements) {
       this.setElement({
         obj: { id: element.id, locked: true },
@@ -703,6 +760,7 @@ export class Actions extends BaseActions<State> {
   }
 
   unlockElements(elements: Element[]) {
+    if (elements.length == 0) return;
     for (const element of elements) {
       this.setElement({
         obj: { id: element.id, locked: null as any },
@@ -712,17 +770,64 @@ export class Actions extends BaseActions<State> {
     }
     this.syncstring_commit();
   }
-}
 
-function getGroup(elements, group: string): string[] {
-  const ids: string[] = [];
-  if (!group) return ids;
-  for (const [id, element] of elements) {
-    if (element?.get("group") == group) {
-      ids.push(id);
+  moveElements(
+    elements: Element[],
+    offset: Point,
+    commit: boolean = true,
+    moved: Set<string> = new Set()
+  ): void {
+    let allElements: undefined | Element[] = undefined;
+    for (const element of elements) {
+      const { id } = element;
+      if (moved.has(id)) continue;
+      const x = element.x + offset.x;
+      const y = element.y + offset.y;
+      this.setElement({
+        obj: { id, x, y },
+        commit: false,
+        cursors: [{}],
+      });
+      moved.add(id);
+      if (element.type == "frame") {
+        // also move any element/group that are part of the frame.  That's what
+        // makes frames special.  (Except don't move other frames, or that
+        // would make it impossible to separate them.)
+        if (allElements == null) allElements = this.getElements();
+        let overlapping: Element[];
+        if (element.hide != null) {
+          overlapping = allElements.filter(
+            (elt) => elt.hide?.["frame"] == element.id
+          );
+        } else {
+          overlapping = getOverlappingElements(allElements, element).filter(
+            (elt) => elt.type != "frame"
+          );
+        }
+        this.moveElements(overlapping, offset, false, moved);
+      }
+      if (element.group) {
+        // also have to move the rest of the group
+        this.moveElements(this.getGroup(element.group), offset, false, moved);
+      }
+    }
+    if (commit) {
+      this.syncstring_commit();
     }
   }
-  return ids;
+
+  getGroup(group: string): Element[] {
+    const X: Element[] = [];
+    if (!group) return X;
+    const elementsMap = this.store.get("elements");
+    if (!elementsMap) return X;
+    for (const [_, element] of elementsMap) {
+      if (element?.get("group") == group) {
+        X.push(element.toJS());
+      }
+    }
+    return X;
+  }
 }
 
 export function elementsList(

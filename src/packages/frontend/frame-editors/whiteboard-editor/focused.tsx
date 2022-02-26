@@ -12,8 +12,6 @@ import { ReactNode, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import {
   getAngle,
-  getGroup,
-  getOverlappingElements,
   getPosition,
   MAX_ELEMENTS,
 } from "./math";
@@ -287,48 +285,7 @@ export default function Focused({
         }}
         onStop={(_, data) => {
           setDragging(false);
-          const moved: Set<string> = new Set();
-          for (const elt of selectedElements) {
-            const { id } = elt;
-            const x = elt.x + data.x;
-            const y = elt.y + data.y;
-            frame.actions.setElement({
-              obj: { id, x, y },
-              commit: false,
-              cursors: [{}],
-            });
-            moved.add(id);
-          }
-          if (element.type == "frame") {
-            // also move any element/group that touches the frame.  That's what
-            // makes frames special.  (Except don't move other frames, or that
-            // would make it impossible to separate them.)
-            const overlapping = getOverlappingElements(allElements, element);
-            for (const elt of overlapping) {
-              if (moved.has(elt.id) || elt.type == "frame") continue;
-              const x = elt.x + data.x;
-              const y = elt.y + data.y;
-              frame.actions.setElement({
-                obj: { id: elt.id, x, y },
-                commit: false,
-              });
-              moved.add(elt.id);
-              if (elt.group) {
-                // also have to move the rest of the group
-                for (const elt2 of getGroup(allElements, elt.group)) {
-                  if (moved.has(elt2.id) || elt2.type == "frame") continue;
-                  const x = elt2.x + data.x;
-                  const y = elt2.y + data.y;
-                  frame.actions.setElement({
-                    obj: { id: elt2.id, x, y },
-                    commit: false,
-                  });
-                  moved.add(elt2.id);
-                }
-              }
-            }
-          }
-          frame.actions.syncstring_commit();
+          frame.actions.moveElements(selectedElements, data);
         }}
       >
         <div

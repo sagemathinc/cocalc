@@ -1,4 +1,4 @@
-import { Button, Popover } from "antd";
+import { Button, Tooltip } from "antd";
 import { Element } from "../types";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { BUTTON_STYLE } from "./edit-bar";
@@ -9,18 +9,12 @@ interface Props {
 }
 
 export default function HideButton({ elements }: Props) {
-  const { actions } = useFrameContext();
+  const { id: frameId, actions } = useFrameContext();
   let hidden = isHidden(elements);
   return (
-    <Popover
+    <Tooltip
       placement="bottom"
-      title="Hide or show"
-      content={
-        <div style={{ maxWidth: "300px" }}>
-          Hide objects to make them invisible. In select mode you will see a
-          small icon, which you can click to select and unhide the object.
-        </div>
-      }
+      title={`${hidden ? "Show" : "Hide"} selected objects`}
     >
       <Button
         style={BUTTON_STYLE}
@@ -30,11 +24,12 @@ export default function HideButton({ elements }: Props) {
           } else {
             actions.hideElements(elements);
           }
+          actions.clearSelection(frameId);
         }}
       >
         <Icon name={hidden ? "eye-slash" : "eye"} />
       </Button>
-    </Popover>
+    </Tooltip>
   );
 }
 

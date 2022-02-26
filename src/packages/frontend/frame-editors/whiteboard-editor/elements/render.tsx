@@ -14,6 +14,7 @@ import Selection from "./selection";
 import Icon from "./icon";
 import Edge from "./edge";
 import Chat from "./chat";
+import Hide from "./hide";
 
 export interface Props {
   element: Element;
@@ -24,8 +25,9 @@ export interface Props {
 }
 
 export default function Render(props: Props) {
-  /* dumb for now, but will be a cool plugin system like we used for our slate wysiwyg editor....*/
-
+  if (props.element.hide != null) {
+    return <Hide {...props} />;
+  }
   switch (props.element.type) {
     case "text":
       return <Text {...props} />;
