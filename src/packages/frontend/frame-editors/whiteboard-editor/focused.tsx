@@ -10,11 +10,7 @@ things to fix that later.
 import { Tooltip } from "antd";
 import { ReactNode, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import {
-  getAngle,
-  getPosition,
-  MAX_ELEMENTS,
-} from "./math";
+import { getAngle, getPosition, MAX_ELEMENTS } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "./hooks";
 import EditBar from "./tools/edit-bar";
@@ -225,7 +221,7 @@ export default function Focused({
       h={pos.h}
       style={
         selectedElements.length == 1 &&
-        ["pen", "frame", "icon"].includes(selectedElements[0].type)
+        ["pen", "frame", "icon", "edge"].includes(selectedElements[0].type)
           ? {
               pointerEvents: "none", // otherwise entire element is blocked by this div
             }

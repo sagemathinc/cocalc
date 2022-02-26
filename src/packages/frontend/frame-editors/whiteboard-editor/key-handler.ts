@@ -1,4 +1,8 @@
-/* Keyboard handler */
+/* Keyboard handler
+
+The official Photoshop keyboard shortcuts are here and can be useful inspiration:
+   https://helpx.adobe.com/photoshop/using/default-keyboard-shortcuts.html
+*/
 
 import { Actions } from "./actions";
 import { TOOLS, Tool } from "./tools/spec";
@@ -7,8 +11,13 @@ import { ZOOM100 } from "./math";
 const selectTool: { [key: string]: Tool } = {};
 for (const tool in TOOLS) {
   const { key } = TOOLS[tool];
-  if (key) {
+  if (key == null) continue;
+  if (typeof key == "string") {
     selectTool[key] = tool;
+  } else {
+    for (const k of key) {
+      selectTool[k] = tool;
+    }
   }
 }
 
@@ -43,13 +52,18 @@ export default function getKeyHandler(
 
     const selection = node.get("selection");
     if (selection.size == 1) {
-      // An element is focused
+      // Exactly one element is selected.
       // TOOD: For now, we allow for escape, though it would be better for that to have multiple steps...
       if (key == "escape") {
         actions.clearSelection(frameId);
         return;
       }
-      return;
+      const elt = actions.getElement(selection.get(0));
+      if (elt && ["note", "text", "code", "chat", "timer"].includes(elt.type)) {
+        // do NOT use any keyboard shortcut on anything editable via the keyboard.
+        // TODO: maybe better would be to have an editing or not editing state... NOT sure though!
+        return;
+      }
     }
     if (key == "-") {
       actions.decrease_font_size(frameId);
@@ -71,6 +85,14 @@ export default function getKeyHandler(
     }
     if (key == "m") {
       actions.toggleMapType(frameId);
+      return;
+    }
+    if (key == "backspace") {
+      actions.deleteElements(
+        selection?.toJS().map((id) => ({
+          id,
+        }))
+      );
       return;
     }
     const tool = selectTool[key];

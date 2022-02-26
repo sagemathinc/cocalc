@@ -94,7 +94,7 @@ function DeleteButton({ elements }: ButtonProps) {
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
         onClick={() => {
-          deleteElements(actions, elements);
+          actions.deleteElements(elements);
           actions.clearSelection(id);
         }}
       >
@@ -352,9 +352,11 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           pasteElements(actions, elements, frame.id);
         } else if (key == "cut") {
           copyToClipboard(elements);
-          deleteElements(actions, elements);
+          actions.deleteElements(elements);
+          actions.clearSelection(frame.id);
         } else if (key == "delete") {
-          deleteElements(actions, elements);
+          actions.deleteElements(elements);
+          actions.clearSelection(frame.id);
         } else if (key == "paste") {
           pasteElements(actions, elements, frame.id);
         } else if (key == "lock") {
@@ -430,13 +432,6 @@ function getCommonConfigParams(elements: Element[]): Set<ConfigParams> {
     if (params.size == 0) return params;
   }
   return params;
-}
-
-export function deleteElements(actions, elements: Element[]) {
-  for (const { id } of elements) {
-    actions.delete(id, false);
-  }
-  actions.syncstring_commit();
 }
 
 export function pasteElements(actions, elements: Element[], frameId?: string) {

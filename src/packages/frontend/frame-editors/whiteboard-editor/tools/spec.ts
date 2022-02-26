@@ -18,7 +18,7 @@ interface ToolDescription {
   hideFromToolbar?: boolean;
   readOnly?: boolean; // if true, show this tool even in readonly view
   resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
-  key?: string; // keyboard shortcut
+  key?: string | string[]; // keyboard shortcut or shortcuts
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -27,14 +27,14 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "grab",
     tip: "Hand tool - move canvas",
     readOnly: true,
-    key: "h",
+    key: "h", // same as photoshop "hand tool" -- https://helpx.adobe.com/photoshop/using/default-keyboard-shortcuts.html
   },
   select: {
     icon: "mousepointer",
     cursor: "default",
     tip: "Select",
     readOnly: true,
-    key: "v",
+    key: "a", // matches photoshop's "Direct Selection tool"
   },
   text: {
     icon: "text1",
@@ -87,11 +87,10 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
   },
   edge: {
-    hideFromToolbar: true,
+    tromToolbar: true,
     icon: "network-wired", // really bad
     tip: "Edge",
     config: new Set(["color", "radius"]),
-    key: "e",
   },
   frame: {
     icon: "frame",

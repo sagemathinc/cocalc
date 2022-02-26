@@ -239,13 +239,24 @@ export class Actions extends BaseActions<State> {
 
   delete(id: string, commit: boolean = true): void {
     if (this._syncstring == null) return;
+    if (this.isLocked(id)) return; // todo -- show a message
     this._syncstring.delete({ id });
     if (commit) {
       this.syncstring_commit();
     }
   }
 
-  public clearSelection(frameId: string): void {
+  deleteElements(elements: Element[], commit: boolean = true): void {
+    if (this._syncstring == null) return;
+    for (const { id } of elements) {
+      this.delete(id, false);
+    }
+    if (commit) {
+      this.syncstring_commit();
+    }
+  }
+
+  clearSelection(frameId: string): void {
     this.set_frame_tree({ id: frameId, selection: [] });
   }
 
@@ -747,6 +758,10 @@ export class Actions extends BaseActions<State> {
     if (commit) {
       this.syncstring_commit();
     }
+  }
+
+  private isLocked(id: string): boolean {
+    return !!this.store.getIn(["elements", id, "locked"]);
   }
 
   lockElements(elements: Element[]) {

@@ -32,7 +32,7 @@ const TOOLS = {
     ),
     tip: (
       <>
-        {"Full --> Outline --> Hide"} <Key>M</Key>
+        {"Full --> Outline --> Hide"} <Key keys="m" />
       </>
     ),
     key: "m",
@@ -45,7 +45,7 @@ const TOOLS = {
     icon: "ColumnWidthOutlined",
     tip: (
       <>
-        Fit to screen <Key>Ctrl+0; ⌘+0</Key>
+        Fit to screen <Key keys={["Ctrl+0", "⌘+0"]} />
       </>
     ),
     click: (actions, id) => {
@@ -57,7 +57,7 @@ const TOOLS = {
     icon: "search-minus",
     tip: (
       <>
-        Zoom out <Key>-</Key>
+        Zoom out <Key keys="-" />
       </>
     ),
     click: (actions, id) => {
@@ -69,7 +69,7 @@ const TOOLS = {
     icon: "search-plus",
     tip: (
       <>
-        Zoom in <Key>+</Key>
+        Zoom in <Key keys="+" />
       </>
     ),
     click: (actions, id) => {
@@ -81,7 +81,7 @@ const TOOLS = {
     icon: ({ fontSize }) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
     tip: (
       <>
-        Zoom to 100% <Key>0</Key>
+        Zoom to 100% <Key keys="0" />
       </>
     ),
     click: (actions, id) => {

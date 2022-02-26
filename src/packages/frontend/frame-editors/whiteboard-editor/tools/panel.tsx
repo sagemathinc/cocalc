@@ -7,6 +7,7 @@ Floating panel from which you can select a tool.
 import { CSSProperties, ReactNode } from "react";
 import { Button, Tooltip, Typography } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { r_join } from "@cocalc/frontend/components/r_join";
 import { TOOLS, Tool } from "./spec";
 import { useFrameContext } from "../hooks";
 import { MAX_ELEMENTS } from "../math";
@@ -57,11 +58,11 @@ function ToolButton({ tool, isSelected }) {
     <Tooltip
       placement="right"
       title={
-        !key ? (
+        key == null ? (
           tip
         ) : (
           <>
-            {tip} <Key>{key.toUpperCase()}</Key>
+            {tip} <Key keys={key} />
           </>
         )
       }
@@ -84,6 +85,10 @@ function ToolButton({ tool, isSelected }) {
   );
 }
 
-export function Key({ children }) {
-  return <Typography.Text keyboard>{children}</Typography.Text>;
+export function Key({ keys }: { keys: string | string[] }) {
+  if (typeof keys == "string") {
+    return <Typography.Text keyboard>{keys.toUpperCase()}</Typography.Text>;
+  } else {
+    return r_join(keys.map((k: string) => <Key keys={k} />));
+  }
 }
