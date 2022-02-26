@@ -42,7 +42,8 @@ interface Props {
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  lineWrapping?: boolean;
+  lineWrapping?: boolean; // only for source codemirror text mode
+  lineNumbers?: boolean; // only for source codemirror text mode
   saveDebounceMs?: number;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -61,6 +62,7 @@ interface Props {
   cursors?: ImmutableMap<string, any>;
   noVfill?: boolean;
   editorDivRef?: RefObject<HTMLDivElement>; // if in slate "editor" mode, this is the top-level div
+  cmOptions?: { [key: string]: any }; // used for codemirror options instead of anything above, e.g,. lineNumbers
 }
 
 export default function MultiMarkdownInput({
@@ -80,6 +82,7 @@ export default function MultiMarkdownInput({
   submitMentionsRef,
   extraHelp,
   lineWrapping,
+  lineNumbers,
   saveDebounceMs,
   hideHelp,
   onBlur,
@@ -91,6 +94,7 @@ export default function MultiMarkdownInput({
   cursors,
   noVfill,
   editorDivRef,
+  cmOptions,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -116,6 +120,7 @@ export default function MultiMarkdownInput({
         ...(minimal
           ? undefined
           : {
+              overflow: "hidden",
               background: "white",
               color: "black",
               ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
@@ -181,6 +186,8 @@ export default function MultiMarkdownInput({
           placeholder={placeholder}
           fontSize={fontSize}
           lineWrapping={lineWrapping}
+          lineNumbers={lineNumbers}
+          cmOptions={cmOptions}
           height={height}
           style={style}
           autoFocus={focused}

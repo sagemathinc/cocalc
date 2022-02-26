@@ -225,6 +225,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     }
 
     function renderMarkdownEdit() {
+      const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
           value={props.cell.get("input") ?? ""}
@@ -236,6 +237,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             frameActions.current?.set_md_cell_not_editing(props.id);
           }}
           saveDebounceMs={1500}
+          cmOptions={cmOptions}
         />
       );
     }

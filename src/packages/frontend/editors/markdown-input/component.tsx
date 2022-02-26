@@ -128,7 +128,9 @@ interface Props {
   fontSize?: number;
   styleActiveLine?: boolean;
   lineWrapping?: boolean;
+  lineNumbers?: boolean;
   autoFocus?: boolean;
+  cmOptions?: { [key: string]: any }; // if given, use this for all CodeMirror options and ignore anything derived from other inputs, e.g., lineNumbers, above.
 }
 
 export const MarkdownInput: FC<Props> = ({
@@ -153,7 +155,9 @@ export const MarkdownInput: FC<Props> = ({
   fontSize,
   styleActiveLine,
   lineWrapping,
+  lineNumbers,
   autoFocus,
+  cmOptions,
 }) => {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -206,17 +210,18 @@ export const MarkdownInput: FC<Props> = ({
       }
     };
 
-    const options = {
+    const options = cmOptions ?? {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
-      mode: {
-        name: "gfm",
-      },
-      extraKeys,
       styleActiveLine,
       lineWrapping,
+      lineNumbers,
     };
-    cm.current = CodeMirror.fromTextArea(node, options);
+    cm.current = CodeMirror.fromTextArea(node, {
+      ...options,
+      extraKeys,
+      mode: { name: "gfm" },
+    });
     // UNCOMMENT FOR DEBUGGING ONLY
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
@@ -258,7 +263,8 @@ export const MarkdownInput: FC<Props> = ({
     const e: any = cm.current.getWrapperElement();
     e.setAttribute(
       "style",
-      `height:100%; font-family:sans-serif !important;padding:${PADDING_TOP}px 12px`
+      `height:100%; font-family:sans-serif !important;` +
+        (!options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "")
     );
 
     if (enableMentions) {
@@ -325,6 +331,17 @@ export const MarkdownInput: FC<Props> = ({
   useEffect(() => {
     cm.current?.setOption("theme", theme == null ? "default" : theme);
   }, [theme]);
+
+  useEffect(() => {
+    cm.current?.setOption("lineNumbers", cmOptions?.lineNumbers ?? lineNumbers);
+  }, [cmOptions?.lineNumbers ?? lineNumbers]);
+
+  useEffect(() => {
+    cm.current?.setOption(
+      "lineWrapping",
+      cmOptions?.lineWrapping ?? lineWrapping
+    );
+  }, [cmOptions?.lineWrapping ?? lineWrapping]);
 
   useEffect(() => {
     if (bindings == null || bindings == "standard") {
