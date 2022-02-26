@@ -119,7 +119,7 @@ function AlternateTopButtons({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Erase">
+      <Tooltip title="Eraser">
         <Button
           style={{ width: "25px" }}
           type="text"

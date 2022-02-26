@@ -36,6 +36,7 @@ import { getName } from "./elements/chat";
 import { lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import { pasteElements } from "./tools/edit-bar";
+import getKeyHandler from "./key-handler";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
@@ -46,6 +47,7 @@ export class Actions extends BaseActions<State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];
+  private keyHandler?: (event) => void;
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "whiteboard" };
@@ -827,6 +829,35 @@ export class Actions extends BaseActions<State> {
       }
     }
     return X;
+  }
+
+  enableWhiteboardKeyHandler(frameId: string) {
+    this.keyHandler = getKeyHandler(this, frameId);
+    this.set_active_key_handler(this.keyHandler);
+  }
+
+  disableWhiteboardKeyHandler() {
+    if (this.keyHandler != null) {
+      this.erase_active_key_handler(this.keyHandler);
+      delete this.keyHandler;
+    }
+  }
+
+  hide() {
+    this.disableWhiteboardKeyHandler();
+  }
+
+  focus(id?: string): void {
+    if (id === undefined) {
+      id = this._get_active_id();
+    }
+    const node = this._get_frame_node(id);
+    if (node?.get("type") == "whiteboard") {
+      this.enableWhiteboardKeyHandler(id);
+    } else {
+      this.disableWhiteboardKeyHandler();
+    }
+    super.focus(id);
   }
 }
 

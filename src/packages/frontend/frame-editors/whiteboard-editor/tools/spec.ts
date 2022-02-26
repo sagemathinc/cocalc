@@ -18,6 +18,7 @@ interface ToolDescription {
   hideFromToolbar?: boolean;
   readOnly?: boolean; // if true, show this tool even in readonly view
   resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
+  key?: string; // keyboard shortcut
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -26,50 +27,58 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "grab",
     tip: "Hand tool - move canvas",
     readOnly: true,
+    key: "h",
   },
   select: {
     icon: "mousepointer",
     cursor: "default",
     tip: "Select",
     readOnly: true,
+    key: "v",
   },
   text: {
     icon: "text1",
     cursor: "text",
     tip: "Text",
     config: new Set(["fontFamily", "fontSize", "color"]),
+    key: "t",
   },
   note: {
     icon: "note",
     cursor: "crosshair",
     tip: "Sticky Note",
     config: new Set(["fontFamily", "fontSize", "color"]),
+    key: "n",
   },
   pen: {
     icon: "pen",
     cursor: "crosshair",
     tip: "Pen",
     config: new Set(["color", "radius"]),
-    resizable:true,
+    resizable: true,
+    key: "p",
   },
   code: {
     icon: "jupyter",
     cursor: "crosshair",
     tip: "Jupyter Code Cell",
     config: new Set(["fontSize", "color", "radius"]),
-    resizable:true,
+    resizable: true,
+    key: "j",
   },
   icon: {
     icon: "icons",
     cursor: "crosshair",
     tip: "Icons",
     config: new Set(["fontSize", "color"]),
+    key: "i",
   },
   chat: {
     icon: "comment",
     cursor: "crosshair",
     tip: "Chat",
     config: new Set(["fontSize", "color"]),
+    key: "c",
   },
   timer: {
     icon: "stopwatch",
@@ -82,14 +91,16 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     icon: "network-wired", // really bad
     tip: "Edge",
     config: new Set(["color", "radius"]),
+    key: "e",
   },
   frame: {
     icon: "frame",
     cursor: "crosshair",
     tip: "Frame",
     config: new Set(["color", "radius"]),
+    key: "f",
   },
-  //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
+  //shape: { icon: "square", cursor: "crosshair", tip: "Shape", key:"s" },
 };
 
 export type Tool = keyof typeof TOOLS;

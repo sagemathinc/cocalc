@@ -22,6 +22,7 @@ import {
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
 } from "../focused";
+import { Key } from "./panel";
 
 const TOOLS = {
   map: {
@@ -29,7 +30,12 @@ const TOOLS = {
     icon: ({ navMap }) => (
       <Icon name={navMap == "preview" ? "sitemap" : "map"} />
     ),
-    tip: "Full Map --> Outline Map --> Hide",
+    tip: (
+      <>
+        {"Full --> Outline --> Hide"} <Key>M</Key>
+      </>
+    ),
+    key: "m",
     click: (actions, id) => {
       actions.toggleMapType(id);
     },
@@ -37,7 +43,11 @@ const TOOLS = {
   fit: {
     width: "35px",
     icon: "ColumnWidthOutlined",
-    tip: "Fit to screen",
+    tip: (
+      <>
+        Fit to screen <Key>Ctrl+0; ⌘+0</Key>
+      </>
+    ),
     click: (actions, id) => {
       actions.fitToScreen(id);
     },
@@ -45,7 +55,11 @@ const TOOLS = {
   zoomOut: {
     width: "35px",
     icon: "search-minus",
-    tip: "Zoom out",
+    tip: (
+      <>
+        Zoom out <Key>-</Key>
+      </>
+    ),
     click: (actions, id) => {
       actions.decrease_font_size(id);
     },
@@ -53,7 +67,11 @@ const TOOLS = {
   zoomIn: {
     width: "35px",
     icon: "search-plus",
-    tip: "Zoom in",
+    tip: (
+      <>
+        Zoom in <Key>+</Key>
+      </>
+    ),
     click: (actions, id) => {
       actions.increase_font_size(id);
     },
@@ -61,7 +79,11 @@ const TOOLS = {
   zoom100: {
     width: "60px",
     icon: ({ fontSize }) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
-    tip: "Zoom to 100%",
+    tip: (
+      <>
+        Zoom to 100% <Key>0</Key>
+      </>
+    ),
     click: (actions, id) => {
       actions.set_font_size(id, ZOOM100);
     },
@@ -69,7 +91,7 @@ const TOOLS = {
 } as {
   [tool: string]: {
     icon: Function | IconName;
-    tip: string;
+    tip: ReactNode;
     click: (Actions, id) => void;
     width: string;
   };
