@@ -398,6 +398,7 @@ export default function Canvas({
           canvasScale={canvasScale}
           readOnly={readOnly || isNavigator}
           cursors={cursors?.[id]}
+          zIndex={transforms.zMap[element.z ?? 0] ?? 0}
         />
       );
     }

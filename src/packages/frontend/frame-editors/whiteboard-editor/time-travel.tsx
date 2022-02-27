@@ -5,10 +5,17 @@ import Canvas from "./canvas";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "./hooks";
 import ToolPanel from "./tools/panel";
+import { Map as iMap } from "immutable";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const { isFocused, desc } = useFrameContext();
-  const elements = syncdb.version(version).get().toJS();
+  let elements = syncdb.version(version).get();
+  // TODO: annoyingly, we need a map also in order to plot edges efficiently...
+  let elementsMap: iMap<string, any> = iMap();
+  for (const element of elements) {
+    elementsMap = elementsMap.set(element.get("id"), element);
+  }
+  elements = elements.toJS();
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (
     <div className="smc-vfill">
@@ -19,6 +26,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
         </>
       )}
       <Canvas
+        elementsMap={elementsMap}
         elements={elements}
         font_size={font_size}
         margin={50}

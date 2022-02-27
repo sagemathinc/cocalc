@@ -70,6 +70,9 @@ export default function getKeyHandler(
         return;
       }
     }
+
+    if (activeElementIsInput()) return;
+
     if (key == "-") {
       actions.decrease_font_size(frameId);
       return;
@@ -106,4 +109,13 @@ export default function getKeyHandler(
       return;
     }
   };
+}
+
+const inputs = ["input", "select", "button", "textarea"];
+function activeElementIsInput(): boolean {
+  const activeElement = document.activeElement;
+  return (
+    activeElement != null &&
+    inputs.includes(activeElement.tagName.toLowerCase())
+  );
 }

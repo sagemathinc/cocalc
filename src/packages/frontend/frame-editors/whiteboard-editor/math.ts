@@ -445,3 +445,70 @@ export function moveRectAdjacent(
     rect.x -= rect.w + gap;
   }
 }
+
+export function distancePoints(p1: Point, p2: Point): number {
+  const a = p1.x - p2.x;
+  const b = p1.y - p2.y;
+  return Math.sqrt(a * a + b * b);
+}
+
+// keys of output match Position from types and antd...
+export function cornersOfRect(rect: Rect): {
+  leftTop: Point;
+  rightTop: Point;
+  leftBottom: Point;
+  rightBottom: Point;
+} {
+  return {
+    leftTop: { x: rect.x, y: rect.y },
+    rightTop: { x: rect.x + rect.w, y: rect.y },
+    leftBottom: { x: rect.x, y: rect.y + rect.h },
+    rightBottom: { x: rect.x + rect.w, y: rect.y + rect.h },
+  };
+}
+
+export function midpointsOfRect(rect: Rect): {
+  top: Point;
+  bottom: Point;
+  left: Point;
+  right: Point;
+} {
+  return {
+    top: { x: rect.x + rect.w / 2, y: rect.y },
+    bottom: { x: rect.x + rect.w / 2, y: rect.y + rect.h },
+    left: { x: rect.x, y: rect.y + rect.h / 2 },
+    right: { x: rect.x + rect.w, y: rect.y + rect.h / 2 },
+  };
+}
+
+export function distanceToMidpoints(p: Point, rect: Rect): number {
+  let min: undefined | number = undefined;
+  for (const [, q] of Object.entries(midpointsOfRect(rect))) {
+    const d = distancePoints(p, q);
+    if (min === undefined) {
+      min = d;
+    } else {
+      min = Math.min(d, min);
+    }
+  }
+  if (min == undefined) throw Error("bug");
+  return min;
+}
+
+// Returns the midpoint of a side of rect1 that is closest to rect2.
+export function closestMidpoint(rect1: Rect, rect2: Rect): Point {
+  let closestPoint: Point | undefined = undefined;
+  let closestDistance: number | undefined = undefined;
+  for (const [, point] of Object.entries(midpointsOfRect(rect1))) {
+    const d = distanceToMidpoints(point, rect2);
+    if (closestPoint === undefined || closestDistance === undefined) {
+      closestPoint = point;
+      closestDistance = d;
+    } else if (d < closestDistance) {
+      closestDistance = d;
+      closestPoint = point;
+    }
+  }
+  if (closestPoint === undefined) throw Error("impossible bug");
+  return closestPoint;
+}
