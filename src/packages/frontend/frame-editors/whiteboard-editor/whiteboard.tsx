@@ -89,7 +89,11 @@ export default function Whiteboard({
               {desc.get("selectedTool") == "frame" && <FramePanel />}
             </>
           )}
-          <NavigationPanel fontSize={font_size} elements={elements} />
+          <NavigationPanel
+            fontSize={font_size}
+            elements={elements}
+            elementsMap={elementsMap}
+          />
         </>
       )}
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>

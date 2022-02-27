@@ -350,6 +350,32 @@ export default function Canvas({
       // Now it will get rendered, but in a minified way.
     }
 
+    if (element.type == "edge") {
+      if (elementsMap == null) return; // need elementsMap to render edges efficiently.
+      const { from, to } = element.data ?? {};
+      const fromElt = elementsMap?.get(from)?.toJS();
+      const toElt = elementsMap?.get(to)?.toJS();
+      if (fromElt == null || toElt == null) {
+        // TODO: delete edge -- it is no longer valid.
+        return;
+      }
+      // NOTE: edge doesn't handle showing edit bar for selection in case of one selected edge.
+      return (
+        <RenderEdge
+          key={element.id}
+          element={element}
+          from={toWindowRectNoScale(transforms, fromElt)}
+          to={toWindowRectNoScale(transforms, toElt)}
+          canvasScale={canvasScale}
+          readOnly={readOnly || isNavigator}
+          cursors={cursors?.[id]}
+          zIndex={transforms.zMap[element.z ?? 0] ?? 0}
+          selected={selection?.has(element.id)}
+          previewMode={previewMode}
+        />
+      );
+    }
+
     if (previewMode && !isNavRectangle) {
       if (element.type == "edge") {
         // ignore edges in preview mode.
@@ -373,31 +399,6 @@ export default function Canvas({
             }}
           ></div>
         </Position>
-      );
-    }
-
-    if (element.type == "edge") {
-      if (elementsMap == null || isNavigator) return; // we only render edges in full display.
-      const { from, to } = element.data ?? {};
-      const fromElt = elementsMap?.get(from)?.toJS();
-      const toElt = elementsMap?.get(to)?.toJS();
-      if (fromElt == null || toElt == null) {
-        // TODO: delete edge -- it is no longer valid.
-        return;
-      }
-      // NOTE: edge doesn't handle showing edit bar for selection in case of one selected edge.
-      return (
-        <RenderEdge
-          key={element.id}
-          element={element}
-          from={toWindowRectNoScale(transforms, fromElt)}
-          to={toWindowRectNoScale(transforms, toElt)}
-          canvasScale={canvasScale}
-          readOnly={readOnly || isNavigator}
-          cursors={cursors?.[id]}
-          zIndex={transforms.zMap[element.z ?? 0] ?? 0}
-          selected={selection?.has(element.id)}
-        />
       );
     }
 

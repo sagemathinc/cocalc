@@ -17,6 +17,7 @@ interface Props {
   cursors?: { [account_id: string]: any[] };
   zIndex: number;
   selected?: boolean;
+  previewMode?: boolean;
 }
 
 export default function Edge({
@@ -28,6 +29,7 @@ export default function Edge({
   readOnly,
   cursors,
   selected,
+  previewMode,
 }: Props) {
   const { actions, id: frameId } = useFrameContext();
 
@@ -51,7 +53,7 @@ export default function Edge({
       end={end}
       arrowSize={thickness * 5 + 14}
       thickness={thickness}
-      color={element.data?.color}
+      color={previewMode ? "#9fc3ff" : element.data?.color}
       style={{
         zIndex,
         padding: "2.5px 10px",
@@ -60,6 +62,7 @@ export default function Edge({
         border: `${SELECTED_BORDER_WIDTH}px solid ${
           selected ? SELECTED_BORDER_COLOR : "transparent"
         }`,
+        background: previewMode ? "#9fc3ff" : undefined,
       }}
       onClick={(e) => {
         actions.setSelection(

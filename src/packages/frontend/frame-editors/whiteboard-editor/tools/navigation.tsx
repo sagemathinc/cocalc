@@ -17,6 +17,7 @@ import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element } from "../types";
 import Draggable from "react-draggable";
+import { Map as iMap } from "immutable";
 import {
   SELECTED_BORDER_COLOR,
   SELECTED_BORDER_TYPE,
@@ -104,9 +105,10 @@ const BAR_HEIGHT = 33;
 interface Props {
   fontSize?: number;
   elements: Element[];
+  elementsMap?: iMap<string, any>;
 }
 
-export default function Navigation({ fontSize, elements }: Props) {
+export default function Navigation({ fontSize, elements, elementsMap }: Props) {
   const [resize, setResize] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -157,6 +159,7 @@ export default function Navigation({ fontSize, elements }: Props) {
             resize={resize}
             setResize={setResize}
             navMap={navMap}
+            elementsMap={elementsMap}
           />
         )}
         <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
@@ -205,7 +208,15 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Map({ elements, width, height, resize, setResize, navMap }) {
+function Map({
+  elements,
+  elementsMap,
+  width,
+  height,
+  resize,
+  setResize,
+  navMap,
+}) {
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
@@ -224,6 +235,7 @@ function Map({ elements, width, height, resize, setResize, navMap }) {
         previewMode={navMap == "preview"}
         margin={10 / scale}
         elements={elements}
+        elementsMap={elementsMap}
         scale={scale}
       />
       <Draggable
