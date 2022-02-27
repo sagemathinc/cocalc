@@ -24,6 +24,7 @@ import {
   DEFAULT_FONT_FAMILY,
   minFontSize,
   maxFontSize,
+  defaultOpacity,
   defaultRadius,
   maxRadius,
 } from "./defaults";
@@ -58,10 +59,11 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
       <div style={{ display: "flex" }}>
         {!(readOnly || locked || hidden) && (
           <>
+            {configParams.has("color") && <ColorButton {...props} />}
             {configParams.has("fontFamily") && <FontFamily {...props} />}
             {configParams.has("fontSize") && <FontSize {...props} />}
+            {configParams.has("opacity") && <Opacity {...props} />}
             {configParams.has("radius") && <Radius {...props} />}
-            {configParams.has("color") && <ColorButton {...props} />}
             <GroupButton {...props} />
           </>
         )}
@@ -246,6 +248,42 @@ function getRadius(elements: Element[]): number | undefined {
     }
   }
   return defaultRadius;
+}
+
+function Opacity({ actions, elements }: ButtonProps) {
+  return (
+    <Tooltip title="Opacity: 1 is solid; less than 1 is transparent">
+      <InputNumber
+        style={{
+          width: "70px",
+          fontSize: "20px",
+          color: "#666",
+          paddingTop: "4px",
+        }}
+        min={0}
+        max={1}
+        step={0.01}
+        defaultValue={getOpacity(elements)}
+        onChange={(opacity) => {
+          // If radius is 0 we set radius to null, hence removing it, so will fallback to default value.
+          // For code cell the default is "no border", but for a pen it might be something else.
+          setDataField(
+            { elements, actions },
+            { opacity: opacity == 1 ? null : opacity }
+          );
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+function getOpacity(elements: Element[]): number | undefined {
+  for (const element of elements) {
+    if (element.data?.opacity) {
+      return element.data?.opacity;
+    }
+  }
+  return defaultOpacity;
 }
 
 function FontFamily({ actions, elements }: ButtonProps) {

@@ -14,7 +14,7 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Element, ElementsMap, Point, Rect, Placement } from "./types";
+import { Data, Element, ElementsMap, Point, Rect, Placement } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_WIDTH,
@@ -182,7 +182,7 @@ export class Actions extends BaseActions<State> {
     cursors,
   }: {
     element: Element;
-    obj: object;
+    obj: Data;
     commit?: boolean;
     cursors?: object[];
   }): void {
@@ -461,14 +461,14 @@ export class Actions extends BaseActions<State> {
   }
 
   // returns created element or null if from or to don't exist...
-  createEdge(from: string, to: string): Element | undefined {
+  createEdge(from: string, to: string, data?: Data): Element | undefined {
     return this.createElement({
       x: 0,
       y: 0,
       w: 0,
       h: 0,
       type: "edge",
-      data: { from, to, radius: 0.5 },
+      data: { from, to, ...data },
     });
   }
 

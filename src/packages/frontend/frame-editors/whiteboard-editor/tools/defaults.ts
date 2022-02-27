@@ -5,6 +5,7 @@ export const maxFontSize = 80;
 export const minRadius = 0.5;
 export const maxRadius = 15;
 export const defaultRadius = 1;
+export const defaultOpacity = 1;
 
 // see https://www.post-it.com/3M/en_US/post-it/ideas/color/
 export const NOTE_COLORS = [

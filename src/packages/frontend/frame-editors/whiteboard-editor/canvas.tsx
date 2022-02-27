@@ -92,9 +92,7 @@ import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
-
 import { getParams } from "./tools/tool-panel";
-
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 

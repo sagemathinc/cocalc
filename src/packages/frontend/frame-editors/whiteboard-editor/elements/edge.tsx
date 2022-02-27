@@ -57,6 +57,7 @@ export default function Edge({
       arrowSize={thickness * 5 + 14}
       thickness={thickness}
       color={previewMode ? "#9fc3ff" : element.data?.color}
+      opacity={element.data?.opacity}
       style={{
         zIndex,
         border: `${SELECTED_BORDER_WIDTH}px solid ${

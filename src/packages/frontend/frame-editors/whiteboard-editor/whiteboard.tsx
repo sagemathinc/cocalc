@@ -10,6 +10,7 @@ import TextPanel from "./tools/text";
 import IconPanel from "./tools/icon";
 import TimerPanel from "./tools/timer";
 import FramePanel from "./tools/frame";
+import EdgePanel from "./tools/edge";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "./hooks";
 import Upload from "./tools/upload";
@@ -87,6 +88,7 @@ export default function Whiteboard({
               {desc.get("selectedTool") == "icon" && <IconPanel />}
               {desc.get("selectedTool") == "timer" && <TimerPanel />}
               {desc.get("selectedTool") == "frame" && <FramePanel />}
+              {desc.get("selectedTool") == "edge" && <EdgePanel />}
             </>
           )}
           <NavigationPanel

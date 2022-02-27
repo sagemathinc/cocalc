@@ -11,7 +11,12 @@ export function ResetButton({ onClick }) {
       >
         <Button
           type="text"
-          style={{ color: "#666", margin: "auto", padding: 0 }}
+          style={{
+            color: "#666",
+            margin: "auto",
+            padding: 0,
+            fontSize: "12px",
+          }}
         >
           Reset
         </Button>

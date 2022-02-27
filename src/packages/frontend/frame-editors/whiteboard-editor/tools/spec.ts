@@ -8,6 +8,7 @@ export type ConfigParams =
   | "fontSize"
   | "radius"
   | "color"
+  | "opacity"
   | "countdown";
 
 interface ToolDescription {
@@ -54,7 +55,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     icon: "pen",
     cursor: "crosshair",
     tip: "Pen",
-    config: new Set(["color", "radius"]),
+    config: new Set(["color", "radius", "opacity"]),
     resizable: true,
     key: "p",
   },
@@ -65,6 +66,12 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontSize", "color", "radius"]),
     resizable: true,
     key: "j",
+  },
+  edge: {
+    icon: "arrow-right",
+    tip: "Edge",
+    config: new Set(["color", "radius", "opacity"]),
+    key: "e",
   },
   icon: {
     icon: "icons",
@@ -85,12 +92,6 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "crosshair",
     tip: "Stopwatches and Timers",
     config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
-  },
-  edge: {
-    hideFromToolbar: true,
-    icon: "network-wired", // really bad
-    tip: "Edge",
-    config: new Set(["color", "radius"]),
   },
   frame: {
     icon: "frame",

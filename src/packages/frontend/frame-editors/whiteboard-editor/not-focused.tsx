@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { useFrameContext } from "./hooks";
+import { getParams } from "./tools/tool-panel";
 
 interface Props {
   children: ReactNode;
@@ -29,7 +30,8 @@ function onClick(selectable, id, e, frame) {
     // for cocalc if we want to automate and make manual where the edge
     // comes out, etc.  Maybe we want less user control for less cognitive load,
     // and to be more like a digraph...
-    frame.actions.createEdge(edgeStart.get("id"), id);
+    const params = getParams("edge", frame.desc.get("edgeId"));
+    frame.actions.createEdge(edgeStart.get("id"), id, params);
     return;
   }
   // select

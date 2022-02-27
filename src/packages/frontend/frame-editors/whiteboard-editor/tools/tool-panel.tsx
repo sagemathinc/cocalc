@@ -158,6 +158,9 @@ export default function ToolPanel<Params>({
         ...style,
       }}
     >
+      <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
+        {TOOLS[tool].tip}
+      </div>
       {AlternateTopButtons == null && (
         <Tooltip title={TOOLS[tool].tip}>
           <Button type="text">

@@ -8,6 +8,7 @@ interface Props {
   arrowSize?: number;
   thickness?: number;
   color?: string;
+  opacity?: number;
   style?: CSSProperties;
   onClick?: (evt: any) => void;
 }
@@ -18,6 +19,7 @@ export default function Arrow({
   arrowSize = 24,
   thickness = 1,
   color = "black",
+  opacity,
   style,
   onClick,
 }: Props) {
@@ -46,6 +48,7 @@ export default function Arrow({
           border: `${thickness / 2}px solid ${color}`,
           borderRadius: `${thickness}px`,
           color,
+          opacity,
         }}
       >
         <Icon

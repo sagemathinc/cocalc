@@ -32,11 +32,12 @@ export interface Rect {
   h: number;
 }
 
-interface Data {
+export interface Data {
   fontSize?: number;
   radius?: number;
   fontFamily?: string;
   color?: string;
+  opacity?: number;
   path?: number[]; // right now is encoded as [x,y,x2,y2,x3,y3] to be simpler to JSON.
   from?: string; // id of from node
   to?: string; // id of to node
