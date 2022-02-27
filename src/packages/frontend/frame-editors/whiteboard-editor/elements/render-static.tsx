@@ -31,7 +31,7 @@ export default function RenderStatic(props) {
     case "icon":
       return <Icon {...props} />;
     case "pen":
-      return <Pen {...props} />;
+      return <Pen {...props} renderStatic />;
     case "code":
       return <Code {...props} />;
     case "frame":

@@ -8,20 +8,17 @@ import { decompressPath, midPoint } from "../math";
 
 interface Props {
   element: Element;
+  renderStatic?: boolean; // if rendering in context of SSR and next.js; forces use of DPI
+  // factor = 2 in both frontend and backend, since changing
+  // between them breaks hydration badly.
 }
-
-// this code is also run on the backend via nextjs for share server.
-declare var window;
-let DPIFactor = 1;
-try {
-  DPIFactor = window.devicePixelRatio;
-} catch (_err) {}
 
 // This is enforced by iPad/iOS... but is probably a good idea in general
 // to avoid using too much memory and making things slow.
 const MAX_CANVAS_SIZE = 4096;
 
-export default function Pen({ element }: Props) {
+export default function Pen({ element, renderStatic }: Props) {
+  const DPIFactor = renderStatic ? 2 : window.devicePixelRatio;
   const canvasRef = useRef<any>(null);
   const scaleRef = useRef<number>(1);
   // We pad to shift things just a little so that parts of the curve that
