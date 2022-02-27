@@ -89,6 +89,6 @@ export function Key({ keys }: { keys: string | string[] }) {
   if (typeof keys == "string") {
     return <Typography.Text keyboard>{keys.toUpperCase()}</Typography.Text>;
   } else {
-    return r_join(keys.map((k: string) => <Key keys={k} />));
+    return r_join(keys.map((k: string) => <Key key={k} keys={k} />));
   }
 }

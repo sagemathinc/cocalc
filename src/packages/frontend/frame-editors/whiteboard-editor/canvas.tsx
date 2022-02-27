@@ -56,9 +56,11 @@ import {
   useState,
   CSSProperties,
 } from "react";
+import { Map as iMap } from "immutable";
 import { Element, ElementType, Point, Rect } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
+import RenderEdge from "./elements/edge";
 import Focused, {
   SELECTED_BORDER_COLOR,
   SELECTED_BORDER_TYPE,
@@ -94,7 +96,6 @@ import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 import { getParams } from "./tools/tool-panel";
 
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
-import { deleteElements } from "./tools/edit-bar";
 import { aspectRatioToNumber } from "./tools/frame";
 
 import Cursors from "./cursors";
@@ -105,6 +106,7 @@ const MIDDLE_MOUSE_BUTTON = 1;
 
 interface Props {
   elements: Element[];
+  elementsMap?: iMap<string, any>;
   font_size?: number;
   scale?: number; // use this if passed in; otherwise, deduce from font_size.
   selection?: Set<string>;
@@ -121,6 +123,7 @@ interface Props {
 
 export default function Canvas({
   elements,
+  elementsMap,
   font_size,
   scale,
   selection,
@@ -148,6 +151,7 @@ export default function Canvas({
 
   const canvasScaleRef = useRef<number>(1);
   const transforms = useMemo(() => {
+    // TODO: if tool is not select, should we exclude hidden elements in computing this...?
     const t = getTransforms(elements, margin, canvasScale);
     // also update the canvas scale, which is needed to keep
     // the canvas preview layer (for the pen) from getting too big
@@ -346,6 +350,10 @@ export default function Canvas({
     }
 
     if (previewMode && !isNavRectangle) {
+      if (element.type == "edge") {
+        // ignore edges in preview mode.
+        return;
+      }
       // This just shows blue boxes in the nav map, instead of actually
       // rendering something. It's probably faster and easier,
       // but really rendering something is much more usable.  Sometimes this
@@ -369,6 +377,31 @@ export default function Canvas({
 
     const selected = selection?.has(id);
     const focused = !!(selected && selection?.size === 1);
+
+    if (element.type == "edge") {
+      if (elementsMap == null || isNavigator) return; // we only render edges in full display.
+      const { from, to } = element.data ?? {};
+      const fromElt = elementsMap?.get(from)?.toJS();
+      const toElt = elementsMap?.get(to)?.toJS();
+      if (fromElt == null || toElt == null) {
+        // TODO: delete edge -- it is no longer valid.
+        return;
+      }
+
+      return (
+        <RenderEdge
+          key={element.id}
+          element={element}
+          from={toWindowRectNoScale(transforms, fromElt)}
+          to={toWindowRectNoScale(transforms, toElt)}
+          focused={focused}
+          canvasScale={canvasScale}
+          readOnly={readOnly || isNavigator}
+          cursors={cursors?.[id]}
+        />
+      );
+    }
+
     let elt = (
       <RenderElement
         element={element}
@@ -455,7 +488,10 @@ export default function Canvas({
   const v: ReactNode[] = [];
 
   for (const element of elements) {
-    v.push(processElement(element));
+    const x = processElement(element);
+    if (x != null) {
+      v.push(x);
+    }
   }
 
   if (selection != null && selection.size > 1) {
@@ -1018,7 +1054,7 @@ export default function Canvas({
                 "application/x-cocalc-whiteboard",
                 encoded
               );
-              deleteElements(frame.actions, selectedElements);
+              frame.actions.deleteElements(selectedElements);
             }
       }
       onPaste={
@@ -1131,4 +1167,9 @@ function getSelectedElements({
 }): Element[] {
   if (!selection) return [];
   return elements.filter((element) => selection.has(element.id));
+}
+
+function toWindowRectNoScale(transforms, element): Rect {
+  const { x, y, z, w, h } = getPosition(element);
+  return { ...transforms.dataToWindowNoScale(x, y, z), w, h };
 }

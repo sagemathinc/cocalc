@@ -87,7 +87,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
   },
   edge: {
-    tromToolbar: true,
+    hideFromToolbar: true,
     icon: "network-wired", // really bad
     tip: "Edge",
     config: new Set(["color", "radius"]),

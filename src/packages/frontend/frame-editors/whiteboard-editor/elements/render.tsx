@@ -12,7 +12,6 @@ import Pen from "./pen";
 import Timer from "./timer";
 import Selection from "./selection";
 import Icon from "./icon";
-import Edge from "./edge";
 import Chat from "./chat";
 import Hide from "./hide";
 
@@ -43,8 +42,6 @@ export default function Render(props: Props) {
       return <Pen {...props} />;
     case "timer":
       return <Timer {...props} />;
-    case "edge":
-      return <Edge {...props} />;
     case "chat":
       return <Chat {...props} />;
     case "selection":

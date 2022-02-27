@@ -60,13 +60,21 @@ export function getPageSpan(
   zMin: number;
   zMax: number;
 } {
-  let xMin = elements[0]?.x ?? 0,
-    xMax = elements[0]?.x ?? 0,
-    yMin = elements[0]?.y ?? 0,
-    yMax = elements[0]?.y ?? 0,
-    zMin = elements[0]?.z ?? 0,
-    zMax = elements[0]?.z ?? 0;
+  // NOTE: we exclude elements with w=0 or h=0, since they take up no space.
+
+  let xMin, xMax, yMin, yMax, zMin, zMax;
+  let init = false;
   for (const element of elements) {
+    if (element.w == 0 || element.h == 0) continue;
+    if (!init) {
+      init = true;
+      xMin = element.x ?? 0;
+      xMax = element.x ?? 0;
+      yMin = element.y ?? 0;
+      yMax = element.y ?? 0;
+      zMin = element.z ?? 0;
+      zMax = element.z ?? 0;
+    }
     const x = element.x ?? xMin;
     const y = element.y ?? yMin;
     const z = element.z ?? zMin;
@@ -78,6 +86,9 @@ export function getPageSpan(
     if (z > zMax) zMax = z;
     if (x + w > xMax) xMax = x + w;
     if (y + h > yMax) yMax = y + h;
+  }
+  if (!init) {
+    xMin = xMax = yMin = yMax = zMin = zMax = 0;
   }
   if (margin) {
     xMin -= margin;

@@ -39,6 +39,11 @@ export default function getKeyHandler(
       }
       return;
     }
+    if (key == "s" && (e.metaKey || e.ctrlKey)) {
+      actions.save(true);
+      e.preventDefault();
+      return;
+    }
     // These zoom shortcuts aren't documented in the tooltips, but they
     // are consistent with the rest of cocalc and won't interfere with editing.
     if (key == "," && e.shiftKey && e.ctrlKey) {

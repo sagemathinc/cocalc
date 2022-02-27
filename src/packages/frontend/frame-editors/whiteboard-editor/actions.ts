@@ -20,8 +20,6 @@ import {
   DEFAULT_WIDTH,
   DEFAULT_HEIGHT,
   getPageSpan,
-  compressPath,
-  drawEdge,
   centerRectsAt,
   centerOfRect,
   translateRectsZ,
@@ -30,7 +28,7 @@ import {
   getOverlappingElements,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { debounce, cloneDeep, isEqual } from "lodash";
+import { cloneDeep } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
 import { lastMessageNumber } from "./elements/chat-static";
@@ -54,7 +52,6 @@ export class Actions extends BaseActions<State> {
   }
 
   _init2(): void {
-    this.updateEdges = debounce(this.updateEdgesNoDebounce.bind(this), 250);
     this.setState({});
     this._syncstring.on("change", (keys) => {
       const elements0 = this.store.get("elements");
@@ -169,12 +166,6 @@ export class Actions extends BaseActions<State> {
     // JSON object representation.
     roundRectParams(obj);
     this._syncstring.set(obj);
-    if (
-      obj.type != "edge" &&
-      (obj.x != null || obj.y != null || obj.h != null || obj.w != null)
-    ) {
-      this.updateEdges();
-    }
     if (commit) {
       this.syncstring_commit();
     }
@@ -208,7 +199,7 @@ export class Actions extends BaseActions<State> {
     return uuid().slice(0, 8);
   }
 
-  private getElement(id: string): Element | undefined {
+  getElement(id: string): Element | undefined {
     return this.store.getIn(["elements", id])?.toJS();
   }
 
@@ -241,6 +232,20 @@ export class Actions extends BaseActions<State> {
     if (this._syncstring == null) return;
     if (this.isLocked(id)) return; // todo -- show a message
     this._syncstring.delete({ id });
+    // also delete any adjacent edges.
+    // TODO: this is worrisomely inefficient!
+    const elements = this.store.get("elements");
+    if (elements == null) return;
+    for (const [id2, element] of elements) {
+      if (
+        element != null &&
+        element.get("type") == "edge" &&
+        (element.getIn(["data", "from"]) == id ||
+          element.getIn(["data", "to"]) == id)
+      ) {
+        this._syncstring.delete({ id: id2 });
+      }
+    }
     if (commit) {
       this.syncstring_commit();
     }
@@ -457,62 +462,14 @@ export class Actions extends BaseActions<State> {
 
   // returns created element or null if from or to don't exist...
   createEdge(from: string, to: string): Element | undefined {
-    const elements = this.store.get("elements");
-    if (elements == null) return;
-    const fromElt = elements.get(from)?.toJS();
-    const toElt = elements.get(to)?.toJS();
-    if (fromElt == null || toElt == null) return;
-    const { rect, path, dir } = drawEdge(fromElt, toElt);
-    const z = this.getPageSpan().zMin - 1;
-
     return this.createElement({
-      ...rect,
-      z,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
       type: "edge",
-      data: { from, to, path: compressPath(path), dir: compressPath(dir) },
+      data: { from, to },
     });
-  }
-
-  // recompute the parameters of all edges, in case vertices
-  // have moved.
-  // TODO: optimize to only do this when necessary!
-  updateEdges() {} // gets set to a debounced version.
-  updateEdgesNoDebounce() {
-    const elements = this.store.get("elements");
-    if (elements == null) return;
-    let changed = false;
-    for (const [id, element0] of elements) {
-      if (element0?.get("type") !== "edge") continue;
-      const element = element0.toJS();
-      const { from, to } = element.data ?? {};
-      if (!from || !to) continue;
-      const fromElt = elements.get(from)?.toJS();
-      const toElt = elements.get(to)?.toJS();
-      if (fromElt == null || toElt == null) {
-        // adjacent vertex deleted, so delete this edge.
-        this.delete(id, false);
-        changed = true;
-        continue;
-      }
-      const { rect, path, dir } = drawEdge(fromElt, toElt);
-      // Usually nothing changed!  This is so dumb for a first round!
-      const element1 = {
-        ...element,
-        ...rect,
-        data: {
-          ...element.data,
-          path: compressPath(path),
-          dir: compressPath(dir),
-        },
-      };
-      if (!isEqual(element, element1)) {
-        changed = true;
-        this.setElement({ obj: element1, commit: false });
-      }
-    }
-    if (changed) {
-      this.syncstring_commit();
-    }
   }
 
   // Used for copy/paste, and maybe templates later.

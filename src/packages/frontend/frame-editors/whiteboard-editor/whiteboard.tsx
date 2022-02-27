@@ -95,6 +95,7 @@ export default function Whiteboard({
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
           elements={elements}
+          elementsMap={elementsMap}
           font_size={font_size}
           selection={
             selectedTool == "select"
