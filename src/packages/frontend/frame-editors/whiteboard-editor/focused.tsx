@@ -49,6 +49,7 @@ interface Props {
   transforms;
   readOnly?: boolean;
   cursors?: { [account_id: string]: any[] };
+  multi?: boolean;
 }
 
 export default function Focused({
@@ -60,6 +61,7 @@ export default function Focused({
   allElements,
   readOnly,
   cursors,
+  multi,
 }: Props) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
@@ -79,7 +81,7 @@ export default function Focused({
   const hidden = isHidden(selectedElements);
 
   const resizeHandles = useMemo(() => {
-    if (locked || readOnly || hidden) return null;
+    if (locked || readOnly || hidden || multi) return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
       for (const left of [true, false]) {
@@ -100,7 +102,8 @@ export default function Focused({
   }, [element, canvasScale]);
 
   const edgeCreationPoints = useMemo(() => {
-    if (selectedElements.length >= 2 || readOnly || hidden) return null;
+    if (selectedElements.length >= 2 || readOnly || hidden || multi)
+      return null;
     return ["top", "bottom", "left", "right"].map(
       (position: EdgeCreatePosition) => (
         <EdgeCreate
@@ -118,11 +121,12 @@ export default function Focused({
   // setRotating internally below to update the preview.
   const RotateControl = useMemo(() => {
     if (
-      selectedElements.length > 1 ||
+      selectedElements.length >= 2 ||
       element.type == "code" ||
       locked ||
       hidden ||
-      readOnly
+      readOnly ||
+      multi
     ) {
       // TODO: implement a notion of rotate for multiple objects...?
       // Regarding code, codemirror doesn't work at all when
@@ -188,10 +192,10 @@ export default function Focused({
         </Tooltip>
       </Draggable>
     );
-  }, [element.rotate, canvasScale, selectedElements.length]);
+  }, [element.rotate, canvasScale, selectedElements.length, multi]);
 
   const moveHandle =
-    locked || readOnly ? null : (
+    multi || locked || readOnly ? null : (
       <Tooltip key="move" title="Move">
         <Icon
           name="move"

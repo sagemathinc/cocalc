@@ -334,6 +334,7 @@ export default function Canvas({
     }
   }, [frame.desc.get("fitToScreen")]);
 
+  let selectionHandled = false;
   function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
@@ -375,9 +376,6 @@ export default function Canvas({
       );
     }
 
-    const selected = selection?.has(id);
-    const focused = !!(selected && selection?.size === 1);
-
     if (element.type == "edge") {
       if (elementsMap == null || isNavigator) return; // we only render edges in full display.
       const { from, to } = element.data ?? {};
@@ -387,20 +385,26 @@ export default function Canvas({
         // TODO: delete edge -- it is no longer valid.
         return;
       }
-
+      // NOTE: edge doesn't handle showing edit bar for selection in case of one selected edge.
       return (
         <RenderEdge
           key={element.id}
           element={element}
           from={toWindowRectNoScale(transforms, fromElt)}
           to={toWindowRectNoScale(transforms, toElt)}
-          focused={focused}
           canvasScale={canvasScale}
           readOnly={readOnly || isNavigator}
           cursors={cursors?.[id]}
           zIndex={transforms.zMap[element.z ?? 0] ?? 0}
+          selected={selection?.has(element.id)}
         />
       );
+    }
+
+    const selected = selection?.has(id);
+    const focused = !!(selected && selection?.size === 1);
+    if (focused) {
+      selectionHandled = true;
     }
 
     let elt = (
@@ -495,7 +499,7 @@ export default function Canvas({
     }
   }
 
-  if (selection != null && selection.size > 1) {
+  if (!selectionHandled && selection != null && selection.size >= 1) {
     // create a virtual selection element that
     // contains the region spanned by all elements
     // in the selection.
@@ -503,7 +507,22 @@ export default function Canvas({
     const selectedElements = elements.filter((element) =>
       selection.has(element.id)
     );
-    const { xMin, yMin, xMax, yMax } = getPageSpan(selectedElements, 0);
+    const selectedRects: Element[] = [];
+    let multi: undefined | boolean = undefined;
+    for (const element of selectedElements) {
+      if (element.type == "edge" && elementsMap != null) {
+        multi = true;
+        // replace edges by source/dest elements.
+        for (const x of ["from", "to"]) {
+          const a = elementsMap?.get(element.data?.[x] ?? "")?.toJS();
+          if (a != null) {
+            selectedRects.push(a);
+          }
+        }
+      }
+      selectedRects.push(element);
+    }
+    const { xMin, yMin, xMax, yMax } = getPageSpan(selectedRects, 0);
     const element = {
       type: "selection" as ElementType,
       id: "selection",
@@ -522,6 +541,7 @@ export default function Canvas({
         selectedElements={selectedElements}
         transforms={transforms}
         readOnly={readOnly}
+        multi={multi}
       >
         <RenderElement element={element} canvasScale={canvasScale} focused />
       </Focused>

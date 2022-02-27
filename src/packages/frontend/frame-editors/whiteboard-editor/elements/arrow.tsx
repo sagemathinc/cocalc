@@ -9,6 +9,7 @@ interface Props {
   thickness?: number;
   color?: string;
   style?: CSSProperties;
+  onClick?: (evt: any) => void;
 }
 
 export default function Arrow({
@@ -18,6 +19,7 @@ export default function Arrow({
   thickness = 1,
   color = "black",
   style,
+  onClick,
 }: Props) {
   const { x: x0, y: y0 } = start;
   const { x: x1, y: y1 } = end;
@@ -27,6 +29,7 @@ export default function Arrow({
   const theta = Math.atan(b / a) - (a < 0 ? Math.PI : 0);
   return (
     <div
+      onClick={onClick}
       style={{
         position: "absolute",
         left: x0,
@@ -41,6 +44,8 @@ export default function Arrow({
         style={{
           position: "relative",
           border: `${thickness / 2}px solid ${color}`,
+          borderRadius: `${thickness}px`,
+          color,
         }}
       >
         <Icon

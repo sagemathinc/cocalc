@@ -468,7 +468,7 @@ export class Actions extends BaseActions<State> {
       w: 0,
       h: 0,
       type: "edge",
-      data: { from, to },
+      data: { from, to, radius: 0.5 },
     });
   }
 
