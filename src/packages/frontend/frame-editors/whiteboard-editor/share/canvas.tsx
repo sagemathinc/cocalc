@@ -7,9 +7,11 @@ NOTE: This is probably also useful for printing.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
-import { Element } from "../types";
+import { Element, ElementsMap } from "../types";
+import { Map as iMap, fromJS } from "immutable";
 import Grid from "../elements/grid";
 import Render from "../elements/render-static";
+import Edge from "../elements/edge";
 import { getPosition, getTransforms, Transforms } from "../math";
 import Position from "../position";
 import { ColumnWidthOutlined } from "@ant-design/icons";
@@ -36,6 +38,8 @@ export default function Canvas({ elements }: Props) {
       Math.min(rect.height / transforms.height, rect.width / transforms.width)
     );
   };
+  // gets used below to cache this for each render if needed, e.g., if there are edges.
+  let elementsMap: ElementsMap | undefined = undefined;
 
   useEffect(() => {
     fitToView();
@@ -119,6 +123,27 @@ export default function Canvas({ elements }: Props) {
         >
           <Grid transforms={transforms} />
           {elements.map((element) => {
+            if (element.type == "edge") {
+              // edges are rendered differently
+              if (elementsMap == null) {
+                elementsMap = iMap();
+                for (const elt of elements) {
+                  elementsMap = elementsMap.set(elt.id, fromJS(elt));
+                }
+              }
+              if (elementsMap == null) throw Error("impossible");
+              // NOTE: edge doesn't handle showing edit bar for selection in case of one selected edge.
+              return (
+                <Edge
+                  key={element.id}
+                  element={element}
+                  elementsMap={elementsMap}
+                  transforms={transforms}
+                />
+              );
+            }
+
+            // Non-edges
             const { x, y, z, w, h } = getPosition(element);
             const t = transforms.dataToWindowNoScale(x, y, z);
             return (

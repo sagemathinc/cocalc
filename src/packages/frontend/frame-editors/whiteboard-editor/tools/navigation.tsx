@@ -15,14 +15,13 @@ import { Actions } from "../actions";
 import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS, ZOOM100 } from "../math";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
-import { Element } from "../types";
+import { Element, ElementsMap } from "../types";
 import Draggable from "react-draggable";
-import { Map as iMap } from "immutable";
 import {
   SELECTED_BORDER_COLOR,
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
-} from "../focused";
+} from "../elements/style";
 import { Key } from "./panel";
 
 const TOOLS = {
@@ -105,7 +104,7 @@ const BAR_HEIGHT = 33;
 interface Props {
   fontSize?: number;
   elements: Element[];
-  elementsMap?: iMap<string, any>;
+  elementsMap?: ElementsMap;
 }
 
 export default function Navigation({ fontSize, elements, elementsMap }: Props) {

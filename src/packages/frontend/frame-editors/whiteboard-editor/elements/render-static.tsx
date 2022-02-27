@@ -11,7 +11,6 @@ import Pen from "./pen";
 import Code from "./code/static";
 import Frame from "./frame";
 import Timer from "./timer-static";
-import Edge from "./edge";
 import Chat from "./chat-static";
 
 export interface Props {
@@ -39,8 +38,6 @@ export default function RenderStatic(props) {
       return <Frame {...props} />;
     case "timer":
       return <Timer {...props} />;
-    case "edge":
-      return <Edge {...props} />;
     case "chat":
       return <Chat {...props} />;
     default:

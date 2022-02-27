@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import { Map as iMap } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
@@ -105,8 +105,8 @@ export interface Element extends Rect {
 
 export type ElementMap = TypedMap<Element>;
 
-// Tasks is an immutable map from id to Element as a map.
-export type Elements = Map<string, ElementMap>;
+// An immutable map from id to Element as a map.
+export type ElementsMap = iMap<string, ElementMap>;
 
 // Copied from what Antd does for tooltips: https://ant.design/components/tooltip/
 export type Placement =

@@ -56,16 +56,16 @@ import {
   useState,
   CSSProperties,
 } from "react";
-import { Map as iMap } from "immutable";
-import { Element, ElementType, Point, Rect } from "./types";
+import { Element, ElementType, ElementsMap, Point, Rect } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
 import RenderEdge from "./elements/edge";
-import Focused, {
+import Focused from "./focused";
+import {
   SELECTED_BORDER_COLOR,
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
-} from "./focused";
+} from "./elements/style";
 import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "./hooks";
@@ -106,7 +106,7 @@ const MIDDLE_MOUSE_BUTTON = 1;
 
 interface Props {
   elements: Element[];
-  elementsMap?: iMap<string, any>;
+  elementsMap?: ElementsMap;
   font_size?: number;
   scale?: number; // use this if passed in; otherwise, deduce from font_size.
   selection?: Set<string>;
@@ -352,26 +352,22 @@ export default function Canvas({
 
     if (element.type == "edge") {
       if (elementsMap == null) return; // need elementsMap to render edges efficiently.
-      const { from, to } = element.data ?? {};
-      const fromElt = elementsMap?.get(from)?.toJS();
-      const toElt = elementsMap?.get(to)?.toJS();
-      if (fromElt == null || toElt == null) {
-        // TODO: delete edge -- it is no longer valid.
-        return;
-      }
       // NOTE: edge doesn't handle showing edit bar for selection in case of one selected edge.
       return (
         <RenderEdge
           key={element.id}
           element={element}
-          from={toWindowRectNoScale(transforms, fromElt)}
-          to={toWindowRectNoScale(transforms, toElt)}
-          canvasScale={canvasScale}
-          readOnly={readOnly || isNavigator}
-          cursors={cursors?.[id]}
-          zIndex={transforms.zMap[element.z ?? 0] ?? 0}
+          elementsMap={elementsMap}
+          transforms={transforms}
           selected={selection?.has(element.id)}
           previewMode={previewMode}
+          onClick={(e) => {
+            frame.actions.setSelection(
+              frame.id,
+              element.id,
+              e.altKey || e.shiftKey || e.metaKey ? "add" : "only"
+            );
+          }}
         />
       );
     }
@@ -1189,9 +1185,4 @@ function getSelectedElements({
 }): Element[] {
   if (!selection) return [];
   return elements.filter((element) => selection.has(element.id));
-}
-
-function toWindowRectNoScale(transforms, element): Rect {
-  const { x, y, z, w, h } = getPosition(element);
-  return { ...transforms.dataToWindowNoScale(x, y, z), w, h };
 }

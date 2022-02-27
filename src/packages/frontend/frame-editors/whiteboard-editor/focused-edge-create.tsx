@@ -8,7 +8,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "./types";
 import { CSSProperties } from "react";
 import { MAX_ELEMENTS, DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./math";
-import { SELECTED_BORDER_COLOR } from "./focused";
+import { SELECTED_BORDER_COLOR } from "./elements/style";
 import { useFrameContext } from "./hooks";
 
 const SIZE = 12;

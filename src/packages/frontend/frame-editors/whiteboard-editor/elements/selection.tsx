@@ -1,4 +1,4 @@
-import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "../focused";
+import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "./style";
 
 export default function Selection({ canvasScale }) {
   return (

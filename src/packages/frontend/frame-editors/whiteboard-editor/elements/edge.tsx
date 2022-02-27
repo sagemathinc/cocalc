@@ -2,41 +2,44 @@
 Render an edge from one node to another.
 */
 
-import type { Element, Rect } from "../types";
+import type { Element, ElementsMap, Rect } from "../types";
 import Arrow from "./arrow";
-import { closestMidpoint } from "../math";
-import { useFrameContext } from "../hooks";
-import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "../focused";
+import { closestMidpoint, getPosition, Transforms } from "../math";
+import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "./style";
 
 interface Props {
   element: Element;
-  from: Rect;
-  to: Rect;
-  canvasScale: number;
-  readOnly?: boolean;
+  elementsMap: ElementsMap;
+  transforms: Transforms;
   cursors?: { [account_id: string]: any[] };
-  zIndex: number;
   selected?: boolean;
   previewMode?: boolean;
+  onClick?: (any) => void;
 }
 
 export default function Edge({
   element,
-  from,
-  to,
-  zIndex,
-  canvasScale,
-  readOnly,
+  elementsMap,
+  transforms,
   cursors,
   selected,
   previewMode,
+  onClick,
 }: Props) {
-  const { actions, id: frameId } = useFrameContext();
+  const { from: fromId, to: toId } = element.data ?? {};
+  if (fromId == null || toId == null) return null; // invalid data
+  const fromElt = elementsMap.get(fromId)?.toJS();
+  const toElt = elementsMap.get(toId)?.toJS();
+  if (fromElt == null || toElt == null) {
+    // TODO: maybe delete edge -- it is no longer valid?
+    return null;
+  }
+  const from = toWindowRectNoScale(transforms, fromElt);
+  const to = toWindowRectNoScale(transforms, toElt);
+  const zIndex = transforms.zMap[element.z ?? 0] ?? 0;
 
-  // Not using these *yet*.
+  // Not using *yet*.
   cursors = cursors;
-  readOnly = readOnly;
-  canvasScale = canvasScale;
 
   // We use a heuristic about where to draw the edge.
   // Basically, we want it to go between the middles of
@@ -56,21 +59,20 @@ export default function Edge({
       color={previewMode ? "#9fc3ff" : element.data?.color}
       style={{
         zIndex,
-        padding: "2.5px 10px",
-        marginTop: "-5px",
-        cursor: "pointer",
         border: `${SELECTED_BORDER_WIDTH}px solid ${
           selected ? SELECTED_BORDER_COLOR : "transparent"
         }`,
         background: previewMode ? "#9fc3ff" : undefined,
+        ...(onClick != null
+          ? { padding: "2.5px 10px", marginTop: "-5px", cursor: "pointer" }
+          : { padding: "0 10px" }),
       }}
-      onClick={(e) => {
-        actions.setSelection(
-          frameId,
-          element.id,
-          e.altKey || e.shiftKey || e.metaKey ? "add" : "only"
-        );
-      }}
+      onClick={onClick}
     />
   );
+}
+
+function toWindowRectNoScale(transforms, element): Rect {
+  const { x, y, z, w, h } = getPosition(element);
+  return { ...transforms.dataToWindowNoScale(x, y, z), w, h };
 }

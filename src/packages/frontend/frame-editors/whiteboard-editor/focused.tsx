@@ -24,9 +24,12 @@ import { isLocked } from "./tools/lock-button";
 import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
 
-export const SELECTED_BORDER_COLOR = "#40a9ff";
-export const SELECTED_BORDER_WIDTH = 1;
-export const SELECTED_BORDER_TYPE = "solid";
+import {
+  SELECTED_BORDER_COLOR,
+  SELECTED_BORDER_WIDTH,
+  SELECTED_BORDER_TYPE,
+} from "./elements/style";
+
 const OFFSET = 50;
 const rotateEps = 0.07;
 const rotationSnaps: number[] = [];

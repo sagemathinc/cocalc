@@ -14,7 +14,7 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Element, Elements, Point, Rect, Placement } from "./types";
+import { Element, ElementsMap, Point, Rect, Placement } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_WIDTH,
@@ -37,7 +37,7 @@ import { pasteElements } from "./tools/edit-bar";
 import getKeyHandler from "./key-handler";
 
 export interface State extends CodeEditorState {
-  elements?: Elements;
+  elements?: ElementsMap;
   introspect?: Map<string, any>; // used for jupyter cells -- displayed in a separate frame.
 }
 
