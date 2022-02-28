@@ -103,10 +103,12 @@ export default function getKeyHandler(
       );
       return;
     }
-    const tool = selectTool[key];
-    if (tool != null) {
-      actions.setSelectedTool(frameId, tool);
-      return;
+    if (!(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) {
+      const tool = selectTool[key];
+      if (tool != null) {
+        actions.setSelectedTool(frameId, tool);
+        return;
+      }
     }
   };
 }

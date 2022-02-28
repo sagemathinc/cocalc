@@ -2,7 +2,7 @@
 Render a pen element.
 */
 
-import { memo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Element, Point } from "../types";
 import { decompressPath, midPoint } from "../math";
 

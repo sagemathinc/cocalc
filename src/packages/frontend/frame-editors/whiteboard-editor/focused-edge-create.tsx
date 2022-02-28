@@ -53,7 +53,7 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
 
   return (
     <Tooltip
-      title={`Click to create adjacent ${element.type}; drag to create edge`}
+      title={`Click to create adjacent ${element.type}; shift+click or drag to create edge`}
       mouseEnterDelay={1}
       mouseLeaveDelay={0}
     >
@@ -61,16 +61,23 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
         className="nodrag"
         style={style}
         name="circle"
-        onClick={() => {
-          const newId = actions.createAdjacentElement(element.id, position, false);
-          if (newId) {
-            actions.createEdge(
+        onClick={(e) => {
+          if (e?.shiftKey) {
+            actions.setEdgeCreateStart(id, element.id, position);
+          } else {
+            const newId = actions.createAdjacentElement(
               element.id,
-              newId,
-              getParams("edge", desc.get("edgeId"))
+              position,
+              false
             );
+            if (newId) {
+              actions.createEdge(
+                element.id,
+                newId,
+                getParams("edge", desc.get("edgeId"))
+              );
+            }
           }
-          //actions.setEdgeCreateStart(id, element.id, position);
         }}
       />
     </Tooltip>
