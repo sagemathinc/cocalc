@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is an express http server that is meant to receive connections
 only from web browser clients that signed in as collaborators on
 this projects.  It serves both HTTP and websocket connections, which

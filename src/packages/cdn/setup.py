@@ -14,12 +14,19 @@ extra_path = {
 }
 
 deps = json.load(open(join('..', 'package-lock.json')))["dependencies"]
+targets = list(json.load(open(join('..', 'package.json')))["devDependencies"].keys())
+BLACKLIST = ["typescript"]
+
 versions = {}
 for path, data in deps.items():
+    if any(path.startswith(b) for b in BLACKLIST):
+        continue
     if '/' in path:
         name = path.split('/')[-1]
     else:
         name = path
+    if name not in targets:
+        continue
     extra = extra_path.get(name, '')
     # links must be relative to the current directory (we want to be able to move the directory around)
     src = join("..", "node_modules", path, extra)
@@ -30,7 +37,7 @@ for path, data in deps.items():
     version = data['version']
     copytree(src, name)
     dst = f"{name}-{version}"
-    print(f"symlink with    version '{dst}' -> '{src}'")
+    print(f"symlink with version '{dst}' -> '{src}'")
     os.symlink(name, dst)
     versions[name] = version
 

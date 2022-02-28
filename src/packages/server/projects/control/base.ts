@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Project control abstract base class.
 
 The hub uses this to get information about a project and do some basic tasks.
@@ -215,4 +220,3 @@ export interface CopyOptions {
   public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
   exclude?: string[]; // options passed to rsync via --exclude
 }
-
