@@ -10,6 +10,7 @@ import { CSSProperties } from "react";
 import { MAX_ELEMENTS, DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./math";
 import { SELECTED_BORDER_COLOR } from "./elements/style";
 import { useFrameContext } from "./hooks";
+import { getParams } from "./tools/tool-panel";
 
 const SIZE = 12;
 const OFFSET = -SIZE / 2;
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export default function EdgeCreate({ position, canvasScale, element }: Props) {
-  const { actions, id } = useFrameContext();
+  const { actions, desc, id } = useFrameContext();
   const style = {
     pointerEvents: "all", // because we turn off pointer events for containing div
     position: "absolute",
@@ -51,13 +52,25 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
   }
 
   return (
-    <Tooltip title="Create edge">
+    <Tooltip
+      title={`Click to create adjacent ${element.type}; drag to create edge`}
+      mouseEnterDelay={1}
+      mouseLeaveDelay={0}
+    >
       <Icon
         className="nodrag"
         style={style}
         name="circle"
         onClick={() => {
-          actions.setEdgeCreateStart(id, element.id, position);
+          const newId = actions.createAdjacentElement(element.id, position, false);
+          if (newId) {
+            actions.createEdge(
+              element.id,
+              newId,
+              getParams("edge", desc.get("edgeId"))
+            );
+          }
+          //actions.setEdgeCreateStart(id, element.id, position);
         }}
       />
     </Tooltip>

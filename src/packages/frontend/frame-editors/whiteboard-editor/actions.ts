@@ -25,6 +25,7 @@ import {
   translateRectsZ,
   roundRectParams,
   moveRectAdjacent,
+  moveUntilNotIntersectingAnything,
   getOverlappingElements,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
@@ -113,7 +114,8 @@ export class Actions extends BaseActions<State> {
   // No op if id doesn't exist.
   createAdjacentElement(
     id: string, // id of existing element
-    placement: Placement = "bottom"
+    placement: Placement = "bottom",
+    commit: boolean = true
   ): string | undefined {
     if (this._syncstring == null) return;
     const element = this._syncstring.get_one({ id })?.toJS();
@@ -128,13 +130,19 @@ export class Actions extends BaseActions<State> {
     }
     moveRectAdjacent(element, placement);
 
-    // TODO: if we're creating
-    // a new element on top of an existing one of the same type,
-    // then just return id of that exiting one instead.
-    // Alternatively, we could move our new one down (say) until it
-    // doesn't intersect or cover anything.  UNCLEAR.
+    // Next move the new element orthogonal to offset (but minimal in
+    // distance) from id so that it doesn't intersect
+    // any existing elements. E.g., if placement is 'right',
+    // move it up or down as needed so it doesn't intersect anything.
+    // TODO: algorithm for doing this is not particular efficient,
+    // and scales with number of elements in scene.  It might
+    // be much faster to restrict to nearby elements only...?
+    const elements = this.getElements();
+    const p = placement.toLowerCase();
+    const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
+    moveUntilNotIntersectingAnything(element, elements, axis);
 
-    return this.createElement(element).id;
+    return this.createElement(element, commit).id;
   }
 
   setElement({

@@ -17,7 +17,8 @@ export function fontSizeToZoom(size?: number): number {
 
 export const DEFAULT_WIDTH = 250;
 export const DEFAULT_HEIGHT = 100;
-export const DEFAULT_GAP = 15;
+export const DEFAULT_GAP = 30;
+export const DEFAULT_EDGE_LENGTH = 100;
 
 // We assume that there are at most this many elements.
 // E.g., to map z-indexes to integers in a safe range.
@@ -429,7 +430,7 @@ export function roundRectParams(rect: Partial<Rect>) {
 export function moveRectAdjacent(
   rect: Rect,
   placement: Placement = "bottom",
-  gap = DEFAULT_GAP
+  gap = DEFAULT_EDGE_LENGTH
 ) {
   const p: string = placement.toLowerCase();
   if (p.includes("bottom")) {
@@ -443,6 +444,57 @@ export function moveRectAdjacent(
   }
   if (p.includes("left")) {
     rect.x -= rect.w + gap;
+  }
+}
+
+// mutate rect so that it doesn't intersect anything in rects. Do this
+// by moving it along the x or y axis.
+export function moveUntilNotIntersectingAnything(
+  rect: Rect,
+  rects: Rect[],
+  axis: "x" | "y",
+  dir: "+" | "-" | "best" = "best"
+): void {
+  if (dir == "best") {
+    const start = { x: rect.x, y: rect.y };
+    moveUntilNotIntersectingAnything(rect, rects, axis, "+");
+    const up = { x: rect.x, y: rect.y };
+    rect.x = start.x;
+    rect.y = start.y;
+    moveUntilNotIntersectingAnything(rect, rects, axis, "-");
+    const down = { x: rect.x, y: rect.y };
+    // which is better?
+    if (distancePoints(start, up) < distancePoints(start, down)) {
+      rect.x = up.x;
+      rect.y = up.y;
+    } else {
+      rect.x = down.x;
+      rect.y = down.y;
+    }
+    return;
+  }
+  while (true) {
+    let moved = false;
+    for (const r of rects) {
+      if (areOverlappingRectangles(rect, r)) {
+        if (dir == "+") {
+          if (axis == "x") {
+            rect.x = r.x + r.w + DEFAULT_GAP;
+          } else if (axis == "y") {
+            rect.y = r.y + r.h + DEFAULT_GAP;
+          }
+        } else {
+          if (axis == "x") {
+            rect.x = r.x - (r.w + DEFAULT_GAP);
+          } else if (axis == "y") {
+            rect.y = r.y - (r.h + DEFAULT_GAP);
+          }
+        }
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) return;
   }
 }
 
