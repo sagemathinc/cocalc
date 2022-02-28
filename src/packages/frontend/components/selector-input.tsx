@@ -5,8 +5,8 @@
 
 import React from "react";
 import * as misc from "@cocalc/util/misc";
-
-const { FormControl, FormGroup } = require("react-bootstrap");
+import { Form, Select } from "antd";
+const { Option } = Select;
 
 interface Props {
   options:
@@ -18,6 +18,7 @@ interface Props {
   selected?: string;
   on_change?: (selected: string) => void;
   style?: React.CSSProperties;
+  showSearch?: boolean;
 }
 
 // If the first element is a string, we assume the rest to be a string
@@ -25,65 +26,84 @@ function isStringArrayHeuristic(a: any): a is string[] {
   return typeof a[0] === "string";
 }
 
-export class SelectorInput extends React.Component<Props> {
-  onChange = (e) => {
-    if (this.props.on_change !== undefined) {
-      this.props.on_change(e.target.value);
-    }
-  };
+export const SelectorInput: React.FC<Props> = (props: Props) => {
+  const {
+    options,
+    disabled = false,
+    selected,
+    on_change,
+    style,
+    showSearch = false,
+  } = props;
 
-  render_options(): JSX.Element[] {
-    const result: JSX.Element[] = [];
-    if (Array.isArray(this.props.options)) {
-      let x: any;
-      if (isStringArrayHeuristic(this.props.options)) {
-        let i = 0;
-        for (x of this.props.options) {
-          result.push(
-            <option key={i} value={x}>
-              {x}
-            </option>
-          );
-          i += 1;
-        }
-        return result;
+  function onChange(value) {
+    if (typeof on_change === "function") {
+      on_change(value);
+    }
+  }
+
+  function renderStringArray(options): JSX.Element[] {
+    return options.map((val, idx) => (
+      <Option key={idx} value={val}>
+        {val}
+      </Option>
+    ));
+  }
+
+  function renderDisplayArray(options): JSX.Element[] {
+    return options.map((x) => (
+      <Option key={x.value} value={x.value}>
+        {x.display}
+      </Option>
+    ));
+  }
+
+  function renderDictionary(options): JSX.Element[] {
+    const v = misc.keys(options);
+    v.sort();
+    return v.map((value) => (
+      <Option key={value} value={value}>
+        {options[value]}
+      </Option>
+    ));
+  }
+
+  function render_options(): JSX.Element[] {
+    if (Array.isArray(options)) {
+      if (isStringArrayHeuristic(options)) {
+        return renderStringArray(options);
       } else {
-        for (x of this.props.options) {
-          result.push(
-            <option key={x.value} value={x.value}>
-              {x.display}
-            </option>
-          );
-        }
-        return result;
+        return renderDisplayArray(options);
       }
     } else {
-      const v = misc.keys(this.props.options);
-      v.sort();
-      for (const value of v) {
-        const display = this.props.options[value];
-        result.push(
-          <option key={value} value={value}>
-            {display}
-          </option>
-        );
-      }
+      return renderDictionary(options);
     }
-    return result;
   }
 
-  render() {
-    return (
-      <FormGroup style={this.props.style}>
-        <FormControl
-          value={this.props.selected}
-          componentClass="select"
-          onChange={this.onChange}
-          disabled={this.props.disabled}
-        >
-          {this.render_options()}
-        </FormControl>
-      </FormGroup>
-    );
+  // if we search, we go through the displayed contents of the children, not the values
+  // https://ant.design/components/select/#components-select-demo-option-label-prop
+  function searchProps() {
+    if (!showSearch) return {};
+    return {
+      showSearch: true,
+      optionFilterProp: "children",
+      filterOption: (input, option) =>
+        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+    };
   }
-}
+
+  return (
+    <Form>
+      <Form.Item style={style}>
+        <Select
+          {...searchProps()}
+          defaultValue={selected}
+          onChange={onChange}
+          disabled={disabled}
+        >
+          {render_options()}
+        </Select>
+      </Form.Item>
+    </Form>
+  );
+};

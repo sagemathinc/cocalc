@@ -24,6 +24,7 @@ export function EditorSettingsPhysicalKeyboard(
           options={PHYSICAL_KEYBOARDS}
           selected={props.physical_keyboard}
           on_change={props.on_change}
+          showSearch={true}
         />
       </LabeledRow>
     );
@@ -48,6 +49,7 @@ export function EditorSettingsKeyboardVariant(
           options={props.keyboard_variant_options}
           selected={props.keyboard_variant}
           on_change={props.on_change}
+          showSearch={true}
         />
       </LabeledRow>
     );

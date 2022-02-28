@@ -23,20 +23,22 @@
 
 import { ReactNode } from "react";
 import { delay } from "awaiting";
-
 import ResizeObserver from "resize-observer-polyfill";
+import { VariableSizeList as List, ListOnScrollProps } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
+import {
+  React,
+  Component,
+  Rendered,
+  CSS,
+} from "@cocalc/frontend/app-framework";
 
 const SHRINK_THRESH: number = 3;
 const BIG: number = 9999999;
 
-import { VariableSizeList as List, ListOnScrollProps } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
-
 export interface ScrollInfo extends ListOnScrollProps {
   maxScrollOffset?: number;
 }
-
-import { React, Component, Rendered, CSS } from "../app-framework";
 
 export interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
@@ -129,7 +131,7 @@ export class WindowedList extends Component<Props, State> {
       }
     }
     this.state = { scroll_to_index: props.scroll_to_index, scroll_top };
-    this.RowComponent = create_row_component(this);
+    this.RowComponent = createRowComponent(this);
   }
 
   public componentWillUnmount(): void {
@@ -460,9 +462,11 @@ interface RowRendererProps {
   isScrolling?: boolean;
 }
 
-function create_row_component(windowed_list: WindowedList) {
-  class RowComponent extends Component<RowRendererProps> {
-    private render_wrap(
+function createRowComponent(windowed_list: WindowedList) {
+  const RowComponent: React.FC<RowRendererProps> = (
+    props: RowRendererProps
+  ) => {
+    function render_wrap(
       index: number,
       key: string,
       isScrolling?: boolean
@@ -501,25 +505,23 @@ function create_row_component(windowed_list: WindowedList) {
       );
     }
 
-    public render(): Rendered {
-      const { index, style, isScrolling } = this.props;
-      const key = windowed_list.props.row_key(index);
-      if (key == null) return <div />;
+    const { index, style, isScrolling } = props;
+    const key = windowed_list.props.row_key(index);
+    if (key == null) return <div />;
 
-      /* We use flex in the first nested div below so that the
+    /* We use flex in the first nested div below so that the
        div expands to its contents. See
        https://stackoverflow.com/questions/1709442/make-divs-height-expand-with-its-content
       */
-      let wrap = this.render_wrap(index, key, isScrolling);
-      if (windowed_list.props.hide_resize) {
-        wrap = <div style={{ overflow: "hidden", height: "100%" }}>{wrap}</div>;
-      }
-      return (
-        <div style={style} key={`${index}-${key}`}>
-          {wrap}
-        </div>
-      );
+    let wrap = render_wrap(index, key, isScrolling);
+    if (windowed_list.props.hide_resize) {
+      wrap = <div style={{ overflow: "hidden", height: "100%" }}>{wrap}</div>;
     }
-  }
+    return (
+      <div style={style} key={`${index}-${key}`}>
+        {wrap}
+      </div>
+    );
+  };
   return RowComponent;
 }
