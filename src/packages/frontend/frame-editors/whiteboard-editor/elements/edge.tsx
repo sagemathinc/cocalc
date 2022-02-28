@@ -30,7 +30,12 @@ export default function Edge({
   if (fromId == null || toId == null) return null; // invalid data
   const fromElt = elementsMap.get(fromId)?.toJS();
   const toElt = elementsMap.get(toId)?.toJS();
-  if (fromElt == null || toElt == null) {
+  if (
+    fromElt == null ||
+    toElt == null ||
+    fromElt.hide != null ||
+    toElt.hide != null
+  ) {
     // TODO: maybe delete edge -- it is no longer valid?
     return null;
   }

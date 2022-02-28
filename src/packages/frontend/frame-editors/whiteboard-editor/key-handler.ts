@@ -56,7 +56,7 @@ export default function getKeyHandler(
     }
 
     const selection = node.get("selection");
-    if (selection.size == 1) {
+    if (selection?.size == 1) {
       // Exactly one element is selected.
       // TOOD: For now, we allow for escape, though it would be better for that to have multiple steps...
       if (key == "escape") {
