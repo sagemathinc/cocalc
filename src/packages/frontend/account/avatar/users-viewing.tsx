@@ -4,7 +4,7 @@
  */
 
 import { useInterval } from "react-interval-hook";
-import { merge, cmp, copy } from "@cocalc/util/misc";
+import { cmp } from "@cocalc/util/misc";
 import {
   redux,
   useMemo,
@@ -138,7 +138,5 @@ export const UsersViewing: React.FC<Props> = (props) => {
     return <Loading />;
   }
 
-  const style = { ...USERS_VIEWING_STYLE, ...style };
-
-  return <div style={style}>{render_active_users(users)}</div>;
+  return <div style={{ ...USERS_VIEWING_STYLE, ...style }}>{render_active_users(users)}</div>;
 };
