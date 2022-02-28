@@ -86,7 +86,7 @@ function TitleDescId({ title, description, id, onChange }) {
 function Managers({ managers, id, onChange }) {
   return (
     <>
-      <div style={{ maxHeight: "65px", overflowY: "scroll" }}>
+      <div style={{ maxHeight: "65px", overflowY: "auto" }}>
         {managers.map((account_id) => (
           <Avatar
             style={{ margin: "0 5px 5px 0" }}
