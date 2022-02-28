@@ -4,10 +4,10 @@
  */
 
 /*
-The format bar
+The format bar.
 */
 
-import { Component, Rendered } from "../../app-framework";
+import { React, Rendered } from "../../app-framework";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
@@ -15,9 +15,15 @@ import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 
-const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
-  " "
-);
+const FONT_SIZES = [
+  "xx-small",
+  "x-small",
+  "small",
+  "medium",
+  "large",
+  "x-large",
+  "xx-large",
+] as const;
 
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
@@ -25,12 +31,14 @@ interface Props {
   exclude?: SetMap; // exclude buttons with these names
 }
 
-export class FormatBar extends Component<Props, {}> {
-  shouldComponentUpdate(): boolean {
-    return false;
-  }
+function shouldMemoize() {
+  return true;
+}
 
-  render_button(
+export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
+  const { actions, extension, exclude } = props;
+
+  function render_button(
     name: string,
     title: string,
     label?: string | Rendered, // if a string, the named icon; if a rendered
@@ -38,7 +46,7 @@ export class FormatBar extends Component<Props, {}> {
     // icon with given name.
     fontSize?: string
   ): Rendered {
-    if (this.props.exclude?.[name]) {
+    if (exclude?.[name]) {
       return;
     }
     if (label == null && isIconName(name)) {
@@ -51,7 +59,7 @@ export class FormatBar extends Component<Props, {}> {
       <Button
         key={name}
         title={title}
-        onClick={() => this.props.actions.format_action(name)}
+        onClick={() => actions.format_action(name)}
         style={{ maxHeight: "30px", fontSize }}
       >
         {label}
@@ -59,64 +67,48 @@ export class FormatBar extends Component<Props, {}> {
     );
   }
 
-  render_text_style_buttons(): Rendered {
+  function render_text_style_buttons(): Rendered {
     return (
       <ButtonGroup key={"text-style"}>
-        {this.render_button("bold", "Make selected text bold")}
-        {this.render_button("italic", "Make selected text italics")}
-        {this.render_button("underline", "Underline selected text")}
-        {this.render_button("strikethrough", "Strike through selected text")}
-        {this.render_button("code", "Format selected text as code")}
-        {this.render_button(
-          "sub",
-          "Make selected text a subscript",
-          "subscript"
-        )}
-        {this.render_button(
+        {render_button("bold", "Make selected text bold")}
+        {render_button("italic", "Make selected text italics")}
+        {render_button("underline", "Underline selected text")}
+        {render_button("strikethrough", "Strike through selected text")}
+        {render_button("code", "Format selected text as code")}
+        {render_button("sub", "Make selected text a subscript", "subscript")}
+        {render_button(
           "sup",
           "Make selected text a superscript",
           "superscript"
         )}
-        {this.render_button("comment", "Comment out selected text")}
+        {render_button("comment", "Comment out selected text")}
       </ButtonGroup>
     );
   }
 
-  render_insert_buttons(): Rendered {
+  function render_insert_buttons(): Rendered {
     return (
       <ButtonGroup key={"insert"}>
-        {this.render_button(
+        {render_button(
           "format_code",
           "Insert block of source code",
           "CodeOutlined"
         )}
-        {this.render_button(
-          "insertunorderedlist",
-          "Insert unordered list",
-          "list"
-        )}
-        {this.render_button(
-          "insertorderedlist",
-          "Insert ordered list",
-          "list-ol"
-        )}
-        {this.render_button(
-          "equation",
-          "Insert inline LaTeX math",
-          <span>$</span>
-        )}
-        {this.render_button(
+        {render_button("insertunorderedlist", "Insert unordered list", "list")}
+        {render_button("insertorderedlist", "Insert ordered list", "list-ol")}
+        {render_button("equation", "Insert inline LaTeX math", <span>$</span>)}
+        {render_button(
           "display_equation",
           "Insert displayed LaTeX math",
           <span>$$</span>
         )}
-        {this.render_button(
+        {render_button(
           "quote",
           "Make selected text into a quotation",
           "quote-left"
         )}
-        {this.render_button("table", "Insert table", "table")}
-        {this.render_button(
+        {render_button("table", "Insert table", "table")}
+        {render_button(
           "horizontalRule",
           "Insert horizontal rule",
           <span>&mdash;</span>
@@ -125,13 +117,13 @@ export class FormatBar extends Component<Props, {}> {
     );
   }
 
-  render_insert_dialog_buttons(): Rendered {
+  function render_insert_dialog_buttons(): Rendered {
     return (
       <ButtonGroup key={"insert-dialog"}>
-        {this.render_button("link", "Insert link", "link")}
-        {this.render_button("image", "Insert image", "image", "12pt")}
-        {this.props.extension !== "tex"
-          ? this.render_button(
+        {render_button("link", "Insert link", "link")}
+        {render_button("image", "Insert image", "image", "12pt")}
+        {extension !== "tex"
+          ? render_button(
               "SpecialChar",
               "Insert special character...",
               <span style={{ fontSize: "larger" }}>&Omega;</span>
@@ -141,35 +133,31 @@ export class FormatBar extends Component<Props, {}> {
     );
   }
 
-  render_format_buttons(): Rendered {
-    if (this.props.exclude?.["format_buttons"]) {
+  function render_format_buttons(): Rendered {
+    if (exclude?.["format_buttons"]) {
       return;
     }
     return (
       <>
         <Space />
         <ButtonGroup key={"format"}>
-          {this.render_button(
-            "format_code",
-            "Format selected text as code",
-            "code"
-          )}
-          {this.render_button(
+          {render_button("format_code", "Format selected text as code", "code")}
+          {render_button(
             "justifyleft",
             "Left justify current text",
             "align-left"
           )}
-          {this.render_button(
+          {render_button(
             "justifycenter",
             "Center current text",
             "align-center"
           )}
-          {this.render_button(
+          {render_button(
             "justifyright",
             "Right justify current text",
             "align-right"
           )}
-          {this.render_button(
+          {render_button(
             "justifyfull",
             "Fully justify current text",
             "align-justify"
@@ -177,7 +165,7 @@ export class FormatBar extends Component<Props, {}> {
         </ButtonGroup>
         <Space />
         <ButtonGroup key={"format2"}>
-          {this.render_button(
+          {render_button(
             "unformat",
             "Remove all formatting from selected text",
             "remove"
@@ -187,7 +175,7 @@ export class FormatBar extends Component<Props, {}> {
     );
   }
 
-  render_font_family_dropdown(): Rendered {
+  function render_font_family_dropdown(): Rendered {
     const items: Rendered[] = [];
     for (const family of FONT_FACES) {
       const item: Rendered = (
@@ -203,16 +191,14 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"font"} />}
         key={"font-family"}
         id={"font-family"}
-        onClick={(family) =>
-          this.props.actions.format_action("font_family", family)
-        }
+        onClick={(family) => actions.format_action("font_family", family)}
       >
         {items}
       </DropdownMenu>
     );
   }
 
-  render_font_size_dropdown(): Rendered {
+  function render_font_size_dropdown(): Rendered {
     const items: Rendered[] = [];
     for (const size of FONT_SIZES) {
       const item: Rendered = (
@@ -230,49 +216,30 @@ export class FormatBar extends Component<Props, {}> {
         title={<Icon name={"text-height"} />}
         key={"font-size"}
         id={"font-size"}
-        onClick={(size) =>
-          this.props.actions.format_action("font_size_new", size)
-        }
+        onClick={(size) => actions.format_action("font_size_new", size)}
       >
         {items}
       </DropdownMenu>
     );
   }
 
-  render_heading_dropdown(): Rendered {
+  function heading_content(heading: number): JSX.Element {
+    const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
+    if (heading === 0) {
+      return <span>{label}</span>;
+    } else {
+      return React.createElement(`h${heading}`, {}, label);
+    }
+  }
+
+  function render_heading_dropdown(): Rendered {
     const items: Rendered[] = [];
     for (let heading = 0; heading <= 6; heading++) {
-      var c;
-      const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
-      switch (heading) {
-        case 0:
-          c = <span>{label}</span>;
-          break;
-        case 1:
-          c = <h1>{label}</h1>;
-          break;
-        case 2:
-          c = <h2>{label}</h2>;
-          break;
-        case 3:
-          c = <h3>{label}</h3>;
-          break;
-        case 4:
-          c = <h4>{label}</h4>;
-          break;
-        case 5:
-          c = <h5>{label}</h5>;
-          break;
-        case 6:
-          c = <h6>{label}</h6>;
-          break;
-      }
-      const item = (
+      items.push(
         <MenuItem key={heading} eventKey={heading}>
-          {c}
+          {heading_content(heading)}
         </MenuItem>
       );
-      items.push(item);
     }
     return (
       <DropdownMenu
@@ -281,7 +248,7 @@ export class FormatBar extends Component<Props, {}> {
         key={"heading"}
         id={"heading"}
         onClick={(heading) =>
-          this.props.actions.format_action(`format_heading_${heading}`)
+          actions.format_action(`format_heading_${heading}`)
         }
       >
         {items}
@@ -289,16 +256,14 @@ export class FormatBar extends Component<Props, {}> {
     );
   }
 
-  render_colors_dropdown(): Rendered {
+  function render_colors_dropdown(): Rendered {
     return (
-      <ColorButton
-        onChange={(code) => this.props.actions.format_action("color", code)}
-      />
+      <ColorButton onChange={(code) => actions.format_action("color", code)} />
     );
   }
 
-  render_font_dropdowns(): Rendered {
-    if (this.props.exclude?.["font_dropdowns"]) {
+  function render_font_dropdowns(): Rendered {
+    if (exclude?.["font_dropdowns"]) {
       return;
     }
     return (
@@ -306,28 +271,26 @@ export class FormatBar extends Component<Props, {}> {
         key={"font-dropdowns"}
         style={{ float: "right", marginRight: "1px" }}
       >
-        {this.render_font_family_dropdown()}
-        {this.render_font_size_dropdown()}
-        {this.render_heading_dropdown()}
-        {this.render_colors_dropdown()}
+        {render_font_family_dropdown()}
+        {render_font_size_dropdown()}
+        {render_heading_dropdown()}
+        {render_colors_dropdown()}
       </ButtonGroup>
     );
   }
 
-  render(): Rendered {
-    return (
-      <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
-        {this.render_font_dropdowns()}
-        <div className={"cc-frame-tree-format-bar"}>
-          {this.render_text_style_buttons()}
-          <Space />
-          {this.render_insert_buttons()}
-          <Space />
-          {this.render_insert_dialog_buttons()}
-          {this.render_format_buttons()}
-          <Space />
-        </div>
+  return (
+    <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
+      {render_font_dropdowns()}
+      <div className={"cc-frame-tree-format-bar"}>
+        {render_text_style_buttons()}
+        <Space />
+        {render_insert_buttons()}
+        <Space />
+        {render_insert_dialog_buttons()}
+        {render_format_buttons()}
+        <Space />
       </div>
-    );
-  }
-}
+    </div>
+  );
+}, shouldMemoize);
