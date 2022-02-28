@@ -37,6 +37,7 @@ export function EditorSettingsColorScheme(props: Props): JSX.Element {
           options={EDITOR_COLOR_SCHEMES}
           selected={props.theme}
           on_change={props.on_change}
+          showSearch={true}
         />
       </LabeledRow>
       <CodeMirrorPreview

@@ -9,17 +9,16 @@ import {
   LabeledRow,
   Saving,
 } from "@cocalc/frontend/components";
-import { Component, Rendered, ReactDOM } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+  Rendered,
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Button, ButtonToolbar, Well } from "@cocalc/frontend/antd-bootstrap";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
+import { Form, Input } from "antd";
 
 interface State {
   state: "view" | "edit" | "saving"; // view --> edit --> saving --> view
@@ -28,77 +27,60 @@ interface State {
   error: string;
 }
 
-export class PasswordSetting extends Component<{}, State> {
-  private is_mounted: boolean = true;
-  constructor(props, state) {
-    super(props, state);
-    this.state = {
-      state: "view",
-      old_password: "",
-      new_password: "",
-      error: "",
-    };
+export const PasswordSetting: React.FC = () => {
+  const is_mounted = useIsMountedRef();
+
+  const [state, set_state] = useState<State["state"]>("view");
+  const [old_password, set_old_password] = useState("");
+  const [new_password, set_new_password] = useState("");
+  const [error, set_error] = useState("");
+
+  function reset(): void {
+    set_state("view");
+    set_error("");
+    set_old_password("");
+    set_new_password("");
   }
 
-  componentWillUnmount(): void {
-    this.is_mounted = false;
+  function change_password(): void {
+    reset();
+    set_state("edit");
   }
 
-  private change_password(): void {
-    this.setState({
-      state: "edit",
-      error: "",
-      old_password: "",
-      new_password: "",
-    });
+  function cancel_editing(): void {
+    set_state("view");
+    set_old_password("");
+    set_new_password("");
   }
 
-  private cancel_editing(): void {
-    this.setState({
-      state: "view",
-      old_password: "",
-      new_password: "",
-    });
-  }
-
-  private async save_new_password(): Promise<void> {
-    this.setState({
-      state: "saving",
-    });
+  async function save_new_password(): Promise<void> {
+    set_state("saving");
     try {
       await webapp_client.account_client.change_password(
-        this.state.old_password,
-        this.state.new_password
+        old_password,
+        new_password
       );
-      if (!this.is_mounted) return;
+      if (!is_mounted.current) return;
     } catch (err) {
-      if (!this.is_mounted) return;
-      this.setState({
-        state: "edit",
-        error: `Error changing password -- ${err}`,
-      });
+      if (!is_mounted.current) return;
+      set_state("edit"), set_error(`Error changing password -- ${err}`);
       return;
     }
-    this.setState({
-      state: "view",
-      error: "",
-      old_password: "",
-      new_password: "",
-    });
+    reset();
   }
 
-  private is_submittable(): boolean {
+  function is_submittable(): boolean {
     return !!(
-      this.state.new_password.length >= 6 &&
-      this.state.new_password &&
-      this.state.new_password !== this.state.old_password
+      new_password.length >= 6 &&
+      new_password &&
+      new_password !== old_password
     );
   }
 
-  private render_change_button(): Rendered {
-    if (this.is_submittable()) {
+  function render_change_button(): Rendered {
+    if (is_submittable()) {
       return (
-        <Button onClick={this.save_new_password.bind(this)} bsStyle="success">
+        <Button onClick={save_new_password} bsStyle="success">
           Change Password
         </Button>
       );
@@ -111,13 +93,13 @@ export class PasswordSetting extends Component<{}, State> {
     }
   }
 
-  private render_error(): Rendered {
-    if (this.state.error) {
+  function render_error(): Rendered {
+    if (error) {
       return (
         <>
           <ErrorDisplay
-            error={this.state.error}
-            onClose={() => this.setState({ error: "" })}
+            error={error}
+            onClose={() => set_error("")}
             style={{ marginTop: "15px" }}
           />
           <A href={join(appBasePath, "auth/password-reset")}>
@@ -128,86 +110,73 @@ export class PasswordSetting extends Component<{}, State> {
     }
   }
 
-  private render_edit(): Rendered {
+  function onFinish(): void {
+    if (is_submittable()) {
+      save_new_password();
+    }
+  }
+
+  function render_edit(): Rendered {
     return (
       <Well style={{ marginTop: "3ex" }}>
-        <FormGroup>
-          Current password{" "}
-          <span color="#888">(leave blank if you have not set a password)</span>
-          <FormControl
-            autoFocus
-            type="password"
-            ref="old_password"
-            value={this.state.old_password}
-            placeholder="Current password"
-            onChange={() =>
-              this.setState({
-                old_password: ReactDOM.findDOMNode(this.refs.old_password)
-                  .value,
-              })
-            }
-          />
-        </FormGroup>
-        New password
-        {this.state.new_password.length < 6
-          ? " (at least 6 characters)"
-          : undefined}
-        {this.state.new_password.length >= 6 &&
-        this.state.new_password == this.state.old_password
-          ? " (different than old password)"
-          : undefined}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (this.is_submittable()) {
-              this.save_new_password();
-            }
-          }}
-        >
-          <FormGroup>
-            <FormControl
+        <Form onFinish={onFinish}>
+          <Form.Item>
+            Current password{" "}
+            <span color="#888">
+              (leave blank if you have not set a password)
+            </span>
+            <Input.Password
+              autoFocus
               type="password"
-              ref="new_password"
-              value={this.state.new_password}
+              value={old_password}
+              placeholder="Current password"
+              onChange={(e) => set_old_password(e.target.value)}
+            />
+          </Form.Item>
+          New password
+          {new_password.length < 6 ? " (at least 6 characters)" : undefined}
+          {new_password.length >= 6 && new_password == old_password
+            ? " (different than old password)"
+            : undefined}
+          <Form.Item>
+            <Input.Password
+              type="password"
+              value={new_password}
               placeholder="New password"
-              onChange={() => {
-                const x = ReactDOM.findDOMNode(this.refs.new_password)?.value;
-                if (x == null) return;
-                this.setState({ new_password: x });
+              onChange={(e) => {
+                set_new_password(e.target.value);
               }}
             />
-          </FormGroup>
-        </form>
+          </Form.Item>
+        </Form>
         <ButtonToolbar>
-          {this.render_change_button()}
-          <Button onClick={this.cancel_editing.bind(this)}>Cancel</Button>
+          {render_change_button()}
+          <Button onClick={cancel_editing}>Cancel</Button>
         </ButtonToolbar>
-        {this.render_error()}
-        {this.render_saving()}
+        {render_error()}
+        {render_saving()}
       </Well>
     );
   }
 
-  private render_saving(): Rendered {
-    if (this.state.state === "saving") {
+  function render_saving(): Rendered {
+    if (state === "saving") {
       return <Saving />;
     }
   }
 
-  render() {
-    return (
-      <LabeledRow label="Password" style={{ marginBottom: "15px" }}>
-        <div style={{ height: "30px" }}>
-          <Button
-            className="pull-right"
-            disabled={this.state.state !== "view"}
-            onClick={this.change_password.bind(this)}
-          >
-            Change Password...
-          </Button>
-        </div>
-        {this.state.state !== "view" ? this.render_edit() : undefined}
-      </LabeledRow>
-    );
-  }
-}
+  return (
+    <LabeledRow label="Password" style={{ marginBottom: "15px" }}>
+      <div style={{ height: "30px" }}>
+        <Button
+          className="pull-right"
+          disabled={state !== "view"}
+          onClick={change_password}
+        >
+          Change Password...
+        </Button>
+      </div>
+      {state !== "view" ? render_edit() : undefined}
+    </LabeledRow>
+  );
+};

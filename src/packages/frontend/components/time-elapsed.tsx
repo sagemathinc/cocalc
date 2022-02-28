@@ -5,44 +5,31 @@
 
 import React from "react";
 import * as misc from "@cocalc/util/misc";
+import { useInterval } from "react-interval-hook";
 
 interface Props {
-  start_ts?: number;
-  interval_s: number;
+  start_ts: number;
+  interval_s?: number;
 }
 
-export class TimeElapsed extends React.Component<Props> {
-  private timer?: number;
+function isSame(prev, next) {
+  if (prev == null || next == null) return false;
+  return prev.start_ts != next.start_ts;
+}
 
-  shouldComponentUpdate(next) {
-    return this.props.start_ts != next.start_ts;
-  }
+export const TimeElapsed: React.FC<Props> = React.memo((props: Props) => {
+  const { start_ts, interval_s = 1 } = props;
 
-  static defaultProps = {
-    interval_s: 1,
-  };
+  const [elapsed, setElapsed] = React.useState("");
 
-  clear(): void {
-    if (this.timer != null) window.clearInterval(this.timer);
-  }
-
-  componentWillUnmount(): void {
-    this.clear();
-    delete this.timer;
-  }
-
-  componentDidMount(): void {
-    this.clear();
-    this.timer = window.setInterval(
-      () => this.forceUpdate(),
-      this.props.interval_s * 1000
-    );
-  }
-
-  render() {
-    if (this.props.start_ts == null) return;
-    const delta_s = (misc.server_time().getTime() - this.props.start_ts) / 1000;
+  useInterval(() => {
+    if (start_ts == null) return;
+    const delta_s = (misc.server_time().getTime() - start_ts) / 1000;
     const uptime_str = misc.seconds2hms(delta_s, true);
-    return <React.Fragment>{uptime_str}</React.Fragment>;
-  }
-}
+    setElapsed(uptime_str);
+  }, interval_s * 1000);
+
+  if (start_ts == null) return null;
+
+  return <React.Fragment>{elapsed}</React.Fragment>;
+}, isSame);

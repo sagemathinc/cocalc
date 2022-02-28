@@ -33,9 +33,7 @@ export type NewFilenameTypes =
   | "semantic"
   | "ymd_semantic";
 
-export const NewFilenameFamilies = Object.freeze<
-  { [name in NewFilenameTypes]: string }
->({
+export const NewFilenameFamilies: { [name in NewFilenameTypes]: string } = {
   iso: "Current time",
   heroku: "Heroku-like",
   ymd_heroku: "Heroku-like (prefix today)",
@@ -43,7 +41,7 @@ export const NewFilenameFamilies = Object.freeze<
   ymd_pet: "Pet names (prefix today)",
   semantic: "Semantic",
   ymd_semantic: "Semantic (prefix today) ",
-});
+} as const;
 
 export class NewFilenames {
   // TODO iso is the "old way". Change it to "semantic" after a week or two…

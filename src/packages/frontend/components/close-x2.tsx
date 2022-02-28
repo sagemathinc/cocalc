@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
 
 interface Props {
@@ -11,29 +12,28 @@ interface Props {
   close?: () => void;
 }
 
-export class CloseX2 extends React.Component<Props> {
-  static defaultProps = {
-    close: undefined,
-    style: {
-      cursor: "pointer",
-      fontSize: "13pt",
-    },
-  };
+const DEFAULT_STYLE: CSS = {
+  cursor: "pointer",
+  fontSize: "13pt",
+};
 
-  shouldComponentUpdate(next) {
-    return this.props.close != next.close;
+function isSame(prev, next) {
+  if (prev == null || next == null) {
+    return false;
   }
+  return prev.close != next.close;
+}
 
-  render() {
-    if (!this.props.close) return undefined;
+export const CloseX2: React.FC<Props> = React.memo((props: Props) => {
+  const { close = undefined, style = DEFAULT_STYLE } = props;
+
+  if (!close) {
+    return null;
+  } else {
     return (
-      <div
-        className={"pull-right lighten"}
-        style={this.props.style}
-        onClick={this.props.close}
-      >
+      <div className={"pull-right lighten"} style={style} onClick={close}>
         <Icon name={"times"} />
       </div>
     );
   }
-}
+}, isSame);
