@@ -95,7 +95,7 @@ export default function getKeyHandler(
       actions.toggleMapType(frameId);
       return;
     }
-    if (key == "backspace") {
+    if (key == "backspace" || key == "delete") {
       actions.deleteElements(
         selection?.toJS().map((id) => ({
           id,
