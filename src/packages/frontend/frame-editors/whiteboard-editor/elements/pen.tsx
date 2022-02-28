@@ -2,7 +2,7 @@
 Render a pen element.
 */
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { Element, Point } from "../types";
 import { decompressPath, midPoint } from "../math";
 
@@ -25,31 +25,30 @@ export default function Pen({ element, renderStatic }: Props) {
   // are right on the edge of the canvas don't get partially truncated.
   // I tried doing this at various points in "the pipeline", and here at
   // the renderer is optimal.
-  const pad = 2 * (element.data?.["radius"] ?? 1) * scaleRef.current;
+  const pad = Math.round(
+    2 * (element.data?.["radius"] ?? 1) * scaleRef.current
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas == null) return;
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
-    ctx.restore();
-    ctx.save();
-    ctx.scale(DPIFactor, DPIFactor);
-    ctx.translate(pad, pad);
-  }, [pad, element.w, element.h]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas == null) return;
-    const ctx = canvas.getContext("2d");
-    if (ctx == null) return;
     const data:
       | { path?: number[]; color?: string; radius?: number; opacity?: number }
       | undefined = element.data;
     if (data == null) return;
+
     const { path, radius, color, opacity } = data;
     if (path == null) return;
+
+    ctx.restore();
+    ctx.save();
+    ctx.scale(DPIFactor, DPIFactor);
+    ctx.translate(pad, pad);
     clearCanvas({ ctx });
+
     drawCurve({
       ctx,
       path: decompressPath(path, scaleRef.current),
@@ -57,7 +56,7 @@ export default function Pen({ element, renderStatic }: Props) {
       radius: (radius ?? 1) * scaleRef.current,
       opacity,
     });
-  }, [element]);
+  }, [pad, element]);
 
   const w = (element.w ?? 100) + 2 * pad;
   const h = (element.h ?? 100) + 2 * pad;
