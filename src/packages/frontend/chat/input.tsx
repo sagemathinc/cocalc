@@ -12,9 +12,9 @@ import { useFrameContext } from "../frame-editors/frame-tree/frame-context";
 interface Props {
   input?: string;
   on_paste?: (e) => void;
-  on_send?: () => void;
+  on_send?: (value: string) => void;
   height?: string;
-  onChange?: (string) => void;
+  onChange: (string) => void;
   submitMentionsRef?: any;
   font_size?: number;
   hideHelp?: boolean;

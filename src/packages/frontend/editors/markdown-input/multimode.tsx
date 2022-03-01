@@ -28,8 +28,8 @@ const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 interface Props {
   value?: string;
   defaultMode?: Mode; // defaults to editor or whatever was last used (as stored in localStorage)
-  onChange?: (value: string) => void;
-  onShiftEnter?: () => void;
+  onChange: (value: string) => void;
+  onShiftEnter?: (value: string) => void;
   placeholder?: string;
   fontSize?: number;
   height?: string;
@@ -196,7 +196,8 @@ export default function MultiMarkdownInput({
           hideHelp={hideHelp}
           onBlur={
             onBlur != null
-              ? () => {
+              ? (value) => {
+                  onChange(value);
                   if (!ignoreBlur.current) {
                     onBlur();
                   }
@@ -242,13 +243,7 @@ export default function MultiMarkdownInput({
               set_value: (value) => {
                 onChange?.(value);
               },
-              shiftEnter:
-                onShiftEnter == null
-                  ? undefined
-                  : (value) => {
-                      onChange?.(value);
-                      onShiftEnter();
-                    },
+              shiftEnter: onShiftEnter,
               altEnter: (value) => {
                 onChange?.(value);
                 setMode("markdown");
