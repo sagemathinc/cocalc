@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.33.1",
+  "version": "0.34.0",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -29,9 +29,9 @@
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty --preserveWatchOutput ",
     "inventory": "bash ./inventory/setup-inventory.sh",
     "build-deps": "cd ../backend && npm run build && cd ../util && npm run build",
-    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run build-dist && next build",
+    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run build-dist && NODE_OPTIONS='--max_old_space_size=8000' next build",
     "build-dist": "rm -rf dist && npm run inventory && npx tsc --build tsconfig-dist.json",
-    "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
+    "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
