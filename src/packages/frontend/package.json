@@ -145,7 +145,7 @@
     "sha1": "^1.1.1",
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
-    "slate": "^0.63.0",
+    "slate": "^0.73.0",
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
