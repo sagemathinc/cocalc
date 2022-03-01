@@ -65,13 +65,12 @@ register({ key: "Enter" }, ({ editor }) => {
       // done
       return true;
     }
-    // Note at beginning or end, so above insertNodes actually
+    // Not at beginning or end, so above insertNodes actually
     // splits the list item so we end up
     // with an extra blank one, which we now remove.
     Transforms.removeNodes(editor, {
       match: (node) => isElementOfType(node, "list_item"),
     });
-    Transforms.move(editor, { distance: 1, unit: "line" });
     moveCursorToBeginningOfBlock(editor);
     return true;
   }
