@@ -44,6 +44,7 @@ function Conversation({ element, focused }: Props) {
       {focused && (
         <div style={{ height: "125px", display: "flex" }} className="nodrag">
           <ChatInput
+            cacheId={element.id}
             hideHelp
             height={"123px"}
             input={input}

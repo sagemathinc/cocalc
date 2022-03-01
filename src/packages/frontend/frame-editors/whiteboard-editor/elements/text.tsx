@@ -92,6 +92,7 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        cacheId={element.id}
         noVfill
         autoFocus
         minimal

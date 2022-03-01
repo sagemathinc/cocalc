@@ -7,7 +7,7 @@
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
-import { RefObject } from "react";
+import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
@@ -123,6 +123,10 @@ interface Props {
   saveDebounceMs?: number;
   noVfill?: boolean;
   divRef?: RefObject<HTMLDivElement>;
+  selectionRef?: MutableRefObject<{
+    setSelection: Function;
+    getSelection: Function;
+  }>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -148,6 +152,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     saveDebounceMs,
     noVfill,
     divRef,
+    selectionRef,
   }) => {
     if (disableWindowing == null) {
       disableWindowing = !USE_WINDOWING;
@@ -209,6 +214,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       };
 
       ed.syncCache = {};
+      if (selectionRef != null) {
+        selectionRef.current = {
+          setSelection: (selection: any) => {
+            console.log("set selection to ", selection);
+            ed.selection = selection;
+          },
+          getSelection: () => {
+            console.log("returning selection ", JSON.stringify(ed.selection));
+            return ed.selection;
+          },
+        };
+      }
 
       return ed as SlateEditor;
     }, []);

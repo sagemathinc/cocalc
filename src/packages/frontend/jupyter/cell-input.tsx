@@ -228,6 +228,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
+          cacheId={props.id}
           value={props.cell.get("input") ?? ""}
           height="50vh"
           onChange={(value) => {
@@ -239,6 +240,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           }}
           saveDebounceMs={1500}
           cmOptions={cmOptions}
+          autoFocus={props.is_focused || props.is_current}
         />
       );
     }

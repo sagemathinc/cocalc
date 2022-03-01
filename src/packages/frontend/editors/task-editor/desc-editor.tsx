@@ -41,6 +41,7 @@ export default function DescriptionEditor({
   return (
     <div>
       <MarkdownInput
+        cacheId={task_id}
         value={desc}
         onChange={(desc) => {
           actions.set_desc(task_id, desc, false);
@@ -48,6 +49,7 @@ export default function DescriptionEditor({
         }}
         fontSize={font_size}
         onShiftEnter={saveAndClose}
+        onBlur={saveAndClose}
         onFocus={actions.disable_key_handler}
         enableUpload={true}
         enableMentions={true}

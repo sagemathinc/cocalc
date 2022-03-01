@@ -1,9 +1,8 @@
 /*
 Edit with either plain text input **or** WYSIWYG slate-based input.
-
-Work in progress!
 */
 
+import { useEffect } from "react";
 import { Popover } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
@@ -20,12 +19,21 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { fromJS, Map as ImmutableMap } from "immutable";
+import LRU from "lru-cache";
+
+interface MultimodeState {
+  mode?: Mode;
+  selection?: any;
+}
+
+const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 
 interface Props {
+  cacheId?: string; // unique **within this file**; the project_id and path are automatically also used
   value?: string;
   defaultMode?: Mode; // defaults to editor or whatever was last used (as stored in localStorage)
   onChange: (value: string) => void;
@@ -66,6 +74,7 @@ interface Props {
 }
 
 export default function MultiMarkdownInput({
+  cacheId,
   value,
   defaultMode,
   onChange,
@@ -97,12 +106,29 @@ export default function MultiMarkdownInput({
   cmOptions,
 }: Props) {
   const { project_id, path } = useFrameContext();
+
+  function getCache() {
+    return cacheId === undefined
+      ? undefined
+      : multimodeStateCache.get(`${project_id}${path}:${cacheId}`);
+  }
+
   const [mode, setMode0] = useState<Mode>(
-    defaultMode ?? localStorage[LOCAL_STORAGE_KEY] ?? "editor"
+    getCache()?.mode ??
+      defaultMode ??
+      localStorage[LOCAL_STORAGE_KEY] ??
+      "editor"
   );
+
   const setMode = (mode: Mode) => {
     localStorage[LOCAL_STORAGE_KEY] = mode;
     setMode0(mode);
+    if (cacheId !== undefined) {
+      multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
+        ...getCache(),
+        mode,
+      });
+    }
   };
   const [focused, setFocused] = useState<boolean>(!!autoFocus);
   const ignoreBlur = useRef<boolean>(false);
@@ -110,6 +136,28 @@ export default function MultiMarkdownInput({
   const cursorsMap = useMemo(() => {
     return cursors == null ? undefined : fromJS(cursors);
   }, [cursors]);
+
+  const selectionRef = useRef<{
+    getSelection: Function;
+    setSelection: Function;
+  } | null>(null);
+
+  useEffect(() => {
+    if (cacheId == null) return;
+    const cache = getCache();
+    if (cache?.selection && selectionRef.current != null) {
+      // restore selection on mount.
+      selectionRef.current.setSelection(cache?.selection);
+    }
+    return () => {
+      if (selectionRef.current == null || cacheId == null) return;
+      const selection = selectionRef.current.getSelection();
+      multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
+        ...getCache(),
+        selection,
+      });
+    };
+  }, []);
 
   return (
     <div
@@ -174,6 +222,7 @@ export default function MultiMarkdownInput({
       </div>
       {mode == "markdown" && (
         <MarkdownInput
+          selectionRef={selectionRef}
           value={value}
           onChange={onChange}
           project_id={project_id}
@@ -218,6 +267,7 @@ export default function MultiMarkdownInput({
           className="smc-vfill"
         >
           <EditableMarkdown
+            selectionRef={selectionRef}
             divRef={editorDivRef}
             noVfill={noVfill}
             value={value}

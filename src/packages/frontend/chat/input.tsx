@@ -19,6 +19,7 @@ interface Props {
   font_size?: number;
   hideHelp?: boolean;
   style?: CSSProperties;
+  cacheId?: string;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -27,6 +28,7 @@ export const ChatInput: React.FC<Props> = (props) => {
     props.font_size ?? useRedux(["font_size"], project_id, path);
   return (
     <MarkdownInput
+      cacheId={props.cacheId}
       value={props.input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
