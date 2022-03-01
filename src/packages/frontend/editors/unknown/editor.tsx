@@ -44,6 +44,10 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
     }
 
     const is_binary = !mime.startsWith("text/");
+    // limit number of bytes – it could be a "one-line" monster file.
+    // We *ONLY* limit by number of bytes, because limiting by both
+    // bytes and lines isn't supported in POSIX (e.g., macos), even though
+    // it works in Linux.
     const content_cmd = is_binary
       ? {
           command: "hexdump",
@@ -51,10 +55,9 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
         }
       : {
           command: "head",
-          args: ["-n", "-20", "-c", "2000", path],
+          args: ["-c", "2000", path],
         };
 
-    // limit number of lines and bytes – it could be a "one-line" monster file
     const {
       stdout: raw,
       exit_code: exit_code2,
