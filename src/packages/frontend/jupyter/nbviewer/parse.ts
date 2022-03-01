@@ -6,6 +6,7 @@ interface Parsed {
   cellList: string[];
   cells: { [id: string]: object };
   cmOptions: { [field: string]: any };
+  kernel: string;
 }
 
 export default function parse(content: string): Parsed {
@@ -28,7 +29,8 @@ export default function parse(content: string): Parsed {
   const cells = importer.cells();
   const cellList = sortedCellList(cells);
   const cmOptions = getCMOptions(getMode(ipynb));
-  return { cells, cellList, cmOptions };
+  const kernel = ipynb.metadata?.kernelspec?.display_name ?? "Unknown Kernel";
+  return { cells, cellList, cmOptions, kernel };
 }
 
 function getMode(ipynb): string {
