@@ -2,11 +2,16 @@ import { IPynbImporter } from "../import-from-ipynb";
 import { JUPYTER_MIMETYPES } from "../util";
 import { field_cmp } from "@cocalc/util/misc";
 
+export interface KernelSpec {
+  language?: string;
+  display_name: string;
+}
+
 interface Parsed {
   cellList: string[];
   cells: { [id: string]: object };
   cmOptions: { [field: string]: any };
-  kernel: string;
+  kernelspec: KernelSpec;
 }
 
 export default function parse(content: string): Parsed {
@@ -29,8 +34,10 @@ export default function parse(content: string): Parsed {
   const cells = importer.cells();
   const cellList = sortedCellList(cells);
   const cmOptions = getCMOptions(getMode(ipynb));
-  const kernel = ipynb.metadata?.kernelspec?.display_name ?? "Unknown Kernel";
-  return { cells, cellList, cmOptions, kernel };
+  const kernelspec = ipynb.metadata?.kernelspec ?? {
+    display_name: "Unknown Kernel",
+  };
+  return { cells, cellList, cmOptions, kernelspec };
 }
 
 function getMode(ipynb): string {
