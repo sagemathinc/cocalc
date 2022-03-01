@@ -69,8 +69,8 @@ const dataSource = [
     description: (
       <>
         CoCalc's collaborative whiteboard supports mathematics and computation.
-        Sketch out ideas and run Jupyter code cells with interactive widgets in
-        a 2d dimensional layout on an infinite canvas.
+        Sketch out ideas and run Jupyter code cells with interactive widgets on
+        an infinite canvas.
       </>
     ),
   },
