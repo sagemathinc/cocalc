@@ -20,6 +20,7 @@ const software = {
 const features = {
   index: {},
   "jupyter-notebook": { label: "Jupyter" },
+  "whiteboard": {label: "Whiteboard"},
   "latex-editor": { label: "LaTeX" },
   linux: { label: "Linux" },
   python: { label: "Python" },
