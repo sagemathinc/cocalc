@@ -50,10 +50,13 @@ export default function NBViewer({
       </div>
     );
   }
-  const { cellList, cells, cmOptions } = x;
+  const { cellList, cells, cmOptions, kernel } = x;
 
   return (
     <div style={style}>
+      <div style={{ marginBottom: "15px" }}>
+        <b>Kernel:</b> {kernel}
+      </div>
       <CellList
         cellList={cellList}
         cells={cells}
