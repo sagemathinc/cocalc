@@ -233,7 +233,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           onChange={(value) => {
             props.actions?.set_cell_input(props.id, value, true);
           }}
-          onShiftEnter={() => {
+          onShiftEnter={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
             frameActions.current?.set_md_cell_not_editing(props.id);
           }}
           saveDebounceMs={1500}
