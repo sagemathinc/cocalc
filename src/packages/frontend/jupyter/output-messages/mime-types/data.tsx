@@ -18,16 +18,23 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
   }
 
   const types = data.keySeq().toJS();
-  let type;
+  let type: string | undefined;
   if (nbviewer?.kernelspec?.language === "r") {
-    // very special case -- using an R kernel inside nbviewer (so XSS prevention) -- prefer plain text,
+    // very special case -- using an R kernel inside nbviewer (so XSS prevention) -- prefer image, then plain text,
     // due to bugs in text/latex *and* unfriendly markdown *and* complicated html that XSS mangles.
-    if (types.includes("text/plain")) {
+    for (const x of types) {
+      if (x.startsWith("image")) {
+        type = x;
+        break;
+      }
+    }
+    if (type === undefined && types.includes("text/plain")) {
       type = "text/plain";
     }
   } else {
     type = getTypeToRender(types);
   }
+  if (type == null) throw Error("bug");
   const H = getHandler(type);
   return <H type={type} value={data.get(type)} data={data} {...props} />;
 }, shouldMemoize);

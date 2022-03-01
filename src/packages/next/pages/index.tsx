@@ -58,33 +58,39 @@ export default function Home({ customize }) {
               </A>
               <div style={{ fontSize: "10pt", margin: "15px 0" }}>
                 {customize.account != null && (
-                  <A
-                    href={join(basePath, "projects")}
-                    external
-                    style={topLinkStyle}
-                  >
-                    Projects
-                  </A>
+                  <>
+                    <A
+                      href={join(basePath, "projects")}
+                      external
+                      style={topLinkStyle}
+                    >
+                      Projects
+                    </A>{" "}
+                  </>
                 )}
                 {customize.landingPages && (
                   <>
                     <A href="/features/" style={topLinkStyle}>
                       Features
-                    </A>
+                    </A>{" "}
                     <A href="/software" style={topLinkStyle}>
                       Software
-                    </A>
+                    </A>{" "}
                     {customize.isCommercial && (
-                      <A href="/pricing" style={topLinkStyle}>
-                        Pricing
-                      </A>
+                      <>
+                        <A href="/pricing" style={topLinkStyle}>
+                          Pricing
+                        </A>{" "}
+                      </>
                     )}
                   </>
                 )}
                 {customize.account != null && (
-                  <A href={"/config"} style={topLinkStyle}>
-                    Config
-                  </A>
+                  <>
+                    <A href={"/config"} style={topLinkStyle}>
+                      Config
+                    </A>{" "}
+                  </>
                 )}
                 {customize.isCommercial &&
                   customize.account &&
@@ -92,29 +98,33 @@ export default function Home({ customize }) {
                     <>
                       <A href="/store" style={topLinkStyle}>
                         Store
-                      </A>
+                      </A>{" "}
                       <A href={"/licenses"} style={topLinkStyle}>
                         Licenses
-                      </A>
+                      </A>{" "}
                       <A href={"/billing"} style={topLinkStyle}>
                         Billing
-                      </A>
+                      </A>{" "}
                     </>
                   )}
                 {customize.shareServer && (
-                  <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
-                    Share
-                  </A>
+                  <>
+                    <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
+                      Share
+                    </A>{" "}
+                  </>
                 )}
-                <A style={topLinkStyle} href="/support">
-                  Support
-                </A>
-                <A style={topLinkStyle} href="/info/status">
-                  Status
-                </A>
-                <A style={topLinkStyle} href="https://doc.cocalc.com">
-                  Docs
-                </A>
+                <>
+                  <A style={topLinkStyle} href="/support">
+                    Support
+                  </A>{" "}
+                  <A style={topLinkStyle} href="/info/status">
+                    Status
+                  </A>{" "}
+                  <A style={topLinkStyle} href="https://doc.cocalc.com">
+                    Docs
+                  </A>
+                </>
               </div>
             </div>
           )}
