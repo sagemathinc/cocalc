@@ -25,8 +25,8 @@ export default function Whiteboard({ customize }) {
               subtitle={
                 <>
                   <hr />
-                  Collaborativley sketch out your ideas and run Jupyter code
-                  cells with CoCalc's mathematical whiteboard
+                  Sketch out ideas and run Jupyter code cells with CoCalc's
+                  mathematical whiteboard
                 </>
               }
               image={WhiteboardImage}
@@ -45,11 +45,24 @@ export default function Whiteboard({ customize }) {
                   <li>
                     <strong>text</strong> with mathematical formulas,
                   </li>
-                  <li>sticky notes,</li>
-                  <li>sketching with pens,</li>
-                  <li>Jupyter code cells,</li>
-                  <li>multiple chat conversations,</li>
-                  <li>stopwatches and countdown timers.</li>
+                  <li>
+                    sticky <strong>notes</strong>,
+                  </li>
+                  <li>
+                    sketching with <strong>pens</strong>,
+                  </li>
+                  <li>
+                    <A href="/features/jupyter-notebook">Jupyter</A>{" "}
+                    <strong>code cells</strong>,
+                  </li>
+                  <li>
+                    <strong>chat</strong> conversations with your friends,
+                  </li>
+                  <li>
+                    <strong>stopwatches</strong> and{" "}
+                    <strong>countdown timers</strong> to organize and track
+                    work.
+                  </li>
                 </ul>
               </div>
             }
@@ -61,22 +74,26 @@ export default function Whiteboard({ customize }) {
                 and interactive widgets, with execution ordered determined by a
                 directed graph. You
                 <ul>
-                  <li>create edges between all objects,</li>
-                  <li>use frames to organize the whiteboard into sections,</li>
                   <li>
-                    split your editor to view multiple parts of the whiteboard
-                    simultaneously,
-                  </li>
-                  <li>easily navigate with an overview map,</li>
-                  <li>
-                    every{" "}
-                    <strong>
-                      change is recorded via browseable TimeTravel
-                    </strong>{" "}
-                    while you type,
+                    create <strong>edges</strong> between all objects,
                   </li>
                   <li>
-                    and you can publish your whiteboards to{" "}
+                    use <strong>frames</strong> to organize the whiteboard into
+                    sections,
+                  </li>
+                  <li>
+                    infinitely <strong>split your editor</strong> windows to
+                    view multiple parts of the whiteboard simultaneously,
+                  </li>
+                  <li>
+                    easily navigate with an <strong>overview map</strong>,
+                  </li>
+                  <li>
+                    every change you make is recorded via browseable{" "}
+                    <strong>TimeTravel</strong>,
+                  </li>
+                  <li>
+                    and you can <strong>publish</strong> your whiteboards to{" "}
                     <A href="/share">the share server</A>.
                   </li>
                 </ul>
