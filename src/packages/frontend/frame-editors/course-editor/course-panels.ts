@@ -4,18 +4,14 @@
  */
 
 import { wrap } from "./course-panel-wrapper";
+import { AssignmentsPanel } from "@cocalc/frontend/course/assignments/assignments-panel";
+import { ConfigurationPanel } from "@cocalc/frontend/course/configuration/configuration-panel";
+import { HandoutsPanel } from "@cocalc/frontend/course/handouts/handouts-panel";
+import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
+import { StudentsPanel } from "@cocalc/frontend/course/students/students-panel";
 
-import { AssignmentsPanel } from "../../course/assignments/assignments-panel";
 export const Assignments = wrap(AssignmentsPanel);
-
-import { StudentsPanel } from "../../course/students/students-panel";
 export const Students = wrap(StudentsPanel);
-
-import { HandoutsPanel } from "../../course/handouts/handouts-panel";
 export const Handouts = wrap(HandoutsPanel);
-
-import { ConfigurationPanel } from "../../course/configuration/configuration-panel";
 export const Configuration = wrap(ConfigurationPanel);
-
-import { SharedProjectPanel } from "../../course/shared-project/shared-project-panel";
 export const SharedProject = wrap(SharedProjectPanel);
