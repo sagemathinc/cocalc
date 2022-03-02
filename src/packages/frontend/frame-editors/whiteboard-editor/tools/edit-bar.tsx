@@ -448,6 +448,12 @@ function setDataField(
 ) {
   for (const element of elements) {
     actions.setElementData({ element, obj, commit: false, cursors: [{}] });
+    if (element.type == "icon" && obj["fontSize"] != null) {
+      actions.setElement({
+        obj: { id: element.id, h: obj["fontSize"] + 2, w: obj["fontSize"] + 2 },
+        commit: false,
+      });
+    }
   }
   actions.syncstring_commit();
 }

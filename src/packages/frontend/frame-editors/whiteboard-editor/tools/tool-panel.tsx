@@ -373,14 +373,18 @@ export function getParams(tool: Tool, id: number): AllParams | undefined {
 
 export function getElement(tool: Tool, id: number): Partial<Element> {
   const data = getParams(tool, id);
-  const type = TOOLS[tool]?.type;
-  if (type == null) throw Error("bug -- tool doesn't create element");
-  return {
+  const { update, type } = TOOLS[tool] ?? {};
+  if (type == null) throw Error(`bug -- tool "${tool}" doesn't create element`);
+  const element = {
     type,
     data,
     w: DEFAULT_WIDTH,
     h: DEFAULT_HEIGHT,
   };
+  if (update != null) {
+    update(element);
+  }
+  return element;
 }
 
 export function getPresetManager<Params>(

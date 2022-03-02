@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 // TODO: terrible icons...  need to add more.
 import { IconName } from "@cocalc/frontend/components/icon";
-import { ElementType } from "../types";
+import { Element, ElementType } from "../types";
 
 export type ConfigParams =
   | "fontFamily"
@@ -22,6 +22,8 @@ interface ToolDescription {
   resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
   key?: string | string[]; // keyboard shortcut or shortcuts
   type?: ElementType;
+  update?: (element: Partial<Element>) => void; // mutate element
+  noResize?: boolean;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -86,6 +88,12 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Icons",
     config: new Set(["fontSize", "color"]),
     key: "i",
+    type: "icon",
+    update: (element) => {
+      element.w = (element.data?.fontSize ?? 20) + 2;
+      element.h = (element.data?.fontSize ?? 20) + 2;
+    },
+    noResize: true,
   },
   chat: {
     icon: "comment",

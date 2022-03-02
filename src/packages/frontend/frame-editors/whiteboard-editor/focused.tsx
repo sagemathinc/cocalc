@@ -23,6 +23,7 @@ import Position from "./position";
 import { isLocked } from "./tools/lock-button";
 import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
+import { TOOLS } from "./tools/spec";
 
 import {
   SELECTED_BORDER_COLOR,
@@ -84,7 +85,14 @@ export default function Focused({
   const hidden = isHidden(selectedElements);
 
   const resizeHandles = useMemo(() => {
-    if (locked || readOnly || hidden || multi) return null;
+    if (
+      locked ||
+      readOnly ||
+      hidden ||
+      multi ||
+      TOOLS[element.type]?.["noResize"]
+    )
+      return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
       for (const left of [true, false]) {
