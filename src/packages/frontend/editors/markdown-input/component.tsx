@@ -5,56 +5,6 @@
 
 /*
 Markdown editor
-
-Stage 1 -- enough to replace current chat input:
-  - [x] @mentions (via completion dialog) -the collabs on this project
-     - [ ] type to search/restrict from list of collabs
-     - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
-     - [x] write new better more generic completions widget support
-     - [x] insert mention code in editor on select
-     - [x]  use on submit.
-  - [x] main input at bottom feels SLOW (even though editing messages is fast)
-  - [x] different border when focused
-  - [x] scroll into view when focused
-  - [x] use this component for editing past chats
-  - [x] editor themes
-  - [x] markdown syntax highlighting via codemirror
-  - [x] spellcheck
-  - [x] vim/emacs/sublime keybinding modes
-  - [x] non-monospace font
-  - [x] focus current line
-  - [x] placeholder text
-  - [x] drag and drop of images and other files
-  - [x] cancel upload in progress
-  - [x] don't allow send *during* upload.
-  - [x] cancel upload that is finished and delete file
-  - [x] paste of images
-  - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
-  - [x] close file upload when input is blanked (i.e., on send)
-  - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
-  - [x] #now make file upload LOOK GOOD
-  - [x] file upload button that pops open the dropzone or a file browser?  (useful for mobile and discoverability)
-
-
-Stage 2 -- stretch goal challenges:
----
-  - [ ] "Move" versus "Copy" when dragging/dropping?
-  - [ ] improve file move and delete to be aware of images (?).
-  - [ ] make upload link an immutable span of text?  Unclear, since user wants to edit the width and maybe style.  Hmmm... Unclear.
-  - [ ] integrated preview
-  - [ ] directions and links
-  - [ ] hashtags
-  - [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
-  - [ ] emojis like on github?
-  - [ ] BUG: very small file upload is BROKEN in cc-in-cc dev: this may be a proxy issue... exactly the same code works fine outside of cc-in-cc dev.
-
-Use this for:
-  - chat input
-  - course editor conf fields involving markdown
-  - markdown in jupyter
-  - task editor (especially with #tag completion)
-
-It will be a controlled component that takes project_id and path as input.
 */
 
 // Note -- the old file upload used .chat-images for everything,
@@ -77,6 +27,7 @@ import { useTypedRedux, useRedux, redux, ReactDOM } from "../../app-framework";
 import {
   CSSProperties,
   FC,
+  MutableRefObject,
   ReactNode,
   useEffect,
   useRef,
@@ -131,6 +82,10 @@ interface Props {
   lineNumbers?: boolean;
   autoFocus?: boolean;
   cmOptions?: { [key: string]: any }; // if given, use this for all CodeMirror options and ignore anything derived from other inputs, e.g., lineNumbers, above.
+  selectionRef?: MutableRefObject<{
+    setSelection: Function;
+    getSelection: Function;
+  } | null>;
 }
 
 export const MarkdownInput: FC<Props> = ({
@@ -158,6 +113,7 @@ export const MarkdownInput: FC<Props> = ({
   lineNumbers,
   autoFocus,
   cmOptions,
+  selectionRef,
 }) => {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -320,6 +276,18 @@ export const MarkdownInput: FC<Props> = ({
     if (autoFocus) {
       cm.current.focus();
     }
+
+    if (selectionRef != null) {
+      selectionRef.current = {
+        setSelection: (selection: any) => {
+          cm.current?.setSelections(selection);
+        },
+        getSelection: () => {
+          return cm.current?.listSelections();
+        },
+      };
+    }
+
     // clean up
     return () => {
       if (cm.current == null) return;

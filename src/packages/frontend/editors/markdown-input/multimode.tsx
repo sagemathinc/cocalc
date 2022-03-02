@@ -23,11 +23,14 @@ import LRU from "lru-cache";
 
 interface MultimodeState {
   mode?: Mode;
-  selection?: any;
+  markdown?: any;
+  editor?: any;
 }
 
 const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
+// markdown uses codemirror
+// editor uses slate.
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
@@ -145,19 +148,19 @@ export default function MultiMarkdownInput({
   useEffect(() => {
     if (cacheId == null) return;
     const cache = getCache();
-    if (cache?.selection && selectionRef.current != null) {
+    if (cache?.[mode] != null && selectionRef.current != null) {
       // restore selection on mount.
-      selectionRef.current.setSelection(cache?.selection);
+      selectionRef.current.setSelection(cache?.[mode]);
     }
     return () => {
       if (selectionRef.current == null || cacheId == null) return;
       const selection = selectionRef.current.getSelection();
       multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
         ...getCache(),
-        selection,
+        [mode]: selection,
       });
     };
-  }, []);
+  }, [mode]);
 
   return (
     <div

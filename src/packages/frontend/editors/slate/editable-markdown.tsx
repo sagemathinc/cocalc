@@ -126,7 +126,7 @@ interface Props {
   selectionRef?: MutableRefObject<{
     setSelection: Function;
     getSelection: Function;
-  }>;
+  } | null>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -217,11 +217,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (selectionRef != null) {
         selectionRef.current = {
           setSelection: (selection: any) => {
-            console.log("set selection to ", selection);
             ed.selection = selection;
           },
           getSelection: () => {
-            console.log("returning selection ", JSON.stringify(ed.selection));
             return ed.selection;
           },
         };
