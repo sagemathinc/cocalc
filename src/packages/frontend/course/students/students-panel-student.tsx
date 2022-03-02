@@ -68,20 +68,18 @@ interface StudentProps {
 
 function isSameStudent(props, next) {
   if (props == null || next == null) return false;
-  return !(
-    is_different(props, next, [
+  return (
+    !is_different(props, next, [
       "name",
       "student",
       "user_map",
       "project_map",
-      //"assignments",
+      "assignments", // important: update on distributing/collecting status, otherwise UI buttons don't update
       "background",
       "is_expanded",
       "active_feedback_edits",
       "nbgrader_run_info",
-    ]) ||
-    (props.student_name != null ? props.student_name.full : undefined) !==
-      (next.student_name != null ? next.student_name.full : undefined)
+    ]) && props.student_name?.full === next.student_name?.full
   );
 }
 
@@ -484,16 +482,11 @@ export const Student: React.FC<StudentProps> = React.memo(
     function render_assignments_info_rows() {
       const result: any[] = [];
       const terms = misc.search_split(assignment_search);
+      // TODO instead of accessing the store, use the state to react to data changes -- that's why we chech in "isSame" above.
       for (const assignment of store.get_sorted_assignments()) {
         if (terms.length > 0) {
-          if (
-            !misc.search_match(
-              assignment.get("path")?.toLowerCase() ?? "",
-              terms
-            )
-          ) {
-            continue;
-          }
+          const aPath = assignment.get("path")?.toLowerCase() ?? "";
+          if (!misc.search_match(aPath, terms)) continue;
         }
         const grade = store.get_grade(
           assignment.get("assignment_id"),
@@ -578,15 +571,15 @@ export const Student: React.FC<StudentProps> = React.memo(
 
     function render_more_info() {
       // Info for each assignment about the student.
-      const v: any[] = [];
-      v.push(
-        <Row key="more">
-          <Col md={24}>{render_assignments_info()}</Col>
-        </Row>
+      return (
+        <>
+          <Row key="more">
+            <Col md={24}>{render_assignments_info()}</Col>
+          </Row>
+          {render_note()}
+          {render_push_missing_handouts_and_assignments()}
+        </>
       );
-      v.push(render_note());
-      v.push(render_push_missing_handouts_and_assignments());
-      return v;
     }
 
     function render_basic_info() {

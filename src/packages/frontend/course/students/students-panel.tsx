@@ -12,12 +12,15 @@ import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 // React libraries and components
 import {
-  Component,
   ReactDOM,
-  rclass,
-  rtypes,
+  React,
   AppRedux,
   Rendered,
+  useState,
+  useRedux,
+  useRef,
+  useIsMountedRef,
+  useEffect,
 } from "../../app-framework";
 
 import {
@@ -43,7 +46,6 @@ import {
   IsGradingMap,
   NBgraderRunInfo,
 } from "../store";
-import { redux } from "../../frame-editors/generic/test/util";
 import { CourseActions } from "../actions";
 import { Set } from "immutable";
 import { Student, StudentNameDescription } from "./students-panel-student";
@@ -59,130 +61,160 @@ interface StudentsPanelReactProps {
   assignments: AssignmentsMap;
 }
 
-interface StudentsPanelReduxProps {
-  expanded_students: Set<string>;
-  active_student_sort?: SortDescription;
-  active_feedback_edits: IsGradingMap;
-  nbgrader_run_info?: NBgraderRunInfo;
+interface StudentList {
+  students: any[];
+  num_omitted: number;
+  num_deleted: number;
 }
 
-interface StudentsPanelState {
-  err?: string;
-  search: string;
-  add_search: string;
-  add_searching: boolean;
-  add_select?: any;
-  existing_students?: any;
-  selected_option_nodes?: any;
-  show_deleted: boolean;
+function isSame(prev, next) {
+  return !is_different(prev, next, [
+    "name",
+    "project_id",
+    "assignments",
+    "students",
+    "frame_id",
+  ]);
 }
 
-export const StudentsPanel = rclass<StudentsPanelReactProps>(
-  class StudentsPanel extends Component<
-    StudentsPanelReactProps & StudentsPanelReduxProps,
-    StudentsPanelState
-  > {
-    private is_unmounted: boolean;
-    componentWillUnmount(): void {
-      this.is_unmounted = true;
-    }
+export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
+  (props: StudentsPanelReactProps) => {
+    const {
+      frame_id,
+      name,
+      redux,
+      project_id,
+      students,
+      user_map,
+      project_map,
+      assignments,
+    } = props;
+
+    const addSelectRef = useRef<FormControl>(null);
+    const studentAddInputRef = useRef(null);
+
+    const expanded_students: Set<string> | undefined = useRedux(
+      name,
+      "expanded_students"
+    );
+    const active_student_sort: SortDescription | undefined = useRedux(
+      name,
+      "active_student_sort"
+    );
+    const active_feedback_edits: IsGradingMap = useRedux(
+      name,
+      "active_feedback_edits"
+    );
+    const nbgrader_run_info: NBgraderRunInfo | undefined = useRedux(
+      name,
+      "nbgrader_run_info"
+    );
+
+    const isMounted = useIsMountedRef();
+
+    const [err, set_err] = useState<string | undefined>(undefined);
+    const [search, set_search] = useState<string>("");
+    const [add_search, set_add_search] = useState<string>("");
+    const [add_searching, set_add_searching] = useState<boolean>(false);
+    const [add_select, set_add_select] = useState<any>(undefined);
+    const [existing_students, set_existing_students] = useState<
+      any | undefined
+    >(undefined);
+    const [selected_option_nodes, set_selected_option_nodes] = useState<
+      any | undefined
+    >(undefined);
+    const [show_deleted, set_show_deleted] = useState<boolean>(false);
 
     // student_list not a list, but has one, plus some extra info.
-    private student_list:
-      | {
-          students: any[];
-          num_omitted: number;
-          num_deleted: number;
+    const student_list: StudentList = React.useMemo(() => {
+      // turn map of students into a list
+      // account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
+      // email_address  : "4@student.com"                        # Email the instructor signed the student up with.
+      // first_name     : "Rachel"                               # Student's first name they use for CoCalc
+      // last_name      : "Florence"                             # Student's last name they use for CoCalc
+      // project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
+      // student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
+      // last_active    : 2357025
+      // create_project : number -- server timestamp of when create started
+      // deleted        : False
+      // note           : "Is younger sister of Abby Florence (TA)"
+
+      let students = util.parse_students(props.students, user_map, redux);
+      if (active_student_sort != null) {
+        students.sort(util.pick_student_sorter(active_student_sort.toJS()));
+        if (active_student_sort.get("is_descending")) {
+          students.reverse();
         }
-      | undefined = undefined;
-
-    constructor(props) {
-      super(props);
-      this.state = {
-        err: undefined,
-        search: "",
-        add_search: "",
-        add_searching: false,
-        add_select: undefined,
-        existing_students: undefined,
-        selected_option_nodes: undefined,
-        show_deleted: false,
-      };
-    }
-
-    static reduxProps = ({ name }) => {
-      return {
-        [name]: {
-          expanded_students: rtypes.immutable.Set,
-          active_student_sort: rtypes.immutable.Map,
-          active_feedback_edits: rtypes.immutable.Map,
-          nbgrader_run_info: rtypes.immutable.Map,
-        },
-        projects: {
-          project_map: rtypes.immutable.Map,
-        },
-      };
-    };
-
-    get_actions = (): CourseActions => {
-      return redux.getActions(this.props.name);
-    };
-
-    shouldComponentUpdate(props, state) {
-      if (
-        is_different(this.state, state, ["search", "show_deleted"]) ||
-        is_different(this.props, props, [
-          "students",
-          "user_map",
-          "active_student_sort",
-          "project_map",
-        ])
-      ) {
-        delete this.student_list;
-        return true;
       }
-      return (
-        this.state !== state ||
-        is_different(this.props, props, [
-          "expanded_students",
-          "name",
-          "project_id",
-          "assignments",
-          "active_feedback_edits",
-          "nbgrader_run_info",
-        ])
-      );
+
+      // Deleted and non-deleted students
+      const deleted: any[] = [];
+      const non_deleted: any[] = [];
+      for (const x of students) {
+        if (x.deleted) {
+          deleted.push(x);
+        } else {
+          non_deleted.push(x);
+        }
+      }
+      const num_deleted = deleted.length;
+
+      students = non_deleted;
+      if (show_deleted) {
+        // but show at the end...
+        students = students.concat(deleted);
+      }
+
+      let num_omitted = 0;
+      if (search) {
+        const words = search_split(search.toLowerCase());
+        const w: any[] = [];
+        for (const x of students) {
+          const target = [
+            x.first_name ?? "",
+            x.last_name ?? "",
+            x.email_address ?? "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          if (search_match(target, words)) {
+            w.push(x);
+          }
+        }
+        students = w;
+      }
+
+      return { students, num_omitted, num_deleted };
+    }, [students, props.students, show_deleted, search]);
+
+    function get_actions(): CourseActions {
+      return redux.getActions(name);
     }
 
-    private async do_add_search(e): Promise<void> {
+    async function do_add_search(e): Promise<void> {
       // Search for people to add to the course
       if (e != null) {
         e.preventDefault();
       }
-      if (this.props.students == null) {
+      if (students == null) {
         return;
       }
-      if (this.state.add_searching) {
+      if (add_searching) {
         // already searching
         return;
       }
-      const search = this.state.add_search.trim();
+      const search = add_search.trim();
       if (search.length === 0) {
-        this.setState({
-          err: undefined,
-          add_select: undefined,
-          existing_students: undefined,
-          selected_option_nodes: undefined,
-        });
+        set_err(undefined);
+        set_add_select(undefined);
+        set_existing_students(undefined);
+        set_selected_option_nodes(undefined);
         return;
       }
-      this.setState({
-        add_searching: true,
-        add_select: undefined,
-        existing_students: undefined,
-        selected_option_nodes: undefined,
-      });
-      const { add_search } = this.state;
+      set_add_searching(true);
+      set_add_select(undefined);
+      set_existing_students(undefined);
+      set_selected_option_nodes(undefined);
       let select;
       try {
         select = await webapp_client.users_client.user_search({
@@ -190,22 +222,18 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           limit: 150,
         });
       } catch (err) {
-        if (this.is_unmounted) return;
-        this.setState({
-          add_searching: false,
-          err,
-          add_select: undefined,
-          existing_students: undefined,
-        });
+        if (!isMounted) return;
+        set_add_searching(false);
+        set_err(err);
+        set_add_select(undefined);
+        set_existing_students(undefined);
         return;
       }
-      if (this.is_unmounted) return;
+      if (!isMounted) return;
 
       // Get the current collaborators/owners of the project that
       // contains the course.
-      const users = this.props.redux
-        .getStore("projects")
-        .get_users(this.props.project_id);
+      const users = redux.getStore("projects").get_users(project_id);
       // Make a map with keys the email or account_id is already part of the course.
       const already_added = users?.toJS() ?? {}; // start with collabs on project
       // also track **which** students are already part of the course
@@ -213,7 +241,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       existing_students.account = {};
       existing_students.email = {};
       // For each student in course add account_id and/or email_address:
-      this.props.students.map((val) => {
+      students.map((val) => {
         for (const n of ["account_id", "email_address"] as const) {
           if (val.get(n) != null) {
             already_added[val.get(n)] = true;
@@ -251,38 +279,33 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         }
       }
       // We are no longer searching, but now show an options selector.
-      this.setState({
-        add_searching: false,
-        add_select: select3,
-        existing_students,
-      });
+      set_add_searching(false);
+      set_add_select(select3);
+      set_existing_students(existing_students);
     }
 
-    student_add_button() {
-      if (this.state.add_search?.trim().length == 0) return;
-      const icon = this.state.add_searching ? (
+    function student_add_button() {
+      if (add_search?.trim().length == 0) return;
+      const icon = add_searching ? (
         <Icon name="cocalc-ring" spin />
       ) : (
         <Icon name="search" />
       );
 
       return (
-        <Button onClick={this.do_add_search.bind(this)}>
-          {icon} Search (shift+enter)
-        </Button>
+        <Button onClick={do_add_search}>{icon} Search (shift+enter)</Button>
       );
     }
 
-    add_selector_clicked = () => {
-      return this.setState({
-        selected_option_nodes: ReactDOM.findDOMNode(this.refs.add_select)
-          .selectedOptions,
-      });
-    };
+    function add_selector_clicked(): void {
+      set_selected_option_nodes(
+        ReactDOM.findDOMNode(addSelectRef.current).selectedOptions
+      );
+    }
 
-    add_selected_students = (options) => {
+    function add_selected_students(options) {
       const emails = {};
-      for (const x of this.state.add_select) {
+      for (const x of add_select) {
         if (x.account_id != null) {
           emails[x.account_id] = x.email_address;
         }
@@ -292,15 +315,15 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
 
       // first check, if no student is selected and there is just one in the list
       if (
-        (this.state.selected_option_nodes == null ||
-          (this.state.selected_option_nodes != null
-            ? this.state.selected_option_nodes.length
+        (selected_option_nodes == null ||
+          (selected_option_nodes != null
+            ? selected_option_nodes.length
             : undefined) === 0) &&
         (options != null ? options.length : undefined) === 1
       ) {
         selections.push(options[0].key);
       } else {
-        for (const option of this.state.selected_option_nodes) {
+        for (const option of selected_option_nodes) {
           selections.push(option.getAttribute("value"));
         }
       }
@@ -315,13 +338,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: y });
         }
       }
-      this.get_actions().students.add_students(students);
-      this.clear();
-    };
+      get_actions().students.add_students(students);
+      clear();
+    }
 
-    add_all_students = () => {
+    function add_all_students() {
       const students: any[] = [];
-      for (const entry of this.state.add_select) {
+      for (const entry of add_select) {
         const { account_id } = entry;
         if (misc.is_valid_uuid_string(account_id)) {
           students.push({
@@ -332,23 +355,21 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           students.push({ email_address: entry.email_address });
         }
       }
-      this.get_actions().students.add_students(students);
-      this.clear();
-    };
-
-    private clear(): void {
-      return this.setState({
-        err: undefined,
-        add_select: undefined,
-        selected_option_nodes: undefined,
-        add_search: "",
-      });
+      get_actions().students.add_students(students);
+      clear();
     }
 
-    get_add_selector_options() {
+    function clear(): void {
+      set_err(undefined);
+      set_add_select(undefined);
+      set_selected_option_nodes(undefined);
+      set_add_search("");
+    }
+
+    function get_add_selector_options() {
       const v: any[] = [];
       const seen = {};
-      for (const x of this.state.add_select) {
+      for (const x of add_select) {
         const key = x.account_id != null ? x.account_id : x.email_address;
         if (seen[key]) {
           continue;
@@ -367,44 +388,44 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return v;
     }
 
-    render_add_selector() {
-      if (this.state.add_select == null) {
+    function render_add_selector() {
+      if (add_select == null) {
         return;
       }
-      const options = this.get_add_selector_options();
+      const options = get_add_selector_options();
       return (
         <FormGroup style={{ margin: "5px 0 15px 15px" }}>
           <FormControl
             componentClass="select"
             multiple
-            ref="add_select"
+            ref={addSelectRef}
             rows={10}
-            onClick={this.add_selector_clicked}
+            onClick={add_selector_clicked}
           >
             {options}
           </FormControl>
           <div style={{ marginTop: "5px" }}>
-            {this.render_cancel()}
+            {render_cancel()}
             <Space />
-            {this.render_add_selector_button(options)}
+            {render_add_selector_button(options)}
             <Space />
-            {this.render_add_all_students_button(options)}
+            {render_add_all_students_button(options)}
           </div>
         </FormGroup>
       );
     }
 
-    render_add_selector_button(options) {
+    function render_add_selector_button(options) {
       let existing;
       const nb_selected =
-        (this.state.selected_option_nodes != null
-          ? this.state.selected_option_nodes.length
+        (selected_option_nodes != null
+          ? selected_option_nodes.length
           : undefined) != null
-          ? this.state.selected_option_nodes != null
-            ? this.state.selected_option_nodes.length
+          ? selected_option_nodes != null
+            ? selected_option_nodes.length
             : undefined
           : 0;
-      const es = this.state.existing_students;
+      const es = existing_students;
       if (es != null) {
         existing = keys(es.email).length + keys(es.account).length > 0;
       } else {
@@ -436,7 +457,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         options.length === 0 || (options.length >= 2 && nb_selected === 0);
       return (
         <Button
-          onClick={() => this.add_selected_students(options)}
+          onClick={() => add_selected_students(options)}
           disabled={disabled}
         >
           <Icon name="user-plus" /> {btn_text}
@@ -444,45 +465,45 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    render_add_all_students_button(options) {
+    function render_add_all_students_button(options) {
       let disabled = options.length === 0;
       if (!disabled) {
         disabled =
-          ((this.state.selected_option_nodes != null
-            ? this.state.selected_option_nodes.length
+          ((selected_option_nodes != null
+            ? selected_option_nodes.length
             : undefined) != null
-            ? this.state.selected_option_nodes != null
-              ? this.state.selected_option_nodes.length
+            ? selected_option_nodes != null
+              ? selected_option_nodes.length
               : undefined
             : 0) > 0;
       }
       return (
-        <Button onClick={() => this.add_all_students()} disabled={disabled}>
+        <Button onClick={() => add_all_students()} disabled={disabled}>
           <Icon name={"user-plus"} /> Add all students
         </Button>
       );
     }
 
-    private render_cancel(): Rendered {
-      return <Button onClick={() => this.clear()}>Cancel</Button>;
+    function render_cancel(): Rendered {
+      return <Button onClick={() => clear()}>Cancel</Button>;
     }
 
-    render_error() {
+    function render_error() {
       let ed: any;
-      if (this.state.err) {
+      if (err) {
         ed = (
           <ErrorDisplay
-            error={misc.trunc(this.state.err, 1024)}
-            onClose={() => this.setState({ err: undefined })}
+            error={misc.trunc(err, 1024)}
+            onClose={() => set_err(undefined)}
           />
         );
-      } else if (this.state.existing_students != null) {
+      } else if (existing_students != null) {
         const existing: any[] = [];
-        for (const email in this.state.existing_students.email) {
+        for (const email in existing_students.email) {
           existing.push(email);
         }
-        for (const account_id in this.state.existing_students.account) {
-          const user = this.props.user_map.get(account_id);
+        for (const account_id in existing_students.account) {
+          const user = user_map.get(account_id);
           existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
         }
         if (existing.length > 0) {
@@ -499,7 +520,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             <ErrorDisplay
               bsStyle="info"
               error={msg}
-              onClose={() => this.setState({ existing_students: undefined })}
+              onClose={() => set_existing_students(undefined)}
             />
           );
         }
@@ -517,31 +538,27 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
-    student_add_input_onChange() {
-      const input = ReactDOM.findDOMNode(this.refs.student_add_input);
-      this.setState({
-        add_select: undefined,
-        add_search: input.value,
-      });
+    function student_add_input_onChange() {
+      const input = ReactDOM.findDOMNode(studentAddInputRef.current);
+      set_add_select(undefined);
+      set_add_search(input.value);
     }
 
-    student_add_input_onKeyDown(e) {
+    function student_add_input_onKeyDown(e) {
       // ESC key
       if (e.keyCode === 27) {
-        return this.setState({
-          add_search: "",
-          add_select: undefined,
-        });
+        set_add_search("");
+        set_add_select(undefined);
 
         // Shift+Return
       } else if (e.keyCode === 13 && e.shiftKey) {
         e.preventDefault();
-        this.student_add_input_onChange();
-        this.do_add_search(e);
+        student_add_input_onChange();
+        do_add_search(e);
       }
     }
 
-    render_header(num_omitted) {
+    function render_header(num_omitted) {
       // TODO: get rid of all of the bootstrap form crap below.  I'm basically
       // using inline styles to undo the spacing screwups they cause, so it doesn't
       // look like total crap.
@@ -551,8 +568,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             <Col md={6}>
               <SearchInput
                 placeholder="Find students..."
-                default_value={this.state.search}
-                on_change={(value) => this.setState({ search: value })}
+                default_value={search}
+                on_change={(value) => set_search(value)}
               />
             </Col>
             <Col md={6}>
@@ -562,7 +579,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             </Col>
             <Col md={10}>
               <Form
-                onSubmit={this.do_add_search.bind(this)}
+                onSubmit={do_add_search}
                 horizontal
                 style={{ marginLeft: "15px" }}
               >
@@ -570,121 +587,49 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                   <Col md={18}>
                     <FormGroup style={{ margin: "0 0 5px 0" }}>
                       <FormControl
-                        ref="student_add_input"
+                        ref={studentAddInputRef}
                         componentClass="textarea"
                         placeholder="Add students by name or email address..."
-                        value={this.state.add_search}
-                        onChange={() => this.student_add_input_onChange()}
-                        onKeyDown={(e) => this.student_add_input_onKeyDown(e)}
+                        value={add_search}
+                        onChange={() => student_add_input_onChange()}
+                        onKeyDown={(e) => student_add_input_onKeyDown(e)}
                       />
                     </FormGroup>
                   </Col>
                   <Col md={6}>
                     <div style={{ marginLeft: "15px", width: "100%" }}>
                       <InputGroup.Button>
-                        {this.student_add_button()}
+                        {student_add_button()}
                       </InputGroup.Button>
                     </div>
                   </Col>
                 </Row>
               </Form>
-              {this.render_add_selector()}
+              {render_add_selector()}
             </Col>
           </Row>
-          {this.render_error()}
+          {render_error()}
         </div>
       );
     }
 
-    private get_student_list(): {
-      students: any[];
-      num_omitted: number;
-      num_deleted: number;
-    } {
-      // turn map of students into a list
-      // account_id     : "bed84c9e-98e0-494f-99a1-ad9203f752cb" # Student's CoCalc account ID
-      // email_address  : "4@student.com"                        # Email the instructor signed the student up with.
-      // first_name     : "Rachel"                               # Student's first name they use for CoCalc
-      // last_name      : "Florence"                             # Student's last name they use for CoCalc
-      // project_id     : "6bea25c7-da96-4e92-aa50-46ebee1994ca" # Student's project ID for this course
-      // student_id     : "920bdad2-9c3a-40ab-b5c0-eb0b3979e212" # Student's id for this course
-      // last_active    : 2357025
-      // create_project : number -- server timestamp of when create started
-      // deleted        : False
-      // note           : "Is younger sister of Abby Florence (TA)"
-      if (this.student_list != null) return this.student_list;
-
-      let students = util.parse_students(
-        this.props.students,
-        this.props.user_map,
-        this.props.redux
-      );
-      if (this.props.active_student_sort != null) {
-        students.sort(
-          util.pick_student_sorter(this.props.active_student_sort.toJS())
-        );
-        if (this.props.active_student_sort.get("is_descending")) {
-          students.reverse();
-        }
-      }
-
-      // Deleted and non-deleted students
-      const deleted: any[] = [];
-      const non_deleted: any[] = [];
-      for (const x of students) {
-        if (x.deleted) {
-          deleted.push(x);
-        } else {
-          non_deleted.push(x);
-        }
-      }
-      const num_deleted = deleted.length;
-
-      students = non_deleted;
-      if (this.state.show_deleted) {
-        // but show at the end...
-        students = students.concat(deleted);
-      }
-
-      let num_omitted = 0;
-      if (this.state.search) {
-        const words = search_split(this.state.search.toLowerCase());
-        const search = (x) =>
-          `${x.first_name ?? ""} ${x.last_name ?? ""} ${
-            x.email_address ?? ""
-          }`.toLowerCase();
-        const w: any[] = [];
-        for (const x of students) {
-          if (search_match(search(x), words)) {
-            w.push(x);
-          }
-        }
-        students = w;
-      }
-
-      this.student_list = { students, num_omitted, num_deleted };
-      return this.student_list;
-    }
-
-    private render_sort_icon(column_name: string): Rendered {
+    function render_sort_icon(column_name: string): Rendered {
       if (
-        this.props.active_student_sort == null ||
-        this.props.active_student_sort.get("column_name") != column_name
+        active_student_sort == null ||
+        active_student_sort.get("column_name") != column_name
       )
         return;
       return (
         <Icon
           style={{ marginRight: "10px" }}
           name={
-            this.props.active_student_sort.get("is_descending")
-              ? "caret-up"
-              : "caret-down"
+            active_student_sort.get("is_descending") ? "caret-up" : "caret-down"
           }
         />
       );
     }
 
-    private render_sort_link(
+    function render_sort_link(
       column_name: string,
       display_name: string
     ): Rendered {
@@ -693,19 +638,17 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           href=""
           onClick={(e) => {
             e.preventDefault();
-            return this.get_actions().students.set_active_student_sort(
-              column_name
-            );
+            return get_actions().students.set_active_student_sort(column_name);
           }}
         >
           {display_name}
           <Space />
-          {this.render_sort_icon(column_name)}
+          {render_sort_icon(column_name)}
         </a>
       );
     }
 
-    private render_student_table_header(num_deleted: number): Rendered {
+    function render_student_table_header(num_deleted: number): Rendered {
       // HACK: that marginRight is to get things to line up with students.
       // This is done all wrong due to using react-window...  We need
       // to make an extension to our WindowedList that supports explicit
@@ -715,41 +658,37 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           <Row style={{ marginRight: 0 }}>
             <Col md={6}>
               <div style={{ display: "inline-block", width: "50%" }}>
-                {this.render_sort_link("first_name", "First Name")}
+                {render_sort_link("first_name", "First Name")}
               </div>
               <div style={{ display: "inline-block" }}>
-                {this.render_sort_link("last_name", "Last Name")}
+                {render_sort_link("last_name", "Last Name")}
               </div>
             </Col>
-            <Col md={4}>{this.render_sort_link("email", "Email Address")}</Col>
-            <Col md={8}>
-              {this.render_sort_link("last_active", "Last Active")}
-            </Col>
+            <Col md={4}>{render_sort_link("email", "Email Address")}</Col>
+            <Col md={8}>{render_sort_link("last_active", "Last Active")}</Col>
+            <Col md={3}>{render_sort_link("hosting", "Project Status")}</Col>
             <Col md={3}>
-              {this.render_sort_link("hosting", "Project Status")}
-            </Col>
-            <Col md={3}>
-              {num_deleted ? this.render_show_deleted(num_deleted) : undefined}
+              {num_deleted ? render_show_deleted(num_deleted) : undefined}
             </Col>
           </Row>
         </div>
       );
     }
 
-    get_student(id: string): StudentRecord {
-      const student = this.props.students.get(id);
+    function get_student(id: string): StudentRecord {
+      const student = students.get(id);
       if (student == undefined) {
         console.warn(`Tried to access undefined student ${id}`);
       }
       return student as any;
     }
 
-    private render_student(student_id: string, index: number) {
-      const x = this.get_student_list().students[index];
+    function render_student(student_id: string, index: number) {
+      const x = student_list.students[index];
       if (x == null) return null;
-      const store = this.get_actions().get_store();
+      const store = get_actions().get_store();
       if (store == null) return null;
-      const name: StudentNameDescription = {
+      const studentName: StudentNameDescription = {
         full: store.get_student_name(x.student_id),
         first: x.first_name,
         last: x.last_name,
@@ -759,39 +698,39 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           background={index % 2 === 0 ? "#eee" : undefined}
           key={student_id}
           student_id={student_id}
-          student={this.get_student(student_id)}
-          user_map={this.props.user_map}
-          redux={this.props.redux}
-          name={this.props.name}
-          project_map={this.props.project_map}
-          assignments={this.props.assignments}
-          is_expanded={this.props.expanded_students.has(student_id)}
-          student_name={name}
+          student={get_student(student_id)}
+          user_map={user_map}
+          redux={redux}
+          name={name}
+          project_map={project_map}
+          assignments={assignments}
+          is_expanded={expanded_students?.has(student_id) ?? false}
+          student_name={studentName}
           display_account_name={true}
-          active_feedback_edits={this.props.active_feedback_edits}
-          nbgrader_run_info={this.props.nbgrader_run_info}
+          active_feedback_edits={active_feedback_edits}
+          nbgrader_run_info={nbgrader_run_info}
         />
       );
     }
 
-    private render_students(students): Rendered {
+    function render_students(students): Rendered {
       if (students.length == 0) {
-        return this.render_no_students();
+        return render_no_students();
       }
       return (
         <ScrollableList
           rowCount={students.length}
-          rowRenderer={({ key, index }) => this.render_student(key, index)}
+          rowRenderer={({ key, index }) => render_student(key, index)}
           rowKey={(index) =>
             students[index] != null ? students[index].student_id : undefined
           }
-          cacheId={`course-student-${this.props.name}-${this.props.frame_id}`}
+          cacheId={`course-student-${name}-${frame_id}`}
           windowing={util.windowing(37)}
         />
       );
     }
 
-    private render_no_students(): Rendered {
+    function render_no_students(): Rendered {
       return (
         <Alert
           type="info"
@@ -811,10 +750,10 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       );
     }
 
-    render_show_deleted(num_deleted) {
-      if (this.state.show_deleted) {
+    function render_show_deleted(num_deleted) {
+      if (show_deleted) {
         return (
-          <a onClick={() => this.setState({ show_deleted: false })}>
+          <a onClick={() => set_show_deleted(false)}>
             <Tip
               placement="left"
               title="Hide deleted"
@@ -826,7 +765,12 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         );
       } else {
         return (
-          <a onClick={() => this.setState({ show_deleted: true, search: "" })}>
+          <a
+            onClick={() => {
+              set_show_deleted(true);
+              set_search("");
+            }}
+          >
             <Tip
               placement="left"
               title="Show deleted"
@@ -839,7 +783,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
-    private render_student_info(students, num_deleted): Rendered {
+    function render_student_info(students, num_deleted): Rendered {
       /* The "|| num_deleted > 0" below is because we show
       header even if no non-deleted students if there are deleted
       students, since it's important to show the link to show
@@ -847,40 +791,25 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       return (
         <div className="smc-vfill">
           {students.length > 0 || num_deleted > 0
-            ? this.render_student_table_header(num_deleted)
+            ? render_student_table_header(num_deleted)
             : undefined}
-          {this.render_students(students)}
+          {render_students(students)}
         </div>
       );
     }
 
-    render() {
-      const { students, num_omitted, num_deleted } = this.get_student_list();
-
+    {
+      const { students, num_omitted, num_deleted } = student_list;
       return (
         <div className="smc-vfill" style={{ margin: "0" }}>
-          {this.render_header(num_omitted)}
-          {this.render_student_info(students, num_deleted)}
+          {render_header(num_omitted)}
+          {render_student_info(students, num_deleted)}
         </div>
       );
     }
-  }
+  },
+  isSame
 );
-
-export function StudentsPanelHeader(props: { n: number }) {
-  return (
-    <Tip
-      delayShow={1300}
-      title="Students"
-      tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right."
-    >
-      <span>
-        <Icon name="users" /> Students{" "}
-        {(props != null ? props.n : undefined) != null ? ` (${props.n})` : ""}
-      </span>
-    </Tip>
-  );
-}
 
 function noncloud_emails(v, s) {
   // Given a list v of user_search results, and a search string s,
