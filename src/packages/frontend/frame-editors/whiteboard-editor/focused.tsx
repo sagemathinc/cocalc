@@ -23,7 +23,7 @@ import Position from "./position";
 import { isLocked } from "./tools/lock-button";
 import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
-import { TOOLS } from "./tools/spec";
+import { ELEMENTS } from "./elements/spec";
 
 import {
   SELECTED_BORDER_COLOR,
@@ -90,7 +90,7 @@ export default function Focused({
       readOnly ||
       hidden ||
       multi ||
-      TOOLS[element.type]?.["noResize"]
+      ELEMENTS[element.type]?.noResize
     )
       return null;
     const v: ReactNode[] = [];

@@ -18,6 +18,7 @@ import { ConfigParams, TOOLS } from "./spec";
 import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
 import LockButton, { isLocked } from "./lock-button";
 import HideButton, { isHidden } from "./hide-button";
+import { ELEMENTS } from "../elements/spec";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -448,11 +449,16 @@ function setDataField(
 ) {
   for (const element of elements) {
     actions.setElementData({ element, obj, commit: false, cursors: [{}] });
-    if (element.type == "icon" && obj["fontSize"] != null) {
-      actions.setElement({
-        obj: { id: element.id, h: obj["fontSize"] + 2, w: obj["fontSize"] + 2 },
-        commit: false,
-      });
+    if (obj["fontSize"] != null && element.data != null) {
+      element.data.fontSize = obj["fontSize"];
+      const updateSize = ELEMENTS[element.type]?.updateSize;
+      if (updateSize != null) {
+        updateSize(element);
+        actions.setElement({
+          obj: { id: element.id, h: element.h, w: element.w },
+          commit: false,
+        });
+      }
     }
   }
   actions.syncstring_commit();

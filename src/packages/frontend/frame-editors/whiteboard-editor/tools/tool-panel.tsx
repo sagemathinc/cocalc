@@ -28,6 +28,7 @@ import { getCountdownMoment } from "@cocalc/frontend/editors/stopwatch/stopwatch
 import { AspectRatio } from "./frame";
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
+import { ELEMENTS } from "../elements/spec";
 import { Element } from "../types";
 export type { Tool };
 
@@ -373,7 +374,7 @@ export function getParams(tool: Tool, id: number): AllParams | undefined {
 
 export function getElement(tool: Tool, id: number): Partial<Element> {
   const data = getParams(tool, id);
-  const { update, type } = TOOLS[tool] ?? {};
+  const type = TOOLS[tool]?.type;
   if (type == null) throw Error(`bug -- tool "${tool}" doesn't create element`);
   const element = {
     type,
@@ -381,8 +382,9 @@ export function getElement(tool: Tool, id: number): Partial<Element> {
     w: DEFAULT_WIDTH,
     h: DEFAULT_HEIGHT,
   };
-  if (update != null) {
-    update(element);
+  const updateSize = ELEMENTS[type]?.updateSize;
+  if (updateSize != null) {
+    updateSize(element);
   }
   return element;
 }
