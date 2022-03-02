@@ -7,7 +7,7 @@
 import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
-import { keys } from "underscore";
+import { keys } from "lodash";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 // React libraries and components
@@ -20,7 +20,6 @@ import {
   useRedux,
   useRef,
   useIsMountedRef,
-  useEffect,
 } from "../../app-framework";
 
 import {
@@ -49,6 +48,7 @@ import {
 import { CourseActions } from "../actions";
 import { Set } from "immutable";
 import { Student, StudentNameDescription } from "./students-panel-student";
+import { concat, sortBy } from "lodash";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -123,6 +123,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     const [selected_option_nodes, set_selected_option_nodes] = useState<
       any | undefined
     >(undefined);
+    const [selected_option_num, set_selected_option_num] = useState<number>(0);
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
 
     // student_list not a list, but has one, plus some extra info.
@@ -196,13 +197,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       if (e != null) {
         e.preventDefault();
       }
-      if (students == null) {
-        return;
-      }
-      if (add_searching) {
-        // already searching
-        return;
-      }
+      if (students == null) return;
+      // already searching
+      if (add_searching) return;
       const search = add_search.trim();
       if (search.length === 0) {
         set_err(undefined);
@@ -262,22 +259,17 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         }
         return aa;
       };
-      const select2: any[] = [];
-      for (const x of select) {
-        if (!exclude_add(x.account_id, x.email_address)) {
-          select2.push(x);
-        }
-      }
+      const select2 = select.filter(
+        (x) => !exclude_add(x.account_id, x.email_address)
+      );
       // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
       // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
       // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
       // bringing back everything in the search, which is a bug.
-      const select3: any[] = select2;
-      for (const x of noncloud_emails(select, add_search)) {
-        if (!exclude_add(null, x.email_address)) {
-          select3.unshift(x);
-        }
-      }
+      const unknown = noncloud_emails(select, add_search).filter(
+        (x) => !exclude_add(null, x.email_address)
+      );
+      const select3 = concat(unknown, select2);
       // We are no longer searching, but now show an options selector.
       set_add_searching(false);
       set_add_select(select3);
@@ -298,9 +290,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     }
 
     function add_selector_clicked(): void {
-      set_selected_option_nodes(
-        ReactDOM.findDOMNode(addSelectRef.current).selectedOptions
-      );
+      const opts = ReactDOM.findDOMNode(addSelectRef.current).selectedOptions;
+      set_selected_option_nodes(opts);
+      set_selected_option_num(opts.length);
     }
 
     function add_selected_students(options) {
@@ -363,7 +355,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       set_err(undefined);
       set_add_select(undefined);
       set_selected_option_nodes(undefined);
+      set_selected_option_num(0);
       set_add_search("");
+      set_existing_students(undefined);
     }
 
     function get_add_selector_options() {
@@ -415,16 +409,30 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       );
     }
 
+    function get_add_selector_button_text({ options, existing }) {
+      switch (selected_option_num) {
+        case 0:
+          if (existing) {
+            return "Student already added";
+          } else {
+            return "No student found";
+          }
+        case 1:
+          return "Add student";
+        default:
+          switch (selected_option_num) {
+            case 0:
+              return "Select student above";
+            case 1:
+              return "Add selected student";
+            default:
+              return `Add ${selected_option_num} students`;
+          }
+      }
+    }
+
     function render_add_selector_button(options) {
       let existing;
-      const nb_selected =
-        (selected_option_nodes != null
-          ? selected_option_nodes.length
-          : undefined) != null
-          ? selected_option_nodes != null
-            ? selected_option_nodes.length
-            : undefined
-          : 0;
       const es = existing_students;
       if (es != null) {
         existing = keys(es.email).length + keys(es.account).length > 0;
@@ -432,29 +440,13 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         // es not defined when user clicks the close button on the warning.
         existing = 0;
       }
-      const btn_text = (() => {
-        switch (options.length) {
-          case 0:
-            if (existing) {
-              return "Student already added";
-            } else {
-              return "No student found";
-            }
-          case 1:
-            return "Add student";
-          default:
-            switch (nb_selected) {
-              case 0:
-                return "Select student above";
-              case 1:
-                return "Add selected student";
-              default:
-                return `Add ${nb_selected} students`;
-            }
-        }
-      })();
+      const btn_text = get_add_selector_button_text({
+        options,
+        existing,
+      });
       const disabled =
-        options.length === 0 || (options.length >= 2 && nb_selected === 0);
+        options.length === 0 ||
+        (options.length >= 2 && selected_option_num === 0);
       return (
         <Button
           onClick={() => add_selected_students(options)}
@@ -468,14 +460,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     function render_add_all_students_button(options) {
       let disabled = options.length === 0;
       if (!disabled) {
-        disabled =
-          ((selected_option_nodes != null
-            ? selected_option_nodes.length
-            : undefined) != null
-            ? selected_option_nodes != null
-              ? selected_option_nodes.length
-              : undefined
-            : 0) > 0;
+        disabled = (selected_option_nodes?.length ?? 0) > 0;
       }
       return (
         <Button onClick={() => add_all_students()} disabled={disabled}>
@@ -488,10 +473,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       return <Button onClick={() => clear()}>Cancel</Button>;
     }
 
-    function render_error() {
-      let ed: any;
+    function render_error_display() {
       if (err) {
-        ed = (
+        return (
           <ErrorDisplay
             error={misc.trunc(err, 1024)}
             onClose={() => set_err(undefined)}
@@ -516,7 +500,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
               "Already added (or deleted) student or project collaborator: ";
           }
           msg += existing.join(", ");
-          ed = (
+          return (
             <ErrorDisplay
               bsStyle="info"
               error={msg}
@@ -525,6 +509,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           );
         }
       }
+    }
+
+    function render_error() {
+      const ed = render_error_display();
       if (ed != null) {
         return (
           <div style={{ marginTop: "1em", marginBottom: "15px" }}>
@@ -811,29 +799,21 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
   isSame
 );
 
+// Given a list v of user_search results, and a search string s,
+// return entries for each email address not in v, in order.
 function noncloud_emails(v, s) {
-  // Given a list v of user_search results, and a search string s,
-  // return entries for each email address not in v, in order.
-  let r;
   const { email_queries } = misc.parse_user_search(s);
+
   const result_emails = misc.dict(
-    (() => {
-      const result: any[] = [];
-      for (r of v) {
-        if (r.email_address != null) {
-          result.push([r.email_address, true]);
-        }
-      }
-      return result;
-    })()
+    v.filter((r) => r.email_address != null).map((r) => [r.email_address, true])
   );
-  return (() => {
-    const result1: any[] = [];
-    for (r of email_queries) {
-      if (!result_emails[r]) {
-        result1.push({ email_address: r });
-      }
-    }
-    return result1;
-  })().sort((a, b) => misc.cmp(a.email_address, b.email_address));
+
+  return sortBy(
+    email_queries
+      .filter((r) => !result_emails[r])
+      .map((r) => {
+        return { email_address: r };
+      }),
+    "email_address"
+  );
 }
