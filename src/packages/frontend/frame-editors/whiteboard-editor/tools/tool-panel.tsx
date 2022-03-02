@@ -12,7 +12,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { CloseX } from "@cocalc/frontend/components/close-x";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
-
+import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../math";
 import {
   DEFAULT_FONT_SIZE,
   minFontSize,
@@ -28,6 +28,7 @@ import { getCountdownMoment } from "@cocalc/frontend/editors/stopwatch/stopwatch
 import { AspectRatio } from "./frame";
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
+import { Element } from "../types";
 export type { Tool };
 
 interface AllParams {
@@ -366,8 +367,20 @@ interface PresetManager<Params> {
 
 const paramsMap: { [tool: Tool]: (id: number) => AllParams } = {};
 
-export function getParams(tool: Tool, id: number) {
+export function getParams(tool: Tool, id: number): AllParams | undefined {
   return paramsMap[tool]?.(id);
+}
+
+export function getElement(tool: Tool, id: number): Partial<Element> {
+  const data = getParams(tool, id);
+  const type = TOOLS[tool]?.type;
+  if (type == null) throw Error("bug -- tool doesn't create element");
+  return {
+    type,
+    data,
+    w: DEFAULT_WIDTH,
+    h: DEFAULT_HEIGHT,
+  };
 }
 
 export function getPresetManager<Params>(

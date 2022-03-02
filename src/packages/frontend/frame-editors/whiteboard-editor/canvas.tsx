@@ -92,7 +92,7 @@ import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
-import { getParams } from "./tools/tool-panel";
+import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 
@@ -256,8 +256,16 @@ export default function Canvas({
     }
   }, []);
 
-  function getToolParams(tool) {
-    return getParams(tool, frame.desc.get(`${tool}Id`));
+  function getToolElement(tool): Partial<Element> {
+    const elt = getElement(tool, frame.desc.get(`${tool}Id`));
+    if (elt.data?.aspectRatio) {
+      const ar = aspectRatioToNumber(elt.data.aspectRatio);
+      if (elt.w == null) {
+        elt.w = 500;
+      }
+      elt.h = elt.w / (ar != 0 ? ar : 1);
+    }
+    return elt;
   }
 
   // get window coordinates of what is currently displayed in the exact
@@ -667,34 +675,31 @@ export default function Canvas({
       }
       return;
     }
-    const data: Partial<Element> = { ...evtToData(e), z: transforms.zMax + 1 };
-    let params: any = undefined;
+    const position: Partial<Element> = {
+      ...evtToData(e),
+      z: transforms.zMax + 1,
+    };
+    let elt: Partial<Element> = {};
 
     // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
-      params = { data: getToolParams("note") };
+      elt = getToolElement("note");
     } else if (selectedTool == "timer") {
-      params = { data: getToolParams("timer") };
+      elt = getToolElement("timer");
     } else if (selectedTool == "icon") {
-      params = { data: getToolParams("icon") };
+      elt = getToolElement("icon");
     } else if (selectedTool == "text") {
-      params = { data: getToolParams("text") };
+      elt = getToolElement("text");
     } else if (selectedTool == "frame") {
-      params = { data: getToolParams("frame") };
-      if (params.data.aspectRatio) {
-        const ar = aspectRatioToNumber(params.data.aspectRatio);
-        data.w = 500;
-        data.h = data.w / (ar != 0 ? ar : 1);
-      }
+      elt = getToolElement("frame");
     } else if (selectedTool == "chat") {
-      data.w = 375;
-      data.h = 450;
+      elt.w = 375;
+      elt.h = 450;
     }
 
     const element = {
-      ...data,
-      type: selectedTool,
-      ...params,
+      ...position,
+      ...elt,
     };
 
     // create element
@@ -798,16 +803,16 @@ export default function Canvas({
         if (selectedTool == "frame") {
           // make a frame at the selection.  Note that we put
           // it UNDER everything.
-          const data = getToolParams("frame");
-          if (data.aspectRatio) {
-            const ar = aspectRatioToNumber(data.aspectRatio);
+          const elt = getToolElement("frame");
+          if (elt.data?.aspectRatio) {
+            const ar = aspectRatioToNumber(elt.data.aspectRatio);
             if (ar != 0) {
               rect.h = rect.w / ar;
             }
           }
 
           const { id } = frame.actions.createElement(
-            { type: "frame", ...rect, z: transforms.zMin - 1, data },
+            { ...elt, ...rect, z: transforms.zMin - 1 },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");
@@ -872,7 +877,7 @@ export default function Canvas({
             z: transforms.zMax + 1,
             w: xMax - xMin + 1,
             h: yMax - yMin + 1,
-            data: { path: compressPath(path), ...getToolParams("pen") },
+            data: { path: compressPath(path), ...getToolElement("pen").data },
             type: "pen",
           },
           true
@@ -982,7 +987,7 @@ export default function Canvas({
           y: point.y * canvasScaleRef.current,
         });
       }
-      const { color, radius, opacity } = getToolParams("pen");
+      const { color, radius, opacity } = getToolElement("pen").data ?? {};
       drawCurve({
         ctx,
         path,
