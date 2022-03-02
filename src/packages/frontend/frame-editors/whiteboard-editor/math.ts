@@ -474,7 +474,7 @@ export function moveUntilNotIntersectingAnything(
     return;
   }
   while (true) {
-    let moved = false;
+    const before = { x: rect.x, y: rect.y };
     for (const r of rects) {
       if (areOverlappingRectangles(rect, r)) {
         if (dir == "+") {
@@ -490,11 +490,13 @@ export function moveUntilNotIntersectingAnything(
             rect.y = r.y - (r.h + DEFAULT_GAP);
           }
         }
-        moved = true;
         break;
       }
     }
-    if (!moved) return;
+    if (pointEqual(before, rect)) {
+      // rect didn't move at all.
+      return;
+    }
   }
 }
 
