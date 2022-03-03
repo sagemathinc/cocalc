@@ -154,8 +154,9 @@ export default function Canvas({
     target: canvasRef,
     min: 2,
     max: 50,
-    throttleMs: 50,
+    throttleMs: 100,
     onZoom: ({ fontSize, first }) => {
+      console.log(fontSize);
       if (first) {
         const rect = scaleDivRef.current?.getBoundingClientRect();
         const mouse =
@@ -1180,6 +1181,7 @@ export default function Canvas({
         style={{
           position: "absolute",
           transform: `scale(${canvasScale})`,
+          transition: "transform left top 0.1s",
           transformOrigin: "top left",
           border: "1px solid red",
         }}

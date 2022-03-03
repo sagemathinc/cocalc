@@ -53,7 +53,14 @@ export default function usePinchToZoom({
   const { actions, id } = useFrameContext();
 
   const saveThrottled = useMemo(() => {
-    return throttle((fontSize) => {
+    return throttle((fontSize, first) => {
+      if (onZoom != null) {
+        onZoom({
+          fontSize,
+          first,
+        });
+        return;
+      }
       //} else {
       actions.set_font_size(id, fontSize);
       //}
@@ -62,14 +69,7 @@ export default function usePinchToZoom({
 
   const save = useMemo(() => {
     return (fontSize, first) => {
-      if (onZoom != null) {
-        onZoom({
-          fontSize,
-          first,
-        });
-        return;
-      }
-      saveThrottled(fontSize);
+      saveThrottled(fontSize, first);
     };
   }, [id]);
 
@@ -78,7 +78,7 @@ export default function usePinchToZoom({
       if (state.event.ctrlKey) {
         // prevent the entire window scrolling on windows or with a mouse.
         state.event.preventDefault();
-        save(max - state.offset[1] / smooth, false); // todo -- needs to be redone.
+        save(max - state.offset[1] / smooth, state.first);
       }
     },
     {
@@ -101,7 +101,7 @@ export default function usePinchToZoom({
       target,
       scaleBounds: { min: 1, max: 1001 },
       axis: "x",
-      from: (state) => {
+      from: () => {
         // TODO: this needs to return current font size / scale but in terms of our scale bounds param.
         // This is the zoom level that we start with whenever we start pinching.
         return [lastOffsetRef.current, 0];
