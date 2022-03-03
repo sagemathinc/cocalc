@@ -4,46 +4,24 @@
  */
 
 // CoCalc libraries
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import {
-  cmp_array,
-  is_equal,
-  is_different,
-  capitalize,
-  trunc_middle,
-  search_split,
-  search_match,
+  capitalize, cmp_array, is_different, is_equal, trunc_middle
 } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
-import { STUDENT_SUBDIR } from "./actions";
-import { AssignmentCopyStep, AssignmentStatus } from "../types";
-import {
-  Component,
-  rclass,
-  rtypes,
-  redux,
-  AppRedux,
-  Rendered,
-} from "../../app-framework";
+import { Alert, Card, Col, Input, Row } from "antd";
+import { Map, Set } from "immutable";
+import { ReactElement } from "react";
+import { DebounceInput } from "react-debounce-input";
 import {
   Button,
   ButtonGroup,
   FormControl,
-  FormGroup,
+  FormGroup
 } from "../../antd-bootstrap";
-import { Alert, Card, Row, Col, Input } from "antd";
-import { Set, Map } from "immutable";
-import * as util from "../util";
-import * as styles from "../styles";
 import {
-  StudentRecord,
-  AssignmentRecord,
-  SortDescription,
-  CourseStore,
-  IsGradingMap,
-  NBgraderRunInfo,
-} from "../store";
-import { CourseActions } from "../actions";
-import { ReactElement } from "react";
+  AppRedux, Component,
+  rclass, redux, Rendered, rtypes
+} from "../../app-framework";
 import {
   DateTimePicker,
   Icon,
@@ -51,24 +29,32 @@ import {
   Loading,
   MarkdownInput,
   Space,
-  Tip,
+  Tip
 } from "../../components";
-import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-
-import { STEPS, step_direction, step_verb, step_ready } from "../util";
-
+import { webapp_client } from "../../webapp-client";
+import { CourseActions } from "../actions";
 import {
   BigTime,
-  FoldersToolbar,
-  StudentAssignmentInfo,
-  StudentAssignmentInfoHeader,
+  FoldersToolbar
 } from "../common";
-
 import { Progress } from "../common/progress";
-import { SkipCopy } from "./skip";
-import { ConfigurePeerGrading } from "./configure-peer";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
-import { DebounceInput } from "react-debounce-input";
+import {
+  AssignmentRecord, CourseStore,
+  IsGradingMap,
+  NBgraderRunInfo, SortDescription, StudentRecord
+} from "../store";
+import * as styles from "../styles";
+import { AssignmentCopyStep, AssignmentStatus } from "../types";
+import * as util from "../util";
+import { STEPS, step_direction, step_ready, step_verb } from "../util";
+import { STUDENT_SUBDIR } from "./actions";
+import { StudentListForAssignment } from "./assignment-student-list";
+import { ConfigurePeerGrading } from "./configure-peer";
+import { SkipCopy } from "./skip";
+
+
+
 
 interface AssignmentsPanelReactProps {
   frame_id?: string;
@@ -1685,159 +1671,6 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             {this.props.is_expanded ? this.render_more() : undefined}
           </Col>
         </Row>
-      </div>
-    );
-  }
-}
-
-interface StudentListForAssignmentProps {
-  frame_id?: string;
-  name: string;
-  redux: AppRedux;
-  assignment: AssignmentRecord;
-  students: any;
-  user_map: any;
-  background?: string;
-  active_student_sort: SortDescription;
-  active_feedback_edits: IsGradingMap;
-  nbgrader_run_info?: NBgraderRunInfo;
-  search: string;
-}
-
-class StudentListForAssignment extends Component<StudentListForAssignmentProps> {
-  private student_list: string[] | undefined = undefined;
-
-  public shouldComponentUpdate(props): boolean {
-    const x: boolean = is_different(this.props, props, [
-      "assignment",
-      "students",
-      "user_map",
-      "background",
-      "active_student_sort",
-      "active_feedback_edits",
-      "nbgrader_run_info",
-      "search",
-    ]);
-    if (x) {
-      delete this.student_list;
-    }
-    return x;
-  }
-
-  private get_store(): CourseStore {
-    return redux.getStore(this.props.name) as any;
-  }
-
-  private is_peer_graded(): boolean {
-    const peer_info = this.props.assignment.get("peer_grade");
-    return peer_info ? peer_info.get("enabled") : false;
-  }
-
-  private render_student_info(student_id: string): Rendered {
-    const store = this.get_store();
-    const student = store.get_student(student_id);
-    if (student == null) return; // no such student
-    const key = util.assignment_identifier(
-      this.props.assignment.get("assignment_id"),
-      student_id
-    );
-    const edited_feedback = this.props.active_feedback_edits.get(key);
-    return (
-      <StudentAssignmentInfo
-        key={student_id}
-        title={trunc_middle(store.get_student_name(student_id), 40)}
-        name={this.props.name}
-        student={student}
-        assignment={this.props.assignment}
-        grade={store.get_grade(
-          this.props.assignment.get("assignment_id"),
-          student_id
-        )}
-        nbgrader_scores={store.get_nbgrader_scores(
-          this.props.assignment.get("assignment_id"),
-          student_id
-        )}
-        nbgrader_score_ids={store.get_nbgrader_score_ids(
-          this.props.assignment.get("assignment_id")
-        )}
-        comments={store.get_comments(
-          this.props.assignment.get("assignment_id"),
-          student_id
-        )}
-        info={store.student_assignment_info(
-          student_id,
-          this.props.assignment.get("assignment_id")
-        )}
-        is_editing={!!edited_feedback}
-        nbgrader_run_info={this.props.nbgrader_run_info}
-      />
-    );
-  }
-
-  private get_student_list(): string[] {
-    if (this.student_list != null) {
-      return this.student_list;
-    }
-
-    const v0 = util.parse_students(
-      this.props.students,
-      this.props.user_map,
-      this.props.redux
-    );
-    const store = this.get_store();
-
-    // Remove deleted students or students not matching the search
-    const terms = search_split(this.props.search);
-    const v1: any[] = [];
-    for (const x of v0) {
-      if (x.deleted) continue;
-      if (
-        terms.length > 0 &&
-        !search_match(store.get_student_name(x.student_id).toLowerCase(), terms)
-      ) {
-        continue;
-      }
-      v1.push(x);
-    }
-
-    v1.sort(util.pick_student_sorter(this.props.active_student_sort.toJS()));
-
-    if (this.props.active_student_sort.get("is_descending")) {
-      v1.reverse();
-    }
-
-    this.student_list = [];
-    for (const x of v1) {
-      this.student_list.push(x.student_id);
-    }
-
-    return this.student_list;
-  }
-
-  private render_students(): Rendered {
-    const info = this.get_student_list();
-    return (
-      <ScrollableList
-        windowing={util.windowing(65)}
-        rowCount={info.length}
-        rowRenderer={({ key }) => this.render_student_info(key)}
-        rowKey={(index) => this.get_student_list()[index]}
-        cacheId={`course-assignment-${this.props.assignment.get(
-          "assignment_id"
-        )}-${this.props.name}-${this.props.frame_id}`}
-      />
-    );
-  }
-
-  public render(): Rendered {
-    return (
-      <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
-        <StudentAssignmentInfoHeader
-          key="header"
-          title="Student"
-          peer_grade={this.is_peer_graded()}
-        />
-        {this.render_students()}
       </div>
     );
   }
