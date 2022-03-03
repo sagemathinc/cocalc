@@ -192,6 +192,7 @@ export default function Canvas({
         "top",
         `${Math.min(0, Math.max(y, -e.offsetHeight + rect.height))}px`
       );
+      saveViewport();
     };
 
     return {
@@ -208,9 +209,6 @@ export default function Canvas({
       },
     };
   }, [scaleDivRef]);
-  if (!isNavigator) {
-    window.x = { scaleDivRef, canvasRef, offset };
-  }
 
   useWheel(
     (state) => {
@@ -240,8 +238,7 @@ export default function Canvas({
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
-    scrollLeft: number;
-    scrollTop: number;
+    start: Point;
     clientX: number;
     clientY: number;
   } | null>(null);
@@ -265,57 +262,8 @@ export default function Canvas({
   // ensure the current center of the viewport is preserved
   // or if the mouse is in the viewport, maintain its position.
   const lastViewport = useRef<Rect | undefined>(undefined);
-  /*
-  const resize = useResizeObserver({ ref: canvasRef });
-  const mouseMoveRef = useRef<any>(null);
-  useEffect(() => {
-    if (isNavigator) return;
-    const viewport = getViewportData();
-    if (lastViewport.current != null && viewport != null) {
-      const c = canvasRef.current;
-      if (c == null) return;
-      let last;
-      if (mouseMoveRef.current != null) {
-        last = evtToData(mouseMoveRef.current);
-      } else {
-        last = centerOfRect(lastViewport.current);
-      }
-      console.log("last = ", last);
-      const cur = centerOfRect(viewport);
-      const tx = last.x - cur.x;
-      const ty = last.y - cur.y;
-      c.scrollLeft += tx * canvasScale;
-      c.scrollTop += ty * canvasScale;
-    }
-    lastViewport.current = viewport;
-  }, [
-    canvasScale,
-    transforms.xMin,
-    transforms.xMax,
-    transforms.yMin,
-    transforms.yMax,
-    resize,
-  ]);
-  */
-
   const lastMouseRef = useRef<any>(null);
-  //const resize = useResizeObserver({ ref: canvasRef });
   const mouseMoveRef = useRef<any>(null);
-  /*
-  useEffect(() => {
-    if (isNavigator) return;
-    if (mouseMoveRef.current == null) return;
-    const c = canvasRef.current;
-    if (c == null) return;
-    const last = lastMouseRef.current;
-    if (last == null) return;
-    const cur = evtToData(mouseMoveRef.current);
-    const tx = last.x - cur.x;
-    const ty = last.y - cur.y;
-    c.scrollLeft += tx * canvasScale;
-    c.scrollTop += ty * canvasScale;
-  }, [canvasScale]);
-  */
 
   // If the viewport changes, but not because we just set it,
   // then we move our current center displayed viewport to match that.
@@ -329,18 +277,6 @@ export default function Canvas({
     // request to change viewport.
     setCenterPositionData(centerOfRect(viewport));
   }, [frame.desc.get("viewport")]);
-
-  // Save state about the viewport so it can be displayed
-  // in the navmap, and also restored later.
-  useEffect(() => {
-    saveViewport();
-  }, [
-    canvasScale,
-    transforms.xMin,
-    transforms.xMax,
-    transforms.yMin,
-    transforms.yMax,
-  ]);
 
   // Handle setting a center position for the visible window
   // by restoring last known viewport center on first mount.
@@ -707,9 +643,10 @@ export default function Canvas({
     if (c == null) return { x: 0, y: 0 };
     const rect = c.getBoundingClientRect();
     if (rect == null) return { x: 0, y: 0 };
+    const off = offset.get();
     return {
-      x: c.scrollLeft + x - rect.left,
-      y: c.scrollTop + y - rect.top,
+      x: -off.x + x - rect.left,
+      y: -off.y + y - rect.top,
     };
   }
 
@@ -834,13 +771,7 @@ export default function Canvas({
             frame.actions.saveViewport(frame.id, viewport);
           }
         }, 50);
-      }, [
-        canvasScale,
-        transforms.xMin,
-        transforms.xMax,
-        transforms.yMin,
-        transforms.yMax,
-      ]);
+      }, []);
 
   const onMouseDown = (e) => {
     if (selectedTool == "hand" || e.button == MIDDLE_MOUSE_BUTTON) {
@@ -1020,9 +951,10 @@ export default function Canvas({
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
+    const { x, y } = offset.get();
     return {
-      x: (c.scrollLeft + e.clientX - rect.left) / canvasScale,
-      y: (c.scrollTop + e.clientY - rect.top) / canvasScale,
+      x: (-x + e.clientX - rect.left) / canvasScale,
+      y: (-y + e.clientY - rect.top) / canvasScale,
     };
   }
 
@@ -1113,6 +1045,14 @@ export default function Canvas({
       e.preventDefault();
     }
   };
+
+  if (!isNavigator) {
+    window.x = {
+      scaleDivRef,
+      canvasRef,
+      offset,
+    };
+  }
 
   return (
     <div
