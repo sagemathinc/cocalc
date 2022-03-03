@@ -10,9 +10,10 @@ size for the visible canvas, instead of zooming the whole page itself.
 
 */
 
-import { MutableRefObject } from "react";
+import { MutableRefObject, useMemo } from "react";
 import { useFrameContext } from "./frame-context";
 import { usePinch } from "@use-gesture/react";
+import { throttle } from "lodash";
 
 // I'm just setting these globally for the application.  It seems to
 // never be a good idea, and this keeps behavior not subtly changed
@@ -20,53 +21,33 @@ import { usePinch } from "@use-gesture/react";
 const handler = (e) => e.preventDefault();
 document.addEventListener("gesturestart", handler);
 document.addEventListener("gesturechange", handler);
-document.addEventListener("gestureend", handler);
 
 export default function usePinchToZoom({
   target,
-  min,
-  max,
-  step,
+  min = 5,
+  max = 100,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
   step?: number;
 }) {
-  const { actions, id, desc } = useFrameContext();
+  const { actions, id } = useFrameContext();
 
-  /*
-  useEffect(() => {
-    // This is needed on iOS/iPadOS in order to stop the global pinch-to-zoom
-    // from messing up the usePinch gesture.  It has some slight impact on the
-    // rest of cocalc of course, when any whiteboard is opened.
-    const handler = (e) => e.preventDefault();
-    document.addEventListener("gesturestart", handler);
-    document.addEventListener("gesturechange", handler);
-    document.addEventListener("gestureend", handler);
-    return () => {
-      document.removeEventListener("gesturestart", handler);
-      document.removeEventListener("gesturechange", handler);
-      document.removeEventListener("gestureend", handler);
-    };
-  }, []); */
+  const save = useMemo(() => {
+    return throttle((fontSize) => {
+      actions.set_font_size(id, fontSize);
+    }, 50);
+  }, [id]);
 
   usePinch(
     (state) => {
-      actions.set_font_size(
-        id,
-        Math.min(
-          max ?? 100,
-          Math.max(
-            min ?? 5, // todo -- maybe 14 needs to be got from store?
-            (desc.get("font_size") ?? 14) +
-              (state.delta[0] < 0 ? -(step ?? 1) : step ?? 1)
-          )
-        )
-      );
+      const { offset } = state;
+      save(Math.round(offset[0] * min));
     },
     {
       target,
+      scaleBounds: { min: 1, max: max / min },
     }
   );
 }

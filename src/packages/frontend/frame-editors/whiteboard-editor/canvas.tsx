@@ -143,14 +143,14 @@ export default function Canvas({
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
-  usePinchToZoom({ target: canvasRef, min: 5, max: 100, step: 2 });
+  usePinchToZoom({ target: canvasRef, min: 5, max: 50, step: 0.1 });
 
   const innerCanvasRef = useRef<any>(null);
 
   const canvasScaleRef = useRef<number>(1);
   const transforms = useMemo(() => {
     // TODO: if tool is not select, should we exclude hidden elements in computing this...?
-    const t = getTransforms(elements, margin, canvasScale);
+    const t = getTransforms(elements, margin);
     // also update the canvas scale, which is needed to keep
     // the canvas preview layer (for the pen) from getting too big
     // and wasting memory.
@@ -159,7 +159,7 @@ export default function Canvas({
       penDPIFactor * t.height
     );
     return t;
-  }, [elements, margin, canvasScale]);
+  }, [elements, margin]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
@@ -185,24 +185,57 @@ export default function Canvas({
   const penCanvasRef = useRef<any>(null);
 
   // Whenever the data <--> window transform params change,
-  // ensure the current center of the viewport is preserved,
-  // to avoid major disorientation for the user.
+  // ensure the current center of the viewport is preserved
+  // or if the mouse is in the viewport, maintain its position.
   const lastViewport = useRef<Rect | undefined>(undefined);
+  /*
   const resize = useResizeObserver({ ref: canvasRef });
+  const mouseMoveRef = useRef<any>(null);
   useEffect(() => {
     if (isNavigator) return;
     const viewport = getViewportData();
     if (lastViewport.current != null && viewport != null) {
-      const last = centerOfRect(lastViewport.current);
+      const c = canvasRef.current;
+      if (c == null) return;
+      let last;
+      if (mouseMoveRef.current != null) {
+        last = evtToData(mouseMoveRef.current);
+      } else {
+        last = centerOfRect(lastViewport.current);
+      }
+      console.log("last = ", last);
       const cur = centerOfRect(viewport);
       const tx = last.x - cur.x;
       const ty = last.y - cur.y;
-      const c = canvasRef.current;
-      if (c == null) return;
       c.scrollLeft += tx * canvasScale;
       c.scrollTop += ty * canvasScale;
     }
     lastViewport.current = viewport;
+  }, [
+    canvasScale,
+    transforms.xMin,
+    transforms.xMax,
+    transforms.yMin,
+    transforms.yMax,
+    resize,
+  ]);
+  */
+
+  const lastMouseRef = useRef<any>(null);
+  const resize = useResizeObserver({ ref: canvasRef });
+  const mouseMoveRef = useRef<any>(null);
+  useEffect(() => {
+    if (isNavigator) return;
+    if (mouseMoveRef.current == null) return;
+    const c = canvasRef.current;
+    if (c == null) return;
+    const last = lastMouseRef.current;
+    if (last == null) return;
+    const cur = evtToData(mouseMoveRef.current);
+    const tx = last.x - cur.x;
+    const ty = last.y - cur.y;
+    c.scrollLeft += tx * canvasScale;
+    c.scrollTop += ty * canvasScale;
   }, [
     canvasScale,
     transforms.xMin,
@@ -923,6 +956,8 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
+    mouseMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
+    lastMouseRef.current = evtToData(mouseMoveRef.current);
     if (!touch && !e.buttons) {
       // mouse button no longer down - cancel any capture.
       // This can happen with no mouseup, due to mouseup outside

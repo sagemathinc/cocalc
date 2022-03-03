@@ -345,6 +345,7 @@ export function fitRectToRect(
 
 export interface Transforms {
   dataToWindowNoScale: (
+    // name includes "NoScale" just to emphasize this doesn't involve scaling.  It's just translating around.
     x: number,
     y: number,
     z?: number
@@ -358,19 +359,19 @@ export interface Transforms {
   yMax: number;
   zMin: number;
   zMax: number;
-  scale: number;
   zMap: { [z: number]: number };
 }
 
-export function getTransforms(elements, margin, scale): Transforms {
+export function getTransforms(elements, margin: number = 0): Transforms {
   /*
   Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
-  Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
+  Then transform to a rectangle (0,0) --> (width,height), along with a margin.
   Returns functions to transform back and forth.
-  Just be really dumb for the first version.
 
   We also map the zIndex z values of object to be 1,2,..., MAX_ELEMENTS,
   so we can confidently place UI elements, etc. above MAX_ELEMENTS.
+
+  This doesn't do anything related to scaling.
   */
 
   let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
@@ -400,7 +401,6 @@ export function getTransforms(elements, margin, scale): Transforms {
     yMax,
     zMin,
     zMax,
-    scale,
     zMap,
   };
 }
