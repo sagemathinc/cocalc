@@ -40,7 +40,6 @@ export function windowing(estimated_row_size) {
 }
 
 // Pure functions used in the course manager
-
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
     return [
