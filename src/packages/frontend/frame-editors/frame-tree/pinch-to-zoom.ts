@@ -10,9 +10,9 @@ size for the visible canvas, instead of zooming the whole page itself.
 
 */
 
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import { MutableRefObject, useMemo } from "react";
 import { useFrameContext } from "./frame-context";
-import { usePinch } from "@use-gesture/react";
+import { usePinch, useWheel } from "@use-gesture/react";
 import { throttle } from "lodash";
 
 // I'm just setting these globally for the application.  It seems to
@@ -33,50 +33,34 @@ export default function usePinchToZoom({
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
-  step?: number;
 }) {
   const { actions, id } = useFrameContext();
 
-  //////////////////////////////////////////////
-  // custom handling of ctrl+scroll
-  // We want pinch-to-zoom to  zoom in and out, but on
-  // windows it ctrl + scroll wheel.  On macOS pinch
-  // to zoom on the trackpad is just a gesture, so this
-  // code doesn't get used.
-  const scale = useRef<number>(1);
-  const onWheel = useCallback((e) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      console.log(e.deltaY);
-      scale.current += e.deltaY * -0.01;
-      scale.current = Math.min(Math.max(1, scale.current), max / min);
-      save(Math.round(scale.current * min));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (target.current == null) return;
-    target.current.addEventListener("wheel", onWheel, {
-      passive: false,
-    });
-    return () => {
-      target.current?.removeEventListener("wheel", onWheel, {
-        passive: false,
-      });
-    };
-  }, []);
-  //////////////////////////////////////////////
-
   const save = useMemo(() => {
     return throttle((fontSize) => {
-      actions.set_font_size(id, fontSize);
+      actions.set_font_size(id, Math.round(fontSize));
     }, 50);
   }, [id]);
+
+  useWheel(
+    (state) => {
+      if (state.event.ctrlKey) {
+        // prevent the entire window scrolling on windows or with a mouse.
+        state.event.preventDefault();
+        save(max - state.offset[1] / 10);
+      }
+    },
+    {
+      target,
+      eventOptions: { passive: false, capture: true },
+      bounds: { top: 0, bottom: (max - min) * 10 },
+    }
+  );
 
   usePinch(
     (state) => {
       const { offset } = state;
-      save(Math.round(offset[0] * min));
+      save(offset[0] * min);
     },
     {
       target,

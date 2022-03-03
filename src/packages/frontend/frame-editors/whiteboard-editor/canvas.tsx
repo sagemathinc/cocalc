@@ -145,9 +145,8 @@ export default function Canvas({
   const canvasRef = useRef<any>(null);
   usePinchToZoom({
     target: canvasRef,
-    min: 5,
+    min: 3,
     max: 50,
-    step: 0.1,
   });
 
   const innerCanvasRef = useRef<any>(null);
