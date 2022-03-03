@@ -4,13 +4,12 @@
  */
 
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
-import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
-import { redux } from "@cocalc/frontend/frame-editors/generic/test/util";
-import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
-import { defaults, required, to_json } from "@cocalc/util/misc";
-import { Col, Row } from "antd";
-import { BigTime } from ".";
+import {
+  React,
+  Rendered,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
   Icon,
@@ -18,6 +17,12 @@ import {
   Space,
   Tip,
 } from "@cocalc/frontend/components";
+import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
+import { redux } from "@cocalc/frontend/frame-editors/generic/test/util";
+import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
+import { defaults, required, to_json } from "@cocalc/util/misc";
+import { Col, Row } from "antd";
+import { BigTime } from ".";
 import { CourseActions } from "../actions";
 import { NbgraderScores } from "../nbgrader/scores";
 import {
@@ -52,562 +57,557 @@ interface StudentAssignmentInfoProps {
   nbgrader_run_info?: NBgraderRunInfo;
 }
 
-interface StudentAssignmentInfoState {
-  recopy_name: boolean;
-  recopy_open: boolean;
-  recopy_copy: boolean;
-  recopy_copy_tip: boolean;
-  recopy_open_tip: boolean;
-  recopy_placement: boolean;
+// interface StudentAssignmentInfoState {
+//   recopy_name: boolean;
+//   recopy_open: boolean;
+//   recopy_copy: boolean;
+//   recopy_copy_tip: boolean;
+//   recopy_open_tip: boolean;
+//   recopy_placement: boolean;
+// }
+
+const RECOPY_INIT = {
+  name: false,
+  open: false,
+  copy: false,
+  copy_tip: false,
+  open_tip: false,
+  placement: false,
+} as const;
+
+function useRecopy(): [
+  typeof RECOPY_INIT,
+  (key: keyof typeof RECOPY_INIT, value: boolean) => void
+] {
+  const [recopy, set_recopy] = useState<typeof RECOPY_INIT>(RECOPY_INIT);
+  function set(key: keyof typeof RECOPY_INIT, value: boolean) {
+    set_recopy({ ...recopy, [key]: value });
+  }
+
+  return [recopy, set];
 }
 
-export class StudentAssignmentInfo extends Component<
-  StudentAssignmentInfoProps,
-  StudentAssignmentInfoState
-> {
-  private clicked_nbgrader?: Date;
-  constructor(props: StudentAssignmentInfoProps) {
-    super(props);
-    this.state = {
-      recopy_name: false,
-      recopy_open: false,
-      recopy_copy: false,
-      recopy_copy_tip: false,
-      recopy_open_tip: false,
-      recopy_placement: false,
-    };
-  }
+export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
+  React.memo((props: StudentAssignmentInfoProps) => {
+    const {
+      name,
+      title,
+      student,
+      assignment,
+      grade = "",
+      comments = "",
+      info,
+      nbgrader_scores,
+      nbgrader_score_ids,
+      is_editing,
+      nbgrader_run_info,
+    } = props;
 
-  static defaultProps = {
-    grade: "",
-    comments: "",
-  };
+    const clicked_nbgrader = useRef<Date>();
 
-  private get_actions(): CourseActions {
-    return redux.getActions(this.props.name);
-  }
+    const [recopy, set_recopy] = useRecopy();
 
-  private open = (
-    type: AssignmentCopyType,
-    assignment_id: string,
-    student_id: string
-  ) => {
-    return this.get_actions().assignments.open_assignment(
-      type,
-      assignment_id,
-      student_id
-    );
-  };
+    function get_actions(): CourseActions {
+      return redux.getActions(name);
+    }
 
-  private copy = (
-    type: AssignmentCopyType,
-    assignment_id: string,
-    student_id: string
-  ) => {
-    return this.get_actions().assignments.copy_assignment(
-      type,
-      assignment_id,
-      student_id
-    );
-  };
-
-  private stop = (
-    type: AssignmentCopyType,
-    assignment_id: string,
-    student_id: string
-  ) => {
-    this.get_actions().assignments.stop_copying_assignment(
-      assignment_id,
-      student_id,
-      type
-    );
-  };
-
-  private set_edited_feedback = () => {
-    this.get_actions().assignments.update_edited_feedback(
-      this.props.assignment.get("assignment_id"),
-      this.props.student.get("student_id")
-    );
-  };
-
-  private stop_editing = () => {
-    this.get_actions().assignments.clear_edited_feedback(
-      this.props.assignment.get("assignment_id"),
-      this.props.student.get("student_id")
-    );
-  };
-
-  private render_grade(): Rendered {
-    if (this.props.is_editing) {
-      return (
-        <MarkdownInput
-          placeholder="Grade..."
-          value={this.props.grade || ""}
-          onBlur={(grade) => {
-            this.get_actions().assignments.set_grade(
-              this.props.assignment.get("assignment_id"),
-              this.props.student.get("student_id"),
-              grade
-            );
-          }}
-          onShiftEnter={() => this.stop_editing()}
-          height="3em"
-          hideHelp
-          style={{ margin: "5px 0" }}
-          autoFocus
-        />
+    function open(
+      type: AssignmentCopyType,
+      assignment_id: string,
+      student_id: string
+    ) {
+      return get_actions().assignments.open_assignment(
+        type,
+        assignment_id,
+        student_id
       );
-    } else {
-      if (this.props.grade) {
+    }
+
+    function copy(
+      type: AssignmentCopyType,
+      assignment_id: string,
+      student_id: string
+    ) {
+      return get_actions().assignments.copy_assignment(
+        type,
+        assignment_id,
+        student_id
+      );
+    }
+
+    function stop(
+      type: AssignmentCopyType,
+      assignment_id: string,
+      student_id: string
+    ) {
+      get_actions().assignments.stop_copying_assignment(
+        assignment_id,
+        student_id,
+        type
+      );
+    }
+
+    function set_edited_feedback() {
+      get_actions().assignments.update_edited_feedback(
+        assignment.get("assignment_id"),
+        student.get("student_id")
+      );
+    }
+
+    function stop_editing() {
+      get_actions().assignments.clear_edited_feedback(
+        assignment.get("assignment_id"),
+        student.get("student_id")
+      );
+    }
+
+    function render_grade(): Rendered {
+      if (is_editing) {
         return (
-          <div
-            style={{ cursor: "pointer" }}
-            onClick={() => this.set_edited_feedback()}
-            key="grade"
-          >
-            Grade: {this.props.grade}
+          <MarkdownInput
+            placeholder="Grade..."
+            value={grade || ""}
+            onBlur={(grade) => {
+              get_actions().assignments.set_grade(
+                assignment.get("assignment_id"),
+                student.get("student_id"),
+                grade
+              );
+            }}
+            onShiftEnter={() => stop_editing()}
+            height="3em"
+            hideHelp
+            style={{ margin: "5px 0" }}
+            autoFocus
+          />
+        );
+      } else {
+        if (grade) {
+          return (
+            <div
+              style={{ cursor: "pointer" }}
+              onClick={() => set_edited_feedback()}
+              key="grade"
+            >
+              Grade: {grade}
+            </div>
+          );
+        }
+      }
+    }
+
+    function render_comments(): Rendered {
+      if (!is_editing) {
+        if (!comments?.trim()) return;
+        return (
+          <div style={{ width: "100%", paddingRight: "5px" }}>
+            <Markdown
+              value={comments}
+              style={{
+                width: "100%",
+                maxHeight: "4em",
+                overflowY: "auto",
+                padding: "5px",
+                border: "1px solid lightgray",
+                cursor: "pointer",
+                display: "inline-block",
+              }}
+              onClick={() => set_edited_feedback()}
+            />
           </div>
+        );
+      } else {
+        return (
+          <MarkdownInput
+            placeholder="Optional markdown comments..."
+            value={comments || ""}
+            onBlur={(comment) => {
+              get_actions().assignments.set_comment(
+                assignment.get("assignment_id"),
+                student.get("student_id"),
+                comment
+              );
+            }}
+            onShiftEnter={() => stop_editing()}
+            height="7em"
+            hideHelp
+          />
         );
       }
     }
-  }
 
-  private render_comments(): Rendered {
-    if (!this.props.is_editing) {
-      if (!this.props.comments?.trim()) return;
+    function render_nbgrader_scores(): Rendered {
+      if (!nbgrader_scores) return;
       return (
-        <div style={{ width: "100%", paddingRight: "5px" }}>
-          <Markdown
-            value={this.props.comments}
-            style={{
-              width: "100%",
-              maxHeight: "4em",
-              overflowY: "auto",
-              padding: "5px",
-              border: "1px solid lightgray",
-              cursor: "pointer",
-              display: "inline-block",
-            }}
-            onClick={() => this.set_edited_feedback()}
+        <div>
+          <NbgraderScores
+            show_all={is_editing}
+            set_show_all={() => set_edited_feedback()}
+            nbgrader_scores={nbgrader_scores}
+            nbgrader_score_ids={nbgrader_score_ids}
+            name={name}
+            student_id={student.get("student_id")}
+            assignment_id={assignment.get("assignment_id")}
           />
+          {render_run_nbgrader("Run nbgrader again")}
         </div>
       );
-    } else {
-      return (
-        <MarkdownInput
-          placeholder="Optional markdown comments..."
-          value={this.props.comments || ""}
-          onBlur={(comment) => {
-            this.get_actions().assignments.set_comment(
-              this.props.assignment.get("assignment_id"),
-              this.props.student.get("student_id"),
-              comment
-            );
-          }}
-          onShiftEnter={() => this.stop_editing()}
-          height="7em"
-          hideHelp
-        />
-      );
     }
-  }
 
-  private render_nbgrader_scores(): Rendered {
-    if (!this.props.nbgrader_scores) return;
-    return (
-      <div>
-        <NbgraderScores
-          show_all={this.props.is_editing}
-          set_show_all={() => this.set_edited_feedback()}
-          nbgrader_scores={this.props.nbgrader_scores}
-          nbgrader_score_ids={this.props.nbgrader_score_ids}
-          name={this.props.name}
-          student_id={this.props.student.get("student_id")}
-          assignment_id={this.props.assignment.get("assignment_id")}
-        />
-        {this.render_run_nbgrader("Run nbgrader again")}
-      </div>
-    );
-  }
-
-  private render_run_nbgrader(label: string | Rendered): Rendered {
-    let running = false;
-    if (this.props.nbgrader_run_info != null) {
-      const t = this.props.nbgrader_run_info.get(
-        this.props.assignment.get("assignment_id") +
-          "-" +
-          this.props.student.get("student_id")
-      );
-      if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
-        // Time starting is set and it's also within the last few minutes.
-        // This "few minutes" is just in case -- we probably shouldn't need
-        // that at all ever, but it could make cocalc state usable in case of
-        // weird issues, I guess).  User could also just close and re-open
-        // the course file, which resets this state completely.
-        running = true;
-      }
-    }
-    label = running ? (
-      <span>
-        {" "}
-        <Icon name="cocalc-ring" spin /> Running nbgrader
-      </span>
-    ) : (
-      <span>{label}</span>
-    );
-
-    return (
-      <div style={{ marginTop: "5px" }}>
-        <Button
-          key="nbgrader"
-          disabled={running}
-          onClick={() => {
-            if (
-              this.clicked_nbgrader != null &&
-              new Date().valueOf() - this.clicked_nbgrader.valueOf() <= 3000
-            ) {
-              // User *just* clicked, and we want to avoid double click
-              // running nbgrader twice.
-              return;
-            }
-
-            this.clicked_nbgrader = new Date();
-            this.get_actions().assignments.run_nbgrader_for_one_student(
-              this.props.assignment.get("assignment_id"),
-              this.props.student.get("student_id")
-            );
-          }}
-        >
-          <Icon name="graduation-cap" /> {label}
-        </Button>
-      </div>
-    );
-  }
-
-  private render_nbgrader(): Rendered {
-    if (this.props.nbgrader_scores) {
-      return this.render_nbgrader_scores();
-    }
-    if (
-      !this.props.assignment.get("nbgrader") ||
-      this.props.assignment.get("skip_grading")
-    )
-      return;
-
-    return this.render_run_nbgrader("Run nbgrader");
-  }
-
-  private render_enter_grade(): Rendered {
-    if ((this.props.grade ?? "").trim() || (this.props.comments ?? "").trim()) {
-      return;
-    }
-    return (
-      <Button
-        key="edit"
-        onClick={() => this.set_edited_feedback()}
-        bsStyle={"default"}
-        disabled={this.props.is_editing}
-        style={{ marginRight: "5px" }}
-      >
-        Enter grade...
-      </Button>
-    );
-  }
-
-  private render_save_button(): Rendered {
-    if (!this.props.is_editing) return;
-    return (
-      <Button bsStyle="success" key="save" onClick={() => this.stop_editing()}>
-        Save
-      </Button>
-    );
-  }
-
-  private render_grade_col(): Rendered {
-    return (
-      <>
-        {this.render_enter_grade()}
-        {this.render_save_button()}
-        {this.render_grade()}
-        {this.render_comments()}
-        {this.render_nbgrader()}
-      </>
-    );
-  }
-
-  private render_last_time(time: string | number | Date): Rendered {
-    return (
-      <div key="time" style={{ color: "#666" }}>
-        <BigTime date={time} />
-      </div>
-    );
-  }
-
-  private render_open_recopy_confirm(
-    name: string,
-    copy: Function,
-    copy_tip: string,
-    placement
-  ): Rendered | Rendered[] {
-    const key = `recopy_${name}`;
-    if (this.state[key]) {
-      const v: Rendered[] = [];
-      v.push(
-        <Button
-          key="recopy_confirm"
-          bsStyle="danger"
-          onClick={() => {
-            this.setState({ [key]: false } as any);
-            copy();
-          }}
-        >
-          <Icon
-            name="share-square"
-            rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
-          Yes, {name.toLowerCase()} again
-        </Button>
-      );
-      v.push(
-        <Button
-          key="copy_cancel"
-          onClick={() => this.setState({ [key]: false } as any)}
-        >
-          Cancel
-        </Button>
-      );
-      if (name.toLowerCase() === "assign") {
-        // inline-block because buttons above are float:left
-        v.push(
-          <div
-            key="what-happens"
-            style={{ margin: "5px", display: "inline-block" }}
-          >
-            <a
-              target="_blank"
-              href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
-            >
-              What happens when I assign again?
-            </a>
-          </div>
+    function render_run_nbgrader(label: string | Rendered): Rendered {
+      let running = false;
+      if (nbgrader_run_info != null) {
+        const t = nbgrader_run_info.get(
+          assignment.get("assignment_id") + "-" + student.get("student_id")
         );
+        if (t && new Date().valueOf() - t <= 1000 * 60 * 10) {
+          // Time starting is set and it's also within the last few minutes.
+          // This "few minutes" is just in case -- we probably shouldn't need
+          // that at all ever, but it could make cocalc state usable in case of
+          // weird issues, I guess).  User could also just close and re-open
+          // the course file, which resets this state completely.
+          running = true;
+        }
       }
-      return v;
-    } else {
+      label = running ? (
+        <span>
+          {" "}
+          <Icon name="cocalc-ring" spin /> Running nbgrader
+        </span>
+      ) : (
+        <span>{label}</span>
+      );
+
+      return (
+        <div style={{ marginTop: "5px" }}>
+          <Button
+            key="nbgrader"
+            disabled={running}
+            onClick={() => {
+              if (
+                clicked_nbgrader.current != null &&
+                Date.now() - clicked_nbgrader.current.valueOf() <= 3000
+              ) {
+                // User *just* clicked, and we want to avoid double click
+                // running nbgrader twice.
+                return;
+              }
+
+              clicked_nbgrader.current = new Date();
+              get_actions().assignments.run_nbgrader_for_one_student(
+                assignment.get("assignment_id"),
+                student.get("student_id")
+              );
+            }}
+          >
+            <Icon name="graduation-cap" /> {label}
+          </Button>
+        </div>
+      );
+    }
+
+    function render_nbgrader(): Rendered {
+      if (nbgrader_scores) {
+        return render_nbgrader_scores();
+      }
+      if (!assignment.get("nbgrader") || assignment.get("skip_grading")) return;
+
+      return render_run_nbgrader("Run nbgrader");
+    }
+
+    function render_enter_grade(): Rendered {
+      if ((grade ?? "").trim() || (comments ?? "").trim()) {
+        return;
+      }
       return (
         <Button
-          key="copy"
-          bsStyle="warning"
-          onClick={() => this.setState({ [key]: true } as any)}
+          key="edit"
+          onClick={() => set_edited_feedback()}
+          bsStyle={"default"}
+          disabled={is_editing}
+          style={{ marginRight: "5px" }}
         >
-          <Tip title={name} placement={placement} tip={<span>{copy_tip}</span>}>
+          Enter grade...
+        </Button>
+      );
+    }
+
+    function render_save_button(): Rendered {
+      if (!is_editing) return;
+      return (
+        <Button bsStyle="success" key="save" onClick={() => stop_editing()}>
+          Save
+        </Button>
+      );
+    }
+
+    function render_grade_col(): Rendered {
+      return (
+        <>
+          {render_enter_grade()}
+          {render_save_button()}
+          {render_grade()}
+          {render_comments()}
+          {render_nbgrader()}
+        </>
+      );
+    }
+
+    function render_last_time(time: string | number | Date): Rendered {
+      return (
+        <div key="time" style={{ color: "#666" }}>
+          <BigTime date={time} />
+        </div>
+      );
+    }
+
+    function render_open_recopy_confirm(
+      name: string,
+      copy: Function,
+      copy_tip: string,
+      placement
+    ): Rendered | Rendered[] {
+      const key = name;
+      if (recopy[key]) {
+        const v: Rendered[] = [];
+        v.push(
+          <Button
+            key="recopy_confirm"
+            bsStyle="danger"
+            onClick={() => {
+              set_recopy(key, false);
+              copy();
+            }}
+          >
             <Icon
               name="share-square"
               rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
             />{" "}
-            {name}...
-          </Tip>
-        </Button>
-      );
-    }
-  }
-
-  private render_open_recopy(
-    name: string,
-    open,
-    copy,
-    copy_tip: string,
-    open_tip: string
-  ): Rendered {
-    const placement = name === "Return" ? "left" : "right";
-    return (
-      <div key="open_recopy">
-        {this.render_open_recopy_confirm(name, copy, copy_tip, placement)}
-        <Space />
-        <Button key="open" onClick={open}>
-          <Tip title="Open assignment" placement={placement} tip={open_tip}>
-            <Icon name="folder-open" /> Open
-          </Tip>
-        </Button>
-      </div>
-    );
-  }
-
-  private render_open_copying(name: string, open, stop): Rendered {
-    return (
-      <ButtonGroup key="open_copying">
-        <Button key="copy" bsStyle="success" disabled={true}>
-          <Icon name="cocalc-ring" spin /> {name}ing
-        </Button>
-        <Button key="stop" bsStyle="danger" onClick={stop}>
-          <Icon name="times" />
-        </Button>
-        <Button key="open" onClick={open}>
-          <Icon name="folder-open" /> Open
-        </Button>
-      </ButtonGroup>
-    );
-  }
-
-  private render_copy(name: string, copy, copy_tip: string): Rendered {
-    let placement;
-    if (name === "Return") {
-      placement = "left";
-    }
-    return (
-      <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
-        <Button onClick={copy} bsStyle={"primary"}>
-          <Icon
-            name="share-square"
-            rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
-          {name}
-        </Button>
-      </Tip>
-    );
-  }
-
-  private render_error(name: string, error): Rendered {
-    if (typeof error !== "string") {
-      error = to_json(error);
-    }
-    // We search for two different error messages, since different errors happen in
-    // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
-    if (
-      error.indexOf("No such file or directory") !== -1 ||
-      error.indexOf("ENOENT") != -1
-    ) {
-      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
-    } else {
-      error = `Try to ${name.toLowerCase()} again:\n` + error;
-    }
-    return (
-      <ErrorDisplay
-        key="error"
-        error={error}
-        style={{ maxHeight: "140px", overflow: "auto", display: "block" }}
-      />
-    );
-  }
-
-  private render_last(opts: {
-    name: string;
-    type: AssignmentCopyType;
-    data?: any;
-    enable_copy?: boolean;
-    copy_tip?: string;
-    open_tip?: string;
-    omit_errors?: boolean;
-  }): Rendered[] {
-    opts = defaults(opts, {
-      name: required,
-      type: required,
-      data: {},
-      enable_copy: false,
-      copy_tip: "",
-      open_tip: "",
-      omit_errors: false,
-    });
-
-    const open = () =>
-      this.open(
-        opts.type,
-        this.props.info.assignment_id,
-        this.props.info.student_id
-      );
-    const copy = () =>
-      this.copy(
-        opts.type,
-        this.props.info.assignment_id,
-        this.props.info.student_id
-      );
-    const stop = () =>
-      this.stop(
-        opts.type,
-        this.props.info.assignment_id,
-        this.props.info.student_id
-      );
-    const v: Rendered[] = [];
-    if (opts.enable_copy) {
-      if (opts.data.start) {
-        v.push(this.render_open_copying(opts.name, open, stop));
-      } else if (opts.data.time) {
-        v.push(
-          this.render_open_recopy(
-            opts.name,
-            open,
-            copy,
-            opts.copy_tip as string,
-            opts.open_tip as string
-          )
+            Yes, {name.toLowerCase()} again
+          </Button>
         );
+        v.push(
+          <Button key="copy_cancel" onClick={() => set_recopy(key, false)}>
+            Cancel
+          </Button>
+        );
+        if (name.toLowerCase() === "assign") {
+          // inline-block because buttons above are float:left
+          v.push(
+            <div
+              key="what-happens"
+              style={{ margin: "5px", display: "inline-block" }}
+            >
+              <a
+                target="_blank"
+                href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
+              >
+                What happens when I assign again?
+              </a>
+            </div>
+          );
+        }
+        return v;
       } else {
-        v.push(this.render_copy(opts.name, copy, opts.copy_tip as string));
+        return (
+          <Button
+            key="copy"
+            bsStyle="warning"
+            onClick={() => set_recopy(key, true)}
+          >
+            <Tip
+              title={name}
+              placement={placement}
+              tip={<span>{copy_tip}</span>}
+            >
+              <Icon
+                name="share-square"
+                rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
+              />{" "}
+              {name}...
+            </Tip>
+          </Button>
+        );
       }
     }
-    if (opts.data.time) {
-      v.push(this.render_last_time(opts.data.time));
+
+    function render_open_recopy(
+      name: string,
+      open,
+      copy,
+      copy_tip: string,
+      open_tip: string
+    ): Rendered {
+      const placement = name === "Return" ? "left" : "right";
+      return (
+        <div key="open_recopy">
+          {render_open_recopy_confirm(name, copy, copy_tip, placement)}
+          <Space />
+          <Button key="open" onClick={open}>
+            <Tip title="Open assignment" placement={placement} tip={open_tip}>
+              <Icon name="folder-open" /> Open
+            </Tip>
+          </Button>
+        </div>
+      );
     }
-    if (opts.data.error && !opts.omit_errors) {
-      v.push(this.render_error(opts.name, opts.data.error));
+
+    function render_open_copying(name: string, open, stop): Rendered {
+      return (
+        <ButtonGroup key="open_copying">
+          <Button key="copy" bsStyle="success" disabled={true}>
+            <Icon name="cocalc-ring" spin /> {name}ing
+          </Button>
+          <Button key="stop" bsStyle="danger" onClick={stop}>
+            <Icon name="times" />
+          </Button>
+          <Button key="open" onClick={open}>
+            <Icon name="folder-open" /> Open
+          </Button>
+        </ButtonGroup>
+      );
     }
-    return v;
-  }
 
-  private render_peer_assign(): Rendered {
-    return (
-      <Col md={4} key="peer_assign">
-        {this.render_last({
-          name: "Peer Assign",
-          data: this.props.info.last_peer_assignment,
-          type: "peer-assigned",
-          enable_copy: this.props.info.last_collect != null,
-          copy_tip:
-            "Copy collected assignments from your project to this student's project so they can grade them.",
-          open_tip:
-            "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
-        })}
-      </Col>
-    );
-  }
+    function render_copy(name: string, copy, copy_tip: string): Rendered {
+      let placement;
+      if (name === "Return") {
+        placement = "left";
+      }
+      return (
+        <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
+          <Button onClick={copy} bsStyle={"primary"}>
+            <Icon
+              name="share-square"
+              rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
+            />{" "}
+            {name}
+          </Button>
+        </Tip>
+      );
+    }
 
-  private render_peer_collect(): Rendered {
-    return (
-      <Col md={4} key="peer_collect">
-        {this.render_last({
-          name: "Peer Collect",
-          data: this.props.info.last_peer_collect,
-          type: "peer-collected",
-          enable_copy: this.props.info.last_peer_assignment != null,
-          copy_tip:
-            "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
-          open_tip:
-            "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
-        })}
-      </Col>
-    );
-  }
+    function render_error(name: string, error): Rendered {
+      if (typeof error !== "string") {
+        error = to_json(error);
+      }
+      // We search for two different error messages, since different errors happen in
+      // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
+      if (
+        error.indexOf("No such file or directory") !== -1 ||
+        error.indexOf("ENOENT") != -1
+      ) {
+        error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
+      } else {
+        error = `Try to ${name.toLowerCase()} again:\n` + error;
+      }
+      return (
+        <ErrorDisplay
+          key="error"
+          error={error}
+          style={{ maxHeight: "140px", overflow: "auto", display: "block" }}
+        />
+      );
+    }
 
-  public render(): Rendered {
+    function render_last(opts: {
+      name: string;
+      type: AssignmentCopyType;
+      data?: any;
+      enable_copy?: boolean;
+      copy_tip?: string;
+      open_tip?: string;
+      omit_errors?: boolean;
+    }): Rendered[] {
+      opts = defaults(opts, {
+        name: required,
+        type: required,
+        data: {},
+        enable_copy: false,
+        copy_tip: "",
+        open_tip: "",
+        omit_errors: false,
+      });
+
+      const do_open = () =>
+        open(opts.type, info.assignment_id, info.student_id);
+      const do_copy = () =>
+        copy(opts.type, info.assignment_id, info.student_id);
+      const do_stop = () =>
+        stop(opts.type, info.assignment_id, info.student_id);
+      const v: Rendered[] = [];
+      if (opts.enable_copy) {
+        if (opts.data.start) {
+          v.push(render_open_copying(opts.name, do_open, do_stop));
+        } else if (opts.data.time) {
+          v.push(
+            render_open_recopy(
+              opts.name,
+              do_open,
+              do_copy,
+              opts.copy_tip as string,
+              opts.open_tip as string
+            )
+          );
+        } else {
+          v.push(render_copy(opts.name, do_copy, opts.copy_tip as string));
+        }
+      }
+      if (opts.data.time) {
+        v.push(render_last_time(opts.data.time));
+      }
+      if (opts.data.error && !opts.omit_errors) {
+        v.push(render_error(opts.name, opts.data.error));
+      }
+      return v;
+    }
+
+    function render_peer_assign(): Rendered {
+      return (
+        <Col md={4} key="peer_assign">
+          {render_last({
+            name: "Peer Assign",
+            data: info.last_peer_assignment,
+            type: "peer-assigned",
+            enable_copy: info.last_collect != null,
+            copy_tip:
+              "Copy collected assignments from your project to this student's project so they can grade them.",
+            open_tip:
+              "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
+          })}
+        </Col>
+      );
+    }
+
+    function render_peer_collect(): Rendered {
+      return (
+        <Col md={4} key="peer_collect">
+          {render_last({
+            name: "Peer Collect",
+            data: info.last_peer_collect,
+            type: "peer-collected",
+            enable_copy: info.last_peer_assignment != null,
+            copy_tip:
+              "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
+            open_tip:
+              "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
+          })}
+        </Col>
+      );
+    }
+
     let show_grade_col, show_return_graded;
-    const peer_grade: boolean = !!this.props.assignment.getIn([
-      "peer_grade",
-      "enabled",
-    ]);
-    const skip_grading: boolean = !!this.props.assignment.get("skip_grading");
-    const skip_assignment: boolean =
-      !!this.props.assignment.get("skip_assignment");
-    const skip_collect: boolean = !!this.props.assignment.get("skip_collect");
+    const peer_grade: boolean = !!assignment.getIn(["peer_grade", "enabled"]);
+    const skip_grading: boolean = !!assignment.get("skip_grading");
+    const skip_assignment: boolean = !!assignment.get("skip_assignment");
+    const skip_collect: boolean = !!assignment.get("skip_collect");
     if (peer_grade) {
-      show_grade_col = !skip_grading && this.props.info.last_peer_collect;
-      show_return_graded =
-        this.props.grade || (skip_grading && this.props.info.last_peer_collect);
+      show_grade_col = !skip_grading && info.last_peer_collect;
+      show_return_graded = grade || (skip_grading && info.last_peer_collect);
     } else {
-      show_grade_col =
-        (!skip_grading && this.props.info.last_collect) || skip_collect;
+      show_grade_col = (!skip_grading && info.last_collect) || skip_collect;
       show_return_graded =
-        this.props.grade ||
-        (skip_grading && this.props.info.last_collect) ||
+        grade ||
+        (skip_grading && info.last_collect) ||
         (skip_grading && skip_collect);
     }
 
@@ -622,14 +622,14 @@ export class StudentAssignmentInfo extends Component<
           }}
         >
           <Col md={4} key="title">
-            {this.props.title}
+            {title}
           </Col>
           <Col md={20} key="rest">
             <Row>
               <Col md={width} key="last_assignment">
-                {this.render_last({
+                {render_last({
                   name: "Assign",
-                  data: this.props.info.last_assignment,
+                  data: info.last_assignment,
                   type: "assigned",
                   enable_copy: true,
                   copy_tip:
@@ -642,16 +642,15 @@ export class StudentAssignmentInfo extends Component<
               </Col>
               <Col md={width} key="last_collect">
                 {skip_assignment ||
-                !(this.props.info.last_assignment != null
-                  ? this.props.info.last_assignment.error
+                !(info.last_assignment != null
+                  ? info.last_assignment.error
                   : undefined)
-                  ? this.render_last({
+                  ? render_last({
                       name: "Collect",
-                      data: this.props.info.last_collect,
+                      data: info.last_collect,
                       type: "collected",
                       enable_copy:
-                        this.props.info.last_assignment != null ||
-                        skip_assignment,
+                        info.last_assignment != null || skip_assignment,
                       copy_tip:
                         "Copy the assignment from your student's project back to your project so you can grade their work.",
                       open_tip:
@@ -661,26 +660,23 @@ export class StudentAssignmentInfo extends Component<
                   : undefined}
               </Col>
               {peer_grade &&
-              this.props.info.peer_assignment &&
-              !(this.props.info.last_collect != null
-                ? this.props.info.last_collect.error
-                : undefined)
-                ? this.render_peer_assign()
+              info.peer_assignment &&
+              !(info.last_collect != null ? info.last_collect.error : undefined)
+                ? render_peer_assign()
                 : undefined}
-              {peer_grade && this.props.info.peer_collect
-                ? this.render_peer_collect()
+              {peer_grade && info.peer_collect
+                ? render_peer_collect()
                 : undefined}
               <Col md={width} key="grade">
-                {show_grade_col ? this.render_grade_col() : undefined}
+                {show_grade_col ? render_grade_col() : undefined}
               </Col>
               <Col md={width} key="return_graded">
                 {show_return_graded
-                  ? this.render_last({
+                  ? render_last({
                       name: "Return",
-                      data: this.props.info.last_return_graded,
+                      data: info.last_return_graded,
                       type: "graded",
-                      enable_copy:
-                        this.props.info.last_collect != null || skip_collect,
+                      enable_copy: info.last_collect != null || skip_collect,
                       copy_tip:
                         "Copy the graded assignment back to your student's project.",
                       open_tip:
@@ -694,5 +690,4 @@ export class StudentAssignmentInfo extends Component<
         </Row>
       </div>
     );
-  }
-}
+  });

@@ -13,26 +13,26 @@
 //    the search in all the code below are all broken.
 //
 
-import * as underscore from "underscore";
-import * as immutable from "immutable";
-
-// CoCalc libraries
+import {
+  Component,
+  ReactDOM,
+  Rendered,
+  CSS,
+} from "@cocalc/frontend/app-framework";
+import { Icon, SearchInput, Space } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { is_different } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
-
-// React libraries
-import { ReactDOM, Component, Rendered } from "../../app-framework";
-import { Icon, SearchInput, Space } from "../../components";
+import { Card, Col, Row } from "antd";
+import * as immutable from "immutable";
+import * as underscore from "underscore";
 import {
   Button,
   ButtonGroup,
   FormControl,
   FormGroup,
-} from "../../antd-bootstrap";
+} from "@cocalc/frontend/antd-bootstrap";
 
-import { Card, Row, Col } from "antd";
-
-const SEARCH_STYLE = { marginBottom: "0px" };
+const SEARCH_STYLE: CSS = { marginBottom: "0px" } as const;
 
 interface MultipleAddSearchProps {
   add_selected: (keys: string[]) => void; // Submit user selected results add_selected(['paths', 'of', 'folders'])
