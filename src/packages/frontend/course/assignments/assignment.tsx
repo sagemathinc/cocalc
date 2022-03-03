@@ -24,8 +24,7 @@ import { Alert, Card, Col, Input, Row } from "antd";
 import { ReactElement, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
-import { BigTime } from "../common";
-import { Progress } from "../common/progress";
+import { BigTime, Progress } from "../common";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
 import {
   AssignmentRecord,
