@@ -90,7 +90,7 @@ import {
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
-import useResizeObserver from "use-resize-observer";
+//import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
@@ -143,7 +143,12 @@ export default function Canvas({
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
-  usePinchToZoom({ target: canvasRef, min: 5, max: 50, step: 0.1 });
+  usePinchToZoom({
+    target: canvasRef,
+    min: 5,
+    max: 50,
+    step: 0.1,
+  });
 
   const innerCanvasRef = useRef<any>(null);
 
@@ -222,7 +227,7 @@ export default function Canvas({
   */
 
   const lastMouseRef = useRef<any>(null);
-  const resize = useResizeObserver({ ref: canvasRef });
+  //const resize = useResizeObserver({ ref: canvasRef });
   const mouseMoveRef = useRef<any>(null);
   useEffect(() => {
     if (isNavigator) return;
@@ -236,14 +241,7 @@ export default function Canvas({
     const ty = last.y - cur.y;
     c.scrollLeft += tx * canvasScale;
     c.scrollTop += ty * canvasScale;
-  }, [
-    canvasScale,
-    transforms.xMin,
-    transforms.xMax,
-    transforms.yMin,
-    transforms.yMax,
-    resize,
-  ]);
+  }, [canvasScale]);
 
   // If the viewport changes, but not because we just set it,
   // then we move our current center displayed viewport to match that.
@@ -956,8 +954,10 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
-    mouseMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
-    lastMouseRef.current = evtToData(mouseMoveRef.current);
+    // this us used for zooming:
+    mouseMoveRef.current = e;
+    lastMouseRef.current = evtToData(e);
+
     if (!touch && !e.buttons) {
       // mouse button no longer down - cancel any capture.
       // This can happen with no mouseup, due to mouseup outside
