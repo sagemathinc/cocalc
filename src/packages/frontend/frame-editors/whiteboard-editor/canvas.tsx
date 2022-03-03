@@ -41,11 +41,12 @@ viewport coordinates:
   and getting an event e.clientX, e.clientY.  The upper left point (0,0)
   is the upper left corner of the browser window.
 - this is related to window coordinates by translation, where the parameters
-  are the position of the canvas div and its scrollTop, scrollLeft attributes.
-  Thus the transform back and forth between window and portal coordinates
+  are the position of the canvas div and its top,left offset attributes.
+  Thus the transform back and forth between window and viewport coordinates
   is extra tricky, because it can change any time at any time!
 */
 
+import { useWheel } from "@use-gesture/react";
 import {
   ClipboardEvent,
   ReactNode,
@@ -162,22 +163,64 @@ export default function Canvas({
       }
       const lastScale = lastScaleRef.current;
       lastScaleRef.current = curScale;
-      const tx = curMouse.x * curScale - curMouse.x * lastScale;
-      const ty = curMouse.y * curScale - curMouse.y * lastScale;
-      c.scrollLeft += tx;
-      c.scrollTop += ty;
+      const x = curMouse.x * curScale - curMouse.x * lastScale;
+      const y = curMouse.y * curScale - curMouse.y * lastScale;
+      offset.translate({ x, y });
       console.log(
         JSON.stringify({
           curScale,
           lastScale,
           curMouse,
-          tx,
-          ty,
+          x,
+          y,
         })
       );
     },
   });
-  window.x = { scaleDivRef, canvasRef };
+
+  const offset = useMemo(() => {
+    const set = ({ x, y }: Point) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect == null) return;
+      const e = scaleDivRef.current;
+      if (e == null) return;
+      e.style.setProperty(
+        "left",
+        `${Math.min(0, Math.max(x, -e.offsetWidth + rect.width))}px`
+      );
+      e.style.setProperty(
+        "top",
+        `${Math.min(0, Math.max(y, -e.offsetHeight + rect.height))}px`
+      );
+    };
+
+    return {
+      set,
+      get: () => {
+        const e = scaleDivRef.current;
+        if (e == null) return { x: 0, y: 0 };
+        return { x: e.offsetLeft, y: e.offsetTop };
+      },
+      translate: ({ x, y }: Point) => {
+        const e = scaleDivRef.current;
+        if (e == null) return;
+        set({ x: -x + e.offsetLeft, y: -y + e.offsetTop });
+      },
+    };
+  }, [scaleDivRef]);
+  if (!isNavigator) {
+    window.x = { scaleDivRef, canvasRef, offset };
+  }
+
+  useWheel(
+    (state) => {
+      if (state.event.ctrlKey) return; // handled elsewhere
+      offset.translate({ x: state.delta[0], y: state.delta[1] });
+    },
+    {
+      target: scaleDivRef,
+    }
+  );
 
   const innerCanvasRef = useRef<any>(null);
 
@@ -337,28 +380,26 @@ export default function Canvas({
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
+    const d = scaleDivRef.current;
+    if (d == null) return;
     // the current center of the viewport, but in window coordinates, i.e.,
     // absolute coordinates into the canvas div.
+    const { x, y } = offset.get();
     return {
-      x: c.scrollLeft + rect.width / 2,
-      y: c.scrollTop + rect.height / 2,
+      x: -x + rect.width / 2,
+      y: -y + rect.height / 2,
     };
   }
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
-    console.log("setCenterPositionData");
+    console.log("setCenterPositionData", x, y);
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;
     const delta_x = t.x - cur.x;
     const delta_y = t.y - cur.y;
-    const c = canvasRef.current;
-    if (c == null) return;
-    const scrollLeftGoal = Math.floor(c.scrollLeft + delta_x);
-    const scrollTopGoal = Math.floor(c.scrollTop + delta_y);
-    c.scrollLeft = scrollLeftGoal;
-    c.scrollTop = scrollTopGoal;
+    offset.translate({ x: delta_x, y: delta_y });
   }
 
   // when fitToScreen is true, compute data then set font_size to
@@ -699,7 +740,8 @@ export default function Canvas({
       // this happens when canvas is hidden from screen (e.g., background tab).
       return;
     }
-    return { x: c.scrollLeft, y: c.scrollTop, w, h };
+    const { x, y } = offset.get();
+    return { x: -x, y: -y, w, h };
   }
 
   // convert mouse event to coordinates in data space
@@ -807,8 +849,7 @@ export default function Canvas({
       handRef.current = {
         clientX: e.clientX,
         clientY: e.clientY,
-        scrollLeft: c.scrollLeft,
-        scrollTop: c.scrollTop,
+        start: offset.get(),
       };
       return;
     }
@@ -1001,11 +1042,10 @@ export default function Canvas({
       // dragging with hand tool
       const c = canvasRef.current;
       if (c == null) return;
-      const { clientX, clientY, scrollLeft, scrollTop } = handRef.current;
+      const { clientX, clientY, start } = handRef.current;
       const deltaX = e.clientX - clientX;
       const deltaY = e.clientY - clientY;
-      c.scrollTop = scrollTop - deltaY;
-      c.scrollLeft = scrollLeft - deltaX;
+      offset.set({ x: start.x + deltaX, y: start.y + deltaY });
       return;
     }
     if (mousePath.current == null) return;
@@ -1079,14 +1119,15 @@ export default function Canvas({
       className={"smc-vfill"}
       ref={canvasRef}
       style={{
-        overflow: isNavigator ? "hidden" : "scroll",
+        ...style,
         touchAction:
           typeof selectedTool == "string" &&
           ["select", "pen", "frame"].includes(selectedTool)
             ? "none"
             : undefined,
         userSelect: "none",
-        ...style,
+        overflow: "hidden",
+        position: "relative",
       }}
       onClick={(evt) => {
         mousePath.current = null;
@@ -1182,9 +1223,9 @@ export default function Canvas({
       <div
         ref={scaleDivRef}
         style={{
+          position: "absolute",
           transform: `scale(${canvasScale})`,
           transformOrigin: "top left",
-          height: `calc(${canvasScale * 100}%)`,
         }}
       >
         {!isNavigator && selectedTool == "pen" && (
