@@ -3,16 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// CoCalc libraries
 import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys } from "lodash";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 
 // React libraries and components
 import {
-  ReactDOM,
   React,
   AppRedux,
   Rendered,
@@ -22,15 +20,7 @@ import {
   useIsMountedRef,
 } from "../../app-framework";
 
-import {
-  Button,
-  FormGroup,
-  FormControl,
-  InputGroup,
-  Form,
-} from "../../antd-bootstrap";
-
-import { Alert, Row, Col } from "antd";
+import { Alert, Row, Col, Button, Form, Input } from "antd";
 
 // CoCalc components
 import { SearchInput, ErrorDisplay, Icon, Space, Tip } from "../../components";
@@ -90,7 +80,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       assignments,
     } = props;
 
-    const addSelectRef = useRef<FormControl>(null);
+    const addSelectRef = useRef<HTMLSelectElement>(null);
     const studentAddInputRef = useRef(null);
 
     const expanded_students: Set<string> | undefined = useRedux(
@@ -125,6 +115,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     >(undefined);
     const [selected_option_num, set_selected_option_num] = useState<number>(0);
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
+    const [studentInputFocused, setStudentInputFocused] =
+      useState<boolean>(false);
 
     // student_list not a list, but has one, plus some extra info.
     const student_list: StudentList = React.useMemo(() => {
@@ -277,7 +269,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     }
 
     function student_add_button() {
-      if (add_search?.trim().length == 0) return;
+      const disabled = add_search?.trim().length === 0;
       const icon = add_searching ? (
         <Icon name="cocalc-ring" spin />
       ) : (
@@ -285,12 +277,14 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       );
 
       return (
-        <Button onClick={do_add_search}>{icon} Search (shift+enter)</Button>
+        <Button onClick={do_add_search} icon={icon} disabled={disabled}>
+          Search (shift+enter)
+        </Button>
       );
     }
 
-    function add_selector_clicked(): void {
-      const opts = ReactDOM.findDOMNode(addSelectRef.current).selectedOptions;
+    function add_selector_changed(e): void {
+      const opts = e.target.selectedOptions;
       set_selected_option_nodes(opts);
       set_selected_option_num(opts.length);
     }
@@ -308,10 +302,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // first check, if no student is selected and there is just one in the list
       if (
         (selected_option_nodes == null ||
-          (selected_option_nodes != null
-            ? selected_option_nodes.length
-            : undefined) === 0) &&
-        (options != null ? options.length : undefined) === 1
+          selected_option_nodes?.length === 0) &&
+        options?.length === 1
       ) {
         selections.push(options[0].key);
       } else {
@@ -365,9 +357,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       const seen = {};
       for (const x of add_select) {
         const key = x.account_id != null ? x.account_id : x.email_address;
-        if (seen[key]) {
-          continue;
-        }
+        if (seen[key]) continue;
         seen[key] = true;
         const student_name =
           x.account_id != null
@@ -383,33 +373,33 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     }
 
     function render_add_selector() {
-      if (add_select == null) {
-        return;
-      }
+      if (add_select == null) return;
       const options = get_add_selector_options();
       return (
-        <FormGroup style={{ margin: "5px 0 15px 15px" }}>
-          <FormControl
-            componentClass="select"
-            multiple
-            ref={addSelectRef}
-            rows={10}
-            onClick={add_selector_clicked}
-          >
-            {options}
-          </FormControl>
-          <div style={{ marginTop: "5px" }}>
+        <>
+          <Form.Item style={{ margin: "5px 0 15px 0" }}>
+            <select
+              style={{ width: "100%", border: "1px solid lightgray" }}
+              multiple
+              ref={addSelectRef}
+              size={8}
+              onChange={add_selector_changed}
+            >
+              {options}
+            </select>
+          </Form.Item>
+          <Form.Item>
             {render_cancel()}
             <Space />
             {render_add_selector_button(options)}
             <Space />
             {render_add_all_students_button(options)}
-          </div>
-        </FormGroup>
+          </Form.Item>
+        </>
       );
     }
 
-    function get_add_selector_button_text({ options, existing }) {
+    function get_add_selector_button_text(existing) {
       switch (selected_option_num) {
         case 0:
           if (existing) {
@@ -440,10 +430,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         // es not defined when user clicks the close button on the warning.
         existing = 0;
       }
-      const btn_text = get_add_selector_button_text({
-        options,
-        existing,
-      });
+      const btn_text = get_add_selector_button_text(existing);
       const disabled =
         options.length === 0 ||
         (options.length >= 2 && selected_option_num === 0);
@@ -458,12 +445,11 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     }
 
     function render_add_all_students_button(options) {
-      let disabled = options.length === 0;
-      if (!disabled) {
-        disabled = (selected_option_nodes?.length ?? 0) > 0;
-      }
       return (
-        <Button onClick={() => add_all_students()} disabled={disabled}>
+        <Button
+          onClick={() => add_all_students()}
+          disabled={options.length === 0}
+        >
           <Icon name={"user-plus"} /> Add all students
         </Button>
       );
@@ -491,15 +477,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
         }
         if (existing.length > 0) {
-          let msg;
-          if (existing.length > 1) {
-            msg =
-              "Already added (or deleted) students or project collaborators: ";
-          } else {
-            msg =
-              "Already added (or deleted) student or project collaborator: ";
-          }
-          msg += existing.join(", ");
+          const existingStr = existing.join(", ");
+          const msg = `Already added (or deleted) students or project collaborators: ${existingStr}`;
           return (
             <ErrorDisplay
               bsStyle="info"
@@ -515,21 +494,19 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       const ed = render_error_display();
       if (ed != null) {
         return (
-          <div style={{ marginTop: "1em", marginBottom: "15px" }}>
-            <Row>
-              <Col md={10} offset={14}>
-                {ed}
-              </Col>
-            </Row>
-          </div>
+          <Col md={24} style={{  marginBottom: "20px" }}>
+            {ed}
+          </Col>
         );
       }
     }
 
     function student_add_input_onChange() {
-      const input = ReactDOM.findDOMNode(studentAddInputRef.current);
+      const value =
+        (studentAddInputRef?.current as any).resizableTextArea?.textArea
+          .value ?? "";
       set_add_select(undefined);
-      set_add_search(input.value);
+      set_add_search(value);
     }
 
     function student_add_input_onKeyDown(e) {
@@ -550,6 +527,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // TODO: get rid of all of the bootstrap form crap below.  I'm basically
       // using inline styles to undo the spacing screwups they cause, so it doesn't
       // look like total crap.
+
+      const rows =
+        add_search.trim().length == 0 && !studentInputFocused ? 1 : 4;
+
       return (
         <div>
           <Row>
@@ -565,38 +546,34 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                 <h5>(Omitting {num_omitted} students)</h5>
               ) : undefined}
             </Col>
-            <Col md={10}>
-              <Form
-                onSubmit={do_add_search}
-                horizontal
-                style={{ marginLeft: "15px" }}
-              >
+            <Col md={11}>
+              <Form onFinish={do_add_search} style={{ marginLeft: "15px" }}>
                 <Row>
                   <Col md={18}>
-                    <FormGroup style={{ margin: "0 0 5px 0" }}>
-                      <FormControl
+                    <Form.Item style={{ margin: "0 0 5px 0" }}>
+                      <Input.TextArea
                         ref={studentAddInputRef}
-                        componentClass="textarea"
                         placeholder="Add students by name or email address..."
                         value={add_search}
+                        rows={rows}
                         onChange={() => student_add_input_onChange()}
                         onKeyDown={(e) => student_add_input_onKeyDown(e)}
+                        onFocus={() => setStudentInputFocused(true)}
+                        onBlur={() => setStudentInputFocused(false)}
                       />
-                    </FormGroup>
+                    </Form.Item>
                   </Col>
                   <Col md={6}>
                     <div style={{ marginLeft: "15px", width: "100%" }}>
-                      <InputGroup.Button>
-                        {student_add_button()}
-                      </InputGroup.Button>
+                      {student_add_button()}
                     </div>
                   </Col>
+                  <Col md={24}>{render_add_selector()}</Col>
+                  {render_error()}
                 </Row>
               </Form>
-              {render_add_selector()}
             </Col>
           </Row>
-          {render_error()}
         </div>
       );
     }
