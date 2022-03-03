@@ -124,7 +124,7 @@ export default function Canvas({
   elements,
   elementsMap,
   font_size,
-  scale,
+  scale: scale0,
   selection,
   margin,
   readOnly,
@@ -136,7 +136,7 @@ export default function Canvas({
   cursors,
 }: Props) {
   const frame = useFrameContext();
-  const canvasScale = scale ?? fontSizeToZoom(font_size);
+  const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   // We have to scale the margin as we zoom in and out,
   // since otherwise it will look way too small. We don't
   // touch margin though if it is explicitly set.
@@ -145,53 +145,69 @@ export default function Canvas({
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   const scaleDivRef = useRef<any>(null);
-  const lastScaleRef = useRef<number>(canvasScale);
+  const firstOffsetRef = useRef<any>({
+    scale: 1,
+    offset: { x: 0, y: 0 },
+    mouse: { x: 0, y: 0 },
+  });
   usePinchToZoom({
-    target: scaleDivRef,
-    min: 14,
+    target: canvasRef,
+    min: 2,
     max: 50,
     throttleMs: 50,
-    onZoom: ({ fontSize, curMouse }) => {
-      if (!scaleDivRef.current) return;
-      const curScale = fontSizeToZoom(fontSize);
-      scaleDivRef.current.style.setProperty("transform", `scale(${curScale})`);
-      const c = canvasRef.current;
-      if (c == null) return;
-      if (curMouse == null) {
-        console.log("no curMouse");
-        return;
+    onZoom: ({ fontSize, first }) => {
+      if (first) {
+        const rect = scaleDivRef.current?.getBoundingClientRect();
+        const mouse =
+          rect != null && mouseMoveRef.current
+            ? {
+                x: mouseMoveRef.current.clientX - rect.left,
+                y: mouseMoveRef.current.clientY - rect.top,
+              }
+            : { x: 0, y: 0 };
+        firstOffsetRef.current = {
+          offset: offset.get(),
+          scale: scale.get(),
+          mouse,
+        };
       }
-      const lastScale = lastScaleRef.current;
-      lastScaleRef.current = curScale;
-      const x = curMouse.x * curScale - curMouse.x * lastScale;
-      const y = curMouse.y * curScale - curMouse.y * lastScale;
-      offset.translate({ x, y });
-      console.log(
-        JSON.stringify({
-          curScale,
-          lastScale,
-          curMouse,
-          x,
-          y,
-        })
-      );
+
+      const curScale = fontSizeToZoom(fontSize);
+      scale.set(curScale);
+
+      const { mouse } = firstOffsetRef.current;
+      const tx = mouse.x * curScale - mouse.x * firstOffsetRef.current.scale;
+      const ty = mouse.y * curScale - mouse.y * firstOffsetRef.current.scale;
+      const x =
+        firstOffsetRef.current.offset.x - tx / firstOffsetRef.current.scale;
+      const y =
+        firstOffsetRef.current.offset.y - ty / firstOffsetRef.current.scale;
+      offset.set({ x, y });
     },
   });
 
+  const scaleRef = useRef<number>(canvasScale);
+  const scale = useMemo(() => {
+    return {
+      set: (scale: number) => {
+        if (scaleDivRef.current == null) return;
+        scaleRef.current = scale;
+        scaleDivRef.current.style.setProperty("transform", `scale(${scale})`);
+      },
+      get: () => {
+        return scaleRef.current ?? 1;
+      },
+    };
+  }, []);
+
   const offset = useMemo(() => {
     const set = ({ x, y }: Point) => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (rect == null) return;
       const e = scaleDivRef.current;
       if (e == null) return;
-      e.style.setProperty(
-        "left",
-        `${Math.min(0, Math.max(x, -e.offsetWidth + rect.width))}px`
-      );
-      e.style.setProperty(
-        "top",
-        `${Math.min(0, Math.max(y, -e.offsetHeight + rect.height))}px`
-      );
+      const left = x;
+      const top = y;
+      e.style.setProperty("left", `${left}px`);
+      e.style.setProperty("top", `${top}px`);
       saveViewport();
     };
 
@@ -216,7 +232,7 @@ export default function Canvas({
       offset.translate({ x: state.delta[0], y: state.delta[1] });
     },
     {
-      target: scaleDivRef,
+      target: canvasRef,
     }
   );
 
@@ -329,7 +345,6 @@ export default function Canvas({
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
-    console.log("setCenterPositionData", x, y);
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;
@@ -1166,6 +1181,7 @@ export default function Canvas({
           position: "absolute",
           transform: `scale(${canvasScale})`,
           transformOrigin: "top left",
+          border: "1px solid red",
         }}
       >
         {!isNavigator && selectedTool == "pen" && (

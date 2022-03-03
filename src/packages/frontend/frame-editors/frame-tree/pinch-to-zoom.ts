@@ -10,22 +10,11 @@ size for the visible canvas, instead of zooming the whole page itself.
 
 */
 
-import {
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { MutableRefObject, useMemo, useRef } from "react";
 import { useFrameContext } from "./frame-context";
 import { usePinch, useWheel } from "@use-gesture/react";
 import { throttle } from "lodash";
 import { IS_MACOS } from "@cocalc/frontend/feature";
-
-interface Point {
-  x: number;
-  y: number;
-}
 
 export const ZOOM100 = 14;
 export function fontSizeToZoom(size?: number): number {
@@ -44,7 +33,6 @@ document.addEventListener("gestureend", handler);
 
 interface Data {
   fontSize: number;
-  curMouse: Point | null;
 }
 
 export default function usePinchToZoom({
@@ -64,39 +52,6 @@ export default function usePinchToZoom({
 }) {
   const { actions, id } = useFrameContext();
 
-  const scaleRef = useRef<any>(0);
-  const curMouse = useRef<Point | null>(null);
-  const onMouseMove = useCallback(
-    (event) => {
-      const rect = target.current?.getBoundingClientRect();
-      if (rect == null) return;
-      curMouse.current = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      };
-      if (event.shiftKey) {
-        console.log(
-          curMouse.current,
-          scaleRef.current,
-          JSON.stringify({
-            clientX: event.clientX,
-            clientY: event.clientY,
-            rect,
-          })
-        );
-      }
-    },
-    [target]
-  );
-
-  useEffect(() => {
-    if (target.current == null) return;
-    target.current.addEventListener("mousemove", onMouseMove);
-    return () => {
-      target.current?.removeEventListener("mousemove", onMouseMove);
-    };
-  }, []);
-
   const saveThrottled = useMemo(() => {
     return throttle((fontSize) => {
       //} else {
@@ -106,12 +61,11 @@ export default function usePinchToZoom({
   }, [id]);
 
   const save = useMemo(() => {
-    return (fontSize) => {
-      scaleRef.current = fontSizeToZoom(fontSize);
+    return (fontSize, first) => {
       if (onZoom != null) {
         onZoom({
           fontSize,
-          curMouse: curMouse.current,
+          first,
         });
         return;
       }
@@ -124,7 +78,7 @@ export default function usePinchToZoom({
       if (state.event.ctrlKey) {
         // prevent the entire window scrolling on windows or with a mouse.
         state.event.preventDefault();
-        save(max - state.offset[1] / smooth);
+        save(max - state.offset[1] / smooth, false); // todo -- needs to be redone.
       }
     },
     {
@@ -135,14 +89,23 @@ export default function usePinchToZoom({
     }
   );
 
+  const lastOffsetRef = useRef<number>(100);
   usePinch(
     (state) => {
-      const { offset } = state;
-      save(offset[0] * min);
+      const { first, offset } = state;
+      lastOffsetRef.current = offset[0];
+      const s = (offset[0] - 1) / 1000;
+      save(min + s * (max - min), first);
     },
     {
       target,
-      scaleBounds: { min: 1, max: max / min },
+      scaleBounds: { min: 1, max: 1001 },
+      axis: "x",
+      from: (state) => {
+        // TODO: this needs to return current font size / scale but in terms of our scale bounds param.
+        // This is the zoom level that we start with whenever we start pinching.
+        return [lastOffsetRef.current, 0];
+      },
     }
   );
 }
