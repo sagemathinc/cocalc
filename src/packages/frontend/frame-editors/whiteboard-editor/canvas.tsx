@@ -143,10 +143,20 @@ export default function Canvas({
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
+  const scaleDivRef = useRef<any>(null);
   usePinchToZoom({
-    target: canvasRef,
+    target: scaleDivRef,
     min: 3,
     max: 50,
+    throttleMs: 50,
+    onZoom: (fontSize) => {
+      if (scaleDivRef.current) {
+        scaleDivRef.current.style.setProperty(
+          "transform",
+          `scale(${fontSizeToZoom(fontSize)})`
+        );
+      }
+    },
   });
 
   const innerCanvasRef = useRef<any>(null);
@@ -1147,6 +1157,7 @@ export default function Canvas({
       }
     >
       <div
+        ref={scaleDivRef}
         style={{
           transform: `scale(${canvasScale})`,
           transformOrigin: "top left",

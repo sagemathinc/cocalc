@@ -14,6 +14,7 @@ import { MutableRefObject, useMemo } from "react";
 import { useFrameContext } from "./frame-context";
 import { usePinch, useWheel } from "@use-gesture/react";
 import { throttle } from "lodash";
+import { IS_MACOS } from "@cocalc/frontend/feature";
 
 // I'm just setting these globally for the application.  It seems to
 // never be a good idea, and this keeps behavior not subtly changed
@@ -29,17 +30,32 @@ export default function usePinchToZoom({
   target,
   min = 5,
   max = 100,
+  onZoom,
+  throttleMs = 50,
+  smooth = 5,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
+  onZoom?: (fontSize: number) => void; // not throttled at all.
+  throttleMs?: number;
+  smooth?: number;
 }) {
   const { actions, id } = useFrameContext();
 
-  const save = useMemo(() => {
+  const saveThrottled = useMemo(() => {
     return throttle((fontSize) => {
-      actions.set_font_size(id, Math.round(fontSize));
-    }, 50);
+      //} else {
+      actions.set_font_size(id, fontSize);
+      //}
+    }, throttleMs);
+  }, [id]);
+
+  const save = useMemo(() => {
+    return (fontSize) => {
+      onZoom?.(fontSize);
+      saveThrottled(fontSize);
+    };
   }, [id]);
 
   useWheel(
@@ -47,13 +63,14 @@ export default function usePinchToZoom({
       if (state.event.ctrlKey) {
         // prevent the entire window scrolling on windows or with a mouse.
         state.event.preventDefault();
-        save(max - state.offset[1] / 10);
+        save(max - state.offset[1] / smooth);
       }
     },
     {
+      enabled: !IS_MACOS, // the wheel (even with a mouse wheel) conflicts with pinch on MacOS; on windows get only wheel and no pinch.
       target,
       eventOptions: { passive: false, capture: true },
-      bounds: { top: 0, bottom: (max - min) * 10 },
+      bounds: { top: 0, bottom: (max - min) * smooth },
     }
   );
 
