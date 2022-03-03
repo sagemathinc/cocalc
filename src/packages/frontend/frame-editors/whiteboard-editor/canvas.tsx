@@ -144,20 +144,40 @@ export default function Canvas({
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   const scaleDivRef = useRef<any>(null);
+  const lastScaleRef = useRef<number>(canvasScale);
   usePinchToZoom({
     target: scaleDivRef,
-    min: 3,
+    min: 14,
     max: 50,
     throttleMs: 50,
-    onZoom: (fontSize) => {
-      if (scaleDivRef.current) {
-        scaleDivRef.current.style.setProperty(
-          "transform",
-          `scale(${fontSizeToZoom(fontSize)})`
-        );
+    onZoom: ({ fontSize, curMouse }) => {
+      if (!scaleDivRef.current) return;
+      const curScale = fontSizeToZoom(fontSize);
+      scaleDivRef.current.style.setProperty("transform", `scale(${curScale})`);
+      const c = canvasRef.current;
+      if (c == null) return;
+      if (curMouse == null) {
+        console.log("no curMouse");
+        return;
       }
+      const lastScale = lastScaleRef.current;
+      lastScaleRef.current = curScale;
+      const tx = curMouse.x * curScale - curMouse.x * lastScale;
+      const ty = curMouse.y * curScale - curMouse.y * lastScale;
+      c.scrollLeft += tx;
+      c.scrollTop += ty;
+      console.log(
+        JSON.stringify({
+          curScale,
+          lastScale,
+          curMouse,
+          tx,
+          ty,
+        })
+      );
     },
   });
+  window.x = { scaleDivRef, canvasRef };
 
   const innerCanvasRef = useRef<any>(null);
 
@@ -238,6 +258,7 @@ export default function Canvas({
   const lastMouseRef = useRef<any>(null);
   //const resize = useResizeObserver({ ref: canvasRef });
   const mouseMoveRef = useRef<any>(null);
+  /*
   useEffect(() => {
     if (isNavigator) return;
     if (mouseMoveRef.current == null) return;
@@ -251,6 +272,7 @@ export default function Canvas({
     c.scrollLeft += tx * canvasScale;
     c.scrollTop += ty * canvasScale;
   }, [canvasScale]);
+  */
 
   // If the viewport changes, but not because we just set it,
   // then we move our current center displayed viewport to match that.
@@ -325,6 +347,7 @@ export default function Canvas({
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
+    console.log("setCenterPositionData");
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;

@@ -10,11 +10,27 @@ size for the visible canvas, instead of zooming the whole page itself.
 
 */
 
-import { MutableRefObject, useMemo } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useFrameContext } from "./frame-context";
 import { usePinch, useWheel } from "@use-gesture/react";
 import { throttle } from "lodash";
 import { IS_MACOS } from "@cocalc/frontend/feature";
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+export const ZOOM100 = 14;
+export function fontSizeToZoom(size?: number): number {
+  return size ? size / ZOOM100 : 1;
+}
 
 // I'm just setting these globally for the application.  It seems to
 // never be a good idea, and this keeps behavior not subtly changed
@@ -25,6 +41,11 @@ const handler = (e) => {
 document.addEventListener("gesturestart", handler);
 document.addEventListener("gesturechange", handler);
 document.addEventListener("gestureend", handler);
+
+interface Data {
+  fontSize: number;
+  curMouse: Point | null;
+}
 
 export default function usePinchToZoom({
   target,
@@ -37,11 +58,44 @@ export default function usePinchToZoom({
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
-  onZoom?: (fontSize: number) => void; // not throttled at all.
+  onZoom?: (Data) => void; // not throttled at all; if given, then font size is NOT set via actions.
   throttleMs?: number;
   smooth?: number;
 }) {
   const { actions, id } = useFrameContext();
+
+  const scaleRef = useRef<any>(0);
+  const curMouse = useRef<Point | null>(null);
+  const onMouseMove = useCallback(
+    (event) => {
+      const rect = target.current?.getBoundingClientRect();
+      if (rect == null) return;
+      curMouse.current = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      if (event.shiftKey) {
+        console.log(
+          curMouse.current,
+          scaleRef.current,
+          JSON.stringify({
+            clientX: event.clientX,
+            clientY: event.clientY,
+            rect,
+          })
+        );
+      }
+    },
+    [target]
+  );
+
+  useEffect(() => {
+    if (target.current == null) return;
+    target.current.addEventListener("mousemove", onMouseMove);
+    return () => {
+      target.current?.removeEventListener("mousemove", onMouseMove);
+    };
+  }, []);
 
   const saveThrottled = useMemo(() => {
     return throttle((fontSize) => {
@@ -53,7 +107,14 @@ export default function usePinchToZoom({
 
   const save = useMemo(() => {
     return (fontSize) => {
-      onZoom?.(fontSize);
+      scaleRef.current = fontSizeToZoom(fontSize);
+      if (onZoom != null) {
+        onZoom({
+          fontSize,
+          curMouse: curMouse.current,
+        });
+        return;
+      }
       saveThrottled(fontSize);
     };
   }, [id]);
