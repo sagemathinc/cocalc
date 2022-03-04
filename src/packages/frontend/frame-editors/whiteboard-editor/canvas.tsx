@@ -82,6 +82,7 @@ import {
   fitRectToRect,
   getOverlappingElements,
   getTransforms,
+  Transforms,
   pointEqual,
   pointRound,
   pointsToRect,
@@ -297,9 +298,11 @@ export default function Canvas({
   const innerCanvasRef = useRef<any>(null);
 
   const canvasScaleRef = useRef<number>(1);
-  const transforms = useMemo(() => {
-    // TODO: if tool is not select, should we exclude hidden elements in computing this...?
+  const transforms: Transforms = useMemo(() => {
+    // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
+
     const t = getTransforms(elements, margin);
+
     // also update the canvas scale, which is needed to keep
     // the canvas preview layer (for the pen) from getting too big
     // and wasting memory.
@@ -309,6 +312,24 @@ export default function Canvas({
     );
     return t;
   }, [elements, margin]);
+
+  // When the canvas elements change the extent changes and everything
+  // will jump if we don't offset that change.  That's what we do below:
+  const lastTransforms = useRef<Transforms | null>(null);
+  useEffect(() => {
+    if (isNavigator) return;
+    if (lastTransforms.current != null) {
+      // the transforms changed somewhow.   Maybe xmin/ymin changed.
+      // Note changing coords to window...
+      const x = (lastTransforms.current.xMin - transforms.xMin) * canvasScale;
+      const y = (lastTransforms.current.yMin - transforms.yMin) * canvasScale;
+      if (x || y) {
+        // yes, they changed, so we shift over.
+        offset.translate({ x, y });
+      }
+    }
+    lastTransforms.current = transforms;
+  }, [transforms]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
@@ -839,7 +860,7 @@ export default function Canvas({
             lastViewport.current = viewport;
             frame.actions.saveViewport(frame.id, viewport);
           }
-        }, 200);
+        }, 100);
       }, []);
 
   const onMouseDown = (e) => {
