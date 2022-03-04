@@ -210,8 +210,18 @@ export default function Canvas({
       if (isNavigator) return;
       const e = scaleDivRef.current;
       if (e == null) return;
-      const left = x;
-      const top = y;
+      const c = canvasRef.current;
+      const rect = c?.getBoundingClientRect();
+      if (rect == null) return;
+      const left = Math.min(
+        0,
+        Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
+      );
+      const top = Math.min(
+        0,
+        Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
+      );
+
       e.style.setProperty("left", `${left}px`);
       e.style.setProperty("top", `${top}px`);
       saveViewport();
@@ -230,7 +240,7 @@ export default function Canvas({
         set({ x: -x + e.offsetLeft, y: -y + e.offsetTop });
       },
     };
-  }, [scaleDivRef]);
+  }, [scaleDivRef, canvasRef]);
 
   useWheel(
     (state) => {
@@ -1070,6 +1080,18 @@ export default function Canvas({
     }
   };
 
+  /*
+  if (!isNavigator) {
+    window.x = {
+      scaleDivRef,
+      canvasRef,
+      offset,
+      scale,
+      frame,
+    };
+  }
+  */
+
   return (
     <div
       className={"smc-vfill"}
@@ -1084,7 +1106,6 @@ export default function Canvas({
         userSelect: "none",
         overflow: "hidden",
         position: "relative",
-        background: !isNavigator ? "#e0e0e0" : undefined,
       }}
       onClick={(evt) => {
         mousePath.current = null;
@@ -1186,8 +1207,6 @@ export default function Canvas({
           transform: `scale(${canvasScale})`,
           transition: "transform left top 0.1s",
           transformOrigin: "top left",
-          background: "#fff",
-          boxShadow: "1px 3px 5px #aaa",
         }}
       >
         {!isNavigator && selectedTool == "pen" && (
