@@ -185,6 +185,7 @@ export default function Canvas({
   });
 
   useEffect(() => {
+    if (isNavigator) return;
     if (scaleRef.current != canvasScale) {
       // - canvasScale changed due to something external, rather than
       // usePinchToZoom above, since when changing due to pinch zoom,
@@ -411,16 +412,15 @@ export default function Canvas({
       const viewport = getViewportData();
       if (viewport == null) return;
       const rect = rectSpan(elements);
-      const offset = 50 / canvasScale; // a little breathing room for the toolbar
       setCenterPositionData({
-        x: rect.x + rect.w / 2 - offset,
+        x: rect.x + rect.w / 2 - 50 / canvasScale, // a little breathing room for the toolbar
         y: rect.y + rect.h / 2,
       });
-      let { scale } = fitRectToRect(rect, viewport);
-      if (scale != 1) {
+      const s = fitRectToRect(rect, viewport).scale;
+      if (s != 1) {
         // put bounds on the *automatic* zoom we get from fitting to rect,
         // since could easily get something totally insane, e.g., for a dot.
-        let newFontSize = Math.floor((font_size ?? ZOOM100) * scale);
+        let newFontSize = Math.floor((font_size ?? ZOOM100) * s);
         if (newFontSize < ZOOM100 * 0.2) {
           newFontSize = Math.round(ZOOM100 * 0.2);
         } else if (newFontSize > ZOOM100 * 5) {

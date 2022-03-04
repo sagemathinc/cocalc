@@ -86,6 +86,9 @@ interface Props {
     setSelection: Function;
     getSelection: Function;
   } | null>;
+  onUndo?: () => void; // user requests undo -- if given, codemirror's internal undo is not used
+  onRedo?: () => void; // user requests redo
+  onSave?: () => void; // user requests save
 }
 
 export const MarkdownInput: FC<Props> = ({
@@ -114,6 +117,9 @@ export const MarkdownInput: FC<Props> = ({
   autoFocus,
   cmOptions,
   selectionRef,
+  onUndo,
+  onRedo,
+  onSave,
 }) => {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -210,6 +216,29 @@ export const MarkdownInput: FC<Props> = ({
 
     cm.current.on("blur", () => set_is_focused(false));
     cm.current.on("focus", () => set_is_focused(true));
+
+    if (onUndo != null) {
+      cm.current.undo = () => {
+        if (cm.current == null) return;
+        onChange?.(cm.current.getValue());
+        onUndo();
+      };
+    }
+    if (onRedo != null) {
+      cm.current.redo = () => {
+        if (cm.current == null) return;
+        onChange?.(cm.current.getValue());
+        onRedo();
+      };
+    }
+    if (onSave != null) {
+      // This funny cocalc_actions is just how this is setup
+      // elsewhere in cocalc... Basically the global
+      //    CodeMirror.commands.ave
+      // is set to use this.
+      // @ts-ignore
+      cm.current.cocalc_actions = { explicit_save: onSave };
+    }
 
     if (enableUpload) {
       // as any because the @types for codemirror are WRONG in this case.

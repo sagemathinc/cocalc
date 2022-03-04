@@ -74,6 +74,14 @@ interface Props {
   noVfill?: boolean;
   editorDivRef?: RefObject<HTMLDivElement>; // if in slate "editor" mode, this is the top-level div
   cmOptions?: { [key: string]: any }; // used for codemirror options instead of anything above, e.g,. lineNumbers
+
+  // It is important to handle all of these, rather than trying to rely
+  // on some global keyboard shortcuts.  E.g., in vim mode codemirror,
+  // user types ":w" in their editor and whole document should save
+  // to disk...
+  onUndo?: () => void; // called when user requests to undo
+  onRedo?: () => void; // called when user requests redo
+  onSave?: () => void; // called when user requests to save document
 }
 
 export default function MultiMarkdownInput({
@@ -95,7 +103,7 @@ export default function MultiMarkdownInput({
   extraHelp,
   lineWrapping,
   lineNumbers,
-  saveDebounceMs,
+  saveDebounceMs = 0,
   hideHelp,
   onBlur,
   onFocus,
@@ -107,6 +115,10 @@ export default function MultiMarkdownInput({
   noVfill,
   editorDivRef,
   cmOptions,
+
+  onUndo,
+  onRedo,
+  onSave,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -257,6 +269,9 @@ export default function MultiMarkdownInput({
               : undefined
           }
           onFocus={onFocus}
+          onSave={onSave}
+          onUndo={onUndo}
+          onRedo={onRedo}
         />
       )}
       {mode == "editor" && (
@@ -291,7 +306,7 @@ export default function MultiMarkdownInput({
                   }
             }
             editBarStyle={editBarStyle}
-            saveDebounceMs={saveDebounceMs ?? 0}
+            saveDebounceMs={saveDebounceMs}
             actions={{
               set_value: (value) => {
                 onChange?.(value);
@@ -302,6 +317,9 @@ export default function MultiMarkdownInput({
                 setMode("markdown");
               },
               set_cursor_locs: onCursors != null ? onCursors : undefined,
+              undo: onUndo,
+              redo: onRedo,
+              save: onSave as any,
             }}
             cursors={cursorsMap}
             font_size={fontSize}

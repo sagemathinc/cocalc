@@ -24,6 +24,7 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 function href_transform(
   project_id: string | undefined,
@@ -238,9 +239,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             props.actions?.set_cell_input(props.id, value, true);
             frameActions.current?.set_md_cell_not_editing(props.id);
           }}
-          saveDebounceMs={1500}
+          saveDebounceMs={SAVE_DEBOUNCE_MS}
           cmOptions={cmOptions}
           autoFocus={props.is_focused || props.is_current}
+          onUndo={() => {
+            props.actions?.undo();
+          }}
+          onRedo={() => {
+            props.actions?.redo();
+          }}
+          onSave={() => {
+            props.actions?.save();
+          }}
         />
       );
     }

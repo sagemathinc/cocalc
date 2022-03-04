@@ -28,7 +28,7 @@ export default function DescriptionEditor({
   desc,
   font_size,
 }: Props) {
-  const save = useDebouncedCallback(() => {
+  const commit = useDebouncedCallback(() => {
     actions.commit();
   }, SAVE_DEBOUNCE_MS);
 
@@ -45,7 +45,7 @@ export default function DescriptionEditor({
         value={desc}
         onChange={(desc) => {
           actions.set_desc(task_id, desc, false);
-          save();
+          commit();
         }}
         fontSize={font_size}
         onShiftEnter={saveAndClose}
@@ -57,6 +57,15 @@ export default function DescriptionEditor({
         lineWrapping={true}
         extraHelp={"Use #hashtags to easily label and filter your tasks."}
         autoFocus
+        onSave={() => {
+          actions.save();
+        }}
+        onUndo={() => {
+          actions.undo();
+        }}
+        onRedo={() => {
+          actions.redo();
+        }}
       />
       <Button onClick={saveAndClose} style={{ marginTop: "5px" }}>
         <Icon name="save" /> Save

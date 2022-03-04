@@ -49,7 +49,10 @@ register(
   ],
   ({ editor, extra }) => {
     if (extra == null) return false;
-    extra.actions.undo?.(extra.id);
+    if (extra.actions.undo != null) {
+      editor.saveValue(true);
+      extra.actions.undo(extra.id);
+    }
     editor.hasUnsavedChanges = false;
     //ReactEditor.focus(editor);
     return true;
@@ -63,10 +66,12 @@ register(
   ],
   ({ editor, extra }) => {
     if (extra == null) return false;
-    extra.actions.redo?.(extra.id);
+    if (extra.actions.redo != null) {
+      editor.saveValue(true);
+      extra.actions.redo(extra.id);
+    }
     editor.hasUnsavedChanges = false;
     //ReactEditor.focus(editor);
     return true;
   }
 );
-

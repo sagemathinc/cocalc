@@ -151,6 +151,15 @@ function EditText({
           actions.setCursors(element.id, cursors);
         }}
         cursors={cursors}
+        onSave={() => {
+          actions.save();
+        }}
+        onUndo={() => {
+          actions.undo();
+        }}
+        onRedo={() => {
+          actions.redo();
+        }}
       />
     </div>
   );

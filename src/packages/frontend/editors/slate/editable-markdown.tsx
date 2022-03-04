@@ -56,9 +56,6 @@ import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 
-// (??) A bit longer is better, due to escaping of markdown and multiple users
-// with one user editing source and the other editing with slate.
-// const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 import { delay } from "awaiting";
@@ -344,7 +341,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
-    // For tiny documents, user can make this small or even 0 to not dbounce.
+    // For tiny documents, user can make this small or even 0 to not debounce.
     const saveValueDebounce =
       saveDebounceMs != null && !saveDebounceMs
         ? () => editor.saveValue()
