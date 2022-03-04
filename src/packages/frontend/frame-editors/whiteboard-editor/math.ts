@@ -10,12 +10,12 @@ import { cmp } from "@cocalc/util/misc";
 
 // We just declare a font size of 14 to be "zoom 100%".
 
-export const ZOOM100 = 14;
+import { DEFAULT_FONT_SIZE } from "./tools/defaults";
 export function fontSizeToZoom(size?: number): number {
-  return size ? size / ZOOM100 : 1;
+  return size ? size / DEFAULT_FONT_SIZE : 1;
 }
 export function zoomToFontSize(zoom?: number): number {
-  return zoom ? zoom * ZOOM100 : ZOOM100;
+  return zoom ? zoom * DEFAULT_FONT_SIZE : DEFAULT_FONT_SIZE;
 }
 
 export const DEFAULT_WIDTH = 250;

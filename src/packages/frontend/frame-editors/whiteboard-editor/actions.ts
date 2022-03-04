@@ -28,6 +28,11 @@ import {
   moveUntilNotIntersectingAnything,
   getOverlappingElements,
 } from "./math";
+import {
+  DEFAULT_FONT_SIZE,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
+} from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { cloneDeep } from "lodash";
 import runCode from "./elements/code/run";
@@ -838,6 +843,25 @@ export class Actions extends BaseActions<State> {
       this.disableWhiteboardKeyHandler();
     }
     super.focus(id);
+  }
+
+  increase_font_size(id: string): void {
+    this.set_font_size(
+      id,
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) + 1
+    );
+  }
+
+  decrease_font_size(id: string): void {
+    this.set_font_size(
+      id,
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) - 1
+    );
+  }
+
+  set_font_size(id: string, font_size: number): void {
+    font_size = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, font_size));
+    this.set_frame_tree({ id, font_size });
   }
 }
 

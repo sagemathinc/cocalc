@@ -7,12 +7,13 @@ high level map view.
 */
 
 import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
-import { ReactNode, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Slider, Tooltip } from "antd";
 import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
-import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS, ZOOM100 } from "../math";
+import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS } from "../math";
+import { DEFAULT_FONT_SIZE, MIN_ZOOM, MAX_ZOOM } from "./defaults";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element, ElementsMap } from "../types";
@@ -23,6 +24,7 @@ import {
   SELECTED_BORDER_WIDTH,
 } from "../elements/style";
 import { Key } from "./panel";
+import { throttle } from "lodash";
 
 const TOOLS = {
   map: {
@@ -78,14 +80,14 @@ const TOOLS = {
   },
   zoom100: {
     width: "60px",
-    icon: ({ fontSize }) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
+    icon: ({ zoomSlider }) => <>{zoomSlider}%</>,
     tip: (
       <>
         Zoom to 100% <Key keys="0" />
       </>
     ),
     click: (actions, id) => {
-      actions.set_font_size(id, ZOOM100);
+      actions.set_font_size(id, DEFAULT_FONT_SIZE);
     },
   },
 } as {
@@ -115,19 +117,35 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
   const { actions, desc, id } = useFrameContext();
   const width = desc.get("navWidth") ?? MAP_WIDTH;
   const height = desc.get("navHeight") ?? MAP_HEIGHT;
+
+  const [zoomSlider, setZoomSlider] = useState<number>(
+    Math.round(100 * fontSizeToZoom(fontSize))
+  );
+  useEffect(() => {
+    setZoomSlider(Math.round(100 * fontSizeToZoom(fontSize)));
+  }, [fontSize]);
+
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
-    v.push(<Tool key={tool} tool={tool} fontSize={fontSize} />);
+    v.push(<Tool key={tool} tool={tool} zoomSlider={zoomSlider} />);
   }
+  const setFontSize = useCallback(
+    throttle((value) => {
+      actions.set_font_size(id, Math.round((DEFAULT_FONT_SIZE * value) / 100));
+    }, 50),
+    [id]
+  );
+
   v.push(
     <Slider
       key="slider"
       style={{ flex: 1 }}
-      value={Math.round(100 * fontSizeToZoom(fontSize))}
-      min={20}
-      max={500}
+      value={zoomSlider}
+      min={MIN_ZOOM * 100}
+      max={MAX_ZOOM * 100}
       onChange={(value) => {
-        actions.set_font_size(id, Math.round((ZOOM100 * value) / 100));
+        setZoomSlider(value);
+        setFontSize(value);
       }}
     />
   );
@@ -182,7 +200,7 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
   );
 }
 
-function Tool({ tool, fontSize }) {
+function Tool({ tool, zoomSlider }) {
   const { actions, id, desc } = useFrameContext();
   const { icon, tip, click, width } = TOOLS[tool];
   const navMap = desc.get("navMap", "map");
@@ -200,7 +218,7 @@ function Tool({ tool, fontSize }) {
         {typeof icon == "string" ? (
           <Icon name={icon} />
         ) : (
-          icon({ fontSize, navMap })
+          icon({ zoomSlider, navMap })
         )}
       </Button>
     </Tooltip>

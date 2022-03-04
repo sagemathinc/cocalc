@@ -1,4 +1,9 @@
 export const DEFAULT_FONT_SIZE = 14;
+export const MIN_FONT_SIZE = Math.floor(DEFAULT_FONT_SIZE / 14);
+export const MAX_FONT_SIZE = Math.ceil(DEFAULT_FONT_SIZE * 4);
+export const MIN_ZOOM = MIN_FONT_SIZE / DEFAULT_FONT_SIZE;
+export const MAX_ZOOM = MAX_FONT_SIZE / DEFAULT_FONT_SIZE;
+
 export const DEFAULT_FONT_FAMILY = "Sans";
 export const minFontSize = 7;
 export const maxFontSize = 80;

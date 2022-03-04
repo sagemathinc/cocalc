@@ -77,7 +77,6 @@ import {
   compressPath,
   zoomToFontSize,
   fontSizeToZoom,
-  ZOOM100,
   getPageSpan,
   getPosition,
   fitRectToRect,
@@ -90,6 +89,12 @@ import {
   rectSpan,
   MAX_ELEMENTS,
 } from "./math";
+import {
+  MIN_ZOOM,
+  MAX_ZOOM,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
+} from "./tools/defaults";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
@@ -126,7 +131,7 @@ export default function Canvas({
   font_size,
   scale: scale0,
   selection,
-  margin = 2000,
+  margin = 10000,
   readOnly,
   selectedTool,
   evtToDataRef,
@@ -149,8 +154,8 @@ export default function Canvas({
   });
   usePinchToZoom({
     target: canvasRef,
-    min: 2,
-    max: 50,
+    min: MIN_FONT_SIZE,
+    max: MAX_FONT_SIZE,
     throttleMs: 100,
     onZoom: ({ fontSize, first }) => {
       if (first) {
@@ -406,30 +411,24 @@ export default function Canvas({
         // maximal zoom in on the center!
         setCenterPositionData({ x: 0, y: 0 });
         lastViewport.current = getViewportData();
-        frame.actions.set_font_size(frame.id, Math.floor(ZOOM100));
+        frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
       const viewport = getViewportData();
       if (viewport == null) return;
       const rect = rectSpan(elements);
+      const s = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+      );
+      scale.set(s);
+      frame.actions.set_font_size(frame.id, zoomToFontSize(s));
+      lastViewport.current = viewport;
       setCenterPositionData({
         x: rect.x + rect.w / 2 - 50 / canvasScale, // a little breathing room for the toolbar
         y: rect.y + rect.h / 2,
       });
-      const s = fitRectToRect(rect, viewport).scale;
-      if (s != 1) {
-        // put bounds on the *automatic* zoom we get from fitting to rect,
-        // since could easily get something totally insane, e.g., for a dot.
-        let newFontSize = Math.floor((font_size ?? ZOOM100) * s);
-        if (newFontSize < ZOOM100 * 0.2) {
-          newFontSize = Math.round(ZOOM100 * 0.2);
-        } else if (newFontSize > ZOOM100 * 5) {
-          newFontSize = Math.round(ZOOM100 * 5);
-        }
-        // ensure lastViewport is up to date before zooming.
-        lastViewport.current = getViewportData();
-        frame.actions.set_font_size(frame.id, newFontSize);
-      }
+      saveViewport();
     } finally {
       frame.actions.fitToScreen(frame.id, false);
     }
