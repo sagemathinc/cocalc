@@ -259,6 +259,7 @@ export default function Canvas({
   // result of canvasScale having changed.  If this is done
   // as part of a useEffect, you get a big flicker and random failure.
   if (
+    !isNavigator &&
     scaleRef.current != canvasScale &&
     new Date().valueOf() >= lastPinchRef.current + 500
   ) {
@@ -300,7 +301,9 @@ export default function Canvas({
   const innerCanvasRef = useRef<any>(null);
 
   const canvasScaleRef = useRef<number>(1);
-  const transforms: Transforms = useMemo(() => {
+  const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
+
+  useEffect(() => {
     // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
 
     const t = getTransforms(elements, margin);
@@ -312,7 +315,7 @@ export default function Canvas({
       penDPIFactor * t.width,
       penDPIFactor * t.height
     );
-    return t;
+    transformsRef.current = t;
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
@@ -323,15 +326,19 @@ export default function Canvas({
     if (lastTransforms.current != null) {
       // the transforms changed somewhow.   Maybe xmin/ymin changed.
       // Note changing coords to window...
-      const x = (lastTransforms.current.xMin - transforms.xMin) * canvasScale;
-      const y = (lastTransforms.current.yMin - transforms.yMin) * canvasScale;
+      const x =
+        (lastTransforms.current.xMin - transformsRef.current.xMin) *
+        canvasScale;
+      const y =
+        (lastTransforms.current.yMin - transformsRef.current.yMin) *
+        canvasScale;
       if (x || y) {
         // yes, they changed, so we shift over.
         offset.translate({ x, y });
       }
     }
-    lastTransforms.current = transforms;
-  }, [transforms]);
+    lastTransforms.current = transformsRef.current;
+  }, [transformsRef.current]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
@@ -452,10 +459,11 @@ export default function Canvas({
       const viewport = getViewportData();
       if (viewport == null) return;
       const rect = rectSpan(elements);
-      const s = Math.min(
-        MAX_ZOOM,
-        Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
-      );
+      const s =
+        Math.min(
+          MAX_ZOOM,
+          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+        ) * 0.95; // 0.95 for extra room too.
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       lastViewport.current = viewport;
@@ -473,7 +481,7 @@ export default function Canvas({
   function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
-    const t = transforms.dataToWindowNoScale(x, y, z);
+    const t = transformsRef.current.dataToWindowNoScale(x, y, z);
 
     if (element.hide != null) {
       // element is hidden...
@@ -493,7 +501,7 @@ export default function Canvas({
           key={element.id}
           element={element}
           elementsMap={elementsMap}
-          transforms={transforms}
+          transforms={transformsRef.current}
           selected={selection?.has(element.id)}
           previewMode={previewMode}
           onClick={(e) => {
@@ -596,7 +604,7 @@ export default function Canvas({
           element={element}
           allElements={elements}
           selectedElements={[element]}
-          transforms={transforms}
+          transforms={transformsRef.current}
           readOnly={readOnly}
           cursors={cursors?.[id]}
         >
@@ -671,7 +679,7 @@ export default function Canvas({
         element={element}
         allElements={elements}
         selectedElements={selectedElements}
-        transforms={transforms}
+        transforms={transformsRef.current}
         readOnly={readOnly}
         multi={multi}
       >
@@ -741,13 +749,13 @@ export default function Canvas({
 
   // window coords to data coords
   function windowToData({ x, y }: Point): Point {
-    return transforms.windowToDataNoScale(
+    return transformsRef.current.windowToDataNoScale(
       x / scaleRef.current,
       y / scaleRef.current
     );
   }
   function dataToWindow({ x, y }: Point): Point {
-    const p = transforms.dataToWindowNoScale(x, y);
+    const p = transformsRef.current.dataToWindowNoScale(x, y);
     p.x *= scaleRef.current;
     p.y *= scaleRef.current;
     return { x: p.x, y: p.y };
@@ -811,7 +819,7 @@ export default function Canvas({
     }
     const position: Partial<Element> = {
       ...evtToData(e),
-      z: transforms.zMax + 1,
+      z: transformsRef.current.zMax + 1,
     };
     let elt: Partial<Element> = { type: selectedTool as any };
 
@@ -924,8 +932,8 @@ export default function Canvas({
         const p0 = mousePath.current[0];
         const p1 = mousePath.current[1];
         const rect = pointsToRect(
-          transforms.windowToDataNoScale(p0.x, p0.y),
-          transforms.windowToDataNoScale(p1.x, p1.y)
+          transformsRef.current.windowToDataNoScale(p0.x, p0.y),
+          transformsRef.current.windowToDataNoScale(p1.x, p1.y)
         );
         if (selectedTool == "frame") {
           // make a frame at the selection.  Note that we put
@@ -939,7 +947,7 @@ export default function Canvas({
           }
 
           const { id } = frame.actions.createElement(
-            { ...elt, ...rect, z: transforms.zMin - 1 },
+            { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");
@@ -968,8 +976,9 @@ export default function Canvas({
         // preserve the full points.
         const toData =
           fontSizeToZoom(font_size) < 1
-            ? ({ x, y }) => pointRound(transforms.windowToDataNoScale(x, y))
-            : ({ x, y }) => transforms.windowToDataNoScale(x, y);
+            ? ({ x, y }) =>
+                pointRound(transformsRef.current.windowToDataNoScale(x, y))
+            : ({ x, y }) => transformsRef.current.windowToDataNoScale(x, y);
 
         const { x, y } = toData(mousePath.current[0]);
         let xMin = x,
@@ -1001,7 +1010,7 @@ export default function Canvas({
           {
             x: xMin,
             y: yMin,
-            z: transforms.zMax + 1,
+            z: transformsRef.current.zMax + 1,
             w: xMax - xMin + 1,
             h: yMax - yMin + 1,
             data: { path: compressPath(path), ...getToolElement("pen").data },
@@ -1236,7 +1245,7 @@ export default function Canvas({
                 const pos = getMousePos(mousePos.current);
                 if (pos != null) {
                   const { x, y } = pos;
-                  target = transforms.windowToDataNoScale(x, y);
+                  target = transformsRef.current.windowToDataNoScale(x, y);
                 } else {
                   const point = getCenterPositionWindow();
                   if (point != null) {
@@ -1269,11 +1278,19 @@ export default function Canvas({
         {!isNavigator && selectedTool == "pen" && (
           <canvas
             ref={penCanvasRef}
-            width={canvasScaleRef.current * penDPIFactor * transforms.width}
-            height={canvasScaleRef.current * penDPIFactor * transforms.height}
+            width={
+              canvasScaleRef.current *
+              penDPIFactor *
+              transformsRef.current.width
+            }
+            height={
+              canvasScaleRef.current *
+              penDPIFactor *
+              transformsRef.current.height
+            }
             style={{
-              width: `${transforms.width}px`,
-              height: `${transforms.height}px`,
+              width: `${transformsRef.current.width}px`,
+              height: `${transformsRef.current.height}px`,
               cursor: TOOLS[selectedTool]?.cursor,
               position: "absolute",
               zIndex: MAX_ELEMENTS + 1,
@@ -1318,7 +1335,9 @@ export default function Canvas({
             position: "relative",
           }}
         >
-          {!isNavigator && <Grid transforms={transforms} divRef={gridDivRef} />}
+          {!isNavigator && (
+            <Grid transforms={transformsRef.current} divRef={gridDivRef} />
+          )}
           {v}
         </div>
       </div>
