@@ -20,7 +20,7 @@ import {
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { redux } from "@cocalc/frontend/frame-editors/generic/test/util";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
-import { defaults, required, to_json } from "@cocalc/util/misc";
+import { to_json } from "@cocalc/util/misc";
 import { Col, Row } from "antd";
 import { BigTime } from ".";
 import { CourseActions } from "../actions";
@@ -57,23 +57,32 @@ interface StudentAssignmentInfoProps {
   nbgrader_run_info?: NBgraderRunInfo;
 }
 
-// interface StudentAssignmentInfoState {
-//   recopy_name: boolean;
-//   recopy_open: boolean;
-//   recopy_copy: boolean;
-//   recopy_copy_tip: boolean;
-//   recopy_open_tip: boolean;
-//   recopy_placement: boolean;
-// }
+const STEPS = [
+  "Assign",
+  "Collect",
+  "Peer Assign",
+  "Peer Collect",
+  "Return",
+] as const;
+type Steps = typeof STEPS[number];
 
-const RECOPY_INIT = {
-  name: false,
-  open: false,
-  copy: false,
-  copy_tip: false,
-  open_tip: false,
-  placement: false,
-} as const;
+interface RenderLastProps {
+  step: Steps;
+  type: AssignmentCopyType;
+  data?: any;
+  enable_copy?: boolean;
+  copy_tip?: string;
+  open_tip?: string;
+  omit_errors?: boolean;
+}
+
+const RECOPY_INIT: Record<Steps, false> = {
+  Assign: false,
+  Collect: false,
+  "Peer Assign": false,
+  Return: false,
+  "Peer Collect": false,
+};
 
 function useRecopy(): [
   typeof RECOPY_INIT,
@@ -83,7 +92,6 @@ function useRecopy(): [
   function set(key: keyof typeof RECOPY_INIT, value: boolean) {
     set_recopy({ ...recopy, [key]: value });
   }
-
   return [recopy, set];
 }
 
@@ -341,18 +349,6 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       );
     }
 
-    function render_grade_col(): Rendered {
-      return (
-        <>
-          {render_enter_grade()}
-          {render_save_button()}
-          {render_grade()}
-          {render_comments()}
-          {render_nbgrader()}
-        </>
-      );
-    }
-
     function render_last_time(time: string | number | Date): Rendered {
       return (
         <div key="time" style={{ color: "#666" }}>
@@ -362,20 +358,19 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     }
 
     function render_open_recopy_confirm(
-      name: string,
+      name: Steps,
       copy: Function,
       copy_tip: string,
       placement
     ): Rendered | Rendered[] {
-      const key = name;
-      if (recopy[key]) {
+      if (recopy[name]) {
         const v: Rendered[] = [];
         v.push(
           <Button
             key="recopy_confirm"
             bsStyle="danger"
             onClick={() => {
-              set_recopy(key, false);
+              set_recopy(name, false);
               copy();
             }}
           >
@@ -387,7 +382,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           </Button>
         );
         v.push(
-          <Button key="copy_cancel" onClick={() => set_recopy(key, false)}>
+          <Button key="copy_cancel" onClick={() => set_recopy(name, false)}>
             Cancel
           </Button>
         );
@@ -413,7 +408,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="copy"
             bsStyle="warning"
-            onClick={() => set_recopy(key, true)}
+            onClick={() => set_recopy(name, true)}
           >
             <Tip
               title={name}
@@ -432,7 +427,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     }
 
     function render_open_recopy(
-      name: string,
+      name: Steps,
       open,
       copy,
       copy_tip: string,
@@ -452,7 +447,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       );
     }
 
-    function render_open_copying(name: string, open, stop): Rendered {
+    function render_open_copying(name: Steps, open, stop): Rendered {
       return (
         <ButtonGroup key="open_copying">
           <Button key="copy" bsStyle="success" disabled={true}>
@@ -509,90 +504,45 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       );
     }
 
-    function render_last(opts: {
-      name: string;
-      type: AssignmentCopyType;
-      data?: any;
-      enable_copy?: boolean;
-      copy_tip?: string;
-      open_tip?: string;
-      omit_errors?: boolean;
-    }): Rendered[] {
-      opts = defaults(opts, {
-        name: required,
-        type: required,
-        data: {},
-        enable_copy: false,
-        copy_tip: "",
-        open_tip: "",
-        omit_errors: false,
-      });
+    function Status(props: RenderLastProps): JSX.Element {
+      const {
+        step,
+        type,
+        data = {},
+        enable_copy = false,
+        copy_tip = "",
+        open_tip = "",
+        omit_errors = false,
+      } = props;
 
-      const do_open = () =>
-        open(opts.type, info.assignment_id, info.student_id);
-      const do_copy = () =>
-        copy(opts.type, info.assignment_id, info.student_id);
-      const do_stop = () =>
-        stop(opts.type, info.assignment_id, info.student_id);
+      const do_open = () => open(type, info.assignment_id, info.student_id);
+      const do_copy = () => copy(type, info.assignment_id, info.student_id);
+      const do_stop = () => stop(type, info.assignment_id, info.student_id);
       const v: Rendered[] = [];
-      if (opts.enable_copy) {
-        if (opts.data.start) {
-          v.push(render_open_copying(opts.name, do_open, do_stop));
-        } else if (opts.data.time) {
+      if (enable_copy) {
+        if (data.start) {
+          v.push(render_open_copying(step, do_open, do_stop));
+        } else if (data.time) {
           v.push(
             render_open_recopy(
-              opts.name,
+              step,
               do_open,
               do_copy,
-              opts.copy_tip as string,
-              opts.open_tip as string
+              copy_tip as string,
+              open_tip as string
             )
           );
         } else {
-          v.push(render_copy(opts.name, do_copy, opts.copy_tip as string));
+          v.push(render_copy(step, do_copy, copy_tip as string));
         }
       }
-      if (opts.data.time) {
-        v.push(render_last_time(opts.data.time));
+      if (data.time) {
+        v.push(render_last_time(data.time));
       }
-      if (opts.data.error && !opts.omit_errors) {
-        v.push(render_error(opts.name, opts.data.error));
+      if (data.error && !omit_errors) {
+        v.push(render_error(step, data.error));
       }
-      return v;
-    }
-
-    function render_peer_assign(): Rendered {
-      return (
-        <Col md={4} key="peer_assign">
-          {render_last({
-            name: "Peer Assign",
-            data: info.last_peer_assignment,
-            type: "peer-assigned",
-            enable_copy: info.last_collect != null,
-            copy_tip:
-              "Copy collected assignments from your project to this student's project so they can grade them.",
-            open_tip:
-              "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
-          })}
-        </Col>
-      );
-    }
-
-    function render_peer_collect(): Rendered {
-      return (
-        <Col md={4} key="peer_collect">
-          {render_last({
-            name: "Peer Collect",
-            data: info.last_peer_collect,
-            type: "peer-collected",
-            enable_copy: info.last_peer_assignment != null,
-            copy_tip:
-              "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
-            open_tip:
-              "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
-          })}
-        </Col>
-      );
+      return <>{v}</>;
     }
 
     let show_grade_col, show_return_graded;
@@ -612,6 +562,118 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     }
 
     const width = peer_grade ? 4 : 6;
+
+    function render_assignment_col() {
+      return (
+        <Col md={width} key="last_assignment">
+          <Status
+            step="Assign"
+            data={info.last_assignment}
+            type="assigned"
+            enable_copy={true}
+            copy_tip="Copy the assignment from your project to this student's project so they can do their homework."
+            open_tip={
+              "Open the student's copy of this assignment directly in their project. " +
+              "You will be able to see them type, chat with them, leave them hints, etc."
+            }
+            omit_errors={skip_assignment}
+          />
+        </Col>
+      );
+    }
+
+    function render_collect_col() {
+      return (
+        <Col md={width} key="last_collect">
+          {skip_assignment ||
+          !(info.last_assignment != null
+            ? info.last_assignment.error
+            : undefined) ? (
+            <Status
+              step="Collect"
+              data={info.last_collect}
+              type="collected"
+              enable_copy={info.last_assignment != null || skip_assignment}
+              copy_tip="Copy the assignment from your student's project back to your project so you can grade their work."
+              open_tip="Open the copy of your student's work in your own project, so that you can grade their work."
+              omit_errors={skip_collect}
+            />
+          ) : undefined}
+        </Col>
+      );
+    }
+
+    function render_peer_assign_col() {
+      if (!peer_grade) return;
+      if (!info.peer_assignment) return;
+      if (info.last_collect?.error != null) return;
+      return (
+        <Col md={4} key="peer_assign">
+          <Status
+            step="Peer Assign"
+            data={info.last_peer_assignment}
+            type={"peer-assigned"}
+            enable_copy={info.last_collect != null}
+            copy_tip="Copy collected assignments from your project to this student's project so they can grade them."
+            open_tip="Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+          />
+        </Col>
+      );
+    }
+
+    function render_peer_collect_col() {
+      if (!peer_grade) return;
+      if (!info.peer_collect) return;
+      return (
+        <Col md={4} key="peer_collect">
+          <Status
+            step="Peer Collect"
+            data={info.last_peer_collect}
+            type="peer-collected"
+            enable_copy={info.last_peer_assignment != null}
+            copy_tip="Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade."
+            open_tip="Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+          />
+        </Col>
+      );
+    }
+
+    function render_grade_col() {
+      return (
+        <Col md={width} key="grade">
+          {show_grade_col && (
+            <>
+              {render_enter_grade()}
+              {render_save_button()}
+              {render_grade()}
+              {render_comments()}
+              {render_nbgrader()}
+            </>
+          )}
+        </Col>
+      );
+    }
+
+    function render_return_graded_col() {
+      return (
+        <Col md={width} key="return_graded">
+          {show_return_graded ? (
+            <Status
+              step="Return"
+              data={info.last_return_graded}
+              type="graded"
+              enable_copy={info.last_collect != null || skip_collect}
+              copy_tip="Copy the graded assignment back to your student's project."
+              open_tip={
+                "Open the copy of your student's work that you returned to them. " +
+                "This opens the returned assignment directly in their project."
+              }
+            />
+          ) : undefined}
+        </Col>
+      );
+    }
+
     return (
       <div>
         <Row
@@ -626,65 +688,12 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           </Col>
           <Col md={20} key="rest">
             <Row>
-              <Col md={width} key="last_assignment">
-                {render_last({
-                  name: "Assign",
-                  data: info.last_assignment,
-                  type: "assigned",
-                  enable_copy: true,
-                  copy_tip:
-                    "Copy the assignment from your project to this student's project so they can do their homework.",
-                  open_tip:
-                    "Open the student's copy of this assignment directly in their project. " +
-                    "You will be able to see them type, chat with them, leave them hints, etc.",
-                  omit_errors: skip_assignment,
-                })}
-              </Col>
-              <Col md={width} key="last_collect">
-                {skip_assignment ||
-                !(info.last_assignment != null
-                  ? info.last_assignment.error
-                  : undefined)
-                  ? render_last({
-                      name: "Collect",
-                      data: info.last_collect,
-                      type: "collected",
-                      enable_copy:
-                        info.last_assignment != null || skip_assignment,
-                      copy_tip:
-                        "Copy the assignment from your student's project back to your project so you can grade their work.",
-                      open_tip:
-                        "Open the copy of your student's work in your own project, so that you can grade their work.",
-                      omit_errors: skip_collect,
-                    })
-                  : undefined}
-              </Col>
-              {peer_grade &&
-              info.peer_assignment &&
-              !(info.last_collect != null ? info.last_collect.error : undefined)
-                ? render_peer_assign()
-                : undefined}
-              {peer_grade && info.peer_collect
-                ? render_peer_collect()
-                : undefined}
-              <Col md={width} key="grade">
-                {show_grade_col ? render_grade_col() : undefined}
-              </Col>
-              <Col md={width} key="return_graded">
-                {show_return_graded
-                  ? render_last({
-                      name: "Return",
-                      data: info.last_return_graded,
-                      type: "graded",
-                      enable_copy: info.last_collect != null || skip_collect,
-                      copy_tip:
-                        "Copy the graded assignment back to your student's project.",
-                      open_tip:
-                        "Open the copy of your student's work that you returned to them. " +
-                        "This opens the returned assignment directly in their project.",
-                    })
-                  : undefined}
-              </Col>
+              {render_assignment_col()}
+              {render_collect_col()}
+              {render_peer_assign_col()}
+              {render_peer_collect_col()}
+              {render_grade_col()}
+              {render_return_graded_col()}
             </Row>
           </Col>
         </Row>
