@@ -38,6 +38,7 @@ import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
 import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
+import { debounce } from "lodash";
 
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
@@ -62,6 +63,7 @@ interface Props {
   path?: string; // must be set if enableUpload or enableMentions is set (todo: enforce via typescript)
   value?: string;
   onChange?: (value: string) => void;
+  saveDebounceMs?: number; // if given, calls to onChange are debounced by this param
   enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -102,6 +104,7 @@ export const MarkdownInput: FC<Props> = ({
   submitMentionsRef,
   style,
   onChange,
+  saveDebounceMs,
   onShiftEnter,
   onEscape,
   onBlur,
@@ -188,7 +191,7 @@ export const MarkdownInput: FC<Props> = ({
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     if (onChange != null) {
-      cm.current.on("change", (editor, change) => {
+      let f = (editor, change) => {
         if (change.origin == "setValue") {
           // Since this is a controlled component, firing onChange for this
           // could lead to an infinite loop and randomly crash the browser.
@@ -204,7 +207,11 @@ export const MarkdownInput: FC<Props> = ({
           return;
         }
         onChange(editor.getValue());
-      });
+      };
+      if (saveDebounceMs) {
+        f = debounce(f, saveDebounceMs);
+      }
+      cm.current.on("change", f);
     }
 
     if (onBlur != null) {
