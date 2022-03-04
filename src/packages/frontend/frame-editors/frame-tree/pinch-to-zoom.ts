@@ -42,6 +42,7 @@ export default function usePinchToZoom({
   onZoom,
   throttleMs = 50,
   smooth = 5,
+  disabled,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
@@ -49,10 +50,12 @@ export default function usePinchToZoom({
   onZoom?: (Data) => void; // if given, then font size is NOT set via actions.
   throttleMs?: number;
   smooth?: number;
+  disabled?: boolean;
 }) {
   const { actions, id } = useFrameContext();
 
   const saveThrottled = useMemo(() => {
+    if (disabled) return () => {};
     return throttle((fontSize, first) => {
       if (onZoom != null) {
         onZoom({
@@ -66,6 +69,7 @@ export default function usePinchToZoom({
   }, [id]);
 
   const save = useMemo(() => {
+    if (disabled) return () => {};
     return (fontSize, first) => {
       saveThrottled(fontSize, first);
     };
@@ -84,6 +88,7 @@ export default function usePinchToZoom({
       target,
       eventOptions: { passive: false, capture: true },
       bounds: { top: 0, bottom: (max - min) * smooth },
+      disabled,
     }
   );
 
@@ -104,6 +109,7 @@ export default function usePinchToZoom({
         // This is the zoom level that we start with whenever we start pinching.
         return [lastOffsetRef.current, 0];
       },
+      disabled,
     }
   );
 }

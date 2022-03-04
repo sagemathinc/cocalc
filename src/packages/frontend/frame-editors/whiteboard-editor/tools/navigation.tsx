@@ -141,8 +141,8 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
       key="slider"
       style={{ flex: 1 }}
       value={zoomSlider}
-      min={MIN_ZOOM * 100}
-      max={MAX_ZOOM * 100}
+      min={Math.floor(MIN_ZOOM * 100)}
+      max={Math.ceil(MAX_ZOOM * 100)}
       onChange={(value) => {
         setZoomSlider(value);
         setFontSize(value);

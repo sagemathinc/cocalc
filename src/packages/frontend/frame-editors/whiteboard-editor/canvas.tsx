@@ -152,12 +152,16 @@ export default function Canvas({
     offset: { x: 0, y: 0 },
     mouse: { x: 0, y: 0 },
   });
+
+  const lastPinchRef = useRef<number>(0);
   usePinchToZoom({
+    disabled: isNavigator,
     target: canvasRef,
     min: MIN_FONT_SIZE,
     max: MAX_FONT_SIZE,
     throttleMs: 100,
     onZoom: ({ fontSize, first }) => {
+      lastPinchRef.current = new Date().valueOf();
       if (first) {
         const rect = scaleDivRef.current?.getBoundingClientRect();
         const mouse =
@@ -178,12 +182,10 @@ export default function Canvas({
       scale.set(curScale);
 
       const { mouse } = firstOffsetRef.current;
-      const tx = mouse.x * curScale - mouse.x * firstOffsetRef.current.scale;
-      const ty = mouse.y * curScale - mouse.y * firstOffsetRef.current.scale;
-      const x =
-        firstOffsetRef.current.offset.x - tx / firstOffsetRef.current.scale;
-      const y =
-        firstOffsetRef.current.offset.y - ty / firstOffsetRef.current.scale;
+      const tx = (mouse.x * curScale) / firstOffsetRef.current.scale - mouse.x;
+      const ty = (mouse.y * curScale) / firstOffsetRef.current.scale - mouse.y;
+      const x = firstOffsetRef.current.offset.x - tx;
+      const y = firstOffsetRef.current.offset.y - ty;
       offset.set({ x, y });
       scale.setFontSize();
     },
@@ -191,30 +193,6 @@ export default function Canvas({
 
   useEffect(() => {
     if (isNavigator) return;
-    if (scaleRef.current != canvasScale) {
-      // - canvasScale changed due to something external, rather than
-      // usePinchToZoom above, since when changing due to pinch zoom,
-      // scaleRef has already been set before this call here happens.
-      // - We want to preserve the center of the canvas on zooming.
-      // - Code below is almost identical to usePinch code above,
-      //   except we compute clientX and clientY that would get if mouse
-      //   was in the center.
-      const rect = scaleDivRef.current?.getBoundingClientRect();
-      const rect2 = canvasRef.current?.getBoundingClientRect();
-      const clientX = rect2.left + rect2.width / 2;
-      const clientY = rect2.top + rect2.height / 2;
-      const mouse =
-        rect != null && mouseMoveRef.current
-          ? {
-              x: clientX - rect.left,
-              y: clientY - rect.top,
-            }
-          : { x: 0, y: 0 };
-      const tx = mouse.x * canvasScale - mouse.x * scaleRef.current;
-      const ty = mouse.y * canvasScale - mouse.y * scaleRef.current;
-      offset.translate({ x: tx / scaleRef.current, y: ty / scaleRef.current });
-    }
-    scale.set(canvasScale);
     saveViewport();
   }, [canvasScale]);
 
@@ -235,6 +213,7 @@ export default function Canvas({
     };
   }, [scaleRef, scaleDivRef, frame.id]);
 
+  const offsetRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
   const offset = useMemo(() => {
     const set = ({ x, y }: Point) => {
       if (isNavigator) return;
@@ -243,6 +222,7 @@ export default function Canvas({
       const c = canvasRef.current;
       const rect = c?.getBoundingClientRect();
       if (rect == null) return;
+      // ensure values are in valid range.
       const left = Math.min(
         0,
         Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
@@ -252,6 +232,7 @@ export default function Canvas({
         Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
       );
 
+      offsetRef.current = { left, top };
       e.style.setProperty("left", `${left}px`);
       e.style.setProperty("top", `${top}px`);
       saveViewport();
@@ -260,17 +241,47 @@ export default function Canvas({
     return {
       set,
       get: () => {
-        const e = scaleDivRef.current;
-        if (e == null) return { x: 0, y: 0 };
-        return { x: e.offsetLeft, y: e.offsetTop };
+        return { x: offsetRef.current.left, y: offsetRef.current.top };
       },
       translate: ({ x, y }: Point) => {
-        const e = scaleDivRef.current;
-        if (e == null) return;
-        set({ x: -x + e.offsetLeft, y: -y + e.offsetTop });
+        const { left, top } = offsetRef.current;
+        set({ x: -x + left, y: -y + top });
       },
     };
-  }, [scaleDivRef, canvasRef]);
+  }, [scaleDivRef, canvasRef, offsetRef]);
+
+  // This has to happen directly here, and now as part of
+  // a useEffect, since it sets offsetRef, which is used
+  // for the offset in rendering the scaling div as a
+  // result of canvasScale having changed.  If this is done
+  // as part of a useEffect, you get a big flicker and random failure.
+  if (
+    scaleRef.current != canvasScale &&
+    new Date().valueOf() >= lastPinchRef.current + 500
+  ) {
+    // - canvasScale changed due to something external, rather than
+    // usePinchToZoom above, since when changing due to pinch zoom,
+    // scaleRef has already been set before this call here happens.
+    // - We want to preserve the center of the canvas on zooming.
+    // - Code below is almost identical to usePinch code above,
+    //   except we compute clientX and clientY that would get if mouse
+    //   was in the center.
+    const rect = scaleDivRef.current?.getBoundingClientRect();
+    if (rect != null) {
+      const rect2 = canvasRef.current?.getBoundingClientRect();
+      const clientX = rect2.left + rect2.width / 2;
+      const clientY = rect2.top + rect2.height / 2;
+      const center = {
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      };
+      const tx = (center.x * canvasScale) / scaleRef.current - center.x;
+      const ty = (center.y * canvasScale) / scaleRef.current - center.y;
+      const o = offset.get();
+      offsetRef.current = { left: o.x - tx, top: o.y - ty };
+    }
+    scaleRef.current = canvasScale;
+  }
 
   useWheel(
     (state) => {
@@ -279,6 +290,7 @@ export default function Canvas({
     },
     {
       target: canvasRef,
+      disabled: isNavigator,
     }
   );
 
@@ -827,7 +839,7 @@ export default function Canvas({
             lastViewport.current = viewport;
             frame.actions.saveViewport(frame.id, viewport);
           }
-        }, 50);
+        }, 200);
       }, []);
 
   const onMouseDown = (e) => {
@@ -1224,8 +1236,8 @@ export default function Canvas({
         ref={scaleDivRef}
         style={{
           position: "absolute",
-          left: `${offset.get().x}px`,
-          top: `${offset.get().y}px`,
+          left: `${offsetRef.current.left}px`,
+          top: `${offsetRef.current.top}px`,
           transform: `scale(${canvasScale})`,
           transition: "transform left top 0.1s",
           transformOrigin: "top left",
