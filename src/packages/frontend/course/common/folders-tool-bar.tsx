@@ -15,264 +15,15 @@
 
 import {
   Component,
-  ReactDOM,
-  Rendered,
-  CSS,
+  useIsMountedRef,
+  useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, SearchInput, Space } from "@cocalc/frontend/components";
+import { SearchInput } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { is_different } from "@cocalc/util/misc";
-import { Card, Col, Row } from "antd";
+import { Col, Row } from "antd";
 import * as immutable from "immutable";
-import * as underscore from "underscore";
-import {
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormGroup,
-} from "@cocalc/frontend/antd-bootstrap";
-
-const SEARCH_STYLE: CSS = { marginBottom: "0px" } as const;
-
-interface MultipleAddSearchProps {
-  add_selected: (keys: string[]) => void; // Submit user selected results add_selected(['paths', 'of', 'folders'])
-  do_search: (value: string) => void; // Submit search query, invoked as do_search(value)
-  clear_search: () => void;
-  is_searching: boolean; // whether or not it is asking the backend for the result of a search
-  search_results?: immutable.List<string>; // contents to put in the selection box after getting search result back
-  item_name: string;
-  none_found: boolean;
-  err?: string;
-}
-
-interface MultipleAddSearchState {
-  selected_items: string[];
-  show_selector: boolean;
-}
-
-// Multiple result selector
-// use on_change and search to control the search bar.
-// Coupled with Assignments Panel and Handouts Panel
-class MultipleAddSearch extends Component<
-  MultipleAddSearchProps,
-  MultipleAddSearchState
-> {
-  private search?: string;
-
-  constructor(props) {
-    super(props);
-    this.state = {
-      selected_items: [], // currently selected options
-      show_selector: false,
-    };
-  }
-
-  static defaultProps = { item_name: "result" };
-
-  shouldComponentUpdate(newProps, newState) {
-    return (
-      is_different(this.props, newProps, [
-        "search_results",
-        "item_name",
-        "is_searching",
-        "none_found",
-      ]) ||
-      !underscore.isEqual(newState.selected_items, this.state.selected_items)
-    );
-  }
-
-  componentWillReceiveProps(newProps) {
-    return this.setState({
-      show_selector:
-        newProps.search_results != null && newProps.search_results.size > 0,
-    });
-  }
-
-  clear_and_focus_search_input = () => {
-    this.props.clear_search();
-    return this.setState({ selected_items: [] });
-  };
-
-  search_button() {
-    if (this.props.is_searching) {
-      // Currently doing a search, so show a spinner
-      return (
-        <Button>
-          <Icon name="cocalc-ring" spin />
-        </Button>
-      );
-    } else if (this.state.show_selector) {
-      // There is something in the selection box -- so only action is to clear the search box.
-      return (
-        <Button onClick={this.clear_and_focus_search_input}>
-          <Icon name="times-circle" />
-        </Button>
-      );
-    } else {
-      // Waiting for user to start a search
-      return (
-        <Button onClick={() => this.props.do_search(this.search ?? "")}>
-          <Icon name="search" />
-        </Button>
-      );
-    }
-  }
-
-  add_button_clicked = (e) => {
-    e.preventDefault();
-    if (this.state.selected_items.length === 0) {
-      const first_entry = ReactDOM.findDOMNode(this.refs.selector)?.firstChild
-        .value;
-      if (first_entry == null) return;
-      this.props.add_selected([first_entry]);
-    } else {
-      this.props.add_selected(this.state.selected_items);
-    }
-    return this.clear_and_focus_search_input();
-  };
-
-  change_selection = (e) => {
-    const v: string[] = [];
-    for (const option of e.target.selectedOptions) {
-      v.push(option.label);
-    }
-    return this.setState({ selected_items: v });
-  };
-
-  render_results_list() {
-    if (this.props.search_results == undefined) {
-      return;
-    }
-    const v: any[] = [];
-    this.props.search_results.map((item) => {
-      return v.push(
-        <option key={item} value={item} label={item}>
-          {item}
-        </option>
-      );
-    });
-    return v;
-  }
-
-  render_add_selector() {
-    return (
-      <FormGroup>
-        <FormControl
-          componentClass="select"
-          multiple
-          ref="selector"
-          size={5}
-          rows={10}
-          onChange={this.change_selection}
-          style={{ marginTop: "15px" }}
-        >
-          {this.render_results_list()}
-        </FormControl>
-        <ButtonGroup style={{ marginTop: "15px" }}>
-          {this.render_add_selector_button()}
-          <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
-        </ButtonGroup>
-      </FormGroup>
-    );
-  }
-
-  render_add_selector_button() {
-    const num_items_selected =
-      this.state.selected_items.length != null
-        ? this.state.selected_items.length
-        : 0;
-    const btn_text = (() => {
-      if (this.props.search_results == undefined) {
-        return "";
-      }
-      switch (this.props.search_results.size) {
-        case 0:
-          return `No ${this.props.item_name} found`;
-        case 1:
-          return `Add ${this.props.item_name}`;
-        default:
-          switch (num_items_selected) {
-            case 0:
-            case 1:
-              return `Add selected ${this.props.item_name}`;
-            default:
-              return `Add ${num_items_selected} ${this.props.item_name}s`;
-          }
-      }
-    })();
-    return (
-      <Button
-        disabled={
-          this.props.search_results == undefined ||
-          this.props.search_results.size === 0
-        }
-        onClick={this.add_button_clicked}
-      >
-        <Icon name="plus" /> {btn_text}
-      </Button>
-    );
-  }
-
-  private render_create_new_assignment(): Rendered {
-    if (!this.search) return;
-    let target = this.search.trim();
-    while (target[target.length - 1] == "/") {
-      // strip trailing /'s; people's fingers may want to type them
-      // if they think of assignments as directories (which they should).
-      target = target.slice(0, target.length - 1);
-    }
-    if (!target) return;
-
-    return (
-      <Card
-        style={{ margin: "15px 0" }}
-        title={"Create assignment or handout folder"}
-      >
-        Create '{target}'?
-        <br />
-        <br />
-        <Button onClick={() => this.clear_and_focus_search_input()}>
-          Cancel
-        </Button>
-        <Space />
-        <Button
-          bsStyle="primary"
-          onClick={() => {
-            this.props.add_selected([target]);
-            this.props.clear_search();
-          }}
-        >
-          Yes, create it
-        </Button>
-      </Card>
-    );
-  }
-
-  render() {
-    return (
-      <div>
-        <SearchInput
-          autoFocus={true}
-          default_value=""
-          placeholder={`Add or create ${this.props.item_name} by directory name...`}
-          on_change={(search) => {
-            this.search = search;
-          }}
-          on_submit={(search) => {
-            this.props.do_search(search);
-          }}
-          on_clear={this.clear_and_focus_search_input}
-          buttonAfter={this.search_button()}
-          style={SEARCH_STYLE}
-        />
-        {this.props.none_found
-          ? this.render_create_new_assignment()
-          : undefined}
-        {this.state.show_selector ? this.render_add_selector() : undefined}
-      </div>
-    );
-  }
-}
+import { SEARCH_STYLE } from "./consts";
+import { MultipleAddSearch } from "./multiple-add-search";
 
 // Filter directories based on contents of all_items
 function filter_results(
@@ -328,162 +79,145 @@ interface FoldersToolbarProps {
   plural_item_name: string;
 }
 
-interface FoldersToolbarState {
-  add_is_searching: boolean;
-  add_search_results?: immutable.List<string>;
-  none_found: boolean;
-  last_add_search: string;
-  err?: string;
-}
-// Definitely not a good abstraction.
-// Purely for code reuse (bad reason..)
-// Complects FilterSearchBar and AddSearchBar...
-export class FoldersToolbar extends Component<
-  FoldersToolbarProps,
-  FoldersToolbarState
-> {
-  private is_unmounted: boolean;
-  componentWillUnmount(): void {
-    this.is_unmounted = true;
-  }
+// interface FoldersToolbarState {
+//   add_is_searching: boolean;
+//   add_search_results?: immutable.List<string>;
+//   none_found: boolean;
+//   last_add_search: string;
+//   err?: string;
+// }
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      add_is_searching: false,
-      add_search_results: immutable.List([]),
-      none_found: false,
-      last_add_search: "",
-      err: undefined,
-    };
-  }
+export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
+  props: FoldersToolbarProps
+) => {
+  const {
+    search,
+    search_change,
+    num_omitted,
+    project_id,
+    items,
+    add_folders,
+    item_name = "item",
+    plural_item_name = "item",
+  } = props;
 
-  static defaultProps = {
-    item_name: "item",
-    plural_item_name: "items",
-  };
+  const isMounted = useIsMountedRef();
 
-  private async do_add_search(search): Promise<void> {
+  const [add_is_searching, set_add_is_searching] = useState(false);
+  const [add_search_results, set_add_search_results] = useState<
+    immutable.List<string> | undefined
+  >(immutable.List());
+  const [none_found, set_none_found] = useState(false);
+  const [last_add_search, set_last_add_search] = useState("");
+  const [err, set_err] = useState<string | undefined>();
+
+  async function do_add_search(search): Promise<void> {
     search = search.trim();
 
-    if (this.state.add_is_searching && search === this.state.last_add_search) {
+    if (add_is_searching && search === last_add_search) {
       return;
     }
 
-    this.setState({ add_is_searching: true, last_add_search: search });
+    set_add_is_searching(true);
+    set_last_add_search(search);
 
     let resp;
     try {
       resp = await webapp_client.project_client.find_directories({
-        project_id: this.props.project_id,
+        project_id: project_id,
         query: `*${search}*`,
       });
       // Disregard the results of this search of a new one was already submitted
-      if (this.is_unmounted || this.state.last_add_search !== search) {
+      if (isMounted.current || last_add_search !== search) {
         return;
       }
     } catch (err) {
-      if (this.is_unmounted) return;
-      this.setState({
-        add_is_searching: false,
-        err,
-        add_search_results: undefined,
-      });
+      if (isMounted.current) return;
+      set_add_is_searching(false);
+      set_err(err);
+      set_add_search_results(undefined);
       return;
     }
 
     if (resp.directories.length === 0) {
-      this.setState({
-        add_is_searching: false,
-        add_search_results: immutable.List([]),
-        none_found: true,
-      });
+      set_add_is_searching(false);
+      set_add_search_results(immutable.List([]));
+      set_none_found(true);
       return;
     }
 
-    this.setState(function (state, props) {
-      let merged;
-      const filtered_results = filter_results(
-        resp.directories,
-        search,
-        props.items
-      );
-
-      // Merge to prevent possible massive list alterations
+    const filtered_results = filter_results(
+      resp.directories,
+      search,
+      props.items
+    );
+    // Merge to prevent possible massive list alterations
+    const merged = (function () {
       if (
-        state.add_search_results &&
-        filtered_results.length === state.add_search_results.size
+        add_search_results &&
+        filtered_results.length === add_search_results.size
       ) {
-        merged = state.add_search_results.merge(filtered_results);
+        return add_search_results.merge(filtered_results);
       } else {
-        merged = immutable.List(filtered_results);
+        return immutable.List(filtered_results);
       }
+    })();
 
-      return {
-        add_is_searching: false,
-        add_search_results: merged,
-        none_found: false,
-      };
-    });
+    set_add_is_searching(false);
+    set_add_search_results(merged);
+    set_none_found(false);
   }
 
-  submit_selected = (path_list) => {
+  function submit_selected(path_list) {
     if (path_list != null) {
       // If nothing is selected and the user clicks the button to "Add handout (etc)" then
-      // path_list is undefined, hence don't do this.
+      // path_list is undefined, hence don't do
       // (NOTE: I'm also going to make it so that button is disabled, which fits our
       // UI guidelines, so there's two reasons that path_list is defined here.)
-      this.props.add_folders(path_list);
+      add_folders(path_list);
     }
-    return this.clear_add_search();
-  };
-
-  private clear_add_search(): void {
-    this.setState({
-      add_search_results: immutable.List([]),
-      none_found: false,
-    });
+    return clear_add_search();
   }
 
-  render() {
-    return (
-      <div>
-        <Row>
-          <Col md={6}>
-            <SearchInput
-              placeholder={`Find ${this.props.plural_item_name}...`}
-              default_value={this.props.search}
-              on_change={this.props.search_change}
-              style={SEARCH_STYLE}
-            />
-          </Col>
-          <Col md={8}>
-            {this.props.num_omitted ? (
-              <h5
-                style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
-              >
-                (Omitting {this.props.num_omitted}{" "}
-                {this.props.num_omitted > 1
-                  ? this.props.plural_item_name
-                  : this.props.item_name}
-                )
-              </h5>
-            ) : undefined}
-          </Col>
-          <Col md={10}>
-            <MultipleAddSearch
-              add_selected={this.submit_selected.bind(this)}
-              do_search={this.do_add_search.bind(this)}
-              clear_search={this.clear_add_search.bind(this)}
-              is_searching={this.state.add_is_searching}
-              item_name={this.props.item_name}
-              err={undefined}
-              search_results={this.state.add_search_results}
-              none_found={this.state.none_found}
-            />
-          </Col>
-        </Row>
-      </div>
-    );
+  function clear_add_search(): void {
+    set_add_search_results(immutable.List([]));
+    set_none_found(false);
   }
-}
+
+  return (
+    <div>
+      <Row>
+        <Col md={6}>
+          <SearchInput
+            placeholder={`Find ${plural_item_name}...`}
+            default_value={search}
+            on_change={search_change}
+            style={SEARCH_STYLE}
+          />
+        </Col>
+        <Col md={8}>
+          {num_omitted ? (
+            <h5
+              style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
+            >
+              (Omitting {num_omitted}{" "}
+              {num_omitted > 1 ? plural_item_name : item_name})
+            </h5>
+          ) : undefined}
+        </Col>
+        <Col md={10}>
+          <MultipleAddSearch
+            add_selected={submit_selected.bind(this)}
+            do_search={do_add_search.bind(this)}
+            clear_search={clear_add_search.bind(this)}
+            is_searching={add_is_searching}
+            item_name={item_name}
+            err={undefined}
+            search_results={add_search_results}
+            none_found={none_found}
+          />
+        </Col>
+      </Row>
+    </div>
+  );
+};
