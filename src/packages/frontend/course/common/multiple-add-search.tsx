@@ -3,28 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// BUG:
-//
-//  - this code is buggy since the SearchInput component below is NOT controlled,
-//    but some of the code assumes it is, which makes no sense.
-//    E.g., there is a clear_search prop that is passed in, which is
-//    nonsense, because the state of the search is local to the
-//    SearchInput. That's why the calls to clear
-//    the search in all the code below are all broken.
-//
-
 import {
   Button,
   ButtonGroup,
   FormControl,
   FormGroup,
 } from "@cocalc/frontend/antd-bootstrap";
-import { Component, ReactDOM, Rendered } from "@cocalc/frontend/app-framework";
+import {
+  React,
+  ReactDOM,
+  Rendered,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput, Space } from "@cocalc/frontend/components";
 import { is_different } from "@cocalc/util/misc";
 import { Card } from "antd";
 import * as immutable from "immutable";
-import { isEqual } from "lodash";
 import { SEARCH_STYLE } from "./consts";
 
 interface MultipleAddSearchProps {
@@ -38,230 +34,210 @@ interface MultipleAddSearchProps {
   err?: string;
 }
 
-interface MultipleAddSearchState {
-  selected_items: string[];
-  show_selector: boolean;
+function isSame(prev, next): boolean {
+  return !is_different(prev, next, [
+    "search_results",
+    "item_name",
+    "is_searching",
+    "none_found",
+  ]);
 }
 
 // Multiple result selector
 // use on_change and search to control the search bar.
 // Coupled with Assignments Panel and Handouts Panel
-export class MultipleAddSearch extends Component<
-  MultipleAddSearchProps,
-  MultipleAddSearchState
-> {
-  private search?: string;
+export const MultipleAddSearch: React.FC<MultipleAddSearchProps> = React.memo(
+  (props: MultipleAddSearchProps) => {
+    const {
+      add_selected,
+      do_search,
+      clear_search,
+      is_searching,
+      search_results,
+      item_name = "result",
+      none_found,
+      // err,
+    } = props;
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      selected_items: [], // currently selected options
-      show_selector: false,
-    };
-  }
+    const selectorRef = useRef<FormControl>(null);
 
-  static defaultProps = { item_name: "result" };
+    const [search, setSearch] = useState<string>("");
+    const [selected_items, set_selected_items] = useState<string[]>([]);
+    const [show_selector, set_show_selector] = useState<boolean>(false);
 
-  shouldComponentUpdate(newProps, newState) {
-    return (
-      is_different(this.props, newProps, [
-        "search_results",
-        "item_name",
-        "is_searching",
-        "none_found",
-      ]) || !isEqual(newState.selected_items, this.state.selected_items)
-    );
-  }
+    useEffect(() => {
+      const num_search_results = search_results?.size ?? 0;
+      set_show_selector(num_search_results > 0);
+    }, [search_results]);
 
-  componentWillReceiveProps(newProps) {
-    return this.setState({
-      show_selector:
-        newProps.search_results != null && newProps.search_results.size > 0,
-    });
-  }
-
-  clear_and_focus_search_input = () => {
-    this.props.clear_search();
-    return this.setState({ selected_items: [] });
-  };
-
-  search_button() {
-    if (this.props.is_searching) {
-      // Currently doing a search, so show a spinner
-      return (
-        <Button>
-          <Icon name="cocalc-ring" spin />
-        </Button>
-      );
-    } else if (this.state.show_selector) {
-      // There is something in the selection box -- so only action is to clear the search box.
-      return (
-        <Button onClick={this.clear_and_focus_search_input}>
-          <Icon name="times-circle" />
-        </Button>
-      );
-    } else {
-      // Waiting for user to start a search
-      return (
-        <Button onClick={() => this.props.do_search(this.search ?? "")}>
-          <Icon name="search" />
-        </Button>
-      );
+    function clear_and_focus_search_input() {
+      clear_search();
+      setSearch("");
+      set_selected_items([]);
     }
-  }
 
-  add_button_clicked = (e) => {
-    e.preventDefault();
-    if (this.state.selected_items.length === 0) {
-      const first_entry = ReactDOM.findDOMNode(this.refs.selector)?.firstChild
-        .value;
-      if (first_entry == null) return;
-      this.props.add_selected([first_entry]);
-    } else {
-      this.props.add_selected(this.state.selected_items);
-    }
-    return this.clear_and_focus_search_input();
-  };
-
-  change_selection = (e) => {
-    const v: string[] = [];
-    for (const option of e.target.selectedOptions) {
-      v.push(option.label);
-    }
-    return this.setState({ selected_items: v });
-  };
-
-  render_results_list() {
-    if (this.props.search_results == undefined) {
-      return;
-    }
-    const v: any[] = [];
-    this.props.search_results.map((item) => {
-      return v.push(
-        <option key={item} value={item} label={item}>
-          {item}
-        </option>
-      );
-    });
-    return v;
-  }
-
-  render_add_selector() {
-    return (
-      <FormGroup>
-        <FormControl
-          componentClass="select"
-          multiple
-          ref="selector"
-          size={5}
-          rows={10}
-          onChange={this.change_selection}
-          style={{ marginTop: "15px" }}
-        >
-          {this.render_results_list()}
-        </FormControl>
-        <ButtonGroup style={{ marginTop: "15px" }}>
-          {this.render_add_selector_button()}
-          <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
-        </ButtonGroup>
-      </FormGroup>
-    );
-  }
-
-  render_add_selector_button() {
-    const num_items_selected =
-      this.state.selected_items.length != null
-        ? this.state.selected_items.length
-        : 0;
-    const btn_text = (() => {
-      if (this.props.search_results == undefined) {
-        return "";
+    function search_button() {
+      if (is_searching) {
+        // Currently doing a search, so show a spinner
+        return (
+          <Button>
+            <Icon name="cocalc-ring" spin />
+          </Button>
+        );
+      } else if (show_selector) {
+        // There is something in the selection box -- so only action is to clear the search box.
+        return (
+          <Button onClick={clear_and_focus_search_input}>
+            <Icon name="times-circle" />
+          </Button>
+        );
+      } else {
+        // Waiting for user to start a search
+        return (
+          <Button onClick={() => do_search(search ?? "")}>
+            <Icon name="search" />
+          </Button>
+        );
       }
-      switch (this.props.search_results.size) {
-        case 0:
-          return `No ${this.props.item_name} found`;
-        case 1:
-          return `Add ${this.props.item_name}`;
-        default:
-          switch (num_items_selected) {
-            case 0:
-            case 1:
-              return `Add selected ${this.props.item_name}`;
-            default:
-              return `Add ${num_items_selected} ${this.props.item_name}s`;
-          }
+    }
+
+    function add_button_clicked(e): void {
+      e.preventDefault();
+      if (selected_items.length === 0) {
+        const first_entry = ReactDOM.findDOMNode(selectorRef.current)
+          ?.firstChild.value;
+        if (first_entry == null) return;
+        add_selected([first_entry]);
+      } else {
+        add_selected(selected_items);
       }
-    })();
-    return (
-      <Button
-        disabled={
-          this.props.search_results == undefined ||
-          this.props.search_results.size === 0
+      clear_and_focus_search_input();
+    }
+
+    function change_selection(e): void {
+      const v: string[] = [];
+      for (const option of e.target.selectedOptions) {
+        v.push(option.label);
+      }
+      return set_selected_items(v);
+    }
+
+    function render_results_list(): Rendered[] | undefined {
+      if (search_results == undefined) {
+        return;
+      }
+      return search_results
+        .map((item) => (
+          <option key={item} value={item} label={item}>
+            {item}
+          </option>
+        ))
+        .toArray();
+    }
+
+    function render_add_selector() {
+      return (
+        <FormGroup>
+          <FormControl
+            componentClass="select"
+            multiple
+            ref={selectorRef}
+            size={5}
+            rows={10}
+            onChange={change_selection}
+            style={{ marginTop: "15px" }}
+          >
+            {render_results_list()}
+          </FormControl>
+          <ButtonGroup style={{ marginTop: "15px" }}>
+            {render_add_selector_button()}
+            <Button onClick={clear_and_focus_search_input}>Cancel</Button>
+          </ButtonGroup>
+        </FormGroup>
+      );
+    }
+
+    function render_add_selector_button() {
+      const num_items_selected = selected_items?.length ?? 0;
+      const btn_text = (() => {
+        if (search_results == undefined) {
+          return "";
         }
-        onClick={this.add_button_clicked}
-      >
-        <Icon name="plus" /> {btn_text}
-      </Button>
-    );
-  }
-
-  private render_create_new_assignment(): Rendered {
-    if (!this.search) return;
-    let target = this.search.trim();
-    while (target[target.length - 1] == "/") {
-      // strip trailing /'s; people's fingers may want to type them
-      // if they think of assignments as directories (which they should).
-      target = target.slice(0, target.length - 1);
-    }
-    if (!target) return;
-
-    return (
-      <Card
-        style={{ margin: "15px 0" }}
-        title={"Create assignment or handout folder"}
-      >
-        Create '{target}'?
-        <br />
-        <br />
-        <Button onClick={() => this.clear_and_focus_search_input()}>
-          Cancel
-        </Button>
-        <Space />
+        switch (search_results.size) {
+          case 0:
+            return `No ${item_name} found`;
+          case 1:
+            return `Add ${item_name}`;
+          default:
+            switch (num_items_selected) {
+              case 0:
+              case 1:
+                return `Add selected ${item_name}`;
+              default:
+                return `Add ${num_items_selected} ${item_name}s`;
+            }
+        }
+      })();
+      return (
         <Button
-          bsStyle="primary"
-          onClick={() => {
-            this.props.add_selected([target]);
-            this.props.clear_search();
-          }}
+          disabled={search_results == undefined || search_results.size === 0}
+          onClick={add_button_clicked}
         >
-          Yes, create it
+          <Icon name="plus" /> {btn_text}
         </Button>
-      </Card>
-    );
-  }
+      );
+    }
 
-  render() {
+    function render_create_new_assignment(): Rendered {
+      if (!search) return;
+      let target = search.trim();
+      while (target[target.length - 1] == "/") {
+        // strip trailing /'s; people's fingers may want to type them
+        // if they think of assignments as directories (which they should).
+        target = target.slice(0, target.length - 1);
+      }
+      if (!target) return;
+
+      return (
+        <Card
+          style={{ margin: "15px 0" }}
+          title={"Create assignment or handout folder"}
+        >
+          Create '{target}'?
+          <br />
+          <br />
+          <Button onClick={() => clear_and_focus_search_input()}>Cancel</Button>
+          <Space />
+          <Button
+            bsStyle="primary"
+            onClick={() => {
+              add_selected([target]);
+              clear_search();
+            }}
+          >
+            Yes, create it
+          </Button>
+        </Card>
+      );
+    }
+
     return (
       <div>
         <SearchInput
           autoFocus={true}
           default_value=""
-          placeholder={`Add or create ${this.props.item_name} by directory name...`}
-          on_change={(search) => {
-            this.search = search;
-          }}
-          on_submit={(search) => {
-            this.props.do_search(search);
-          }}
-          on_clear={this.clear_and_focus_search_input}
-          buttonAfter={this.search_button()}
+          value={search}
+          placeholder={`Add or create ${item_name} by directory name...`}
+          on_change={(txt) => setSearch(txt)}
+          on_submit={do_search}
+          on_clear={clear_and_focus_search_input}
+          buttonAfter={search_button()}
           style={SEARCH_STYLE}
         />
-        {this.props.none_found
-          ? this.render_create_new_assignment()
-          : undefined}
-        {this.state.show_selector ? this.render_add_selector() : undefined}
+        {none_found ? render_create_new_assignment() : undefined}
+        {show_selector ? render_add_selector() : undefined}
       </div>
     );
-  }
-}
+  },
+  isSame
+);
