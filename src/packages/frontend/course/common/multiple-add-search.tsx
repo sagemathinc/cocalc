@@ -69,8 +69,7 @@ export class MultipleAddSearch extends Component<
         "item_name",
         "is_searching",
         "none_found",
-      ]) ||
-      !isEqual(newState.selected_items, this.state.selected_items)
+      ]) || !isEqual(newState.selected_items, this.state.selected_items)
     );
   }
 

@@ -14,14 +14,15 @@
 //
 
 import {
-  Component,
   useIsMountedRef,
+  useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { SearchInput } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Col, Row } from "antd";
 import * as immutable from "immutable";
+import { COLORS } from "@cocalc/util/theme";
 import { SEARCH_STYLE } from "./consts";
 import { MultipleAddSearch } from "./multiple-add-search";
 
@@ -91,48 +92,51 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
   props: FoldersToolbarProps
 ) => {
   const {
-    search,
     search_change,
     num_omitted,
     project_id,
-    items,
     add_folders,
+    items,
+    search: propsSearch,
     item_name = "item",
     plural_item_name = "item",
   } = props;
 
   const isMounted = useIsMountedRef();
+  const last_add_search = useRef<string>("");
 
   const [add_is_searching, set_add_is_searching] = useState(false);
   const [add_search_results, set_add_search_results] = useState<
     immutable.List<string> | undefined
   >(immutable.List());
   const [none_found, set_none_found] = useState(false);
-  const [last_add_search, set_last_add_search] = useState("");
   const [err, set_err] = useState<string | undefined>();
+
+  function searchQuery(search: string) {
+    return `*${search}*`;
+  }
 
   async function do_add_search(search): Promise<void> {
     search = search.trim();
 
-    if (add_is_searching && search === last_add_search) {
+    if (add_is_searching && search === last_add_search.current) {
       return;
     }
 
     set_add_is_searching(true);
-    set_last_add_search(search);
+    last_add_search.current = search;
 
     let resp;
     try {
       resp = await webapp_client.project_client.find_directories({
         project_id: project_id,
-        query: `*${search}*`,
+        query: searchQuery(search),
       });
-      // Disregard the results of this search of a new one was already submitted
-      if (isMounted.current || last_add_search !== search) {
+      if (!isMounted.current) {
         return;
       }
     } catch (err) {
-      if (isMounted.current) return;
+      if (!isMounted.current) return;
       set_add_is_searching(false);
       set_err(err);
       set_add_search_results(undefined);
@@ -146,11 +150,7 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
       return;
     }
 
-    const filtered_results = filter_results(
-      resp.directories,
-      search,
-      props.items
-    );
+    const filtered_results = filter_results(resp.directories, search, items);
     // Merge to prevent possible massive list alterations
     const merged = (function () {
       if (
@@ -190,7 +190,7 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
         <Col md={6}>
           <SearchInput
             placeholder={`Find ${plural_item_name}...`}
-            default_value={search}
+            default_value={propsSearch}
             on_change={search_change}
             style={SEARCH_STYLE}
           />
@@ -198,7 +198,11 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
         <Col md={8}>
           {num_omitted ? (
             <h5
-              style={{ textAlign: "center", color: "#666", marginTop: "5px" }}
+              style={{
+                textAlign: "center",
+                color: COLORS.GRAY_L,
+                marginTop: "5px",
+              }}
             >
               (Omitting {num_omitted}{" "}
               {num_omitted > 1 ? plural_item_name : item_name})
@@ -207,12 +211,12 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
         </Col>
         <Col md={10}>
           <MultipleAddSearch
-            add_selected={submit_selected.bind(this)}
-            do_search={do_add_search.bind(this)}
-            clear_search={clear_add_search.bind(this)}
+            add_selected={submit_selected}
+            do_search={do_add_search}
+            clear_search={clear_add_search}
             is_searching={add_is_searching}
             item_name={item_name}
-            err={undefined}
+            err={err}
             search_results={add_search_results}
             none_found={none_found}
           />
