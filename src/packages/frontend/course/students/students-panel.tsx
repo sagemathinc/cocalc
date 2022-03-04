@@ -3,42 +3,42 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "@cocalc/util/misc";
-import { is_different, search_match, search_split } from "@cocalc/util/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { keys } from "lodash";
-import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-
-// React libraries and components
 import {
-  React,
   AppRedux,
+  React,
   Rendered,
-  useState,
+  useActions,
+  useIsMountedRef,
   useRedux,
   useRef,
-  useIsMountedRef,
-} from "../../app-framework";
-
-import { Alert, Row, Col, Button, Form, Input } from "antd";
-
-// CoCalc components
-import { SearchInput, ErrorDisplay, Icon, Space, Tip } from "../../components";
-
-import * as util from "../util";
-import { ProjectMap, UserMap } from "../../todo-types";
+  useState,
+} from "@cocalc/frontend/app-framework";
 import {
-  StudentsMap,
+  ErrorDisplay,
+  Icon,
+  SearchInput,
+  Space,
+  Tip,
+} from "@cocalc/frontend/components";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as misc from "@cocalc/util/misc";
+import { is_different, search_match, search_split } from "@cocalc/util/misc";
+import { Alert, Button, Col, Form, Input, Row } from "antd";
+import { Set } from "immutable";
+import { concat, keys, sortBy } from "lodash";
+import { CourseActions } from "../actions";
+import {
   AssignmentsMap,
-  SortDescription,
-  StudentRecord,
   IsGradingMap,
   NBgraderRunInfo,
+  SortDescription,
+  StudentRecord,
+  StudentsMap,
 } from "../store";
-import { CourseActions } from "../actions";
-import { Set } from "immutable";
+import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
-import { concat, sortBy } from "lodash";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -82,6 +82,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     const addSelectRef = useRef<HTMLSelectElement>(null);
     const studentAddInputRef = useRef(null);
+
+    const actions = useActions<CourseActions>({ name });
 
     const expanded_students: Set<string> | undefined = useRedux(
       name,
@@ -179,10 +181,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
       return { students, num_omitted, num_deleted };
     }, [students, props.students, show_deleted, search]);
-
-    function get_actions(): CourseActions {
-      return redux.getActions(name);
-    }
 
     async function do_add_search(e): Promise<void> {
       // Search for people to add to the course
@@ -322,7 +320,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           students.push({ email_address: y });
         }
       }
-      get_actions().students.add_students(students);
+      actions.students.add_students(students);
       clear();
     }
 
@@ -339,7 +337,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           students.push({ email_address: entry.email_address });
         }
       }
-      get_actions().students.add_students(students);
+      actions.students.add_students(students);
       clear();
     }
 
@@ -494,7 +492,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       const ed = render_error_display();
       if (ed != null) {
         return (
-          <Col md={24} style={{  marginBottom: "20px" }}>
+          <Col md={24} style={{ marginBottom: "20px" }}>
             {ed}
           </Col>
         );
@@ -603,7 +601,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           href=""
           onClick={(e) => {
             e.preventDefault();
-            return get_actions().students.set_active_student_sort(column_name);
+            actions.students.set_active_student_sort(column_name);
           }}
         >
           {display_name}
@@ -651,7 +649,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     function render_student(student_id: string, index: number) {
       const x = student_list.students[index];
       if (x == null) return null;
-      const store = get_actions().get_store();
+      const store = actions.get_store();
       if (store == null) return null;
       const studentName: StudentNameDescription = {
         full: store.get_student_name(x.student_id),

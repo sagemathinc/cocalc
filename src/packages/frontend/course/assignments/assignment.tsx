@@ -9,7 +9,12 @@ import {
   FormControl,
   FormGroup,
 } from "@cocalc/frontend/antd-bootstrap";
-import { AppRedux, React, Rendered } from "@cocalc/frontend/app-framework";
+import {
+  AppRedux,
+  React,
+  Rendered,
+  useActions,
+} from "@cocalc/frontend/app-framework";
 import {
   DateTimePicker,
   Icon,
@@ -82,12 +87,9 @@ function useCopyConfirmState() {
     return_graded: false,
   });
 
-  // we only modify, not replace
+  // modify flags, don't replace this entirely
   function set(state: AssignmentCopyStep, value: boolean): void {
-    set_copy_confirm((prev) => ({
-      ...prev,
-      [state]: value,
-    }));
+    set_copy_confirm((prev) => ({ ...prev, [state]: value }));
   }
 
   return { copy_confirm, set };
@@ -128,23 +130,10 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     const { copy_confirm: copy_confirm_all, set: set_copy_confirm_all } =
       useCopyConfirmState();
 
-    // const [copy_confirm_assignment, set_copy_confirm_assignment] =
-    //   useState<boolean>(false);
-    // const [copy_confirm_collect, set_copy_confirm_collect] =
-    //   useState<boolean>(false);
-    // const [copy_confirm_peer_assignment, set_copy_confirm_peer_assignment] =
-    //   useState<boolean>(false);
-    // const [copy_confirm_peer_collect, set_copy_confirm_peer_collect] =
-    //   useState<boolean>(false);
-    // const [copy_confirm_return_graded, set_copy_confirm_return_graded] =
-    //   useState<boolean>(false);
-
-    function get_actions(): CourseActions {
-      return redux.getActions(name);
-    }
+    const actions = useActions<CourseActions>({ name });
 
     function get_store(): CourseStore {
-      return redux.getStore(name) as any;
+      return actions.get_store();
     }
 
     function is_peer_graded() {
@@ -185,7 +174,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function date_change(date): void {
-      get_actions().assignments.set_due_date(
+      actions.assignments.set_due_date(
         assignment.get("assignment_id"),
         date != null ? date.toISOString() : undefined
       );
@@ -216,7 +205,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
               placeholder="Private notes about this assignment (not visible to students)"
               default_value={assignment.get("note")}
               on_save={(value) =>
-                get_actions().assignments.set_assignment_note(
+                actions.assignments.set_assignment_note(
                   assignment.get("assignment_id"),
                   value
                 )
@@ -243,9 +232,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           <Col xs={20}>
             <Button
               onClick={() =>
-                get_actions().export.file_use_times(
-                  assignment.get("assignment_id")
-                )
+                actions.export.file_use_times(assignment.get("assignment_id"))
               }
             >
               Export file use times for this assignment
@@ -271,7 +258,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           <Col xs={20}>
             <Button
               onClick={() =>
-                get_actions().assignments.export_collected(
+                actions.assignments.export_collected(
                   assignment.get("assignment_id")
                 )
               }
@@ -467,7 +454,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         // of the assignment info.  The alternative would be
         // polling the directory or watching listings, which is
         // a lot more work to properly implement.
-        get_actions().toggle_item_expansion(
+        actions.toggle_item_expansion(
           "assignment",
           assignment.get("assignment_id")
         );
@@ -498,7 +485,6 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     function show_copy_confirm(): void {
       set_copy_confirm_state("assignment", true);
       set_copy_confirm(true);
-      const actions = get_actions();
       const assignment_id: string | undefined = assignment.get("assignment_id");
       actions.assignments.update_listing(assignment_id);
     }
@@ -633,7 +619,6 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       overwrite: boolean = false
     ) {
       // assign assignment to all (non-deleted) students
-      const actions = get_actions();
       const assignment_id: string | undefined = assignment.get("assignment_id");
       if (assignment_id == null) throw Error("bug");
       switch (step) {
@@ -682,11 +667,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       }
       return (
         <div style={{ float: "right" }}>
-          <SkipCopy
-            assignment={assignment}
-            step={step}
-            actions={get_actions()}
-          />
+          <SkipCopy assignment={assignment} step={step} actions={actions} />
         </div>
       );
     }
@@ -1082,7 +1063,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function toggle_skip_grading() {
-      get_actions().assignments.set_skip(
+      actions.assignments.set_skip(
         assignment.get("assignment_id"),
         "grading",
         !assignment.get("skip_grading")
@@ -1183,14 +1164,12 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function delete_assignment() {
-      get_actions().assignments.delete_assignment(
-        assignment.get("assignment_id")
-      );
+      actions.assignments.delete_assignment(assignment.get("assignment_id"));
       return set_confirm_delete(false);
     }
 
     function undelete_assignment() {
-      return get_actions().assignments.undelete_assignment(
+      return actions.assignments.undelete_assignment(
         assignment.get("assignment_id")
       );
     }
@@ -1247,9 +1226,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function render_configure_peer() {
-      return (
-        <ConfigurePeerGrading actions={get_actions()} assignment={assignment} />
-      );
+      return <ConfigurePeerGrading actions={actions} assignment={assignment} />;
     }
 
     function render_peer_button() {
@@ -1263,7 +1240,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         <Button
           disabled={expand_peer_config}
           onClick={() =>
-            get_actions().toggle_item_expansion(
+            actions.toggle_item_expansion(
               "peer_config",
               assignment.get("assignment_id")
             )
@@ -1302,7 +1279,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           href=""
           onClick={(e) => {
             e.preventDefault();
-            get_actions().toggle_item_expansion(
+            actions.toggle_item_expansion(
               "assignment",
               assignment.get("assignment_id")
             );

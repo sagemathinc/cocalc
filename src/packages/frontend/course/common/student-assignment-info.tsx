@@ -7,6 +7,7 @@ import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   Rendered,
+  useActions,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
@@ -18,7 +19,6 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
-import { redux } from "@cocalc/frontend/frame-editors/generic/test/util";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { to_json } from "@cocalc/util/misc";
 import { Col, Row } from "antd";
@@ -112,19 +112,15 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     } = props;
 
     const clicked_nbgrader = useRef<Date>();
-
+    const actions = useActions<CourseActions>({ name });
     const [recopy, set_recopy] = useRecopy();
-
-    function get_actions(): CourseActions {
-      return redux.getActions(name);
-    }
 
     function open(
       type: AssignmentCopyType,
       assignment_id: string,
       student_id: string
     ) {
-      return get_actions().assignments.open_assignment(
+      return actions.assignments.open_assignment(
         type,
         assignment_id,
         student_id
@@ -136,7 +132,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       assignment_id: string,
       student_id: string
     ) {
-      return get_actions().assignments.copy_assignment(
+      return actions.assignments.copy_assignment(
         type,
         assignment_id,
         student_id
@@ -148,7 +144,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       assignment_id: string,
       student_id: string
     ) {
-      get_actions().assignments.stop_copying_assignment(
+      actions.assignments.stop_copying_assignment(
         assignment_id,
         student_id,
         type
@@ -156,14 +152,14 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     }
 
     function set_edited_feedback() {
-      get_actions().assignments.update_edited_feedback(
+      actions.assignments.update_edited_feedback(
         assignment.get("assignment_id"),
         student.get("student_id")
       );
     }
 
     function stop_editing() {
-      get_actions().assignments.clear_edited_feedback(
+      actions.assignments.clear_edited_feedback(
         assignment.get("assignment_id"),
         student.get("student_id")
       );
@@ -176,7 +172,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
             placeholder="Grade..."
             value={grade || ""}
             onBlur={(grade) => {
-              get_actions().assignments.set_grade(
+              actions.assignments.set_grade(
                 assignment.get("assignment_id"),
                 student.get("student_id"),
                 grade
@@ -230,7 +226,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
             placeholder="Optional markdown comments..."
             value={comments || ""}
             onBlur={(comment) => {
-              get_actions().assignments.set_comment(
+              actions.assignments.set_comment(
                 assignment.get("assignment_id"),
                 student.get("student_id"),
                 comment
@@ -302,7 +298,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               }
 
               clicked_nbgrader.current = new Date();
-              get_actions().assignments.run_nbgrader_for_one_student(
+              actions.assignments.run_nbgrader_for_one_student(
                 assignment.get("assignment_id"),
                 student.get("student_id")
               );
