@@ -126,7 +126,7 @@ export default function Canvas({
   font_size,
   scale: scale0,
   selection,
-  margin,
+  margin = 2000,
   readOnly,
   selectedTool,
   evtToDataRef,
@@ -137,11 +137,11 @@ export default function Canvas({
 }: Props) {
   const frame = useFrameContext();
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
-  margin = margin ?? 2500;
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   const scaleDivRef = useRef<any>(null);
+
   const firstOffsetRef = useRef<any>({
     scale: 1,
     offset: { x: 0, y: 0 },
@@ -185,7 +185,31 @@ export default function Canvas({
   });
 
   useEffect(() => {
+    if (scaleRef.current != canvasScale) {
+      // - canvasScale changed due to something external, rather than
+      // usePinchToZoom above, since when changing due to pinch zoom,
+      // scaleRef has already been set before this call here happens.
+      // - We want to preserve the center of the canvas on zooming.
+      // - Code below is almost identical to usePinch code above,
+      //   except we compute clientX and clientY that would get if mouse
+      //   was in the center.
+      const rect = scaleDivRef.current?.getBoundingClientRect();
+      const rect2 = canvasRef.current?.getBoundingClientRect();
+      const clientX = rect2.left + rect2.width / 2;
+      const clientY = rect2.top + rect2.height / 2;
+      const mouse =
+        rect != null && mouseMoveRef.current
+          ? {
+              x: clientX - rect.left,
+              y: clientY - rect.top,
+            }
+          : { x: 0, y: 0 };
+      const tx = mouse.x * canvasScale - mouse.x * scaleRef.current;
+      const ty = mouse.y * canvasScale - mouse.y * scaleRef.current;
+      offset.translate({ x: tx / scaleRef.current, y: ty / scaleRef.current });
+    }
     scale.set(canvasScale);
+    saveViewport();
   }, [canvasScale]);
 
   const scaleRef = useRef<number>(canvasScale);
@@ -1080,7 +1104,6 @@ export default function Canvas({
     }
   };
 
-  /*
   if (!isNavigator) {
     window.x = {
       scaleDivRef,
@@ -1088,9 +1111,9 @@ export default function Canvas({
       offset,
       scale,
       frame,
+      saveViewport,
     };
   }
-  */
 
   return (
     <div
