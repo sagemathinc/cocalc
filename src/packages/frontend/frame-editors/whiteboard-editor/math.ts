@@ -14,6 +14,9 @@ export const ZOOM100 = 14;
 export function fontSizeToZoom(size?: number): number {
   return size ? size / ZOOM100 : 1;
 }
+export function zoomToFontSize(zoom?: number): number {
+  return zoom ? zoom * ZOOM100 : ZOOM100;
+}
 
 export const DEFAULT_WIDTH = 250;
 export const DEFAULT_HEIGHT = 100;

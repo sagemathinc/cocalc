@@ -75,6 +75,7 @@ import Grid from "./elements/grid";
 import {
   centerOfRect,
   compressPath,
+  zoomToFontSize,
   fontSizeToZoom,
   ZOOM100,
   getPageSpan,
@@ -135,13 +136,8 @@ export default function Canvas({
   cursors,
 }: Props) {
   const frame = useFrameContext();
-  const [canvasScale, setCanvasScale] = useState<number>(
-    scale0 ?? fontSizeToZoom(font_size)
-  );
-  // We have to scale the margin as we zoom in and out,
-  // since otherwise it will look way too small. We don't
-  // touch margin though if it is explicitly set.
-  margin = margin ?? 1500 / canvasScale;
+  const canvasScale = scale0 ?? fontSizeToZoom(font_size);
+  margin = margin ?? 2500;
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
@@ -184,8 +180,13 @@ export default function Canvas({
       const y =
         firstOffsetRef.current.offset.y - ty / firstOffsetRef.current.scale;
       offset.set({ x, y });
+      scale.setFontSize();
     },
   });
+
+  useEffect(() => {
+    scale.set(canvasScale);
+  }, [canvasScale]);
 
   const scaleRef = useRef<number>(canvasScale);
   const scale = useMemo(() => {
@@ -199,6 +200,9 @@ export default function Canvas({
       get: () => {
         return scaleRef.current;
       },
+      setFontSize: throttle(() => {
+        frame.actions.set_font_size(frame.id, zoomToFontSize(scaleRef.current));
+      }, 250),
     };
   }, [scaleRef, scaleDivRef]);
 
@@ -358,7 +362,7 @@ export default function Canvas({
   }
 
   // when fitToScreen is true, compute data then set font_size to
-  // get zoom (plus offset) to everything is visible properly
+  // get zoom (plus offset) so everything is visible properly
   // on the page; also set fitToScreen back to false in
   // frame tree data.
   useEffect(() => {
@@ -743,7 +747,7 @@ export default function Canvas({
       ...evtToData(e),
       z: transforms.zMax + 1,
     };
-    let elt: Partial<Element> = {};
+    let elt: Partial<Element> = { type: selectedTool as any };
 
     // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
@@ -1074,7 +1078,6 @@ export default function Canvas({
       canvasRef,
       offset,
       scale,
-      setCanvasScale,
       frame,
     };
   }
@@ -1190,6 +1193,8 @@ export default function Canvas({
         ref={scaleDivRef}
         style={{
           position: "absolute",
+          left: `${offset.get().x}px`,
+          top: `${offset.get().y}px`,
           transform: `scale(${canvasScale})`,
           transition: "transform left top 0.1s",
           transformOrigin: "top left",
