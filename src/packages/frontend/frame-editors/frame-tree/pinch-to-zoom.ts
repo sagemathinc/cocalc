@@ -43,6 +43,7 @@ export default function usePinchToZoom({
   throttleMs = 50,
   smooth = 5,
   disabled,
+  getFontSize,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
@@ -51,6 +52,7 @@ export default function usePinchToZoom({
   throttleMs?: number;
   smooth?: number;
   disabled?: boolean;
+  getFontSize?: () => number; // function that gets current font size for application; useful so that zoom starts at out right value, in case changed externally
 }) {
   const { actions, id } = useFrameContext();
 
@@ -105,6 +107,15 @@ export default function usePinchToZoom({
       scaleBounds: { min: 1, max: 1001 },
       axis: "x",
       from: () => {
+        if (getFontSize != null) {
+          const fontSize = getFontSize();
+          // need that      fontSize = min + s*(max-min), where s =(offset[0] - 1)/1000
+          // Solve for offset[0] and return that.
+          //  s = (fontSize - min) / (max - min) = (offset[0] - 1) / 1000, so
+          //  offset[0] = 1000 * s + 1.
+          const s = (fontSize - min) / (max - min);
+          return [1000 * s + 1];
+        }
         // TODO: this needs to return current font size / scale but in terms of our scale bounds param.
         // This is the zoom level that we start with whenever we start pinching.
         return [lastOffsetRef.current, 0];

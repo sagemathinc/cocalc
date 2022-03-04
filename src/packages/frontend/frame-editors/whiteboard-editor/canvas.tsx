@@ -93,6 +93,7 @@ import {
 import {
   MIN_ZOOM,
   MAX_ZOOM,
+  DEFAULT_FONT_SIZE,
   MIN_FONT_SIZE,
   MAX_FONT_SIZE,
 } from "./tools/defaults";
@@ -161,6 +162,7 @@ export default function Canvas({
     min: MIN_FONT_SIZE,
     max: MAX_FONT_SIZE,
     throttleMs: 100,
+    getFontSize: () => font_size ?? DEFAULT_FONT_SIZE,
     onZoom: ({ fontSize, first }) => {
       lastPinchRef.current = new Date().valueOf();
       if (first) {
