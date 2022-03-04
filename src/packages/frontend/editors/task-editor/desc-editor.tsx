@@ -49,7 +49,6 @@ export default function DescriptionEditor({
         }}
         fontSize={font_size}
         onShiftEnter={saveAndClose}
-        onBlur={saveAndClose}
         onFocus={actions.disable_key_handler}
         enableUpload={true}
         enableMentions={true}
