@@ -7,45 +7,35 @@
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { Component, Rendered } from "../../app-framework";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { Icon, Space, Tip } from "../../components";
-import { Button } from "../../antd-bootstrap";
+import { Button } from "antd";
 
 interface SkipCopyProps {
   assignment: AssignmentRecord;
   step: string;
   actions: CourseActions;
-  not_done?: number;
 }
 
-export class SkipCopy extends Component<SkipCopyProps> {
-  render_checkbox() {
-    if (this.props.not_done === 0) {
-      return (
-        <span style={{ fontSize: "12pt" }}>
-          <Icon name="check-circle" />
-          <Space />
-        </span>
-      );
-    }
+export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
+  const { assignment, step, actions } = props;
+
+  function click() {
+    actions.assignments.set_skip(
+      assignment.get("assignment_id"),
+      step,
+      !assignment.get(`skip_${step}` as any)
+    );
   }
 
-  click = () => {
-    this.props.actions.assignments.set_skip(
-      this.props.assignment.get("assignment_id"),
-      this.props.step,
-      !this.props.assignment.get(`skip_${this.props.step}` as any)
-    );
-  };
-
-  render() {
+  function icon_extra() {
     let icon;
     let extra: Rendered = undefined;
-    if (this.props.assignment.get(`skip_${this.props.step}` as any)) {
+    if (assignment.get(`skip_${step}` as any)) {
       icon = "check-square-o";
-      if (this.props.assignment.getIn(["peer_grade", "enabled"])) {
+      if (assignment.getIn(["peer_grade", "enabled"])) {
         // don't bother even trying to implement skip and peer grading at once.
         extra = (
           <span>
@@ -56,16 +46,20 @@ export class SkipCopy extends Component<SkipCopyProps> {
     } else {
       icon = "square-o";
     }
-    return (
-      <Tip
-        placement="left"
-        title="Skip step in workflow"
-        tip="Click this checkbox to enable doing the next step after this step, e.g., you can try to collect assignments that you never explicitly assigned (maybe the students put them in place some other way)."
-      >
-        <Button onClick={this.click}>
-          <Icon name={icon} /> Skip {this.props.step} {extra}
-        </Button>
-      </Tip>
-    );
+    return { icon, extra };
   }
-}
+
+  const { icon, extra } = icon_extra();
+
+  return (
+    <Tip
+      placement="left"
+      title="Skip step in workflow"
+      tip="Click this checkbox to enable doing the next step after this step, e.g., you can try to collect assignments that you never explicitly assigned (maybe the students put them in place some other way)."
+    >
+      <Button onClick={click}>
+        <Icon name={icon} /> Skip {step} {extra}
+      </Button>
+    </Tip>
+  );
+};

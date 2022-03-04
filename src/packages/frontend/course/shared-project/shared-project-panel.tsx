@@ -3,13 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, AppRedux, Rendered } from "../../app-framework";
+import { UsergroupAddOutlined } from "@ant-design/icons";
+import {
+  AppRedux,
+  React,
+  Rendered,
+  useActions,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { Button, Popconfirm } from "antd";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
-import { Icon } from "../../components";
-import { UsergroupAddOutlined } from "@ant-design/icons";
-
-import { Button, Popconfirm } from "antd";
+import { DeleteSharedProjectPanel } from "./delete-shared-project";
 
 interface SharedProjectPanelProps {
   settings: CourseSettingsRecord;
@@ -28,6 +33,8 @@ function isSame(prev, next): boolean {
 export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
   (props: SharedProjectPanelProps) => {
     const { settings, redux, name } = props;
+
+    const actions = useActions<CourseActions>({ name });
 
     function panel_header_text(): string {
       if (settings.get("shared_project_id")) {
@@ -69,6 +76,10 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
           <Button onClick={open_project} size={"large"}>
             Open shared project...
           </Button>
+          <hr />
+          <DeleteSharedProjectPanel
+            delete={() => actions.shared_project.delete()}
+          />
         </div>
       );
     }

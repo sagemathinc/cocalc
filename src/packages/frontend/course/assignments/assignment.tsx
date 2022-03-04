@@ -723,7 +723,6 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       const n = status[`not_${step}`];
       const message = (
         <div>
-          {" "}
           <div style={{ marginBottom: "15px" }}>
             {capitalize(step_verb(step))} this homework {step_direction(step)}{" "}
             the {n} student{n > 1 ? "s" : ""}

@@ -4,34 +4,28 @@
  */
 
 // CoCalc libraries
-import {
-  Button
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
   Component,
   rclass,
   redux,
   Rendered,
-  rtypes
+  rtypes,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon, Space,
-  Tip
-} from "@cocalc/frontend/components";
+import { Icon, Space, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import {
-  cmp_array
-} from "@cocalc/util/misc";
+import { cmp_array } from "@cocalc/util/misc";
 import { Alert, Col, Row } from "antd";
 import { Map, Set } from "immutable";
 import { CourseActions } from "../actions";
 import { FoldersToolbar } from "../common";
 import {
-  AssignmentRecord, IsGradingMap,
+  AssignmentRecord,
+  IsGradingMap,
   NBgraderRunInfo,
   SortDescription,
-  StudentRecord
+  StudentRecord,
 } from "../store";
 import * as styles from "../styles";
 import * as util from "../util";
@@ -359,18 +353,3 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
     }
   }
 );
-
-export function AssignmentsPanelHeader(props: { n: number }) {
-  return (
-    <Tip
-      delayShow={1300}
-      title="Assignments"
-      tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right."
-    >
-      <span>
-        <Icon name="share-square" /> Assignments{" "}
-        {props.n != null ? ` (${props.n})` : ""}
-      </span>
-    </Tip>
-  );
-}
