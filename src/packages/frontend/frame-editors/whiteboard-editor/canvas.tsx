@@ -91,7 +91,6 @@ import {
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
-//import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
@@ -136,7 +135,9 @@ export default function Canvas({
   cursors,
 }: Props) {
   const frame = useFrameContext();
-  const canvasScale = scale0 ?? fontSizeToZoom(font_size);
+  const [canvasScale, setCanvasScale] = useState<number>(
+    scale0 ?? fontSizeToZoom(font_size)
+  );
   // We have to scale the margin as we zoom in and out,
   // since otherwise it will look way too small. We don't
   // touch margin though if it is explicitly set.
@@ -156,7 +157,6 @@ export default function Canvas({
     max: 50,
     throttleMs: 100,
     onZoom: ({ fontSize, first }) => {
-      console.log(fontSize);
       if (first) {
         const rect = scaleDivRef.current?.getBoundingClientRect();
         const mouse =
@@ -191,18 +191,20 @@ export default function Canvas({
   const scale = useMemo(() => {
     return {
       set: (scale: number) => {
+        if (isNavigator) return;
         if (scaleDivRef.current == null) return;
         scaleRef.current = scale;
         scaleDivRef.current.style.setProperty("transform", `scale(${scale})`);
       },
       get: () => {
-        return scaleRef.current ?? 1;
+        return scaleRef.current;
       },
     };
-  }, []);
+  }, [scaleRef, scaleDivRef]);
 
   const offset = useMemo(() => {
     const set = ({ x, y }: Point) => {
+      if (isNavigator) return;
       const e = scaleDivRef.current;
       if (e == null) return;
       const left = x;
@@ -346,6 +348,7 @@ export default function Canvas({
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
+    console.log("setCenterPositionData, ", x, y);
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;
@@ -668,12 +671,15 @@ export default function Canvas({
 
   // window coords to data coords
   function windowToData({ x, y }: Point): Point {
-    return transforms.windowToDataNoScale(x / canvasScale, y / canvasScale);
+    return transforms.windowToDataNoScale(
+      x / scaleRef.current,
+      y / scaleRef.current
+    );
   }
   function dataToWindow({ x, y }: Point): Point {
     const p = transforms.dataToWindowNoScale(x, y);
-    p.x *= canvasScale;
-    p.y *= canvasScale;
+    p.x *= scaleRef.current;
+    p.y *= scaleRef.current;
     return { x: p.x, y: p.y };
   }
   /****************************************************/
@@ -682,7 +688,7 @@ export default function Canvas({
     const v = getViewportWindow();
     if (v == null) return;
     const { x, y } = windowToData(v);
-    return { x, y, w: v.w / canvasScale, h: v.h / canvasScale };
+    return { x, y, w: v.w / scaleRef.current, h: v.h / scaleRef.current };
   }
   // The viewport in *window* coordinates
   function getViewportWindow(): Rect | undefined {
@@ -969,8 +975,8 @@ export default function Canvas({
     if (rect == null) return;
     const { x, y } = offset.get();
     return {
-      x: (-x + e.clientX - rect.left) / canvasScale,
-      y: (-y + e.clientY - rect.top) / canvasScale,
+      x: (-x + e.clientX - rect.left) / scaleRef.current,
+      y: (-y + e.clientY - rect.top) / scaleRef.current,
     };
   }
 
@@ -1067,6 +1073,9 @@ export default function Canvas({
       scaleDivRef,
       canvasRef,
       offset,
+      scale,
+      setCanvasScale,
+      frame,
     };
   }
 
@@ -1084,6 +1093,7 @@ export default function Canvas({
         userSelect: "none",
         overflow: "hidden",
         position: "relative",
+        background: !isNavigator ? "#e0e0e0" : undefined,
       }}
       onClick={(evt) => {
         mousePath.current = null;
@@ -1183,7 +1193,8 @@ export default function Canvas({
           transform: `scale(${canvasScale})`,
           transition: "transform left top 0.1s",
           transformOrigin: "top left",
-          border: "1px solid red",
+          background: "#fff",
+          boxShadow: "1px 3px 5px #aaa",
         }}
       >
         {!isNavigator && selectedTool == "pen" && (

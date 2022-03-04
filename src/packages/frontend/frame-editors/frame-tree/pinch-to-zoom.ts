@@ -46,7 +46,7 @@ export default function usePinchToZoom({
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
-  onZoom?: (Data) => void; // not throttled at all; if given, then font size is NOT set via actions.
+  onZoom?: (Data) => void; // if given, then font size is NOT set via actions.
   throttleMs?: number;
   smooth?: number;
 }) {
@@ -61,9 +61,7 @@ export default function usePinchToZoom({
         });
         return;
       }
-      //} else {
       actions.set_font_size(id, fontSize);
-      //}
     }, throttleMs);
   }, [id]);
 
