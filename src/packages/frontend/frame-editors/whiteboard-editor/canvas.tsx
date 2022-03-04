@@ -192,7 +192,6 @@ export default function Canvas({
   const scale = useMemo(() => {
     return {
       set: (scale: number) => {
-        if (isNavigator) return;
         if (scaleDivRef.current == null) return;
         scaleRef.current = scale;
         scaleDivRef.current.style.setProperty("transform", `scale(${scale})`);
@@ -204,7 +203,7 @@ export default function Canvas({
         frame.actions.set_font_size(frame.id, zoomToFontSize(scaleRef.current));
       }, 250),
     };
-  }, [scaleRef, scaleDivRef]);
+  }, [scaleRef, scaleDivRef, frame.id]);
 
   const offset = useMemo(() => {
     const set = ({ x, y }: Point) => {
@@ -352,7 +351,6 @@ export default function Canvas({
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
-    console.log("setCenterPositionData, ", x, y);
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;
@@ -1071,16 +1069,6 @@ export default function Canvas({
       e.preventDefault();
     }
   };
-
-  if (!isNavigator) {
-    window.x = {
-      scaleDivRef,
-      canvasRef,
-      offset,
-      scale,
-      frame,
-    };
-  }
 
   return (
     <div
