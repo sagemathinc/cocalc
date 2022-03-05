@@ -765,11 +765,13 @@ export class Actions extends BaseActions<State> {
     moved: Set<string> = new Set()
   ): void {
     let allElements: undefined | Element[] = undefined;
+    const tx = Math.round(offset.x);
+    const ty = Math.round(offset.y);
     for (const element of elements) {
       const { id } = element;
       if (moved.has(id)) continue;
-      const x = element.x + offset.x;
-      const y = element.y + offset.y;
+      const x = element.x + tx;
+      const y = element.y + ty;
       this.setElement({
         obj: { id, x, y },
         commit: false,

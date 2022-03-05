@@ -152,7 +152,7 @@ function EditText({
         }}
         cursors={cursors}
         onSave={() => {
-          actions.save();
+          actions.save(true);
         }}
         onUndo={() => {
           actions.undo();

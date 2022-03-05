@@ -425,7 +425,10 @@ export class SyncDoc extends EventEmitter {
     if (exit_undo_mode) this.undo_state = undefined;
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
-    this.emit_change();
+
+    // debounced, so don't immediately alert, in case there are many
+    // more sets comming in the same loop:
+    this.emit_change_debounced();
   }
 
   // Convenience function to avoid having to do
@@ -2383,6 +2386,12 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
+    // Inform client code about any changes.
+    // This is likely to be what code wants when they issue commit,
+    // in case they did a batch of sets without commiting.
+    this.emit_change();
+
+    // Now save to backend as a new patch:
     this.emit("user-change");
     const patch = this.last.make_patch(this.doc); // must be nontrivial
     this.last = this.doc;
@@ -2820,8 +2829,18 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
+  // Immediately alert all watchers of all changes since
+  // last time.
   private emit_change(): void {
     this.emit("change", this.doc.changes(this.before_change));
     this.before_change = this.doc;
   }
+
+  // Alert to changes soon, but debounced in case there are a large
+  // number of calls in a group.  This is called by default.
+  // The debounce param is 0, since the idea is that this just waits
+  // until the next "render loop" to avoid huge performance issues
+  // with a nested for loop of sets.  Doing it this way, massively
+  // simplifies client code.
+  emit_change_debounced = debounce(this.emit_change.bind(this), 0);
 }
