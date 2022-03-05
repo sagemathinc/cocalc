@@ -848,6 +848,11 @@ export default function Canvas({
       elt = getToolElement("icon");
     } else if (selectedTool == "text") {
       elt = getToolElement("text");
+    } else if (selectedTool == "code") {
+      elt = getToolElement("code");
+      elt.w = 650;
+      // TODO: this is silly...
+      elt.h = 16 + 2 * (elt.data?.fontSize ?? DEFAULT_FONT_SIZE);
     } else if (selectedTool == "frame") {
       elt = getToolElement("frame");
     } else if (selectedTool == "chat") {
