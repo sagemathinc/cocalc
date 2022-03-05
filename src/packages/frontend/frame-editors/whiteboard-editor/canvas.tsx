@@ -1110,6 +1110,7 @@ export default function Canvas({
     }
     if (mousePath.current == null) return;
     e.preventDefault?.(); // only makes sense for mouse not touch.
+
     if (selectedTool == "select" || selectedTool == "frame") {
       const point = getMousePos(e);
       if (point == null) return;
@@ -1117,33 +1118,39 @@ export default function Canvas({
       setSelectRect(pointsToRect(mousePath.current[0], mousePath.current[1]));
       return;
     }
+
     if (selectedTool == "pen") {
+      // mousePath is used for the actual path when creating the elemnts,
+      // and is in data coordinates:
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current.push(point);
+
+      // Rest of this code is just for drawing a preview of the path:
       if (penPreviewPath.current != null) {
         penPreviewPath.current.push({ x: e.clientX, y: e.clientY });
+      } else {
+        return;
       }
-      if (mousePath.current.length <= 1) return;
       const canvas = penCanvasRef.current;
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
-      if (penPreviewPath.current == null) return;
-      /*
-      NOTE/TODO: we are again scaling/redrawing the *entire* curve every time
-      we get new mouse move.   This is a major perforamnce problem, which has
-      the symptom of making the pen really low resolution, e.g., on an ipad.
-      Critical to fix.
-      */
-      canvas.style.setProperty("visibility", "visible");
-      clearCanvas({ ctx });
-      ctx.restore();
-      ctx.save();
-      ctx.scale(penDPIFactor, penDPIFactor);
+
+      if (penPreviewPath.current.length <= 2) {
+        // initialize
+        canvas.style.setProperty("visibility", "visible");
+        clearCanvas({ ctx });
+        ctx.restore();
+        ctx.save();
+        ctx.scale(penDPIFactor, penDPIFactor);
+      }
+      // Actually draw it:
       const path: Point[] = [];
       const { rect } = penCanvasParamsRef.current;
-      for (const point of penPreviewPath.current) {
+      for (const point of penPreviewPath.current.slice(
+        penPreviewPath.current.length - 2
+      )) {
         path.push({
           x: (point.x - rect.left) / penDPIFactor,
           y: (point.y - rect.top) / penDPIFactor,

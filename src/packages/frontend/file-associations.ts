@@ -410,7 +410,7 @@ file_associations["board"] = {
   editor: "board",
   icon: "layout",
   opts: {},
-  name: "mathematical whiteboard",
+  name: "whiteboard",
 };
 
 file_associations["sage-chat"] = {
