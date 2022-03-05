@@ -71,6 +71,7 @@ import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import useResizeObserver from "use-resize-observer";
 import Grid from "./elements/grid";
 import {
   centerOfRect,
@@ -300,22 +301,11 @@ export default function Canvas({
 
   const innerCanvasRef = useRef<any>(null);
 
-  const canvasScaleRef = useRef<number>(1);
   const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
 
   useEffect(() => {
     // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
-
-    const t = getTransforms(elements, margin);
-
-    // also update the canvas scale, which is needed to keep
-    // the canvas preview layer (for the pen) from getting too big
-    // and wasting memory.
-    canvasScaleRef.current = getMaxCanvasSizeScale(
-      penDPIFactor * t.width,
-      penDPIFactor * t.height
-    );
-    transformsRef.current = t;
+    transformsRef.current = getTransforms(elements, margin);
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
@@ -341,6 +331,7 @@ export default function Canvas({
   }, [transformsRef.current]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
+  const penPreviewPath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
     start: Point;
     clientX: number;
@@ -361,6 +352,31 @@ export default function Canvas({
   } | null>(null);
 
   const penCanvasRef = useRef<any>(null);
+  const penCanvasParamsRef = useRef<{
+    scale: number;
+    rect: {
+      width: number;
+      height: number;
+      top: number;
+      left: number;
+    };
+  }>({ scale: 1, rect: { left: 0, top: 0, width: 0, height: 0 } });
+  const resize = useResizeObserver({ ref: canvasRef });
+  useEffect(() => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect != null) {
+      // also update the canvas scale, which is needed to keep
+      // the canvas preview layer (for the pen) from getting too big
+      // and wasting memory.
+      penCanvasParamsRef.current = {
+        scale: getMaxCanvasSizeScale(
+          penDPIFactor * rect.width,
+          penDPIFactor * rect.height
+        ),
+        rect,
+      };
+    }
+  }, [resize]);
 
   // Whenever the data <--> window transform params change,
   // ensure the current center of the viewport is preserved
@@ -896,6 +912,7 @@ export default function Canvas({
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current = [point];
+      penPreviewPath.current = [{ x: e.clientX, y: e.clientY }];
       ignoreNextClick.current = true;
       return;
     }
@@ -960,12 +977,22 @@ export default function Canvas({
         }
         return;
       } else if (selectedTool == "pen") {
+        penPreviewPath.current = null;
         const canvas = penCanvasRef.current;
         if (canvas != null) {
-          const ctx = canvas.getContext("2d");
-          if (ctx != null) {
-            clearCanvas({ ctx });
-          }
+          // we wait slightly before hiding/clearing it, so
+          // the preview doesn't go away before the
+          // non-preview is rendered (i.e., flicker).
+          setTimeout(() => {
+            const ctx = canvas.getContext("2d");
+            if (ctx != null) {
+              clearCanvas({ ctx });
+              if (penPreviewPath.current == null) {
+                // only hide if a new path didn't start!
+                canvas.style.setProperty("visibility", "hidden");
+              }
+            }
+          }, 0);
         }
         if (mousePath.current == null || mousePath.current.length <= 0) {
           return;
@@ -1094,37 +1121,32 @@ export default function Canvas({
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current.push(point);
+      if (penPreviewPath.current != null) {
+        penPreviewPath.current.push({ x: e.clientX, y: e.clientY });
+      }
       if (mousePath.current.length <= 1) return;
       const canvas = penCanvasRef.current;
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
+      if (penPreviewPath.current == null) return;
       /*
       NOTE/TODO: we are again scaling/redrawing the *entire* curve every time
-      we get new mouse move.  Curves are pretty small, and the canvas is limited
-      in size, so this is actually working and feels fast on devices I've tried.
-      But it would obviously be better to draw only what is new properly.
-      That said, do that with CARE because I did have one implementation of that
-      and so many lines were drawn on top of each other that highlighting
-      didn't look transparent during the preview.
-
-      The second bad thing about this is that the canvas is covering the entire
-      current span of all elements.  Thus as that gets large, the resolution of
-      the preview goes down further. It would be better to use a canvas that is
-      just over the visible viewport.
-
-      So what we have works fine now, but there's a lot of straightforward but
-      tedious room for improvement to make the preview look perfect as you draw.
+      we get new mouse move.   This is a major perforamnce problem, which has
+      the symptom of making the pen really low resolution, e.g., on an ipad.
+      Critical to fix.
       */
+      canvas.style.setProperty("visibility", "visible");
       clearCanvas({ ctx });
       ctx.restore();
       ctx.save();
       ctx.scale(penDPIFactor, penDPIFactor);
       const path: Point[] = [];
-      for (const point of mousePath.current) {
+      const { rect } = penCanvasParamsRef.current;
+      for (const point of penPreviewPath.current) {
         path.push({
-          x: point.x * canvasScaleRef.current,
-          y: point.y * canvasScaleRef.current,
+          x: (point.x - rect.left) / penDPIFactor,
+          y: (point.y - rect.top) / penDPIFactor,
         });
       }
       const { color, radius, opacity } = getToolElement("pen").data ?? {};
@@ -1132,7 +1154,7 @@ export default function Canvas({
         ctx,
         path,
         color,
-        radius: canvasScaleRef.current * (radius ?? 1),
+        radius: (scaleRef.current * (radius ?? 1)) / penDPIFactor,
         opacity,
       });
       return;
@@ -1264,6 +1286,30 @@ export default function Canvas({
             }
       }
     >
+      {!isNavigator && selectedTool == "pen" && (
+        <canvas
+          className="smc-vfill"
+          ref={penCanvasRef}
+          width={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.width
+          }
+          height={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.height
+          }
+          style={{
+            cursor: TOOLS[selectedTool]?.cursor,
+            position: "absolute",
+            zIndex: MAX_ELEMENTS + 1,
+            top: 0,
+            left: 0,
+            visibility: "hidden",
+          }}
+        />
+      )}
       <div
         ref={scaleDivRef}
         style={{
@@ -1275,30 +1321,6 @@ export default function Canvas({
           transformOrigin: "top left",
         }}
       >
-        {!isNavigator && selectedTool == "pen" && (
-          <canvas
-            ref={penCanvasRef}
-            width={
-              canvasScaleRef.current *
-              penDPIFactor *
-              transformsRef.current.width
-            }
-            height={
-              canvasScaleRef.current *
-              penDPIFactor *
-              transformsRef.current.height
-            }
-            style={{
-              width: `${transformsRef.current.width}px`,
-              height: `${transformsRef.current.height}px`,
-              cursor: TOOLS[selectedTool]?.cursor,
-              position: "absolute",
-              zIndex: MAX_ELEMENTS + 1,
-              top: 0,
-              left: 0,
-            }}
-          />
-        )}
         {selectRect != null && (
           <div
             style={{
