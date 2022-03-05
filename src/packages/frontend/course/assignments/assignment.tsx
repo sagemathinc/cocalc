@@ -23,7 +23,6 @@ import {
   MarkdownInput,
   Tip,
 } from "@cocalc/frontend/components";
-//import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { capitalize, is_different, trunc_middle } from "@cocalc/util/misc";
 import { Alert, Card, Col, Input, Row } from "antd";
 import { ReactElement, useState } from "react";
@@ -41,7 +40,7 @@ import {
 import * as styles from "../styles";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
 import { STEPS, step_direction, step_ready, step_verb } from "../util";
-import { STUDENT_SUBDIR } from "./actions";
+import { STUDENT_SUBDIR } from "./consts";
 import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { SkipCopy } from "./skip";

@@ -8,71 +8,65 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
-export const STUDENT_SUBDIR = "student";
-
-// default timeout of 1 minute per cell
-export const NBGRADER_CELL_TIMEOUT_MS: number = 60 * 1000;
-// default timeout of 10 minutes for whole notebook
-export const NBGRADER_TIMEOUT_MS: number = 10 * 60 * 1000;
-
-// default max output of 1 million characters per cell
-export const NBGRADER_MAX_OUTPUT_PER_CELL: number = 500000;
-// default max output of 4 million characters for whole notebook
-export const NBGRADER_MAX_OUTPUT: number = 4000000;
-
-import { Map } from "immutable";
-
-import { CourseActions } from "../actions";
+import { redux } from "@cocalc/frontend/app-framework";
 import {
-  AssignmentRecord,
-  CourseStore,
-  NBgraderRunInfo,
-  get_nbgrader_score,
-} from "../store";
-import {
+  exec,
   start_project,
   stop_project,
-  exec,
-} from "../../frame-editors/generic/client";
-import { webapp_client } from "../../webapp-client";
-import { redux } from "../../app-framework";
+} from "@cocalc/frontend/frame-editors/generic/client";
 import {
-  len,
-  endswith,
-  path_split,
-  uuid,
-  peer_grading,
-  mswalltime,
-  defaults,
-  split,
-  trunc,
-} from "@cocalc/util/misc";
-import { delay, map } from "awaiting";
-
-import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
-import { grading_state } from "../nbgrader/util";
-import { ipynb_clear_hidden_tests } from "../../jupyter/nbgrader/clear-hidden-tests";
+  jupyter_strip_notebook,
+  nbgrader,
+} from "@cocalc/frontend/jupyter/nbgrader/api";
 import {
   extract_auto_scores,
   NotebookScores,
-} from "../../jupyter/nbgrader/autograde";
-
+} from "@cocalc/frontend/jupyter/nbgrader/autograde";
+import { ipynb_clear_hidden_tests } from "@cocalc/frontend/jupyter/nbgrader/clear-hidden-tests";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  previous_step,
-  assignment_identifier,
-  autograded_filename,
-} from "../util";
+  defaults,
+  endswith,
+  len,
+  mswalltime,
+  path_split,
+  peer_grading,
+  split,
+  trunc,
+  uuid,
+} from "@cocalc/util/misc";
+import { delay, map } from "awaiting";
+import { Map } from "immutable";
+import { CourseActions } from "../actions";
+import { export_assignment } from "../export/export-assignment";
+import { export_student_file_use_times } from "../export/file-use-times";
+import { grading_state } from "../nbgrader/util";
+import {
+  AssignmentRecord,
+  CourseStore,
+  get_nbgrader_score,
+  NBgraderRunInfo,
+} from "../store";
 import {
   AssignmentCopyType,
+  copy_type_to_last,
   LastAssignmentCopyType,
   SyncDBRecord,
   SyncDBRecordAssignment,
-  copy_type_to_last,
 } from "../types";
-
-import { export_student_file_use_times } from "../export/file-use-times";
-
-import { export_assignment } from "../export/export-assignment";
+import {
+  assignment_identifier,
+  autograded_filename,
+  previous_step,
+} from "../util";
+import {
+  NBGRADER_CELL_TIMEOUT_MS,
+  NBGRADER_MAX_OUTPUT,
+  NBGRADER_MAX_OUTPUT_PER_CELL,
+  NBGRADER_TIMEOUT_MS,
+  PEER_GRADING_GUIDE_FN,
+  STUDENT_SUBDIR,
+} from "./consts";
 
 export class AssignmentsActions {
   private course_actions: CourseActions;
@@ -1072,7 +1066,7 @@ ${details}
     }
 
     const peer_grading_guidelines_file =
-      assignment.get("collect_path") + "/GRADING-GUIDE.md";
+      assignment.get("collect_path") + `/${PEER_GRADING_GUIDE_FN}`;
 
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (peer_student_id: string) => {
@@ -1105,7 +1099,7 @@ ${details}
         src_project_id: store.get("course_project_id"),
         src_path: peer_grading_guidelines_file,
         target_project_id: student_project_id,
-        target_path: target_base_path + "/GRADING-GUIDE.md",
+        target_path: target_base_path + `/${PEER_GRADING_GUIDE_FN}`,
       });
       // now copy actual stuff to grade
       await map(peers, store.get_copy_parallel(), f);

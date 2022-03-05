@@ -12,12 +12,12 @@ import {
   DateTimePicker,
   Icon,
   MarkdownInput,
-  Tip,
 } from "@cocalc/frontend/components";
-// import { server_days_ago } from "@cocalc/util/misc";
+import { server_days_ago } from "@cocalc/util/misc";
 import { Button, Card, Col, InputNumber, Row, Switch, Typography } from "antd";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
+import { PEER_GRADING_GUIDE_FN } from "./consts";
 
 interface Props {
   assignment: AssignmentRecord;
@@ -53,8 +53,9 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
     function peer_due(date): Date | undefined {
       if (date != null) {
         return new Date(date);
+      } else {
+        return server_days_ago(-7);
       }
-      // there was fallback code to set this to server_days_ago(-7), but this was never actually used, hence disabled
     }
 
     function set_peer_grade(config) {
@@ -73,13 +74,18 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
 
     function render_configure_peer_due(config): Rendered {
       const label = (
-        <Tip
-          placement="top"
-          title="Set the due date"
-          tip="Set the due date for grading this assignment.  Note that you must explicitly click a button to collect graded assignments when -- they are not automatically collected on the due date.  A file is included in the student peer grading assignment telling them when they should finish their grading."
+        <Typography.Paragraph
+          ellipsis={{ expandable: true, rows: 1, symbol: "more info" }}
         >
-          Due
-        </Tip>
+          Due date:{" "}
+          <Typography.Text type={"secondary"}>
+            Set the due date for grading this assignment. Note: you must
+            explicitly click a button to collect graded assignments – they are
+            not automatically collected on the due date. A file is included in
+            the student peer grading assignment telling them when they should
+            finish their grading.
+          </Typography.Text>
+        </Typography.Paragraph>
       );
       return (
         <Row style={{ marginTop: "10px" }}>
@@ -118,11 +124,18 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
       return (
         <Row style={{ marginTop: "10px" }}>
           <Col span={12}>
-            Grading guidelines, which will be made available to students in
-            their grading folder in a file GRADING_GUIDE.md. Tell your students
-            how to grade each problem. Since this is a markdown file, you might
-            also provide a link to a publicly shared file or directory with
-            guidelines.
+            <Typography.Paragraph
+              ellipsis={{ expandable: true, rows: 1, symbol: "more info" }}
+            >
+              Grading guidelines:{" "}
+              <Typography.Text type={"secondary"}>
+                This text will be made available to students in their grading
+                folder in a file <code>{PEER_GRADING_GUIDE_FN}</code>. Tell your
+                students how to grade each problem. Since this is a markdown
+                file, you might also provide a link to a publicly shared file or
+                directory with guidelines.
+              </Typography.Text>
+            </Typography.Paragraph>
           </Col>
           <Col span={12}>
             <div
