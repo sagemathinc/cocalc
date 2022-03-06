@@ -5,13 +5,14 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
+const EXPENSIVE_DEBUG = false;
+//const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
 
 import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { createEditor, Descendant, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Transforms } from "slate";
 import { withFix4131, withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -87,11 +88,12 @@ const USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
-// ** This must be at least 1 or our algorithm for maintaining the
-// DOM selection state will not work.**
+// ** This must be at least 2 or our algorithm for maintaining the
+// DOM selection state will not work.  Any upstream editing removes focus.**
 // Setting the count to 10 and editing moby dick **does** feel slightly
-// laggy, whereas around 2 or 3 and it feels super snappy.
-const OVERSCAN_ROW_COUNT = 2;
+// laggy, whereas around 2 or 3 and it feels usable.
+const OVERSCAN_ROW_COUNT = 3;
+if (OVERSCAN_ROW_COUNT <= 1) throw Error("this can't work!");
 
 const STYLE = {
   width: "100%",
@@ -139,7 +141,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
     hidePath,
-    disableWindowing,
+    disableWindowing = !USE_WINDOWING,
     style,
     pageStyle,
     editBarStyle,
@@ -152,9 +154,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     divRef,
     selectionRef,
   }) => {
-    if (disableWindowing == null) {
-      disableWindowing = !USE_WINDOWING;
-    }
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
     const id = id0 ?? "";
@@ -421,6 +420,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // we only use the latest version of the document
       // for caching purposes.
       editor.syncCache = {};
+      // There is an assumption here that markdown_to_slate produces
+      // a document that is properly normalized.  If that isn't the
+      // case, things will go horribly wrong, since it'll be impossible
+      // to convert the document to equal nextEditorValue.
       const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
 
       const operations = slateDiff(previousEditorValue, nextEditorValue);
@@ -428,9 +431,30 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
+      //       console.log(
+      //         "selection before patching",
+      //         JSON.stringify(editor.selection)
+      //       );
       if (operations.length > 0) {
         editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
         applyOperations(editor, operations);
+      }
+      // console.log("selection after patching", JSON.stringify(editor.selection));
+      try {
+        if (editor.selection != null) {
+          const { anchor, focus } = editor.selection;
+          Editor.node(editor, anchor);
+          Editor.node(editor, focus);
+        }
+      } catch (err) {
+        // TODO!
+        console.warn("slate - invalid selection after upstream patch", err);
+        // set to beginning of document -- better than crashing.
+        const focus = { path: [0, 0], offset: 0 };
+        Transforms.setSelection(editor, {
+          focus,
+          anchor: focus,
+        });
       }
 
       if (EXPENSIVE_DEBUG) {
@@ -449,6 +473,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             operations,
             stringify,
             slateDiff,
+            applyOperations,
+            markdown_to_slate,
+            value,
           };
         }
       }

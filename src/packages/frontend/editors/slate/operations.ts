@@ -28,14 +28,14 @@ export function applyOperations(
       Editor.withoutNormalizing(editor, () => {
         for (const op of operations) {
           // Should skip due to just removing whitespace right
-          // before the user's cursor:
+          // before the user's cursor?
           if (skipCursor(cursor, op)) continue;
           try {
             // This can rarely throw an error in production
             // if somehow the op isn't valid.  Instead of
             // crashing, we print a warning, and document
             // "applyOperations" above as "best effort".
-            // In practice, the document *should* converge
+            // The document *should* converge
             // when the next diff/patch round occurs.
             editor.apply(op);
           } catch (err) {

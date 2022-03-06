@@ -179,7 +179,7 @@ export const useDOMSelectionChange = ({
     }
     const { selection } = editor;
     if (selection != null) {
-      const info = editor.windowedListRef?.current?.render_info;
+      const info = editor.windowedListRef?.current?.renderInfo;
       if (info != null) {
         // Trickier case due to windowing.  We check if the DOM selection
         // changed due to the windowing system removing rows from the DOM.

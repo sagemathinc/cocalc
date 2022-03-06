@@ -12,6 +12,10 @@ tree produced by this code is normalized, as defined here:
 ... and also as it is carried out in practice. The reason is that any time
 normalization results in a change from the source markdown document, then
 every single update to the document keeps redoing exactly that extra update!
+This leads to extensive problems.  If you suspect this,
+enable EXPENSIVE_DEBUG in ./editable-markdown.tsx and edit a document, watching
+the console.log.  It may also useful to use the normalize function below
+as a test; however, it is way too slow to just always use.
 
 */
 
@@ -21,6 +25,8 @@ import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta/type";
+
+//import normalize from "./normalize";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   //console.log("parse", JSON.stringify({ token, state }));
@@ -58,9 +64,9 @@ export function markdown_to_slate(
   }
 
   ensureDocNonempty(doc);
+  return doc;
+  //return normalize(doc);
 
   // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });
-
-  return doc;
 }

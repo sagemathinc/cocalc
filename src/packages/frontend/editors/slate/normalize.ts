@@ -5,8 +5,12 @@
 
 /* Ideas for things to put here that aren't here now:
 
-
 - merging adjacent lists, since the roundtrip to markdown does that.
+
+WARNING: Before very very very careful before changing anything here!!!
+It is absolutely critical that the output of markdown_to_slate be normalized
+according to all the rules here.  If you change a rule here, that will
+likely break this assumption and things will go to hell.  Be careful.
 
 */
 

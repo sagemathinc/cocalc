@@ -285,8 +285,8 @@ function shift_path(op: Operation, shift: number): void {
 
 // This is pretty scary, but I need it especially in the weird case
 // where you insert a checkbox in an empty document and everything
-// looses focus.
-// This is a SCARY function so please don't export it.
+// loses focus.
+// This is a SCARY function..
 export function focusEditorAt(editor: ReactEditor, point: Point): void {
   setSelectionAndFocus(editor, { focus: point, anchor: point });
 }
