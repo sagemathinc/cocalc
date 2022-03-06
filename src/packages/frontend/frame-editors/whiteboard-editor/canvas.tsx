@@ -337,7 +337,7 @@ export default function Canvas({
       }
     }
     lastTransforms.current = transformsRef.current;
-  }, [transformsRef.current]);
+  }, [elements]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const penPreviewPath = useRef<{ x: number; y: number }[] | null>(null);
