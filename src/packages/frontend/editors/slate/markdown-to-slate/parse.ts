@@ -29,11 +29,11 @@ import { createMetaNode } from "../elements/meta/type";
 //import normalize from "./normalize";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
-  //console.log("parse", JSON.stringify({ token, state }));
+  // console.log("parse", JSON.stringify({ token, state }));
   for (const handler of handlers) {
     const nodes: Descendant[] | undefined = handler({ token, state, cache });
     if (nodes != null) {
-      //console.log("parse got ", nodes);
+      // console.log("parse got ", JSON.stringify(nodes));
       return nodes;
     }
   }
@@ -51,6 +51,7 @@ export function markdown_to_slate(
   // Parse the markdown:
   // const t0 = new Date().valueOf();
   const { tokens, meta } = parse_markdown(markdown, no_meta);
+  // console.log("tokens=", JSON.stringify(tokens));
 
   const doc: Descendant[] = [];
   if (meta != null) {
@@ -65,7 +66,7 @@ export function markdown_to_slate(
 
   ensureDocNonempty(doc);
   return doc;
-  //return normalize(doc);
+  // return normalize(doc);
 
   // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });

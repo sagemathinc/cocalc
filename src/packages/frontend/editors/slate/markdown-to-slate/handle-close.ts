@@ -51,6 +51,7 @@ function handleClose({ token, state, cache }) {
         }
         markdown += child_state.markdown ?? "";
       }
+      // console.log("children = ", JSON.stringify(children), isEmpty);
       if (isEmpty) {
         // it is illegal for the children to be empty.
         if (token.type == "list_item_close") {

@@ -73,7 +73,7 @@ register({
       type: "display_math",
       value: token.content.trim(),
       isVoid: true,
-      children: [{ text: " " }],
+      children: [{ text: "" }],
     } as Element;
   },
 });
