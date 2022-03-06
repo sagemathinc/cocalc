@@ -1,6 +1,5 @@
 import { ReactEditor } from "./slate-react";
 import { Range } from "slate";
-import { SearchHook } from "./search";
 import { SyncString } from "@cocalc/sync/editor/string";
 
 export interface SlateEditor extends ReactEditor {
@@ -17,7 +16,6 @@ export interface SlateEditor extends ReactEditor {
   getPlainValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
-  search: SearchHook;
 }
 
 /*

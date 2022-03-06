@@ -24,10 +24,7 @@ register({
 
     return (
       <span {...attributes}>
-        <span
-          style={{ ...STYLE, border, backgroundColor, color }}
-          onClick={() => editor.search.focus("#" + element.content)}
-        >
+        <span style={{ ...STYLE, border, backgroundColor, color }}>
           #{element.content}
         </span>
         {children}
