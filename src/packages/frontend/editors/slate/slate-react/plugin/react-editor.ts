@@ -563,7 +563,7 @@ export const ReactEditor = {
   selectionIsInDOM(editor: ReactEditor): boolean {
     const { selection } = editor;
     if (selection == null) return true;
-    const info = editor.windowedListRef.current?.render_info;
+    const info = editor.windowedListRef.current?.renderInfo;
     if (info == null) return true;
     const { overscanStartIndex, overscanStopIndex } = info;
     if (
@@ -582,7 +582,7 @@ export const ReactEditor = {
   },
 
   scrollIntoDOM(editor: ReactEditor, path: Path) {
-    const info = editor.windowedListRef.current?.render_info;
+    const info = editor.windowedListRef.current?.renderInfo;
     if (info == null) {
       // not using windowing so everything is always in the DOM.
       return;

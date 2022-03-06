@@ -1,6 +1,7 @@
 import { ReactEditor } from "./slate-react";
 import { Range } from "slate";
 import { SyncString } from "@cocalc/sync/editor/string";
+import { ControlRef } from "@cocalc/frontend/components/windowed-list";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
@@ -16,6 +17,7 @@ export interface SlateEditor extends ReactEditor {
   getPlainValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
+  windowedListRef: ControlRef;
 }
 
 /*

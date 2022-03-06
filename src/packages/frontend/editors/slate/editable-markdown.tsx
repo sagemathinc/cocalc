@@ -269,7 +269,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         debounce(() => {
           if (disableWindowing || actions.save_editor_state == null) return;
           const scroll =
-            editor.windowedListRef.current?.render_info?.visibleStartIndex;
+            editor.windowedListRef.current?.renderInfo?.visibleStartIndex;
           if (scroll != null) {
             actions.save_editor_state(id, { scroll });
           }

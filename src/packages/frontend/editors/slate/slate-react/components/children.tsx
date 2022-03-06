@@ -150,7 +150,7 @@ const Children: React.FC<Props> = React.memo(
       // top level and using windowing!
       return (
         <WindowedList
-          ref={editor.windowedListRef}
+          controlRef={editor.windowedListRef}
           render_info={true}
           row_count={node.children.length}
           row_renderer={renderChild}

@@ -5,7 +5,7 @@
 
 import { FOCUSED_COLOR } from "../../util";
 import { register } from "../register";
-import { useFocused, useSelected, useSlateStatic } from "../hooks";
+import { useFocused, useSelected } from "../hooks";
 import { STYLE } from "./index";
 
 register({
@@ -15,7 +15,6 @@ register({
     if (element.type != "hashtag") throw Error("bug");
     const focused = useFocused();
     const selected = useSelected();
-    const editor = useSlateStatic();
 
     const border =
       focused && selected ? `1px solid ${FOCUSED_COLOR}` : "1px solid #d9d9d9";
