@@ -222,19 +222,28 @@ export default function Canvas({
     const set = ({ x, y }: Point) => {
       if (isNavigator) return;
       const e = scaleDivRef.current;
-      if (e == null) return;
       const c = canvasRef.current;
       const rect = c?.getBoundingClientRect();
-      if (rect == null) return;
-      // ensure values are in valid range.
-      const left = Math.min(
-        0,
-        Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
-      );
-      const top = Math.min(
-        0,
-        Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
-      );
+      let left, top;
+      if (e != null && rect?.width) {
+        // ensure values are in valid range, if possible.
+        left = Math.min(
+          0,
+          Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
+        );
+        top = Math.min(
+          0,
+          Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
+        );
+      } else {
+        // don't bother with ensuring values in valid range; this happens,
+        // e.g., when remounting right as the editor is being shown again.
+        // If we don't do this, left/top get temporarily messed up if you page
+        // away to files, then to list of all projects, then back to files,
+        // then back to the editor.
+        left = x;
+        top = y;
+      }
 
       offsetRef.current = { left, top };
       e.style.setProperty("left", `${left}px`);
@@ -364,7 +373,7 @@ export default function Canvas({
   const resize = useResizeObserver({ ref: canvasRef });
   useEffect(() => {
     const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect != null) {
+    if (rect?.width) {
       // also update the canvas scale, which is needed to keep
       // the canvas preview layer (for the pen) from getting too big
       // and wasting memory.
@@ -464,16 +473,16 @@ export default function Canvas({
   useEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
+      const viewport = getViewportData();
+      if (viewport == null) return;
       if (elements.length == 0) {
         // Special case -- the screen is blank; don't want to just
         // maximal zoom in on the center!
         setCenterPositionData({ x: 0, y: 0 });
-        lastViewport.current = getViewportData();
+        lastViewport.current = viewport;
         frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
-      const viewport = getViewportData();
-      if (viewport == null) return;
       const rect = rectSpan(elements);
       const s =
         Math.min(
