@@ -38,7 +38,7 @@ import { withNormalize } from "./normalize";
 import { withInsertBreakHack } from "./elements/link/editable";
 import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
-
+import { withIsInline, withIsVoid } from "./plugins";
 import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
@@ -689,24 +689,3 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     return useUpload(editor, body);
   }
 );
-
-const withIsVoid = (editor) => {
-  const { isVoid } = editor;
-
-  editor.isVoid = (element) => {
-    if (element === editor) return false;
-    return element.isVoid != null ? element.isVoid : isVoid(element);
-  };
-
-  return editor;
-};
-
-const withIsInline = (editor) => {
-  const { isInline } = editor;
-
-  editor.isInline = (element) => {
-    return element.isInline != null ? element.isInline : isInline(element);
-  };
-
-  return editor;
-};

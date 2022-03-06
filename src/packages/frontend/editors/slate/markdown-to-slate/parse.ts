@@ -3,22 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-NOTE: It's very important from a performance perspective that the slatejs
-tree produced by this code is normalized, as defined here:
-
-    https://docs.slatejs.org/concepts/10-normalizing
-
-... and also as it is carried out in practice. The reason is that any time
-normalization results in a change from the source markdown document, then
-every single update to the document keeps redoing exactly that extra update!
-This leads to extensive problems.  If you suspect this,
-enable EXPENSIVE_DEBUG in ./editable-markdown.tsx and edit a document, watching
-the console.log.  It may also useful to use the normalize function below
-as a test; however, it is way too slow to just always use.
-
-*/
-
 import { Descendant } from "slate";
 import { handlers } from "./register";
 import { State, Token } from "./types";
@@ -26,7 +10,7 @@ import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta/type";
 
-//import normalize from "./normalize";
+import normalize from "./normalize";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   // console.log("parse", JSON.stringify({ token, state }));
@@ -65,8 +49,31 @@ export function markdown_to_slate(
   }
 
   ensureDocNonempty(doc);
-  return doc;
-  // return normalize(doc);
+
+  /*
+  Why normalize?  It's critial that the slatejs
+  tree produced by this code is normalized, as defined here:
+
+      https://docs.slatejs.org/concepts/10-normalizing
+
+  ... and also as it is carried out in practice with our normalization plugins
+  that are in ../normalize.ts.
+
+  The reason is that any time normalization results in a change from the
+  source markdown document, then every single update to the document
+  keeps redoing exactly that extra update! This leads to extensive problems.
+  If you suspect this, enable EXPENSIVE_DEBUG in ./editable-markdown.tsx
+  and edit a document, watching the console.log.
+
+  I've tried to make it so the parser here is always normalized. However,
+  there always seem to be really subtle edge cases.  Also, in the long run
+  other people working on this code could add normalizations to
+  ./normalize.ts and mess up this parser ever so slightly.  So instead,
+  we just always normalize.  This isn't too expensive, and is worth it
+  to ensure sanity.
+  */
+  return normalize(doc);
+  //   return doc;
 
   // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });
