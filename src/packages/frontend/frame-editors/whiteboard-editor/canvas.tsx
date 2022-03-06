@@ -1027,14 +1027,19 @@ export default function Canvas({
         let yMin = y,
           yMax = y;
         const path: Point[] = [{ x, y }];
-        let lastPt = path[0];
+        let prevPt = path[0];
+        let n = 0;
         for (const pt of mousePath.current.slice(1)) {
+          n += 1;
           const thisPt = toData(pt);
-          if (pointEqual(lastPt, thisPt)) {
-            lastPt = thisPt;
+          if (
+            pointEqual(prevPt, thisPt, 0.5) &&
+            n < mousePath.current.length - 1 /* so don't skip last point */
+          ) {
+            prevPt = thisPt;
             continue;
           }
-          lastPt = thisPt;
+          prevPt = thisPt;
           const { x, y } = thisPt;
           path.push({ x, y });
           if (x < xMin) xMin = x;
