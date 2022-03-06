@@ -65,7 +65,8 @@ export function getHandler(type: string): Handler {
   if (h != null) return h.handler;
   for (const typeRegexp in HANDLERS) {
     if (type.match("^" + typeRegexp + "$")) {
-      return HANDLERS[typeRegexp].handler;
+      const hRegex = HANDLERS[typeRegexp];
+      if (hRegex != null) return hRegex.handler;
     }
   }
   return FallbackHandler;
