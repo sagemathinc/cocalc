@@ -32,6 +32,7 @@ import {
   StudentRecord,
 } from "../store";
 import { AssignmentCopyType } from "../types";
+import { useButtonSize } from "../util";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -113,6 +114,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
 
     const clicked_nbgrader = useRef<Date>();
     const actions = useActions<CourseActions>({ name });
+    const buttonSize = useButtonSize();
     const [recopy, set_recopy] = useRecopy();
 
     function open(
@@ -186,17 +188,22 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           />
         );
       } else {
-        if (grade) {
-          return (
-            <div
-              style={{ cursor: "pointer" }}
-              onClick={() => set_edited_feedback()}
-              key="grade"
-            >
-              Grade: {grade}
-            </div>
-          );
-        }
+        const text =
+          (grade ?? "").trim() || (comments ?? "").trim()
+            ? `Grade: ${grade}`
+            : "Enter grade...";
+        return (
+          <Button
+            key="edit"
+            onClick={() => set_edited_feedback()}
+            bsStyle={"default"}
+            disabled={is_editing}
+            style={{ marginRight: "5px" }}
+            bsSize={buttonSize}
+          >
+            {text}
+          </Button>
+        );
       }
     }
 
@@ -319,27 +326,15 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       return render_run_nbgrader("Run nbgrader");
     }
 
-    function render_enter_grade(): Rendered {
-      if ((grade ?? "").trim() || (comments ?? "").trim()) {
-        return;
-      }
-      return (
-        <Button
-          key="edit"
-          onClick={() => set_edited_feedback()}
-          bsStyle={"default"}
-          disabled={is_editing}
-          style={{ marginRight: "5px" }}
-        >
-          Enter grade...
-        </Button>
-      );
-    }
-
     function render_save_button(): Rendered {
       if (!is_editing) return;
       return (
-        <Button bsStyle="success" key="save" onClick={() => stop_editing()}>
+        <Button
+          bsStyle="success"
+          key="save"
+          bsSize={buttonSize}
+          onClick={() => stop_editing()}
+        >
           Save
         </Button>
       );
@@ -365,6 +360,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="recopy_confirm"
             bsStyle="danger"
+            bsSize={buttonSize}
             onClick={() => {
               set_recopy(name, false);
               copy();
@@ -378,7 +374,11 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           </Button>
         );
         v.push(
-          <Button key="copy_cancel" onClick={() => set_recopy(name, false)}>
+          <Button
+            key="copy_cancel"
+            bsSize={buttonSize}
+            onClick={() => set_recopy(name, false)}
+          >
             Cancel
           </Button>
         );
@@ -404,6 +404,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="copy"
             bsStyle="warning"
+            bsSize={buttonSize}
             onClick={() => set_recopy(name, true)}
           >
             <Tip
@@ -434,7 +435,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
         <div key="open_recopy">
           {render_open_recopy_confirm(name, copy, copy_tip, placement)}
           <Space />
-          <Button key="open" onClick={open}>
+          <Button key="open" bsSize={buttonSize} onClick={open}>
             <Tip title="Open assignment" placement={placement} tip={open_tip}>
               <Icon name="folder-open" /> Open
             </Tip>
@@ -446,13 +447,23 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     function render_open_copying(name: Steps, open, stop): Rendered {
       return (
         <ButtonGroup key="open_copying">
-          <Button key="copy" bsStyle="success" disabled={true}>
+          <Button
+            key="copy"
+            bsStyle="success"
+            disabled={true}
+            bsSize={buttonSize}
+          >
             <Icon name="cocalc-ring" spin /> {name}ing
           </Button>
-          <Button key="stop" bsStyle="danger" onClick={stop}>
+          <Button
+            key="stop"
+            bsStyle="danger"
+            onClick={stop}
+            bsSize={buttonSize}
+          >
             <Icon name="times" />
           </Button>
-          <Button key="open" onClick={open}>
+          <Button key="open" onClick={open} bsSize={buttonSize}>
             <Icon name="folder-open" /> Open
           </Button>
         </ButtonGroup>
@@ -466,7 +477,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       }
       return (
         <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
-          <Button onClick={copy} bsStyle={"primary"}>
+          <Button onClick={copy} bsStyle={"primary"} bsSize={buttonSize}>
             <Icon
               name="share-square"
               rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
@@ -635,11 +646,11 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     }
 
     function render_grade_col() {
+      //      {render_enter_grade()}
       return (
         <Col md={width} key="grade">
           {show_grade_col && (
             <>
-              {render_enter_grade()}
               {render_save_button()}
               {render_grade()}
               {render_comments()}
