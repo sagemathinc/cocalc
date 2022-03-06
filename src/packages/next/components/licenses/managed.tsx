@@ -86,7 +86,7 @@ function TitleDescId({ title, description, id, onChange }) {
 function Managers({ managers, id, onChange }) {
   return (
     <>
-      <div style={{ maxHeight: "65px", overflowY: "scroll" }}>
+      <div style={{ maxHeight: "65px", overflowY: "auto" }}>
         {managers.map((account_id) => (
           <Avatar
             style={{ margin: "0 5px 5px 0" }}
@@ -337,7 +337,7 @@ export default function ManagedLicenses() {
   }
 
   return (
-    <div style={{ width: "100%", overflowX: "scroll" }}>
+    <div style={{ width: "100%", overflowX: "auto", minHeight: "50vh" }}>
       <h3>Licenses that you Manage ({result.length})</h3>
       These are the licenses that you have purchased or been added to manage.
       You can add other people as managers of any of these licenses, if they

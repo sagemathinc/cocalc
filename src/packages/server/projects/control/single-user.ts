@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is meant to run on a multi-user system, but where the hub
 runs as a single user and all projects also run as that same
 user, but with there own HOME directories.  There is thus no
@@ -67,7 +72,7 @@ class Project extends BaseProject {
     winston.debug(
       `got status of ${this.project_id} = ${JSON.stringify(status)}`
     );
-    this.saveStatusToDatabase(status);
+    await this.saveStatusToDatabase(status);
     return status;
   }
 

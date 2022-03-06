@@ -17,4 +17,4 @@ const Math = ({ value }) => {
 register("text/html", 3, Html);
 
 // put latex as HTML, since jupyter requires $'s anyways:
-register("text/latex", 5, Math);
+register("text/latex", 2.1, Math);

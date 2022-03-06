@@ -16,6 +16,7 @@ import Rlogo from "/public/features/r-logo.svg";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import LatexLogo from "/public/features/latex-logo.svg";
 import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
+import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import octaveLogo from "/public/features/octave-logo.svg";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import x11Logo from "/public/features/x11-logo.svg";
@@ -57,6 +58,19 @@ const dataSource = [
         Use Python in CoCalc for data science, statistics, mathematics, physics,
         machine learning. Many{" "}
         <A href="/software/python">packages are included in CoCalc</A>!
+      </>
+    ),
+  },
+  {
+    link: "/features/whiteboard",
+    title: <>Collaborative Mathematical Whiteboard</>,
+    logo: "layout",
+    image: WhiteboardImage,
+    description: (
+      <>
+        CoCalc's collaborative whiteboard supports mathematics and computation.
+        Sketch out ideas and run Jupyter code cells with interactive widgets on
+        an infinite canvas.
       </>
     ),
   },

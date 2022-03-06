@@ -171,9 +171,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   function render_uptime() {
     // start_ts is e.g. 1508576664416
     const start_ts = project.getIn(["status", "start_ts"]);
-    if (start_ts == undefined) {
-      return;
-    }
+    if (start_ts == undefined) return;
     if (project.getIn(["state", "state"]) !== "running") {
       return;
     }

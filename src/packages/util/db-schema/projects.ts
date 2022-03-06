@@ -469,6 +469,8 @@ export interface ProjectStatus {
   "browser-server.port"?: number; // port listening for http/websocket conn from browser client
   "sage_server.port"?: number; // port where sage server is listening.
   "sage_server.pid"?: number; // pid of sage server process
+  start_ts?: number; // timestamp, when project server started
+  session_id?: string; // unique identifyer
   secret_token?: string; // long random secret token that is needed to communicate with local_hub
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk

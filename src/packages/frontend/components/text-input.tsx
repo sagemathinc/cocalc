@@ -3,14 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Icon } from "./icon";
-const { Button, FormControl, FormGroup } = require("react-bootstrap");
+import { Form, Input } from "antd";
+import { Button } from "../antd-bootstrap";
 
 interface Props {
   text: string;
   on_change: (value: string) => void;
-  type?: string;
+  type?: "text" | "textarea";
   rows?: number;
   autoFocus?: boolean;
   onFocus?: () => void;
@@ -18,69 +19,78 @@ interface Props {
   disabled?: boolean;
 }
 
-interface State {
-  text: string;
-}
+export const TextInput: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    text,
+    on_change,
+    type,
+    rows,
+    autoFocus,
+    onFocus,
+    onBlur,
+    disabled = false,
+  } = props;
 
-export class TextInput extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = { text: props.text };
-  }
+  const inputRef = React.useRef<any>(null);
 
-  componentWillReceiveProps(next_props) {
-    if (this.props.text !== next_props.text) {
-      // so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-      this.setState({ text: next_props.text });
-    }
-  }
+  const [nextText, setNextText] = React.useState<string>(text);
 
-  saveChange = (event) => {
+  useEffect(() => {
+    // so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
+    setNextText(text);
+  }, [text]);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    inputRef.current.focus({
+      cursor: "end",
+    });
+  }, []);
+
+  function saveChange(event) {
     event.preventDefault();
-    this.props.on_change(this.state.text);
-  };
+    on_change(nextText);
+  }
 
-  render_save_button() {
-    if (this.state.text != undefined && this.state.text !== this.props.text) {
+  function render_save_button() {
+    if (nextText != undefined && nextText !== text) {
       return (
-        <Button
-          style={{ marginBottom: "15px" }}
-          bsStyle="success"
-          onClick={this.saveChange}
-        >
-          <Icon name="save" /> Save
-        </Button>
+        <Form.Item>
+          <Button
+            style={{ marginBottom: "15px" }}
+            bsStyle="success"
+            onClick={saveChange}
+          >
+            <Icon name="save" /> Save
+          </Button>
+        </Form.Item>
       );
     }
   }
 
-  render_input() {
+  function render_input() {
+    const C = type === "textarea" ? Input.TextArea : Input;
+
     return (
-      <FormGroup>
-        <FormControl
-          type={this.props.type != undefined ? this.props.type : "text"}
-          ref="input"
-          rows={this.props.rows}
-          componentClass={this.props.type === "textarea" ? "textarea" : "input"}
-          value={
-            this.state.text != undefined ? this.state.text : this.props.text
-          }
-          onChange={(e) => this.setState({ text: e.target.value })}
-          onFocus={this.props.onFocus}
-          onBlur={this.props.onBlur}
-          autoFocus={this.props.autoFocus}
-          disabled={this.props.disabled === true}
+      <Form.Item>
+        <C
+          ref={inputRef}
+          type={type ?? "text"}
+          rows={rows}
+          value={nextText ?? text}
+          onChange={(e) => setNextText(e.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          disabled={disabled}
         />
-      </FormGroup>
+      </Form.Item>
     );
   }
 
-  render() {
-    return (
-      <form onSubmit={this.saveChange}>
-        {this.render_input()}
-        {this.render_save_button()}
-      </form>
-    );
-  }
-}
+  return (
+    <Form name="basic" onFinish={saveChange}>
+      {render_input()}
+      {render_save_button()}
+    </Form>
+  );
+});

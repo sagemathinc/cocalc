@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Generate the "secret_token" file if it does not already exist.
 */
 

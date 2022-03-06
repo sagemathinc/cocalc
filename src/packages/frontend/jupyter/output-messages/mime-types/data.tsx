@@ -1,6 +1,7 @@
 import React from "react";
 import { DataProps, hasHandler, getHandler, getPriority } from "./register";
 import { all_fields_equal as allFieldsEqual } from "@cocalc/util/misc";
+import useNBViewerContext from "@cocalc/frontend/jupyter/nbviewer/context";
 
 function shouldMemoize(prev, next) {
   return (
@@ -10,12 +11,30 @@ function shouldMemoize(prev, next) {
 }
 
 export const Data: React.FC<DataProps> = React.memo((props) => {
+  const nbviewer = useNBViewerContext();
   const data = props.message.get("data");
   if (data == null || typeof data.forEach != "function") {
     return null;
   }
 
-  const type = getTypeToRender(data.keySeq().toJS());
+  const types = data.keySeq().toJS();
+  let type: string | undefined;
+  if (nbviewer?.kernelspec?.language === "r") {
+    // very special case -- using an R kernel inside nbviewer (so XSS prevention) -- prefer image, then plain text,
+    // due to bugs in text/latex *and* unfriendly markdown *and* complicated html that XSS mangles.
+    for (const x of types) {
+      if (x.startsWith("image")) {
+        type = x;
+        break;
+      }
+    }
+    if (type === undefined && types.includes("text/plain")) {
+      type = "text/plain";
+    }
+  } else {
+    type = getTypeToRender(types);
+  }
+  if (type == null) throw Error("bug");
   const H = getHandler(type);
   return <H type={type} value={data.get(type)} data={data} {...props} />;
 }, shouldMemoize);
