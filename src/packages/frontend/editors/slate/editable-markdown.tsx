@@ -57,6 +57,7 @@ import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+// const SAVE_DEBOUNCE_MS = 100;
 
 import { delay } from "awaiting";
 
@@ -440,7 +441,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // is not equal to {}, but they JSON the same, and this is
         // fine for our purposes.
         if (stringify(editor.children) != stringify(nextEditorValue)) {
-          console.log(
+          console.warn(
             "**BUG!  slateDiff did not properly transform editor! See window.diffBug **"
           );
           (window as any).diffBug = {

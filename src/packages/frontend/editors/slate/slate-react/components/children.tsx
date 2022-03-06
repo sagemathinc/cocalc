@@ -174,7 +174,12 @@ const Children: React.FC<Props> = React.memo(
       // anything else -- just render the children
       const children: JSX.Element[] = [];
       for (let index = 0; index < node.children.length; index++) {
-        children.push(renderChild({ index }));
+        try {
+          const X = renderChild({ index });
+          children.push(X);
+        } catch (err) {
+          console.warn("SLATE -- issue in renderChild", node.children[index]);
+        }
       }
 
       return <>{children}</>;
