@@ -7,7 +7,6 @@ export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
   syncCausedUpdate?: boolean;
   saveValue: (force?) => void;
-  dropzoneRef?: any;
   applyingOperations?: boolean;
   lastSelection?: Range;
   curSelection?: Range;

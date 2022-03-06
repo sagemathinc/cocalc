@@ -38,7 +38,7 @@ import { withInsertBreakHack } from "./elements/link/editable";
 import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 
-import { useUpload, withUpload } from "./upload";
+import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
@@ -168,10 +168,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         withFix4131(
           withInsertBreakHack(
             withNormalize(
-              withUpload(
-                withAutoFormat(
-                  withIsInline(withIsVoid(withReact(createEditor())))
-                )
+              withAutoFormat(
+                withIsInline(withIsVoid(withReact(createEditor())))
               )
             )
           )

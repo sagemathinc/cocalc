@@ -5,7 +5,7 @@
 
 import { Transforms } from "slate";
 import { SlateEditor } from "./editable-markdown";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "@cocalc/util/misc";
@@ -13,44 +13,48 @@ const AUX_FILE_EXT = "upload";
 import { getFocus } from "./format/commands";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-export const withUpload = (editor: SlateEditor) => {
-  const { insertData } = editor;
-
-  editor.insertData = (data) => {
-    if (editor.dropzoneRef?.current == null) {
-      // fallback
-      insertData(data);
-      return;
-    }
-    const items = data.items;
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item?.type.startsWith("image/")) {
-        const file = item.getAsFile();
-        if (file != null) {
-          const blob = file.slice(0, -1, item.type);
-          editor.dropzoneRef?.current?.addFile(
-            new File([blob], `paste-${Math.random()}`, { type: item.type })
-          );
-        }
-        return; // what if more than one ?
-      }
-    }
-    insertData(data);
-  };
-
-  return editor;
-};
-
 function uploadTarget(path: string, file: { name: string }): string {
   // path to our upload target, but relative to path.
   return join(path_split(aux_file(path, AUX_FILE_EXT)).tail, file.name);
 }
 
-export function useUpload(editor: SlateEditor, body: JSX.Element): JSX.Element {
+export default function useUpload(
+  editor: SlateEditor,
+  body: JSX.Element
+): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
-  editor.dropzoneRef = dropzoneRef;
   const { actions, project_id, path } = useFrameContext();
+
+  // We setup the slate "plugin" change to insertData here exactly once when
+  // the component is mounted, because otherwise we would have to save
+  // the dropzoneRef as an attribute on editor, which would make it not JSON-able.
+  // Also, this simplifies using upload in editable-markdown.
+  useEffect(() => {
+    const { insertData } = editor;
+
+    editor.insertData = (data) => {
+      if (dropzoneRef?.current == null) {
+        // fallback
+        insertData(data);
+        return;
+      }
+      const items = data.items;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item?.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file != null) {
+            const blob = file.slice(0, -1, item.type);
+            dropzoneRef?.current?.addFile(
+              new File([blob], `paste-${Math.random()}`, { type: item.type })
+            );
+          }
+          return; // what if more than one ?
+        }
+      }
+      insertData(data);
+    };
+  }, []);
 
   const updloadEventHandlers = {
     sending: ({ name }) => {
