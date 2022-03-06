@@ -6,7 +6,6 @@
 import jsonic from "jsonic";
 import { Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
-import { SiteLicense } from "./types";
 import { actions } from "./actions";
 import { Button } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
@@ -40,6 +39,7 @@ import { DisplayQuota, EditQuota } from "./quota";
 import { Projects } from "../../admin/users/projects";
 import { Managers } from "./managers";
 import { ManagerInfo } from "./types";
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 

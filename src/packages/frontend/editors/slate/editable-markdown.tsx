@@ -5,8 +5,8 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-const EXPENSIVE_DEBUG = false;
-// const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
+// const EXPENSIVE_DEBUG = false;
+const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
 
 import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
@@ -493,6 +493,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
         Range,
         Text,
+        robot: () => {
+          let n = 0;
+          setInterval(() => {
+            Editor.insertText(editor, `${n}, `);
+            n += 1;
+          }, 1100);
+        },
       };
     }
 

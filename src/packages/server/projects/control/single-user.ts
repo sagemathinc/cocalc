@@ -39,6 +39,9 @@ import {
   getProject,
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
+import { query } from "@cocalc/database/postgres/query";
+import { db } from "@cocalc/database";
+import { quota } from "@cocalc/util/upgrades/quota";
 
 const winston = getLogger("project-control:single-user");
 
@@ -90,6 +93,7 @@ class Project extends BaseProject {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
       await this.siteLicenseHook();
+      await this.setRunQuota();
 
       await mkdir(HOME, { recursive: true });
 
@@ -153,6 +157,29 @@ class Project extends BaseProject {
     winston.debug("copyPath ", this.project_id, opts);
     await copyPath(opts, this.project_id);
     return "";
+  }
+
+  // despite not being used, this is useful for development and
+  // some day in the future the run_quota will be shown in the UI
+  async setRunQuota(): Promise<void> {
+    const { settings, users, site_license } = await query({
+      db: db(),
+      select: ["site_license", "settings", "users"],
+      table: "projects",
+      where: { project_id: this.project_id },
+      one: true,
+    });
+
+    const run_quota = quota(settings, users, site_license);
+
+    await query({
+      db: db(),
+      query: "UPDATE projects",
+      where: { project_id: this.project_id },
+      jsonb_set: { run_quota },
+    });
+
+    winston.debug("updated run_quota=", run_quota);
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/sync",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
     "./*": "./dist/*.js",
@@ -23,7 +23,7 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/util": "^1.15.1",
+    "@cocalc/util": "^1.29.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
@@ -36,7 +36,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.23",
+    "@types/jest": "^26.0.24",
     "@types/node": "^14.18.10",
     "jest": "^26.6.3",
     "ts-jest": "^26.5.6",

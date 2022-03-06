@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
 export type EventRecord = {
   id: string;
@@ -84,7 +84,7 @@ export type LicenseEvent = {
   action: "add" | "remove";
   license_id: string;
   title?: string;
-  quota?: Quota;
+  quota?: SiteLicenseQuota;
 };
 
 export type LibraryEvent = {

@@ -1642,4 +1642,48 @@ describe("default quota", () => {
       dedicated_vm: false,
     });
   });
+
+  it("licensed idle timeout / mixed with always running", () => {
+    const site_licenses: SiteLicenses = {
+      a: {
+        title: "AR,MH",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true, always_running: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      b: {
+        title: "",
+        quota: {
+          cpu: 1,
+          user: "academic",
+          dedicated_ram: 0,
+          always_running: false,
+          idle_timeout: "short",
+          dedicated_cpu: 0,
+          member: true,
+          disk: 1,
+          ram: 2,
+        },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+    const q = quota({}, {}, site_licenses);
+    const ito = 1800;
+    expect(q.idle_timeout).toBe(ito);
+    expect(q).toEqual({
+      always_running: true,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: ito,
+      member_host: true,
+      memory_limit: 1500, // 1500 min for members
+      memory_request: 300, // oc ratio
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
 });

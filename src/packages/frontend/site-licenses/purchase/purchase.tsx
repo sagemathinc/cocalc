@@ -30,6 +30,7 @@ import {
   Icon,
   Space,
 } from "../../components";
+import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "@cocalc/util/misc";
@@ -105,6 +106,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [custom_member, set_custom_member] = useState<boolean>(
     !!COSTS.basic.member
   );
+  const [custom_idle_timeout, set_custom_idle_timeout] =
+    useState<keyof typeof LicenseIdleTimeouts>("short");
   const [quantity, set_quantity] = useState<number>(1);
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
@@ -173,8 +176,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
     });
   }, [
     quantity,
@@ -190,6 +194,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     custom_disk,
     custom_always_running,
     custom_member,
+    custom_idle_timeout,
   ]);
 
   function render_error() {
@@ -270,6 +275,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disk: custom_disk,
           always_running: custom_always_running,
           member: custom_member,
+          idle_timeout: custom_idle_timeout,
           user,
         }}
         onChange={(change) => {
@@ -283,6 +289,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           if (change.member != null) set_custom_member(change.member);
           if (change.always_running != null)
             set_custom_always_running(change.always_running);
+          if (change.idle_timeout != null)
+            set_custom_idle_timeout(change.idle_timeout);
         }}
       />
     );
@@ -572,6 +580,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               dedicated_cpu: custom_dedicated_cpu,
               disk: custom_disk,
               always_running: custom_always_running,
+              idle_timeout: custom_idle_timeout,
               member: custom_member,
               user,
             })}`}
@@ -610,8 +619,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
       title,
       description,
     };

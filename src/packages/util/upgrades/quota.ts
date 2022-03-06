@@ -163,7 +163,8 @@ export interface SiteLicenseQuotaSetting {
 
 // all descriptions should be short sentences, expalining the user what's going on
 export const LicenseStatusOptions = {
-  valid: "License provides upgrades.",
+  valid: "License could provide upgrades.",
+  active: "License provides upgrades.",
   expired: "No longer valid.",
   exhausted: "All seats are used up.",
   future: "Not yet valid.",
@@ -175,6 +176,11 @@ export type LicenseStatus = keyof typeof LicenseStatusOptions;
 export function isLicenseStatus(status?: unknown): status is LicenseStatus {
   if (typeof status !== "string") return false;
   return LicenseStatusOptions[status] != null;
+}
+
+export function licenseStatusProvidesUpgrades(status?: LicenseStatus) {
+  if (status == null) return false;
+  return status === "active" || status === "valid";
 }
 
 // it could be null in the moment when a license is removed via the UI
@@ -360,7 +366,7 @@ function makeSiteLicenseGroupKey(params: {
 
 // return all possible key combinations,
 // where the order is from highest to lowest priority
-function* siteLicenseSelectionKeys() {
+export function* siteLicenseSelectionKeys() {
   const ltkeys = LicenseIdleTimeoutsKeysOrdered.slice(0);
   // reversing a copy of ordered keys
   ltkeys.reverse();
@@ -380,6 +386,27 @@ function* siteLicenseSelectionKeys() {
       }
     }
   }
+}
+
+export function licenseToGroupKey(val: QuotaSetting): string {
+  const isAR = isSiteLicenseQuotaSetting(val)
+    ? val.quota.always_running === true
+    : ((val as Upgrades).always_running ?? 0) >= 1;
+
+  const isMember = isSiteLicenseQuotaSetting(val)
+    ? val.quota.member === true
+    : ((val as Upgrades).member_host ?? 0) >= 1;
+
+  // prepareSiteLicenses() takes care about always defining quota.idle_timeout (still, TS needs to know)
+  const idle_timeout =
+    (isSiteLicenseQuotaSetting(val) ? val.quota.idle_timeout : "short") ??
+    "short";
+
+  return makeSiteLicenseGroupKey({
+    always_running: isAR ? "1" : "0",
+    member_hosting: isMember ? "1" : "0",
+    idle_timeout,
+  });
 }
 
 // some site licenses do not mix.
@@ -412,26 +439,7 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
   const groups: { [key: string]: string[] | null } = {};
   for (const [key, val] of Object.entries(site_licenses)) {
     if (val == null) continue;
-
-    const isAR = isSiteLicenseQuotaSetting(val)
-      ? val.quota.always_running === true
-      : ((val as Upgrades).always_running ?? 0) >= 1;
-
-    const isMember = isSiteLicenseQuotaSetting(val)
-      ? val.quota.member === true
-      : ((val as Upgrades).member_host ?? 0) >= 1;
-
-    // prepareSiteLicenses() takes care about always defining quota.idle_timeout (still, TS needs to know)
-    const idle_timeout =
-      (isSiteLicenseQuotaSetting(val) ? val.quota.idle_timeout : "short") ??
-      "short";
-
-    const groupKey = makeSiteLicenseGroupKey({
-      always_running: isAR ? "1" : "0",
-      member_hosting: isMember ? "1" : "0",
-      idle_timeout,
-    });
-
+    const groupKey = licenseToGroupKey(val);
     const curGrp = groups[groupKey];
     groups[groupKey] = curGrp == null ? [key] : [...curGrp, key];
   }

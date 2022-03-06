@@ -23,7 +23,7 @@ import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { Quota as SiteLicenseQuota } from "@cocalc/util/db-schema/site-licenses";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
