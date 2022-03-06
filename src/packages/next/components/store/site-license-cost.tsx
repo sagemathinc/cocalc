@@ -11,6 +11,10 @@ import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { plural } from "@cocalc/util/misc";
 import { ReactNode } from "react";
 import Timestamp from "components/misc/timestamp";
+import {
+  LicenseIdleTimeouts,
+  untangleUptime,
+} from "@cocalc/util/consts/site-license";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -29,6 +33,7 @@ export function computeCost({
   disk,
   always_running,
   member,
+  uptime,
 }: {
   user: "academic" | "business";
   run_limit: number;
@@ -40,10 +45,12 @@ export function computeCost({
   always_running: boolean;
   member: boolean;
   input: PurchaseInfo;
+  uptime: keyof typeof LicenseIdleTimeouts | "always_running";
 }): Cost | undefined {
   if (period == "range" && range?.[1] == null) {
     return undefined;
   }
+
   const input = {
     user,
     upgrade: "custom" as "custom",
@@ -61,6 +68,7 @@ export function computeCost({
     custom_disk: disk,
     custom_always_running: always_running,
     custom_member: member,
+    custom_uptime: uptime,
   };
   return {
     ...compute_cost(input),
@@ -125,13 +133,15 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
 }
 
 export function describeItem(info: PurchaseInfo): ReactNode {
+  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
   return (
     <>
       {describe_quota({
         ram: info.custom_ram,
         cpu: info.custom_cpu,
         disk: info.custom_disk,
-        always_running: info.custom_always_running,
+        always_running,
+        idle_timeout,
         member: info.custom_member,
         user: info.user,
       })}{" "}

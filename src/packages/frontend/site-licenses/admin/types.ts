@@ -3,10 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 import { List, Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
+// TODO: these fields do not match src/packages/util/upgrades/types.ts
+// what are they?
 export const upgrade_fields = [
   "cores",
   "cpu_shares",
@@ -27,23 +29,6 @@ export function isUpgradFieldsType(
 }
 
 export type Upgrades = { [field in upgrade_fields_type]: number };
-
-export interface SiteLicense {
-  id: string;
-  title?: string;
-  description?: string;
-  info?: { [key: string]: any };
-  expires?: Date;
-  activates?: Date;
-  created?: Date;
-  last_used?: Date;
-  managers?: string[];
-  restricted?: boolean;
-  upgrades?: Upgrades;
-  quota?: Quota;
-  run_limit?: number;
-  apply_limit?: number;
-}
 
 export type license_field_type =
   | "string"

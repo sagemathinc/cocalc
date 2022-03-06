@@ -27,8 +27,8 @@ import { COCALC_MINIMAL } from "../fullscreen";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { StudentProjectFunctionality } from "../course/configuration/customize-student-project-functionality";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -767,7 +767,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
     if (!info) return;
-    const quota: Quota | undefined = info.quota;
+    const quota: SiteLicenseQuota | undefined = info.quota;
     const title: string = info.title ?? "";
     await this.project_log(project_id, {
       event: "license",
