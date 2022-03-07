@@ -5,8 +5,8 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-// const EXPENSIVE_DEBUG = false;
-const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
+const EXPENSIVE_DEBUG = false;
+// const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
 
 import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
@@ -56,6 +56,7 @@ import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
 import { markdown_to_html } from "@cocalc/frontend/markdown";
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 // const SAVE_DEBOUNCE_MS = 100;
@@ -332,8 +333,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     function setSyncstringFromSlate() {
       if (actions.set_value == null) return;
-      const v = editor.getMarkdownValue();
-      actions.set_value(v);
+      try {
+        savingValue.current = true;
+        const v = editor.getMarkdownValue();
+        lastRemote.current = v;
+        actions.set_value(v);
+      } finally {
+        savingValue.current = false;
+      }
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,
@@ -391,30 +398,24 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [is_current]);
 
-    // Make sure to save the state of the slate editor
-    // to the syncstring *before* merging in a change
-    // from upstream.
+    // possible new value from upstream
+    const savingValue = useRef<boolean>(false);
+    const lastRemote = useRef<string>(value ?? "");
     useEffect(() => {
-      function before_change() {
-        // Important -- ReactEditor.isFocused(editor)  is *false* when
-        // you're editing some inline void elements (e.g., code blocks),
-        // since the focus leaves slate and goes to codemirror (say).
-        if (ReactEditor.isFocused(editor) && is_current) {
-          setSyncstringFromSlate();
-        }
-      }
-      actions.get_syncstring?.().on("before-change", before_change);
-      return () =>
-        actions.get_syncstring?.().off("before-change", before_change);
-    }, []);
+      if (value == null) return;
+      if (savingValue.current) return;
 
-    useEffect(() => {
-      if (value == null || value == editor.markdownValue) {
-        // Setting to current value, so no-op.
+      const base = lastRemote.current;
+      const remote = value;
+      const local = editor.getMarkdownValue();
+      const newVal = threeWayMerge({ base, local, remote });
+      lastRemote.current = remote;
+      if (newVal == local) {
+        // nothing changed
         return;
       }
 
-      editor.markdownValue = value;
+      editor.markdownValue = newVal;
       const previousEditorValue = editor.children;
 
       // we only use the latest version of the document
@@ -424,7 +425,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // a document that is properly normalized.  If that isn't the
       // case, things will go horribly wrong, since it'll be impossible
       // to convert the document to equal nextEditorValue.
-      const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
+      const nextEditorValue = markdown_to_slate(
+        newVal,
+        false,
+        editor.syncCache
+      );
 
       const operations = slateDiff(previousEditorValue, nextEditorValue);
       // Applying this operation below will immediately trigger
@@ -448,7 +453,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
       } catch (err) {
         // TODO!
-        console.warn("slate - invalid selection after upstream patch", err);
+        console.warn(
+          "slate - invalid selection after upstream patch. Resetting selection.",
+          err
+        );
         // set to beginning of document -- better than crashing.
         const focus = { path: [0, 0], offset: 0 };
         Transforms.setSelection(editor, {
@@ -463,8 +471,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // is not equal to {}, but they JSON the same, and this is
         // fine for our purposes.
         if (stringify(editor.children) != stringify(nextEditorValue)) {
+          // NOTE -- this does not 100% mean things are wrong.  One case where
+          // this is expected behavior is if you put the cursor at the end of the
+          // document, say right after a horizontal rule,  and then edit at the
+          // beginning of the document in another browser.  The discrepancy
+          // is because a "fake paragraph" is placed at the end of the browser
+          // so your cursor has somewhere to go while you wait and type; however,
+          // that space is not really part of the markdown document, and it goes
+          // away when you move your cursor out of that space.
           console.warn(
-            "**BUG!  slateDiff did not properly transform editor! See window.diffBug **"
+            "**WARNING:  slateDiff might not have properly transformed editor, though this may be fine. See window.diffBug **"
           );
           (window as any).diffBug = {
             previousEditorValue,
@@ -476,6 +492,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             applyOperations,
             markdown_to_slate,
             value,
+            newVal,
           };
         }
       }
@@ -493,12 +510,19 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
         Range,
         Text,
-        robot: () => {
-          let n = 0;
-          setInterval(() => {
-            Editor.insertText(editor, `${n}, `);
-            n += 1;
-          }, 1100);
+        robot: async (s: string, iterations = 1) => {
+          let inserted = "";
+          for (let n = 0; n < iterations; n++) {
+            for (const x of s) {
+              editor.insertText(x);
+              inserted += x;
+              console.log(`inserted: "${inserted}"`);
+              await delay(300 * Math.random());
+              if (Math.random() < 0.2) {
+                await delay(SAVE_DEBOUNCE_MS);
+              }
+            }
+          }
         },
       };
     }

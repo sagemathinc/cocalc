@@ -65,7 +65,7 @@ function EditText({
     const newVal = threeWayMerge({
       base,
       local: valueRef.current,
-      remote: element.str ?? "",
+      remote,
     });
     if (newVal != valueRef.current) {
       valueRef.current = newVal;

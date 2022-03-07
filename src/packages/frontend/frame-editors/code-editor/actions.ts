@@ -1391,6 +1391,8 @@ export class Actions<
     }
   }
 
+  // Sets value of syncstring to the given value.  If there are any
+  // codemirror editors, their value also gets sets directly.
   public set_value(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cm = this._get_cm();
