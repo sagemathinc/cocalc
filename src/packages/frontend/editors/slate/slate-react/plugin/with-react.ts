@@ -259,7 +259,7 @@ export const withReact = <T extends Editor>(editor: T) => {
       // into the DOM first.
       let windowed: boolean = e.windowedListRef.current != null;
       if (windowed) {
-        const info = e.windowedListRef.current.render_info;
+        const info = e.windowedListRef.current.renderInfo;
         const index = selection.focus.path[0];
         if (info != null && index != null) {
           const { overscanStartIndex, overscanStopIndex } = info;
@@ -309,7 +309,7 @@ export const withReact = <T extends Editor>(editor: T) => {
       if (offset) {
         if (windowed) {
           e.windowedListRef.current.list_ref?.current?.scrollTo(
-            e.windowedListRef.current?.scroll_info.scrollOffset - offset
+            e.windowedListRef.current?.scrollInfo.scrollOffset - offset
           );
         } else {
           editorEl.scrollTop = editorEl.scrollTop - offset;

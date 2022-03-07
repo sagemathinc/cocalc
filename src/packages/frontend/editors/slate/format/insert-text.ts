@@ -86,15 +86,20 @@ function markdownAutoformat(editor: SlateEditor): boolean {
   if (!Text.isText(node)) return false;
 
   let r: boolean | Function = false;
-  Editor.withoutNormalizing(editor, () => {
-    editor.apply({
-      type: "split_node",
-      path: selection.focus.path,
-      position: selection.focus.offset - 1,
-      properties: node, // important to preserve text properties on split (seems fine to leave text field)
+  try {
+    Editor.withoutNormalizing(editor, () => {
+      editor.apply({
+        type: "split_node",
+        path: selection.focus.path,
+        position: selection.focus.offset - 1,
+        properties: node, // important to preserve text properties on split (seems fine to leave text field)
+      });
+      r = markdownAutoformatAt(editor, selection.focus.path);
     });
-    r = markdownAutoformatAt(editor, selection.focus.path);
-  });
+  } catch (err) {
+    console.warn(`SLATE -- issue in markdownAutoformat ${err}`);
+  }
+
   if (typeof r == "function") {
     // code to run after normalizing.
     // @ts-ignore
@@ -280,8 +285,8 @@ function shift_path(op: Operation, shift: number): void {
 
 // This is pretty scary, but I need it especially in the weird case
 // where you insert a checkbox in an empty document and everything
-// looses focus.
-// This is a SCARY function so please don't export it.
+// loses focus.
+// This is a SCARY function..
 export function focusEditorAt(editor: ReactEditor, point: Point): void {
   setSelectionAndFocus(editor, { focus: point, anchor: point });
 }

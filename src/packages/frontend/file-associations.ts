@@ -408,7 +408,7 @@ file_associations["course"] = {
 
 file_associations["board"] = {
   editor: "board",
-  icon: "file-image",
+  icon: "layout",
   opts: {},
   name: "whiteboard",
 };

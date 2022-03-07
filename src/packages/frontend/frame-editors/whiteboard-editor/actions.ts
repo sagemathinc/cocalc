@@ -28,6 +28,11 @@ import {
   moveUntilNotIntersectingAnything,
   getOverlappingElements,
 } from "./math";
+import {
+  DEFAULT_FONT_SIZE,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
+} from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { cloneDeep } from "lodash";
 import runCode from "./elements/code/run";
@@ -760,11 +765,13 @@ export class Actions extends BaseActions<State> {
     moved: Set<string> = new Set()
   ): void {
     let allElements: undefined | Element[] = undefined;
+    const tx = Math.round(offset.x);
+    const ty = Math.round(offset.y);
     for (const element of elements) {
       const { id } = element;
       if (moved.has(id)) continue;
-      const x = element.x + offset.x;
-      const y = element.y + offset.y;
+      const x = element.x + tx;
+      const y = element.y + ty;
       this.setElement({
         obj: { id, x, y },
         commit: false,
@@ -838,6 +845,25 @@ export class Actions extends BaseActions<State> {
       this.disableWhiteboardKeyHandler();
     }
     super.focus(id);
+  }
+
+  increase_font_size(id: string): void {
+    this.set_font_size(
+      id,
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) + 1
+    );
+  }
+
+  decrease_font_size(id: string): void {
+    this.set_font_size(
+      id,
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) - 1
+    );
+  }
+
+  set_font_size(id: string, font_size: number): void {
+    font_size = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, font_size));
+    this.set_frame_tree({ id, font_size });
   }
 }
 

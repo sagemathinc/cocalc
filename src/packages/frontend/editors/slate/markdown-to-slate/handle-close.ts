@@ -51,9 +51,17 @@ function handleClose({ token, state, cache }) {
         }
         markdown += child_state.markdown ?? "";
       }
+      // console.log("children = ", JSON.stringify(children), isEmpty);
       if (isEmpty) {
         // it is illegal for the children to be empty.
-        children.push({ text: "" });
+        if (token.type == "list_item_close") {
+          // This is to match with the rule in ../normalize defined in
+          // ensureListContainsListItems that "if the the children of the
+          // list item are leaves, wrap them all in a paragraph".
+          children.push({ children: [{ text: "" }], type: "paragraph" });
+        } else {
+          children.push({ text: "" });
+        }
       }
       const i = state.close_type.lastIndexOf("_");
       const type = state.close_type.slice(0, i);

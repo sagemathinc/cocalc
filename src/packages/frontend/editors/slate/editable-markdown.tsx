@@ -5,13 +5,14 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
+const EXPENSIVE_DEBUG = false;
+// const EXPENSIVE_DEBUG = (window as any).cc != null && true; // EXTRA SLOW -- turn off before release!
 
-import { RefObject } from "react";
+import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { createEditor, Descendant, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Transforms } from "slate";
 import { withFix4131, withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -37,8 +38,8 @@ import { withNormalize } from "./normalize";
 import { withInsertBreakHack } from "./elements/link/editable";
 import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
-
-import { useUpload, withUpload } from "./upload";
+import { withIsInline, withIsVoid } from "./plugins";
+import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
@@ -55,11 +56,10 @@ import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
 import { markdown_to_html } from "@cocalc/frontend/markdown";
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 
-// (??) A bit longer is better, due to escaping of markdown and multiple users
-// with one user editing source and the other editing with slate.
-// const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+// const SAVE_DEBOUNCE_MS = 100;
 
 import { delay } from "awaiting";
 
@@ -89,11 +89,12 @@ const USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
-// ** This must be at least 1 or our algorithm for maintaining the
-// DOM selection state will not work.**
+// ** This must be at least 2 or our algorithm for maintaining the
+// DOM selection state will not work.  Any upstream editing removes focus.**
 // Setting the count to 10 and editing moby dick **does** feel slightly
-// laggy, whereas around 2 or 3 and it feels super snappy.
-const OVERSCAN_ROW_COUNT = 2;
+// laggy, whereas around 2 or 3 and it feels usable.
+const OVERSCAN_ROW_COUNT = 3;
+if (OVERSCAN_ROW_COUNT <= 1) throw Error("this can't work!");
 
 const STYLE = {
   width: "100%",
@@ -123,6 +124,10 @@ interface Props {
   saveDebounceMs?: number;
   noVfill?: boolean;
   divRef?: RefObject<HTMLDivElement>;
+  selectionRef?: MutableRefObject<{
+    setSelection: Function;
+    getSelection: Function;
+  } | null>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -137,7 +142,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
     hidePath,
-    disableWindowing,
+    disableWindowing = !USE_WINDOWING,
     style,
     pageStyle,
     editBarStyle,
@@ -148,10 +153,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     saveDebounceMs,
     noVfill,
     divRef,
+    selectionRef,
   }) => {
-    if (disableWindowing == null) {
-      disableWindowing = !USE_WINDOWING;
-    }
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
     const id = id0 ?? "";
@@ -165,10 +168,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         withFix4131(
           withInsertBreakHack(
             withNormalize(
-              withUpload(
-                withAutoFormat(
-                  withIsInline(withIsVoid(withReact(createEditor())))
-                )
+              withAutoFormat(
+                withIsInline(withIsVoid(withReact(createEditor())))
               )
             )
           )
@@ -209,6 +210,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       };
 
       ed.syncCache = {};
+      if (selectionRef != null) {
+        selectionRef.current = {
+          setSelection: (selection: any) => {
+            ed.selection = selection;
+          },
+          getSelection: () => {
+            return ed.selection;
+          },
+        };
+      }
 
       return ed as SlateEditor;
     }, []);
@@ -233,7 +244,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search: SearchHook = (editor.search = useSearch({ editor }));
+    const search: SearchHook = useSearch({ editor });
 
     const { marks, updateMarks } = useMarks(editor);
 
@@ -258,7 +269,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         debounce(() => {
           if (disableWindowing || actions.save_editor_state == null) return;
           const scroll =
-            editor.windowedListRef.current?.render_info?.visibleStartIndex;
+            editor.windowedListRef.current?.renderInfo?.visibleStartIndex;
           if (scroll != null) {
             actions.save_editor_state(id, { scroll });
           }
@@ -322,14 +333,20 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     function setSyncstringFromSlate() {
       if (actions.set_value == null) return;
-      const v = editor.getMarkdownValue();
-      actions.set_value(v);
+      try {
+        savingValue.current = true;
+        const v = editor.getMarkdownValue();
+        lastRemote.current = v;
+        actions.set_value(v);
+      } finally {
+        savingValue.current = false;
+      }
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
-    // For tiny documents, user can make this small or even 0 to not dbounce.
+    // For tiny documents, user can make this small or even 0 to not debounce.
     const saveValueDebounce =
       saveDebounceMs != null && !saveDebounceMs
         ? () => editor.saveValue()
@@ -381,45 +398,71 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [is_current]);
 
-    // Make sure to save the state of the slate editor
-    // to the syncstring *before* merging in a change
-    // from upstream.
+    // possible new value from upstream
+    const savingValue = useRef<boolean>(false);
+    const lastRemote = useRef<string>(value ?? "");
     useEffect(() => {
-      function before_change() {
-        // Important -- ReactEditor.isFocused(editor)  is *false* when
-        // you're editing some inline void elements (e.g., code blocks),
-        // since the focus leaves slate and goes to codemirror (say).
-        if (ReactEditor.isFocused(editor) && is_current) {
-          setSyncstringFromSlate();
-        }
-      }
-      actions.get_syncstring?.().on("before-change", before_change);
-      return () =>
-        actions.get_syncstring?.().off("before-change", before_change);
-    }, []);
+      if (value == null) return;
+      if (savingValue.current) return;
 
-    useEffect(() => {
-      if (value == null || value == editor.markdownValue) {
-        // Setting to current value, so no-op.
+      const base = lastRemote.current;
+      const remote = value;
+      const local = editor.getMarkdownValue();
+      const newVal = threeWayMerge({ base, local, remote });
+      lastRemote.current = remote;
+      if (newVal == local) {
+        // nothing changed
         return;
       }
 
-      editor.markdownValue = value;
+      editor.markdownValue = newVal;
       const previousEditorValue = editor.children;
 
       // we only use the latest version of the document
       // for caching purposes.
       editor.syncCache = {};
-      const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
+      // There is an assumption here that markdown_to_slate produces
+      // a document that is properly normalized.  If that isn't the
+      // case, things will go horribly wrong, since it'll be impossible
+      // to convert the document to equal nextEditorValue.
+      const nextEditorValue = markdown_to_slate(
+        newVal,
+        false,
+        editor.syncCache
+      );
 
       const operations = slateDiff(previousEditorValue, nextEditorValue);
       // Applying this operation below will immediately trigger
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
+      //       console.log(
+      //         "selection before patching",
+      //         JSON.stringify(editor.selection)
+      //       );
       if (operations.length > 0) {
         editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
         applyOperations(editor, operations);
+      }
+      // console.log("selection after patching", JSON.stringify(editor.selection));
+      try {
+        if (editor.selection != null) {
+          const { anchor, focus } = editor.selection;
+          Editor.node(editor, anchor);
+          Editor.node(editor, focus);
+        }
+      } catch (err) {
+        // TODO!
+        console.warn(
+          "slate - invalid selection after upstream patch. Resetting selection.",
+          err
+        );
+        // set to beginning of document -- better than crashing.
+        const focus = { path: [0, 0], offset: 0 };
+        Transforms.setSelection(editor, {
+          focus,
+          anchor: focus,
+        });
       }
 
       if (EXPENSIVE_DEBUG) {
@@ -428,8 +471,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // is not equal to {}, but they JSON the same, and this is
         // fine for our purposes.
         if (stringify(editor.children) != stringify(nextEditorValue)) {
-          console.log(
-            "**BUG!  slateDiff did not properly transform editor! See window.diffBug **"
+          // NOTE -- this does not 100% mean things are wrong.  One case where
+          // this is expected behavior is if you put the cursor at the end of the
+          // document, say right after a horizontal rule,  and then edit at the
+          // beginning of the document in another browser.  The discrepancy
+          // is because a "fake paragraph" is placed at the end of the browser
+          // so your cursor has somewhere to go while you wait and type; however,
+          // that space is not really part of the markdown document, and it goes
+          // away when you move your cursor out of that space.
+          console.warn(
+            "**WARNING:  slateDiff might not have properly transformed editor, though this may be fine. See window.diffBug **"
           );
           (window as any).diffBug = {
             previousEditorValue,
@@ -438,6 +489,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             operations,
             stringify,
             slateDiff,
+            applyOperations,
+            markdown_to_slate,
+            value,
+            newVal,
           };
         }
       }
@@ -455,6 +510,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
         Range,
         Text,
+        markdown_to_slate,
+        robot: async (s: string, iterations = 1) => {
+          let inserted = "";
+          for (let n = 0; n < iterations; n++) {
+            for (const x of s) {
+              editor.insertText(x);
+              inserted += x;
+              console.log(`inserted: "${inserted}"`);
+              await delay(300 * Math.random());
+              if (Math.random() < 0.3) {
+                await delay(1.1 * SAVE_DEBOUNCE_MS);
+              }
+            }
+          }
+        },
       };
     }
 
@@ -651,24 +721,3 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     return useUpload(editor, body);
   }
 );
-
-const withIsVoid = (editor) => {
-  const { isVoid } = editor;
-
-  editor.isVoid = (element) => {
-    if (element === editor) return false;
-    return element.isVoid != null ? element.isVoid : isVoid(element);
-  };
-
-  return editor;
-};
-
-const withIsInline = (editor) => {
-  const { isInline } = editor;
-
-  editor.isInline = (element) => {
-    return element.isInline != null ? element.isInline : isInline(element);
-  };
-
-  return editor;
-};

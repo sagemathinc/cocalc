@@ -179,7 +179,7 @@ export const useDOMSelectionChange = ({
     }
     const { selection } = editor;
     if (selection != null) {
-      const info = editor.windowedListRef?.current?.render_info;
+      const info = editor.windowedListRef?.current?.renderInfo;
       if (info != null) {
         // Trickier case due to windowing.  We check if the DOM selection
         // changed due to the windowing system removing rows from the DOM.
@@ -285,7 +285,7 @@ export function getWindowedSelection(editor: ReactEditor): Selection | null {
   }
 
   // Now we trim non-collapsed selection to part of window in the DOM.
-  const info = editor.windowedListRef.current.render_info;
+  const info = editor.windowedListRef.current.renderInfo;
   if (info == null) return selection;
   // console.log(JSON.stringify({selection,info,}));
   const { anchor, focus } = selection;

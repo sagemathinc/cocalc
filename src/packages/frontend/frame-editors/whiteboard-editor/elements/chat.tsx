@@ -44,11 +44,14 @@ function Conversation({ element, focused }: Props) {
       {focused && (
         <div style={{ height: "125px", display: "flex" }} className="nodrag">
           <ChatInput
+            cacheId={element.id}
             hideHelp
             height={"123px"}
             input={input}
-            onChange={setInput}
-            on_send={() => {
+            onChange={(value) => {
+              setInput(value);
+            }}
+            on_send={(input) => {
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}

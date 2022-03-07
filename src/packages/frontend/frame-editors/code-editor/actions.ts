@@ -1391,6 +1391,8 @@ export class Actions<
     }
   }
 
+  // Sets value of syncstring to the given value.  If there are any
+  // codemirror editors, their value also gets sets directly.
   public set_value(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cm = this._get_cm();
@@ -1475,7 +1477,9 @@ export class Actions<
   }
 
   exit_undo_mode(): void {
-    this._syncstring.exit_undo_mode();
+    // NOTE: this._syncstring could definitely be null if this is somehow being called
+    // right as the document is being closed.  We thus definitely do need to check for it.
+    this._syncstring?.exit_undo_mode();
   }
 
   // per-session sync-aware undo -- only work when editing text in

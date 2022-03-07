@@ -5,56 +5,6 @@
 
 /*
 Markdown editor
-
-Stage 1 -- enough to replace current chat input:
-  - [x] @mentions (via completion dialog) -the collabs on this project
-     - [ ] type to search/restrict from list of collabs
-     - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
-     - [x] write new better more generic completions widget support
-     - [x] insert mention code in editor on select
-     - [x]  use on submit.
-  - [x] main input at bottom feels SLOW (even though editing messages is fast)
-  - [x] different border when focused
-  - [x] scroll into view when focused
-  - [x] use this component for editing past chats
-  - [x] editor themes
-  - [x] markdown syntax highlighting via codemirror
-  - [x] spellcheck
-  - [x] vim/emacs/sublime keybinding modes
-  - [x] non-monospace font
-  - [x] focus current line
-  - [x] placeholder text
-  - [x] drag and drop of images and other files
-  - [x] cancel upload in progress
-  - [x] don't allow send *during* upload.
-  - [x] cancel upload that is finished and delete file
-  - [x] paste of images
-  - [x] change the path for file uploads to depend on the file being edited. Then move/copy makes WAY more sense and is more robust going forward.
-  - [x] close file upload when input is blanked (i.e., on send)
-  - [x] explicitly closing the file upload preview before submitting DELETES all the uploaded files.
-  - [x] #now make file upload LOOK GOOD
-  - [x] file upload button that pops open the dropzone or a file browser?  (useful for mobile and discoverability)
-
-
-Stage 2 -- stretch goal challenges:
----
-  - [ ] "Move" versus "Copy" when dragging/dropping?
-  - [ ] improve file move and delete to be aware of images (?).
-  - [ ] make upload link an immutable span of text?  Unclear, since user wants to edit the width and maybe style.  Hmmm... Unclear.
-  - [ ] integrated preview
-  - [ ] directions and links
-  - [ ] hashtags
-  - [ ] wysiwyg mode: via prosemirror?   maybe https://github.com/outline/rich-markdown-editor
-  - [ ] emojis like on github?
-  - [ ] BUG: very small file upload is BROKEN in cc-in-cc dev: this may be a proxy issue... exactly the same code works fine outside of cc-in-cc dev.
-
-Use this for:
-  - chat input
-  - course editor conf fields involving markdown
-  - markdown in jupyter
-  - task editor (especially with #tag completion)
-
-It will be a controlled component that takes project_id and path as input.
 */
 
 // Note -- the old file upload used .chat-images for everything,
@@ -77,6 +27,7 @@ import { useTypedRedux, useRedux, redux, ReactDOM } from "../../app-framework";
 import {
   CSSProperties,
   FC,
+  MutableRefObject,
   ReactNode,
   useEffect,
   useRef,
@@ -87,6 +38,7 @@ import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
 import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
+import { debounce } from "lodash";
 
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
@@ -111,6 +63,7 @@ interface Props {
   path?: string; // must be set if enableUpload or enableMentions is set (todo: enforce via typescript)
   value?: string;
   onChange?: (value: string) => void;
+  saveDebounceMs?: number; // if given, calls to onChange are debounced by this param
   enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -131,6 +84,13 @@ interface Props {
   lineNumbers?: boolean;
   autoFocus?: boolean;
   cmOptions?: { [key: string]: any }; // if given, use this for all CodeMirror options and ignore anything derived from other inputs, e.g., lineNumbers, above.
+  selectionRef?: MutableRefObject<{
+    setSelection: Function;
+    getSelection: Function;
+  } | null>;
+  onUndo?: () => void; // user requests undo -- if given, codemirror's internal undo is not used
+  onRedo?: () => void; // user requests redo
+  onSave?: () => void; // user requests save
 }
 
 export const MarkdownInput: FC<Props> = ({
@@ -144,6 +104,7 @@ export const MarkdownInput: FC<Props> = ({
   submitMentionsRef,
   style,
   onChange,
+  saveDebounceMs,
   onShiftEnter,
   onEscape,
   onBlur,
@@ -158,6 +119,10 @@ export const MarkdownInput: FC<Props> = ({
   lineNumbers,
   autoFocus,
   cmOptions,
+  selectionRef,
+  onUndo,
+  onRedo,
+  onSave,
 }) => {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -226,7 +191,7 @@ export const MarkdownInput: FC<Props> = ({
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     if (onChange != null) {
-      cm.current.on("change", (editor, change) => {
+      let f = (editor, change) => {
         if (change.origin == "setValue") {
           // Since this is a controlled component, firing onChange for this
           // could lead to an infinite loop and randomly crash the browser.
@@ -242,7 +207,11 @@ export const MarkdownInput: FC<Props> = ({
           return;
         }
         onChange(editor.getValue());
-      });
+      };
+      if (saveDebounceMs) {
+        f = debounce(f, saveDebounceMs);
+      }
+      cm.current.on("change", f);
     }
 
     if (onBlur != null) {
@@ -254,6 +223,29 @@ export const MarkdownInput: FC<Props> = ({
 
     cm.current.on("blur", () => set_is_focused(false));
     cm.current.on("focus", () => set_is_focused(true));
+
+    if (onUndo != null) {
+      cm.current.undo = () => {
+        if (cm.current == null) return;
+        onChange?.(cm.current.getValue());
+        onUndo();
+      };
+    }
+    if (onRedo != null) {
+      cm.current.redo = () => {
+        if (cm.current == null) return;
+        onChange?.(cm.current.getValue());
+        onRedo();
+      };
+    }
+    if (onSave != null) {
+      // This funny cocalc_actions is just how this is setup
+      // elsewhere in cocalc... Basically the global
+      //    CodeMirror.commands.ave
+      // is set to use this.
+      // @ts-ignore
+      cm.current.cocalc_actions = { explicit_save: onSave };
+    }
 
     if (enableUpload) {
       // as any because the @types for codemirror are WRONG in this case.
@@ -320,6 +312,18 @@ export const MarkdownInput: FC<Props> = ({
     if (autoFocus) {
       cm.current.focus();
     }
+
+    if (selectionRef != null) {
+      selectionRef.current = {
+        setSelection: (selection: any) => {
+          cm.current?.setSelections(selection);
+        },
+        getSelection: () => {
+          return cm.current?.listSelections();
+        },
+      };
+    }
+
     // clean up
     return () => {
       if (cm.current == null) return;

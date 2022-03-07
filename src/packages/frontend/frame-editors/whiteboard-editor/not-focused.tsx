@@ -12,7 +12,7 @@ export default function NotFocused({ children, id, selectable }: Props) {
   const frame = useFrameContext();
   return (
     <div
-      style={{ width: "100%", height: "100%", cursor: "pointer" }}
+      style={{ width: "100%", height: "100%" }}
       onClick={(e) => onClick(selectable, id, e, frame)}
     >
       {children}

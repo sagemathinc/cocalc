@@ -65,7 +65,7 @@ function EditText({
     const newVal = threeWayMerge({
       base,
       local: valueRef.current,
-      remote: element.str ?? "",
+      remote,
     });
     if (newVal != valueRef.current) {
       valueRef.current = newVal;
@@ -92,6 +92,7 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        cacheId={element.id}
         noVfill
         autoFocus
         minimal
@@ -150,6 +151,15 @@ function EditText({
           actions.setCursors(element.id, cursors);
         }}
         cursors={cursors}
+        onSave={() => {
+          actions.save(true);
+        }}
+        onUndo={() => {
+          actions.undo();
+        }}
+        onRedo={() => {
+          actions.redo();
+        }}
       />
     </div>
   );

@@ -6,7 +6,7 @@ The official Photoshop keyboard shortcuts are here and can be useful inspiration
 
 import { Actions } from "./actions";
 import { TOOLS, Tool } from "./tools/spec";
-import { ZOOM100 } from "./math";
+import { DEFAULT_FONT_SIZE } from "./tools/defaults";
 
 const selectTool: { [key: string]: Tool } = {};
 for (const tool in TOOLS) {
@@ -87,7 +87,7 @@ export default function getKeyHandler(
         return;
       }
       if (!e.shiftKey) {
-        actions.set_font_size(frameId, ZOOM100);
+        actions.set_font_size(frameId, DEFAULT_FONT_SIZE);
         return;
       }
     }

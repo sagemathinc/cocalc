@@ -12,13 +12,14 @@ import { useFrameContext } from "../frame-editors/frame-tree/frame-context";
 interface Props {
   input?: string;
   on_paste?: (e) => void;
-  on_send?: () => void;
+  on_send?: (value: string) => void;
   height?: string;
-  onChange?: (string) => void;
+  onChange: (string) => void;
   submitMentionsRef?: any;
   font_size?: number;
   hideHelp?: boolean;
   style?: CSSProperties;
+  cacheId?: string;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -27,6 +28,7 @@ export const ChatInput: React.FC<Props> = (props) => {
     props.font_size ?? useRedux(["font_size"], project_id, path);
   return (
     <MarkdownInput
+      cacheId={props.cacheId}
       value={props.input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}

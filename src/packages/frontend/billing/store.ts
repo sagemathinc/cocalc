@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 import { List, Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "../app-framework";
 import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
-import { SiteLicense } from "@cocalc/util/db-schema/site-licenses";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;

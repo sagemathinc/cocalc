@@ -41,11 +41,12 @@ viewport coordinates:
   and getting an event e.clientX, e.clientY.  The upper left point (0,0)
   is the upper left corner of the browser window.
 - this is related to window coordinates by translation, where the parameters
-  are the position of the canvas div and its scrollTop, scrollLeft attributes.
-  Thus the transform back and forth between window and portal coordinates
+  are the position of the canvas div and its top,left offset attributes.
+  Thus the transform back and forth between window and viewport coordinates
   is extra tricky, because it can change any time at any time!
 */
 
+import { useWheel } from "@use-gesture/react";
 import {
   ClipboardEvent,
   ReactNode,
@@ -70,17 +71,19 @@ import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import useResizeObserver from "use-resize-observer";
 import Grid from "./elements/grid";
 import {
   centerOfRect,
   compressPath,
+  zoomToFontSize,
   fontSizeToZoom,
-  ZOOM100,
   getPageSpan,
   getPosition,
   fitRectToRect,
   getOverlappingElements,
   getTransforms,
+  Transforms,
   pointEqual,
   pointRound,
   pointsToRect,
@@ -88,11 +91,17 @@ import {
   rectSpan,
   MAX_ELEMENTS,
 } from "./math";
+import {
+  MIN_ZOOM,
+  MAX_ZOOM,
+  DEFAULT_FONT_SIZE,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
+} from "./tools/defaults";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
-import useResizeObserver from "use-resize-observer";
 import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
-import { getParams } from "./tools/tool-panel";
+import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 
@@ -123,9 +132,9 @@ export default function Canvas({
   elements,
   elementsMap,
   font_size,
-  scale,
+  scale: scale0,
   selection,
-  margin,
+  margin = 10000,
   readOnly,
   selectedTool,
   evtToDataRef,
@@ -135,36 +144,205 @@ export default function Canvas({
   cursors,
 }: Props) {
   const frame = useFrameContext();
-  const canvasScale = scale ?? fontSizeToZoom(font_size);
-  // We have to scale the margin as we zoom in and out,
-  // since otherwise it will look way too small. We don't
-  // touch margin though if it is explicitly set.
-  margin = margin ?? 1500 / canvasScale;
+  const canvasScale = scale0 ?? fontSizeToZoom(font_size);
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
-  usePinchToZoom({ target: canvasRef, min: 5, max: 100, step: 2 });
+  const scaleDivRef = useRef<any>(null);
+
+  const firstOffsetRef = useRef<any>({
+    scale: 1,
+    offset: { x: 0, y: 0 },
+    mouse: { x: 0, y: 0 },
+  });
+
+  const lastPinchRef = useRef<number>(0);
+  usePinchToZoom({
+    disabled: isNavigator,
+    target: canvasRef,
+    min: MIN_FONT_SIZE,
+    max: MAX_FONT_SIZE,
+    throttleMs: 100,
+    getFontSize: () => font_size ?? DEFAULT_FONT_SIZE,
+    onZoom: ({ fontSize, first }) => {
+      lastPinchRef.current = new Date().valueOf();
+      if (first) {
+        const rect = scaleDivRef.current?.getBoundingClientRect();
+        const mouse =
+          rect != null && mouseMoveRef.current
+            ? {
+                x: mouseMoveRef.current.clientX - rect.left,
+                y: mouseMoveRef.current.clientY - rect.top,
+              }
+            : { x: 0, y: 0 };
+        firstOffsetRef.current = {
+          offset: offset.get(),
+          scale: scale.get(),
+          mouse,
+        };
+      }
+
+      const curScale = fontSizeToZoom(fontSize);
+      scale.set(curScale);
+
+      const { mouse } = firstOffsetRef.current;
+      const tx = (mouse.x * curScale) / firstOffsetRef.current.scale - mouse.x;
+      const ty = (mouse.y * curScale) / firstOffsetRef.current.scale - mouse.y;
+      const x = firstOffsetRef.current.offset.x - tx;
+      const y = firstOffsetRef.current.offset.y - ty;
+      offset.set({ x, y });
+      scale.setFontSize();
+    },
+  });
+
+  useEffect(() => {
+    if (isNavigator) return;
+    saveViewport();
+  }, [canvasScale]);
+
+  const scaleRef = useRef<number>(canvasScale);
+  const scale = useMemo(() => {
+    return {
+      set: (scale: number) => {
+        if (scaleDivRef.current == null) return;
+        scaleRef.current = scale;
+        scaleDivRef.current.style.setProperty("transform", `scale(${scale})`);
+      },
+      get: () => {
+        return scaleRef.current;
+      },
+      setFontSize: throttle(() => {
+        frame.actions.set_font_size(frame.id, zoomToFontSize(scaleRef.current));
+      }, 250),
+    };
+  }, [scaleRef, scaleDivRef, frame.id]);
+
+  const offsetRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
+  const offset = useMemo(() => {
+    const set = ({ x, y }: Point) => {
+      if (isNavigator) return;
+      const e = scaleDivRef.current;
+      const c = canvasRef.current;
+      const rect = c?.getBoundingClientRect();
+      let left, top;
+      if (e != null && rect?.width) {
+        // ensure values are in valid range, if possible.
+        left = Math.min(
+          0,
+          Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
+        );
+        top = Math.min(
+          0,
+          Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
+        );
+      } else {
+        // don't bother with ensuring values in valid range; this happens,
+        // e.g., when remounting right as the editor is being shown again.
+        // If we don't do this, left/top get temporarily messed up if you page
+        // away to files, then to list of all projects, then back to files,
+        // then back to the editor.
+        left = x;
+        top = y;
+      }
+
+      offsetRef.current = { left, top };
+      e.style.setProperty("left", `${left}px`);
+      e.style.setProperty("top", `${top}px`);
+      saveViewport();
+    };
+
+    return {
+      set,
+      get: () => {
+        return { x: offsetRef.current.left, y: offsetRef.current.top };
+      },
+      translate: ({ x, y }: Point) => {
+        const { left, top } = offsetRef.current;
+        set({ x: -x + left, y: -y + top });
+      },
+    };
+  }, [scaleDivRef, canvasRef, offsetRef]);
+
+  // This has to happen directly here, and now as part of
+  // a useEffect, since it sets offsetRef, which is used
+  // for the offset in rendering the scaling div as a
+  // result of canvasScale having changed.  If this is done
+  // as part of a useEffect, you get a big flicker and random failure.
+  if (
+    !isNavigator &&
+    scaleRef.current != canvasScale &&
+    new Date().valueOf() >= lastPinchRef.current + 500
+  ) {
+    // - canvasScale changed due to something external, rather than
+    // usePinchToZoom above, since when changing due to pinch zoom,
+    // scaleRef has already been set before this call here happens.
+    // - We want to preserve the center of the canvas on zooming.
+    // - Code below is almost identical to usePinch code above,
+    //   except we compute clientX and clientY that would get if mouse
+    //   was in the center.
+    const rect = scaleDivRef.current?.getBoundingClientRect();
+    if (rect != null) {
+      const rect2 = canvasRef.current?.getBoundingClientRect();
+      const clientX = rect2.left + rect2.width / 2;
+      const clientY = rect2.top + rect2.height / 2;
+      const center = {
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      };
+      const tx = (center.x * canvasScale) / scaleRef.current - center.x;
+      const ty = (center.y * canvasScale) / scaleRef.current - center.y;
+      const o = offset.get();
+      offsetRef.current = { left: o.x - tx, top: o.y - ty };
+    }
+    scaleRef.current = canvasScale;
+  }
+
+  useWheel(
+    (state) => {
+      if (state.event.ctrlKey) return; // handled elsewhere
+      offset.translate({ x: state.delta[0], y: state.delta[1] });
+    },
+    {
+      target: canvasRef,
+      disabled: isNavigator,
+    }
+  );
 
   const innerCanvasRef = useRef<any>(null);
 
-  const canvasScaleRef = useRef<number>(1);
-  const transforms = useMemo(() => {
-    // TODO: if tool is not select, should we exclude hidden elements in computing this...?
-    const t = getTransforms(elements, margin, canvasScale);
-    // also update the canvas scale, which is needed to keep
-    // the canvas preview layer (for the pen) from getting too big
-    // and wasting memory.
-    canvasScaleRef.current = getMaxCanvasSizeScale(
-      penDPIFactor * t.width,
-      penDPIFactor * t.height
-    );
-    return t;
-  }, [elements, margin, canvasScale]);
+  const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
+
+  useEffect(() => {
+    // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
+    transformsRef.current = getTransforms(elements, margin);
+  }, [elements, margin]);
+
+  // When the canvas elements change the extent changes and everything
+  // will jump if we don't offset that change.  That's what we do below:
+  const lastTransforms = useRef<Transforms | null>(null);
+  useEffect(() => {
+    if (isNavigator) return;
+    if (lastTransforms.current != null) {
+      // the transforms changed somewhow.   Maybe xmin/ymin changed.
+      // Note changing coords to window...
+      const x =
+        (lastTransforms.current.xMin - transformsRef.current.xMin) *
+        canvasScale;
+      const y =
+        (lastTransforms.current.yMin - transformsRef.current.yMin) *
+        canvasScale;
+      if (x || y) {
+        // yes, they changed, so we shift over.
+        offset.translate({ x, y });
+      }
+    }
+    lastTransforms.current = transformsRef.current;
+  }, [elements]);
 
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
+  const penPreviewPath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
-    scrollLeft: number;
-    scrollTop: number;
+    start: Point;
     clientX: number;
     clientY: number;
   } | null>(null);
@@ -183,34 +361,38 @@ export default function Canvas({
   } | null>(null);
 
   const penCanvasRef = useRef<any>(null);
-
-  // Whenever the data <--> window transform params change,
-  // ensure the current center of the viewport is preserved,
-  // to avoid major disorientation for the user.
-  const lastViewport = useRef<Rect | undefined>(undefined);
+  const penCanvasParamsRef = useRef<{
+    scale: number;
+    rect: {
+      width: number;
+      height: number;
+      top: number;
+      left: number;
+    };
+  }>({ scale: 1, rect: { left: 0, top: 0, width: 0, height: 0 } });
   const resize = useResizeObserver({ ref: canvasRef });
   useEffect(() => {
-    if (isNavigator) return;
-    const viewport = getViewportData();
-    if (lastViewport.current != null && viewport != null) {
-      const last = centerOfRect(lastViewport.current);
-      const cur = centerOfRect(viewport);
-      const tx = last.x - cur.x;
-      const ty = last.y - cur.y;
-      const c = canvasRef.current;
-      if (c == null) return;
-      c.scrollLeft += tx * canvasScale;
-      c.scrollTop += ty * canvasScale;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (rect?.width) {
+      // also update the canvas scale, which is needed to keep
+      // the canvas preview layer (for the pen) from getting too big
+      // and wasting memory.
+      penCanvasParamsRef.current = {
+        scale: getMaxCanvasSizeScale(
+          penDPIFactor * rect.width,
+          penDPIFactor * rect.height
+        ),
+        rect,
+      };
     }
-    lastViewport.current = viewport;
-  }, [
-    canvasScale,
-    transforms.xMin,
-    transforms.xMax,
-    transforms.yMin,
-    transforms.yMax,
-    resize,
-  ]);
+  }, [resize]);
+
+  // Whenever the data <--> window transform params change,
+  // ensure the current center of the viewport is preserved
+  // or if the mouse is in the viewport, maintain its position.
+  const lastViewport = useRef<Rect | undefined>(undefined);
+  const lastMouseRef = useRef<any>(null);
+  const mouseMoveRef = useRef<any>(null);
 
   // If the viewport changes, but not because we just set it,
   // then we move our current center displayed viewport to match that.
@@ -224,18 +406,6 @@ export default function Canvas({
     // request to change viewport.
     setCenterPositionData(centerOfRect(viewport));
   }, [frame.desc.get("viewport")]);
-
-  // Save state about the viewport so it can be displayed
-  // in the navmap, and also restored later.
-  useEffect(() => {
-    saveViewport();
-  }, [
-    canvasScale,
-    transforms.xMin,
-    transforms.xMax,
-    transforms.yMin,
-    transforms.yMax,
-  ]);
 
   // Handle setting a center position for the visible window
   // by restoring last known viewport center on first mount.
@@ -256,8 +426,16 @@ export default function Canvas({
     }
   }, []);
 
-  function getToolParams(tool) {
-    return getParams(tool, frame.desc.get(`${tool}Id`));
+  function getToolElement(tool): Partial<Element> {
+    const elt = getElement(tool, frame.desc.get(`${tool}Id`));
+    if (elt.data?.aspectRatio) {
+      const ar = aspectRatioToNumber(elt.data.aspectRatio);
+      if (elt.w == null) {
+        elt.w = 500;
+      }
+      elt.h = elt.w / (ar != 0 ? ar : 1);
+    }
+    return elt;
   }
 
   // get window coordinates of what is currently displayed in the exact
@@ -267,11 +445,14 @@ export default function Canvas({
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
+    const d = scaleDivRef.current;
+    if (d == null) return;
     // the current center of the viewport, but in window coordinates, i.e.,
     // absolute coordinates into the canvas div.
+    const { x, y } = offset.get();
     return {
-      x: c.scrollLeft + rect.width / 2,
-      y: c.scrollTop + rect.height / 2,
+      x: -x + rect.width / 2,
+      y: -y + rect.height / 2,
     };
   }
 
@@ -282,51 +463,40 @@ export default function Canvas({
     if (cur == null) return;
     const delta_x = t.x - cur.x;
     const delta_y = t.y - cur.y;
-    const c = canvasRef.current;
-    if (c == null) return;
-    const scrollLeftGoal = Math.floor(c.scrollLeft + delta_x);
-    const scrollTopGoal = Math.floor(c.scrollTop + delta_y);
-    c.scrollLeft = scrollLeftGoal;
-    c.scrollTop = scrollTopGoal;
+    offset.translate({ x: delta_x, y: delta_y });
   }
 
   // when fitToScreen is true, compute data then set font_size to
-  // get zoom (plus offset) to everything is visible properly
+  // get zoom (plus offset) so everything is visible properly
   // on the page; also set fitToScreen back to false in
   // frame tree data.
   useEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
+      const viewport = getViewportData();
+      if (viewport == null) return;
       if (elements.length == 0) {
         // Special case -- the screen is blank; don't want to just
         // maximal zoom in on the center!
         setCenterPositionData({ x: 0, y: 0 });
-        lastViewport.current = getViewportData();
-        frame.actions.set_font_size(frame.id, Math.floor(ZOOM100));
+        lastViewport.current = viewport;
+        frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
-      const viewport = getViewportData();
-      if (viewport == null) return;
       const rect = rectSpan(elements);
-      const offset = 50 / canvasScale; // a little breathing room for the toolbar
+      const s =
+        Math.min(
+          MAX_ZOOM,
+          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+        ) * 0.95; // 0.95 for extra room too.
+      scale.set(s);
+      frame.actions.set_font_size(frame.id, zoomToFontSize(s));
+      lastViewport.current = viewport;
       setCenterPositionData({
-        x: rect.x + rect.w / 2 - offset,
+        x: rect.x + rect.w / 2 - 50 / canvasScale, // a little breathing room for the toolbar
         y: rect.y + rect.h / 2,
       });
-      let { scale } = fitRectToRect(rect, viewport);
-      if (scale != 1) {
-        // put bounds on the *automatic* zoom we get from fitting to rect,
-        // since could easily get something totally insane, e.g., for a dot.
-        let newFontSize = Math.floor((font_size ?? ZOOM100) * scale);
-        if (newFontSize < ZOOM100 * 0.2) {
-          newFontSize = Math.round(ZOOM100 * 0.2);
-        } else if (newFontSize > ZOOM100 * 5) {
-          newFontSize = Math.round(ZOOM100 * 5);
-        }
-        // ensure lastViewport is up to date before zooming.
-        lastViewport.current = getViewportData();
-        frame.actions.set_font_size(frame.id, newFontSize);
-      }
+      saveViewport();
     } finally {
       frame.actions.fitToScreen(frame.id, false);
     }
@@ -336,7 +506,7 @@ export default function Canvas({
   function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
-    const t = transforms.dataToWindowNoScale(x, y, z);
+    const t = transformsRef.current.dataToWindowNoScale(x, y, z);
 
     if (element.hide != null) {
       // element is hidden...
@@ -356,7 +526,7 @@ export default function Canvas({
           key={element.id}
           element={element}
           elementsMap={elementsMap}
-          transforms={transforms}
+          transforms={transformsRef.current}
           selected={selection?.has(element.id)}
           previewMode={previewMode}
           onClick={(e) => {
@@ -459,7 +629,7 @@ export default function Canvas({
           element={element}
           allElements={elements}
           selectedElements={[element]}
-          transforms={transforms}
+          transforms={transformsRef.current}
           readOnly={readOnly}
           cursors={cursors?.[id]}
         >
@@ -534,7 +704,7 @@ export default function Canvas({
         element={element}
         allElements={elements}
         selectedElements={selectedElements}
-        transforms={transforms}
+        transforms={transformsRef.current}
         readOnly={readOnly}
         multi={multi}
       >
@@ -595,20 +765,24 @@ export default function Canvas({
     if (c == null) return { x: 0, y: 0 };
     const rect = c.getBoundingClientRect();
     if (rect == null) return { x: 0, y: 0 };
+    const off = offset.get();
     return {
-      x: c.scrollLeft + x - rect.left,
-      y: c.scrollTop + y - rect.top,
+      x: -off.x + x - rect.left,
+      y: -off.y + y - rect.top,
     };
   }
 
   // window coords to data coords
   function windowToData({ x, y }: Point): Point {
-    return transforms.windowToDataNoScale(x / canvasScale, y / canvasScale);
+    return transformsRef.current.windowToDataNoScale(
+      x / scaleRef.current,
+      y / scaleRef.current
+    );
   }
   function dataToWindow({ x, y }: Point): Point {
-    const p = transforms.dataToWindowNoScale(x, y);
-    p.x *= canvasScale;
-    p.y *= canvasScale;
+    const p = transformsRef.current.dataToWindowNoScale(x, y);
+    p.x *= scaleRef.current;
+    p.y *= scaleRef.current;
     return { x: p.x, y: p.y };
   }
   /****************************************************/
@@ -617,7 +791,7 @@ export default function Canvas({
     const v = getViewportWindow();
     if (v == null) return;
     const { x, y } = windowToData(v);
-    return { x, y, w: v.w / canvasScale, h: v.h / canvasScale };
+    return { x, y, w: v.w / scaleRef.current, h: v.h / scaleRef.current };
   }
   // The viewport in *window* coordinates
   function getViewportWindow(): Rect | undefined {
@@ -628,7 +802,8 @@ export default function Canvas({
       // this happens when canvas is hidden from screen (e.g., background tab).
       return;
     }
-    return { x: c.scrollLeft, y: c.scrollTop, w, h };
+    const { x, y } = offset.get();
+    return { x: -x, y: -y, w, h };
   }
 
   // convert mouse event to coordinates in data space
@@ -667,34 +842,36 @@ export default function Canvas({
       }
       return;
     }
-    const data: Partial<Element> = { ...evtToData(e), z: transforms.zMax + 1 };
-    let params: any = undefined;
+    const position: Partial<Element> = {
+      ...evtToData(e),
+      z: transformsRef.current.zMax + 1,
+    };
+    let elt: Partial<Element> = { type: selectedTool as any };
 
     // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
-      params = { data: getToolParams("note") };
+      elt = getToolElement("note");
     } else if (selectedTool == "timer") {
-      params = { data: getToolParams("timer") };
+      elt = getToolElement("timer");
     } else if (selectedTool == "icon") {
-      params = { data: getToolParams("icon") };
+      elt = getToolElement("icon");
     } else if (selectedTool == "text") {
-      params = { data: getToolParams("text") };
+      elt = getToolElement("text");
+    } else if (selectedTool == "code") {
+      elt = getToolElement("code");
+      elt.w = 650;
+      // TODO: this is silly...
+      elt.h = 16 + 2 * (elt.data?.fontSize ?? DEFAULT_FONT_SIZE);
     } else if (selectedTool == "frame") {
-      params = { data: getToolParams("frame") };
-      if (params.data.aspectRatio) {
-        const ar = aspectRatioToNumber(params.data.aspectRatio);
-        data.w = 500;
-        data.h = data.w / (ar != 0 ? ar : 1);
-      }
+      elt = getToolElement("frame");
     } else if (selectedTool == "chat") {
-      data.w = 375;
-      data.h = 450;
+      elt.w = 375;
+      elt.h = 450;
     }
 
     const element = {
-      ...data,
-      type: selectedTool,
-      ...params,
+      ...position,
+      ...elt,
     };
 
     // create element
@@ -723,14 +900,8 @@ export default function Canvas({
             lastViewport.current = viewport;
             frame.actions.saveViewport(frame.id, viewport);
           }
-        }, 50);
-      }, [
-        canvasScale,
-        transforms.xMin,
-        transforms.xMax,
-        transforms.yMin,
-        transforms.yMax,
-      ]);
+        }, 100);
+      }, []);
 
   const onMouseDown = (e) => {
     if (selectedTool == "hand" || e.button == MIDDLE_MOUSE_BUTTON) {
@@ -739,8 +910,7 @@ export default function Canvas({
       handRef.current = {
         clientX: e.clientX,
         clientY: e.clientY,
-        scrollLeft: c.scrollLeft,
-        scrollTop: c.scrollTop,
+        start: offset.get(),
       };
       return;
     }
@@ -756,6 +926,7 @@ export default function Canvas({
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current = [point];
+      penPreviewPath.current = [{ x: e.clientX, y: e.clientY }];
       ignoreNextClick.current = true;
       return;
     }
@@ -792,22 +963,22 @@ export default function Canvas({
         const p0 = mousePath.current[0];
         const p1 = mousePath.current[1];
         const rect = pointsToRect(
-          transforms.windowToDataNoScale(p0.x, p0.y),
-          transforms.windowToDataNoScale(p1.x, p1.y)
+          transformsRef.current.windowToDataNoScale(p0.x, p0.y),
+          transformsRef.current.windowToDataNoScale(p1.x, p1.y)
         );
         if (selectedTool == "frame") {
           // make a frame at the selection.  Note that we put
           // it UNDER everything.
-          const data = getToolParams("frame");
-          if (data.aspectRatio) {
-            const ar = aspectRatioToNumber(data.aspectRatio);
+          const elt = getToolElement("frame");
+          if (elt.data?.aspectRatio) {
+            const ar = aspectRatioToNumber(elt.data.aspectRatio);
             if (ar != 0) {
               rect.h = rect.w / ar;
             }
           }
 
           const { id } = frame.actions.createElement(
-            { type: "frame", ...rect, z: transforms.zMin - 1, data },
+            { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");
@@ -820,12 +991,22 @@ export default function Canvas({
         }
         return;
       } else if (selectedTool == "pen") {
+        penPreviewPath.current = null;
         const canvas = penCanvasRef.current;
         if (canvas != null) {
-          const ctx = canvas.getContext("2d");
-          if (ctx != null) {
-            clearCanvas({ ctx });
-          }
+          // we wait slightly before hiding/clearing it, so
+          // the preview doesn't go away before the
+          // non-preview is rendered (i.e., flicker).
+          setTimeout(() => {
+            const ctx = canvas.getContext("2d");
+            if (ctx != null) {
+              clearCanvas({ ctx });
+              if (penPreviewPath.current == null) {
+                // only hide if a new path didn't start!
+                canvas.style.setProperty("visibility", "hidden");
+              }
+            }
+          }, 0);
         }
         if (mousePath.current == null || mousePath.current.length <= 0) {
           return;
@@ -836,8 +1017,9 @@ export default function Canvas({
         // preserve the full points.
         const toData =
           fontSizeToZoom(font_size) < 1
-            ? ({ x, y }) => pointRound(transforms.windowToDataNoScale(x, y))
-            : ({ x, y }) => transforms.windowToDataNoScale(x, y);
+            ? ({ x, y }) =>
+                pointRound(transformsRef.current.windowToDataNoScale(x, y))
+            : ({ x, y }) => transformsRef.current.windowToDataNoScale(x, y);
 
         const { x, y } = toData(mousePath.current[0]);
         let xMin = x,
@@ -845,14 +1027,19 @@ export default function Canvas({
         let yMin = y,
           yMax = y;
         const path: Point[] = [{ x, y }];
-        let lastPt = path[0];
+        let prevPt = path[0];
+        let n = 0;
         for (const pt of mousePath.current.slice(1)) {
+          n += 1;
           const thisPt = toData(pt);
-          if (pointEqual(lastPt, thisPt)) {
-            lastPt = thisPt;
+          if (
+            pointEqual(prevPt, thisPt, 0.5) &&
+            n < mousePath.current.length - 1 /* so don't skip last point */
+          ) {
+            prevPt = thisPt;
             continue;
           }
-          lastPt = thisPt;
+          prevPt = thisPt;
           const { x, y } = thisPt;
           path.push({ x, y });
           if (x < xMin) xMin = x;
@@ -869,10 +1056,10 @@ export default function Canvas({
           {
             x: xMin,
             y: yMin,
-            z: transforms.zMax + 1,
+            z: transformsRef.current.zMax + 1,
             w: xMax - xMin + 1,
             h: yMax - yMin + 1,
-            data: { path: compressPath(path), ...getToolParams("pen") },
+            data: { path: compressPath(path), ...getToolElement("pen").data },
             type: "pen",
           },
           true
@@ -911,13 +1098,18 @@ export default function Canvas({
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
+    const { x, y } = offset.get();
     return {
-      x: (c.scrollLeft + e.clientX - rect.left) / canvasScale,
-      y: (c.scrollTop + e.clientY - rect.top) / canvasScale,
+      x: (-x + e.clientX - rect.left) / scaleRef.current,
+      y: (-y + e.clientY - rect.top) / scaleRef.current,
     };
   }
 
   const onMouseMove = (e, touch = false) => {
+    // this us used for zooming:
+    mouseMoveRef.current = e;
+    lastMouseRef.current = evtToData(e);
+
     if (!touch && !e.buttons) {
       // mouse button no longer down - cancel any capture.
       // This can happen with no mouseup, due to mouseup outside
@@ -929,15 +1121,15 @@ export default function Canvas({
       // dragging with hand tool
       const c = canvasRef.current;
       if (c == null) return;
-      const { clientX, clientY, scrollLeft, scrollTop } = handRef.current;
+      const { clientX, clientY, start } = handRef.current;
       const deltaX = e.clientX - clientX;
       const deltaY = e.clientY - clientY;
-      c.scrollTop = scrollTop - deltaY;
-      c.scrollLeft = scrollLeft - deltaX;
+      offset.set({ x: start.x + deltaX, y: start.y + deltaY });
       return;
     }
     if (mousePath.current == null) return;
     e.preventDefault?.(); // only makes sense for mouse not touch.
+
     if (selectedTool == "select" || selectedTool == "frame") {
       const point = getMousePos(e);
       if (point == null) return;
@@ -945,49 +1137,50 @@ export default function Canvas({
       setSelectRect(pointsToRect(mousePath.current[0], mousePath.current[1]));
       return;
     }
+
     if (selectedTool == "pen") {
+      // mousePath is used for the actual path when creating the elemnts,
+      // and is in data coordinates:
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current.push(point);
-      if (mousePath.current.length <= 1) return;
+
+      // Rest of this code is just for drawing a preview of the path:
+      if (penPreviewPath.current != null) {
+        penPreviewPath.current.push({ x: e.clientX, y: e.clientY });
+      } else {
+        return;
+      }
       const canvas = penCanvasRef.current;
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
-      /*
-      NOTE/TODO: we are again scaling/redrawing the *entire* curve every time
-      we get new mouse move.  Curves are pretty small, and the canvas is limited
-      in size, so this is actually working and feels fast on devices I've tried.
-      But it would obviously be better to draw only what is new properly.
-      That said, do that with CARE because I did have one implementation of that
-      and so many lines were drawn on top of each other that highlighting
-      didn't look transparent during the preview.
 
-      The second bad thing about this is that the canvas is covering the entire
-      current span of all elements.  Thus as that gets large, the resolution of
-      the preview goes down further. It would be better to use a canvas that is
-      just over the visible viewport.
-
-      So what we have works fine now, but there's a lot of straightforward but
-      tedious room for improvement to make the preview look perfect as you draw.
-      */
-      clearCanvas({ ctx });
-      ctx.restore();
-      ctx.save();
-      ctx.scale(penDPIFactor, penDPIFactor);
+      if (penPreviewPath.current.length <= 2) {
+        // initialize
+        canvas.style.setProperty("visibility", "visible");
+        clearCanvas({ ctx });
+        ctx.restore();
+        ctx.save();
+        ctx.scale(penDPIFactor, penDPIFactor);
+      }
+      // Actually draw it:
       const path: Point[] = [];
-      for (const point of mousePath.current) {
+      const { rect } = penCanvasParamsRef.current;
+      for (const point of penPreviewPath.current.slice(
+        penPreviewPath.current.length - 2
+      )) {
         path.push({
-          x: point.x * canvasScaleRef.current,
-          y: point.y * canvasScaleRef.current,
+          x: (point.x - rect.left) / penDPIFactor,
+          y: (point.y - rect.top) / penDPIFactor,
         });
       }
-      const { color, radius, opacity } = getToolParams("pen");
+      const { color, radius, opacity } = getToolElement("pen").data ?? {};
       drawCurve({
         ctx,
         path,
         color,
-        radius: canvasScaleRef.current * (radius ?? 1),
+        radius: (scaleRef.current * (radius ?? 1)) / penDPIFactor,
         opacity,
       });
       return;
@@ -1002,19 +1195,31 @@ export default function Canvas({
     }
   };
 
+  //   if (!isNavigator) {
+  //     window.x = {
+  //       scaleDivRef,
+  //       canvasRef,
+  //       offset,
+  //       scale,
+  //       frame,
+  //       saveViewport,
+  //     };
+  //   }
+
   return (
     <div
       className={"smc-vfill"}
       ref={canvasRef}
       style={{
-        overflow: isNavigator ? "hidden" : "scroll",
+        ...style,
         touchAction:
           typeof selectedTool == "string" &&
           ["select", "pen", "frame"].includes(selectedTool)
             ? "none"
             : undefined,
         userSelect: "none",
-        ...style,
+        overflow: "hidden",
+        position: "relative",
       }}
       onClick={(evt) => {
         mousePath.current = null;
@@ -1088,7 +1293,7 @@ export default function Canvas({
                 const pos = getMousePos(mousePos.current);
                 if (pos != null) {
                   const { x, y } = pos;
-                  target = transforms.windowToDataNoScale(x, y);
+                  target = transformsRef.current.windowToDataNoScale(x, y);
                 } else {
                   const point = getCenterPositionWindow();
                   if (point != null) {
@@ -1107,29 +1312,41 @@ export default function Canvas({
             }
       }
     >
+      {!isNavigator && selectedTool == "pen" && (
+        <canvas
+          className="smc-vfill"
+          ref={penCanvasRef}
+          width={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.width
+          }
+          height={
+            penCanvasParamsRef.current.scale *
+            penDPIFactor *
+            penCanvasParamsRef.current.rect.height
+          }
+          style={{
+            cursor: TOOLS[selectedTool]?.cursor,
+            position: "absolute",
+            zIndex: MAX_ELEMENTS + 1,
+            top: 0,
+            left: 0,
+            visibility: "hidden",
+          }}
+        />
+      )}
       <div
+        ref={scaleDivRef}
         style={{
+          position: "absolute",
+          left: `${offsetRef.current.left}px`,
+          top: `${offsetRef.current.top}px`,
           transform: `scale(${canvasScale})`,
+          transition: "transform left top 0.1s",
           transformOrigin: "top left",
-          height: `calc(${canvasScale * 100}%)`,
         }}
       >
-        {!isNavigator && selectedTool == "pen" && (
-          <canvas
-            ref={penCanvasRef}
-            width={canvasScaleRef.current * penDPIFactor * transforms.width}
-            height={canvasScaleRef.current * penDPIFactor * transforms.height}
-            style={{
-              width: `${transforms.width}px`,
-              height: `${transforms.height}px`,
-              cursor: TOOLS[selectedTool]?.cursor,
-              position: "absolute",
-              zIndex: MAX_ELEMENTS + 1,
-              top: 0,
-              left: 0,
-            }}
-          />
-        )}
         {selectRect != null && (
           <div
             style={{
@@ -1166,7 +1383,9 @@ export default function Canvas({
             position: "relative",
           }}
         >
-          {!isNavigator && <Grid transforms={transforms} divRef={gridDivRef} />}
+          {!isNavigator && (
+            <Grid transforms={transformsRef.current} divRef={gridDivRef} />
+          )}
           {v}
         </div>
       </div>

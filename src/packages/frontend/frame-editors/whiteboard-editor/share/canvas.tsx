@@ -25,8 +25,8 @@ export default function Canvas({ elements }: Props) {
   const [canvasScale, setCanvasScale] = useState<number>(1);
   const margin = 20;
   const transforms = useMemo<Transforms>(
-    () => getTransforms(elements, margin, canvasScale),
-    [elements, margin, canvasScale]
+    () => getTransforms(elements, margin),
+    [elements, margin]
   );
   const fitToView = () => {
     if (elements.length == 0) return;

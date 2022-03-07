@@ -131,7 +131,9 @@ const MBPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
   ssd: { read: 0.48, write: 0.48 },
 };
 
-for (const size_gb of [64, 128, 256]) {
+export const MAX_DEDICATED_DISK_SIZE = 256;
+
+for (const size_gb of [64, 128, MAX_DEDICATED_DISK_SIZE]) {
   for (const type of ["standard", "balanced", "ssd"] as DedicatedDiskTypes[]) {
     const quota = {
       dedicated_disk: { size_gb, type },

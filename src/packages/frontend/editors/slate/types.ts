@@ -1,13 +1,12 @@
 import { ReactEditor } from "./slate-react";
 import { Range } from "slate";
-import { SearchHook } from "./search";
 import { SyncString } from "@cocalc/sync/editor/string";
+import { ControlRef } from "@cocalc/frontend/components/windowed-list";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
   syncCausedUpdate?: boolean;
   saveValue: (force?) => void;
-  dropzoneRef?: any;
   applyingOperations?: boolean;
   lastSelection?: Range;
   curSelection?: Range;
@@ -18,7 +17,7 @@ export interface SlateEditor extends ReactEditor {
   getPlainValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
-  search: SearchHook;
+  windowedListRef: ControlRef;
 }
 
 /*

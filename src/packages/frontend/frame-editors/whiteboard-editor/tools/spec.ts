@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 
 // TODO: terrible icons...  need to add more.
 import { IconName } from "@cocalc/frontend/components/icon";
+import { ElementType } from "../types";
 
 export type ConfigParams =
   | "fontFamily"
@@ -20,6 +21,7 @@ interface ToolDescription {
   readOnly?: boolean; // if true, show this tool even in readonly view
   resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
   key?: string | string[]; // keyboard shortcut or shortcuts
+  type?: ElementType;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -43,6 +45,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Text",
     config: new Set(["fontFamily", "fontSize", "color"]),
     key: "t",
+    type: "text",
   },
   note: {
     icon: "note",
@@ -50,6 +53,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Sticky Note",
     config: new Set(["fontFamily", "fontSize", "color"]),
     key: "n",
+    type: "note",
   },
   pen: {
     icon: "pen",
@@ -58,6 +62,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["color", "radius", "opacity"]),
     resizable: true,
     key: "p",
+    type: "pen",
   },
   code: {
     icon: "jupyter",
@@ -66,12 +71,14 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontSize", "color", "radius"]),
     resizable: true,
     key: "j",
+    type: "code",
   },
   edge: {
     icon: "arrow-right",
     tip: "Edge",
     config: new Set(["color", "radius", "opacity"]),
     key: "e",
+    type: "edge",
   },
   icon: {
     icon: "icons",
@@ -79,6 +86,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Icons",
     config: new Set(["fontSize", "color"]),
     key: "i",
+    type: "icon",
   },
   chat: {
     icon: "comment",
@@ -86,12 +94,14 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Chat",
     config: new Set(["fontSize", "color"]),
     key: "c",
+    type: "icon",
   },
   timer: {
     icon: "stopwatch",
     cursor: "crosshair",
     tip: "Stopwatches and Timers",
     config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
+    type: "timer",
   },
   frame: {
     icon: "frame",
@@ -99,6 +109,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Frame",
     config: new Set(["color", "radius"]),
     key: "f",
+    type: "frame",
   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape", key:"s" },
 };

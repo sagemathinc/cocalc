@@ -252,7 +252,8 @@ export function isAtBeginningOfBlock(
 }
 
 // True if point is at the end of the containing block
-// that it is in (or top level block if mode='highest')
+// that it is in (or top level block if mode='highest').
+// Also, return false if "at" is not valid.
 export function isAtEndOfBlock(
   editor: Editor,
   options: { at?: Point; mode?: "lowest" | "highest" }
@@ -263,7 +264,13 @@ export function isAtEndOfBlock(
     at = editor.selection?.focus;
     if (at == null) return false;
   }
-  const after = Editor.after(editor, at);
+  let after;
+  try {
+    after = Editor.after(editor, at);
+  } catch (_) {
+    // if "at" is no longer valid for some reason.
+    return false;
+  }
   if (after == null) {
     // at end of the entire document, so definitely at the end of the block
     return true;

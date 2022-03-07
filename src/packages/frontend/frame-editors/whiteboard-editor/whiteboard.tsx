@@ -7,6 +7,7 @@ import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
 import NotePanel from "./tools/note";
 import TextPanel from "./tools/text";
+import CodePanel from "./tools/code";
 import IconPanel from "./tools/icon";
 import TimerPanel from "./tools/timer";
 import FramePanel from "./tools/frame";
@@ -72,23 +73,22 @@ export default function Whiteboard({
     );
   }
 
+  const tool = desc.get("selectedTool");
   return (
     <div className="smc-vfill" style={{ position: "relative" }}>
       {isFocused && (
         <>
-          <ToolPanel
-            selectedTool={desc.get("selectedTool") ?? "select"}
-            readOnly={readOnly}
-          />
+          <ToolPanel selectedTool={tool ?? "select"} readOnly={readOnly} />
           {!desc.get("selectedToolHidePanel") && (
             <>
-              {desc.get("selectedTool") == "pen" && <PenPanel />}
-              {desc.get("selectedTool") == "note" && <NotePanel />}
-              {desc.get("selectedTool") == "text" && <TextPanel />}
-              {desc.get("selectedTool") == "icon" && <IconPanel />}
-              {desc.get("selectedTool") == "timer" && <TimerPanel />}
-              {desc.get("selectedTool") == "frame" && <FramePanel />}
-              {desc.get("selectedTool") == "edge" && <EdgePanel />}
+              {tool == "pen" && <PenPanel />}
+              {tool == "note" && <NotePanel />}
+              {tool == "text" && <TextPanel />}
+              {tool == "code" && <CodePanel />}
+              {tool == "icon" && <IconPanel />}
+              {tool == "timer" && <TimerPanel />}
+              {tool == "frame" && <FramePanel />}
+              {tool == "edge" && <EdgePanel />}
             </>
           )}
           <NavigationPanel

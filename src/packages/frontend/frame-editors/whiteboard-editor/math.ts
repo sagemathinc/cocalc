@@ -10,9 +10,12 @@ import { cmp } from "@cocalc/util/misc";
 
 // We just declare a font size of 14 to be "zoom 100%".
 
-export const ZOOM100 = 14;
+import { DEFAULT_FONT_SIZE } from "./tools/defaults";
 export function fontSizeToZoom(size?: number): number {
-  return size ? size / ZOOM100 : 1;
+  return size ? size / DEFAULT_FONT_SIZE : 1;
+}
+export function zoomToFontSize(zoom?: number): number {
+  return zoom ? zoom * DEFAULT_FONT_SIZE : DEFAULT_FONT_SIZE;
 }
 
 export const DEFAULT_WIDTH = 250;
@@ -345,6 +348,7 @@ export function fitRectToRect(
 
 export interface Transforms {
   dataToWindowNoScale: (
+    // name includes "NoScale" just to emphasize this doesn't involve scaling.  It's just translating around.
     x: number,
     y: number,
     z?: number
@@ -358,19 +362,19 @@ export interface Transforms {
   yMax: number;
   zMin: number;
   zMax: number;
-  scale: number;
   zMap: { [z: number]: number };
 }
 
-export function getTransforms(elements, margin, scale): Transforms {
+export function getTransforms(elements, margin: number = 0): Transforms {
   /*
   Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
-  Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
+  Then transform to a rectangle (0,0) --> (width,height), along with a margin.
   Returns functions to transform back and forth.
-  Just be really dumb for the first version.
 
   We also map the zIndex z values of object to be 1,2,..., MAX_ELEMENTS,
   so we can confidently place UI elements, etc. above MAX_ELEMENTS.
+
+  This doesn't do anything related to scaling.
   */
 
   let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
@@ -400,7 +404,6 @@ export function getTransforms(elements, margin, scale): Transforms {
     yMax,
     zMin,
     zMax,
-    scale,
     zMap,
   };
 }
@@ -474,7 +477,7 @@ export function moveUntilNotIntersectingAnything(
     return;
   }
   while (true) {
-    let moved = false;
+    const before = { x: rect.x, y: rect.y };
     for (const r of rects) {
       if (areOverlappingRectangles(rect, r)) {
         if (dir == "+") {
@@ -490,11 +493,13 @@ export function moveUntilNotIntersectingAnything(
             rect.y = r.y - (r.h + DEFAULT_GAP);
           }
         }
-        moved = true;
         break;
       }
     }
-    if (!moved) return;
+    if (pointEqual(before, rect)) {
+      // rect didn't move at all.
+      return;
+    }
   }
 }
 
