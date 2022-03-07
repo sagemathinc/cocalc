@@ -510,6 +510,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
         Range,
         Text,
+        markdown_to_slate,
         robot: async (s: string, iterations = 1) => {
           let inserted = "";
           for (let n = 0; n < iterations; n++) {
@@ -518,8 +519,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               inserted += x;
               console.log(`inserted: "${inserted}"`);
               await delay(300 * Math.random());
-              if (Math.random() < 0.2) {
-                await delay(SAVE_DEBOUNCE_MS);
+              if (Math.random() < 0.3) {
+                await delay(1.1 * SAVE_DEBOUNCE_MS);
               }
             }
           }
