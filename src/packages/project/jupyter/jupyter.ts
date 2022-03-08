@@ -9,7 +9,7 @@ Jupyter Backend
 For interactive testing:
 
 $ ts-node
-> const j = require('./@cocalc/project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
+> const j = require('@cocalc/project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
 > k.execute_code({all:true, cb:((x) => console.log(JSON.stringify(x))), code:'2+3'})
 
 Interactive testing at the command prompt involving stdin:
