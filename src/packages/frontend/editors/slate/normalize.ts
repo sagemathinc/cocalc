@@ -180,3 +180,20 @@ NORMALIZERS.push(function mergeAdjacentLists({ editor, node, path }) {
     } catch (_) {}
   }
 });
+
+// Delete any empty links (with no text content), since you can't see them.
+// This is a questionable design choice, e.g,. maybe people want to use empty
+// links as a comment hack, as explained here:
+//  https://stackoverflow.com/questions/4823468/comments-in-markdown
+// However, those are the footnote style links.  The inline ones don't work
+// anyways as soon as there is a space.
+NORMALIZERS.push(function removeEmptyLinks({ editor, node, path }) {
+  if (
+    Element.isElement(node) &&
+    node.type === "link" &&
+    node.children.length == 1 &&
+    node.children[0]?.["text"] === ""
+  ) {
+    Transforms.removeNodes(editor, { at: path });
+  }
+});
