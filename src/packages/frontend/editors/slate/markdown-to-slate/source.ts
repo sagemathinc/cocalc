@@ -12,8 +12,8 @@ export default function getSource(
     throw Error("token.map must be set");
   }
   let markdown =
-    lines.slice(token.map[0], token.map[1]).join("\n").replace(/\n+$/, "") +
-    "\n\n";
+    "\n" + lines.slice(token.map[0], token.map[1]).join("\n") + "\n";
   markdown = math_unescape(replace_math(markdown, math, MATH_TAGS));
+  markdown = markdown.replace(/^\n/, "").replace(/\n+$/, "") + "\n\n";
   return markdown;
 }
