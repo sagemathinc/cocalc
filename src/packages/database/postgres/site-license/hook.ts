@@ -4,21 +4,24 @@
  */
 
 import { Map } from "immutable";
-import { isEqual } from "lodash";
+import { isEqual, sortBy } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
 import { TypedMap } from "@cocalc/util/types/typed-map";
 import { is_valid_uuid_string, len } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
-type QuotaMap = TypedMap<Quota>;
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+
+type QuotaMap = TypedMap<SiteLicenseQuota>;
 import {
   quota as compute_total_quota,
   SiteLicenseQuotaSetting,
   QuotaSetting,
   SiteLicenses,
   LicenseStatus,
+  siteLicenseSelectionKeys,
+  licenseToGroupKey,
 } from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
@@ -171,6 +174,25 @@ class SiteLicenseHook {
   }
 
   /**
+   * We have to order the site licenses by their priority.
+   * Otherwise, the method of applying them one-by-one does lead to issues, because if a lower priority
+   * license is considered first (and applied), and then a higher priority license is considered next,
+   * the quota algorithm will only pick the higher priority license in the second iteration, causing the
+   * effective quotas to be different, and hence actually both licenses seem to be applied but they are not.
+   */
+  private orderedSiteLicenseIDs(validLicenses): string[] {
+    const ids = Object.keys(this.currentSiteLicense).filter((id) => {
+      return validLicenses.get(id) != null;
+    });
+    const order = Array.from(siteLicenseSelectionKeys());
+    const orderedIds = sortBy(ids, (id) => {
+      const key = licenseToGroupKey(validLicenses.get(id).toJS());
+      return order.indexOf(key);
+    });
+    return orderedIds;
+  }
+
+  /**
    * Calculates the next site license situation, replacing whatever the project is currently licensed as.
    * A particular site license will only be used if it actually causes the upgrades to increase.
    */
@@ -180,7 +202,8 @@ class SiteLicenseHook {
     const nextLicense: SiteLicenses = {};
     const validLicenses = await this.getValidLicenses();
 
-    for (const license_id in this.currentSiteLicense) {
+    // it's important to start testing with decrasing priority.
+    for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
@@ -194,7 +217,7 @@ class SiteLicenseHook {
       if (status === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
-        this.dbg.verbose("computing run quotas...");
+        this.dbg.verbose(`computing run quotas by adding ${license_id}...`);
         const run_quota = compute_total_quota(
           this.project.settings,
           this.project.users,
@@ -218,7 +241,7 @@ class SiteLicenseHook {
               upgrades
             )}.`
           );
-          nextLicense[license_id] = { ...upgrades, status: "valid" };
+          nextLicense[license_id] = { ...upgrades, status: "active" };
         } else {
           this.dbg.info(
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`

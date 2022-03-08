@@ -4,11 +4,11 @@
  */
 import { fromJS } from "immutable";
 import { React, TypedMap } from "../../app-framework";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { license_field_names } from "./types";
 import { actions } from "./actions";
 import { QuotaEditor } from "../purchase/quota-editor";
-type QuotaMap = TypedMap<Quota>;
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+type QuotaMap = TypedMap<SiteLicenseQuota>;
 
 interface Props {
   quota?: QuotaMap;
