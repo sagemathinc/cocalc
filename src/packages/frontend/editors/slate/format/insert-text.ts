@@ -41,9 +41,32 @@ import { formatHeading, setSelectionAndFocus } from "./commands";
 const linkify = require("linkify-it")();
 
 export const withInsertText = (editor) => {
-  const { insertText } = editor;
+  const { insertText: insertText0 } = editor;
+
+  const insertText = (text) => {
+    if (editor.marks) {
+      // This case is to work around a strange bug that I don't know how to fix.
+      // If you type in a blank document:
+      //   command+b then "foo"
+      // you will see "oof" in bold.  This happens in many other situations, where
+      // initially when you insert a character in a blank paragraph with a mark, the
+      // cursor doesn't move.  I don't know why.  We thus check after inserting
+      // text that the focus moves, and if not, we move it.
+      const { selection } = editor;
+      insertText0(text);
+      if (
+        editor.selection != null &&
+        editor.selection.focus.offset == selection?.focus.offset
+      ) {
+        Transforms.move(editor, { distance: 1 });
+      }
+    } else {
+      insertText0(text);
+    }
+  };
 
   editor.insertText = (text, autoFormat?) => {
+    if (!text) return;
     if (linkify.test(text)) {
       // inserting a link somehow, e.g., by pasting.  Instead,
       // create a link node instead of plain text.
@@ -70,6 +93,7 @@ export const withInsertText = (editor) => {
         return;
       }
     }
+
     insertText(text);
   };
 
