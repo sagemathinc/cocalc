@@ -123,6 +123,7 @@ export const ReactEditor = {
    */
 
   focus(editor: ReactEditor, force: boolean = false): void {
+    const { selection } = editor;
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
 
@@ -134,6 +135,15 @@ export const ReactEditor = {
       // checkbox in an empty document).
       el.blur();
       el.focus({ preventScroll: true });
+    }
+    if (selection != null) {
+      // I've changed the focus method to preserve the selection if there is one.
+      // Often when the editor not focused there is no selection. However,
+      // in some cases, e.g., "set the selection, then focus", like we
+      // do when using commands to move the cursors out of editing a void element,
+      // it's very important to restore the selection to where it was before
+      // focusing, since otherwise the selection is reset to the top of the document.
+      Transforms.setSelection(editor, selection);
     }
   },
 
