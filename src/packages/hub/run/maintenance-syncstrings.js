@@ -3,7 +3,7 @@
 Moving patches from non-recently-used syncstrings to blobs.
 */
 
-const postgres = require("@cocalc/hub/postgres");
+const postgres = require("@cocalc/database");
 
 const db = postgres.db({ ensure_exists: false });
 

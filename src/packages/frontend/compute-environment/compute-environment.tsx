@@ -14,12 +14,16 @@ import {
 } from "../app-framework";
 import { A, Loading, Markdown } from "../components";
 import { Button, Row, Col } from "../antd-bootstrap";
-import { li_style } from "../info/style";
 import { keys } from "@cocalc/util/misc";
 import { SiteName } from "../customize";
 
 import { by_lowercase, full_lang_name } from "./utils";
 import { SoftwareTable } from "./software-table";
+
+const li_style: React.CSSProperties = {
+  lineHeight: "inherit",
+  marginBottom: "10px",
+};
 
 export const ComputeEnvironment: React.FC = React.memo(() => {
   const inventory = useTypedRedux("compute-environment", "inventory");

@@ -8,7 +8,11 @@ import {
 } from "@cocalc/frontend/jupyter/nbgrader/api";
 import { Options } from "@cocalc/project/formatters";
 import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
-
+export interface NbconvertParams {
+  args: string[];
+  directory?: string;
+  timeout?: number; // in seconds!
+}
 interface MesgExec {
   cmd: "exec";
   opts: any;
@@ -75,6 +79,11 @@ interface MesgJupyter {
 interface MesgJupyterStripNotebook {
   cmd: "jupyter_strip_notebook";
   ipynb_path: string;
+}
+
+interface MesgJupyterNbconvert {
+  cmd: "jupyter_nbconvert";
+  opts: NbconvertParams;
 }
 
 interface MesgNBGrader {
@@ -162,6 +171,7 @@ export type Mesg =
   | MesgSymmetricChannel
   | MesgRealpath
   | MesgNBGrader
+  | MesgJupyterNbconvert
   | MesgJupyterRunNotebook
   | MesgProjectInfo;
 

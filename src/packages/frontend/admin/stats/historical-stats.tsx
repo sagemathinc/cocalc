@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
+
 import { A, Icon } from "../../components";
 
 // This is a URL only visible to certain users of https://cocalc.com!

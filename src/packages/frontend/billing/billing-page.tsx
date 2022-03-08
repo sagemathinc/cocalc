@@ -6,14 +6,7 @@
 // Ensure the billing Actions and Store are created:
 require("./actions");
 
-import {
-  Component,
-  Rendered,
-  React,
-  redux,
-  rtypes,
-  rclass,
-} from "../app-framework";
+import { Component, Rendered, redux, rtypes, rclass } from "../app-framework";
 import { AppliedCoupons, Customer, InvoicesMap } from "./types";
 import { Map } from "immutable";
 import {
@@ -30,6 +23,9 @@ import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";
 const { Panel } = require("react-bootstrap");
 import { InvoiceHistory } from "./invoice-history";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+import { Alert } from "antd";
 
 interface ReactProps {
   is_simplified?: boolean;
@@ -116,7 +112,7 @@ export const BillingPage = rclass<ReactProps>(
         <p>
           <b>Commercial on Premises:</b> Contact us at <HelpEmailLink /> for{" "}
           questions about our{" "}
-          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/README.md">
+          <A href={PolicyPricingPageUrl + "/onprem"}>
             commercial on premises offering.
           </A>
         </p>
@@ -145,18 +141,9 @@ export const BillingPage = rclass<ReactProps>(
     }
 
     private counts(): { cards: number; subs: number; invoices: number } {
-      const cards =
-        this.props.customer == null
-          ? 0
-          : this.props.customer.sources.total_count;
-      const subs =
-        this.props.customer == null
-          ? 0
-          : this.props.customer.subscriptions.total_count;
-      const invoices =
-        this.props.invoices == null
-          ? 0
-          : this.props.invoices.get("total_count");
+      const cards = this.props.customer?.sources?.total_count ?? 0;
+      const subs = this.props.customer?.subscriptions?.total_count ?? 0;
+      const invoices = this.props.invoices?.get("total_count") ?? 0;
       return { cards, subs, invoices };
     }
 
@@ -354,6 +341,17 @@ export const BillingPage = rclass<ReactProps>(
     public render(): Rendered {
       return (
         <div>
+          <Alert
+            showIcon
+            style={{ maxWidth: "600px", margin: "30px auto" }}
+            type="warning"
+            message={
+              <>
+                This is the old purchasing page (which still works).{" "}
+                <A href={join(appBasePath, "billing")}>Try the new page...</A>
+              </>
+            }
+          />
           <div>
             {!this.props.for_course ? this.render_info_link() : undefined}
             {!this.props.no_stripe ? this.render_action() : undefined}

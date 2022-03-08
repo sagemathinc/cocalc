@@ -1,4 +1,3 @@
-import React from "react";
 import { join } from "path";
 import { encode_path, filename_extension } from "@cocalc/util/misc";
 import { isImage, isVideo, isAudio } from "@cocalc/frontend/file-extensions";

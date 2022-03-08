@@ -43,5 +43,9 @@ Table({
     value: {
       type: "string",
     },
+    readonly: {
+      type: "boolean",
+      desc: "If true, the user interface should not allow to edit that value – it is controlled externally or via an environment variable.",
+    },
   },
 });

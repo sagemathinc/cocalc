@@ -16,10 +16,21 @@ export function containingPath(path: string): string {
 export function splitFirst(
   path: string,
   symbol: string = "/"
-): [string, string | undefined] {
+): [string, string] {
   const i = path.indexOf(symbol);
   if (i == -1) {
-    return [path, undefined];
+    return [path, ""];
+  }
+  return [path.slice(0, i), path.slice(i + 1)];
+}
+
+export function splitLast(
+  path: string,
+  symbol: string = "/"
+): [string, string] {
+  const i = path.lastIndexOf(symbol);
+  if (i == -1) {
+    return [path, ""];
   }
   return [path.slice(0, i), path.slice(i + 1)];
 }

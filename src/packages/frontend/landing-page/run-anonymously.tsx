@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { React, useTypedRedux } from "../app-framework";
+import { useTypedRedux } from "../app-framework";
 import { WELL_STYLE } from "./sign-up";
 import { UNIT } from "../components";
 const { Button, Checkbox, FormGroup, Well } = require("react-bootstrap");

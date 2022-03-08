@@ -5,7 +5,7 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "@cocalc/util/misc";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import {
   get_ProjectStatusServer,
   ProjectStatusServer,
@@ -33,7 +33,7 @@ class ProjectStatusTable {
     this.table = table;
     this.table.on("closed", () => this.close());
     // initializing project status server + reacting when it has something to say
-    this.status_server = get_ProjectStatusServer(this.logger.debug.bind(this));
+    this.status_server = get_ProjectStatusServer();
     this.status_server.start();
     this.status_server.on("status", this.status_handler);
   }

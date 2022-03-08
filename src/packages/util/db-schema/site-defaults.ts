@@ -21,6 +21,8 @@ export type SiteSettingsKeys =
   | "logo_rectangular"
   | "splash_image"
   | "index_info_html"
+  | "imprint"
+  | "policies"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -44,7 +46,9 @@ export type SiteSettingsKeys =
   | "email_enabled"
   | "verify_emails"
   | "email_signup"
-  | "anonymous_signup";
+  | "anonymous_signup"
+  | "share_server"
+  | "landing_pages";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -59,20 +63,26 @@ export interface Config {
   readonly valid?: ConfigValid;
   readonly password?: boolean;
   readonly show?: (conf: any) => boolean;
-  // this optional function derives the actual value of this setting from current value.
-  readonly to_val?: (val: string) => ToVal;
+  // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
+  readonly to_val?: (
+    val: string,
+    config?: { [key in SiteSettingsKeys]?: string }
+  ) => ToVal;
   // this optional function derives the visual representation for the admin (fallback: to_val)
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
   readonly multiline?: number;
+  readonly cocalc_only?: boolean; // only for use on cocalc.com (or subdomains)
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
 
-const fallback = (conf, name: SiteSettingsKeys): string =>
-  conf[name] ?? site_settings_conf[name].default;
+const fallback = (
+  conf: { [key in SiteSettingsKeys]: string },
+  name: SiteSettingsKeys
+): string => conf[name] ?? site_settings_conf[name].default;
 
 // little helper fuctions, used in the site settings & site settings extras
 export const is_email_enabled = (conf): boolean =>
@@ -109,7 +119,7 @@ export const from_json = (conf): Mapping => {
 };
 
 // TODO a cheap'n'dirty validation is good enough
-const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+//const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts = (hosts) =>
   hosts.match(/[a-z0-9.-]+/g) || [];
@@ -127,7 +137,8 @@ const KUCALC_VALID_VALS = [
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
   KUCALC_DISABLED,
-];
+] as const;
+export type KucalcValues = typeof KUCALC_VALID_VALS[number];
 
 const help_email_name = "Help email";
 const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
@@ -136,9 +147,9 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. cocalc.universe.edu",
+    desc: "DNS for your server, e.g. cocalc.universe.edu.  Does NOT include the basePath.  It optionally can start with http:// (for non SSL) and end in a :number for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
-    valid: valid_dns_name,
+    //valid: valid_dns_name,
   },
   theming: {
     name: "Show Theming",
@@ -185,8 +196,8 @@ export const site_settings_conf: SiteSettings = {
   },
   account_creation_email_instructions: {
     name: "Account creation",
-    desc: "Instructions displayed next to the box where a user creates their account using their name and email address.",
-    default: "Create an Account",
+    desc: `Instructions displayed above near the box where a user creates their account, e.g., "Let's begin the adventure!"`,
+    default: "",
     clearable: true,
     show: show_theming_vars,
   },
@@ -235,7 +246,23 @@ export const site_settings_conf: SiteSettings = {
   },
   index_info_html: {
     name: "Index page info",
-    desc: "An HTML string displayed on the index page.",
+    desc: "An HTML/Markdown string displayed on the index page.",
+    default: "",
+    clearable: true,
+    show: show_theming_vars,
+    multiline: 5,
+  },
+  imprint: {
+    name: "Imprint page",
+    desc: "Imprint information on optional dedicated page – HTML/Markdown.",
+    default: "",
+    clearable: true,
+    show: show_theming_vars,
+    multiline: 5,
+  },
+  policies: {
+    name: "Policies page",
+    desc: "Policies information on optional dedicated page – HTML/Markdown.",
     default: "",
     clearable: true,
     show: show_theming_vars,
@@ -278,7 +305,7 @@ export const site_settings_conf: SiteSettings = {
   },
   google_analytics: {
     name: "Google Analytics",
-    desc: `The GA tag, only for the cocalc.com production site`,
+    desc: `The Google Analyitcs tag for tracking usage of your site`,
     default: "",
     show: only_cocalc_com,
   },
@@ -287,7 +314,17 @@ export const site_settings_conf: SiteSettings = {
     desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
-    to_val: to_bool,
+    to_val: (val, conf: { [key in SiteSettingsKeys]: string }) => {
+      // special case: only if we're in cocalc.com production mode, the commercial setting can be true at all
+      const kucalc =
+        conf != null
+          ? fallback(conf, "kucalc")
+          : site_settings_conf.kucalc.default;
+      if (kucalc === KUCALC_COCALC_COM) {
+        return to_bool(val);
+      }
+      return false;
+    },
     show: only_cocalc_com,
   },
   max_trial_projects: {
@@ -300,8 +337,7 @@ export const site_settings_conf: SiteSettings = {
   },
   nonfree_countries: {
     name: "Nonfree Countries",
-    desc:
-      "ISO 3166-1 Alpha 2 country codes where extra usage restrictions apply",
+    desc: "ISO 3166-1 Alpha 2 country codes where extra usage restrictions apply",
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,
@@ -364,9 +400,25 @@ export const site_settings_conf: SiteSettings = {
   },
   anonymous_signup: {
     name: "Allow anonymous signup",
-    desc: "Users can create an account with no email or password.  This won't work if you have any registration tokens set below.",
+    desc: "Users can create a temporary account with no email, password or single sign on.  This won't work if you have any registration tokens set below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },
-};
+  share_server: {
+    name: "Allow public file sharing",
+    desc: "Users are allowed to publicly share files on the public share server (https://yourserver/share).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  landing_pages: {
+    name: "Landing pages",
+    desc: "Host landing pages about the functionality of CoCalc.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: only_cocalc_com,
+    cocalc_only: true,
+  },
+} as const;

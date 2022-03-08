@@ -19,7 +19,7 @@ import htmlReactParser, {
   domToReact,
 } from "html-react-parser";
 import { Element, Text } from "domhandler/lib/node";
-import stripXSS from "xss";
+import stripXSS, { safeAttrValue, whiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
 import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
@@ -30,17 +30,30 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 const URL_TAGS = ["src", "href", "data"];
 
 function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
-  if (urlTransform != null) {
-    return {
-      onTagAttr: (tag, name, value) => {
-        if (URL_TAGS.includes(name)) {
-          const s = `${name}="${urlTransform(value, tag, name) ?? value}"`;
-          return s;
-        }
-      },
-    };
-  }
-  return undefined;
+  // - stripIgnoreTagBody - completely get rid of dangerous HTML
+  //   (otherwise user sees weird mangled style code, when seeing
+  //   nothing would be better).
+  // - whiteList - we need iframes, though we lock them down as
+  //   much as possible, while still supporting 3d graphics.
+  return {
+    stripIgnoreTagBody: true,
+    whiteList: {
+      ...whiteList,
+      iframe: ["src", "srcdoc", "width", "height"],
+    },
+    safeAttrValue: (tag, name, value) => {
+      if (tag == "iframe" && name == "srcdoc") {
+        // important not to mangle this or it won't work.
+        return value;
+      }
+      if (urlTransform && URL_TAGS.includes(name)) {
+        // use the url transform
+        return urlTransform(value, tag, name) ?? value;
+      }
+      // fallback to the builtin version
+      return safeAttrValue(tag, name, value, false as any);
+    },
+  };
 }
 
 export default function HTML({
@@ -55,55 +68,73 @@ export default function HTML({
     value = stripXSS(value, getXSSOptions(urlTransform));
   }
   let options: any = {};
-  if (AnchorTagComponent != null) {
-    options.replace = (domNode) => {
-      if (domNode instanceof Text) {
-        const { data } = domNode;
-        const [text, math] = remove_math(math_escape(data));
-        if (math.length == 0) return;
-        for (let i = 0; i < math.length; i++) {
-          math[i] = latexMathToHtml(math[i]);
-        }
-        // Substitute processed math back in.
-        const __html = replace_all(
-          math_unescape(replace_math(text, math)),
-          "\\$",
-          "$"
-        );
-        return <div dangerouslySetInnerHTML={{ __html }}></div>;
+  options.replace = (domNode) => {
+    if (domNode instanceof Text) {
+      const { data } = domNode;
+      const [text, math] = remove_math(math_escape(data));
+      if (math.length == 0) return;
+      for (let i = 0; i < math.length; i++) {
+        math[i] = latexMathToHtml(math[i]);
       }
+      // Substitute processed math back in.
+      const __html = replace_all(
+        math_unescape(replace_math(text, math)),
+        "\\$",
+        "$"
+      );
+      return <div dangerouslySetInnerHTML={{ __html }}></div>;
+    }
 
-      if (!(domNode instanceof Element)) return;
+    if (!(domNode instanceof Element)) return;
 
-      const { name, children, attribs } = domNode;
-      if (name == "a") {
-        return (
-          <AnchorTagComponent {...attribs}>
-            {domToReact(children, options)}
-          </AnchorTagComponent>
-        );
-      }
-      if (noSanitize && urlTransform != null && attribs != null) {
-        // since we did not sanitize the HTML (which also does urlTransform),
-        // we have to do the urlTransform here instead.
-        for (const tag of URL_TAGS) {
-          if (attribs[tag] != null) {
-            const x = urlTransform(attribs[tag]);
-            if (x != null) {
-              const props = attributesToProps(attribs);
-              props[tag] = x;
-              return React.createElement(
-                name,
-                props,
-                children && children?.length > 0
-                  ? domToReact(children, options)
-                  : undefined
-              );
-            }
+    const { name, children, attribs } = domNode;
+    if (AnchorTagComponent != null && name == "a") {
+      return (
+        <AnchorTagComponent {...attribs}>
+          {domToReact(children, options)}
+        </AnchorTagComponent>
+      );
+    }
+    if (name == "iframe") {
+      // We sandbox and minimize what we allow.  Don't
+      // use {...attribs} due to srcDoc vs srcdoc.
+      // We don't allow setting the style, since that leads
+      // to a lot of attacks (i.e., making the iframe move in a
+      // sneaky way).  We have to allow-same-origin or scripts
+      // won't work at all, which is one of the main uses for
+      // iframes.  A good test is 3d graphics in Sage kernel
+      // Jupyter notebooks.
+      return (
+        <iframe
+          src={attribs.src}
+          srcDoc={attribs.srcdoc}
+          width={attribs.width}
+          height={attribs.height}
+          sandbox="allow-forms allow-scripts allow-same-origin"
+        />
+      );
+    }
+
+    if (noSanitize && urlTransform != null && attribs != null) {
+      // since we did not sanitize the HTML (which also does urlTransform),
+      // we have to do the urlTransform here instead.
+      for (const tag of URL_TAGS) {
+        if (attribs[tag] != null) {
+          const x = urlTransform(attribs[tag]);
+          if (x != null) {
+            const props = attributesToProps(attribs);
+            props[tag] = x;
+            return React.createElement(
+              name,
+              props,
+              children && children?.length > 0
+                ? domToReact(children, options)
+                : undefined
+            );
           }
         }
       }
-    };
-  }
+    }
+  };
   return <div style={style}>{htmlReactParser(value, options)}</div>;
 }

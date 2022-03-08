@@ -20,13 +20,7 @@ TODO:
 
 import { delay } from "awaiting";
 
-import {
-  React,
-  Rendered,
-  Component,
-  rclass,
-  rtypes,
-} from "../../../app-framework";
+import { Rendered, Component, rclass, rtypes } from "../../../app-framework";
 
 import { Loading } from "../../../components";
 

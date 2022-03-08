@@ -8,8 +8,10 @@ declare var window;
 import { RUNNING_IN_NODE, seconds2hms } from "./misc";
 
 let smc_logger_timestamp, smc_logger_timestamp_last, smc_start_time;
-smc_logger_timestamp = smc_logger_timestamp_last = smc_start_time =
-  new Date().getTime() / 1000.0;
+smc_logger_timestamp =
+  smc_logger_timestamp_last =
+  smc_start_time =
+    new Date().getTime() / 1000.0;
 
 export const get_start_time_ts = () => new Date(smc_start_time * 1000);
 
@@ -22,7 +24,7 @@ export function log(..._args): void {
   const dt = seconds2hms(smc_logger_timestamp - smc_logger_timestamp_last);
   // support for string interpolation for the actual console.log
   const [msg, ...args] = Array.from(Array.prototype.slice.call(arguments));
-  let prompt = `[${t} Δ ${dt}]`;
+  let prompt = `[${t} Δ ${dt} - ${new Date().toISOString()}]`;
   if (typeof msg == "string") {
     prompt = `${prompt} ${msg}`;
     (console as any).log_original(prompt, ...Array.from(args));

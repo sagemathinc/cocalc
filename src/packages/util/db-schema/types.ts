@@ -128,11 +128,8 @@ interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
-    pg_where?:
-      | string[]
-      | { [key: string]: string }[]
-      | { [key: string]: string[] }[];
-    pg_where_load?: string[] | { [key: string]: string }[]; // used instead of pg_where if server is under "heavy load"
+    pg_where?: (string | { [key: string]: any })[];
+    pg_where_load?: (string | { [key: string]: any })[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string;
     remove_from_query?: string[];
     admin?: boolean;
@@ -253,7 +250,8 @@ interface TableSchema<F extends Fields> {
   unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
-  pg_indexes?: any[];
+  pg_indexes?: string[];
+  pg_unique_indexes?: string[];
   user_query?: UserOrProjectQuery<F>;
   project_query?: UserOrProjectQuery<F>;
 }
@@ -261,8 +259,8 @@ interface TableSchema<F extends Fields> {
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
 type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields">;
 
-import { SiteSettings } from "./site-defaults";
-import { SettingsExtras } from "./site-settings-extras";
+import { SiteSettings, SiteSettingsKeys } from "./site-defaults";
+import { SettingsExtras, SiteSettingsExtrasKeys } from "./site-settings-extras";
 
 // what will come out of the database and (if available) sending it through `to_val`
 export type AllSiteSettings = {
@@ -279,3 +277,5 @@ export type RegistrationTokenSetFields =
   | "disabled";
 
 export type RegistrationTokenGetFields = RegistrationTokenSetFields | "counter";
+
+export type AllSiteSettingsKeys = SiteSettingsKeys | SiteSettingsExtrasKeys;

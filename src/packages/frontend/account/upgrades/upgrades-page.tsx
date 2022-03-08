@@ -6,19 +6,18 @@
 import "./project-upgrades-table";
 import { Map } from "immutable";
 import { round1, plural } from "@cocalc/util/misc";
-import { redux, rclass, rtypes, Component, React } from "../../app-framework";
+import { redux, rclass, rtypes, Component } from "../../app-framework";
 import { A, Icon, Loading, Space } from "../../components";
 
-import {
-  SiteName,
-  PolicyPricingPageUrl,
-  Footer,
-} from "../../customize";
+import { SiteName, PolicyPricingPageUrl, Footer } from "../../customize";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 
 import { Row, Col, Panel } from "../../antd-bootstrap";
 import { ProgressBar } from "react-bootstrap";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
+
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 interface reduxProps {
   stripe_customer?: Map<string, any>;
@@ -43,10 +42,8 @@ class UpgradesPage extends Component<reduxProps> {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please see the{" "}
-        <A href="https://cocalc.com/policies/pricing.html">
-          Subscriptions and Pricing page.
-        </A>
+        Please visit <A href={join(appBasePath, "store")}>the new store</A> and
+        the <A href="https://cocalc.com/pricing">pricing pages</A>.
         <Footer />
       </div>
     );
@@ -60,11 +57,8 @@ class UpgradesPage extends Component<reduxProps> {
         </h3>
         <span style={{ color: "#666" }}>
           We offer many{" "}
-          <a href={PolicyPricingPageUrl} target="_blank" rel="noopener">
-            {" "}
-            pricing and subscription options
-          </a>
-          , which you can subscribe to in the Billing tab. Your upgrades are
+          <A href={PolicyPricingPageUrl}> pricing and subscription options</A>,
+          which you can subscribe to in the Billing tab. Your upgrades are
           listed below, along with how you have applied them to projects. You
           can adjust your project upgrades from the settings page in any
           project.

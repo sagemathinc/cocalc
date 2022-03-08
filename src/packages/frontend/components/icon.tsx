@@ -10,9 +10,10 @@ import { CSS } from "../app-framework";
 
 import {
   AimOutlined,
-  AlignLeftOutlined,
   AlignCenterOutlined,
+  AlignLeftOutlined,
   AlignRightOutlined,
+  AreaChartOutlined,
   ArrowDownOutlined,
   ArrowLeftOutlined,
   ArrowRightOutlined,
@@ -33,16 +34,16 @@ import {
   CaretLeftFilled,
   CaretRightFilled,
   CaretUpFilled,
-  CheckOutlined,
   CheckCircleOutlined,
+  CheckOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
-  CloudDownloadOutlined,
-  CloudServerOutlined,
   CloseCircleOutlined,
   CloseCircleTwoTone,
   CloseOutlined,
+  CloudDownloadOutlined,
   CloudFilled,
+  CloudServerOutlined,
   CloudUploadOutlined,
   ClusterOutlined,
   CodeOutlined,
@@ -52,8 +53,8 @@ import {
   CommentOutlined,
   CompassOutlined,
   ControlOutlined,
-  CreditCardOutlined,
   CopyOutlined,
+  CreditCardOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeleteOutlined,
@@ -65,9 +66,9 @@ import {
   DownOutlined,
   EditOutlined,
   EllipsisOutlined,
+  ExclamationCircleFilled,
   ExpandOutlined,
   ExportOutlined,
-  ExclamationCircleFilled,
   EyeInvisibleOutlined,
   EyeOutlined,
   FacebookOutlined,
@@ -77,8 +78,8 @@ import {
   FilePdfOutlined,
   FileTextOutlined,
   FileZipOutlined,
-  FolderOutlined,
   FolderOpenOutlined,
+  FolderOutlined,
   ForwardOutlined,
   FundProjectionScreenOutlined,
   GithubOutlined,
@@ -126,8 +127,8 @@ import {
   RightCircleFilled,
   RightOutlined,
   RightSquareFilled,
-  RocketOutlined,
   RobotOutlined,
+  RocketOutlined,
   SaveOutlined,
   ScissorOutlined,
   SearchOutlined,
@@ -139,6 +140,7 @@ import {
   StepForwardOutlined,
   StopOutlined,
   StrikethroughOutlined,
+  SwapOutlined,
   SyncOutlined,
   TableOutlined,
   ThunderboltOutlined,
@@ -148,8 +150,8 @@ import {
   UnlockFilled,
   UnorderedListOutlined,
   UpCircleOutlined,
-  UpOutlined,
   UploadOutlined,
+  UpOutlined,
   UserAddOutlined,
   UserDeleteOutlined,
   UsergroupAddOutlined,
@@ -157,6 +159,7 @@ import {
   VideoCameraOutlined,
   WarningOutlined,
   WifiOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 
 const IconSpec = {
@@ -213,6 +216,7 @@ const IconSpec = {
   "cc-mastercard": { IconFont: "cc-mastercard" },
   "cc-visa": { IconFont: "cc-visa" },
   "cc-stripe": { IconFont: "cc-stripe" },
+  areaChart: AreaChartOutlined,
   check: CheckOutlined,
   "check-circle": CheckCircleOutlined,
   "check-square": CheckSquareOutlined,
@@ -331,9 +335,10 @@ const IconSpec = {
   "list-ul": UnorderedListOutlined,
   "list-alt": UnorderedListOutlined,
   "list-ol": OrderedListOutlined,
-  lock: LockFilled,
   "lock-open": UnlockFilled,
+  lock: LockFilled,
   magic: { IconFont: "magic" },
+  mail: MailOutlined,
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
@@ -428,6 +433,7 @@ const IconSpec = {
   twitter: TwitterOutlined,
   underline: UnderlineOutlined,
   undo: UndoOutlined,
+  swap: SwapOutlined,
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
@@ -453,7 +459,8 @@ const IconSpec = {
 import { createFromIconfontCN } from "@ant-design/icons";
 let IconFont: any = undefined;
 try {
-  if (typeof window != "undefined") { // obviously won't work if window is undefined based on looking at the code...
+  if (typeof window != "undefined") {
+    // obviously won't work if window is undefined based on looking at the code...
     // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
     // The antd Icon code then duplicates these via the <use> html tag
     // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
@@ -506,6 +513,8 @@ export function isIconName(name: string): name is IconName {
   return IconSpec[name] != null;
 }
 
+export const iconNames: IconName[] = Object.keys(IconSpec) as any;
+
 interface Props {
   name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
@@ -538,7 +547,9 @@ const missing: any = {};
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.unicode != null) {
     return (
-      <span style={UNICODE_STYLE}>{String.fromCharCode(props.unicode!)}</span>
+      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+        {String.fromCharCode(props.unicode!)}
+      </span>
     );
   }
 

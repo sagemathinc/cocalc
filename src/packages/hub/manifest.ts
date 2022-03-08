@@ -8,7 +8,7 @@
 import { Response } from "express";
 import { join } from "path";
 import { SiteSettingsKeys } from "@cocalc/util/db-schema/site-defaults";
-import base_path from "@cocalc/util-node/base-path";
+import base_path from "@cocalc/backend/base-path";
 
 interface Custom {
   configuration: Record<SiteSettingsKeys, string>;

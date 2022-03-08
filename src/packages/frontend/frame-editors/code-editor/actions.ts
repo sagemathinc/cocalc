@@ -24,9 +24,9 @@ import {
   syncdb2,
   syncstring2,
 } from "../generic/client";
-import { SyncDB } from "@cocalc/util/sync/editor/db";
-import { SyncString } from "@cocalc/util/sync/editor/string";
-import { aux_file } from "../frame-tree/util";
+import { SyncDB } from "@cocalc/sync/editor/db";
+import { SyncString } from "@cocalc/sync/editor/string";
+import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -52,10 +52,15 @@ import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 import { AvailableFeatures } from "../../project_configuration";
-import { apply_patch } from "@cocalc/util/sync/editor/generic/util";
+import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { default_opts } from "../codemirror/cm-options";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 import { open_new_tab } from "../../misc";
+import {
+  set_local_storage,
+  get_local_storage,
+  delete_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 
 import {
   ext2syntax,
@@ -369,7 +374,7 @@ export class Actions<
       path: aux,
       primary_keys,
       string_cols,
-      file_use_interval: 0, // disable file use,, since syncdb is an auxiliary file
+      file_use_interval: 0, // disable file use, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", (err) => {
       this.set_error(
@@ -503,16 +508,17 @@ export class Actions<
 
   private __save_local_view_state(): void {
     if (!this.store?.get("local_view_state")) return;
-    localStorage[this.name] = JSON.stringify(
-      this.store.get("local_view_state")
+    set_local_storage(
+      this.name,
+      JSON.stringify(this.store.get("local_view_state"))
     );
   }
 
   _load_local_view_state(): LocalViewState {
     let local_view_state;
-    const x = localStorage[this.name];
+    const x = get_local_storage(this.name);
     if (x != null) {
-      local_view_state = fromJS(JSON.parse(x));
+      local_view_state = typeof x === "string" ? fromJS(JSON.parse(x)) : x;
     }
     if (local_view_state == null) {
       local_view_state = Map();
@@ -555,7 +561,7 @@ export class Actions<
   }
 
   reset_local_view_state(): void {
-    delete localStorage[this.name];
+    delete_local_storage(this.name);
     this.setState({ local_view_state: this._load_local_view_state() });
     this.reset_frame_tree();
   }
@@ -592,8 +598,8 @@ export class Actions<
   }
 
   // Set which frame is active (unless setting is blocked).
-  // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.
+  // Writes a warning to the console log if try to set an active_id, and there is no
+  // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
@@ -605,7 +611,8 @@ export class Actions<
 
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
-      throw Error(`set_active_id - no leaf with id "${active_id}"`);
+      console.warn(`WARNING: set_active_id - no leaf with id "${active_id}"`);
+      return;
     }
 
     // record which id is being made active.
@@ -1466,7 +1473,9 @@ export class Actions<
   }
 
   exit_undo_mode(): void {
-    this._syncstring.exit_undo_mode();
+    // NOTE: this._syncstring could definitely be null if this is somehow being called
+    // right as the document is being closed.  We thus definitely do need to check for it.
+    this._syncstring?.exit_undo_mode();
   }
 
   // per-session sync-aware undo -- only work when editing text in

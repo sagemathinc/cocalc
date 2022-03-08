@@ -375,12 +375,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_menubar() {
-    if (
-      actions == null ||
-      cells == null ||
-      sel_ids == null ||
-      cur_id == null
-    ) {
+    if (actions == null || cells == null || sel_ids == null || cur_id == null) {
       return;
     } else {
       return (

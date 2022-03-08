@@ -10,7 +10,7 @@ Frame for configuring the kernel for a Jupyter Notebook
 - ability to edit rate limits
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

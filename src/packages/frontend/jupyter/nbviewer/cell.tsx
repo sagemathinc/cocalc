@@ -1,4 +1,3 @@
-import React from "react";
 import CellInput from "./cell-input";
 import CellOutput from "./cell-output";
 

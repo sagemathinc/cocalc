@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cdn",
-  "version": "1.4.0",
+  "version": "1.10.0",
   "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
   "main": "dist/index.js",
   "keywords": [
@@ -9,14 +9,20 @@
   ],
   "devDependencies": {
     "bootstrap": "=3.4.1",
-    "codemirror": "^5.62.2",
-    "katex": "^0.13.11",
+    "codemirror": "^5.63.3",
+    "katex": "^0.15.0",
     "mathjax": "^2.7.9",
-    "typescript": "^4.3.5"
+    "pdfjs-dist": "^2.9.359",
+    "typescript": "^4.5.2"
   },
   "scripts": {
     "build": "rm -rf dist && mkdir -p dist && ./setup.py",
     "postinstall": "./postinstall.js"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/cdn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md"

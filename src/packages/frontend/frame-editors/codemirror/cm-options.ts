@@ -13,7 +13,7 @@ import { file_associations } from "../../file-associations";
 import * as feature from "../../feature";
 import { path_split } from "@cocalc/util/misc";
 import { get_editor_settings } from "../generic/client";
-import { EDITOR_COLOR_SCHEMES } from "../../account/editor-settings/color-schemes";
+import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
 
 import { filename_extension_notilde, defaults } from "@cocalc/util/misc";
 

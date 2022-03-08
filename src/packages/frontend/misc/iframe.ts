@@ -25,12 +25,12 @@ export async function download_file(src: string): Promise<void> {
 }
 
 // These are used to disable pointer events for iframes when
-// dragging something that may move over an iframe.   See 
+// dragging something that may move over an iframe.   See
 // http://stackoverflow.com/questions/3627217/jquery-draggable-and-resizeable-over-iframes-solution
-export function drag_start_iframe_disable() {
-  return $("iframe:visible").css("pointer-events", "none");
+export function drag_start_iframe_disable(): void {
+  $("iframe:visible").css("pointer-events", "none");
 }
 
-export function drag_stop_iframe_enable() {
-  return $("iframe:visible").css("pointer-events", "auto");
+export function drag_stop_iframe_enable(): void {
+  $("iframe:visible").css("pointer-events", "auto");
 }

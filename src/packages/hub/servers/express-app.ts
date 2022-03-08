@@ -16,7 +16,7 @@ import { path as STATIC_PATH } from "@cocalc/static";
 import { path as WEBAPP_PATH } from "@cocalc/assets";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 import initMetrics from "./app/metrics";
 import initAPI from "./app/api";
 import initBlobs from "./app/blobs";
@@ -24,9 +24,11 @@ import initSetCookies from "./app/set-cookies";
 import initCustomize from "./app/customize";
 import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
-import initLanding from "./app/landing";
-import initShareNext from "./app/share";
-import vhostShare from "@cocalc/share/lib/virtual-hosts";
+import initNext from "./app/next";
+import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
+import initRobots from "./robots";
+import initProxy from "../proxy";
+import initHttpServer from "./http";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -35,12 +37,14 @@ const SHORT_AGE = ms("10 seconds");
 interface Options {
   projectControl;
   isPersonal: boolean;
-  landingServer: boolean;
-  shareServer: boolean;
+  nextServer: boolean;
+  proxyServer: boolean;
+  cert?: string;
+  key?: string;
 }
 
 export default async function init(opts: Options): Promise<{
-  app: express.Application;
+  httpServer;
   router: express.Router;
 }> {
   const winston = getLogger("express-app");
@@ -52,7 +56,7 @@ export default async function init(opts: Options): Promise<{
 
   // This must go very early - we handle virtual hosts, like wstein.org
   // before any other routes or middleware interfere.
-  if (opts.shareServer) {
+  if (opts.nextServer) {
     app.use(vhostShare());
   }
 
@@ -89,17 +93,7 @@ export default async function init(opts: Options): Promise<{
     );
   };
 
-  // robots.txt: disable everything except /share.  In particular, don't allow
-  // indexing for published subdirectories to avoid a lot of 500/404 errors.
-  router.use("/robots.txt", (_req, res) => {
-    res.header("Content-Type", "text/plain");
-    res.header("Cache-Control", "private, no-cache, must-revalidate");
-    res.write(`User-agent: *
-               Allow: /share
-               Disallow: /*
-               `);
-    res.end();
-  });
+  router.use("/robots.txt", initRobots());
 
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
@@ -107,15 +101,7 @@ export default async function init(opts: Options): Promise<{
   // setup all healthcheck endpoints
   await setupHealthChecks({ router, db: database });
 
-  if (opts.landingServer) {
-    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    await initLanding(app);
-  }
-
-  if (opts.shareServer) {
-    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    await initShareNext(app);
-  }
+  initAPI(router, opts.projectControl);
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
@@ -149,7 +135,6 @@ export default async function init(opts: Options): Promise<{
     res.redirect(join(basePath, "static/app.html") + query);
   });
 
-  initAPI(router, opts.projectControl);
   initBlobs(router);
   initSetCookies(router);
   initCustomize(router, opts.isPersonal);
@@ -162,5 +147,29 @@ export default async function init(opts: Options): Promise<{
     app.use(router);
   }
 
-  return { app, router };
+  const httpServer = initHttpServer({
+    cert: opts.cert,
+    key: opts.key,
+    app,
+  });
+
+  if (opts.proxyServer) {
+    winston.info(`initializing the http proxy server`);
+    initProxy({
+      projectControl: opts.projectControl,
+      isPersonal: opts.isPersonal,
+      httpServer,
+      app,
+    });
+  }
+
+  // IMPORTANT:
+  // The nextjs server must be **LAST** (!), since it takes
+  // all routes not otherwise handled above.
+  if (opts.nextServer) {
+    // The Next.js server
+    await initNext(app);
+  }
+
+  return { httpServer, router };
 }

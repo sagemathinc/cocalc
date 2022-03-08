@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { React, rclass, rtypes, Component, Rendered } from "../app-framework";
+import { rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Panel } from "../antd-bootstrap";
 import { LabeledRow, Loading, Space } from "../components";
 import { ColorPicker } from "../colorpicker";

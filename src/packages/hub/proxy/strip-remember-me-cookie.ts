@@ -7,7 +7,7 @@ I.e., malicious code running in a project shouldn't be able to steal
 auth credentials for all users of a project!
 */
 
-import { remember_me_cookie_name } from "../auth";
+import { COOKIE_NAME } from "@cocalc/server/auth/remember-me";
 
 export default function stripRememberMeCookie(cookie): {
   cookie: string;
@@ -16,11 +16,11 @@ export default function stripRememberMeCookie(cookie): {
   if (cookie == null) {
     return { cookie, remember_me: undefined };
   } else {
-    const v : string[] = [];
+    const v: string[] = [];
     let remember_me: string | undefined = undefined;
     for (const c of cookie.split(";")) {
       const z = c.split("=");
-      if (z[0].trim() == remember_me_cookie_name()) {
+      if (z[0].trim() == COOKIE_NAME) {
         // save it but do not include it in v, which will
         // be the new cookies values after going through
         // the proxy.

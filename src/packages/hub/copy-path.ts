@@ -9,9 +9,9 @@
 const access = require("./access");
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
-const { one_result } = require("./postgres");
+import { one_result } from "@cocalc/database";
 import { is_valid_uuid_string, to_json } from "@cocalc/util/misc";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -29,6 +29,7 @@ interface CopyOp {
   finished: any;
   scheduled: any;
   error: any;
+  exclude: any;
 }
 
 // this is specific to queries built here
@@ -78,6 +79,7 @@ function row_to_copy_op(copy_op): CopyOp {
     finished: copy_op.finished,
     scheduled: copy_op.scheduled,
     error: copy_op.error,
+    exclude: copy_op.exclude,
   };
 }
 
@@ -148,8 +150,9 @@ export class CopyPath {
         delete_missing: mesg.delete_missing,
         backup: mesg.backup,
         timeout: mesg.timeout,
-        wait_until_done: mesg.wait_until_done,
+        wait_until_done: mesg.wait_until_done ?? true, // default to true or we do not see the error
         scheduled: mesg.scheduled,
+        exclude: mesg.exclude,
       });
 
       // if we're still here, the copy was ok!
@@ -346,7 +349,7 @@ export class CopyPath {
       if (copy_op == null) {
         this.client.error_to_client({
           id: mesg.id,
-          error: `opy op '${mesg.copy_path_id}' cannot be deleted.`,
+          error: `copy op '${mesg.copy_path_id}' cannot be deleted.`,
         });
       } else {
         await callback2(this.client.database._query, {

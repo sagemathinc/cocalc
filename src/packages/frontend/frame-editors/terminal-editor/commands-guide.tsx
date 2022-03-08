@@ -85,11 +85,10 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   const [cwd, set_cwd] = useState<string>(""); // default home directory
   const [hidden, set_hidden] = useState<boolean>(false); // hidden files
   // empty immutable js list
-  const [listing, set_listing] = useState<ListingImm>(List([]));
+  const [listing, set_listing] = useState<ListingImm | string>(List([]));
 
-  const [listing_stats, set_listing_stats] = useState<typeof ListingStatsInit>(
-    ListingStatsInit
-  );
+  const [listing_stats, set_listing_stats] =
+    useState<typeof ListingStatsInit>(ListingStatsInit);
   const [directorynames, set_directorynames] = useState<string[]>([]);
   const [filenames, set_filenames] = useState<string[]>([]);
   // directory and filenames
@@ -124,7 +123,18 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
 
   // finally, if the listing really did change – or show/hide hidden files toggled – recalculate everything
   useEffect(() => {
-    if (listing == null) return;
+    // a user reported a crash "Uncaught TypeError: listing.filter is not a function".
+    // This was because directory_listings is a map from path to either an immutable
+    // listing **or** an error, as you can see where it is set in the file frontend/project_actions.ts
+    // The typescript there just has an "any", because it's code that was partly converted from coffeescript.
+    // Fixing this by just doing listing?.filter==null instead of listing==null here, since dealing with
+    // an error isn't necessary for this command guide.
+    if (
+      listing == null ||
+      typeof listing == "string" ||
+      listing?.filter == null
+    )
+      return;
     const all_files = hidden
       ? listing
       : listing.filter((val) => !val.get("name").startsWith("."));
@@ -417,17 +427,10 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const style: CSS = { overflowY: "auto" };
     return (
       <Collapse defaultActiveKey={[info]} style={style}>
-        <Panel
-          header={
-            <>
-              <InfoCircleOutlined /> General
-            </>
-          }
-          key={info}
-        >
+        <Panel header="General" extra={<InfoCircleOutlined />} key={info}>
           <Typography.Paragraph
             type="secondary"
-            ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
+            ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
           >
             This panel shows you the current directory and statistics about the
             files in it. You can select the first and second argument for
@@ -439,94 +442,51 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
 
           {render_info()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="list" /> Files
-            </>
-          }
-          key="files"
-        >
+        <Panel header="Files" extra={<Icon name="list" />} key="files">
           {render_files()}
         </Panel>
         <Panel
-          header={
-            <>
-              <FileOutlined /> File commands
-            </>
-          }
+          header="File commands"
+          extra={<FileOutlined />}
           key="file-commands"
         >
           {render_file_commands()}
         </Panel>
         <Panel
-          header={
-            <>
-              <FolderOpenOutlined /> Directory commands
-            </>
-          }
+          header="Directory commands"
+          extra={<FolderOpenOutlined />}
           key="directory-commands"
         >
           {render_directory_commands()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="git" /> Git
-            </>
-          }
-          key="git"
-        >
+        <Panel header={"Git"} extra={<Icon name="git" />} key="git">
           {render_git()}
         </Panel>
         <Panel
-          header={
-            <>
-              <Icon name="file-archive" /> Archiving
-            </>
-          }
+          header="Archiving"
+          extra={<Icon name="file-archive" />}
           key="archiving-commands"
         >
           {render_archiving_commands()}
         </Panel>
         <Panel
-          header={
-            <>
-              <ControlOutlined /> System commands
-            </>
-          }
+          header={"System commands"}
+          extra={<ControlOutlined />}
           key="system-commands"
         >
           {render_system_commands()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="terminal" /> Bash
-            </>
-          }
-          key="bash"
-        >
+        <Panel header="Bash" extra={<Icon name="terminal" />} key="bash">
           {render_bash()}
         </Panel>
         <Panel
-          header={
-            <>
-              <Icon name="network-wired" /> Network
-            </>
-          }
+          header={"Network"}
+          extra={<Icon name="network-wired" />}
           key="network"
         >
           {render_network()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <QuestionCircleOutlined /> Help
-            </>
-          }
-          key="help"
-        >
+        <Panel header="Help" extra={<QuestionCircleOutlined />} key="help">
           {render_help()}
         </Panel>
       </Collapse>

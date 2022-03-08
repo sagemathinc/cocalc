@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { register, SlateElement } from "../register";
 import { toSlate as toSlateImage } from "../image";
 import HTML from "@cocalc/frontend/components/html-ssr";
@@ -24,8 +23,6 @@ export interface HtmlBlock extends SlateElement {
 
 const StaticElement = ({ attributes, element }) => {
   const html = ((element.html as string) ?? "").trim();
-  // TODO: we need to process links somehow...
-  // And to what extent do we need to sanitize this html?
   if (element.type == "html_inline") {
     return (
       <div {...attributes} style={{ display: "inline" }}>

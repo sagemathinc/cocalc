@@ -11,7 +11,7 @@ import { callback2 } from "@cocalc/util/async-utils";
 // SMC libraries
 import * as misc from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { CourseActions } from "./actions";
 import { CourseStore } from "./store";
 import { AppRedux } from "../app-framework";

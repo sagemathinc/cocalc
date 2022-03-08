@@ -7,7 +7,7 @@
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { Icon, Space, Tip } from "../../components";

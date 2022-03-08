@@ -3,12 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
 import { Col, Row } from "react-bootstrap";
-
 import { ProjectActions } from "../../project_actions";
-
 import { ProjectNewForm } from "./project-new-form";
 
 interface Props {

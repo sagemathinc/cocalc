@@ -41,14 +41,18 @@ Table({
       type: "string",
       desc: "the path of the target file or directory",
     },
+    exclude: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "patterns to exclude (each is passed to rsync's --exclude)",
+    },
     overwrite_newer: {
       type: "boolean",
       desc: "if new, overwrite newer files in destination",
     },
     delete_missing: {
       type: "boolean",
-      desc:
-        "if true, delete files in the target that aren't in the source path",
+      desc: "if true, delete files in the target that aren't in the source path",
     },
     backup: {
       type: "boolean",
@@ -56,23 +60,19 @@ Table({
     },
     public: {
       type: "boolean",
-      desc:
-        "if true, use files from the public share server instead of starting up the project",
+      desc: "if true, use files from the public share server instead of starting up the project",
     },
     bwlimit: {
       type: "string",
-      desc:
-        "optional limit on the bandwidth dedicated to this copy (passed to rsync)",
+      desc: "optional limit on the bandwidth dedicated to this copy (passed to rsync)",
     },
     timeout: {
       type: "number",
-      desc:
-        "fail if the transfer itself takes longer than this number of seconds (passed to rsync)",
+      desc: "fail if the transfer itself takes longer than this number of seconds (passed to rsync)",
     },
     scheduled: {
       type: "timestamp",
-      desc:
-        "earliest time in the future, when the copy request should start (or null, for immediate execution)",
+      desc: "earliest time in the future, when the copy request should start (or null, for immediate execution)",
     },
     started: {
       type: "timestamp",

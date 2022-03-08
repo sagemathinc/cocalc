@@ -21,15 +21,19 @@ import { Col, Row } from "../../antd-bootstrap";
 import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
-import { seconds2hms, unreachable } from "@cocalc/util/misc";
+import { seconds2hms, unreachable, field_cmp } from "@cocalc/util/misc";
 import { A, Tip, Loading } from "../../components";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import { ProjectInfo as ProjectInfoType, Process } from "@cocalc/project/project-info/types";
+import {
+  ProjectInfo as ProjectInfoType,
+  Process,
+} from "@cocalc/project/project-info/types";
 import { cgroup_stats } from "@cocalc/project/project-status/utils";
 import {
-  CGroupFC,
+  CGroup,
+  ProjectProblems,
   CoCalcFile,
   LabelQuestionmark,
   ProcState,
@@ -106,7 +110,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [modal, set_modal] = useState<string | Process | undefined>(
       undefined
     );
-    const [show_bug, set_show_bug] = useState(false);
+    const [show_long_loading, set_show_long_loading] = useState(false);
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -139,7 +143,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
     // used in render_not_loading_info()
     React.useEffect(() => {
-      const timer = setTimeout(() => set_show_bug(true), 5000);
+      const timer = setTimeout(() => set_show_long_loading(true), 30000);
       return () => clearTimeout(timer);
     }, []);
 
@@ -284,7 +288,10 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     function val_max_value(index): number {
       switch (index) {
         case "cpu_pct":
-          return 100;
+          // the cgroup cpu limit could be less than 1, but we want to alert about
+          // processes using 100% cpu, even if there is much more headroom.
+          const avail_cores = Math.min(1, info?.cgroup?.cpu_cores_limit ?? 1);
+          return 100 * avail_cores;
         case "cpu_tot":
           return idle_timeout;
         case "mem":
@@ -293,7 +300,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             // 50% of max memory
             return hml / 2;
           } else {
-            1000; // 1 gb
+            return 1000; // 1 gb
           }
       }
       return 1;
@@ -535,26 +542,21 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       }
     }
 
-    // TODO remove this after https://github.com/sagemathinc/cocalc/issues/5081 is fixed
     function render_not_loading_info() {
       return (
         <>
           <div>
             <Loading />
           </div>
-          {show_bug && (
+          {show_long_loading && (
             <Alert
               type="info"
               message={
                 <div>
                   <p>
-                    If the Table of Processes does not load, you probably hit{" "}
-                    <A
-                      href={"https://github.com/sagemathinc/cocalc/issues/5081"}
-                    >
-                      Issue #5081
-                    </A>
-                    . You have to restart the project to make it work again.
+                    If the Table of Processes does not load, the project might
+                    be malfunctioning or saturated by load. Try restarting the
+                    project to make it work again.
                   </p>
                   {render_restart_project()}
                 </div>
@@ -650,6 +652,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                     <b>{proc.name}</b> <span>{proc.args}</span>
                   </span>
                 )}
+                sorter={field_cmp("name")}
               />
               <Table.Column<ProcessRow>
                 key="cocalc"
@@ -657,13 +660,25 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"left"}
                 render={(proc) => render_cocalc(proc)}
+                sorter={field_cmp("cocalc")}
+              />
+              <Table.Column<ProcessRow>
+                key="pid"
+                title={"PID"}
+                width="10%"
+                align={"left"}
+                render={render_val("pid", (x) =>
+                  x.pid == null ? "" : `${x.pid}`
+                )}
+                sorter={field_cmp("pid")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_state"
                 title={state_title}
-                width="2%"
+                width="5%"
                 align={"right"}
                 render={(proc) => <ProcState state={proc.state} />}
+                sorter={field_cmp("state")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_pct"
@@ -672,6 +687,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 dataIndex="cpu_pct"
                 align={"right"}
                 render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
+                sorter={field_cmp("cpu_pct")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_tot"
@@ -680,6 +696,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"right"}
                 render={render_val("cpu_tot", (val) => seconds2hms(val))}
+                sorter={field_cmp("cpu_tot")}
               />
               <Table.Column<ProcessRow>
                 key="mem"
@@ -688,6 +705,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"right"}
                 render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
+                sorter={field_cmp("mem")}
               />
             </Table>
           </Row>
@@ -715,7 +733,8 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           <p>
             Sub-processes are shown as a tree. When you collapse a branch, the
             values you see are the sum of that particular process and all its
-            children.
+            children. Note that because of this tree structure, sorting happens
+            in each branch, since the tree structure must also be preserved.
           </p>
           <p>
             If there are any issues detected, there will be highlights in red.
@@ -763,7 +782,8 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     function render_body() {
       return (
         <>
-          <CGroupFC
+          <ProjectProblems project_status={project_status} />
+          <CGroup
             have_cgroup={info?.cgroup != null}
             cg_info={cg_info}
             disk_usage={disk_usage}

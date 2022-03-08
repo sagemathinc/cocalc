@@ -23,7 +23,19 @@ export interface CPUCGAlert {
   type: "cpu-cgroup";
 }
 
-export type Alert = DiskAlert | MemoryAlert | CPUProcAlert | CPUCGAlert;
+// a functional component of the project. add it to the list if it is currently defunct.
+export type ComponentName = "BlobStore";
+export interface Component {
+  type: "component";
+  names: ComponentName[];
+}
+
+export type Alert =
+  | DiskAlert
+  | MemoryAlert
+  | CPUProcAlert
+  | CPUCGAlert
+  | Component;
 
 export type AlertType = Alert["type"];
 

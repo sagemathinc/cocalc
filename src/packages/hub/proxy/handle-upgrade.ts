@@ -6,7 +6,7 @@ import { versionCheckFails } from "./version";
 import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 const winston = getLogger("proxy: handle-upgrade");
 
@@ -66,7 +66,7 @@ export default function init(
     const proxy = createProxyServer({
       ws: true,
       target,
-      timeout: 0,
+      timeout: 3000,
     });
     cache.set(target, proxy);
     proxy.on("error", (err) => {

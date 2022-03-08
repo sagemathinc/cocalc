@@ -30,7 +30,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     return;
   }
   console.warn("handle_window_error", { msg, url, lineNo, columnNo, error });
-  if (isWhitelisted({ msg, url, error })) {
+  if (isWhitelisted({ error })) {
     console.warn("handle_window_error -- whitelisted");
     return;
   }
@@ -40,15 +40,16 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
   crash.style.display = "block";
 
   let errorbox = document.getElementById("cocalc-error-report-startup");
-  let showExplanation = true;
+  let showLoadFail = true;
   if (errorbox == null) {
     // app did startup, hence the banner is removed from the DOM
-    // instead, check if there is the react error report banner and insert it there!
+    // instead, check if there is the react error report banner and insert it there.
     errorbox = document.getElementById("cocalc-error-report-react");
-    showExplanation = false;
+    showLoadFail = false;
     if (errorbox == null) return;
   }
   const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
+  console.log({ errorbox }, "rendering", { msg, lineNo });
   ReactDOM.render(
     React.createElement(CrashMessage, {
       msg,
@@ -56,7 +57,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
       columnNo,
       url,
       stack,
-      showExplanation,
+      showLoadFail,
     }),
     errorbox
   );
@@ -81,17 +82,16 @@ export function startedUp() {
   }
 }
 
-function isWhitelisted({ msg, url, error }): boolean {
+function isWhitelisted({ error }): boolean {
   try {
-    if (url.includes("darkreader") || msg.includes("Cannot read property 'cssRules'")) {
-      // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
-      // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
-      // issue involving PDFJS.
-      // The url includes darkreader in dev mode, but in prod mode webpack bundles it all
-      // together, so it doesn't.
+    if (error?.stack?.includes("modifySheet")) {
+      // darkreader causes errors sometimes when editing PDF files previewed using PDFjs, and often when
+      // trying to mess with MathJax. The error on both Firefox and Chrome includes "modifySheet" in the
+      // stacktrace, since that's the function that causes the problem, and fortunately the name isn't
+      // minified out, so that is what we whitelist.
+      // Whitelisting this is fine, since darkreader is cosmetic.
       return true;
     }
-    error = error; // typescript
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.

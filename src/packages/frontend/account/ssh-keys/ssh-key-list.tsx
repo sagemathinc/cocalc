@@ -6,7 +6,7 @@
 import { Map } from "immutable";
 import { Popconfirm } from "antd";
 
-import { React, redux } from "../../app-framework";
+import { redux } from "../../app-framework";
 import { HelpIcon, Icon, Space, TimeAgo } from "../../components";
 import { cmp } from "@cocalc/util/misc";
 import { Panel, Row, Col, Button } from "../../antd-bootstrap";

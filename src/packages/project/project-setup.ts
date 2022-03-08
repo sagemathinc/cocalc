@@ -10,31 +10,43 @@ This configures the project hub based on an environment variable or other data.
 import debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
+import { existsSync } from "fs";
 // const { callback2: cb2 } = require("@cocalc/util/async-utils");
-// const { execute_code } = require("@cocalc/util-node/misc_node");
+// const { execute_code } = require("@cocalc/backend/misc_node");
 
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
 
-// this is for kucalc projects only
-export function is_free_project(): boolean {
+// this only lists some of the fields in use, there might be more
+interface ProjectConfig {
+  quota?: {
+    member_host?: boolean;
+    dedicated_disks?: { name: string }[];
+  };
+}
+
+export function getProjectConfig(): ProjectConfig | null {
   const conf_enc = process.env.COCALC_PROJECT_CONFIG;
   if (conf_enc == null) {
-    L("No COCALC_PROJECT_CONFIG env variable");
-    return false;
+    return null;
   }
   try {
     L(`configure(${conf_enc.slice(0, 30)}...)`);
     const conf_raw = Buffer.from(conf_enc, "base64").toString("utf8");
-    const conf = JSON.parse(conf_raw);
-    const ifp = conf?.quota?.member_host === false;
-    L(`is_free_project: ${ifp}`);
-    return ifp;
+    return JSON.parse(conf_raw);
   } catch (err) {
     // we report and ignore errors
-    L(`ERROR configure -- cannot process '${conf_enc}' -- ${err}`);
-    return false;
+    L(`ERROR parsing COCALC_PROJECT_CONFIG -- '${conf_enc}' -- ${err}`);
+    return null;
   }
+}
+
+// this is for kucalc projects only
+export function is_free_project(): boolean {
+  const conf = getProjectConfig();
+  const ifp = conf?.quota?.member_host === false;
+  L(`is_free_project: ${ifp}`);
+  return ifp;
 }
 
 export function configure() {
@@ -46,6 +58,8 @@ export function configure() {
 
 // Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
 export function set_extra_env(): void {
+  sage_aarch64_hack();
+
   if (!process.env.COCALC_EXTRA_ENV) {
     L("set_extra_env: nothing provided");
     return;
@@ -102,5 +116,17 @@ export function cleanup(): void {
   // is started. This is mainly an issue with cocalc-docker.
   for (const key in process.env) {
     if (key.startsWith("npm_")) delete process.env[key];
+  }
+}
+
+// See https://github.com/opencv/opencv/issues/14884
+// Importing Sage in various situations, e.g., as is done for sage server,
+// is fundamentally broken on aarch64 linux due to this issue. Yes, I explained
+// this on sage-devel, but nobody understood.
+// It's also important to NOT do this hack if you're not on aarch64!
+function sage_aarch64_hack(): void {
+  const LD_PRELOAD = "/usr/lib/aarch64-linux-gnu/libgomp.so.1";
+  if (process.arch == "arm64" && existsSync(LD_PRELOAD)) {
+    process.env.LD_PRELOAD = LD_PRELOAD;
   }
 }

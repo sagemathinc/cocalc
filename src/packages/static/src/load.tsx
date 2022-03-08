@@ -4,7 +4,6 @@
 // (NOTE: this replaces what was once "app.pug".)
 
 import "./init-app-base-path";
-import React from "react";
 // @ts-ignore
 import ReactDOM from "react-dom";
 import Primus from "./primus";

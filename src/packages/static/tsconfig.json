@@ -5,7 +5,6 @@
     "incremental": false,
     "rootDir": "./node_modules/@cocalc/frontend/",
     "outDir": "dist",
-    "jsx": "react",
     "target": "es5",
     "sourceMap": true,
     "lib": ["es5", "es6", "es2017", "dom"]

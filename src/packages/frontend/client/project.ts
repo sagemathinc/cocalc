@@ -102,7 +102,7 @@ export class ProjectClient {
   }
 
   public async copy_path_between_projects(opts: {
-    public?: boolean; // TODO: should get deprecated because of share server.
+    public?: boolean; // used e.g., by share server landing page action.
     src_project_id: string; // id of source project
     src_path: string; // relative path of director or file in the source project
     target_project_id: string; // if of target project
@@ -111,6 +111,7 @@ export class ProjectClient {
     delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
     backup?: boolean; // make ~ backup files instead of overwriting changed files
     timeout?: number; // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
   }): Promise<void> {
     const is_public = opts.public;
     delete opts.public;
@@ -289,7 +290,7 @@ export class ProjectClient {
 
   public async find_directories(opts: {
     project_id: string;
-    query?: string; // see the -iname option to the UNIX find command.
+    query?: string; // see the -iwholename option to the UNIX find command.
     path?: string; // Root path to find directories from
     exclusions?: string[]; // paths relative to `opts.path`. Skips whole sub-trees
     include_hidden?: boolean;
@@ -301,7 +302,7 @@ export class ProjectClient {
   }> {
     opts = defaults(opts, {
       project_id: required,
-      query: "*", // see the -iname option to the UNIX find command.
+      query: "*", // see the -iwholename option to the UNIX find command.
       path: ".", // Root path to find directories from
       exclusions: undefined, // Array<String> Paths relative to `opts.path`. Skips whole sub-trees
       include_hidden: false,
@@ -318,7 +319,7 @@ export class ProjectClient {
       "-o",
       "-type",
       "d",
-      "-iname",
+      "-iwholename",  // See https://github.com/sagemathinc/cocalc/issues/5502
       `'${opts.query}'`,
       "-readable",
     ];

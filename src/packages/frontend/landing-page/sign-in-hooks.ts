@@ -8,7 +8,7 @@
 */
 
 import { webapp_client } from "../webapp-client";
-import * as LS from "../misc/local-storage";
+import * as LS from "../misc/local-storage-typed";
 import { SignedIn } from "@cocalc/util/message-types";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -17,7 +17,7 @@ async function tracking_events(): Promise<void> {
   if (localStorage == null) return;
 
   for (const event of ["sign_up_how_find_cocalc"]) {
-    const value = localStorage[event];
+    const value = LS.get<object>(event);
     if (value != null) {
       LS.del(event);
       webapp_client.tracking_client.user_tracking(event, value);

@@ -363,6 +363,14 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       if (styleActiveLineRef.current && cm) {
         cm.setOption("styleActiveLine" as any, false);
       }
+      if (cm?.state.vim != null) {
+        // We exit insert mode whenever blurring the editor.  This isn't
+        // necessarily the *right* thing to do with vim; however, not doing
+        // this seriously confuses the editor state.  See
+        //    https://github.com/sagemathinc/cocalc/issues/5324
+        // @ts-ignore
+        CodeMirror.Vim?.exitInsertMode(cm);
+      }
       save_syncstring();
     });
 

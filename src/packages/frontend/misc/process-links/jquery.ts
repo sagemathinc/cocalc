@@ -25,9 +25,9 @@ interface Options {
 $.fn.process_smc_links = function (opts: Options) {
   // @ts-ignore
   processLinks(this, {
-    urlTransform: opts.href_transform,
-    projectId: opts.project_id,
-    filePath: opts.file_path,
+    urlTransform: opts?.href_transform,
+    projectId: opts?.project_id,
+    filePath: opts?.file_path,
     $,
     projectActions: redux.getActions("projects"),
   });

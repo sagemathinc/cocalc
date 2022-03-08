@@ -27,7 +27,7 @@ import { clang_format } from "./clang-format";
 import { gofmt } from "./gofmt";
 import { rust_format } from "./rust-format";
 const misc = require("@cocalc/util/misc");
-const { make_patch } = require("@cocalc/util/sync/editor/generic/util");
+const { make_patch } = require("@cocalc/sync/editor/generic/util");
 const { remove_math, replace_math } = require("@cocalc/util/mathjax-utils"); // from project Jupyter
 import { get_prettier } from "./prettier-lib";
 import { once } from "@cocalc/util/async-utils";

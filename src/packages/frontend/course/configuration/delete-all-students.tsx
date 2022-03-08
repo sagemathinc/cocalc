@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { useConfirmation } from "./state-helpers";
 import { Icon } from "../../components";
 import { Button, ButtonToolbar, Well } from "../../antd-bootstrap";

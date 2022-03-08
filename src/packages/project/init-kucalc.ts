@@ -1,10 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { options } from "./init-program";
 const kucalc = require("./kucalc");
 import * as projectSetup from "./project-setup";
 import { activate as initAutorenice } from "./autorenice";
+import * as dedicatedDisks from "./dedicated-disks";
 import { getLogger } from "./logger";
 
-export default function init() {
+export default async function init() {
   const winston = getLogger("init kucalc");
   winston.info("initializing state related to KuCalc");
   if (options.kucalc) {
@@ -25,4 +31,5 @@ export default function init() {
 
   projectSetup.configure();
   projectSetup.set_extra_env();
+  await dedicatedDisks.init();
 }

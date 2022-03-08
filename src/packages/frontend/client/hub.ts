@@ -21,7 +21,10 @@ import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
-import { deleteRememberMe, setRememberMe } from "@cocalc/util/remember-me";
+import {
+  deleteRememberMe,
+  setRememberMe,
+} from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Maximum number of outstanding concurrent messages (that have responses)
@@ -337,7 +340,7 @@ export class HubClient {
       message: required,
       timeout: undefined,
       error_event: false, // if true, turn error events into just a normal err
-      allow_post: undefined, // TODO: deprecated
+      allow_post: undefined, // TODO: deprecated -- completely ignored and not used in any way.
       cb: undefined,
     });
     if (!this.is_connected()) {

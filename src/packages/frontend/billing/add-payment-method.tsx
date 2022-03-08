@@ -4,7 +4,7 @@
  */
 
 import { Button, ButtonToolbar, Row, Col, Well } from "../antd-bootstrap";
-import { Component, React, Rendered, redux } from "../app-framework";
+import { Component, Rendered, redux } from "../app-framework";
 import { ErrorDisplay, Loading } from "../components";
 import { HelpEmailLink } from "../customize";
 import { powered_by_stripe } from "./util";

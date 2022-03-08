@@ -6,7 +6,7 @@ import { callback } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/project/logger";
 import { hubPortFile } from "@cocalc/project/data";
-const { enable_mesg, unlock_socket } = require("@cocalc/util-node/misc_node");
+const { enable_mesg, unlock_socket } = require("@cocalc/backend/misc_node");
 import { options } from "@cocalc/project/init-program";
 import { secretToken } from "@cocalc/project/servers/secret-token";
 const client = require("@cocalc/project/client");

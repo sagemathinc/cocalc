@@ -15,7 +15,13 @@ setup(
     author_email='office@sagemath.com',
     license='GPLv3+',
     packages=['smc_sagews'],
-    install_requires=['markdown2', 'ansi2html', 'ushlex', 'six'],
+    install_requires=[
+        'markdown2',
+        'ansi2html',
+        'ushlex',
+        'six',
+        'jupyter_client<7',  # not compatible, see https://github.com/sagemathinc/cocalc/issues/5715
+    ],
     zip_safe=False,
     classifiers=[
         'License :: OSI Approved :: GPLv3',

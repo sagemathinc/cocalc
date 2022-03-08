@@ -11,8 +11,9 @@ import {
   User,
   Upgrade,
   Subscription,
-} from "../site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
+import { Uptime } from "@cocalc/util/consts/site-license";
 
 const p1data = {
   user: "academic" as User,
@@ -27,7 +28,7 @@ const p1data = {
   custom_member: true,
   custom_dedicated_ram: 0,
   custom_dedicated_cpu: 0,
-  custom_always_running: false,
+  custom_uptime: "short" as Uptime,
 };
 const Price1m = compute_cost(p1data);
 const Price1y = compute_cost({
@@ -48,7 +49,7 @@ const p2data = {
   custom_member: true,
   custom_dedicated_ram: 1,
   custom_dedicated_cpu: 0,
-  custom_always_running: false,
+  custom_uptime: "short" as Uptime,
 };
 const Price2m = compute_cost(p2data);
 const Price2y = compute_cost({
@@ -69,7 +70,7 @@ const p3data = {
   custom_member: true,
   custom_dedicated_ram: 1,
   custom_dedicated_cpu: 1,
-  custom_always_running: false,
+  custom_uptime: "short" as Uptime,
 };
 const Price3m = compute_cost(p3data);
 const Price3y = compute_cost({

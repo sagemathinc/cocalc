@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
-import { SyncTable, SyncTableState } from "@cocalc/util/sync/table";
+import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import {
   close,
@@ -29,7 +29,9 @@ import { remove_jupyter_backend } from "../jupyter/jupyter";
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
-const WATCH_DEBOUNCE_MS = 1500;
+const WATCH_DEBOUNCE_MS = parseInt(
+  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "1500"
+);
 
 // See https://github.com/sagemathinc/cocalc/issues/4623
 // for one reason to put a slight delay in; basically,
@@ -168,9 +170,9 @@ class ListingsTable {
   public get(path: string): ImmutableListing | undefined {
     const x = this.get_table().get(JSON.stringify([this.project_id, path]));
     if (x == null) return x;
-    return (x as unknown) as ImmutableListing;
+    return x as unknown as ImmutableListing;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in @cocalc/util/sync/table/synctable.ts
+    // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 
@@ -284,11 +286,7 @@ class ListingsTable {
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
     }
-    this.watchers[path] = new Watcher(
-      path,
-      WATCH_DEBOUNCE_MS,
-      this.log.bind(this)
-    );
+    this.watchers[path] = new Watcher(path, WATCH_DEBOUNCE_MS);
     this.watchers[path].on("change", async () => {
       try {
         await delay(DELAY_ON_CHANGE_MS);

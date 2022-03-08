@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { FOCUSED_COLOR } from "../../util";
 import { register } from "../register";
 import { useFocused, useSelected, useSlateStatic } from "../hooks";

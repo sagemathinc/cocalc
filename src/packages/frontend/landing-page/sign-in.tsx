@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useEffect, useState } from "../app-framework";
+import { useActions, useEffect, useState } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../components/error-display";
 import { Markdown } from "../components";
@@ -36,10 +36,6 @@ export const SignIn: React.FC<Props> = (props) => {
 
   // Just a quick check for whether submit button should be disabled
   // don't make too clever, since we want user to see errors.
-  function is_submittable(): boolean {
-    return email != "" && password != "" && !props.signing_in;
-  }
-
   function sign_in(): void {
     actions.sign_in(email, password);
   }
@@ -131,7 +127,6 @@ export const SignIn: React.FC<Props> = (props) => {
           <Col md={2} xs={12}>
             <Button
               cocalc-test={"sign-in-submit"}
-              disabled={!is_submittable()}
               style={{ height: 34 }}
               className="pull-right"
               onClick={sign_in}

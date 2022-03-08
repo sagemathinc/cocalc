@@ -5,14 +5,10 @@
 
 import * as misc from "@cocalc/util/misc";
 import React from "react";
-
 import * as lodash from "lodash";
 const TRUNC = 90;
-
 import { Rendered, redux } from "../../app-framework";
-
 import { Grid, Col, Row } from "react-bootstrap";
-
 import {
   Icon,
   IconName,
@@ -24,14 +20,13 @@ import {
 } from "../../components";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
-import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-
+import { round1 } from "@cocalc/util/misc";
 import {
   ProjectEvent,
   OpenFile,
@@ -47,21 +42,25 @@ import {
   SystemEvent,
   PublicPathEvent,
 } from "./types";
+import { FILE_ACTIONS } from "../../project_actions";
 
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
   color: "white",
 };
 
-const file_action_icons = {
+// this is a dictionary for FILE_ACTIONS in packages/frontend/project_actions.ts
+const file_action_icons: {
+  [key in FileActionEvent["action"]]: keyof typeof FILE_ACTIONS;
+} = {
   deleted: "delete",
   downloaded: "download",
   moved: "move",
-  renamed: "pencil-alt",
+  renamed: "rename",
   copied: "copy",
-  share: "shared",
+  shared: "share",
   uploaded: "upload",
-  created: "plus-circle",
+  created: "create",
 };
 
 interface Props {
@@ -558,8 +557,8 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       case "set":
         return "wrench";
       case "file_action":
-        const icon = file_action_icons[props.event.action];
-        return file_actions[icon] != null ? file_actions[icon].icon : undefined;
+        const action_name = file_action_icons[props.event.action];
+        return FILE_ACTIONS[action_name].icon;
       case "upgrade":
         return "arrow-circle-up";
       case "invite_user":
@@ -572,6 +571,19 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       return "edit";
     } else {
       return "dot-circle";
+    }
+  }
+
+  function renderDuration() {
+    if (typeof props.event != "string" && props.event["duration_ms"] != null) {
+      return (
+        <>
+          {" "}
+          (time = {round1(
+            (props.event["duration_ms"] ?? 0) / 1000
+          )} seconds){" "}
+        </>
+      );
     }
   }
 
@@ -588,6 +600,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
           {render_user()}
           <Space />
           {render_desc()}
+          {renderDuration()}
           <Space />
           <TimeAgo style={style} date={props.time} popover={true} />
         </Col>

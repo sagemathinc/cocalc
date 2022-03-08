@@ -5,7 +5,7 @@
 
 /* Link to purchasing a license */
 
-import { React, useTypedRedux, redux } from "../../app-framework";
+import { useTypedRedux, redux } from "../../app-framework";
 import { PurchaseOneLicense } from "./purchase";
 import { Button } from "antd";
 import { Icon, Space } from "../../components";

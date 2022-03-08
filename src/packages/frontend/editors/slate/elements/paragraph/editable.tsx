@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { register } from "../register";
 import { useFocused, useSelected, useCollapsed } from "../hooks";
 

@@ -16,9 +16,10 @@ silently swallowed in persistent mode...
 // How long to wait from when we hit 0 clients until closing this channel.
 // Making this short can save some memory and cpu.
 // Making it longer reduces the potential time to open a file, e.g., if you
-// disconnect then reconnect.  Also, it should be at least as long as the
-// time it takes to save unsaved changes to the database.
-const CLOSE_DELAY_MS = 60 * 1000;
+// disconnect then reconnect.
+// Related to https://github.com/sagemathinc/cocalc/issues/5627
+// I tried 0 and that made "won't save" much works.
+const CLOSE_DELAY_MS = 5 * 60 * 1000;
 
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
@@ -43,7 +44,7 @@ import {
   SyncTable,
   VersionedChange,
   set_debug,
-} from "@cocalc/util/sync/table";
+} from "@cocalc/sync/table";
 
 // Only uncomment this for an intense level of debugging.
 // set_debug(true);
@@ -85,7 +86,7 @@ interface Channel {
   destroy: Function;
 }
 
-import { Client } from "@cocalc/util/sync/editor/generic/types";
+import { Client } from "@cocalc/sync/editor/generic/types";
 
 interface Primus {
   channel: (str: string) => Channel;
@@ -96,7 +97,7 @@ interface Logger {
 }
 
 import stringify from "fast-json-stable-stringify";
-const { sha1 } = require("@cocalc/util-node/misc_node");
+const { sha1 } = require("@cocalc/backend/misc_node");
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";
@@ -255,9 +256,8 @@ class SyncTableChannel {
   }
 
   private decrement_connection_count(spark: Spark): number {
-    const m: undefined | number = this.connections_from_one_client[
-      spark.conn.id
-    ];
+    const m: undefined | number =
+      this.connections_from_one_client[spark.conn.id];
     if (m === undefined) {
       return 0;
     }

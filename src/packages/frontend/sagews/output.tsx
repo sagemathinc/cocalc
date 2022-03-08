@@ -7,7 +7,6 @@
 Rendering output part of a Sage worksheet cell
 */
 
-import React from "react";
 import { keys, cmp, len } from "@cocalc/util/misc";
 import { FLAGS } from "@cocalc/util/sagews";
 import type { OutputMessage, OutputMessages } from "./parse-sagews";

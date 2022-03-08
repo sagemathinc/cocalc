@@ -7,7 +7,7 @@ import * as immutable from "immutable";
 import { JupyterActions } from "../browser-actions";
 import { ImmutableMetadata, Metadata } from "./types";
 import { NBGraderStore } from "./store";
-import { clear_solution } from "./clear-solutions";
+import clearSolution from "./clear-solutions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import { set_checksum } from "./compute-checksums";
@@ -119,17 +119,15 @@ export class NBGraderActions {
   public async confirm_validate(): Promise<void> {
     const choice = await this.jupyter_actions.confirm_dialog({
       title: "Validate notebook?",
-      body:
-        "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
+      body: "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
       choices: [
         { title: "Cancel" },
         { title: "Validate", style: "danger", default: true },
       ],
     });
     if (choice === "Validate") {
-      await this.jupyter_actions.restart();
+      await this.validate();
     }
-    await this.validate();
   }
 
   public async confirm_assign(): Promise<void> {
@@ -141,24 +139,39 @@ export class NBGraderActions {
       head = `${head}/${STUDENT_SUBDIR}/`;
     }
     const target = head + tail;
+    let minimal_stubs = this.jupyter_actions.store.getIn(
+      ["metadata", "nbgrader", "cocalc_minimal_stubs"],
+      false
+    );
+    const MINIMAL_STUBS = "Generate with minimal stubs";
     const choice = await this.jupyter_actions.confirm_dialog({
       title: "Generate Student Version of Notebook",
       body: `Generating the student version of the notebook will create a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)  The CoCalc course management system will *only* copy the ${STUDENT_SUBDIR} subdirectory that contains this generated notebook to students.`,
       choices: [
         { title: "Cancel" },
         {
-          title: "Create or update student version",
-          style: "success",
-          default: true,
+          title: "Generate student version",
+          style: !minimal_stubs ? "success" : undefined,
+          default: !minimal_stubs,
+        },
+        {
+          title: MINIMAL_STUBS,
+          style: minimal_stubs ? "success" : undefined,
+          default: minimal_stubs,
         },
       ],
     });
     if (choice === "Cancel") return;
+    minimal_stubs = choice == MINIMAL_STUBS;
+    this.set_global_metadata({ cocalc_minimal_stubs: minimal_stubs });
     this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
-    await this.assign(target);
+    await this.assign(target, minimal_stubs);
   }
 
-  public async assign(filename: string): Promise<void> {
+  public async assign(
+    filename: string,
+    minimal_stubs: boolean = false
+  ): Promise<void> {
     // Create a copy of the current notebook at the location specified by
     // filename, and modify by applying the assign transformations.
     const project_id = this.jupyter_actions.store.get("project_id");
@@ -180,11 +193,13 @@ export class NBGraderActions {
     // only the {type:?,id:?} parts of all the records.
     actions.jupyter_actions.syncdb.emit("change", "all");
     await actions.jupyter_actions.save();
-    await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations();
+    await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations(
+      minimal_stubs
+    );
     await actions.jupyter_actions.save();
   }
 
-  public apply_assign_transformations(): void {
+  public apply_assign_transformations(minimal_stubs: boolean = false): void {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -207,7 +222,7 @@ export class NBGraderActions {
     // log("unlock everything");
     this.assign_unlock_all_cells();
     // log("clear solutions");
-    this.assign_clear_solutions(); // step 3a
+    this.assign_clear_solutions(minimal_stubs); // step 3a
     // log("clear hidden tests");
     this.assign_clear_hidden_tests(); // step 3b
     // log("clear mark regions");
@@ -223,14 +238,30 @@ export class NBGraderActions {
     this.jupyter_actions.save_asap();
   }
 
-  private assign_clear_solutions(): void {
-    const kernel_language: string = this.jupyter_actions.store.get_kernel_language();
+  // merge in metadata to the global (not local to a cell) nbgrader
+  // metadata for this notebook.  This is something I invented for
+  // cocalc, and it is surely totally ignored by upstream nbgrader.
+  set_global_metadata(metadata: object): void {
+    const cur = this.jupyter_actions.store.getIn(["metadata", "nbgrader"]);
+    if (cur) {
+      metadata = {
+        ...cur,
+        ...metadata,
+      };
+    }
+    this.jupyter_actions.set_global_metadata({ nbgrader: metadata });
+  }
+
+  private assign_clear_solutions(minimal_stubs: boolean = false): void {
+    const store = this.jupyter_actions.store;
+    const kernel_language: string = store.get_kernel_language();
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       // we keep the "answer" cell of a multiple_choice question as it is
-      if (cell.getIn(["metadata", "nbgrader", "multiple_choice"]) == true)
+      if (cell.getIn(["metadata", "nbgrader", "multiple_choice"]) == true) {
         return;
-      const cell2 = clear_solution(cell, kernel_language);
+      }
+      const cell2 = clearSolution(cell, kernel_language, minimal_stubs);
       if (cell !== cell2) {
         // set the input
         this.jupyter_actions.set_cell_input(

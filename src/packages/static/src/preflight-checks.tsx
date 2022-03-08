@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
 /*
 ES6 support https://www.w3schools.com/js/js_versions.asp
 Firefox: 54
@@ -14,18 +12,10 @@ Opera: 55
 Chrome is wrong on that page, I assume we should check for 61 or 62.
 */
 
+import { useLayoutEffect } from "react";
 const APP_NAME = "CoCalc";
 
-const A: React.FC<{ href: string; children }> = ({ href, children }) => (
-  <a
-    href={href}
-    target={"_blank"}
-    rel={"noopener"}
-    style={{ textDecoration: "none" }}
-  >
-    {children}
-  </a>
-);
+import A from "./link";
 
 interface Spec {
   name: string;
@@ -88,45 +78,23 @@ const STYLE = {
   fontFamily: "sans-serif",
 } as React.CSSProperties;
 
-function allowedToRun(spec: Spec) {
+function allowedToRun() {
   if (window.location.href.includes(SKIP_TOKEN)) {
     return true;
   }
-  console.log("Browser:", spec); //Object { name: "Firefox", version: 42 }
-
-  const oldFF = spec.name === "Firefox" && spec.version < 67;
-  const oldIE = spec.name === "MSIE" || spec.name === "IE"; // all of them are a problem
-  const oldEdge = spec.name === "Edge" && spec.version < 14;
-  const oldSafari = spec.name === "Safari" && spec.version < 10;
-  const oldOpera = spec.name === "Opera" && spec.version < 55;
-  const oldChrome = spec.name === "Chrome" && spec.version < 62;
-  // The code above to compute the spec can certainly return names other than those
-  // explicitly listed below.  E.g., if you set `const ua="foo"`, then it returns
-  // a name of "Netscape"!  We declare anything not in this list "oldOther".
-  const oldOther =
-    ["Firefox", "MSIE", "IE", "Edge", "Safari", "Opera", "Chrome"].indexOf(
-      spec.name
-    ) == -1;
-
-  if (oldOther) {
-    // It doesn't match any of our tests.  This currently *does* happen
-    // with the Juno iPad app, whose agent looks like this
-    // "Mozilla/5.0 (iPad; CPU iPhone OS like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
-    // We just allow anything like this, since it's much likely to be new/good,
-    // rather than a known old broken browser.
-    return true;
+  try {
+    // Just test for optional chaining -- it's a pretty good proxy for having
+    // a modern browser. See https://caniuse.com/?search=%3F.
+    eval("window?.foo");
+  } catch (_err) {
+    return false;
   }
-
-  const old =
-    oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome || oldOther;
-
-  return !old;
+  return true;
 }
 
 export default function PreflightCheck() {
-  const spec = getSpec();
-  const allowed = allowedToRun(spec);
-  React.useLayoutEffect(() => {
+  const allowed = allowedToRun();
+  useLayoutEffect(() => {
     if (!allowed) {
       // Cause everything to stop right after
       // the initial render.
@@ -139,6 +107,7 @@ export default function PreflightCheck() {
     return null;
   }
 
+  const spec = getSpec();
   return (
     <div style={STYLE}>
       <h1 style={{ color: "red", fontSize: "400%" }}>&#9888;</h1>
@@ -148,8 +117,9 @@ export default function PreflightCheck() {
       <div>
         <p>
           We recommend that you use the newest version of{" "}
-          <A href="https://google.com/chrome">Google Chrome</A> or{" "}
-          <A href="https://www.mozilla.org/">Firefox</A>.
+          <A href="https://google.com/chrome">Google Chrome</A>,{" "}
+          <A href="https://www.mozilla.org/">Firefox</A>, or{" "}
+          <A href="https://support.apple.com/downloads/safari">Safari</A>.
         </p>
       </div>
       <div style={{ marginTop: "20px" }}>

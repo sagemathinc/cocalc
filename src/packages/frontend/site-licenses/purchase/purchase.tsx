@@ -18,7 +18,6 @@ import {
 } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-
 import moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
@@ -31,6 +30,7 @@ import {
   Icon,
   Space,
 } from "../../components";
+import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "@cocalc/util/misc";
@@ -39,6 +39,9 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { COLORS } from "@cocalc/util/theme";
+import { supportURL } from "@cocalc/frontend/support/url";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -76,7 +79,7 @@ import {
   discount_pct,
   discount_monthly_pct,
   discount_yearly_pct,
-} from "./util";
+} from "@cocalc/util/licenses/purchase/util";
 
 interface Props {
   onClose: () => void;
@@ -103,6 +106,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [custom_member, set_custom_member] = useState<boolean>(
     !!COSTS.basic.member
   );
+  const [custom_idle_timeout, set_custom_idle_timeout] =
+    useState<keyof typeof LicenseIdleTimeouts>("short");
   const [quantity, set_quantity] = useState<number>(1);
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
@@ -171,8 +176,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
     });
   }, [
     quantity,
@@ -188,6 +194,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     custom_disk,
     custom_always_running,
     custom_member,
+    custom_idle_timeout,
   ]);
 
   function render_error() {
@@ -268,6 +275,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disk: custom_disk,
           always_running: custom_always_running,
           member: custom_member,
+          idle_timeout: custom_idle_timeout,
           user,
         }}
         onChange={(change) => {
@@ -281,6 +289,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           if (change.member != null) set_custom_member(change.member);
           if (change.always_running != null)
             set_custom_always_running(change.always_running);
+          if (change.idle_timeout != null)
+            set_custom_idle_timeout(change.idle_timeout);
         }}
       />
     );
@@ -368,8 +378,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             {
               icon: "calendar-times",
               label: "Start and end dates",
-              desc:
-                "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
+              desc: "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
               value: "no",
             },
           ]}
@@ -571,6 +580,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               dedicated_cpu: custom_dedicated_cpu,
               disk: custom_disk,
               always_running: custom_always_running,
+              idle_timeout: custom_idle_timeout,
               member: custom_member,
               user,
             })}`}
@@ -609,8 +619,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
       title,
       description,
     };
@@ -655,6 +666,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           onChange={(event) => set_quote_info(event.target.value)}
         />
         <br />
+        <br />
+        <div style={{ fontSize: "12pt" }}>
+          Click the button below to enter the above information in a support
+          request. We will then respond with more information.
+        </div>
+        <br />
         <Button
           size="large"
           disabled={disabled}
@@ -663,7 +680,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         >
           <Icon name="envelope" />
           <Space />
-          <Space /> Please contact me...
+          <Space /> Copy information to support ticket...
         </Button>
       </div>
     );
@@ -717,7 +734,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           value={purchase_resp}
           style={{ maxWidth: "60ex", marginLeft: "30px" }}
         />
-        You should see it listed under "Licenses that you manage".
+        You should see it listed under{" "}
+        <A href={join(appBasePath, "/licenses/managed")}>
+          Licenses that you manage
+        </A>
+        .
       </div>
     );
   }
@@ -735,13 +756,16 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_instructions() {
     return (
-      <div style={{ marginBottom: "15px" }}>
+      <div style={{ marginBottom: "15px", fontSize: "12pt" }}>
         Buy licenses or request a quote below, as{" "}
-        <A href={DOC_LICENSE_URL}>explained here</A>. If you are planning on
-        making a significant purchase, but need to test things out first,{" "}
-        <a onClick={() => redux.getActions("support").set_show(true)}>
-          please request a free trial.
-        </a>
+        <A href={DOC_LICENSE_URL}>explained here</A>, or{" "}
+        <A href={join(appBasePath, "store")}>visit the new store</A>. If you are
+        planning on making a significant purchase, but need to test things out
+        first,{" "}
+        <A href={supportURL}>
+          create a support ticket and request more details or a free trial
+        </A>
+        .
       </div>
     );
   }
@@ -754,7 +778,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         </>
       }
       extra={<a onClick={onClose}>close</a>}
-      style={{ borderColor: COLORS.BLUE }}
+      style={{ borderColor: COLORS.BLUE, maxWidth: "900px", margin: "auto" }}
     >
       {render_instructions()}
       {render_user()}

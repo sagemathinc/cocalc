@@ -4,10 +4,10 @@
  */
 
 import { Alert, Button } from "../../antd-bootstrap";
-import { React, useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
+import { useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
 import { A, Icon } from "../../components";
 import { ALERT_STYLE } from "./common";
-import * as LS from "../../misc/local-storage";
+import * as LS from "../../misc/local-storage-typed";
 
 const OOM_ALERT_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,

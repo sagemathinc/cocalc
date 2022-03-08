@@ -1,0 +1,57 @@
+{
+  "name": "@cocalc/backend",
+  "version": "1.12.0",
+  "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
+  "exports": {
+    "./database": "./dist/database/index.js",
+    "./server-settings": "./dist/server-settings/index.js",
+    "./*": "./dist/*.js",
+    "./auth/*": "./dist/auth/*.js",
+    "./auth/tokens/*": "./dist/auth/tokens/*.js"
+  },
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
+  "scripts": {
+    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
+    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "workspaces": [
+    ".",
+    "../util"
+  ],
+  "dependencies": {
+    "@airbnb/node-memwatch": "^2.0.0",
+    "@cocalc/util": "^1.29.0",
+    "@types/debug": "^4.1.7",
+    "@types/lru-cache": "^5.1.1",
+    "async": "^1.5.2",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
+    "debug": "^4.3.2",
+    "lru-cache": "^6.0.0",
+    "password-hash": "^1.2.2",
+    "shell-escape": "^0.2.0",
+    "sqlite3": "^5.0.2",
+    "supports-color": "^9.0.2",
+    "temp": "^0.9.4",
+    "underscore": "^1.12.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
+  "devDependencies": {
+    "coffee-cache": "^1.0.2",
+    "coffeescript": "^2.5.1",
+    "expect": "^26.6.2",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "typescript": "^4.5.2"
+  }
+}

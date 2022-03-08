@@ -7,13 +7,7 @@ import { Map } from "immutable";
 import { is_different } from "@cocalc/util/misc";
 import { Markdown } from "@cocalc/frontend/components";
 
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 
 interface Props {
   font_size: number;

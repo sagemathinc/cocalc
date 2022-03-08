@@ -21,7 +21,7 @@ import { is_different } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component, Rendered } from "../../app-framework";
+import { ReactDOM, Component, Rendered } from "../../app-framework";
 import { Icon, SearchInput, Space } from "../../components";
 import {
   Button,
@@ -224,7 +224,7 @@ class MultipleAddSearch extends Component<
     if (!target) return;
 
     return (
-      <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
+      <Card style={{ margin: "15px 0" }} title={"Create assignment or handout folder"}>
         Create '{target}'?
         <br />
         <br />

@@ -7,8 +7,6 @@
 The Store
 */
 
-declare const localStorage: any;
-
 import { from_json, cmp, startswith } from "@cocalc/util/misc";
 import { Store } from "../app-framework";
 import { Set, Map, List, OrderedMap, fromJS } from "immutable";
@@ -18,6 +16,7 @@ import { Kernels, Kernel } from "./util";
 import { KernelInfo, Cell, CellToolbarName } from "./types";
 import { Syntax } from "@cocalc/util/code-formatter";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
+import { delete_local_storage, get_local_storage } from "../misc/local-storage";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -192,14 +191,16 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   get_local_storage = (key: any) => {
-    const value =
-      typeof localStorage !== "undefined" && localStorage !== null
-        ? localStorage[this.name]
-        : undefined;
+    const value = get_local_storage(this.name);
     if (value != null) {
-      const x = from_json(value);
-      if (x != null) {
-        return x[key];
+      try {
+        const x = typeof value === "string" ? from_json(value) : value;
+        if (x != null) {
+          return x[key];
+        }
+      } catch {
+        // from_json might throw, hence the value is problematic and we delete it
+        delete_local_storage(this.name);
       }
     }
   };
@@ -322,8 +323,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
         } else if (kernel.indexOf("gap") != -1) {
           mode = "gap";
         } else {
-          // C is probably a good fallback.
-          mode = "text/x-c";
+          // Python 3 is probably a good fallback.
+          mode = { name: "python", version: 3 };
         }
       }
     }
@@ -459,9 +460,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
         .map((v) => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, List<string>>(
-      data_lang
-    ).sortBy((_v, k) => k.toLowerCase());
+    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
+      (_v, k) => k.toLowerCase()
+    );
     return [by_name, by_lang];
   };
 

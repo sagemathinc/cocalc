@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "@cocalc/frontend/app-framework";
-import { RenderLeafProps } from "./slate-react";
+import React, { CSSProperties } from "react";
+import type { RenderLeafProps } from "./slate-react";
 import { startswith } from "@cocalc/util/misc";
-import { Cursor } from "@cocalc/frontend/jupyter/cursors";
 
 // CODE_STYLE -- copied from GitHub
 const CODE_STYLE = {
@@ -15,21 +14,10 @@ const CODE_STYLE = {
   fontSize: "85%",
   backgroundColor: "rgba(27,31,35,.05)",
   borderRadius: "6px",
-} as CSS;
+} as CSSProperties;
 
-export const Leaf: React.FC<RenderLeafProps> = React.memo(
+const Leaf: React.FC<RenderLeafProps> = React.memo(
   ({ attributes, children, leaf }) => {
-    if ((leaf as any).cursor != null) {
-      const { name, color, paddingText } = (leaf as any).cursor;
-      children = (
-        <span>
-          <span contentEditable={false}>
-            <Cursor name={name} color={color} paddingText={paddingText} />
-          </span>
-          {children}
-        </span>
-      );
-    }
     if (leaf.bold) {
       children = <strong>{children}</strong>;
     }
@@ -85,3 +73,5 @@ export const Leaf: React.FC<RenderLeafProps> = React.memo(
     return <span {...attributes}>{children}</span>;
   }
 );
+
+export default Leaf;

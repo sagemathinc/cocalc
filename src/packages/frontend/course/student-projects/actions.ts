@@ -8,19 +8,20 @@ Actions specific to manipulating the student projects that students have in a co
 */
 
 import { delay } from "awaiting";
-import { CourseActions, EMAIL_REINVITE_DAYS } from "../actions";
+import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
-import { webapp_client } from "../../webapp-client";
-import { redux } from "../../app-framework";
-import { len, copy, days_ago } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
+import { len, keys, copy, days_ago } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { markdown_to_html } from "../../markdown";
+import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { site_license_public_info } from "../../site-licenses/util";
-import { Datastore } from "../../projects/actions";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 
+export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
   private course_actions: CourseActions;
 
@@ -34,7 +35,7 @@ export class StudentProjectsActions {
     return store;
   }
 
-  // Create a single student project.
+  // Create and configure a single student project.
   public async create_student_project(
     student_id: string
   ): Promise<string | undefined> {
@@ -85,16 +86,69 @@ export class StudentProjectsActions {
       table: "students",
       student_id,
     });
-    await this.configure_project(student_id, false, project_id);
+    await this.configure_project({
+      student_id,
+      student_project_id: project_id,
+    });
     return project_id;
   }
 
-  private async configure_project_users(
-    student_project_id,
-    student_id,
-    do_not_invite_student_by_email,
-    force_send_invite_by_email
-  ): Promise<void> {
+  // if student is an email address, invite via email – otherwise, if account_id, invite via standard collaborator invite
+  public async invite_student_to_project(props: {
+    student_id: string;
+    student: string; // could be account_id or email_address
+    student_project_id?: string;
+  }) {
+    const { student_id, student, student_project_id } = props;
+    if (student_project_id == null) return;
+
+    // console.log("invite", x, " to ", student_project_id);
+    if (student.includes("@")) {
+      const store = this.get_store();
+      if (store == null) return;
+      const account_store = redux.getStore("account");
+      const name = account_store.get_fullname();
+      const replyto = account_store.get_email_address();
+      const title = store.get("settings").get("title");
+      const site_name =
+        redux.getStore("customize").get("site_name") ?? SITE_NAME;
+      const subject = `${site_name} Invitation to Course ${title}`;
+      let body = store.get_email_invite();
+      body = body.replace(/{title}/g, title).replace(/{name}/g, name);
+      body = markdown_to_html(body);
+      await redux
+        .getActions("projects")
+        .invite_collaborators_by_email(
+          student_project_id,
+          student,
+          body,
+          subject,
+          true,
+          replyto,
+          name
+        );
+      this.course_actions.set({
+        table: "students",
+        student_id,
+        last_email_invite: Date.now(),
+      });
+    } else {
+      await redux
+        .getActions("projects")
+        .invite_collaborator(student_project_id, student);
+    }
+  }
+
+  private async configure_project_users(props: {
+    student_project_id: string;
+    student_id: string;
+    force_send_invite_by_email?: boolean;
+  }): Promise<void> {
+    const {
+      student_project_id,
+      student_id,
+      force_send_invite_by_email = false,
+    } = props;
     //console.log("configure_project_users", student_project_id, student_id)
     // Add student and all collaborators on this project to the project with given project_id.
     // users = who is currently a user of the student's project?
@@ -106,63 +160,35 @@ export class StudentProjectsActions {
     const student = s.get_student(student_id);
     if (student == null) return; // no such student..
 
-    const site_name = redux.getStore("customize").get("site_name") ?? SITE_NAME;
-    let body = s.get_email_invite();
-
-    // Define function to invite or add collaborator
-    const invite = async (x) => {
-      // console.log("invite", x, " to ", student_project_id);
-      const account_store = redux.getStore("account");
-      const name = account_store.get_fullname();
-      const replyto = account_store.get_email_address();
-      if (x.includes("@")) {
-        if (!do_not_invite_student_by_email) {
-          const title = s.get("settings").get("title");
-          const subject = `${site_name} Invitation to Course ${title}`;
-          body = body.replace(/{title}/g, title).replace(/{name}/g, name);
-          body = markdown_to_html(body);
-          await redux
-            .getActions("projects")
-            .invite_collaborators_by_email(
-              student_project_id,
-              x,
-              body,
-              subject,
-              true,
-              replyto,
-              name
-            );
-        }
-      } else {
-        await redux
-          .getActions("projects")
-          .invite_collaborator(student_project_id, x);
-      }
-    };
     // Make sure the student is on the student's project:
     const student_account_id = student.get("account_id");
     if (student_account_id == null) {
-      // No known account yet, so invite by email.  That said,
-      // we only do this at most once every few days.
+      // No known account yet, so invite by email.
+      // This is done once and then on demand by the teacher – only limited to once per day or less
       const last_email_invite = student.get("last_email_invite");
-      if (
-        force_send_invite_by_email ||
-        !last_email_invite ||
-        new Date(last_email_invite) < days_ago(EMAIL_REINVITE_DAYS)
-      ) {
-        await invite(student.get("email_address"));
+      if (force_send_invite_by_email || !last_email_invite) {
+        await this.invite_student_to_project({
+          student_id,
+          student: student.get("email_address"),
+          student_project_id,
+        });
         this.course_actions.set({
           table: "students",
           student_id,
-          last_email_invite: new Date().valueOf(),
+          last_email_invite: Date.now(),
         });
       }
     } else if (
       (users != null ? users.get(student_account_id) : undefined) == null
     ) {
       // users might not be set yet if project *just* created
-      await invite(student_account_id);
+      await this.invite_student_to_project({
+        student_id,
+        student: student_account_id,
+        student_project_id,
+      });
     }
+
     // Make sure all collaborators on course project are on the student's project:
     const course_collaborators = redux
       .getStore("projects")
@@ -173,7 +199,9 @@ export class StudentProjectsActions {
     }
     for (const account_id of course_collaborators.keys()) {
       if (!users.has(account_id)) {
-        await invite(account_id);
+        await redux
+          .getActions("projects")
+          .invite_collaborator(student_project_id, account_id);
       }
     }
 
@@ -202,22 +230,66 @@ export class StudentProjectsActions {
     }
   }
 
-  private async configure_project_license(
-    student_project_id: string,
-    license_id?: string
+  // Sets the licenses for the given project to the given licenses
+  // from our course configuration.  Any licenses already on the
+  // project that are not set at all in our course configure license
+  // list stay unchanged.  This way a student can buy their own extra
+  // license and apply it and it stays even when the instructor makes
+  // changes to licenses.
+  private async set_project_site_license(
+    project_id: string,
+    license_ids: string[]
   ): Promise<void> {
-    const actions = redux.getActions("projects");
-    if (license_id != null) {
-      await actions.set_site_license(student_project_id, license_id);
+    const project_map = redux.getStore("projects").get("project_map");
+    if (project_map == null || project_map.get(project_id) == null) {
+      // do nothing if we're not a collab on the project or info about
+      // it isn't loaded -- this should have been ensured earlier on.
       return;
     }
     const store = this.get_store();
     if (store == null) return;
-    // Set license key if known
-    const site_license_id = store.getIn(["settings", "site_license_id"]);
-    if (site_license_id) {
-      await actions.set_site_license(student_project_id, site_license_id);
+    const currentLicenses: string[] = keys(
+      project_map.getIn([project_id, "site_license"])?.toJS() ?? {}
+    );
+    const courseLicenses = new Set(
+      (store.getIn(["settings", "site_license_id"]) ?? "").split(",")
+    );
+    const removedLicenses = new Set(
+      (store.getIn(["settings", "site_license_removed"]) ?? "").split(",")
+    );
+    const toApply = [...license_ids];
+    for (const id of currentLicenses) {
+      if (!courseLicenses.has(id) && !removedLicenses.has(id)) {
+        toApply.push(id);
+      }
     }
+    const actions = redux.getActions("projects");
+    await actions.set_site_license(project_id, toApply.join(","));
+  }
+
+  private async configure_project_license(
+    student_project_id: string,
+    license_id?: string
+  ): Promise<void> {
+    if (license_id != null) {
+      await this.set_project_site_license(
+        student_project_id,
+        license_id.split(",")
+      );
+      return;
+    }
+    const store = this.get_store();
+    if (store == null) return;
+    // Set all license keys we have that are known and not
+    // expired.  (option = false so cached)
+    const licenses = await store.getLicenses(false);
+    const license_ids: string[] = [];
+    for (const license_id in licenses) {
+      if (!licenses[license_id].expired) {
+        license_ids.push(license_id);
+      }
+    }
+    await this.set_project_site_license(student_project_id, license_ids);
   }
 
   private async remove_project_license(
@@ -412,6 +484,7 @@ export class StudentProjectsActions {
     }
 
     const datastore: Datastore = store.get_datastore();
+    const envvars: EnvVars = store.get_envvars();
     const student_project_functionality = store
       .getIn(["settings", "student_project_functionality"])
       ?.toJS();
@@ -437,7 +510,8 @@ export class StudentProjectsActions {
           student_email_address,
           datastore,
           "student", // type of project
-          student_project_functionality
+          student_project_functionality,
+          envvars
         );
       }
     } finally {
@@ -445,13 +519,15 @@ export class StudentProjectsActions {
     }
   }
 
-  private async configure_project(
-    student_id,
-    do_not_invite_student_by_email,
-    student_project_id?: string,
-    force_send_invite_by_email?: boolean,
-    license_id?: string // relevant for serial license strategy only
-  ): Promise<void> {
+  private async configure_project(props: {
+    student_id;
+    student_project_id?: string;
+    force_send_invite_by_email?: boolean;
+    license_id?: string; // relevant for serial license strategy only
+  }): Promise<void> {
+    const { student_id, force_send_invite_by_email, license_id } = props;
+    let student_project_id = props.student_project_id;
+
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
     // description, and collaborators for belonging to the indicated student.
@@ -468,12 +544,11 @@ export class StudentProjectsActions {
       await this.create_student_project(student_id);
     } else {
       await Promise.all([
-        this.configure_project_users(
+        this.configure_project_users({
           student_project_id,
           student_id,
-          do_not_invite_student_by_email,
-          force_send_invite_by_email
-        ),
+          force_send_invite_by_email,
+        }),
         this.configure_project_visibility(student_project_id),
         this.configure_project_title(student_project_id, student_id),
         this.configure_project_description(student_project_id),
@@ -521,6 +596,52 @@ export class StudentProjectsActions {
     });
   }
 
+  async reinvite_oustanding_students(): Promise<void> {
+    const store = this.get_store();
+    if (store == null) return;
+    const id = this.course_actions.set_activity({
+      desc: "Reinviting students...",
+    });
+    try {
+      this.course_actions.setState({ reinviting_students: true });
+      const ids = store.get_student_ids({ deleted: false });
+      if (ids == undefined) return;
+      let i = 0;
+
+      for (const student_id of ids) {
+        if (this.course_actions.is_closed()) return;
+        i += 1;
+        const student = store.get_student(student_id);
+        if (student == null) continue; // weird
+        const student_account_id = student.get("account_id");
+        if (student_account_id != null) continue; // already has an account – no need to reinvite.
+
+        const id1: number = this.course_actions.set_activity({
+          desc: `Progress ${Math.round((100 * i) / ids.length)}%...`,
+        });
+        const last_email_invite = student.get("last_email_invite");
+        if (
+          !last_email_invite ||
+          new Date(last_email_invite) < RESEND_INVITE_BEFORE
+        ) {
+          await this.invite_student_to_project({
+            student_id,
+            student: student.get("email_address"),
+            student_project_id: store.get_student_project_id(student_id),
+          });
+        }
+        this.course_actions.set_activity({ id: id1 });
+        await delay(0); // give UI, etc. a solid chance to render
+      }
+    } catch (err) {
+      this.course_actions.set_error(`Error reinviting students - ${err}`);
+    } finally {
+      if (this.course_actions.is_closed()) return;
+      this.course_actions.setState({ reinviting_students: false });
+      this.course_actions.set_activity({ id });
+    }
+  }
+
   async configure_all_projects(force: boolean = false): Promise<void> {
     const store = this.get_store();
     if (store == null) {
@@ -531,31 +652,28 @@ export class StudentProjectsActions {
       return;
     }
 
-    let license_run_limits:
-      | { [license_id: string]: number }
-      | undefined = undefined;
-    const site_license_id = store.getIn(["settings", "site_license_id"]);
-    if (site_license_id) {
-      const licenses = site_license_id.split(",");
-      if (
-        store.getIn(["settings", "site_license_strategy"], "serial") ==
-          "serial" &&
-        licenses.length > 1
-      ) {
-        const has_shared_project = !!store.getIn([
-          "settings",
-          "shared_project_id",
-        ]);
-        license_run_limits = {};
-        // get the run limit for each license, but subtract for course project
-        // and shared project.
-        for (const license_id of licenses) {
-          let { run_limit } = await site_license_public_info(license_id, force);
-          if (!run_limit) {
-            run_limit = 999999999999999; // effectively unlimited
-          }
-          license_run_limits[license_id] =
-            run_limit - 1 - (has_shared_project ? 1 : 0);
+    const licenses = await store.getLicenses(force);
+    let licenseRunLimits: { [license_id: string]: number } | undefined =
+      undefined;
+
+    if (
+      store.getIn(["settings", "site_license_strategy"], "serial") ==
+        "serial" &&
+      len(licenses) > 1
+    ) {
+      const hasSharedProject = !!store.getIn(["settings", "shared_project_id"]);
+      licenseRunLimits = {};
+      // get the run limit for each license, but subtract for course project
+      // and shared project.
+      for (const license_id in licenses) {
+        if (licenses[license_id].expired) {
+          // license is expired, so consider limit
+          // to be 0, since there is no point in trying
+          // to use it.
+          licenseRunLimits[license_id] = 0;
+        } else {
+          licenseRunLimits[license_id] =
+            licenses[license_id].runLimit - 1 - (hasSharedProject ? 1 : 0);
         }
       }
     }
@@ -611,7 +729,7 @@ export class StudentProjectsActions {
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
         let license_id: string | undefined = undefined;
-        if (license_run_limits != null) {
+        if (licenseRunLimits != null) {
           // licenses being allocated globally.
           // What is there now for this project?
           const student_project_id = store.getIn([
@@ -630,32 +748,31 @@ export class StudentProjectsActions {
             already_done = true;
           }
           for (const id in site_license) {
-            if (license_run_limits[id] != null) {
-              license_run_limits[id] -= 1;
-              if (license_run_limits[id] >= 0) {
+            if (licenseRunLimits[id] != null) {
+              licenseRunLimits[id] -= 1;
+              if (licenseRunLimits[id] >= 0) {
                 already_done = true;
               }
             }
           }
           if (!already_done) {
-            license_id = ""; // if don't get one below, will remove all licenses from project
+            license_id = "";
             // choose an available license
-            for (const id in license_run_limits) {
-              if (license_run_limits[id] > 0) {
+            for (const id in licenseRunLimits) {
+              if (licenseRunLimits[id] > 0) {
                 license_id = id;
-                license_run_limits[id] -= 1;
+                licenseRunLimits[id] -= 1;
                 break;
               }
             }
           }
         }
-        await this.configure_project(
+        await this.configure_project({
           student_id,
-          false,
-          undefined,
-          force,
-          license_id
-        );
+          student_project_id: undefined,
+          force_send_invite_by_email: force,
+          license_id,
+        });
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
       } // always re-invite students on running this.

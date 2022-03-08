@@ -17,7 +17,7 @@ import { define, required } from "@cocalc/util/fill";
 import { set_url } from "../history";
 import { track_conversion } from "../misc";
 import { join } from "path";
-import { deleteRememberMe } from "@cocalc/util/remember-me";
+import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Define account actions
@@ -76,7 +76,7 @@ export class AccountActions extends Actions<AccountState> {
     const doc_conn =
       "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
     const err_help = `\
-Please reload this browser tab and try again.
+Please try again.
 
 If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.help()}.\
 `;

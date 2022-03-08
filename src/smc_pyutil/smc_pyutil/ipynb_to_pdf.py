@@ -12,6 +12,19 @@ depending on your tastes.  It also has a dependency on chromium.
 
 # ATTN: make sure to keep dependencies of this in sync with projects/project/configuration.ts
 
+### **
+# This script is deprecated as of
+#
+#   https://github.com/sagemathinc/cocalc/pull/5583
+#
+# which implements much better and more efficient functionality.
+# In particular, there is now a project api call jupyter_nbconvert
+# e.g., used in packages/frontend/course/export/export-assignment.ts
+# that converts notebooks to other formats.  It's much more
+# efficient than upstream nbconvert for html and pdf, and doesn't waste
+# time importing code each time it is run.
+###
+
 from __future__ import absolute_import, print_function
 from shutil import which
 import os, sys, time, glob
@@ -52,6 +65,8 @@ def ipynb_to_pdf(path):
         sanitize_nbconvert_path(path),
         "--to",
         "html",
+        "--template",
+        "classic",
         "--output=%s" % html,
     ])
     # --no-sandbox so it works in cocalc-docker (see https://stackoverflow.com/questions/43665276/how-to-run-google-chrome-headless-in-docker); should be OK, given our security model...

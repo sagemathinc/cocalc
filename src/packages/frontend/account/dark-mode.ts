@@ -6,6 +6,12 @@
 import { throttle, isEqual } from "lodash";
 import { AccountStore } from "./store";
 
+if (require("darkreader/package").version != "4.9.35") {
+  throw Error(
+    "Do NOT upgrade darkreader beyond 4.9.35 until https://github.com/sagemathinc/cocalc/issues/5591 is resolved!  Doing so breaks MathJax v2."
+  );
+}
+
 export const dark_mode_mins = {
   brightness: 20,
   contrast: 20,
@@ -40,21 +46,26 @@ function to_number(x: any, default_value: number): number {
   }
 }
 
-export function get_dark_mode_config(other_settings): Config {
+export function get_dark_mode_config(other_settings?: {
+  dark_mode_brightness?: number;
+  dark_mode_contrast?: number;
+  dark_mode_sepia?: number;
+  dark_mode_grayscale?: number;
+}): Config {
   const brightness = Math.max(
     dark_mode_mins.brightness,
-    to_number(other_settings.get("dark_mode_brightness"), 100)
+    to_number(other_settings?.dark_mode_brightness, 100)
   );
   const contrast = Math.max(
     dark_mode_mins.contrast,
-    to_number(other_settings.get("dark_mode_contrast"), 90)
+    to_number(other_settings?.dark_mode_contrast, 90)
   );
   const sepia = to_number(
-    other_settings.get("dark_mode_sepia"),
+    other_settings?.dark_mode_sepia,
     dark_mode_mins.sepia
   );
   const grayscale = to_number(
-    other_settings.get("dark_mode_grayscale"),
+    other_settings?.dark_mode_grayscale,
     dark_mode_mins.grayscale
   );
   return { brightness, contrast, sepia, grayscale };
@@ -67,7 +78,9 @@ export function init_dark_mode(account_store: AccountStore): void {
     "change",
     throttle(async () => {
       const dark_mode = !!account_store.getIn(["other_settings", "dark_mode"]);
-      const config = get_dark_mode_config(account_store.get("other_settings"));
+      const config = get_dark_mode_config(
+        account_store.get("other_settings")?.toJS()
+      );
       if (
         dark_mode == last_dark_mode &&
         (!dark_mode || isEqual(last_config, config))

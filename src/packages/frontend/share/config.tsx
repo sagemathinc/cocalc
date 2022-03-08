@@ -12,7 +12,8 @@ is shared.
 - Public
 - Public, but need a predictable link
 - Public, but needs a secret random token link
-- Private
+- Authenticated, only someone who is signed in can access
+- Private, not shared at all
 
 NOTE: Our approach to state regarding how shared means that two people can't
 simultaneously edit this and have it be synced properly
@@ -32,7 +33,6 @@ import {
 } from "react-bootstrap";
 import {
   redux,
-  React,
   ReactDOM,
   Component,
   Rendered,
@@ -45,10 +45,19 @@ import {
   Icon,
   VisibleMDLG,
   Space,
+  A,
 } from "@cocalc/frontend/components";
 import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
+import ConfigureName from "./configure-name";
+import { unreachable } from "@cocalc/util/misc";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  SHARE_AUTHENTICATED_ICON,
+  SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_FLAGS,
+} from "@cocalc/util/consts/ui";
 
 interface PublicInfo {
   created: Date;
@@ -57,7 +66,9 @@ interface PublicInfo {
   last_edited: Date;
   path: string;
   unlisted: boolean;
+  authenticated?: boolean;
   license?: string;
+  name?: string;
 }
 
 interface Props {
@@ -75,15 +86,20 @@ interface Props {
     unlisted?: boolean;
     license?: string;
     disabled?: boolean;
+    authenticated?: boolean;
   }) => void;
   has_network_access?: boolean;
 
   // redux props
   is_commercial?: boolean;
+  share_server?: boolean;
+  kucalc?: string;
 }
 
+type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
+
 interface State {
-  sharing_options_state: string;
+  sharing_options_state: States;
 }
 
 class Configure extends Component<Props, State> {
@@ -96,14 +112,14 @@ class Configure extends Component<Props, State> {
     return {
       customize: {
         is_commercial: rtypes.bool,
+        share_server: rtypes.bool,
+        kucalc: rtypes.string,
       },
     };
   }
 
   private render_how_shared_heading(): Rendered {
-    return (
-      <div style={{ color: "#444", fontSize: "15pt" }}>Public or Private?</div>
-    );
+    return <div style={{ color: "#444", fontSize: "15pt" }}>Access level</div>;
   }
 
   private render_how_shared(parent_is_public: boolean): Rendered {
@@ -116,30 +132,36 @@ class Configure extends Component<Props, State> {
   }
 
   private handle_sharing_options_change(e): void {
-    const state = e.target.value;
+    const state: States = e.target.value;
     this.setState({ sharing_options_state: state });
-    if (state === "private") {
-      this.props.set_public_path({ disabled: true });
-    } else if (state === "public_listed") {
-      // this.props.public is suppose to work in this state
-      this.props.set_public_path({
-        unlisted: false,
-        disabled: false,
-      });
-    } else if (state === "public_unlisted") {
-      this.props.set_public_path({
-        unlisted: true,
-        disabled: false,
-      });
+    switch (state) {
+      case "private":
+        this.props.set_public_path(SHARE_FLAGS.DISABLED);
+        break;
+      case "public_listed":
+        // this.props.public is suppose to work in this state
+        this.props.set_public_path(SHARE_FLAGS.LISTED);
+        break;
+      case "public_unlisted":
+        this.props.set_public_path(SHARE_FLAGS.UNLISTED);
+        break;
+      case "authenticated":
+        this.props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
+        break;
+      default:
+        unreachable(state);
     }
   }
 
-  private get_sharing_options_state(): string {
+  private get_sharing_options_state(): States {
     if (
       this.props.is_public &&
       (this.props.public != null ? this.props.public.unlisted : undefined)
     ) {
       return "public_unlisted";
+    }
+    if (this.props.is_public && this.props.public?.authenticated === true) {
+      return "authenticated";
     }
     if (
       this.props.is_public &&
@@ -163,10 +185,7 @@ class Configure extends Component<Props, State> {
           <Icon name="eye" />
           <Space />
           <i>Public (listed)</i> - on the{" "}
-          <a href={shareServerUrl()} target="_blank">
-            public Google-indexed server
-          </a>
-          .
+          <A href={shareServerUrl()}>public Google-indexed server</A>.
         </Radio>
       );
     } else {
@@ -182,10 +201,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <del>
             <i>Public (listed)</i> - This will appear on the{" "}
-            <a href={shareServerUrl()} target="_blank">
-              share server
-            </a>
-            .
+            <A href={shareServerUrl()}>share server</A>.
           </del>{" "}
           Public (listed) is only available for projects with network enabled.
         </Radio>
@@ -206,6 +222,27 @@ class Configure extends Component<Props, State> {
         <Space />
         <i>Public (unlisted)</i> - only people with the link can view this.
       </Radio>
+    );
+  }
+
+  private render_authenticated_option(state: string): Rendered {
+    // auth-only sharing only for private instances like on-prem and docker
+    if (this.props.kucalc === KUCALC_COCALC_COM) return;
+    return (
+      <>
+        <br />
+        <Radio
+          name="sharing_options"
+          value="authenticated"
+          checked={state === "authenticated"}
+          onChange={this.handle_sharing_options_change.bind(this)}
+          inline
+        >
+          <Icon name={SHARE_AUTHENTICATED_ICON} />
+          <Space />
+          <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
+        </Radio>
+      </>
     );
   }
 
@@ -232,6 +269,7 @@ class Configure extends Component<Props, State> {
         {this.render_public_listed_option(state)}
         <br />
         {this.render_public_unlisted_option(state)}
+        {this.render_authenticated_option(state)}
         <br />
         {this.render_private_option(state)}
       </FormGroup>
@@ -279,7 +317,7 @@ class Configure extends Component<Props, State> {
         <h4>Description{this.get_description() ? "" : " (optional)"}</h4>
         Use relevant keywords, inspire curiosity by providing just enough
         information to explain what this is about, and keep your description to
-        about two lines.
+        about two lines. Use Markdown and LaTeX.
         <FormGroup style={{ paddingTop: "5px" }}>
           <FormControl
             autoFocus={true}
@@ -305,9 +343,9 @@ class Configure extends Component<Props, State> {
     return (
       <>
         <h4>
-          <a href="https://choosealicense.com/" target="_blank" rel="noopener">
+          <A href="https://choosealicense.com/">
             Choose a license {this.get_license() ? "" : " (optional)"}
-          </a>
+          </A>
         </h4>
         <License
           disabled={parent_is_public}
@@ -356,6 +394,10 @@ class Configure extends Component<Props, State> {
         </Col>
         <Col sm={6} style={{ color: "#666" }}>
           {this.render_link(parent_is_public)}
+          <ConfigureName
+            project_id={this.props.project_id}
+            path={this.props.public?.path ?? this.props.path}
+          />
         </Col>
       </Row>
     );
@@ -365,57 +407,77 @@ class Configure extends Component<Props, State> {
     const server = shareServerUrl();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
-        <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
-          You make
-        </a>{" "}
-        files or directories{" "}
-        <a href={server} target="_blank" rel="noopener">
+        <A href={SHARE_HELP_URL}>You make</A> files or directories{" "}
+        <A href={server}>
           <b>
             <i>public to the world</i>,
           </b>
-        </a>{" "}
+        </A>{" "}
         either indexed by search engines (listed), or only visible with the link
         (unlisted). Files are automatically copied to the public server within
-        about 30 seconds after you explicitly edit them. (To instead privately
-        collaborate, go to Project settings and "Add new collaborators".)
+        about 30 seconds after you explicitly edit them.
       </div>
     );
   }
 
   private render_close_button(): Rendered {
-    return (
-      <div>
-        <br />
-        <Button onClick={this.props.close}>Close</Button>
-      </div>
-    );
+    return <Button onClick={this.props.close}>Close</Button>;
   }
 
-  private render_needs_network_access(): Rendered {
+  private render_needs_network_access(parent_is_public: boolean): Rendered {
+    const url =
+      this.props.public == null || this.props.public.disabled
+        ? undefined
+        : publicShareUrl(
+            this.props.project_id,
+            parent_is_public && this.props.public != null
+              ? this.props.public.path
+              : this.props.path,
+            this.props.path
+          ) + "?edit=true";
     return (
-      <Alert
-        bsStyle={"danger"}
-        style={{ padding: "30px", marginBottom: "30px" }}
-      >
+      <Alert bsStyle={"warning"} style={{ padding: "30px", margin: "30px" }}>
         <h3>Publicly sharing files requires internet access</h3>
         <div style={{ fontSize: "12pt" }}>
           You <b>must</b> first enable the 'Internet access' upgrade in project
           settings in order to publicly share files from this project.
+          {url && (
+            <div>
+              <br />
+              This file was shared when internet access was enabled, so you can{" "}
+              <A href={url}>edit how this file is shared here</A>.
+            </div>
+          )}
+        </div>
+      </Alert>
+    );
+  }
+
+  private render_share_server_disabled(): Rendered {
+    return (
+      <Alert bsStyle={"warning"} style={{ padding: "30px", margin: "30px" }}>
+        <h3>Publicly sharing of files not enabled on this CoCalc server.</h3>
+        <div style={{ fontSize: "12pt" }}>
+          Public sharing is not enabled. An admin of the server can enable this
+          in Admin -- Site Settings -- Allow public file sharing.
         </div>
       </Alert>
     );
   }
 
   public render(): Rendered {
-    if (this.props.is_commercial && !this.props.has_network_access) {
-      return this.render_needs_network_access();
-    }
-
     // This path is public because some parent folder is public.
     const parent_is_public: boolean =
       !!this.props.is_public &&
       this.props.public != null &&
       this.props.public.path != this.props.path;
+
+    if (!this.props.share_server) {
+      return this.render_share_server_disabled();
+    }
+    if (this.props.is_commercial && !this.props.has_network_access) {
+      return this.render_needs_network_access(parent_is_public);
+    }
 
     return (
       <div>

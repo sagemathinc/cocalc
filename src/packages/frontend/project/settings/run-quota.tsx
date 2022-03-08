@@ -3,23 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
-import { Table, Typography } from "antd";
-const { Text } = Typography;
 import {
   CheckCircleTwoTone,
   CloseCircleTwoTone,
   PoweroffOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
+import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
+import { plural, round2, seconds2hms } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { COLORS } from "@cocalc/util/theme";
+import { Quota } from "@cocalc/util/upgrades/quota";
+import { Upgrades } from "@cocalc/util/upgrades/types";
+import { Table, Typography } from "antd";
 import { isEqual } from "lodash";
-import { Tip } from "../../r_misc";
-import { useTypedRedux, useState } from "../../app-framework";
-import { PROJECT_UPGRADES } from "smc-util/schema";
-import * as misc from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
+const { Text } = Typography;
+
 const PARAMS = PROJECT_UPGRADES.params;
-import { Quota, Upgrades } from "smc-util/upgrades/quota";
+
 type RunQuota = Partial<Quota>;
 type Value = string | boolean;
 type DisplayQuota = { [key in keyof Quota]: Value };
@@ -82,8 +84,8 @@ interface Props {
 }
 
 function render_val(val, unit) {
-  val = misc.round2(val);
-  return `${val} ${misc.plural(val, unit)}`;
+  val = round2(val);
+  return `${val} ${plural(val, unit)}`;
 }
 
 function useRunQuota(project_id: string): DisplayQuota {
@@ -95,7 +97,7 @@ function useRunQuota(project_id: string): DisplayQuota {
     for (const [key, val] of Object.entries(next)) {
       if (typeof val !== "number") continue;
       if (key == "idle_timeout") {
-        next[key] = misc.seconds2hms(val, false, false);
+        next[key] = seconds2hms(val, false, false);
       } else {
         const up_key = quota2upgrade_key(key);
         // no display factor!
@@ -118,7 +120,7 @@ function useMaxUpgrades(): DisplayQuota {
     for (const [key, val] of Object.entries(next)) {
       if (typeof val !== "number") continue;
       if (key == "idle_timeout") {
-        next[key] = misc.seconds2hms(val, false, false);
+        next[key] = seconds2hms(val, false, false);
       } else {
         const up_key = quota2upgrade_key(key);
         const dval = PARAMS[up_key].display_factor * val;

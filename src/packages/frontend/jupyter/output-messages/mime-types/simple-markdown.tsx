@@ -1,4 +1,3 @@
-import React from "react";
 import register from "./register";
 import Markdown from "@cocalc/frontend/markdown/component";
 

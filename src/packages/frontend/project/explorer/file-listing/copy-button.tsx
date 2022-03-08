@@ -3,9 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
-import { Space, Icon } from "../../../components";
+import { Space, Icon } from "@cocalc/frontend/components";
 const { Button } = require("react-bootstrap");
 
 export function CopyButton({ on_click }) {

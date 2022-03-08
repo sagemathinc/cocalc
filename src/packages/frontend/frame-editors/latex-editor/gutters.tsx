@@ -8,7 +8,6 @@
 // NOTE: If there are multiple errors/warnings/etc., on the SAME line, only the last
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
-import React from "react";
 import { capitalize } from "@cocalc/util/misc";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { SPEC, SpecItem } from "./errors-and-warnings";

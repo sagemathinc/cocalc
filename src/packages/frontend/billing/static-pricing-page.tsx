@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "../app-framework";
+import { Rendered } from "../app-framework";
 
 import { ExplainResources } from "./explain-resources";
 import { ExplainLicenses } from "./explain-course-licenses";

@@ -11,11 +11,13 @@ fs = require('fs')
 async = require('async')
 
 misc      = require('@cocalc/util/misc')
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 
 path       = require('path')
 {execSync} = require('child_process')
 {defaults} = misc = require('@cocalc/util/misc')
+
+{start_ts, session_id} = require('./consts')
 
 # global variable
 PROJECT_ID = undefined
@@ -39,16 +41,10 @@ prom_client.collectDefaultMetrics(timeout: 10 * 1000)
 
 # --- end prometheus setup
 
-
 # This gets **changed** to true, if a certain
 # command line flag is passed in.
 exports.IN_KUCALC = false
 
-# static values for monitoring and project information
-# uniquely identifies this instance of the local hub
-session_id = misc.uuid()
-# record when this instance started
-start_ts   = (new Date()).getTime()
 # status information
 current_status = {}
 
@@ -81,12 +77,13 @@ update_project_status = (client, cb) ->
 
 exports.compute_status = compute_status = (cb) ->
     status =
-        time      : (new Date()).getTime()
-        memory    : {rss: 0}
-        disk_MB   : 0
-        cpu       : {}
-        start_ts  : start_ts
-        processes : {}
+        time       : (new Date()).getTime()
+        memory     : {rss: 0}
+        disk_MB    : 0
+        cpu        : {}
+        start_ts   : start_ts
+        session_id : session_id
+        processes  : {}
     async.parallel([
         (cb) ->
             compute_status_disk(status, cb)

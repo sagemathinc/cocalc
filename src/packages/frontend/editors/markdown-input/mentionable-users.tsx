@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, redux } from "../../app-framework";
+import { redux } from "../../app-framework";
 import { Item } from "./complete";
 
 import { trunc_middle, timestamp_cmp, cmp } from "@cocalc/util/misc";

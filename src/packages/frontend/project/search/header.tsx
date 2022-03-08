@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
+
 import { Icon } from "../../components";
 import { PathNavigator } from "../explorer/path-navigator";
 

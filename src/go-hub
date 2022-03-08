@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -ev
+
+export COCALC_ROOT=$HOME/cocalc/src/
+cd $COCALC_ROOT/packages/hub
+
+export LOGS=$HOME/cocalc/src/data/logs/
+export DATA=/Users/wstein/build/cocalc/src/data
+export PORT=8000
+export BASE_PATH=/
+
+PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development NODE_OPTIONS='--max_old_space_size=16000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0

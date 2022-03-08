@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { ReactNode } from "react";
+import { ReactNode } from "react";
 import { len } from "@cocalc/util/misc";
 
 export function r_join(

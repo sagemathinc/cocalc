@@ -20,7 +20,6 @@ output:
 
 */
 
-import React from "react";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { register } from "../register";
 import infoToMode from "../code-block/info-to-mode";

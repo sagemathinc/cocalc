@@ -23,7 +23,7 @@ See https://github.com/sagemathinc/cocalc/issues/4393.
 */
 
 import { callback2 } from "@cocalc/util/async-utils";
-const { execute_code } = require("@cocalc/util-node/misc_node");
+const { execute_code } = require("@cocalc/backend/misc_node");
 
 export async function init_global_packages(): Promise<void> {
   const command = `[ ! -d "${process.env.HOME}/.lean" ] && [ -d /ext/lean/lean/mathlib ] && leanpkg install /ext/lean/lean/mathlib`;

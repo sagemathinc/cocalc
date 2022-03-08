@@ -10,13 +10,13 @@ Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http 
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import * as fs from "fs";
 import { readFile } from "./async-utils-node";
-import Logger from "@cocalc/util-node/logger";
+import Logger from "@cocalc/backend/logger";
 import { months_ago, to_json } from "@cocalc/util/misc";
-const misc_node = require("@cocalc/util-node/misc_node");
+const misc_node = require("@cocalc/backend/misc_node");
 import Database from "better-sqlite3";
 import { Router } from "express";
-
 const winston = Logger("jupyter-blobs-sqlite");
+import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
 
 const JUPYTER_BLOBS_DB_FILE: string =
   process.env.JUPYTER_BLOBS_DB_FILE ??
@@ -224,4 +224,16 @@ export class BlobStore implements BlobStoreInterface {
   }
 }
 
-export const blob_store = new BlobStore();
+let blob_store: BlobStore | undefined = undefined;
+
+export function get_blob_store() {
+  if (blob_store != null) return blob_store;
+  try {
+    blob_store = new BlobStore();
+    get_ProjectStatusServer().clearComponentAlert("BlobStore");
+    return blob_store;
+  } catch (err) {
+    get_ProjectStatusServer().setComponentAlert("BlobStore");
+    winston.warn(`unable to instantiate BlobStore -- ${err}`);
+  }
+}

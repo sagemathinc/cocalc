@@ -46,7 +46,7 @@ stringify            = require('json-stable-stringify')
 
 misc                 = require('@cocalc/util/misc')
 {defaults, required} = misc
-{diff_main}          = require('@cocalc/util/sync/editor/generic/util')
+{diff_main}          = require('@cocalc/sync/editor/generic/util')
 {webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')

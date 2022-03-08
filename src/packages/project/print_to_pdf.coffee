@@ -12,7 +12,7 @@ fs        = require('fs')
 temp      = require('temp')
 
 misc      = require('@cocalc/util/misc')
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 message   = require('@cocalc/util/message')
 
 {defaults, required} = misc

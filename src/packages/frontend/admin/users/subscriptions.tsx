@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 
 import { Button } from "react-bootstrap";
 

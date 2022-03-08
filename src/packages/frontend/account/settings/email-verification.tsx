@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 
-import { Component, React, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 import { alert_message } from "../../alerts";
 import { Button } from "../../antd-bootstrap";
 import { webapp_client } from "../../webapp-client";

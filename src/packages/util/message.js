@@ -1788,6 +1788,10 @@ API(
         init: undefined,
         desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.  (Only implemented for https://cocalc.com.)",
       },
+      exclude: {
+        init: undefined,
+        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
+      },
     },
     desc: `\
 Copy a file or directory from one project to another.
@@ -1965,15 +1969,16 @@ message({
 /*
 Ping/pong -- used for clock sync, etc.
 */
-message2({
-  event: "ping",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
+API(
+  message2({
+    event: "ping",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the query",
+      },
     },
-  },
-  desc: `\
+    desc: `\
 Test API connection, return time as ISO string when server responds to ping.
 
 Security key may be blank.
@@ -2007,7 +2012,8 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `,
-});
+  })
+);
 
 message({
   event: "pong",
@@ -2054,6 +2060,10 @@ API(
       timeout: {
         init: undefined,
         desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
+      },
+      exclude: {
+        init: undefined,
+        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
       },
     },
     desc: `\
@@ -3079,7 +3089,7 @@ API(
   message({
     event: "purchase_license",
     id: undefined,
-    info: required, // import { PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
+    info: required, // import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
   })
 );
 

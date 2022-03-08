@@ -23,7 +23,11 @@ import { Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-import { ButtonGroup, Button, ButtonStyle } from "../../antd-bootstrap";
+import {
+  ButtonGroup,
+  Button as AntdBootstrapButton,
+  ButtonStyle,
+} from "../../antd-bootstrap";
 
 import { get_default_font_size } from "../generic/client";
 
@@ -216,10 +220,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function StyledButton(props) {
     return (
-      <Button {...props} style={button_style(props.style)}>
+      <AntdBootstrapButton {...props} style={button_style(props.style)}>
         {props.children}
-      </Button>
+      </AntdBootstrapButton>
     );
+  }
+
+  function Button(props) {
+    return <StyledButton {...props}>{props.children}</StyledButton>;
   }
 
   function is_visible(action_name: string, explicit?: boolean): boolean {
@@ -365,6 +373,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"compress"}
           bsSize={button_size()}
           onClick={() => props.actions.unset_frame_full()}
+          bsStyle={"warning"}
         >
           <Icon name={"compress"} />
         </StyledButton>
@@ -461,7 +470,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
 
-    const items: Rendered[] = [100, 125, 150, 200].map((zoom) => {
+    const items: Rendered[] = [85, 100, 115, 125, 150, 200].map((zoom) => {
       return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 

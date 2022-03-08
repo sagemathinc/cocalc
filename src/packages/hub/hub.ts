@@ -8,39 +8,40 @@
 // many Sage sessions, and PostgreSQL database.
 
 import { spawn } from "child_process";
-import { COCALC_MODES } from "./servers/project-control";
+import { COCALC_MODES } from "@cocalc/server/projects/control";
 import blocked from "blocked";
 import { program as commander, Option } from "commander";
 import { callback2 } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
-import { init as initMemory } from "@cocalc/util-node/memory";
-import basePath from "@cocalc/util-node/base-path";
+import { init as initMemory } from "@cocalc/backend/memory";
+import basePath from "@cocalc/backend/base-path";
 import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
-import base_path from "@cocalc/util-node/base-path";
-import { migrate_account_token } from "./postgres/migrate-account-token";
-import { init_start_always_running_projects } from "./postgres/always-running";
+import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
-import { handle_mentions_loop } from "./mentions/handle";
+import initHandleMentions from "@cocalc/server/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 import { start as startHubRegister } from "./hub_register";
-const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
-import { stripe_sync } from "./stripe/sync";
-import { init_stripe } from "./stripe";
-import port from "@cocalc/util-node/port";
+import { stripe_sync } from "@cocalc/server/stripe/sync";
+import port from "@cocalc/backend/port";
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import initHttpServer from "./servers/http";
 import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
-import initProjectControl from "./servers/project-control";
-import initIdleTimeout from "./project-control/stop-idle-projects";
+import initProjectControl from "@cocalc/server/projects/control";
+import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
-import initProxy from "./proxy";
+import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
+import {
+  pguser as DEFAULT_DB_USER,
+  pghost as DEFAULT_DB_HOST,
+  pgdatabase as DEFAULT_DB_NAME,
+} from "@cocalc/backend/data";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -63,22 +64,6 @@ async function reset_password(email_address: string): Promise<void> {
   } catch (err) {
     winston.info(`Error resetting password -- ${err}`);
   }
-}
-
-async function startLandingService(): Promise<void> {
-  // This @cocalc/landing is a private npm package that is
-  // installed on https://cocalc.com only.  Hence we use require,
-  // since it need not be here.
-  const { LandingServer } = require("@cocalc/landing");
-  const { uncaught_exception_total } = await initMetrics();
-  const landing_server = new LandingServer({
-    db: database,
-    port,
-    base_url: basePath,
-  });
-  await landing_server.start();
-
-  addErrorListeners(uncaught_exception_total);
 }
 
 // This calculates and updates the statistics for the /stats endpoint.
@@ -126,9 +111,9 @@ async function startServer(): Promise<void> {
     throw Error("client cookie options are not secure");
   }
 
-  winston.info(`base_path='${base_path}'`);
+  winston.info(`basePath='${basePath}'`);
   winston.info(
-    `using database "${program.keyspace}" and database-nodes="${program.databaseNodes}"`
+    `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`
   );
 
   const { metric_blocked, uncaught_exception_total } = await initMetrics();
@@ -156,6 +141,15 @@ async function startServer(): Promise<void> {
   if (program.updateDatabaseSchema) {
     winston.info("Update database schema");
     await callback2(database.update_schema);
+
+    // in those cases where we initialize the database upon startup
+    // (essentially only relevant for kucalc's hub-websocket)
+    if (program.mode === "kucalc") {
+      // set server settings based on environment variables
+      await load_server_settings_from_env(database);
+      // and for on-prem setups, also initialize the admin account, set a registration token, etc.
+      await initialOnPremSetup(database);
+    }
   }
 
   if (program.agentPort) {
@@ -163,19 +157,17 @@ async function startServer(): Promise<void> {
     set_agent_endpoint(program.agentPort, program.hostname);
   }
 
-  // Handle potentially ancient cocalc installs with old account registration token.
-  winston.info("Check for all account registration token");
-  await migrate_account_token(database);
-
   // Mentions
   if (program.mentions) {
     winston.info("enabling handling of mentions...");
-    handle_mentions_loop(database);
+    initHandleMentions();
   }
 
   // Project control
   winston.info("initializing project control...");
-  const projectControl = initProjectControl(program);
+  const projectControl = initProjectControl(program.mode);
+  // used for nextjs hot module reloading dev server
+  process.env["COCALC_MODE"] = program.mode;
 
   if (program.mode != "kucalc" && program.websocketServer) {
     // We handle idle timeout of projects.
@@ -189,14 +181,6 @@ async function startServer(): Promise<void> {
     // Initialize the version server -- must happen after updating schema
     // (for first ever run).
     await initVersionServer();
-
-    // Stripe
-    winston.info("initializing stripe support...");
-    await init_stripe(database, winston);
-
-    // Zendesk
-    winston.info("initializing zendesk support...");
-    await callback(initZendesk);
 
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill
@@ -228,11 +212,13 @@ async function startServer(): Promise<void> {
     }
   }
 
-  const { router, app } = await initExpressApp({
+  const { router, httpServer } = await initExpressApp({
     isPersonal: program.personal,
     projectControl,
-    landingServer: !!program.landingServer,
-    shareServer: !!program.shareServer,
+    proxyServer: !!program.proxyServer,
+    nextServer: !!program.nextServer,
+    cert: program.httpsCert,
+    key: program.httpsKey,
   });
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
@@ -241,12 +227,6 @@ async function startServer(): Promise<void> {
     router,
     database,
     host: program.hostname,
-  });
-
-  const httpServer = initHttpServer({
-    cert: program.httpsCert,
-    key: program.httpsKey,
-    app,
   });
 
   winston.info(`starting webserver listening on ${program.hostname}:${port}`);
@@ -265,21 +245,12 @@ async function startServer(): Promise<void> {
       projectControl,
       clients,
       host: program.hostname,
+      port,
       isPersonal: program.personal,
     });
   }
 
-  if (program.proxyServer) {
-    winston.info(`initializing the http proxy server on port ${port}`);
-    initProxy({
-      projectControl,
-      isPersonal: !!program.personal,
-      httpServer,
-      app,
-    });
-  }
-
-  if (program.websocketServer || program.proxyServer || program.shareServer) {
+  if (program.websocketServer || program.proxyServer || program.nextServer) {
     winston.info(
       "Starting registering periodically with the database and updating a health check..."
     );
@@ -339,34 +310,35 @@ function addErrorListeners(uncaught_exception_total) {
 // Process command line arguments
 //############################################
 async function main(): Promise<void> {
-  const default_db = process.env.PGHOST ?? "localhost";
   commander
     .name("cocalc-hub-server")
     .usage("options")
     .addOption(
       new Option(
         "--mode [string]",
-        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
+        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
+          ", "
+        )}) - or set COCALC_MODE env var`
       ).choices(COCALC_MODES)
     )
     .option(
       "--all",
-      "runs all of the servers: websocket, proxy, share, and landing (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
+      "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
-    .option("--share-server", "run the share server")
     .option(
-      "--landing-server",
-      "run the closed source landing pages server (requires @cocalc/landing installed)"
+      "--next-server",
+      "run the nextjs server (landing pages, share server, etc.)"
     )
+    /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
-      "serve over https.  argument should be a key file (both https-key and https-cert must be specified)"
+      "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)"
     )
     .option(
       "--https-cert [string]",
-      "serve over https.  argument should be a cert file (both https-key and https-cert must be specified)"
+      "serve over https.  argument should be a cert filename (both https-key and https-cert must be specified)"
     )
     .option(
       "--agent-port <n>",
@@ -381,13 +353,18 @@ async function main(): Promise<void> {
     )
     .option(
       "--database-nodes <string,string,...>",
-      `database address (default: '${default_db}')`,
-      default_db
+      `database address (default: '${DEFAULT_DB_HOST}')`,
+      DEFAULT_DB_HOST
     )
     .option(
-      "--keyspace [string]",
-      'Database name to use (default: "smc")',
-      "smc"
+      "--database-name [string]",
+      `Database name to use (default: "${DEFAULT_DB_NAME}")`,
+      DEFAULT_DB_NAME
+    )
+    .option(
+      "--database-user [string]",
+      `Database username to use (default: "${DEFAULT_DB_USER}")`,
+      DEFAULT_DB_USER
     )
     .option("--passwd [email_address]", "Reset password of given user", "")
     .option(
@@ -433,14 +410,20 @@ async function main(): Promise<void> {
     program[name] = opts[name];
   }
   if (!program.mode) {
-    throw Error("the --mode option must be specified");
-    process.exit(1);
+    program.mode = process.env.COCALC_MODE;
+    if (!program.mode) {
+      throw Error(
+        `the --mode option must be specified or the COCALC_MODE env var set to one of ${COCALC_MODES.join(
+          ", "
+        )}`
+      );
+      process.exit(1);
+    }
   }
   if (program.all) {
     program.websocketServer =
       program.proxyServer =
-      program.shareServer =
-      program.landingServer =
+      program.nextServer =
       program.mentions =
       program.updateDatabaseSchema =
         true;
@@ -450,11 +433,12 @@ async function main(): Promise<void> {
 
   try {
     // Everything we do here requires the database to be initialized. Once
-    // this is called, require('./postgres/database').default() is a valid db
+    // this is called, require('@cocalc/database/postgres/database').default() is a valid db
     // instance that can be used.
     initDatabase({
       host: program.databaseNodes,
-      database: program.keyspace,
+      database: program.databaseName,
+      user: program.databaseUser,
       concurrent_warn: program.dbConcurrentWarn,
     });
 
@@ -477,12 +461,6 @@ async function main(): Promise<void> {
     } else if (program.updateStats) {
       await callback2(database.get_stats);
       process.exit();
-    } else if (program.mode == "kucalc" && program.landingServer) {
-      // Kucalc has its own *dedicated* landing server,
-      // whereas for the other modes startServer (below) just
-      // enables a landing server when the flag is set.
-      console.log("LANDING PAGE MODE");
-      await startLandingService();
     } else {
       await startServer();
     }

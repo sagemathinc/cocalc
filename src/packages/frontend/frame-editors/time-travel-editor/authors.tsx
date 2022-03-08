@@ -8,7 +8,6 @@ const { User } = require("../../users");
 import { Loading, r_join } from "../../components";
 import {
   Component,
-  React,
   Rendered,
   rtypes,
   rclass,

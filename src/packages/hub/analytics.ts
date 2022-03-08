@@ -6,14 +6,15 @@
 import { join } from "path";
 import ms from "ms";
 import { isEqual } from "lodash";
-import { Router } from "express";
+import { Router, json } from "express";
 import {
   analytics_cookie_name,
   is_valid_uuid_string,
   uuid,
 } from "@cocalc/util/misc";
-import { PostgreSQL } from "./postgres/types";
-import { get_server_settings, pii_retention_to_future } from "./utils";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import * as fs from "fs";
 const UglifyJS = require("uglify-js");
 // express-js cors plugin:
@@ -36,7 +37,8 @@ const result = UglifyJS.minify(
 if (result.error) {
   throw Error(`Error minifying analytics-script.js -- ${result.error}`);
 }
-export const analytics_js = "if (window.exports === undefined) { var exports={}; } \n" + result.code;
+export const analytics_js =
+  "if (window.exports === undefined) { var exports={}; } \n" + result.code;
 
 function create_log(name) {
   return getLogger(`analytics.${name}`).debug;
@@ -47,7 +49,8 @@ const _PNG_DATA =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 const PNG_1x1 = Buffer.from(_PNG_DATA, "base64");
 
-function sanitize(obj: object): any {
+function sanitize(obj: object, recursive = 0): any {
+  if (recursive >= 2) return { error: "recursion limit" };
   const ret: any = {};
   let cnt = 0;
   for (const key of Object.keys(obj)) {
@@ -57,7 +60,7 @@ function sanitize(obj: object): any {
     let val_san = obj[key];
     if (val_san == null) continue;
     if (typeof val_san === "object") {
-      val_san = sanitize(val_san);
+      val_san = sanitize(val_san, recursive + 1);
     } else if (typeof val_san === "string") {
       val_san = val_san.slice(0, 2000);
     } else {
@@ -79,11 +82,11 @@ function recordAnalyticsData(
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
-  const dbg = create_log("rec");
-  dbg(token, payload);
+  const dbg = create_log("record");
+  dbg({ token, payload });
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
-  dbg("rec_data", rec_data);
+  dbg("sanitized data", rec_data);
   const expire = pii_retention_to_future(pii_retention);
 
   if (rec_data.account_id != null) {
@@ -134,12 +137,14 @@ function check_cors(
   }
   // now, we want dns_parsed and origin_parsed to be valid and listed
   if (origin_parsed.type === ParseResultType.Listed) {
+    // most likely case: same domain as settings.DNS
     if (
       isEqual(origin_parsed.topLevelDomains, dns_parsed.topLevelDomains) &&
       origin_parsed.domain === dns_parsed.domain
     ) {
       return true;
     }
+    // we also allow cocalc.com and sagemath.com
     if (isEqual(origin_parsed.topLevelDomains, ["com"])) {
       if (
         origin_parsed.domain === "cocalc" ||
@@ -148,6 +153,7 @@ function check_cors(
         return true;
       }
     }
+    // … as well as sagemath.org
     if (
       isEqual(origin_parsed.topLevelDomains, ["org"]) &&
       origin_parsed.domain === "sagemath"
@@ -172,7 +178,7 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-import base_path from "@cocalc/util-node/base-path";
+import base_path from "@cocalc/backend/base-path";
 
 export async function initAnalytics(
   router: Router,
@@ -217,6 +223,10 @@ export async function initAnalytics(
     },
   };
 
+  // process POST body data
+  // https://expressjs.com/en/api.html#express.json
+  router.use("/analytics.js", json());
+
   router.get("/analytics.js", cors(analytics_cors), function (req, res) {
     res.header("Content-Type", "text/javascript");
     // in case user was already here, do not send it again.
@@ -230,7 +240,7 @@ export async function initAnalytics(
       req.cookies[analytics_cookie_name] ||
       dns_parsed.type !== ParseResultType.Listed
     ) {
-      // cache for 6 hours
+      // cache for 6 hours -- max-age has unit seconds
       res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
       res.write("// NOOP");
       res.end();
@@ -283,9 +293,6 @@ export async function initAnalytics(
       // req.body is an object (json middlewhere somewhere?)
       // e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
       // ATTN key/values could be malicious
-      dbg(
-        `/analytics.js -- TOKEN=${token} -- DATA=${JSON.stringify(req.body)}`
-      );
       // record it, there is no need for a callback
       recordAnalyticsData(database, token, req.body, pii_retention);
     }

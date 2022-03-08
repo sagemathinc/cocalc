@@ -4,7 +4,8 @@
  */
 
 import { List, Map, Set } from "immutable";
-import { redux, Store } from "../app-framework";
+import { isEmpty } from "lodash";
+import { redux, Store, TypedMap } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import {
   coerce_codomain_to_numbers,
@@ -17,9 +18,12 @@ import {
   parse_number_input,
   is_valid_uuid_string,
 } from "@cocalc/util/misc";
+import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
+import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
@@ -48,6 +52,8 @@ export interface ProjectsState {
   public_project_titles: Map<string, any>;
 
   project_websockets: Map<string, WebsocketState>;
+
+  tableError?: TypedMap<{ error: string; query: any }>;
 }
 
 // Define projects store
@@ -245,7 +251,12 @@ export class ProjectsStore extends Store<ProjectsState> {
   public is_collaborator(project_id: string): boolean {
     return (
       webapp_client.account_id != null &&
-      this.getIn(["project_map", project_id, 'users', webapp_client.account_id]) != null
+      this.getIn([
+        "project_map",
+        project_id,
+        "users",
+        webapp_client.account_id,
+      ]) != null
     );
   }
 
@@ -374,9 +385,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       mintime += info?.getIn(["upgrades", "mintime"]) ?? 0;
     });
     // contribution from site license
-    const site_license = this.get_total_site_license_upgrades_to_project(
-      project_id
-    );
+    const site_license =
+      this.get_total_site_license_upgrades_to_project(project_id);
     mintime += site_license.mintime;
 
     return 1000 * mintime;
@@ -414,6 +424,7 @@ export class ProjectsStore extends Store<ProjectsState> {
         const info = site_license[license_id];
         const object = info ?? {};
         for (let prop in object) {
+          if (prop === "quota") continue;
           const val = object[prop];
           upgrades[prop] =
             (upgrades[prop] ?? 0) + (parse_number_input(val) ?? 0);
@@ -421,6 +432,32 @@ export class ProjectsStore extends Store<ProjectsState> {
       }
     }
     return upgrades;
+  }
+
+  public get_total_site_license_dedicated(project_id: string): {
+    vm: false | DedicatedVM;
+    disks: DedicatedDisk[];
+  } {
+    const site_license: any = this.getIn([
+      "project_map",
+      project_id,
+      "site_license",
+    ])?.toJS();
+    const disks: DedicatedDisk[] = [];
+    let vm: false | DedicatedVM = false;
+    for (const license of Object.values(site_license ?? {})) {
+      // could be null in the moment when a license is removed!
+      if (license == null) continue;
+      const quota = (license as any).quota;
+      if (quota == null) continue;
+      if (quota.dedicated_disk != null) {
+        disks.push(quota.dedicated_disk);
+      }
+      if (!vm && typeof quota.dedicated_vm?.machine === "string") {
+        vm = quota.dedicated_vm;
+      }
+    }
+    return { vm, disks };
   }
 
   // Return string array of the site licenses that are applied to this project.
@@ -444,16 +481,32 @@ export class ProjectsStore extends Store<ProjectsState> {
       copy(ZERO_QUOTAS);
     coerce_codomain_to_numbers(base_values);
     const upgrades = this.get_total_project_upgrades(project_id);
-    const site_license_upgrades = this.get_total_site_license_upgrades_to_project(
-      project_id
-    );
+    const site_license_upgrades =
+      this.get_total_site_license_upgrades_to_project(project_id);
     const quota = map_sum(
       map_sum(base_values, upgrades as any),
       site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
-
     return quota;
+  }
+
+  // rough distinction between different types of projects
+  public classify_project(
+    project_id: string
+  ): { kind: "free" | "member"; upgraded: boolean } | undefined {
+    const quotas = this.get_total_project_quotas(project_id);
+    if (quotas == null) {
+      return undefined;
+    }
+    const kind = quotas.member_host ?? true ? "member" : "free";
+    // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
+    const upgraded =
+      (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
+      (quotas.memory_request != null && quotas.memory_request > 200) ||
+      (quotas.always_running ?? false) ||
+      (quotas.cores != null && quotas.cores > DEFAULT_QUOTAS.cores);
+    return { kind, upgraded };
   }
 
   public is_always_running(project_id: string): boolean {
@@ -484,7 +537,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       project_id,
       "site_license",
     ])?.toJS();
-    if (site_license != null) {
+    // make sure to never iterate over licenses, if there aren't any
+    if (!isEmpty(site_license)) {
       // TS: using "any" since we add some fields below
       const license_quota: any = site_license_quota(site_license);
       // Some different names/units are used for the frontend quota_console.
@@ -498,7 +552,21 @@ export class ProjectsStore extends Store<ProjectsState> {
       delete license_quota["memory_limit"];
       license_quota.cpu_shares = 1024 * (license_quota.cpu_request ?? 0);
       delete license_quota["cpu_request"];
-      max_quota(quota, license_quota);
+      this.max_quota(quota, license_quota);
+    }
+  }
+
+  private max_quota(quota, license_quota: SiteLicenseQuota): void {
+    for (const field in license_quota) {
+      if (license_quota[field] == null) continue;
+      if (typeof license_quota[field] == "boolean") {
+        quota[field] = !!license_quota[field] || !!quota[field];
+      } else if (typeof license_quota[field] === "number") {
+        quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
+      } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
+        // this is a special case, just for the frontend code – not a general "max" function
+        quota[field] = license_quota[field];
+      }
     }
   }
 

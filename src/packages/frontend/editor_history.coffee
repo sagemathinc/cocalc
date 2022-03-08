@@ -582,7 +582,7 @@ class exports.HistoryEditor extends FileEditor
 
 # Compute a line-level diff between two strings, which
 # is useful when showing a diff between two states.
-{patch_make} = require('@cocalc/util/sync/editor/generic/util')
+{patch_make} = require('@cocalc/sync/editor/generic/util')
 line_diff = (v0, v1) ->
     string_mapping = new misc.StringCharMapping()
     result =

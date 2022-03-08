@@ -126,19 +126,6 @@ div#smc-react-container
   .modal.fade.in
     top : 10px
 
-/* This is a hack to accurately determine if the screen is displaying in responsive mode.
- * When responsive mode, .webapp-responsive-mode-test will have a width of 767px and in full size the
- * width will be 10000px.
- */
-@media (max-width: 767px)
-  .webapp-responsive-mode-test
-    width : 767px
-
-@media (min-width: 768px)
-  .webapp-responsive-mode-test
-    width : 10000px
-
-
 @media (max-width: 767px)
   .smc-big-only
     display : none
@@ -250,6 +237,9 @@ a[role="button"]
   background-repeat   : repeat-x
 
 *[data-toggle*="collapse"]
+  cursor: pointer
+
+.cursor-pointer
   cursor: pointer
 
 /* Fix menubar height at the top of the screen, mainly on Firefox. */

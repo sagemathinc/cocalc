@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This is an express http server that is meant to receive connections
 only from web browser clients that signed in as collaborators on
 this projects.  It serves both HTTP and websocket connections, which
@@ -14,7 +19,7 @@ import { join } from "path";
 import { writeFile } from "fs";
 import { once } from "@cocalc/util/async-utils";
 import { options } from "@cocalc/project/init-program";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/project/logger";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
@@ -61,7 +66,11 @@ export default async function init(): Promise<void> {
 
   // Setup the jupyter/... server, which is used by our jupyter server for blobs, etc.
   winston.info("initializing Jupyter support HTTP server");
-  app.use(base, initJupyter());
+  (async () => {
+    // if the BlobStore isn't available immediately, this will take a while to initialize
+    // we don't want to block the remainder of this setup...
+    app.use(base, await initJupyter());
+  })();
 
   // Setup the ws websocket server, which is used by clients
   // for direct websocket connections to the project, and also

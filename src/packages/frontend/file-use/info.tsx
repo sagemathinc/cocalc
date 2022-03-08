@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { Component, Rendered, CSS } from "../app-framework";
 const { User } = require("../users");
 import { Icon, TimeAgo, r_join } from "../components";
 import { FileUseIcon } from "./icon";
 import { Map as iMap } from "immutable";
 const { Col, Grid, Row } = require("react-bootstrap");
-const misc = require("@cocalc/util/misc");
+import * as misc from "@cocalc/util/misc";
 import { open_file_use_entry } from "./util";
 
 // Arbitrary constants:
@@ -19,7 +19,7 @@ const MAX_USERS = 5;
 // Length to truncate project title and filename to.
 const TRUNCATE_LENGTH = 50;
 
-const file_use_style = {
+const file_use_style: CSS = {
   border: "1px solid #aaa",
   cursor: "pointer",
   width: "100%",

@@ -197,6 +197,7 @@ export function commands(
       m: "Run all (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
+      k: [{ which: 13, ctrl: true, shift: true }],
       f: () => jupyter_actions.restart_and_run_all_no_halt(),
     },
 
@@ -272,8 +273,7 @@ export function commands(
         ) {
           // Vim mode is trickier...
           if (
-            frame_actions.store.get("cur_cell_vim_mode", "escape") !==
-            "escape"
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
           ) {
             return;
           }
@@ -450,9 +450,29 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("python"),
     },
 
-    "nbconvert html": {
+    "nbconvert classic html": {
+      m: "HTML via Classic nbconvert (.html)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("classic-html"),
+    },
+
+    "nbconvert classic pdf": {
+      m: "PDF via Classic nbconvert and Chrome (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("classic-pdf"),
+    },
+
+    "nbconvert lab html": {
+      m: "HTML via JupyterLab nbconvert (.html)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("lab-html"),
+    },
+
+    "nbconvert lab pdf": {
+      m: "PDF via JupyterLab nbconvert and Chrome (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("lab-pdf"),
+    },
+
+    "nbconvert cocalc html": {
       m: "HTML (.html)...",
-      f: () => jupyter_actions.show_nbconvert_dialog("html"),
+      f: () => jupyter_actions.show_nbconvert_dialog("cocalc-html"),
     },
 
     "nbconvert markdown": {
@@ -485,9 +505,9 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("latex"),
     },
 
-    "nbconvert chromium pdf": {
+    "nbconvert cocalc pdf": {
       m: "PDF (.pdf)...",
-      f: () => jupyter_actions.show_nbconvert_dialog("chromium-pdf"),
+      f: () => jupyter_actions.show_nbconvert_dialog("cocalc-pdf"),
     },
 
     "nbconvert latex pdf": {
@@ -496,7 +516,7 @@ export function commands(
     },
 
     "nbconvert script": {
-      m: "Executable script (.txt)...",
+      m: "Executable script...",
       f: () => jupyter_actions.show_nbconvert_dialog("script"),
     },
 
@@ -627,8 +647,7 @@ export function commands(
     "run cell and insert below": {
       m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
-      f: () =>
-        frame_actions.run_selected_cells_and_insert_new_cell_below(),
+      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {
@@ -847,8 +866,7 @@ export function commands(
 
     "delete protect": {
       m: "Delete protection -- toggle whether cells are deletable",
-      f: () =>
-        frame_actions.toggle_delete_protection_on_selected_cells(),
+      f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {

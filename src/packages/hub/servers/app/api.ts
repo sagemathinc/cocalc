@@ -8,7 +8,7 @@ import { split } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/hub/logger";
 import { database } from "../database";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 export default function init(
   app_router: Router,

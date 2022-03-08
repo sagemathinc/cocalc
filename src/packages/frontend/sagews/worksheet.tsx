@@ -9,7 +9,6 @@ mainly for use by server-side share server, so needs to run fine
 under node.js and in the frotend.
 */
 
-import React from "react";
 import { field_cmp } from "@cocalc/util/misc";
 import Cell from "./cell";
 import type { Cell as CellType } from "./parse-sagews";

@@ -178,6 +178,17 @@ file_associations["asm"] = file_associations["s"] = {
   name: "GNU Assembler",
 };
 
+file_associations["lisp"] =
+  file_associations["lsp"] =
+  file_associations["el"] =
+  file_associations["cl"] =
+    {
+      editor: "codemirror",
+      icon: "file-code",
+      opts: { mode: "commonlisp" },
+      name: "Common Lisp",
+    };
+
 file_associations["rnw"] = {
   editor: "latex",
   icon: "tex-file",

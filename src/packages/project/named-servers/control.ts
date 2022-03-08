@@ -7,8 +7,8 @@ import {
   writeFile as writeFile0,
 } from "fs";
 import { getLogger } from "@cocalc/project/logger";
-import { data } from "@cocalc/util-node/data";
-import basePath from "@cocalc/util-node/base-path";
+import { data } from "@cocalc/backend/data";
+import basePath from "@cocalc/backend/base-path";
 import getSpec from "./spec";
 import getPort from "get-port";
 import { project_id } from "@cocalc/project/data";

@@ -7,7 +7,7 @@
 import { defaults, required, ISO_to_Date, to_json } from "@cocalc/util/misc";
 
 // React libraries
-import { React, Component, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import {

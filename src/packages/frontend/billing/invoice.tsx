@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "../app-framework";
+import { useState } from "../app-framework";
 import { Row, Col } from "../antd-bootstrap";
 import { Icon } from "../components";
 import { open_popup_window } from "../misc/open-browser-tab";
-import { capitalize, stripe_date } from "@cocalc/util/misc";
+import { capitalize, stripeDate } from "@cocalc/util/misc";
 import { render_amount } from "./util";
 import { InvoiceMap, InvoiceLineMap } from "./types";
 
@@ -73,7 +73,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     }
     if (line.get("plan") != null) {
       v.push(line.getIn(["plan", "name"]));
-      v.push(` (start: ${stripe_date(line.getIn(["period", "start"]))})`);
+      v.push(` (start: ${stripeDate(line.getIn(["period", "start"]))})`);
     }
     return v;
   }
@@ -153,7 +153,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
         {render_amount(invoice.get("amount_due"), invoice.get("currency"))}
       </Col>
       <Col md={1}>{render_paid_status()}</Col>
-      <Col md={2}>{stripe_date(invoice.get("created"))}</Col>
+      <Col md={2}>{stripeDate(invoice.get("created"))}</Col>
       <Col md={6}>
         {render_description()} {render_line_items()}
       </Col>

@@ -5,7 +5,7 @@
 
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
-import { React } from "../../app-framework";
+
 import { fromJS } from "immutable";
 import { Icon, Space } from "../../components";
 import { COLORS } from "@cocalc/util/theme";

@@ -15,7 +15,6 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-//import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
@@ -25,7 +24,7 @@ import {
   ALERT_DISK_FREE,
   RAISE_ALERT_AFTER_MIN,
 } from "./const";
-import { ProjectStatus, Alert, AlertType } from "./types";
+import { ProjectStatus, Alert, AlertType, ComponentName } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
 import { version } from "@cocalc/util/smc-version";
@@ -35,6 +34,8 @@ import { cgroup_stats } from "./utils";
 //function threshold(prev?: number, next?: number): number | undefined {
 //  return next;
 //}
+import { getLogger } from "@cocalc/project/logger";
+const winston = getLogger("ProjectStatusServer");
 
 // tracks, when for the first time we saw an elevated value
 // we clear it if we're below a threshold (in the clear)
@@ -61,12 +62,12 @@ export class ProjectStatusServer extends EventEmitter {
   private disk_mb?: number;
   private cpu_pct?: number;
   private mem_pct?: number;
+  private components: { [name in ComponentName]?: number | null } = {};
 
-  constructor(L: Function, testing = false) {
+  constructor(testing = false) {
     super();
-    //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
-    this.dbg = (...msg) => L("ProjectStatusServer", ...msg);
+    this.dbg = (...msg) => winston.debug(...msg);
     this.project_info = get_ProjectInfoServer();
   }
 
@@ -77,6 +78,17 @@ export class ProjectStatusServer extends EventEmitter {
       this.info = info;
       this.update();
     });
+  }
+
+  public setComponentAlert(name: ComponentName) {
+    // we set this to the time when we first got notified about the problem
+    if (this.components[name] == null) {
+      this.components[name] = Date.now();
+    }
+  }
+
+  public clearComponentAlert(name: ComponentName) {
+    delete this.components[name];
   }
 
   // this derives elevated levels from the project info object
@@ -156,6 +168,17 @@ export class ProjectStatusServer extends EventEmitter {
     }
     const pids: string[] = this.alert_cpu_processes();
     if (pids.length > 0) alerts.push({ type: "cpu-process", pids });
+
+    const componentNames: ComponentName[] = [];
+    for (const [k, ts] of Object.entries(this.components)) {
+      if (ts == null) continue;
+      // we alert without a delay
+      componentNames.push(k as ComponentName);
+    }
+    // only send any alert if there is actually a problem!
+    if (componentNames.length > 0) {
+      alerts.push({ type: "component", names: componentNames });
+    }
     return alerts;
   }
 
@@ -232,15 +255,15 @@ export class ProjectStatusServer extends EventEmitter {
 // singleton, we instantiate it when we need it
 let _status: ProjectStatusServer | undefined = undefined;
 
-export function get_ProjectStatusServer(L: Function): ProjectStatusServer {
+export function get_ProjectStatusServer(): ProjectStatusServer {
   if (_status != null) return _status;
-  _status = new ProjectStatusServer(L);
+  _status = new ProjectStatusServer();
   return _status;
 }
 
 // testing: $ ts-node server.ts
 if (require.main === module) {
-  const pss = new ProjectStatusServer(console.log, true);
+  const pss = new ProjectStatusServer(true);
   pss.start();
   let cnt = 0;
   pss.on("status", (status) => {

@@ -4,7 +4,6 @@
  */
 
 import { Text } from "slate";
-import React from "react";
 import { register, SlateElement } from "../register";
 import { dict } from "@cocalc/util/misc";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";

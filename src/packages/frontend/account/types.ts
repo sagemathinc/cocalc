@@ -9,6 +9,8 @@ import { PassportStrategy } from "./passport-types";
 import { TypedMap } from "../app-framework";
 import { MessageInfo } from "../client/hub";
 
+// this is incomplete...
+
 export interface AccountState {
   active_page: string;
   user_type: string;
@@ -17,6 +19,7 @@ export interface AccountState {
   terminal: Map<string, any>;
   first_name?: string;
   last_name?: string;
+  name?: string;
   unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
   email_address?: string;
@@ -30,6 +33,12 @@ export interface AccountState {
     page_size?: number;
     new_filenames?: NewFilenameTypes;
     no_free_warnings?: boolean;
+    time_ago_absolute: boolean;
+    dark_mode: boolean;
+    dark_mode_brightness: number;
+    dark_mode_contrast: number;
+    dark_mode_sepia: number;
+    dark_mode_grayscale: number;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -67,4 +76,5 @@ export interface AccountState {
   evaluate_key?: string;
   autosave?: number;
   show_purchase_form?: boolean;
+  tableError?: TypedMap<{ error: string; query: any }>;
 }

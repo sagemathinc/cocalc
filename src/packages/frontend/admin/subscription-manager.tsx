@@ -9,7 +9,7 @@ Manage subscriptions for a given user.
 This can be used to create and modify trial subscriptions, etc.
 */
 
-import { React, Component } from "../app-framework";
+import { Component } from "../app-framework";
 
 export class SubscriptionManager extends Component {
   render() {

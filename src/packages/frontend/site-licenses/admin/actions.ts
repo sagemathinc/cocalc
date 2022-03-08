@@ -5,12 +5,7 @@
 
 import { fromJS, Map, Set } from "immutable";
 import { Actions, redux, TypedMap } from "../../app-framework";
-import {
-  SiteLicensesState,
-  SiteLicense,
-  license_field_names,
-  ManagerInfo,
-} from "./types";
+import { SiteLicensesState, license_field_names, ManagerInfo } from "./types";
 import { store } from "./store";
 import {
   query,
@@ -20,6 +15,7 @@ import {
 import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 import { normalize_upgrades_for_save } from "./upgrades";
 import jsonic from "jsonic";
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {

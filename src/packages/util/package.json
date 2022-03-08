@@ -1,34 +1,35 @@
 {
   "name": "@cocalc/util",
-  "version": "1.4.1",
+  "version": "1.29.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
     "./db-schema": "./dist/db-schema/index.js",
     "./fill": "./dist/fill/index.js",
+    "./types": "./dist/types/index.js",
+    "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
-    "./sync/editor/db": "./dist/sync/editor/db/index.js"
+    "./sync/editor/db": "./dist/sync/editor/db/index.js",
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
   },
   "scripts": {
     "build": "npx tsc",
-    "tsc": "npx tsc --watch",
-    "testsync": "cd sync && npx jest",
-    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
+    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
+    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
+    "testquota": "cd test && npx jest quota.test.ts"
   },
   "author": "SageMath, Inc.",
   "keywords": [
     "utilities",
     "mathjax",
     "markdown",
-    "cocalc",
-    "realtime synchronization"
+    "cocalc"
   ],
   "license": "SEE LICENSE.md",
   "workspaces": [
     "."
   ],
   "dependencies": {
-    "@cocalc/util": "*",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
@@ -47,11 +48,12 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
-    "@types/jest": "^26.0.23",
+    "@types/jest": "^26.0.24",
     "@types/json-stable-stringify": "^1.0.32",
-    "@types/lodash": "^4.14.165",
-    "@types/node": "^14.17.5",
+    "@types/lodash": "^4.14.176",
+    "@types/node": "^14.18.10",
     "coffee-cache": "^1.0.2",
     "coffee-coverage": "^3.0.1",
     "coffeelint": "^2.1.0",
@@ -65,6 +67,6 @@
     "sinon": "^4.5.0",
     "ts-jest": "^26.5.6",
     "tsd": "^0.15.1",
-    "typescript": "^4.3.5"
+    "typescript": "^4.5.2"
   }
 }

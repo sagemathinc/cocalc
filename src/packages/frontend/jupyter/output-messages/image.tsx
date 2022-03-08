@@ -7,7 +7,6 @@ import { delay } from "awaiting";
 import React from "react";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import useToggle from "@cocalc/frontend/app-framework/toggle-hook";
 
 import { get_blob_url } from "../server-urls";
 
@@ -26,7 +25,6 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
   const is_mounted = useIsMountedRef();
 
   const { val: attempts, inc: inc_attempts } = useCounter(0);
-  const [zoomed, toggle_zoomed] = useToggle(false);
 
   async function load_error(): Promise<void> {
     if (attempts < 5 && is_mounted.current) {
@@ -40,29 +38,20 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
     return type.split("/")[1].split("+")[0];
   }
 
-  function img_click(): void {
-    toggle_zoomed();
-  }
-
   function render_image(src, on_error?): JSX.Element {
     const props = {
       src,
       width: width,
       height: height,
-      onClick: img_click,
     };
-    if (width == null && height == null) {
-      const cursor = zoomed ? "zoom-out" : "zoom-in";
-      props["style"] = { cursor } as React.CSSProperties;
-      if (!zoomed) {
-        const limit: React.CSSProperties = { maxWidth: "100%", height: "auto" };
-        Object.assign(props["style"], limit);
-      }
-    }
+    props["style"] = {
+      maxWidth: "100%",
+      height: "auto",
+    } as React.CSSProperties;
     if (on_error != null) {
       props["onError"] = on_error;
     }
-    return <img {...props} />;
+    return <img {...props} alt="Image in a Jupyter notebook" />;
   }
 
   function render_using_server(project_id: string, sha1: string): JSX.Element {

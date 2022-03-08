@@ -25,6 +25,8 @@ sinon.stub(email, 'send_email').callsFake (opts) ->
 
 pgtest = require('../postgres/pgtest')
 
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
+
 compute_client = require('../../compute-client')
 auth = require('../../auth')
 
@@ -73,15 +75,9 @@ exports.setup = (cb) ->
                 last_name     : "CoCalc"
                 created_by    : "1.2.3.4"
                 email_address : "cocalc@sagemath.com"
-                password_hash : auth.password_hash('blah')
+                password_hash : passwordHash('blah')
                 cb            : (err, account_id) ->
                     exports.account_id = account_id
-                    cb(err)
-        (cb) ->
-            exports.db.regenerate_api_key
-                account_id : exports.account_id
-                cb         : (err, api_key) ->
-                    exports.api_key = api_key
                     cb(err)
     ], cb)
 

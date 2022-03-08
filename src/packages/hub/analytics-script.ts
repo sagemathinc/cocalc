@@ -16,7 +16,7 @@
  */
 
 // variable PREFIX, NAME, DOMAIN and ID are injected in the hub's http server
-declare var NAME, ID, DOMAIN, PREFIX;
+declare var NAME, ID, DOMAIN, PREFIX, window, document;
 
 // write cookie. it would be cool to set this via the http request itself,
 // but for reasons I don't know it doesn't work across subdomains.
@@ -34,7 +34,13 @@ const UTM_KEYS: ReadonlyArray<string> = Object.freeze([
   "content",
 ]);
 
-const response: any = {};
+type Response = Partial<{
+  utm: { [key: string]: string };
+  referrer: string;
+  landing: string;
+}>;
+
+const response: Response = {};
 
 const UTM = {};
 const params = href.slice(href.indexOf("?") + 1).split("&");
@@ -64,9 +70,15 @@ if (document.referrer.length > 0) {
 // also keep a note about the very first landing page
 response["landing"] = `${protocol}//${host}${pathname}`;
 
+// PREFIX could be "/", "//{domain}/", "/some/path", or even "//{domain}/some/path"
+// @see backend/base-path.ts + hub/analytics.ts
+// Note: don't use double // in the URL, because that will redirect and CORS doesn't work with redirects -- #5506
+const delim = PREFIX[PREFIX.length - 1] === "/" ? "" : "/";
+const fetch_url = `${PREFIX}${delim}analytics.js`;
+
 // send back a beacon (token is in an http-only cookie)
 window
-  .fetch(PREFIX + "/analytics.js", {
+  .fetch(fetch_url, {
     method: "POST",
     mode: "cors",
     cache: "no-cache",
@@ -81,4 +93,4 @@ window
   .catch((error) => console.error("Error:", error));
 
 // so it is a module.
-export {}
+export {};

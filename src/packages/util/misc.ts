@@ -63,14 +63,6 @@ export {
   YEAR,
 } from "./relative-time";
 
-export {
-  set_local_storage,
-  get_local_storage,
-  has_local_storage,
-  delete_local_storage,
-  local_storage_length,
-} from "./local-storage";
-
 import sha1 from "sha1";
 export { sha1 };
 
@@ -281,11 +273,12 @@ export const uuid: () => string = v4uuid;
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
 );
-export function is_valid_uuid_string(uuid: string): boolean {
+export function is_valid_uuid_string(uuid?: any): boolean {
   return (
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );
 }
+export const isValidUUID = is_valid_uuid_string;
 
 export function assert_uuid(uuid: string): void {
   if (!is_valid_uuid_string(uuid)) {
@@ -1214,7 +1207,10 @@ export function lower_email_address(email_address: any): string {
 //    string_queries: [["firstname", "lastname"], ["somestring"]]
 //    email_queries: ["email@something.com", "justanemail@mail.com"]
 // }
-export function parse_user_search(query: string) {
+export function parse_user_search(query: string): {
+  string_queries: string[][];
+  email_queries: string[];
+} {
   const r = { string_queries: [] as string[][], email_queries: [] as string[] };
   if (typeof query !== "string") {
     // robustness against bad input from non-TS client.
@@ -1228,8 +1224,8 @@ export function parse_user_search(query: string) {
   const email_re = /<(.*)>/;
   for (const x of queries) {
     if (x) {
-      if (x.indexOf("@") === -1) {
-        // Is obviously not an email:
+      if (x.indexOf("@") === -1 || x.startsWith("@")) {
+        // Is obviously not an email, e.g., no @ or starts with @ = username, e.g., @wstein.
         r.string_queries.push(x.split(/\s+/g));
       } else {
         // Might be an email address:
@@ -1607,7 +1603,7 @@ export function date_to_snapshot_format(
   return s.slice(0, i);
 }
 
-export function stripe_date(d: number): string {
+export function stripeDate(d: number): string {
   // https://github.com/sagemathinc/cocalc/issues/3254
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
   return new Date(d * 1000).toLocaleDateString(undefined, {
@@ -1623,16 +1619,20 @@ export function to_money(n: number): string {
   return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
-export function stripe_amount(units: number, currency: string): string {
+export function stripeAmount(units: number, currency: string): string {
   // input is in pennies
   if (currency !== "usd") {
     throw Error(`not-implemented currency ${currency}`);
   }
-  let s = `$${to_money(units / 100)}`;
-  if (s.slice(s.length - 3) === ".00") {
-    s = s.slice(0, s.length - 3);
-  }
+  let s = `$${to_money(units / 100)} USD`;
   return s;
+}
+
+export function planInterval(
+  interval: string,
+  interval_count: number = 1
+): string {
+  return `${interval_count} ${plural(interval_count, interval)}`;
 }
 
 // get a subarray of all values between the two given values inclusive,
@@ -1835,11 +1835,6 @@ export function peer_grading(
     assignment[k] = lodash.sortBy(v, (s) => students.indexOf(s));
   }
   return assignment;
-}
-
-// Converts ticket number to support ticket url (currently zendesk)
-export function ticket_id_to_ticket_url(tid: string): string {
-  return `https://sagemathcloud.zendesk.com/requests/${tid}`;
 }
 
 // Checks if the string only makes sense (heuristically) as downloadable url
@@ -2089,7 +2084,7 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 }
 
 // this is a helper for sanitizing html. It is used in
-// * packages/util-node/misc_node → sanitize_html
+// * packages/backend/misc_node → sanitize_html
 // * packages/frontend/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
   $.each(node.attributes, function () {
@@ -2241,4 +2236,25 @@ export function rpad_html(num: number, width: number, round_fn?: Function) {
   const str = `${num}`;
   const pad = Math.max(0, width - str.length);
   return lodash.repeat(s, pad) + str;
+}
+
+// Remove key:value's from objects in obj
+// recursively, where value is undefined or null.
+export function removeNulls(obj) {
+  if (typeof obj != "object") {
+    return obj;
+  }
+  if (is_array(obj)) {
+    for (const x of obj) {
+      removeNulls(x);
+    }
+    return obj;
+  }
+  const obj2: any = {};
+  for (const field in obj) {
+    if (obj[field] != null) {
+      obj2[field] = removeNulls(obj[field]);
+    }
+  }
+  return obj2;
 }

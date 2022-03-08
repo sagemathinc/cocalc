@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Rendered, React, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 export class FlexPanel extends Component<{ header: any }> {
   render(): Rendered {

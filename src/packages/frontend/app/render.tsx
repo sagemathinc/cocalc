@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, ReactDOM, Redux } from "../app-framework";
+import { ReactDOM, Redux } from "../app-framework";
 
 export async function render(): Promise<void> {
   finishedLoading();  // comment this out to leave the loading/sartup banner visible

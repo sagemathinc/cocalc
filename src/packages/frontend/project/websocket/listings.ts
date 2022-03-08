@@ -7,7 +7,7 @@ import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
 import { close, merge, path_split } from "@cocalc/util/misc";
@@ -408,7 +408,7 @@ export class Listings extends EventEmitter {
     if (x == null) return x;
     return (x as unknown) as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in @cocalc/util/sync/table/synctable.ts
+    // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 

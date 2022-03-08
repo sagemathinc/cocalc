@@ -3,14 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  React,
-  Component,
-  Rendered,
-  rtypes,
-  redux,
-  rclass,
-} from "../app-framework";
+import { Component, Rendered, rtypes, redux, rclass } from "../app-framework";
 import { Icon } from "../components/icon";
 import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
 import { AppliedCoupons, CoursePay } from "./types";
@@ -76,7 +69,7 @@ class PayCourseFee extends Component<Props, State> {
           .getStore("projects")
           .get_total_upgrades_you_have_applied();
         return (
-          (upgrades?.member_host ?? 0) - (applied?.member_host ?? 0) > 0 &&
+          (upgrades?.member_host ?? 0) - (applied?.member_host ? 1 : 0) > 0 &&
           (upgrades?.network ?? 0) - (applied?.network ?? 0) > 0
         );
       },
@@ -88,7 +81,7 @@ class PayCourseFee extends Component<Props, State> {
           });
         } else {
           // Upgrades now available -- apply a network and members only upgrades to the course project.
-          const upgrades = { member_host: 1, network: 1 };
+          const upgrades = { member_host: true, network: 1 };
           redux
             .getActions("projects")
             .apply_upgrades_to_project(this.props.project_id, upgrades);
@@ -103,8 +96,8 @@ class PayCourseFee extends Component<Props, State> {
     if (this.props.course_pay.has(this.props.project_id)) {
       return (
         <Button bsStyle="primary" disabled={true}>
-          <Icon name="cocalc-ring" spin /> Currently paying the one-time
-          ${STUDENT_COURSE_PRICE} fee for this course...
+          <Icon name="cocalc-ring" spin /> Currently paying the one-time $
+          {STUDENT_COURSE_PRICE} fee for this course...
         </Button>
       );
     } else {

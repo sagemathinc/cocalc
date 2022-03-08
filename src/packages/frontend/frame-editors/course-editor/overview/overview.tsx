@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "../../../app-framework";
+import { Component, Rendered } from "../../../app-framework";
 
 export class Overview extends Component {
   public render(): Rendered {

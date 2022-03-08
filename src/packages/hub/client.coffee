@@ -27,28 +27,34 @@ password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
-{StripeClient}       = require('./stripe/client')
-{get_support}        = require('./support')
+{StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-{api_key_action}     = require('./api/manage')
+apiKeyAction = require("@cocalc/server/api/manage").default;
 {create_account, delete_account} = require('./client/create-account')
-{purchase_license}   = require('./client/license')
+purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{remember_me_cookie_name} = require('./auth')
+{ COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
+generateHash =require("@cocalc/server/auth/hash").default;
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
+
+{one_result} = require("@cocalc/database")
+
 path_join = require('path').join
-base_path = require('@cocalc/util-node/base-path').default
+base_path = require('@cocalc/backend/base-path').default
 
 underscore = require('underscore')
 
 {callback} = require('awaiting')
 {callback2} = require('@cocalc/util/async-utils')
 
-{record_user_tracking} = require('./postgres/user-tracking')
-{project_has_network_access} = require('./postgres/project-queries')
-{is_paying_customer} = require('./postgres/account-queries')
-{get_personal_user} = require('./postgres/personal')
+{record_user_tracking} = require('@cocalc/database/postgres/user-tracking')
+{project_has_network_access} = require('@cocalc/database/postgres/project-queries')
+{is_paying_customer} = require('@cocalc/database/postgres/account-queries')
+{get_personal_user} = require('@cocalc/database/postgres/personal')
+
+{RESEND_INVITE_INTERVAL_DAYS} = require("@cocalc/util/consts/invites")
 
 {PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
 
@@ -164,7 +170,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        @_remember_me_value = c.get(remember_me_cookie_name())
+        @_remember_me_value = c.get(COOKIE_NAME)
 
         @check_for_remember_me()
 
@@ -303,7 +309,7 @@ class exports.Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         try
-            hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+            hash = generateHash(x[0], x[1], x[2], x[3])
         catch err
             dbg("unable to generate hash from '#{value}' -- #{err}")
             @remember_me_failed("invalid remember_me cookie")
@@ -313,15 +319,16 @@ class exports.Client extends EventEmitter
         @database.get_remember_me
             hash : hash
             cb   : (error, signed_in_mesg) =>
-                dbg("remember_me: got error", error,  "signed_in_mesg", signed_in_mesg)
+                dbg("remember_me: got ", error)
                 if error
                     @remember_me_failed("error accessing database")
                     return
-                if not signed_in_mesg?
+                if not signed_in_mesg or not signed_in_mesg.account_id
                     @remember_me_failed("remember_me deleted or expired")
                     return
                 # sign them in if not already signed in
                 if @account_id != signed_in_mesg.account_id
+                    # DB only tells us the account_id, but the hub might have changed from last time
                     signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
                     @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
@@ -414,8 +421,6 @@ class exports.Client extends EventEmitter
         sign_in.record_sign_in
             ip_address      : @ip_address
             successful      : true
-            remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
-            email_address   : signed_in_mesg.email_address
             account_id      : signed_in_mesg.account_id
             database        : @database
 
@@ -498,12 +503,12 @@ class exports.Client extends EventEmitter
         delete opts0.cb
         signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
-        @hash_session_id = auth.password_hash(session_id)
+        @hash_session_id = passwordHash(session_id)
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : remember_me_cookie_name()
+            name  : COOKIE_NAME
             value : @_remember_me_value
             ttl   : ttl
 
@@ -1167,7 +1172,6 @@ class exports.Client extends EventEmitter
                     if locals.done
                         cb(); return
 
-                    {one_result} = require('./postgres')
                     @database._query
                         query : "SELECT email_address FROM accounts"
                         where : "account_id = $::UUID" : mesg.account_id
@@ -1381,7 +1385,7 @@ class exports.Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
+                                    else if when_sent >= misc.days_ago(RESEND_INVITE_INTERVAL_DAYS)   # successfully sent this long ago -- don't again
                                         locals.done = true
                                         cb()
                                     else
@@ -1776,33 +1780,14 @@ class exports.Client extends EventEmitter
     ###
     mesg_create_support_ticket: (mesg) =>
         dbg = @dbg("mesg_create_support_ticket")
-        dbg("#{misc.to_json(mesg)}")
-
-        m = underscore.omit(mesg, 'id', 'event')
-        get_support().create_ticket m, (err, url) =>
-            dbg("callback being called with #{err} and url: #{url}")
-            if err?
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(
-                    message.support_ticket_url(id:mesg.id, url: url))
+        dbg('deprecated')
+        @error_to_client(id:mesg.id, error:'deprecated')
 
     mesg_get_support_tickets: (mesg) =>
         # retrieves the support tickets the user with the current account_id
         dbg = @dbg("mesg_get_support_tickets")
-        dbg("#{misc.to_json(mesg)}")
-        if not @account_id
-            err = "You must be signed in to use support related functions."
-            @error_to_client(id:mesg.id, error:err)
-            return
-
-        get_support().get_support_tickets @account_id, (err, tickets) =>
-            if err?
-                @error_to_client(id:mesg.id, error:err)
-            else
-                dbg("tickets: #{misc.to_json(tickets)}")
-                @push_to_client(
-                    message.support_tickets(id:mesg.id, tickets: tickets))
+        dbg('deprecated')
+        @error_to_client(id:mesg.id, error:'deprecated')
 
     ###
     Stripe-integration billing code
@@ -1812,6 +1797,7 @@ class exports.Client extends EventEmitter
             await @_stripe_client ?= new StripeClient(@)
         catch err
             @error_to_client(id:mesg.id, error:"${err}")
+            return
         @_stripe_client.handle_mesg(mesg)
 
     mesg_stripe_get_customer: (mesg) =>
@@ -1867,7 +1853,7 @@ class exports.Client extends EventEmitter
     mesg_purchase_license: (mesg) =>
         try
             await @_stripe_client ?= new StripeClient(@)
-            resp = await purchase_license(@database, @_stripe_client, @account_id, mesg.info, @dbg("purchase_license"))
+            resp = await purchase_license(@account_id, mesg.info)
             @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
         catch err
             @error_to_client(id:mesg.id, error:err.toString())
@@ -1875,19 +1861,17 @@ class exports.Client extends EventEmitter
     #  END stripe-related functionality
 
     mesg_api_key: (mesg) =>
-        api_key_action
-            database   : @database
-            account_id : @account_id
-            password   : mesg.password
-            action     : mesg.action
-            cb       : (err, api_key) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    if api_key?
-                        @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
-                    else
-                        @success_to_client(id:mesg.id)
+        try
+            api_key = await apiKeyAction
+                account_id : @account_id
+                password   : mesg.password
+                action     : mesg.action
+            if api_key
+                @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
+            else
+                @success_to_client(id:mesg.id)
+        catch err
+            @error_to_client(id:mesg.id, error:err)
 
     mesg_user_auth: (mesg) =>
         auth_token.get_user_auth_token

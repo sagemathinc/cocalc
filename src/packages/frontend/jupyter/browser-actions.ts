@@ -9,7 +9,7 @@ web browser frontend.
 */
 import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-import { merge_copy, uuid, server_time } from "@cocalc/util/misc";
+import { merge_copy, uuid } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
@@ -19,9 +19,7 @@ import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
-import { exec } from "../frame-editors/generic/client";
 import { open_popup_window } from "../misc";
-import { IPYNB2PDF } from "../misc/commands";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 
@@ -125,9 +123,8 @@ export class JupyterActions extends JupyterActions0 {
       const account_store = this.redux.getStore("account") as any; // TODO: check if ever is undefined
       this.account_change = this.account_change.bind(this);
       account_store.on("change", this.account_change);
-      this.account_change_editor_settings = account_store.get(
-        "editor_settings"
-      );
+      this.account_change_editor_settings =
+        account_store.get("editor_settings");
     }
   }
 
@@ -378,8 +375,7 @@ export class JupyterActions extends JupyterActions0 {
     if (
       (await this.confirm_dialog({
         title: "Close this file and halt the kernel",
-        body:
-          "Are you sure you want to close this file and halt the kernel?  All variable state will be lost.",
+        body: "Are you sure you want to close this file and halt the kernel?  All variable state will be lost.",
         choices: [
           { title: "Cancel" },
           {
@@ -407,8 +403,7 @@ export class JupyterActions extends JupyterActions0 {
     const choice = await this.confirm_dialog({
       icon: "warning",
       title: "Trust this Notebook?",
-      body:
-        "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
+      body: "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
       choices: [
         { title: "Trust", style: "danger", default: true },
         { title: "Cancel" },
@@ -419,20 +414,13 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
-  private nbconvert_has_started(): boolean {
+  public nbconvert_has_started(): boolean {
     const state = this.store.getIn(["nbconvert", "state"]);
     return state === "start" || state === "run";
   }
 
   public show_nbconvert_dialog(to: string): void {
     this.setState({ nbconvert_dialog: { to } });
-    if (to == "chromium-pdf") {
-      this.chromium_pdf();
-      return;
-    }
-    if (!this.nbconvert_has_started()) {
-      this.nbconvert(["--to", to]); // start it
-    }
   }
 
   public nbconvert(args: string[]): void {
@@ -451,41 +439,6 @@ export class JupyterActions extends JupyterActions0 {
       error: null,
     });
     this.syncdb.commit();
-  }
-
-  public async chromium_pdf(): Promise<void> {
-    let error: string | undefined = undefined;
-    // used indirectly by the nbconvert dialog only...
-    const args = ["--to", "chromium-pdf"];
-    const start = server_time().valueOf();
-    try {
-      await this.save();
-      this.syncdb.set({
-        type: "nbconvert",
-        state: "run",
-        args,
-        start,
-        error,
-      });
-      await this.syncdb.commit();
-      await exec({
-        command: IPYNB2PDF,
-        args: [this.path],
-        project_id: this.project_id,
-      });
-    } catch (err) {
-      error = `${err}`;
-    } finally {
-      this.syncdb.set({
-        type: "nbconvert",
-        state: "done",
-        args,
-        start,
-        time: server_time().valueOf(),
-        error,
-      });
-      await this.syncdb.commit();
-    }
   }
 
   public async nbconvert_get_error(): Promise<void> {
@@ -544,8 +497,7 @@ export class JupyterActions extends JupyterActions0 {
   public async restart_and_run_all_no_halt(): Promise<void> {
     const choice = await this.confirm_dialog({
       title: "Restart kernel and run all cells (do not stop on errors)",
-      body:
-        "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
+      body: "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
       choices: [
         { title: "Cancel" },
         {
@@ -565,8 +517,7 @@ export class JupyterActions extends JupyterActions0 {
     const NOSTOP = "Run all (do not stop on errors)";
     const choice = await this.confirm_dialog({
       title: "Restart kernel and run notebook",
-      body:
-        "Are you sure you want to restart the kernel and run the notebook?  All variable state and output will be reset, though past output is available in TimeTravel. ",
+      body: "Are you sure you want to restart the kernel and run the notebook?  All variable state and output will be reset, though past output is available in TimeTravel. ",
       choices: [
         { title: "Cancel" },
         {
@@ -593,8 +544,7 @@ export class JupyterActions extends JupyterActions0 {
   public async restart_clear_all_output(): Promise<void> {
     const choice = await this.confirm_dialog({
       title: "Restart kernel and clear all output?",
-      body:
-        "Do you want to restart the kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
+      body: "Do you want to restart the kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
       choices: [
         { title: "Continue running" },
         {
@@ -627,8 +577,7 @@ export class JupyterActions extends JupyterActions0 {
   public async confirm_halt_kernel(): Promise<void> {
     const choice = await this.confirm_dialog({
       title: "Halt kernel?",
-      body:
-        "Do you want to kill the running kernel?  All variables will be lost.  The kernel will only start if you try to evaluate some code.",
+      body: "Do you want to kill the running kernel?  All variables will be lost.  The kernel will only start if you try to evaluate some code.",
       choices: [
         { title: "Continue running" },
         { title: "Halt", style: "danger", default: true },

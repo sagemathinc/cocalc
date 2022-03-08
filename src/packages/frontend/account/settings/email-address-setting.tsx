@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { Component, Rendered, ReactDOM } from "../../app-framework";
 import { alert_message } from "../../alerts";
 import { log } from "../../user-tracking";
 import { ErrorDisplay, LabeledRow, Saving } from "../../components";

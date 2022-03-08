@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered, useActions, useState } from "../app-framework";
+import { Rendered, useActions, useState } from "../app-framework";
 import { Button, Row, Col } from "../antd-bootstrap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 import { Icon } from "../components/icon";

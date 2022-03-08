@@ -8,7 +8,7 @@ Frame for working with a Jupyter notebook as a single document,
 like Sage worksheets.
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

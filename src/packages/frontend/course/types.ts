@@ -5,7 +5,7 @@
 
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
-import { Datastore } from "../projects/actions";
+import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export interface SyncDBRecordBase {
@@ -22,6 +22,7 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  site_license_removed?: string;
   site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number; // how many assignments to copy at once in parallel when assigning/collecting/returning
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
@@ -35,6 +36,8 @@ export interface SyncDBRecordSettings {
   custom_image?: string; // if falsy use default environment; if true-ish, use this software image for student projects. it should be called compute_image or software_image
   inherit_compute_image?: boolean; // if true (default), set the compute_image of student projects to the one of the project hosting the course
   datastore?: Datastore;
+  envvars?: EnvVars;
+  license_upgrade_host_project?: boolean;
 }
 
 // This is closely related to store.AssignmentRecord...
@@ -53,6 +56,9 @@ export interface SyncDBRecordAssignment {
   nbgrader_scores?: {
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
+  // nbgrader_score_ids are used entirely to determine the order of output when displaying the
+  // student scores to the instructor in the course assignments panel. They are extracted from
+  // the ipynb file.
   nbgrader_score_ids?: { [ipynb: string]: string[] };
   deleted?: boolean;
   path?: string;

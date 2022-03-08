@@ -26,7 +26,11 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 // the code the client has loaded, and the version only goes up.  It does not provide
 // any form of authentication.
 const days = 300;
-const future = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
-const opts = { expires: future, path: "/", secure: true, sameSite: "none" };
+const future = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+const https = location.protocol === "https:";
+// sameSite+secure must come in tandem, but secure doesn't work if loaded via http
+// sameSite needed if embedded in an iFrame
+const secure = { secure: true, sameSite: "none" };
+const opts = { expires: future, path: "/", ...(https ? secure : null) };
 const NAME = versionCookieName(appBasePath);
 cookies.set(NAME, version, opts);

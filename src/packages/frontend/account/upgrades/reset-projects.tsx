@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React} from "../../app-framework";
 import { Well, Button, ButtonToolbar } from "../../antd-bootstrap";
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 

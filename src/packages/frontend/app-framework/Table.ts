@@ -51,6 +51,11 @@ export abstract class Table {
         this.options()
       );
     }
+
+    this._table.on("error", (error) => {
+      console.warn(`Synctable error (table='${name}'): ${error}`);
+    });
+
     if (this._change != null) {
       // Call the _change method whenever there is a change.
       this._table.on("change", (keys) => {
@@ -61,7 +66,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/util/sync/table/synctable.ts)
+    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/sync/table/synctable.ts)
     cb?: (error?: string) => void
   ): Promise<void> {
     if (cb == null) {

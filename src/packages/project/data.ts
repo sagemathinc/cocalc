@@ -1,9 +1,14 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Paths to temporary files used by the project.
 */
 
 import { join } from "path";
-import { data } from "@cocalc/util-node/data";
+import { data } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 
 export const infoJson = join(data, "info.json");
@@ -12,6 +17,8 @@ export const hubPortFile = join(data, "hub-server.port");
 export const apiServerPortFile = join(data, "api-server.port");
 export const browserPortFile = join(data, "browser-server.port");
 export const projectPidFile = join(data, "project.pid");
+export const startTimestampFile = join(data, "start-timestamp.txt");
+export const sessionIDFile = join(data, "session-id.txt");
 export const rootSymlink = join(data, "root");
 export const secretToken =
   process.env.COCALC_SECRET_TOKEN ?? join(data, "secret_token");

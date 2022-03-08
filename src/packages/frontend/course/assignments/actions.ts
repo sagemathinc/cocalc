@@ -47,7 +47,7 @@ import {
   split,
   trunc,
 } from "@cocalc/util/misc";
-import { map } from "awaiting";
+import { delay, map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";
 import { grading_state } from "../nbgrader/util";
@@ -514,17 +514,8 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
+        exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
       });
-      if (peer_graded) {
-        // Delete GRADER file
-        await webapp_client.project_client.exec({
-          project_id: student_project_id,
-          command: "rm ./*/GRADER*.txt",
-          timeout: 60,
-          bash: true,
-          path: assignment.get("graded_path"),
-        });
-      }
       finish("");
     } catch (err) {
       finish(err);
@@ -730,9 +721,10 @@ ${details}
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`,
         });
-        student_project_id = await this.course_actions.student_projects.create_student_project(
-          student_id
-        );
+        student_project_id =
+          await this.course_actions.student_projects.create_student_project(
+            student_id
+          );
         if (!student_project_id) {
           throw Error("failed to create project");
         }
@@ -887,6 +879,28 @@ ${details}
     );
   }
 
+  private async start_all_for_peer_grading(): Promise<void> {
+    // On cocalc.com, if the student projects get started specifically
+    // for the purposes of copying files to/from them, then they stop
+    // around a minute later.  This is very bad for peer grading, since
+    // so much copying occurs, and we end up with conflicts between
+    // projects starting to peer grade, then stop, then needing to be
+    // started again all at once.  We thus request that they all start,
+    // wait a few seconds for that "reason" for them to be running to
+    // take effect, and then do the copy.  This way the projects aren't
+    // automatically stopped after the copies happen.
+    const id = this.course_actions.set_activity({
+      desc: "Warming up all student projects for peer grading...",
+    });
+    this.course_actions.student_projects.action_all_student_projects("start");
+    // We request to start all projects simultaneously, and the system
+    // will start doing that.  I think it's no so much important that
+    // the projects are actually running, but that they were started
+    // before the copy operations started.
+    await delay(15 * 1000);
+    this.course_actions.clear_activity(id);
+  }
+
   public async peer_copy_to_all_students(
     assignment_id: string,
     new_only: boolean
@@ -902,6 +916,7 @@ ${details}
     // the *condition* to know if it is done depends on the store,
     // which defers when it gets updated.  Anyway, this line is critical:
     this.update_peer_assignment(assignment_id);
+    await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
       assignment_id,
@@ -922,6 +937,7 @@ ${details}
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy peer grading from students";
+    await this.start_all_for_peer_grading();
     await this.assignment_action_all_students(
       assignment_id,
       new_only,
@@ -1063,22 +1079,9 @@ ${details}
       if (this.course_actions.is_closed()) return;
       const src_path = assignment.get("collect_path") + "/" + peer_student_id;
       const target_path = target_base_path + "/" + peer_student_id;
-      // delete the student's name so that grading is anonymous; also, remove original
+      // In the copy below, we exclude the student's name so that
+      // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
-      const name = store.get_student_name_extra(peer_student_id);
-      await webapp_client.project_client.exec({
-        project_id: store.get("course_project_id"),
-        command: "rm",
-        args: [
-          "-f",
-          src_path + `/STUDENT - ${name.simple}.txt`,
-          src_path + "/DUE_DATE.txt",
-          src_path + `/STUDENT - ${name.simple}.txt~`,
-          src_path + "/DUE_DATE.txt~",
-        ],
-      });
-      if (this.course_actions.is_closed()) return;
-
       // copy the files to be peer graded into place for this student
       await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
@@ -1087,6 +1090,7 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
+        exclude: ["*STUDENT*.txt", "*DUE_DATE.txt*"],
       });
     };
 
@@ -1348,10 +1352,20 @@ ${details}
     }
     const path = assignment.get("path");
     const project_id = store.get("course_project_id");
-    const files = await redux
-      .getProjectStore(project_id)
-      .get_listings()
-      .get_listing_directly(path);
+    let files;
+    try {
+      files = await redux
+        .getProjectStore(project_id)
+        .get_listings()
+        .get_listing_directly(path);
+    } catch (err) {
+      // This happens, e.g., if the instructor moves the directory
+      // that contains their version of the ipynb file.
+      // See https://github.com/sagemathinc/cocalc/issues/5501
+      const error = `Unable to find the directory where you created this assignment.  If you moved or renamed it, please move or copy it back to "${path}", then try again.    (${err})`;
+      this.course_actions.set_error(error);
+      throw err;
+    }
     const result: { [path: string]: string } = {};
 
     if (this.course_actions.is_closed()) return result;
@@ -1431,6 +1445,30 @@ ${details}
       this.course_actions.syncdb.commit();
     } finally {
       this.nbgrader_set_is_done(assignment_id);
+    }
+  }
+
+  public set_nbgrader_scores_for_all_students({
+    assignment_id,
+    force,
+    commit,
+  }: {
+    assignment_id: string;
+    force?: boolean;
+    commit?: boolean;
+  }): void {
+    for (const student_id of this.get_store().get_student_ids({
+      deleted: false,
+    })) {
+      this.set_grade_using_nbgrader_if_possible(
+        assignment_id,
+        student_id,
+        false,
+        force
+      );
+    }
+    if (commit) {
+      this.course_actions.syncdb.commit();
     }
   }
 
@@ -1524,7 +1562,8 @@ ${details}
   public set_grade_using_nbgrader_if_possible(
     assignment_id: string,
     student_id: string,
-    commit: boolean = true
+    commit: boolean = true,
+    force: boolean = false
   ): void {
     // Check if nbgrader scores are all available.
     const store = this.get_store();
@@ -1534,7 +1573,7 @@ ${details}
       return;
     }
     const { score, points, error, manual_needed } = get_nbgrader_score(scores);
-    if (error || manual_needed) {
+    if (!force && (error || manual_needed)) {
       // more work must be done before we can use this.
       return;
     }
@@ -1542,7 +1581,7 @@ ${details}
     // Fill in the overall grade if either it is currently unset, blank,
     // or of the form [number]/[number].
     const grade = store.get_grade(assignment_id, student_id).trim();
-    if (grade == "" || grade.match(/\d+\/\d+/g)) {
+    if (force || grade == "" || grade.match(/\d+\/\d+/g)) {
       this.set_grade(assignment_id, student_id, `${score}/${points}`, commit);
     }
   }
@@ -1744,7 +1783,7 @@ ${details}
       }
     };
 
-    // NOTE: we *could* run multipel files in parallel, but that causes
+    // NOTE: we *could* run multiple files in parallel, but that causes
     // trouble for very little benefit.  It's better to run across all students in parallel,
     // and the trouble is just that running lots of code in the same project can confuse
     // the backend api and use extra memory (which is unfair to students being graded, e.g.,

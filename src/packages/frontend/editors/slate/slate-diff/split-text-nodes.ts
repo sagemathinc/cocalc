@@ -4,7 +4,7 @@
  */
 
 import { Operation, Text } from "slate";
-import { diff_main } from "@cocalc/util/sync/editor/generic/util";
+import { diff_main } from "@cocalc/sync/editor/generic/util";
 import { len } from "@cocalc/util/misc";
 
 export function nextPath(path: number[]): number[] {

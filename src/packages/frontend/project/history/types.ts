@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
 export type EventRecord = {
   id: string;
@@ -36,6 +36,7 @@ export type ProjectEvent =
   | X11Event
   | SetTitleEvent
   | SetDescriptionEvent
+  | SetNameEvent
   | PublicPathEvent
   | { event: "open_project" }
   | { event: "delete_project" }
@@ -52,6 +53,11 @@ export type SetTitleEvent = {
 export type SetDescriptionEvent = {
   event: "set";
   description: string;
+};
+
+export type SetNameEvent = {
+  event: "set";
+  name: string;
 };
 
 export type X11Event = {
@@ -78,7 +84,7 @@ export type LicenseEvent = {
   action: "add" | "remove";
   license_id: string;
   title?: string;
-  quota?: Quota;
+  quota?: SiteLicenseQuota;
 };
 
 export type LibraryEvent = {
@@ -119,6 +125,7 @@ export type ProjectControlEvent = {
     | "project_stopped"
     | "project_started";
   time?: number;
+  duration_ms?: number;
 };
 
 export type FileActionEvent =
@@ -144,6 +151,7 @@ export type PublicPathEvent = {
   path: string;
   unlisted?: boolean;
   disabled?: boolean;
+  authenticated?: boolean;
 };
 
 export type SystemEvent = { event: ""; by: string };

@@ -15,7 +15,7 @@ make a much wider range of "json-ish" stuff valid.  Given the use case for
 this (?), it might be fine.
 */
 
-import { React, useEffect, useRedux } from "../app-framework";
+import { useEffect, useRedux } from "../app-framework";
 import { useInterval } from 'react-interval-hook';
 import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";

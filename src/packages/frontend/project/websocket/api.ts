@@ -8,7 +8,7 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { callback } from "awaiting";
-import { Channel, Mesg } from "./types";
+import { Channel, Mesg, NbconvertParams } from "./types";
 import {
   ConfigurationAspect,
   Capabilities,
@@ -270,6 +270,16 @@ export class API {
   // Use the nbgrader "protocol" to autograde a notebook
   async nbgrader(opts: NBGraderAPIOptions): Promise<any> {
     return await this.call({ cmd: "nbgrader", opts }, opts.timeout_ms + 5000);
+  }
+
+  // Convert a notebook to some other format.
+  // --to options are listed in packages/frontend/jupyter/nbconvert.tsx
+  // and implemented in packages/project/jupyter/convert/index.ts
+  async jupyter_nbconvert(opts: NbconvertParams): Promise<any> {
+    return await this.call(
+      { cmd: "jupyter_nbconvert", opts },
+      (opts.timeout ?? 30) * 1000 + 5000
+    );
   }
 
   // Get contents of an ipynb file, but with output and attachments removed (to save space)

@@ -1854,10 +1854,6 @@ def session(conn):
     import random
     random.seed(sage.all.initial_seed())
 
-    # get_memory_usage is not aware of being forked...
-    import sage.misc.getusage
-    sage.misc.getusage._proc_status = "/proc/%s/status" % os.getpid()
-
     cnt = 0
     while True:
         try:

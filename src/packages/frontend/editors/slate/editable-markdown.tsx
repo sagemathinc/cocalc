@@ -30,7 +30,7 @@ import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
-import { Leaf } from "./leaf";
+import Leaf from "./leaf-with-cursor";
 import { withAutoFormat } from "./format";
 import { withNormalize } from "./normalize";
 import { withInsertBreakHack } from "./elements/link/editable";

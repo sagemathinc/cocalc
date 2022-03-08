@@ -12,7 +12,7 @@ import { createServer } from "net";
 import { isFloat } from "validator";
 import { seconds2hms } from "@cocalc/util/misc";
 import { database_is_working } from "./hub_register";
-import { PostgreSQL } from "./postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 interface HealthcheckData {
   code: 200 | 404;

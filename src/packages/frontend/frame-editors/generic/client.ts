@@ -9,13 +9,13 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 
 import { webapp_client } from "../../webapp-client";
 const schema = require("@cocalc/util/schema");
-const DEFAULT_FONT_SIZE: number = require("@cocalc/util/db-schema")
-  .DEFAULT_FONT_SIZE;
+const DEFAULT_FONT_SIZE: number =
+  require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
 import { redux } from "../../app-framework";
 import { callback2 } from "@cocalc/util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
-import { CompressedPatch } from "@cocalc/util/sync/editor/generic/types";
+import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { ExecOpts, ExecOutput } from "../../client/project";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 export { ExecOpts, ExecOutput };
@@ -164,9 +164,9 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
-import { DataServer } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
 
-import { SyncString } from "@cocalc/util/sync/editor/string/sync";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -203,7 +203,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -245,10 +245,10 @@ export function get_editor_settings(): Map<string, any> {
 
 export interface User {
   account_id: string;
-  created?: Date;
+  created?: number; // since commit 63e8e9954dc51632cf
   email_address?: string;
   first_name?: string;
-  last_active?: Date;
+  last_active?: number; // since commit 63e8e9954dc51632cf
   last_name?: string;
   banned?: boolean;
 }

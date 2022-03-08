@@ -11,7 +11,7 @@ because then they will be compatible with all mentions already used with chat an
 */
 
 import { trunc_middle as truncMiddle } from "@cocalc/util/misc";
-import { React, redux } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { FOCUSED_COLOR } from "../../util";
 import { register, RenderElementProps } from "../register";
 import { useFocused, useSelected } from "../hooks";

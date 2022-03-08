@@ -16,7 +16,7 @@ import { Icon } from "../components/icon";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { capitalize, endswith } from "@cocalc/util/misc";
-import { Component, React, Rendered, redux } from "../app-framework";
+import { Component, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";
 import { powered_by_stripe } from "./util";
@@ -100,9 +100,9 @@ export class AddSubscription extends Component<Props, State> {
 
   private render_renewal_info(): Rendered {
     if (this.props.selected_plan) {
-      const renews = !PROJECT_UPGRADES.subscription[
-        this.props.selected_plan.split("-")[0]
-      ].cancel_at_period_end;
+      const renews =
+        !PROJECT_UPGRADES.subscription[this.props.selected_plan.split("-")[0]]
+          .cancel_at_period_end;
       const length = PROJECT_UPGRADES.period_names[this.state.selected_button];
       return (
         <p style={{ marginBottom: "1ex", marginTop: "1ex" }}>

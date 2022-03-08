@@ -783,16 +783,6 @@ describe "replace_all", ->
         ra(ra("foo\nbar\tbaz", "\n", ""), "\t", "").should.eql "foobarbaz"
         ra("ſþ¨€¢→æł ¢ħæ¶æ¢ŧ€¶ſ", "æ", "a").should.eql "ſþ¨€¢→ał ¢ħa¶a¢ŧ€¶ſ"
 
-
-#describe "stripe_date", ->
-#    sd = misc.stripe_date
-#    it "creates a 'stripe date' (?) out of a timestamp (seconds since epoch)", ->
-#        sd(1000000000).should.containEql('Sunday')
-#                             .containEql('September')
-#                             .containEql("9")
-#                             .containEql('2001')
-
-
 describe "date_to_snapshot_format", ->
     dtsf = misc.date_to_snapshot_format
     it "correctly converts a number-date to the snapshot format", ->
@@ -852,16 +842,6 @@ describe "sum", ->
         expect(misc.sum([])).toEqual 0
     it "has an option to set a start", ->
         expect(misc.sum([-1,5], start=-5)).toEqual -1
-
-describe "ticket_id_to_ticket_url", ->
-    t2t = misc.ticket_id_to_ticket_url
-    it "converts a number or string to an url", ->
-        x = t2t(123)
-        x.should.match /^http/
-        x.should.match /123/
-        y = t2t("123")
-        y.should.match /^http/
-        y.should.match /123/
 
 describe "map_min limits the values of a by the values in b or by b if b is a number", ->
     it "map_min == map_limit", ->

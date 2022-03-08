@@ -1,4 +1,4 @@
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 
 /*
 Strip the base path from a url.

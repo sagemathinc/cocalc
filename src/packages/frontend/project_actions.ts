@@ -47,6 +47,7 @@ import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { IconName } from "./components";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -80,9 +81,11 @@ export const QUERIES = {
       id: null,
       project_id: null,
       path: null,
+      name: null,
       description: null,
       disabled: null,
       unlisted: null,
+      authenticated: null,
       created: null,
       license: null,
       last_edited: null,
@@ -121,49 +124,53 @@ const _init_library_index_cache = {};
 export const FILE_ACTIONS = {
   compress: {
     name: "Compress",
-    icon: "compress",
+    icon: "compress" as IconName,
     allows_multiple_files: true,
   },
   delete: {
     name: "Delete",
-    icon: "trash-o",
+    icon: "trash" as IconName,
     allows_multiple_files: true,
   },
   rename: {
     name: "Rename",
-    icon: "pencil",
+    icon: "swap" as IconName,
     allows_multiple_files: false,
   },
   duplicate: {
     name: "Duplicate",
-    icon: "clone",
+    icon: "clone" as IconName,
     allows_multiple_files: false,
   },
   move: {
     name: "Move",
-    icon: "move",
+    icon: "move" as IconName,
     allows_multiple_files: true,
   },
   copy: {
     name: "Copy",
-    icon: "files",
+    icon: "files" as IconName,
     allows_multiple_files: true,
   },
   share: {
     name: "Public",
-    icon: "share-square",
+    icon: "share-square" as IconName,
     allows_multiple_files: false,
   },
   download: {
     name: "Download",
-    icon: "cloud-download",
+    icon: "cloud-download" as IconName,
     allows_multiple_files: true,
   },
   upload: {
     name: "Upload",
-    icon: "upload",
+    icon: "upload" as IconName,
   },
-};
+  create: {
+    name: "Create",
+    icon: "plus-circle" as IconName,
+  },
+} as const;
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public project_id: string;
@@ -510,10 +517,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // of the component that displays this editor.  Otherwise, the user
             // would just see a spinner until they tab away and tab back.
             this.open_files.set(path, "component", { ...info });
+            // just like in the case where it is already loaded, we have to "show" it
+            // this is important, because e.g. the store has a "visible" field, which stays undefined
+            // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
+            this.show_file(path);
           })();
+        } else {
+          this.show_file(path);
         }
-
-        this.show_file(path);
     }
     this.setState(change);
   }
@@ -2378,6 +2389,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       unlisted?: boolean;
       license?: string;
       disabled?: boolean;
+      authenticated?: boolean;
     }
   ) {
     const store = this.get_store();
@@ -2418,12 +2430,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     for (const k in opts) {
       if (opts[k] != null) {
+        const will_change = opts[k] != obj.get(k);
         if (!log) {
-          if (k == "disabled" && opts[k] != obj.get(k)) {
+          if (k === "disabled" && will_change) {
             // changing disabled state
             log = true;
-          } else if (k == "unlisted" && opts[k] != obj.get(k)) {
+          } else if (k === "unlisted" && will_change) {
             // changing unlisted state
+            log = true;
+          } else if (k === "authenticated" && will_change) {
             log = true;
           }
         }
@@ -2438,8 +2453,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path: path + ((await this.isdir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
+        authenticated: !!obj.get("authenticated"),
       });
     }
+  }
+
+  // Make a database query to set the name of a
+  // public path.  Because this can error due to
+  // an invalid name it's good to do this rather than
+  // changing the public_paths table.  This function
+  // will throw an exception if anything goes wrong setting
+  // the name.
+  public async setPublicPathName(path: string, name: string): Promise<void> {
+    const id = client_db.sha1(this.project_id, path);
+    const query = {
+      public_paths: { project_id: this.project_id, path, name, id },
+    };
+    await webapp_client.async_query({ query });
   }
 
   /*

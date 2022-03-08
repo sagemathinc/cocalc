@@ -6,7 +6,7 @@
 import {} from "mocha";
 import expect from "expect";
 
-const misc_node = require("@cocalc/util-node/misc_node");
+const misc_node = require("@cocalc/backend/misc_node");
 
 import { blob_store } from "../jupyter-blobs-sqlite";
 

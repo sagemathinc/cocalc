@@ -19,7 +19,7 @@ delete process.env.PGHOST;
 process.env.COCALC_ROOT = require('path').resolve(__dirname);
 console.log(process.env.COCALC_ROOT);
 process.env.PGUSER = "smc";
-process.env.PGHOST = require("./packages/util-node/dist/data").pghost;
+process.env.PGHOST = require("./packages/backend/dist/data").pghost;
 global.misc = require("./packages/util/dist/misc");
 global.done = misc.done;
 global.done1 = misc.done1;
@@ -34,7 +34,7 @@ function get_db(cb) {
     } // HACK -- might not really be initialized yet!
     return db;
   } else {
-    db = require("./packages/hub/dist/postgres").db({ debug: true });
+    db = require("./packages/database/dist").db({ debug: true });
     db.connect({ cb });
     return db;
   }

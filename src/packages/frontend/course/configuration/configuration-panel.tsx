@@ -5,7 +5,7 @@
 
 // CoCalc libraries
 import { webapp_client } from "../../webapp-client";
-import { contains_url, days_ago } from "@cocalc/util/misc";
+import { contains_url, days_ago, plural } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 // React libraries and Components
 import {
@@ -53,6 +53,11 @@ import { CustomizeStudentProjectFunctionality } from "./customize-student-projec
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { DatastoreConfig } from "./datastore-config";
 
+import EmptyTrash from "./empty-trash";
+import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
+import { EnvironmentVariablesConfig } from "./envvars-config";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
 interface Props {
@@ -61,10 +66,18 @@ interface Props {
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
 }
 
 export const ConfigurationPanel: React.FC<Props> = React.memo(
-  ({ name, project_id, settings, project_map, configuring_projects }) => {
+  ({
+    name,
+    project_id,
+    settings,
+    project_map,
+    configuring_projects,
+    reinviting_students,
+  }) => {
     const [show_students_pay, set_show_students_pay] = useState<boolean>(false);
     const [email_body_error, set_email_body_error] = useState<
       string | undefined
@@ -73,6 +86,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     const actions = useActions<CourseActions>({ name });
     const store = useStore<CourseStore>({ name });
     const is_commercial = useTypedRedux("customize", "is_commercial");
+    const kucalc = useTypedRedux("customize", "kucalc");
 
     /*
      * Editing title/description
@@ -142,7 +156,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       await actions.export.to_json();
     }
 
-    function render_save_grades() {
+    function render_export_grades() {
       return (
         <Card title={render_grades_header()}>
           <div style={{ marginBottom: "10px" }}>Save grades to... </div>
@@ -257,13 +271,39 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           <Button
             disabled={configuring_projects}
             onClick={() => {
-              actions.configuration.configure_all_projects(true);
+              actions.configuration.configure_all_projects();
             }}
           >
             {configuring_projects ? (
               <Icon name="cocalc-ring" spin />
             ) : undefined}{" "}
             Reconfigure all projects
+          </Button>
+        </Card>
+      );
+    }
+
+    function render_resend_outstanding_email_invites(): Rendered {
+      return (
+        <Card
+          title={
+            <>
+              <Icon name="envelope" /> Resend outstanding email invites
+            </>
+          }
+        >
+          Send another email to every student who didn't sign up yet. This sends
+          a maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
+          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
+          <hr />
+          <Button
+            disabled={reinviting_students}
+            onClick={() => {
+              actions.student_projects.reinvite_oustanding_students();
+            }}
+          >
+            {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
+            Reinvite students
           </Button>
         </Card>
       );
@@ -532,34 +572,67 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         bg = "#fcf8e3";
       }
       return (
-        <Card
-          style={{ background: bg }}
-          title={
-            <div style={style}>
-              <Icon name="dashboard" /> Require students to upgrade (students
-              pay)
-            </div>
-          }
-        >
-          {render_student_pay_choice_checkbox()}
-          {settings?.get("student_pay") && render_student_pay_details()}
-        </Card>
+        <>
+          <Card
+            style={{ background: bg }}
+            title={
+              <div style={style}>
+                <Icon name="dashboard" /> Require students to upgrade (students
+                pay)
+              </div>
+            }
+          >
+            {render_student_pay_choice_checkbox()}
+            {settings?.get("student_pay") && render_student_pay_details()}
+          </Card>
+          <br />
+        </>
       );
     }
 
     function render_require_institute_pay() {
       if (!is_commercial) return;
       return (
-        <StudentProjectUpgrades
-          name={name}
-          upgrade_goal={settings?.get("upgrade_goal")}
-          institute_pay={settings?.get("institute_pay")}
-          student_pay={settings?.get("student_pay")}
-          site_license_id={settings?.get("site_license_id")}
-          site_license_strategy={settings?.get("site_license_strategy")}
-          shared_project_id={settings?.get("shared_project_id")}
-          disabled={configuring_projects}
-        />
+        <>
+          <StudentProjectUpgrades
+            name={name}
+            is_onprem={false}
+            is_commercial={is_commercial}
+            upgrade_goal={settings?.get("upgrade_goal")}
+            institute_pay={settings?.get("institute_pay")}
+            student_pay={settings?.get("student_pay")}
+            site_license_id={settings?.get("site_license_id")}
+            site_license_strategy={settings?.get("site_license_strategy")}
+            shared_project_id={settings?.get("shared_project_id")}
+            disabled={configuring_projects}
+            settings={settings}
+            actions={actions.configuration}
+          />
+          <br />
+        </>
+      );
+    }
+
+    /**
+     * OnPrem instances support licenses to be distributed to all student projects.
+     */
+    function render_onprem_upgrade_projects(): React.ReactNode {
+      if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
+      return (
+        <>
+          <StudentProjectUpgrades
+            name={name}
+            is_onprem={true}
+            is_commercial={false}
+            site_license_id={settings?.get("site_license_id")}
+            site_license_strategy={settings?.get("site_license_strategy")}
+            shared_project_id={settings?.get("shared_project_id")}
+            disabled={configuring_projects}
+            settings={settings}
+            actions={actions.configuration}
+          />
+          <br />
+        </>
       );
     }
 
@@ -626,10 +699,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             {render_require_students_pay()}
-            {is_commercial && <br />}
             {render_require_institute_pay()}
-            {is_commercial && <br />}
-            {render_save_grades()}
+            {render_onprem_upgrade_projects()}
+            {render_export_grades()}
             <br />
             {render_start_all_projects()}
             <br />
@@ -656,6 +728,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <br />
             {render_configure_all_projects()}
             <br />
+            {render_resend_outstanding_email_invites()}
+            <br />
             {render_push_missing_handouts_and_assignments()}
             <br />
             <StudentProjectSoftwareEnvironment
@@ -671,6 +745,12 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions={actions.configuration}
               datastore={settings.get("datastore")}
             />
+            <EnvironmentVariablesConfig
+              actions={actions.configuration}
+              envvars={settings.get("envvars")}
+            />
+            <br />
+            <EmptyTrash />
           </Col>
         </Row>
       </div>

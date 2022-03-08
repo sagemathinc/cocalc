@@ -55,6 +55,7 @@ interface ReduxProps {
   handouts?: HandoutsMap;
   settings?: CourseSettingsRecord;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
   activity?: Map<string, any>;
   error?: string;
 }
@@ -73,6 +74,7 @@ export interface PanelProps {
   redux: AppRedux;
   actions: CourseActions;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
 }
 
 class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
@@ -85,6 +87,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
         handouts: rtypes.immutable.Map,
         settings: rtypes.immutable.Map,
         configuring_projects: rtypes.bool,
+        reinviting_students: rtypes.bool,
         error: rtypes.string,
         activity: rtypes.immutable.Map,
       },
@@ -122,6 +125,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
       assignments: this.props.assignments,
       handouts: this.props.handouts,
       configuring_projects: this.props.configuring_projects,
+      reinviting_students: this.props.reinviting_students,
       settings: this.props.settings,
       redux,
       actions: redux.getActions(name),
@@ -138,9 +142,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     );
   }
 
-  private counts(
-    name: string
-  ): {
+  private counts(name: string): {
     students: number;
     assignments: number;
     handouts: number;

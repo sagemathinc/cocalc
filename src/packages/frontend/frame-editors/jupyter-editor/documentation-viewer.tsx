@@ -10,7 +10,7 @@ shows the docstring for a function when you hit shift+tab.
 We might also enhance it to provide fulltext search of code?
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

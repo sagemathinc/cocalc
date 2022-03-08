@@ -10,7 +10,7 @@ for different account related information
 and configuration.
 */
 
-import { local_storage_length } from "@cocalc/util/misc";
+import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import { React, redux, useTypedRedux } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 import { LandingPage } from "../landing-page/landing-page";
@@ -23,7 +23,10 @@ import { SupportTickets } from "../support";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../components";
 import { SignOut } from "../account/sign-out";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { PublicPaths } from "./public-paths/public-paths";
 
 export const AccountPage: React.FC = () => {
@@ -73,7 +76,6 @@ export const AccountPage: React.FC = () => {
         redux.getActions("billing").update_customer();
         break;
       case "support":
-        redux.getActions("support").load_support_tickets();
         break;
       case "signout":
         return;
@@ -129,7 +131,11 @@ export const AccountPage: React.FC = () => {
       return [];
     }
     const v: JSX.Element[] = [];
-    if (is_commercial) {
+    if (
+      kucalc === KUCALC_COCALC_COM ||
+      kucalc === KUCALC_ON_PREMISES ||
+      is_commercial
+    ) {
       v.push(
         <Tab
           key="licenses"
@@ -143,6 +149,8 @@ export const AccountPage: React.FC = () => {
           {active_page === "licenses" && <LicensesPage />}
         </Tab>
       );
+    }
+    if (is_commercial) {
       v.push(
         <Tab
           key="billing"

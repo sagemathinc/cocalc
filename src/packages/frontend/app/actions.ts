@@ -159,12 +159,6 @@ export class PageActions extends Actions<PageState> {
         }
         set_window_title("Account");
         return;
-      case "about":
-        if (change_history) {
-          set_url("/help");
-        }
-        set_window_title("Help");
-        return;
       case "file-use": // this doesn't actually get used currently
         if (change_history) {
           set_url("/file-use");

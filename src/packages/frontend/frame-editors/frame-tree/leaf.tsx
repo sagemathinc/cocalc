@@ -4,19 +4,21 @@
  */
 
 import { Map, Set } from "immutable";
-
-import {
-  Component,
-  React,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
-import { ErrorDisplay, Loading } from "../../components";
-import { AvailableFeatures } from "../../project_configuration";
+import { Rendered, React, useRedux, CSS } from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 import { Actions } from "../code-editor/actions";
 import { EditorDescription, EditorState, NodeDesc } from "./types";
+import { AccountState } from "@cocalc/frontend/account/types";
+
+const ERROR_STYLE: CSS = {
+  maxWidth: "100%",
+  maxHeight: "30%",
+  fontFamily: "monospace",
+  fontSize: "85%",
+  whiteSpace: "pre-wrap",
+} as const;
 
 interface Props {
   name: string;
@@ -26,8 +28,8 @@ interface Props {
   font_size: number;
   editor_state: EditorState;
   active_id: string;
-  editor_settings: Map<string, any>;
-  terminal: Map<string, any>;
+  editor_settings?: AccountState["editor_settings"];
+  terminal?: Map<string, any>;
   settings: Map<string, any>;
   status: string;
   derived_file_types: Set<string>;
@@ -51,101 +53,109 @@ interface Props {
   tab_is_visible: boolean; // if that editor tab is active -- see page/page.tsx
 }
 
-interface ReduxProps {
-  read_only?: boolean;
-  cursors?: Map<string, any>;
-  value?: string;
-  misspelled_words?: Set<string>;
-  complete?: Map<string, any>;
-  is_loaded?: boolean;
-  error?: string;
-  gutter_markers?: Map<string, any>;
-}
+export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    name,
+    path,
+    project_id,
+    is_public,
+    font_size,
+    editor_state,
+    active_id,
+    editor_settings,
+    terminal,
+    settings,
+    status,
+    derived_file_types,
+    available_features,
+    resize,
+    actions,
+    spec,
+    desc,
+    editor_actions,
+    is_fullscreen,
+    reload,
+    is_subframe,
+    local_view_state,
+    is_visible,
+    tab_is_visible,
+  } = props;
 
-class FrameTreeLeaf extends Component<Props & ReduxProps> {
-  static reduxProps({ editor_actions, is_subframe }): object {
-    if (editor_actions == null) {
-      throw Error("bug -- editor_actions must not be null");
-    }
-    const { name } = editor_actions;
-    if (name == null) {
-      throw Error("bug -- name must not be null");
-    }
-    const redux_props = {
-      read_only: rtypes.bool,
-      cursors: rtypes.immutable.Map,
-      value: rtypes.string,
-      misspelled_words: rtypes.immutable.Set,
-      complete: rtypes.immutable.Map,
-      is_loaded: rtypes.bool,
-      error: rtypes.string,
-      gutter_markers: rtypes.immutable.Map,
-    };
-    if (!is_subframe) {
-      // This is used for showing the error message right with this frame,
-      // since otherwise it wouldn't be visible at all.
-      delete redux_props.error;
-    }
-    return {
-      [name]: redux_props,
-    };
+  // Must be CamelCase
+  const TheComponent = props.component as any;
+
+  const read_only: boolean | undefined = useRedux(name, "read_only");
+  const cursors: Map<string, any> | undefined = useRedux(name, "cursors");
+  const value: string | undefined = useRedux(name, "value");
+  const misspelled_words: Set<string> | undefined = useRedux(
+    name,
+    "misspelled_words"
+  );
+  const complete: Map<string, any> | undefined = useRedux(name, "complete");
+  const is_loaded: boolean | undefined = useRedux(name, "is_loaded");
+  const error: string | undefined = useRedux(name, "error");
+  const gutter_markers: Map<string, any> | undefined = useRedux(
+    name,
+    "gutter_markers"
+  );
+
+  if (editor_actions == null) {
+    throw Error("bug -- editor_actions must not be null");
   }
 
-  private render_leaf(): Rendered {
-    if (!this.props.is_loaded) return <Loading theme="medium" />;
-    const { desc, component, spec } = this.props;
-    if (component == null) throw Error("component must not be null");
+  if (editor_actions.name == null) {
+    throw Error("bug -- editor_actions.name must not be null");
+  }
+
+  function render_leaf(): Rendered {
+    if (!is_loaded) return <Loading theme="medium" />;
+    if (TheComponent == null) throw Error("component must not be null");
     return (
-      <this.props.component
+      <TheComponent
         id={desc.get("id")}
-        name={this.props.name}
-        actions={this.props.actions}
-        editor_actions={this.props.editor_actions}
+        name={name}
+        actions={actions}
+        editor_actions={editor_actions}
         mode={spec.mode}
-        read_only={desc.get(
-          "read_only",
-          this.props.read_only || this.props.is_public
-        )}
-        is_public={this.props.is_public}
-        font_size={desc.get("font_size", this.props.font_size)}
-        path={this.props.path}
+        read_only={desc.get("read_only", read_only || is_public)}
+        is_public={is_public}
+        font_size={desc.get("font_size", font_size)}
+        path={path}
         fullscreen_style={spec.fullscreen_style}
-        project_id={this.props.project_id}
-        editor_state={this.props.editor_state.get(desc.get("id"), Map())}
-        is_current={desc.get("id") === this.props.active_id}
-        cursors={this.props.cursors}
-        value={this.props.value}
-        misspelled_words={this.props.misspelled_words}
-        is_fullscreen={this.props.is_fullscreen}
-        reload={this.props.reload}
-        resize={this.props.resize}
+        project_id={project_id}
+        editor_state={editor_state.get(desc.get("id"), Map())}
+        is_current={desc.get("id") === active_id}
+        cursors={cursors}
+        value={value}
+        misspelled_words={misspelled_words}
+        is_fullscreen={is_fullscreen}
+        reload={reload}
+        resize={resize}
         reload_images={!!spec.reload_images}
         gutters={spec.gutters != null ? spec.gutters : []}
-        gutter_markers={this.props.gutter_markers}
-        editor_settings={this.props.editor_settings}
-        terminal={this.props.terminal}
-        settings={this.props.settings}
-        status={this.props.status}
+        gutter_markers={gutter_markers}
+        editor_settings={editor_settings}
+        terminal={terminal}
+        settings={settings}
+        status={status}
         renderer={spec.renderer}
-        complete={
-          this.props.complete && this.props.complete.get(desc.get("id"))
-        }
-        derived_file_types={this.props.derived_file_types}
-        local_view_state={this.props.local_view_state}
+        complete={complete && complete.get(desc.get("id"))}
+        derived_file_types={derived_file_types}
+        local_view_state={local_view_state}
         desc={desc}
-        available_features={this.props.available_features}
-        is_subframe={this.props.is_subframe}
-        is_visible={this.props.is_visible}
-        tab_is_visible={this.props.tab_is_visible}
+        available_features={available_features}
+        is_subframe={is_subframe}
+        is_visible={is_visible}
+        tab_is_visible={tab_is_visible}
       />
     );
   }
 
-  private render_error(): Rendered {
-    if (
-      !this.props.error ||
-      this.props.desc.get("id") !== this.props.active_id
-    ) {
+  function render_error(): Rendered {
+    // This is used for showing the error message right with this frame,
+    // since otherwise it wouldn't be visible at all.
+    if (!is_subframe) return;
+    if (!error || desc.get("id") !== active_id) {
       // either no error or not the currently selected frame (otherwise,
       // it's cluttery and there could be a bunch of the same frame all
       // showing the same error.)
@@ -154,32 +164,21 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
     return (
       <ErrorDisplay
         banner={true}
-        error={this.props.error}
-        onClose={() => this.props.editor_actions.set_error("")}
-        body_style={{
-          maxWidth: "100%",
-          maxHeight: "30%",
-          fontFamily: "monospace",
-          fontSize: "85%",
-          whiteSpace: "pre-wrap",
-        }}
+        error={error}
+        onClose={() => editor_actions.set_error("")}
+        body_style={ERROR_STYLE}
       />
     );
   }
 
-  public render(): Rendered {
-    return (
-      <div
-        id={`frame-${this.props.desc.get("id")}`}
-        className="smc-vfill"
-        style={{ background: "white", zIndex: 1 }}
-      >
-        {this.render_error()}
-        {this.render_leaf()}
-      </div>
-    );
-  }
-}
-
-const FrameTreeLeaf0 = rclass(FrameTreeLeaf);
-export { FrameTreeLeaf0 as FrameTreeLeaf };
+  return (
+    <div
+      id={`frame-${desc.get("id")}`}
+      className="smc-vfill"
+      style={{ background: "white", zIndex: 1 }}
+    >
+      {render_error()}
+      {render_leaf()}
+    </div>
+  );
+});

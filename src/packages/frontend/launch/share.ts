@@ -27,11 +27,9 @@
     just naively copy some massive amount of files.  I'm not sure how to prevent this
     for #v0 though.
 
-  - We're just going to use the "copy between projects" api, so that requires starting
-    up the project that is the source of the shared files.  It would be much nicer to
-    copy directly from the share server.  This would require creating a new service, or
-    making manage-copy able to have the share server as a source (which would be
-    natural).
+  - We do NOT just use the "copy between projects" api, because that requires starting
+    up the project that is the source of the shared files.  We use the public option
+    below to avoid this.
 
   - What if a file depends on some other files.  Then the directory has to get copied to
     get those dependent files, which is a little confusing.
@@ -315,7 +313,7 @@ export class ShareLauncher {
     });
 
     await webapp_client.project_client.copy_path_between_projects({
-      public: true,
+      public: true,  // uses the shared files for the source, NOT the source project! This is very differenet in KuCalc.
       src_project_id: project_id,
       src_path: path,
       target_project_id,

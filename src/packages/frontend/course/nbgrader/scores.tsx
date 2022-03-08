@@ -9,7 +9,7 @@ Component that shows all the scores for all problems and notebooks in a given as
 
 import { Alert, Card } from "antd";
 import { Icon } from "../../components";
-import { React, Rendered, Component, redux } from "../../app-framework";
+import { Rendered, redux, useState } from "../../app-framework";
 import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";
 import { CourseActions } from "../actions";
@@ -26,69 +26,71 @@ interface Props {
 }
 
 interface State {
-  editing_score_filename?: string;
-  editing_score_id?: string;
+  filename?: string;
+  id?: string;
 }
 
-export class NbgraderScores extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = {};
+export const NbgraderScores: React.FC<Props> = (props: Props) => {
+  const {
+    nbgrader_scores,
+    nbgrader_score_ids,
+    assignment_id,
+    student_id,
+    name,
+    show_all,
+    set_show_all,
+  } = props;
+
+  const [editingScore, setEditingScore] = useState<State>({});
+
+  function get_actions(): CourseActions {
+    return redux.getActions(name);
   }
 
-  private get_actions(): CourseActions {
-    return redux.getActions(this.props.name);
-  }
-
-  private render_show_all(): Rendered {
-    if (!this.props.show_all) return;
+  function render_show_all(): Rendered {
+    if (!show_all) return;
     const v: Rendered[] = [];
-    for (const filename in this.props.nbgrader_scores) {
-      v.push(
-        this.render_info_for_file(
-          filename,
-          this.props.nbgrader_scores[filename]
-        )
-      );
+    for (const filename in nbgrader_scores) {
+      v.push(render_info_for_file(filename, nbgrader_scores[filename]));
     }
     return <div>{v}</div>;
   }
 
-  private render_info_for_file(
+  function render_info_for_file(
     filename: string,
     scores: NotebookScores | string
   ): Rendered {
     return (
       <div key={filename} style={{ marginBottom: "5px" }}>
-        {this.render_filename_links(filename)}
-        {this.render_scores_for_file(filename, scores)}
+        {render_filename_links(filename)}
+        {render_scores_for_file(filename, scores)}
       </div>
     );
   }
 
-  private open_filename(filename: string): void {
-    const actions = this.get_actions();
+  function open_filename(filename: string): void {
+    const actions = get_actions();
     actions.assignments.open_file_in_collected_assignment(
-      this.props.assignment_id,
-      this.props.student_id,
+      assignment_id,
+      student_id,
       filename
     );
   }
 
-  private render_filename_links(filename: string): Rendered {
+  function render_filename_links(filename: string): Rendered {
     const filename2 = autograded_filename(filename);
     return (
       <div style={{ fontSize: "12px" }}>
         <a
           style={{ fontFamily: "monospace" }}
-          onClick={() => this.open_filename(filename)}
+          onClick={() => open_filename(filename)}
         >
           {filename}
         </a>
         <br />
         <a
           style={{ fontFamily: "monospace" }}
-          onClick={() => this.open_filename(filename2)}
+          onClick={() => open_filename(filename2)}
         >
           {filename2}
         </a>
@@ -96,7 +98,7 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private render_scores_for_file(
+  function render_scores_for_file(
     filename: string,
     scores: NotebookScores | string
   ): Rendered {
@@ -110,7 +112,7 @@ export class NbgraderScores extends Component<Props, State> {
     }
     const v: Rendered[] = [];
 
-    const ids: string[] = this.props.nbgrader_score_ids?.[filename] ?? [];
+    const ids: string[] = nbgrader_score_ids?.[filename] ?? [];
     for (const id in scores) {
       if (!ids.includes(id)) {
         ids.push(id);
@@ -119,7 +121,7 @@ export class NbgraderScores extends Component<Props, State> {
 
     for (const id of ids) {
       if (scores[id] != null) {
-        v.push(this.render_score(filename, id, scores[id]));
+        v.push(render_score(filename, id, scores[id]));
       }
     }
 
@@ -144,14 +146,14 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private set_score(filename: string, id: string, value: string): void {
+  function set_score(filename: string, id: string, value: string): void {
     const score = parseFloat(value);
     if (isNaN(score) || !isFinite(score)) {
       return; // invalid scores gets thrown away
     }
-    this.get_actions().assignments.set_specific_nbgrader_score(
-      this.props.assignment_id,
-      this.props.student_id,
+    get_actions().assignments.set_specific_nbgrader_score(
+      assignment_id,
+      student_id,
       filename,
       id,
       score,
@@ -159,7 +161,7 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private render_assigned_score(
+  function render_assigned_score(
     filename: string,
     id: string,
     score: Score
@@ -177,69 +179,51 @@ export class NbgraderScores extends Component<Props, State> {
       display: "inline-block",
       padding: "1px",
     };
-    if (
-      this.state.editing_score_filename == filename &&
-      this.state.editing_score_id == id
-    ) {
+    if (editingScore.filename == filename && editingScore.id == id) {
       return (
         <input
           spellCheck={false}
           autoFocus
           type="input"
           defaultValue={value}
-          onBlur={(e) => this.stop_editing_score((e.target as any).value)}
+          onBlur={(e) => stop_editing_score((e.target as any).value)}
           style={style}
         />
       );
     } else {
       return (
-        <span
-          style={style}
-          onClick={() =>
-            this.setState({
-              editing_score_filename: filename,
-              editing_score_id: id,
-            })
-          }
-        >
+        <span style={style} onClick={() => setEditingScore({ filename, id })}>
           {value ? value : "-"}
         </span>
       );
     }
   }
 
-  private stop_editing_score(value: string): void {
-    if (
-      this.state.editing_score_id != null &&
-      this.state.editing_score_filename != null
-    ) {
-      this.set_score(
-        this.state.editing_score_filename,
-        this.state.editing_score_id,
-        value
-      );
+  function stop_editing_score(value: string): void {
+    if (editingScore.id != null && editingScore.filename != null) {
+      set_score(editingScore.filename, editingScore.id, value);
     }
-    this.setState({
-      editing_score_filename: undefined,
-      editing_score_id: undefined,
+    setEditingScore({
+      filename: undefined,
+      id: undefined,
     });
   }
 
-  private render_score(filename: string, id: string, score: Score): Rendered {
+  function render_score(filename: string, id: string, score: Score): Rendered {
     const backgroundColor = score.score == null ? "#fff1f0" : undefined;
     const style = { padding: "5px", backgroundColor };
     return (
       <tr key={id}>
         <td style={style}>{id}</td>
         <td style={style}>
-          {this.render_assigned_score(filename, id, score)} / {score.points}
-          {this.render_needs_score(score)}
+          {render_assigned_score(filename, id, score)} / {score.points}
+          {render_needs_score(score)}
         </td>
       </tr>
     );
   }
 
-  private render_needs_score(score: Score): Rendered {
+  function render_needs_score(score: Score): Rendered {
     if (!score.manual || score.score != null) return;
     return (
       <div>
@@ -248,20 +232,20 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  private render_more_toggle(action_required: boolean): Rendered {
+  function render_more_toggle(action_required: boolean): Rendered {
     return (
-      <a onClick={() => this.props.set_show_all?.()}>
+      <a onClick={() => set_show_all?.()}>
         {action_required ? (
           <>
             <Icon name="exclamation-triangle" />{" "}
           </>
         ) : undefined}
-        {this.props.show_all ? "" : "Edit..."}
+        {show_all ? "" : "Edit..."}
       </a>
     );
   }
 
-  private render_title(score, points, error): Rendered {
+  function render_title(score, points, error): Rendered {
     return (
       <span>
         <b>nbgrader:</b> {error ? "error" : `${score}/${points}`}
@@ -269,25 +253,22 @@ export class NbgraderScores extends Component<Props, State> {
     );
   }
 
-  public render(): Rendered {
-    const { score, points, error, manual_needed } = get_nbgrader_score(
-      this.props.nbgrader_scores
-    );
-    const action_required: boolean = !!(
-      !this.props.show_all &&
-      (manual_needed || error)
-    );
-    const backgroundColor = action_required ? "#fff1f0" : undefined;
-    return (
-      <Card
-        size="small"
-        style={{ marginTop: "5px", backgroundColor }}
-        extra={this.render_more_toggle(action_required)}
-        title={this.render_title(score, points, error)}
-        bodyStyle={this.props.show_all ? {} : { padding: 0 }}
-      >
-        {this.render_show_all()}
-      </Card>
-    );
-  }
-}
+  const { score, points, error, manual_needed } =
+    get_nbgrader_score(nbgrader_scores);
+
+  const action_required: boolean = !!(!show_all && (manual_needed || error));
+
+  const backgroundColor = action_required ? "#fff1f0" : undefined;
+
+  return (
+    <Card
+      size="small"
+      style={{ marginTop: "5px", backgroundColor }}
+      extra={render_more_toggle(action_required)}
+      title={render_title(score, points, error)}
+      bodyStyle={show_all ? {} : { padding: 0 }}
+    >
+      {render_show_all()}
+    </Card>
+  );
+};

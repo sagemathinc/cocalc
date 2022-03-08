@@ -4,7 +4,7 @@
  */
 
 import { LabeledRow, Loading, SelectorInput } from "../../components";
-import { React } from "../../app-framework";
+
 import { PHYSICAL_KEYBOARDS } from "../../frame-editors/x11-editor/xpra/keyboards";
 
 interface PhysicalKeyboardProps {
@@ -24,6 +24,7 @@ export function EditorSettingsPhysicalKeyboard(
           options={PHYSICAL_KEYBOARDS}
           selected={props.physical_keyboard}
           on_change={props.on_change}
+          showSearch={true}
         />
       </LabeledRow>
     );
@@ -48,6 +49,7 @@ export function EditorSettingsKeyboardVariant(
           options={props.keyboard_variant_options}
           selected={props.keyboard_variant}
           on_change={props.on_change}
+          showSearch={true}
         />
       </LabeledRow>
     );

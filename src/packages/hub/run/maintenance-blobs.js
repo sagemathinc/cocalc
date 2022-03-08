@@ -3,7 +3,7 @@
 Delete expired rows in the database.
 */
 
-const postgres = require("@cocalc/hub/postgres");
+const postgres = require("@cocalc/database");
 
 const db = postgres.db({ ensure_exists: false });
 

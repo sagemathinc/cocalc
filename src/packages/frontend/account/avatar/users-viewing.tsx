@@ -3,10 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useInterval } from 'react-interval-hook';
-import { merge, cmp, copy } from "@cocalc/util/misc";
-import { React, redux, useMemo, useTypedRedux, useState } from "../../app-framework";
-import { Loading } from "../../components";
+import { useInterval } from "react-interval-hook";
+import { cmp } from "@cocalc/util/misc";
+import {
+  redux,
+  useMemo,
+  useTypedRedux,
+  useState,
+  CSS,
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 import { Avatar } from "./avatar";
 
 // How frequently all UsersViewing componenents are completely updated.
@@ -42,7 +48,11 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
   overflowX: "auto",
   display: "flex",
   zIndex: 1,
-};
+  whiteSpace: "nowrap",
+  padding: "1px", // if not set, Chrome draws scrollbars around it #5399
+} as const;
+
+const DEFAULT_STYLE: CSS = { maxWidth: "120px" } as const;
 
 // If neither project_id nor path given, then viewing all projects; if project_id
 // given, then viewing that project; if both given, then viewing a particular file.
@@ -55,6 +65,13 @@ interface Props {
 }
 
 export const UsersViewing: React.FC<Props> = (props) => {
+  const {
+    path,
+    project_id,
+    max_age_s = MAX_AGE_S,
+    style = DEFAULT_STYLE,
+    size = 24,
+  } = props;
   const [counter, set_counter] = useState(0); // used to force update periodically.
 
   // only so component is updated immediately whenever file use changes
@@ -62,15 +79,18 @@ export const UsersViewing: React.FC<Props> = (props) => {
   const users = useMemo(
     () =>
       redux.getStore("file_use")?.get_active_users({
-        project_id: props.project_id,
-        path: props.path,
-        max_age_s: props.max_age_s,
+        project_id,
+        path,
+        max_age_s,
       }),
-    [file_use, props.project_id, props.path, props.max_age_s]
+    [file_use, project_id, path, max_age_s]
   );
 
   // so we can exclude ourselves from list of faces
-  const our_account_id: string | undefined = useTypedRedux("account", "account_id");
+  const our_account_id: string | undefined = useTypedRedux(
+    "account",
+    "account_id"
+  );
 
   useInterval(() => {
     // cause an update
@@ -102,10 +122,10 @@ export const UsersViewing: React.FC<Props> = (props) => {
           <Avatar
             key={account_id + i}
             account_id={account_id}
-            max_age_s={props.max_age_s}
-            project_id={props.project_id}
-            path={props.path}
-            size={props.size}
+            max_age_s={max_age_s}
+            project_id={project_id}
+            path={path}
+            size={size}
             activity={activity}
           />
         );
@@ -118,15 +138,5 @@ export const UsersViewing: React.FC<Props> = (props) => {
     return <Loading />;
   }
 
-  return (
-    <div style={merge(copy(props.style), USERS_VIEWING_STYLE)}>
-      {render_active_users(users)}
-    </div>
-  );
-};
-
-UsersViewing.defaultProps = {
-  max_age_s: MAX_AGE_S,
-  size: 24,
-  style: { maxWidth: "120px" },
+  return <div style={{ ...USERS_VIEWING_STYLE, ...style }}>{render_active_users(users)}</div>;
 };

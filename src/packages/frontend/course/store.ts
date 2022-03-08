@@ -4,18 +4,23 @@
  */
 
 // React libraries
-import { Store, redux } from "../app-framework";
+import { Store, redux } from "@cocalc/frontend/app-framework";
+import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 // CoCalc libraries
 import { cmp, cmp_array, set } from "@cocalc/util/misc";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
-import { TypedMap, createTypedMap } from "../app-framework";
+import { TypedMap, createTypedMap } from "@cocalc/frontend/app-framework";
 import { SITE_NAME } from "@cocalc/util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
-import { Datastore } from "../projects/actions";
+import {
+  Datastore,
+  EnvVars,
+  EnvVarsRecord,
+} from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
@@ -31,6 +36,8 @@ import {
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 import { CourseActions } from "./actions";
+
+export const DEFAULT_LICENSE_UPGRADE_HOST_PROJECT = false;
 
 export type TerminalCommandOutput = TypedMap<{
   project_id: string;
@@ -132,7 +139,9 @@ export type CourseSettingsRecord = TypedMap<{
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
+  license_upgrade_host_project?: boolean; // https://github.com/sagemathinc/cocalc/issues/5360
   site_license_id?: string;
+  site_license_removed?: string; // comma separated list of licenses that have been explicitly removed from this course.
   site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number;
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
@@ -143,6 +152,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_max_output?: number;
   nbgrader_max_output_per_cell?: number;
   nbgrader_parallel?: number;
+  datastore?: Datastore;
+  envvars?: EnvVarsRecord;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -170,6 +181,7 @@ export interface CourseState {
   course_filename: string;
   course_project_id: string;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
@@ -253,6 +265,17 @@ export class CourseStore extends Store<CourseState> {
     } else {
       console.warn(`course/get_datastore: encountered faulty value:`, ds);
       return undefined;
+    }
+  }
+
+  public get_envvars(): EnvVars | undefined {
+    const envvars: unknown = this.getIn(["settings", "envvars"]);
+    if (envvars == null) return undefined;
+    if (typeof (envvars as any)?.toJS === "function") {
+      return (envvars as any).toJS();
+    } else {
+      console.warn(`course/get_envvars: encountered faulty value:`, envvars);
+      return;
     }
   }
 
@@ -474,7 +497,9 @@ export class CourseStore extends Store<CourseState> {
     // allow for the possibility that this fails and return undefined
     // in that case.  This is painful since it involves async calls
     // to the backend, and the code that does this as part of grading
-    // is deep inside other functions...
+    // is deep inside other functions.  The list we return here
+    // is always assumed to be used on a "best effort" basis, so this
+    // is at worst annoying.
   }
 
   public get_comments(assignment_id: string, student_id: string): string {
@@ -916,6 +941,26 @@ export class CourseStore extends Store<CourseState> {
     if (n < 1) return 1;
     if (n > 50) return 50;
     return n;
+  }
+
+  public async getLicenses(force?: boolean): Promise<{
+    [license_id: string]: { expired: boolean; runLimit: number };
+  }> {
+    const licenses: {
+      [license_id: string]: { expired: boolean; runLimit: number };
+    } = {};
+    const license_ids = this.getIn(["settings", "site_license_id"]) ?? "";
+    for (const license_id of license_ids.split(",")) {
+      if (!license_id) continue;
+      const { expires, run_limit } = await site_license_public_info(
+        license_id,
+        force
+      );
+      const expired = !!(expires && expires <= new Date());
+      const runLimit = run_limit ? run_limit : 999999999999999; // effectively unlimited
+      licenses[license_id] = { expired, runLimit };
+    }
+    return licenses;
   }
 }
 

@@ -7,7 +7,7 @@
 Render a static version of a document for use in TimeTravel.
 */
 
-import { Component, React, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 
 import { fromJS, Map } from "immutable";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";

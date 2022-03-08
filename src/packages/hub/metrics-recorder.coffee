@@ -17,17 +17,9 @@ underscore = require('underscore')
 # Prometheus client setup -- https://github.com/siimon/prom-client
 prom_client = require('prom-client')
 
-
-# additionally, record GC statistics
-# https://www.npmjs.com/package/prometheus-gc-stats
-# See my comment in packages/project/kucalc.coffee
-# require('prometheus-gc-stats')()()
-
 # some constants
 FREQ_s     = 5   # update stats every FREQ seconds
 DELAY_s    = 10    # with an initial delay of DELAY seconds
-#DISC_LEN   = 10   # length of queue for recording discrete values
-#MAX_BUFFER = 1000 # max. size of buffered values, which are cleared in the @_update step
 
 # collect some recommended default metrics
 prom_client.collectDefaultMetrics(timeout: FREQ_s * 1000)
@@ -37,13 +29,6 @@ try
     CLK_TCK = parseInt(execSync('getconf CLK_TCK', {encoding: 'utf8'}))
 catch err
     CLK_TCK = null
-
-###
-# exponential smoothing, based on linux's load 1-exp(-1) smoothing
-# with compensation for sampling time FREQ_s
-d = 1 - Math.pow(Math.exp(-1), FREQ_s / 60)
-DECAY = [d, Math.pow(d, 5), Math.pow(d, 15)]
-###
 
 ###
 # there is more than just continuous values

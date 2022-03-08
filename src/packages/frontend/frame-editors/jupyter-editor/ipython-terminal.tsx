@@ -8,7 +8,7 @@ Frame for working with a command line terminal connected to the
 underlying kernel.
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

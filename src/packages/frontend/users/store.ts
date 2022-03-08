@@ -30,6 +30,13 @@ export class UsersStore extends Store<UsersState> {
     return this.getIn(["user_map", account_id, "last_name"], "User");
   }
 
+  /**
+   * the global unique alias name of this user, if specified
+   */
+  get_alias_name(account_id: string): string | undefined {
+    return this.getIn(["user_map", account_id, "name"]);
+  }
+
   // get_color and get_image below: for collaborators the image may
   // immediately be known; for non-collabs
   // it gets looked up via a database query (if not cached):
@@ -40,10 +47,10 @@ export class UsersStore extends Store<UsersState> {
 
   // URL of color (defaults to DEFAULT_COLOR)
   public async get_color(account_id: string): Promise<string> {
-    const user = this.getIn(["user_map", account_id]);
+    const user = this.getIn(["user_map", account_id, "profile"]);
     if (user != null) {
       // known collaborator so easy - already loaded as part of the users table.
-      return user.getIn(["profile", "color"]) ?? DEFAULT_COLOR;
+      return user.get("color") ?? DEFAULT_COLOR;
     }
     await this.get_image(account_id); // ensures profile is known and cached
     return ((profiles.get(account_id) as Profile | undefined)?.color ??

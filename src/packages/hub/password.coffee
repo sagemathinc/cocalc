@@ -14,7 +14,8 @@ email                = require('./email')
 {defaults, required} = misc
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
-base_path   = require('@cocalc/util-node/base-path').default
+base_path   = require('@cocalc/backend/base-path').default
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
@@ -201,7 +202,7 @@ exports.reset_forgot_password = (opts) ->
             # Make the change
             opts.database.change_password
                 account_id    : account_id
-                password_hash : auth.password_hash(opts.mesg.new_password)
+                password_hash : passwordHash(opts.mesg.new_password)
                 cb            : (err, account) ->
                     if err
                         cb(err)
@@ -212,6 +213,8 @@ exports.reset_forgot_password = (opts) ->
                             cb : cb
     ], opts.cb)
 
+# DEPRECATED -- see packages/server/accounts/set-password.ts
+# except this is still used by client.coffee, etc.
 exports.change_password = (opts) ->
     opts = defaults opts,
         mesg       : required
@@ -269,10 +272,13 @@ exports.change_password = (opts) ->
 
             opts.database.change_password
                 account_id    : opts.account_id
-                password_hash : auth.password_hash(opts.mesg.new_password),
+                password_hash : passwordHash(opts.mesg.new_password),
                 cb            : cb
     ], opts.cb)
 
+# DEPRECATED -- see packages/server/accounts/set-email-address.ts
+# except this is still used by client.coffee, etc.  It's just that
+# I've also rewritten it.
 exports.change_email_address = (opts) ->
     opts = defaults opts,
         mesg       : required

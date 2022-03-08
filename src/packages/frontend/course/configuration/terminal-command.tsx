@@ -5,7 +5,6 @@
 
 import { List, Map, fromJS } from "immutable";
 import {
-  React,
   Component,
   Rendered,
   rtypes,

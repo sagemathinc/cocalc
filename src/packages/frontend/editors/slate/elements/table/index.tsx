@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { CSSProperties as CSS } from "react";
+import { CSSProperties as CSS } from "react";
 import { register, SlateElement } from "../register";
 
 export interface Table extends SlateElement {

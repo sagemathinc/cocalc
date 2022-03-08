@@ -7,19 +7,21 @@
 Viewer for public ipynb files.
 */
 
-import React from "react";
+import { CSSProperties, useMemo } from "react";
 import { Alert } from "antd";
 import CellList from "./cell-list";
 import { path_split } from "@cocalc/util/misc";
 import parse from "./parse";
 import { CodeMirrorStatic } from "../codemirror-static";
 import "../output-messages/mime-types/init-nbviewer";
+import { Context } from "./context";
 
 interface Props {
   content: string;
   project_id?: string;
   path?: string;
   fontSize?: number;
+  style?: CSSProperties;
 }
 
 export default function NBViewer({
@@ -27,8 +29,9 @@ export default function NBViewer({
   project_id,
   path,
   fontSize,
+  style,
 }: Props) {
-  const x = React.useMemo(() => {
+  const x = useMemo(() => {
     try {
       return parse(content);
     } catch (error) {
@@ -48,25 +51,23 @@ export default function NBViewer({
       </div>
     );
   }
-  const { cellList, cells, cmOptions } = x;
+  const { cellList, cells, cmOptions, kernelspec } = x;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflowY: "hidden",
-      }}
-    >
-      <CellList
-        cellList={cellList}
-        cells={cells}
-        fontSize={fontSize ?? 14}
-        cmOptions={cmOptions}
-        project_id={project_id}
-        directory={path ? path_split(path).head : undefined}
-      />
-    </div>
+    <Context.Provider value={{ kernelspec }}>
+      <div style={style}>
+        <div style={{ marginBottom: "15px" }}>
+          <b>Kernel:</b> {kernelspec.display_name}
+        </div>
+        <CellList
+          cellList={cellList}
+          cells={cells}
+          fontSize={fontSize}
+          cmOptions={cmOptions}
+          project_id={project_id}
+          directory={path ? path_split(path).head : undefined}
+        />
+      </div>
+    </Context.Provider>
   );
 }

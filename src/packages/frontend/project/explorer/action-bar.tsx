@@ -10,7 +10,11 @@ import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 
-import { Button, ButtonGroup, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Button,
+  ButtonGroup,
+  ButtonToolbar,
+} from "@cocalc/frontend/antd-bootstrap";
 
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import * as misc from "@cocalc/util/misc";
@@ -278,15 +282,17 @@ export const ActionBar: React.FC<Props> = (props) => {
         return;
       }
       return (
-        <CustomSoftwareInfo
-          project_id={props.project_id}
-          images={props.images}
-          project_map={props.project_map}
-          actions={props.actions}
-          available_features={props.available_features}
-          show_custom_software_reset={!!props.show_custom_software_reset}
-          project_is_running={!!props.project_is_running}
-        />
+        <ButtonGroup>
+          <CustomSoftwareInfo
+            project_id={props.project_id}
+            images={props.images}
+            project_map={props.project_map}
+            actions={props.actions}
+            available_features={props.available_features}
+            show_custom_software_reset={!!props.show_custom_software_reset}
+            project_is_running={!!props.project_is_running}
+          />
+        </ButtonGroup>
       );
     } else {
       return render_action_buttons();

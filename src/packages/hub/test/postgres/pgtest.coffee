@@ -138,7 +138,7 @@ exports.changefeed_series = (v, cb) ->
 
 # Start with a clean slate -- delete the test database
 dropdb = (cb) ->
-    misc_node = require('@cocalc/util-node/misc_node')
+    misc_node = require('@cocalc/backend/misc_node')
     log 'delete the test database'
     if not exports.db?
         console.log "ERROR -- exports.db is not defined!"

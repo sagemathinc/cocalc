@@ -7,11 +7,7 @@
 Top-level react component for task list
 */
 
-import {
-  React,
-  useEffect,
-  useEditorRedux,
-} from "../../app-framework";
+import { React, useEffect, useEditorRedux } from "../../app-framework";
 
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
@@ -53,8 +49,8 @@ export const TaskEditor: React.FC<Props> = React.memo(
     const load_time_estimate = useEditor("load_time_estimate");
 
     useEffect(() => {
-      actions.enable_key_handler();
-      return actions.disable_key_handler;
+      actions?.enable_key_handler();
+      return actions?.disable_key_handler;
     }, []);
 
     if (tasks == null || visible == null) {

@@ -4,9 +4,8 @@
  */
 
 import jsonic from "jsonic";
-import { React, Rendered, Component, TypedMap } from "../../app-framework";
+import { Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
-import { SiteLicense } from "./types";
 import { actions } from "./actions";
 import { Button } from "../../antd-bootstrap";
 import { Alert, Row, Col } from "antd";
@@ -40,6 +39,7 @@ import { DisplayQuota, EditQuota } from "./quota";
 import { Projects } from "../../admin/users/projects";
 import { Managers } from "./managers";
 import { ManagerInfo } from "./types";
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
@@ -242,7 +242,11 @@ export class License extends Component<Props> {
                 value={value}
                 onChange={(e) => onChange((e.target as any).value)}
                 onBlur={() => {
-                  onChange(JSON.stringify(jsonic(value), undefined, 2));
+                  try {
+                    onChange(JSON.stringify(jsonic(value), undefined, 2));
+                  } catch (_err) {
+                    // This just means jsonic can't transform it to valid json.
+                  }
                 }}
               />
               <br />

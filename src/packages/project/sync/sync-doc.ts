@@ -13,11 +13,11 @@ This is mainly responsible for:
 
 */
 
-import { SyncTable } from "@cocalc/util/sync/table";
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
-import { SyncString } from "@cocalc/util/sync/editor/string/sync";
-import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
-import { Client } from "@cocalc/util/sync/editor/generic/types";
+import { SyncTable } from "@cocalc/sync/table";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
+import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import { Client } from "@cocalc/sync/editor/generic/types";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
 import { jupyter_backend } from "../jupyter/jupyter";

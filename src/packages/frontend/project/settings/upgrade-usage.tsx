@@ -3,32 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { ProjectsActions } from "@cocalc/frontend/todo-types";
-import { QuotaConsole } from "./quota-console";
-import { RunQuota } from "./run-quota";
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  redux,
+  Rendered,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   Loading,
-  UpgradeAdjustor,
   SettingBox,
+  UpgradeAdjustor,
 } from "@cocalc/frontend/components";
+import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { ShowSupportLink } from "@cocalc/frontend/support";
+import { ProjectsActions } from "@cocalc/frontend/todo-types";
+import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
+import { is_zero_map, plural } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { COLORS } from "@cocalc/util/theme";
 import {
-  redux,
-  rtypes,
-  rclass,
-  Rendered,
-} from "@cocalc/frontend/app-framework";
-import { URLBox } from "./url-box";
-import { Project } from "./types";
-import { HelpEmailLink } from "../../customize";
+  DedicatedDisk,
+  DedicatedVM,
+  dedicated_disk_display,
+} from "@cocalc/util/types/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { QuotaConsole } from "./quota-console";
+import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
-import { COLORS } from "smc-util/theme";
-import { is_zero_map } from "@cocalc/util/misc";
-
-const { ShowSupportLink } = require("../../support");
-const { Row, Col, Button } = require("react-bootstrap");
-const { PROJECT_UPGRADES } = require("@cocalc/util/schema");
+import { Project } from "./types";
+import { URLBox } from "./url-box";
 
 interface Props {
   project_id: string;
@@ -44,6 +49,10 @@ interface Props {
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
   site_license_ids: string[];
+  dedicated_resources?: {
+    vm: false | DedicatedVM;
+    disks: DedicatedDisk[];
+  };
 }
 
 export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
@@ -61,10 +70,12 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     all_projects_have_been_loaded,
     actions,
     //site_license_ids,
+    dedicated_resources,
   } = props;
 
   const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
   const kucalc: string = useTypedRedux("customize", "kucalc");
+  const in_kucalc = kucalc !== KUCALC_DISABLED;
 
   const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
 
@@ -75,6 +86,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
 
   function render_upgrades_button(): Rendered {
     if (!is_commercial) return; // never show if not commercial
+    if (dedicated_resources?.vm !== false) return;
     return (
       <Row style={{ borderBottom: "1px solid grey", paddingBottom: "15px" }}>
         <Col sm={12}>
@@ -128,6 +140,10 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   function render_quota_console(): Rendered {
     // Note -- we always render this, even if is_commercial is false,
     // since we want admins to be able to change the quotas.
+    // except if this runs on a dedicated VM – where the back-end manages the quotas
+    if (dedicated_resources?.vm !== false) {
+      return render_dedicated_vm();
+    }
     return (
       <QuotaConsole
         project_id={project_id}
@@ -146,28 +162,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_support(): Rendered {
-    if (!is_commercial) return; // don't render if not commercial
-    return (
-      <span style={{ color: COLORS.GRAY }}>
-        If you have any questions about upgrading a project, create a{" "}
-        <ShowSupportLink />, or email <HelpEmailLink /> and include the
-        following URL:
-        <URLBox />
-      </span>
-    );
-  }
-
-  function render_site_license(): Rendered {
-    if (!is_commercial) return;
-    return (
-      <SiteLicense
-        project_id={project_id}
-        site_license={project.get("site_license") as any}
-      />
-    );
-  }
-
   function render_run_quota(): Rendered {
     return (
       <RunQuota
@@ -177,15 +171,103 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_dedicated_vm(): Rendered {
+    if (dedicated_resources == null) return <div>Dedicated VM not defined</div>;
+    if (dedicated_resources.vm === false) throw new Error("AssertionError");
+    const vm = dedicated_resources.vm;
+    const human_readable = PRICES.vms[vm.machine]?.title;
+    const name = vm.name;
+
+    return (
+      <div>
+        <p>This project is configured to run on a dedicated virtual machine.</p>
+        <p>
+          <strong>
+            <code>{vm.machine}</code>
+          </strong>
+          {human_readable && <span>&nbsp;providing {human_readable}</span>}
+          {name && (
+            <>
+              , <code>id={name}</code>
+            </>
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  function render_dedicated_disks_list(disks): Rendered {
+    const entries: Rendered[] = [];
+    for (const disk of disks) {
+      if (typeof disk === "boolean") continue;
+      entries.push(
+        <li key={disk.name}>
+          {dedicated_disk_display(disk)}
+          {disk.name && (
+            <>
+              , <code>id={disk.name}</code>
+            </>
+          )}
+        </li>
+      );
+    }
+    return <>{entries}</>;
+  }
+
+  function render_dedicated_disks(): Rendered {
+    if (dedicated_resources == null) return;
+    const disks = dedicated_resources.disks;
+    if (disks == null) return;
+    const num = disks.length;
+    if (num === 0) return;
+    return (
+      <>
+        <hr />
+        <div>
+          <p>Configured dedicated {plural(num, "disk")}:</p>
+          <ul>{render_dedicated_disks_list(disks)}</ul>
+        </div>
+      </>
+    );
+  }
+
+  function render_support(): Rendered {
+    if (!is_commercial) return; // don't render if not commercial
+    return (
+      <>
+        <hr />
+        <span style={{ color: COLORS.GRAY }}>
+          If you have any questions about upgrading a project, create a{" "}
+          <ShowSupportLink />, or email <HelpEmailLink /> and include the
+          following URL:
+          <URLBox />
+        </span>
+      </>
+    );
+  }
+
+  function render_site_license(): Rendered {
+    // site licenses are also used in on-prem setups to tweak project quotas
+    if (!in_kucalc) return;
+    return (
+      <>
+        <hr />
+        <SiteLicense
+          project_id={project_id}
+          site_license={project.get("site_license") as any}
+        />
+      </>
+    );
+  }
+
   return (
     <SettingBox title="Project usage and quotas" icon="dashboard">
       {render_run_quota()}
       {render_upgrades_button()}
       {render_upgrade_adjustor()}
       {render_quota_console()}
-      <hr />
+      {render_dedicated_disks()}
       {render_site_license()}
-      <hr />
       {render_support()}
     </SettingBox>
   );

@@ -3,13 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Number of days to wait until re-inviting students via email.
-// The user can always just click the "Reconfigure all projects" button in
-// the Configuration page, and that always resends email invites.
-export const EMAIL_REINVITE_DAYS = 6;
-
 // CoCalc libraries
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncDBRecord } from "./types";
 // Course Library
 import {
@@ -32,7 +27,7 @@ import { bind_methods } from "@cocalc/util/misc";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 
-const primary_key = {
+export const primary_key = {
   students: "student_id",
   assignments: "assignment_id",
   handouts: "handout_id",
@@ -135,7 +130,7 @@ export class CourseActions extends Actions<CourseState> {
     ) {
       return;
     }
-    const x : any = this.syncdb.get_one(obj);
+    const x: any = this.syncdb.get_one(obj);
     if (x == null) return;
     return x.toJS();
   }
@@ -291,17 +286,19 @@ export class CourseActions extends Actions<CourseState> {
     student_id?: string;
     handout_id?: string;
     finish?: Function;
-  }): {
-    student?: StudentRecord;
-    assignment?: AssignmentRecord;
-    handout?: HandoutRecord;
-    store: CourseStore;
-  } {
-    const r: any = {};
-    const store = (r.store = this.get_store());
+  }) {
+    const r: {
+      student?: StudentRecord;
+      assignment?: AssignmentRecord;
+      handout?: HandoutRecord;
+      store: CourseStore;
+    } = { store: this.get_store() };
 
     if (opts.student_id) {
-      const student = store.get_student(opts.student_id);
+      const student = this.syncdb?.get_one({
+        table: "students",
+        student_id: opts.student_id,
+      }) as StudentRecord | undefined;
       if (student == null) {
         if (opts.finish != null) {
           opts.finish("no student " + opts.student_id);
@@ -312,7 +309,10 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     if (opts.assignment_id) {
-      const assignment = store.get_assignment(opts.assignment_id);
+      const assignment = this.syncdb?.get_one({
+        table: "assignments",
+        assignment_id: opts.assignment_id,
+      }) as AssignmentRecord | undefined;
       if (assignment == null) {
         if (opts.finish != null) {
           opts.finish("no assignment " + opts.assignment_id);
@@ -323,7 +323,10 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     if (opts.handout_id) {
-      const handout = store.get_handout(opts.handout_id);
+      const handout = this.syncdb?.get_one({
+        table: "handouts",
+        handout_id: opts.handout_id,
+      }) as HandoutRecord | undefined;
       if (handout == null) {
         if (opts.finish != null) {
           opts.finish("no handout " + opts.handout_id);

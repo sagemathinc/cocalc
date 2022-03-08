@@ -32,7 +32,6 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 const {
   merge,
@@ -45,11 +44,11 @@ const {
   is_array,
 } = require("@cocalc/util/misc");
 
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 const { key_value_store } = require("@cocalc/util/key-value-store");
 
-import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
+import { get_blob_store } from "./jupyter-blobs-sqlite";
 import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
 import {
   is_likely_iframe,
@@ -62,7 +61,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 
-import { nbconvert } from "./nbconvert";
+import { nbconvert } from "./convert";
 
 import {
   ExecOpts,
@@ -196,7 +195,8 @@ const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
 
 export class JupyterKernel
   extends EventEmitter
-  implements JupyterKernelInterface {
+  implements JupyterKernelInterface
+{
   public name: string;
   public store: any; // used mainly for stdin support right now...
   public readonly identity: string = uuid();
@@ -253,8 +253,10 @@ export class JupyterKernel
     return this._path;
   }
 
+  // no-op if calling it doesn't change the state.
   private _set_state(state: string): void {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
+    if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
@@ -368,12 +370,14 @@ export class JupyterKernel
     this.channel?.subscribe((mesg) => {
       switch (mesg.channel) {
         case "shell":
+          this._set_state("running");
           this.emit("shell", mesg);
           break;
         case "stdin":
           this.emit("stdin", mesg);
           break;
         case "iopub":
+          this._set_state("running");
           if (mesg.content != null && mesg.content.execution_state != null) {
             this.emit("execution_state", mesg.content.execution_state);
           }
@@ -425,12 +429,6 @@ export class JupyterKernel
     if (this._state === "closed") {
       throw Error("closed");
     }
-
-    // We have now received an iopub or shell message from the kernel,
-    // so kernel has started running.
-    dbg("start_running");
-
-    this._set_state("running");
   }
 
   async _get_kernel_info(): Promise<void> {
@@ -698,6 +696,10 @@ export class JupyterKernel
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
+  get_blob_store() {
+    return get_blob_store();
+  }
+
   process_output(content: any): void {
     if (this._state === "closed") {
       return;
@@ -716,7 +718,7 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          content.data[type] = blob_store.save(content.data[type], type);
+          content.data[type] = get_blob_store()?.save(content.data[type], type);
         } else if (
           type === "text/html" &&
           is_likely_iframe(content.data[type])
@@ -727,17 +729,12 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            blob_store
+            get_blob_store()
           );
           delete content.data[type];
         }
       }
     }
-  }
-
-  // Returns a reference to the blob store.
-  get_blob_store(): BlobStore {
-    return blob_store; // the unique global one.
   }
 
   async call(msg_type: string, content?: any): Promise<any> {
@@ -853,7 +850,7 @@ export class JupyterKernel
     }
     args = copy(args);
     args.push("--");
-    args.push(sanitize_nbconvert_path(this._filename));
+    args.push(this._filename);
     await nbconvert({
       args,
       timeout,
@@ -869,7 +866,9 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      return blob_store.readFile(path, "base64");
+      const bs = get_blob_store();
+      if (bs == null) throw new Error("BlobStore not available");
+      return bs.readFile(path, "base64");
     }
     try {
       return await retry_until_success({
@@ -882,8 +881,8 @@ export class JupyterKernel
     }
   }
 
-  process_attachment(base64, mime): string {
-    return blob_store.save(base64, mime);
+  process_attachment(base64, mime): string | undefined {
+    return get_blob_store()?.save(base64, mime);
   }
 
   process_comm_message_from_kernel(mesg): void {

@@ -19,21 +19,21 @@ const winston = require("./logger").getLogger("email");
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import base_path from "@cocalc/util-node/base-path";
-import { secrets } from "@cocalc/util-node/data";
+import base_path from "@cocalc/backend/base-path";
+import { secrets } from "@cocalc/backend/data";
 
-// sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-import * as sendgrid from "@sendgrid/client";
+// sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
+import sendgrid from "@sendgrid/client";
 
-import * as nodemailer from "nodemailer";
+import { createTransport } from "nodemailer";
 
 const misc = require("@cocalc/util/misc");
 const { defaults, required } = misc;
 import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
 import sanitizeHtml from "sanitize-html";
-import { contains_url } from "@cocalc/util-node/misc";
+import { contains_url } from "@cocalc/backend/misc";
 
-const {
+import {
   SENDGRID_TEMPLATE_ID,
   SENDGRID_ASM_NEWSLETTER,
   SENDGRID_ASM_INVITES,
@@ -43,7 +43,7 @@ const {
   DNS,
   HELP_EMAIL,
   LIVE_DEMO_REQUEST,
-} = require("@cocalc/util/theme");
+} from "@cocalc/util/theme";
 
 export function escape_email_body(body: string, allow_urls: boolean): string {
   // in particular, no img and no anchor a
@@ -175,7 +175,7 @@ async function init_smtp_server(opts: Opts, dbg): Promise<void> {
     }
   }
   dbg("SMTP server not configured. setting up ...");
-  smtp_server = await nodemailer.createTransport(conf);
+  smtp_server = await createTransport(conf);
   smtp_server_created = Date.now();
   smtp_server_conf = conf;
   dbg("SMTP server configured");
@@ -407,7 +407,7 @@ async function init_pw_reset_smtp_server(opts): Promise<void> {
   }
 
   // s.password_reset_smtp_from;
-  smtp_pw_reset_server = await nodemailer.createTransport({
+  smtp_pw_reset_server = await createTransport({
     host: s.password_reset_smtp_server,
     port: s.password_reset_smtp_port,
     secure: s.password_reset_smtp_secure, // true for 465, false for other ports

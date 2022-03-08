@@ -40,7 +40,7 @@ const webpack = require("webpack");
 const path = require("path");
 const child_process = require("child_process");
 const misc = require("@cocalc/util/misc");
-const misc_node = require("@cocalc/util-node/misc_node");
+const misc_node = require("@cocalc/backend/misc_node");
 const SMC_VERSION = require("@cocalc/util/smc-version").version;
 const theme = require("@cocalc/util/theme");
 const CDN_VERSIONS = require("@cocalc/cdn").versions;
@@ -117,7 +117,7 @@ const useDiskCache = true;
 
 // It's critical that the caching filesystem is VERY fast, but
 // it is fine if the data is wiped, so use /tmp.
-const cacheDirectory = "/tmp/webpack";
+const cacheDirectory = `/tmp/webpack-${require("os").userInfo().username}`;
 
 if (useDiskCache) {
   console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);

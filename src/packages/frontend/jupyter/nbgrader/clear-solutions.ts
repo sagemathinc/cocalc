@@ -24,12 +24,25 @@ const STUBS: { [language: string]: string[] } = {
   markdown: ["YOUR ANSWER HERE"],
 };
 
+// A friendlier more minimal alternative that some instructors prefer:
+//.   https://github.com/sagemathinc/cocalc/issues/5577
+const STUBS_MINIMAL: { [language: string]: string[] } = {
+  "c++": ["// YOUR CODE HERE"],
+  python: ["# YOUR CODE HERE"],
+  sage: ["# YOUR CODE HERE"],
+  r: ["# YOUR CODE HERE"],
+  matlab: ["% YOUR CODE HERE"],
+  octave: ["% YOUR CODE HERE"],
+  java: ["// YOUR CODE HERE"],
+  markdown: ["YOUR ANSWER HERE"],
+};
+
 const begin_solution_delimiter = "BEGIN SOLUTION";
 
 const end_solution_delimiter = "END SOLUTION";
 
 /*
-replace_solution_region --
+replaceSolutionRegion --
 Find a region in the cell's input that is delimeted by
 `begin_solution_delimiter` and `end_solution_delimiter` (e.g.
 ### BEGIN SOLUTION and ### END SOLUTION). Replace that region either
@@ -38,19 +51,24 @@ with the code stub or text stub, depending the cell type.
 If no solution delimiters at all, replace everything by a stub.
 
 Returns undefined if nothing changed; otherwise, returns the new input.
+
+If minimal_stubs is true, use a "friendly" stub that doesn't cause an error.
 */
-function replace_solution_region(
+function replaceSolutionRegion(
   input: string,
-  language: string
+  language: string,
+  minimal_stubs?: boolean
 ): string | undefined {
   const lines: string[] = input.split("\n");
 
-  if (STUBS[language] == null) {
+  const stubs = minimal_stubs ? STUBS_MINIMAL : STUBS;
+
+  if (stubs[language] == null) {
     // unknown -- default to markdown
     language = "markdown";
   }
-  if (STUBS[language] == null) throw Error("bug");
-  const stub_lines: string[] = STUBS[language];
+  if (stubs[language] == null) throw Error("bug");
+  const stub_lines: string[] = stubs[language];
 
   const new_lines: string[] = [];
   let in_solution: boolean = false;
@@ -102,9 +120,10 @@ function replace_solution_region(
   }
 }
 
-export function clear_solution(
+export default function clearSolution(
   cell: Map<string, any>,
-  kernel_language: string
+  kernel_language: string,
+  minimal_stubs?: boolean
 ): Map<string, any> {
   // Clear the solution region in the input part of the cell, and returns
   // a new modified cell object if necessary.  You can tell whether or not
@@ -113,6 +132,10 @@ export function clear_solution(
   if (typeof input != "string") return cell;
   const cell_type = cell.get("cell_type", "code");
   const language: string = cell_type === "code" ? kernel_language : "markdown";
-  const input2: string | undefined = replace_solution_region(input, language);
+  const input2: string | undefined = replaceSolutionRegion(
+    input,
+    language,
+    minimal_stubs
+  );
   return input2 != null ? cell.set("input", input2) : cell;
 }

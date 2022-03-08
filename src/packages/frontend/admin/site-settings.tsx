@@ -19,6 +19,7 @@ import {
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 
 import { site_settings_conf } from "@cocalc/util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
@@ -31,7 +32,11 @@ const FIELD_DEFAULTS = {
 } as const;
 
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import { ConfigValid, Config, RowType } from "@cocalc/util/db-schema/site-defaults";
+import {
+  ConfigValid,
+  Config,
+  RowType,
+} from "@cocalc/util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
@@ -64,7 +69,8 @@ interface SiteSettingsState {
   state: State; // view --> load --> edit --> save --> view
   error?: string;
   edited?: any;
-  data?: any;
+  data?: { [name: string]: string };
+  isReadonly?: { [name: string]: boolean };
   disable_tests: boolean;
 }
 
@@ -104,21 +110,24 @@ class SiteSettingsComponent extends Component<
     try {
       result = await query({
         query: {
-          site_settings: [{ name: null, value: null }],
+          site_settings: [{ name: null, value: null, readonly: null }],
         },
       });
     } catch (err) {
       this.setState({ state: "error", error: err });
       return;
     }
-    const data = {};
+    const data: { [name: string]: string } = {};
+    const isReadonly: { [name: string]: boolean } = {};
     for (const x of result.query.site_settings) {
       data[x.name] = x.value;
+      isReadonly[x.name] = !!x.readonly;
     }
     this.setState({
       state: "edit" as State,
       error: undefined,
       data,
+      isReadonly,
       edited: deep_copy(data),
       disable_tests: false,
     });
@@ -142,6 +151,7 @@ class SiteSettingsComponent extends Component<
   }
 
   private async store(): Promise<void> {
+    if (this.state.data == null || this.state.edited == null) return;
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (this.is_header[name]) continue;
@@ -171,6 +181,7 @@ class SiteSettingsComponent extends Component<
   }
 
   render_save_button(): Rendered {
+    if (this.state.data == null || this.state.edited == null) return;
     let disabled: boolean = true;
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
@@ -323,6 +334,9 @@ class SiteSettingsComponent extends Component<
     clearable,
     multiline
   ): Rendered {
+    if (this.state.isReadonly == null) return; // typescript
+    const disabled = this.state.isReadonly[name] === true;
+
     if (Array.isArray(valid)) {
       /* This antd code below is broken because something about
          antd is broken.  Maybe it is a bug in antd.
@@ -347,6 +361,7 @@ class SiteSettingsComponent extends Component<
       return (
         <select
           defaultValue={value}
+          disabled={disabled}
           onChange={(event) => this.on_change_entry(name, event.target.value)}
           style={{ width: "100%" }}
         >
@@ -364,6 +379,7 @@ class SiteSettingsComponent extends Component<
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
+            disabled={disabled}
             onChange={(e) => this.on_change_entry(name, e.target.value)}
           />
         );
@@ -379,7 +395,8 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={style}
               value={value}
-              onChange={() => this.on_change_entry(name)}
+              disabled={disabled}
+              onChange={(e) => this.on_change_entry(name, e.target.value)}
             />
           );
         } else {
@@ -388,6 +405,7 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={this.row_entry_style(value, valid)}
               value={value}
+              disabled={disabled}
               onChange={() => this.on_change_entry(name)}
               // clearable disabled, otherwise it's not possible to edit the value
               allowClear={clearable && false}
@@ -409,6 +427,7 @@ class SiteSettingsComponent extends Component<
     clearable?: boolean,
     multiline?: number
   ) {
+    if (this.state.isReadonly == null) return; // typescript
     if (row_type == ("header" as RowType)) {
       return <div />;
     } else {
@@ -430,6 +449,15 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
+                {this.state.isReadonly[name] && (
+                  <>
+                    Value controlled via{" "}
+                    <code>
+                      ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+                    </code>
+                    .
+                  </>
+                )}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>
@@ -441,6 +469,11 @@ class SiteSettingsComponent extends Component<
 
   private render_default_row(name): Rendered | undefined {
     const conf: Config = site_settings_conf[name];
+    if (conf.cocalc_only) {
+      if (!document.location.host.endsWith("cocalc.com")) {
+        return;
+      }
+    }
     return this.render_row(name, conf);
   }
 
@@ -483,6 +516,7 @@ class SiteSettingsComponent extends Component<
       Object.assign(style, {
         borderLeft: `2px solid ${COLORS.GRAY}`,
         marginLeft: "0px",
+        paddingLeft: "5px",
         marginTop: "0px",
       } as React.CSSProperties);
     }
@@ -638,8 +672,11 @@ class SiteSettingsComponent extends Component<
       >
         <b>Important:</b>{" "}
         <i>
-          You must entirely restart the CoCalc server for most of these settings
-          to take effect.
+          Most settings will take effect within 1 minute of saving them;
+          however, some might require restarting the server. If the box
+          containing a setting is red, that means the value that you entered is
+          invalid. Also, the form below are not very nice since it is not user
+          facing; we plan to implement a nicer interface soon.
         </i>
       </div>
     );

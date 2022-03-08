@@ -3,15 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
-import { LabeledRow, SelectorInput } from "../../components";
 
-const EDITOR_BINDINGS = {
-  standard: "Standard",
-  sublime: "Sublime",
-  vim: "Vim",
-  emacs: "Emacs",
-};
+import { LabeledRow, SelectorInput } from "../../components";
+import { EDITOR_BINDINGS } from "@cocalc/util/db-schema/accounts";
 
 interface Props {
   bindings: string;

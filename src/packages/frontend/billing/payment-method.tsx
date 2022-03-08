@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered, useState } from "../app-framework";
+import { Rendered, useState } from "../app-framework";
 import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { Icon, IconName} from "../components/icon";
 import { Space } from "../components/space";

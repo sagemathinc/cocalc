@@ -7,7 +7,7 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { React, Component } from "../../app-framework";
+import { Component } from "../../app-framework";
 import { Icon, Space } from "../../components";
 
 import { COLORS } from "@cocalc/util/theme";

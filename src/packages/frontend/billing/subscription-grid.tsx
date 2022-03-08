@@ -4,7 +4,7 @@
  */
 
 import { Row, Col } from "react-bootstrap";
-import { Component, React, Rendered, redux } from "../app-framework";
+import { Component, Rendered, redux } from "../app-framework";
 import { keys, intersection } from "lodash";
 import { PeriodName } from "./types";
 import { PlanInfo } from "./plan-info";

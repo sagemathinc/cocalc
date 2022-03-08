@@ -3,21 +3,26 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux } from "../app-framework";
+import { useTypedRedux } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
-import { Footer } from "../customize";
+import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
-import { Loading } from "../components";
+import { A, Loading } from "../components";
+import TableError from "./table-error";
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Alert } from "antd";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
+  const name = useTypedRedux("account", "name");
   const email_address = useTypedRedux("account", "email_address");
   const email_address_verified = useTypedRedux(
     "account",
@@ -43,6 +48,7 @@ export const AccountPreferences: React.FC = () => {
         account_id={account_id}
         first_name={first_name}
         last_name={last_name}
+        name={name}
         email_address={email_address}
         email_address_verified={email_address_verified}
         passports={passports}
@@ -72,7 +78,18 @@ export const AccountPreferences: React.FC = () => {
 
   function render_all_settings(): JSX.Element {
     return (
-      <div style={{ marginTop: "1em" }}>
+      <>
+        <Alert
+          showIcon
+          style={{ maxWidth: "600px", margin: "30px auto" }}
+          type="warning"
+          message={
+            <>
+              This is the old preferences page (which still works).{" "}
+              <A href={join(appBasePath, "config")}>Try the new page...</A>
+            </>
+          }
+        />
         <Row>
           <Col xs={12} md={6}>
             {render_account_settings()}
@@ -96,13 +113,14 @@ export const AccountPreferences: React.FC = () => {
           </Col>
         </Row>
         <Footer />
-      </div>
+      </>
     );
   }
 
-  if (is_anonymous) {
-    return render_account_settings();
-  } else {
-    return render_all_settings();
-  }
+  return (
+    <div style={{ marginTop: "1em" }}>
+      <TableError />
+      {is_anonymous ? render_account_settings() : render_all_settings()}
+    </div>
+  );
 };

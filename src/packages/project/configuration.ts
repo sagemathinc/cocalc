@@ -135,8 +135,12 @@ async function get_sshd(): Promise<boolean> {
   return await have("/usr/sbin/sshd");
 }
 
-// we check if we can use cc-ipynb-to-pdf, which uses chrome or chromium
-// smc_pyutil/ipynb_to_pdf.py
+// we check if we can use headless chrome to do html to pdf conversion,
+// which uses either google-chrome or chromium-browser.  Note that there
+// is no good headless pdf support using firefox.
+// (TODO: I don't think this is used in our code in practice, and instead not
+// having one of these at runtime would just result in a error message
+// to the user mentioning it is missing.)
 async function get_html2pdf(): Promise<boolean> {
   return (await have("chromium-browser")) || (await have("google-chrome"));
 }
@@ -181,6 +185,9 @@ async function get_formatting(): Promise<Capabilities> {
     if (tool === ("formatR" as FormatTool)) {
       // TODO special case. must check for package "formatR" in "R" -- for now just test for R
       status.push(have("R"));
+    } else if (tool == ("bib-biber" as FormatTool)) {
+      // another special case
+      status.push(have("biber"));
     } else if (
       tool === ("html-tidy" as FormatTool) ||
       tool === ("xml-tidy" as FormatTool)

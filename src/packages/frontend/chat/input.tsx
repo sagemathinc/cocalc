@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useRedux } from "../app-framework";
+import { useActions, useRedux } from "../app-framework";
 import { MarkdownInput } from "../editors/markdown-input";
 import { IS_MOBILE } from "../feature";
 

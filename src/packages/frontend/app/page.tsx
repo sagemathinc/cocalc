@@ -11,7 +11,6 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { ProjectsNav } from "../projects/projects-nav";
-const { CreateSupportTicket } = require("../support");
 
 import { COLORS } from "@cocalc/util/theme";
 
@@ -36,6 +35,7 @@ import { ConnectionInfo } from "./connection-info";
 import { ConnectionIndicator } from "./connection-indicator";
 import { FileUsePage } from "../file-use/page";
 import { NotificationBell } from "./notification-bell";
+import openSupportTab from "@cocalc/frontend/support/open";
 
 const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = 36;
@@ -92,7 +92,6 @@ const positionHackHeight = `${NAV_HEIGHT - 4}px`;
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
-  const support_actions = useActions("support");
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -116,8 +115,6 @@ export const Page: React.FC = () => {
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
   const new_version = useTypedRedux("page", "new_version");
-
-  const show_support = useTypedRedux("support", "show");
 
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
@@ -240,14 +237,22 @@ export const Page: React.FC = () => {
     if (!is_commercial) {
       return;
     }
+    // Note: that styled span around the label is just
+    // because I'm too lazy to fix this properly, since
+    // it's all ancient react bootstrap stuff that will
+    // get rewritten.
     return (
       <NavTab
-        label={"Help"}
+        label={
+          <span style={{ paddingTop: "3px", display: "inline-block" }}>
+            Help
+          </span>
+        }
         label_class={NAV_CLASS}
         icon={"medkit"}
         inner_style={{ padding: "10px", display: "flex" }}
         active_top_tab={active_top_tab}
-        on_click={() => support_actions.set_show(true)}
+        on_click={openSupportTab}
         hide_label={!show_label}
       />
     );
@@ -274,15 +279,6 @@ export const Page: React.FC = () => {
       >
         {logged_in && groups?.includes("admin") && render_admin_tab()}
         {!logged_in && render_sign_in_tab()}
-        <NavTab
-          name={"about"}
-          label={<SiteName />}
-          label_class={NAV_CLASS}
-          icon={"info-circle"}
-          inner_style={{ padding: "10px", display: "flex" }}
-          active_top_tab={active_top_tab}
-          hide_label={!show_label}
-        />
         {render_support()}
         {logged_in && render_account_tab()}
         {render_bell()}
@@ -370,7 +366,6 @@ export const Page: React.FC = () => {
         </div>
       )}
       {show_connection && <ConnectionInfo />}
-      {show_support && <CreateSupportTicket actions={support_actions} />}
       {new_version && <VersionWarning new_version={new_version} />}
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}

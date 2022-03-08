@@ -15,7 +15,7 @@ class UsersTable extends Table {
     const kiosk_project_id = redux.getStore("page").get("kiosk_project_id");
     if (kiosk_project_id) {
       // In kiosk mode for a project we load only collabs on the relevant project.
-      const query = require("@cocalc/util/sync/table/util").parse_query(
+      const query = require("@cocalc/sync/table/util").parse_query(
         "collaborators_one_project"
       );
       query.collaborators_one_project[0].project_id = kiosk_project_id;

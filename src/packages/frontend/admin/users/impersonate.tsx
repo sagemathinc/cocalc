@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { join } from "path";

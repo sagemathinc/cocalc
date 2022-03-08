@@ -38,8 +38,18 @@ costs add).
 
 import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
-import { Quota as SiteLicenseQuota } from "../db-schema/site-licenses";
+
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { len } from "../misc";
+import { VMS } from "@cocalc/util/upgrades/dedicated";
+import { SiteLicenseQuota } from "../types/site-licenses";
+import {
+  LicenseIdleTimeouts,
+  LicenseIdleTimeoutsKeysOrdered,
+} from "../consts/site-license";
+// TODO how to use the logger ?
+//import { getLogger } from "@cocalc/backend/logger";
+//const L = getLogger("upgrades:quota");
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -86,6 +96,8 @@ export interface Quota {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
+  dedicated_vm?: { machine: string } | boolean;
+  dedicated_disks?: DedicatedDisk[];
 }
 
 type RQuota = Required<Quota>;
@@ -149,8 +161,32 @@ export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
+// all descriptions should be short sentences, expalining the user what's going on
+export const LicenseStatusOptions = {
+  valid: "License could provide upgrades.",
+  active: "License provides upgrades.",
+  expired: "No longer valid.",
+  exhausted: "All seats are used up.",
+  future: "Not yet valid.",
+  ineffective: "Does not provide any additional upgrades.",
+} as const;
+
+export type LicenseStatus = keyof typeof LicenseStatusOptions;
+
+export function isLicenseStatus(status?: unknown): status is LicenseStatus {
+  if (typeof status !== "string") return false;
+  return LicenseStatusOptions[status] != null;
+}
+
+export function licenseStatusProvidesUpgrades(status?: LicenseStatus) {
+  if (status == null) return false;
+  return status === "active" || status === "valid";
+}
+
 // it could be null in the moment when a license is removed via the UI
-export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting | null;
+export type QuotaSetting =
+  | ((Upgrades | SiteLicenseQuotaSetting | {}) & { status?: LicenseStatus })
+  | null;
 
 export type SiteLicenses = {
   [license_id: string]: QuotaSetting;
@@ -176,6 +212,8 @@ const ZERO_QUOTA: RQuota = {
   cpu_limit: 0,
   idle_timeout: 0,
   always_running: false,
+  dedicated_vm: false,
+  dedicated_disks: [] as DedicatedDisk[],
 } as const;
 
 // base quota + calculated default quotas is the quota object each project gets by default
@@ -191,6 +229,8 @@ const BASE_QUOTAS: RQuota = {
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
   always_running: false, // if true, a service restarts the project if it isn't running
+  dedicated_vm: false,
+  dedicated_disks: [] as DedicatedDisk[],
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -202,7 +242,7 @@ function sanitize_overcommit(oc: number | undefined): number | undefined {
 }
 
 // the quota calculation starts with certain base quotas, which could be modified by the site_settings
-function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
+function calcDefaultQuotas(site_settings?: SiteSettingsQuotas): Quota {
   const quota: Quota = { ...BASE_QUOTAS };
 
   // overwrite/set extras for any set default quota in the site setting
@@ -263,58 +303,176 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
   );
 }
 
+function select_dedicated_vm(site_licenses: SiteLicenses): DedicatedVM | null {
+  // if there is a dedicated_vm upgrade, pick the first one
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_vm != null) {
+      const vm = val.quota.dedicated_vm;
+      if (typeof vm !== "boolean" && typeof vm?.machine === "string") {
+        return vm;
+      }
+    }
+  }
+  return null;
+}
+
+// extract all dedicated disks that are defined anywhere
+function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
+  const dedicated_disks: DedicatedDisk[] = [];
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_disk != null) {
+      dedicated_disks.push(val.quota.dedicated_disk);
+    }
+  }
+  return dedicated_disks;
+}
+
+/**
+ * We imply/normalize some settings in order to make the remaining processing easier.
+ */
+function prepareSiteLicenses(site_licenses?: SiteLicenses): SiteLicenses {
+  if (site_licenses == null || isEmpty(site_licenses)) return {};
+
+  for (const sl of Object.values(site_licenses)) {
+    if (!isSiteLicenseQuotaSetting(sl)) continue;
+    const slq = sl.quota;
+    const validIdleTimeouts = Object.keys(LicenseIdleTimeouts);
+    if (slq.idle_timeout != null) {
+      // reset idle_timeouts we don't know
+      if (!validIdleTimeouts.includes(slq.idle_timeout)) {
+        slq.idle_timeout = "short";
+      }
+      // every license with an idle_timeout gets member hosting – unless explicitly disabled (shouldn't be the case)
+      if (slq.member !== false) slq.member = true;
+    } else {
+      // if there is no idle_timeout set, we default to "short"
+      slq.idle_timeout = "short";
+    }
+  }
+
+  return site_licenses;
+}
+
+// this is used below to map the various types of site license upgrades into unique groups
+// key is <member:0/1>-<always_running:0/1>-<idle_timeout>
+function makeSiteLicenseGroupKey(params: {
+  always_running: "0" | "1";
+  member_hosting: "0" | "1";
+  idle_timeout: NonNullable<SiteLicenseQuota["idle_timeout"]>;
+}): string {
+  const { always_running: ar, member_hosting: mh, idle_timeout: it } = params;
+  return `${ar}-${mh}-${it}`;
+}
+
+// return all possible key combinations,
+// where the order is from highest to lowest priority
+export function* siteLicenseSelectionKeys() {
+  const ltkeys = LicenseIdleTimeoutsKeysOrdered.slice(0);
+  // reversing a copy of ordered keys
+  ltkeys.reverse();
+  // one first, higher priority
+  const oneZero = ["1", "0"] as const;
+  // always running
+  for (const ar of oneZero) {
+    // member hosting
+    for (const mh of oneZero) {
+      for (const it of ltkeys) {
+        const k = makeSiteLicenseGroupKey({
+          always_running: ar,
+          member_hosting: mh,
+          idle_timeout: it,
+        });
+        yield k;
+      }
+    }
+  }
+}
+
+export function licenseToGroupKey(val: QuotaSetting): string {
+  const isAR = isSiteLicenseQuotaSetting(val)
+    ? val.quota.always_running === true
+    : ((val as Upgrades).always_running ?? 0) >= 1;
+
+  const isMember = isSiteLicenseQuotaSetting(val)
+    ? val.quota.member === true
+    : ((val as Upgrades).member_host ?? 0) >= 1;
+
+  // prepareSiteLicenses() takes care about always defining quota.idle_timeout (still, TS needs to know)
+  const idle_timeout =
+    (isSiteLicenseQuotaSetting(val) ? val.quota.idle_timeout : "short") ??
+    "short";
+
+  return makeSiteLicenseGroupKey({
+    always_running: isAR ? "1" : "0",
+    member_hosting: isMember ? "1" : "0",
+    idle_timeout,
+  });
+}
+
 // some site licenses do not mix.
 // e.g. always_running==true can't upgrade another (especially large) one not having always_running set.
 // also preempt upgrades shouldn't uprade member hosting upgades.
 //
 // this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
-// TODO: once we have a license with an extended uptime (hours instead of ~30 mins), we introduce that as a third dimension.
-function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
-  if (site_licenses == null || isEmpty(site_licenses)) return {};
+// 2022-02: introducing a third dimension for "idle_timeout" license quota upgrades.
+//
+// Fall 2021: on top of that, "dedicted resources" are treated in a special way
+// * VMs: do not mix with any other upgrades, only one per project
+// * disks: orthogonal to VMs, more than one per project is possible
+function selectSiteLicenses(site_licenses: SiteLicenses): {
+  site_licenses: SiteLicenses;
+  dedicated_disks?: DedicatedDisk[];
+  dedicated_vm?: DedicatedVM;
+} {
+  // this "extracts" all dedicated disk upgrades from the site_licenses map
+  const dedicated_disks = select_dedicated_disks(site_licenses);
 
-  // key is <member>-<always_running> as 0/1 numbers
-  const groups = {
-    "0-0": [],
-    "0-1": [],
-    "1-0": [],
-    "1-1": [],
-  };
+  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
 
-  // classification
+  // if there is a dedicated VM, we ignore all site licenses.
+  if (dedicated_vm != null) {
+    return { site_licenses: {}, dedicated_disks, dedicated_vm };
+  }
+
+  // classification: each group is a list of licenses, and only the group
+  // with the higest priority is considered for license upgrades.
+  const groups: { [key: string]: string[] | null } = {};
   for (const [key, val] of Object.entries(site_licenses)) {
     if (val == null) continue;
-
-    const is_ar = isSiteLicenseQuotaSetting(val)
-      ? val.quota.always_running === true
-      : (val.always_running ?? 0) >= 1;
-
-    const is_member = isSiteLicenseQuotaSetting(val)
-      ? val.quota.member === true
-      : (val.member_host ?? 0) >= 1;
-
-    groups[`${is_member ? "1" : "0"}-${is_ar ? "1" : "0"}`].push(key);
+    const groupKey = licenseToGroupKey(val);
+    const curGrp = groups[groupKey];
+    groups[groupKey] = curGrp == null ? [key] : [...curGrp, key];
   }
 
   // selection -- always_running comes first, then member hosting
-  const selected: string[] | null = (function () {
-    for (const ar of ["1", "0"]) {
-      // always running
-      for (const mh of ["1", "0"]) {
-        // member hosting
-        const k = `${mh}-${ar}`;
-        if (groups[k].length > 0) {
-          return groups[k];
-        }
-      }
+  const selected: string[] | undefined = (function () {
+    for (const k of siteLicenseSelectionKeys()) {
+      const grp = groups[k];
+      if (grp != null && grp.length > 0) return grp;
     }
   })();
 
-  if (selected == null) return {};
+  if (selected == null) return { site_licenses: {}, dedicated_disks };
 
-  return selected.reduce((acc, cur) => {
+  const selected_licenses = selected.reduce((acc, cur) => {
     acc[cur] = site_licenses[cur];
     return acc;
   }, {});
+
+  return { site_licenses: selected_licenses, dedicated_disks };
+}
+
+// idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
+// so we just take the first one. @see selectSiteLicense.
+// the basic unit is seconds!
+function calcSiteLicenseQuotaIdleTimeout(
+  site_licenses?: SiteLicenseQuotaSetting[]
+): number {
+  if (site_licenses == null || site_licenses.length === 0) return 0;
+  const sl = site_licenses[0];
+  const it = sl.quota.idle_timeout;
+  if (it == null) return 0;
+  return LicenseIdleTimeouts[it].mins * 60;
 }
 
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
@@ -335,6 +493,8 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     cpu_request: dflt_num(up.cpu_shares) / 1024,
     privileged: dflt_false(up.privileged),
     idle_timeout: dflt_num(up.mintime),
+    dedicated_vm: false, // old schema has no dedicated_vm upgrades
+    dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
   };
 }
 
@@ -350,7 +510,9 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     cpu_limit: (q.cpu ?? 0) + (q.dedicated_cpu ?? 0),
     cpu_request: q.dedicated_cpu ?? 0,
     privileged: false,
-    idle_timeout: 0, // always zero, until we have an upgrade schema in place
+    idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
+    dedicated_vm: q.dedicated_vm ?? false,
+    dedicated_disks: [] as DedicatedDisk[],
   };
 }
 
@@ -377,7 +539,7 @@ function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
     if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
-    } else {
+    } else if (typeof v === "number") {
       const cmp = op === "min" ? Math.min : Math.max;
       q[k] = cmp(q1[k], q2[k]);
     }
@@ -505,11 +667,20 @@ function quota_v2(opts: OptsV2): Quota {
     ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
   );
 
+  // those site licenses, which have a {quota : ...} set
+  const site_license_quota_settings = Object.values(site_licenses).filter(
+    isSiteLicenseQuotaSetting
+  );
+
   // v2 of licenses, indirectly via {quota: {…}} objects, introducing yet another schema.
   const license_quota_sum = sum_quotas(
-    ...Object.values(site_licenses)
-      .filter(isSiteLicenseQuotaSetting)
-      .map((l: SiteLicenseQuotaSetting) => license2quota(l.quota))
+    ...site_license_quota_settings.map((l: SiteLicenseQuotaSetting) =>
+      license2quota(l.quota)
+    )
+  );
+
+  license_quota_sum.idle_timeout = calcSiteLicenseQuotaIdleTimeout(
+    site_license_quota_settings
   );
 
   // the main idea is old upgrades and licenses quotas only complement each other – not add up.
@@ -561,7 +732,7 @@ export function quota(
   site_settings = Object.freeze(site_settings);
 
   // new quota object, we modify it in-place below and return it.
-  let quota: Quota = calc_default_quotas(site_settings);
+  let quota: Quota = calcDefaultQuotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
   const max_upgrades: Upgrades = Object.freeze({
@@ -569,10 +740,49 @@ export function quota(
     ...(site_settings?.max_upgrades ?? {}),
   });
 
-  // we might not consider all of them!
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  // site_licenses will at least be an empty dict object
+  site_licenses = prepareSiteLicenses(site_licenses);
 
-  return quota_v2({
+  // we might not consider all of them!
+  const {
+    site_licenses: site_licenses_selected,
+    dedicated_disks = [],
+    dedicated_vm = false,
+  } = selectSiteLicenses(site_licenses);
+
+  site_licenses = Object.freeze(site_licenses_selected);
+
+  if (dedicated_vm !== false) {
+    const vm = VMS[dedicated_vm.machine];
+    const dedicated_quota: Partial<RQuota> = {
+      network: true,
+      member_host: true,
+      always_running: true,
+      memory_limit: 128 * 1000, //  fallback, hence this setting is very high!
+      cpu_limit: 16, // fallback, hence this setting is very high!
+      disk_quota: quota.disk_quota, // TODO: introduce disk quotas for VMs or use dedicated disks
+      idle_timeout: quota.idle_timeout, // always_running is true, but it's sane to set this > 0
+    };
+    if (vm == null) {
+      console.log(`no VM spec known for machine "${dedicated_vm.machine}"`);
+    } else {
+      if (vm.spec?.cpu != null) {
+        dedicated_quota.cpu_limit = vm.spec?.cpu;
+      }
+      if (vm.spec?.mem != null) {
+        dedicated_quota.memory_limit = 1000 * vm.spec?.mem;
+      }
+    }
+
+    return {
+      ...ZERO_QUOTA,
+      ...dedicated_quota,
+      dedicated_vm,
+      dedicated_disks,
+    };
+  }
+
+  const total_quota = quota_v2({
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
@@ -580,19 +790,9 @@ export function quota(
     site_licenses,
     site_settings,
   });
-}
 
-// this is used by webapp, not part of this quota calculation, and also not tested
-export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
-  for (const field in license_quota) {
-    if (license_quota[field] == null) continue;
-    if (typeof license_quota[field] == "boolean") {
-      // boolean
-      quota[field] = !!license_quota[field] || !!quota[field];
-    } else {
-      quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
-    }
-  }
+  total_quota.dedicated_disks = dedicated_disks;
+  return total_quota;
 }
 
 // Compute the contribution to quota coming from the quota field of the site licenses.
@@ -608,7 +808,9 @@ export function site_license_quota(
   max_upgrades_param?: Upgrades
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  const { site_licenses: site_licenses_selected, dedicated_vm = false } =
+    selectSiteLicenses(site_licenses);
+  site_licenses = Object.freeze(site_licenses_selected);
   // a fallback, should take site settings into account here as well
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
 
@@ -624,6 +826,8 @@ export function site_license_quota(
     member_host: false,
     privileged: false,
     idle_timeout: 0,
+    dedicated_vm: false,
+    dedicated_disks: [],
   };
 
   for (const license of Object.values(site_licenses)) {
@@ -663,6 +867,15 @@ export function site_license_quota(
     }
   }
 
+  // remember: this function is for the front-end
+  // if there is a dedicated VM, all other licenses are ignored and we set some quotas
+  // to avoid warnings and the red banner, that's all.
+  if (dedicated_vm != null) {
+    total_quota.dedicated_vm = dedicated_vm;
+    total_quota.member_host = true;
+    total_quota.network = true;
+  }
+
   const ret = limit_quota(total_quota, max_upgrades);
   //console.log("total_quota_limited", JSON.stringify(ret, null, 2));
   return ret;
@@ -688,10 +901,14 @@ total_quota =  {            max_upgrades = {
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (typeof val === "boolean") {
+    if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+      // they are ignored
+    } else if (typeof val === "boolean") {
       total_quota[key] &&= val;
-    } else {
+    } else if (typeof val === "number") {
       total_quota[key] = Math.min(total_quota[key], val);
+    } else {
+      throw Error(`unhandled key ${key}`);
     }
   }
   return total_quota;

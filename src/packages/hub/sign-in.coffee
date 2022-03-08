@@ -22,8 +22,10 @@ message              = require('@cocalc/util/message')
 misc                 = require('@cocalc/util/misc')
 {required, defaults} = misc
 auth                 = require('./auth')
-{process_env_int}    = require("@cocalc/util-node/misc")
+{process_env_int}    = require("@cocalc/backend/misc")
+throttle             = require("@cocalc/server/auth/throttle")
 Bottleneck           = require("bottleneck")
+apiKeyAction = require("@cocalc/server/api/manage").default;
 
 # these parameters are per group and per hub!
 bottleneck_opts      =
@@ -31,64 +33,19 @@ bottleneck_opts      =
     maxConcurrent  : process_env_int('THROTTLE_SIGN_IN_CONCURRENT', 10)
 limit_group          = new Bottleneck.Group(bottleneck_opts)
 
-sign_in_fails =
-    email_m : {}
-    email_h : {}
-    ip_m    : {}
-    ip_h    : {}
-
-clear_sign_in_fails_m = () ->
-    sign_in_fails.email_m = {}
-    sign_in_fails.ip_m = {}
-
-clear_sign_in_fails_h = () ->
-    sign_in_fails.email_h = {}
-    sign_in_fails.ip_h = {}
-
-_sign_in_fails_intervals = undefined
-
 record_sign_in_fail = (opts) ->
     {email, ip, logger} = defaults opts,
         email  : required
         ip     : required
         logger : undefined
-    if not _sign_in_fails_intervals?
-        # only start clearing if there has been a failure...
-        _sign_in_fails_intervals = [setInterval(clear_sign_in_fails_m, 60000), setInterval(clear_sign_in_fails_h, 60*60000)]
-
+    throttle.recordFail(email, ip)
     logger?("WARNING: record_sign_in_fail(#{email}, #{ip})")
-    s = sign_in_fails
-    if not s.email_m[email]?
-        s.email_m[email] = 0
-    if not s.ip_m[ip]?
-        s.ip_m[ip] = 0
-    if not s.email_h[email]?
-        s.email_h[email] = 0
-    if not s.ip_h[ip]?
-        s.ip_h[ip] = 0
-    s.email_m[email] += 1
-    s.email_h[email] += 1
-    s.ip_m[ip] += 1
-    s.ip_h[ip] += 1
 
 sign_in_check = (opts) ->
     {email, ip} = defaults opts,
         email : required
         ip    : required
-    s = sign_in_fails
-    if s.email_m[email] > 3
-        # A given email address is allowed at most 3 failed login attempts per minute
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
-    if s.email_h[email] > 30
-        # A given email address is allowed at most 30 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
-    if s.ip_m[ip] > 10
-        # A given ip address is allowed at most 10 failed login attempts per minute.
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
-    if s.ip_h[ip] > 50
-        # A given ip address is allowed at most 50 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
-    return false
+    return throttle.signInCheck(email, ip)
 
 exports.sign_in = (opts) ->
     opts = defaults opts,
@@ -148,7 +105,6 @@ _sign_in = (opts, done) ->
 
     signed_in_mesg = undefined
     account = undefined
-    {api_key_action} = require('./api/manage')   # here, rather than at beginning of file, due to some circular references...
 
     async.series([
         (cb) ->
@@ -208,26 +164,20 @@ _sign_in = (opts, done) ->
             if not mesg.get_api_key
                 cb(); return
             dbg("get_api_key -- also get_api_key")
-            api_key_action
-                database   : opts.database
-                account_id : account.account_id
-                password   : mesg.password
-                action     : 'get'
-                cb       : (err, api_key) =>
-                    signed_in_mesg.api_key = api_key
-                    cb(err)
+            try
+                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'get'})
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             if not mesg.get_api_key or signed_in_mesg.api_key
                 cb(); return
             dbg("get_api_key -- must generate key since don't already have it")
-            api_key_action
-                database   : opts.database
-                account_id : account.account_id
-                password   : mesg.password
-                action     : 'regenerate'
-                cb       : (err, api_key) =>
-                    signed_in_mesg.api_key = api_key
-                    cb(err)
+            try
+                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'regenerate'})
+                cb()
+            catch err
+                cb(err)
     ], (err) ->
         if err
             dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")

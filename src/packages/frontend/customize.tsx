@@ -5,40 +5,42 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
-import { List } from "immutable";
-import {
-  redux,
-  Redux,
-  rclass,
-  rtypes,
-  Store,
-  Actions,
-  TypedMap,
-} from "./app-framework";
-import React from "react";
-import {
-  Loading,
-  Space,
-  smc_version,
-  build_date,
-  smc_git_rev,
-  UNIT,
-} from "./r_misc";
-import { Quota } from "@cocalc/util/upgrades/quota";
-// import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+  KUCALC_ON_PREMISES,
+  site_settings_conf,
+} from "@cocalc/util/db-schema/site-defaults";
 import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";
-import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
+import { gtag_id } from "@cocalc/util/theme";
+import { Quota } from "@cocalc/util/upgrades/quota";
+import { List } from "immutable";
 import { join } from "path";
+import {
+  Actions,
+  rclass,
+  React,
+  redux,
+  Redux,
+  rtypes,
+  Store,
+  TypedMap,
+  useTypedRedux,
+} from "./app-framework";
+import {
+  A,
+  build_date,
+  Loading,
+  r_join,
+  smc_git_rev,
+  smc_version,
+  Space,
+  UNIT,
+} from "./components";
 import { appBasePath } from "./customize/app-base-path";
 export { TermsOfService } from "./customize/terms-of-service";
-
-import {
-  KUCALC_DISABLED,
-  KUCALC_COCALC_COM,
-  KUCALC_ON_PREMISES,
-} from "@cocalc/util/db-schema/site-defaults";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -93,6 +95,7 @@ export interface CustomizeState {
   organization_email: string;
   organization_name: string;
   organization_url: string;
+  share_server: boolean;
   site_description: string;
   site_name: string;
   splash_image: string;
@@ -180,7 +183,7 @@ function process_customize(obj) {
     const v = site_settings_conf[k];
     obj[k] = obj[k] ?? v.default;
     if (typeof v.to_val === "function") {
-      obj[k] = v.to_val(obj[k]);
+      obj[k] = v.to_val(obj[k], obj);
     }
   }
   set_customize(obj);
@@ -198,106 +201,54 @@ export function set_customize(obj) {
   actions.setState(obj);
 }
 
-interface Props0 {
-  text: React.ReactNode;
-  color?: string;
-}
-
-interface ReduxProps {
-  help_email: string;
-  _is_configured: boolean;
-}
-
-const HelpEmailLink0 = rclass<Props0>(
-  class HelpEmailLink extends React.Component<Props0 & ReduxProps> {
-    public static reduxProps() {
-      return {
-        customize: {
-          help_email: rtypes.string,
-          _is_configured: rtypes.bool,
-        },
-      };
-    }
-
-    public render() {
-      const style: React.CSSProperties = {};
-      if (this.props.color != undefined) {
-        style.color = this.props.color;
-      }
-
-      if (this.props._is_configured) {
-        if (this.props.help_email?.length > 0) {
-          return (
-            <a
-              href={`mailto:${this.props.help_email}`}
-              target="_blank"
-              style={style}
-            >
-              {this.props.text != undefined
-                ? this.props.text
-                : this.props.help_email}
-            </a>
-          );
-        } else {
-          return (
-            <span>
-              <em>
-                {"["}not configured{"]"}
-              </em>
-            </span>
-          );
-        }
-      } else {
-        return <Loading style={{ display: "inline" }} />;
-      }
-    }
-  }
-);
-
 interface HelpEmailLink {
   text?: React.ReactNode;
   color?: string;
 }
 
-export function HelpEmailLink(props: HelpEmailLink) {
-  return (
-    <Redux>
-      <HelpEmailLink0 text={props.text} color={props.color} />
-    </Redux>
-  );
-}
+export const HelpEmailLink: React.FC<HelpEmailLink> = React.memo(
+  (props: HelpEmailLink) => {
+    const { text, color } = props;
 
-interface SiteNameProps {
-  site_name: string;
-}
+    const help_email = useTypedRedux("customize", "help_email");
+    const _is_configured = useTypedRedux("customize", "_is_configured");
 
-const SiteName0 = rclass<{}>(
-  class SiteName extends React.Component<SiteNameProps> {
-    public static reduxProps() {
-      return {
-        customize: {
-          site_name: rtypes.string,
-        },
-      };
+    const style: React.CSSProperties = {};
+    if (color != null) {
+      style.color = color;
     }
 
-    public render(): JSX.Element {
-      if (this.props.site_name) {
-        return <span>{this.props.site_name}</span>;
+    if (_is_configured) {
+      if (help_email?.length > 0) {
+        return (
+          <A href={`mailto:${help_email}`} style={style}>
+            {text ?? help_email}
+          </A>
+        );
       } else {
-        return <Loading style={{ display: "inline" }} />;
+        return (
+          <span>
+            <em>
+              {"["}not configured{"]"}
+            </em>
+          </span>
+        );
       }
+    } else {
+      return <Loading style={{ display: "inline" }} />;
     }
   }
 );
 
-export function SiteName() {
-  return (
-    <Redux>
-      <SiteName0 />
-    </Redux>
-  );
-}
+export const SiteName: React.FC = React.memo(() => {
+  const site_name = useTypedRedux("customize", "site_name");
+
+  if (site_name != null) {
+    return <span>{site_name}</span>;
+  } else {
+    return <Loading style={{ display: "inline" }} />;
+  }
+});
 
 interface SiteDescriptionProps {
   style?: React.CSSProperties;
@@ -328,6 +279,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
   }
 );
 
+// TODO: not used?
 export function SiteDescription({ style }: { style?: React.CSSProperties }) {
   return (
     <Redux>
@@ -393,6 +345,7 @@ const CustomizeStringElement = rclass<CustomizeStringProps>(
   }
 );
 
+// TODO: not used?
 export function CustomizeString({ name }: CustomizeStringProps) {
   return (
     <Redux>
@@ -430,6 +383,7 @@ const AccountCreationEmailInstructions0 = rclass<{}>(
   }
 );
 
+// TODO is this used?
 export function AccountCreationEmailInstructions() {
   return (
     <Redux>
@@ -438,77 +392,53 @@ export function AccountCreationEmailInstructions() {
   );
 }
 
-interface FooterRedux {
-  site_name: string;
-  organization_name: string;
-  terms_of_service_url: string;
-}
+export const Footer: React.FC = React.memo(() => {
+  const on = useTypedRedux("customize", "organization_name");
+  const tos = useTypedRedux("customize", "terms_of_service_url");
 
-const FooterElement = rclass<{}>(
-  class FooterComponent extends React.Component<FooterRedux> {
-    public static reduxProps = () => {
-      return {
-        customize: {
-          site_name: rtypes.string,
-          organization_name: rtypes.string,
-          terms_of_service_url: rtypes.string,
-        },
-      };
-    };
-    render() {
-      const on = this.props.organization_name;
-      const orga = on.length > 0 ? on : theme.COMPANY_NAME;
-      const tos = this.props.terms_of_service_url;
-      const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
-      const yt =
-        `Version ${smc_version} @ ${build_date}` +
-        ` | ${smc_git_rev.slice(0, 8)}`;
-      const style: React.CSSProperties = {
-        fontSize: "small",
-        color: "gray",
-        textAlign: "center",
-        padding: `${2 * UNIT}px 0`,
-      };
-      return (
-        <footer style={style}>
-          <hr />
-          <Space />
-          <a href={appBasePath}>
-            <SiteName /> by {orga} &middot;{" "}
-          </a>
-          <a target="_blank" rel="noopener" href={TOSurl}>
-            Terms of Service
-          </a>{" "}
-          &middot; <HelpEmailLink /> &middot;{" "}
-          <span title={yt}>&copy; {YEAR}</span>
-        </footer>
-      );
-    }
+  const organizationName = on.length > 0 ? on : theme.COMPANY_NAME;
+  const TOSurl = tos.length > 0 ? tos : PolicyTOSPageUrl;
+  const webappVersionInfo =
+    `Version ${smc_version} @ ${build_date}` + ` | ${smc_git_rev.slice(0, 8)}`;
+  const style: React.CSSProperties = {
+    color: "gray",
+    textAlign: "center",
+    paddingBottom: `${UNIT}px`,
+  };
+
+  function contents() {
+    const elements = [
+      <A href={appBasePath}>
+        <SiteName /> by {organizationName}
+      </A>,
+      <A href={SystemStatusUrl}>System Status</A>,
+      <A href={TOSurl}>Terms of Service</A>,
+      <HelpEmailLink />,
+      <span title={webappVersionInfo}>&copy; {YEAR}</span>,
+    ];
+    return r_join(elements, <> &middot; </>);
   }
-);
 
-export function Footer() {
   return (
-    <Redux>
-      <FooterElement />
-    </Redux>
+    <footer style={style}>
+      <hr />
+      <Space />
+      {contents()}
+    </footer>
   );
-}
+});
 
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
 
-export const PolicyIndexPageUrl = join(appBasePath, "policies/index.html");
-export const PolicyPricingPageUrl = join(appBasePath, "policies/pricing.html");
-export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy.html");
-export const PolicyCopyrightPageUrl = join(
-  appBasePath,
-  "policies/copyright.html"
-);
-export const PolicyTOSPageUrl = join(appBasePath, "policies/terms.html");
+export const PolicyIndexPageUrl = join(appBasePath, "policies");
+export const PolicyPricingPageUrl = join(appBasePath, "pricing");
+export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy");
+export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
+export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
+export const SystemStatusUrl = join(appBasePath, "info/status");
 
-import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;

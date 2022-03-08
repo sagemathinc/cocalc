@@ -35,6 +35,7 @@ import {
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import SavingProjectSettingsError from "./saving-project-settings-error";
 
 interface ReactProps {
   project_id: string;
@@ -134,6 +135,9 @@ export const Body = rclass<ReactProps>(
       const site_license_ids: string[] = store.get_site_license_ids(
         this.props.project_id
       );
+      const dedicated_resources = store.get_total_site_license_dedicated(
+        this.props.project_id
+      );
 
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
@@ -169,13 +173,15 @@ export const Body = rclass<ReactProps>(
           <h1 style={{ marginTop: "0px" }}>
             <Icon name="wrench" /> Project Settings
           </h1>
+          <SavingProjectSettingsError project_id={this.props.project_id} />
           <Row>
             <Col sm={6}>
               <AboutBox
                 project_id={id}
-                project_title={this.props.project.get("title") || ""}
-                description={this.props.project.get("description") || ""}
+                project_title={this.props.project.get("title") ?? ""}
+                description={this.props.project.get("description") ?? ""}
                 created={this.props.project.get("created")}
+                name={this.props.project.get("name")}
                 actions={redux.getActions("projects")}
               />
               <UpgradeUsage
@@ -198,6 +204,7 @@ export const Body = rclass<ReactProps>(
                 }
                 site_license_upgrades={site_license_upgrades}
                 site_license_ids={site_license_ids}
+                dedicated_resources={dedicated_resources}
               />
 
               <HideDeleteBox
@@ -225,6 +232,7 @@ export const Body = rclass<ReactProps>(
                 name={this.props.name}
                 key={"capabilities"}
                 project={this.props.project}
+                project_id={this.props.project_id}
               />
             </Col>
             <Col sm={6}>

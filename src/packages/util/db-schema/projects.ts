@@ -43,6 +43,7 @@ Table({
         throttle_changes: 2000,
         fields: {
           project_id: null,
+          name: null,
           title: "",
           description: "",
           users: {},
@@ -69,6 +70,7 @@ Table({
         fields: {
           project_id: "project_write",
           title: true,
+          name: true,
           description: true,
           deleted: true,
           invite_requests: true, // project collabs can modify this (e.g., to remove from it once user added or rejected)
@@ -81,7 +83,9 @@ Table({
           site_license: true,
           env: true,
         },
-
+        required_fields: {
+          project_id: true,
+        },
         before_change(database, old_val, new_val, account_id, cb) {
           database._user_set_query_project_change_before(
             old_val,
@@ -127,6 +131,11 @@ Table({
       type: "uuid",
       desc: "The project id, which is the primary key that determines the project.",
     },
+    name: {
+      type: "string",
+      pg_type: "VARCHAR(100)",
+      desc: "The optional name of this project.  Must be globally unique (up to case) across all projects with a given *owner*.  It can be between 1 and 100 characters from a-z A-Z 0-9 period and dash.",
+    },
     title: {
       type: "string",
       desc: "The short title of the project. Should use no special formatting, except hashtags.",
@@ -137,7 +146,7 @@ Table({
     }, // markdown rendering possibly not implemented
     users: {
       type: "map",
-      desc: "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}.",
+      desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
     },
     invite: {
       type: "map",
@@ -164,7 +173,7 @@ Table({
     },
     site_license: {
       type: "map",
-      desc: "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {licensed_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The licensed_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly.",
+      desc: "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly.",
     },
     status: {
       type: "map",
@@ -461,6 +470,8 @@ export interface ProjectStatus {
   "browser-server.port"?: number; // port listening for http/websocket conn from browser client
   "sage_server.port"?: number; // port where sage server is listening.
   "sage_server.pid"?: number; // pid of sage server process
+  start_ts?: number; // timestamp, when project server started
+  session_id?: string; // unique identifyer
   secret_token?: string; // long random secret token that is needed to communicate with local_hub
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk

@@ -1,4 +1,3 @@
-import React from "react";
 import register from "./register";
 import { Javascript } from "../javascript";
 import { UntrustedJavascript } from "../untrusted-javascript";

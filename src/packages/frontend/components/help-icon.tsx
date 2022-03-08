@@ -8,7 +8,7 @@ Display a ? "help" icon, which -- when clicked -- shows a help tip
 */
 
 import { Popover } from "antd";
-import { React, useState } from "../app-framework";
+import { useState } from "../app-framework";
 import { Icon } from "./icon";
 
 interface Props {

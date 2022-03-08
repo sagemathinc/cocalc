@@ -9,7 +9,7 @@ Actions involving configuration of the course.
 
 import { webapp_client } from "../../webapp-client";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { CourseActions } from "../actions";
+import { CourseActions, primary_key } from "../actions";
 import { store as projects_store } from "../../projects/store";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -17,8 +17,9 @@ import {
   SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../../custom-software/selector";
-import { Datastore } from "../../projects/actions";
+import { Datastore, EnvVars } from "../../projects/actions";
 import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -62,6 +63,7 @@ export class ConfigurationActions {
   public remove_site_license_id(license_id: string): void {
     const store = this.course_actions.get_store();
     let cur = store.getIn(["settings", "site_license_id"]) ?? "";
+    let removed = store.getIn(["settings", "site_license_removed"]) ?? "";
     if (cur.indexOf(license_id) == -1) return; // already removed
     const v: string[] = [];
     for (const id of cur.split(",")) {
@@ -69,7 +71,15 @@ export class ConfigurationActions {
         v.push(id);
       }
     }
-    this.set({ site_license_id: v.join(","), table: "settings" });
+    const site_license_id = v.join(",");
+    if (!removed.includes(license_id)) {
+      removed = removed.split(",").concat([license_id]).join(",");
+    }
+    this.set({
+      site_license_id,
+      site_license_removed: removed,
+      table: "settings",
+    });
   }
 
   public set_site_license_strategy(
@@ -135,14 +145,21 @@ export class ConfigurationActions {
       // NOTE: we never remove it or any other licenses from the host project,
       // since instructor may want to augment license with another license.
       const store = this.course_actions.get_store();
-      const site_license_id = store.getIn(["settings", "site_license_id"]);
-      const actions = redux.getActions("projects");
-      const course_project_id = store.get("course_project_id");
-      if (site_license_id) {
-        await actions.add_site_license_to_project(
-          course_project_id,
-          site_license_id
-        );
+      // be explicit about copying all course licenses to host project
+      // https://github.com/sagemathinc/cocalc/issues/5360
+      const license_upgrade_host_project =
+        store.getIn(["settings", "license_upgrade_host_project"]) ??
+        DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
+      if (license_upgrade_host_project) {
+        const site_license_id = store.getIn(["settings", "site_license_id"]);
+        const actions = redux.getActions("projects");
+        const course_project_id = store.get("course_project_id");
+        if (site_license_id) {
+          await actions.add_site_license_to_project(
+            course_project_id,
+            site_license_id
+          );
+        }
       }
     } catch (err) {
       this.course_actions.set_error(`Error configuring host project - ${err}`);
@@ -210,6 +227,7 @@ export class ConfigurationActions {
     try {
       // make sure the course config for that nbgrader project (mainly for the datastore!) is set
       const datastore: Datastore = store.get_datastore();
+      const envvars: EnvVars = store.get_envvars();
       const projects_actions = redux.getActions("projects");
 
       // if for some reason this is a student project, we don't want to reconfigure it
@@ -225,7 +243,9 @@ export class ConfigurationActions {
           null, // account_id
           null, // email_address
           datastore,
-          "nbgrader" // type of project
+          "nbgrader", // type of project
+          undefined, // student_project_functionality
+          envvars
         );
       }
 
@@ -333,9 +353,40 @@ export class ConfigurationActions {
 
   public set_datastore(datastore: Datastore): void {
     this.set({ datastore, table: "settings" });
+    this.configure_all_projects_shared_and_nbgrader();
+  }
+
+  public set_envvars(inherit: boolean): void {
+    this.set({ envvars: { inherit }, table: "settings" });
+    this.configure_all_projects_shared_and_nbgrader();
+  }
+
+  public set_license_upgrade_host_project(upgrade: boolean): void {
+    this.set({ license_upgrade_host_project: upgrade, table: "settings" });
+    this.configure_host_project();
+  }
+
+  private configure_all_projects_shared_and_nbgrader() {
     this.course_actions.student_projects.configure_all_projects();
-    this.course_actions.shared_project.set_datastore();
-    // in case there is one, we have to set the datastore as well
+    this.course_actions.shared_project.set_datastore_and_envvars();
+    // in case there is a separate nbgrader project, we have to set the envvars as well
     this.configure_nbgrader_grade_project();
+  }
+
+  public purgeDeleted(): void {
+    const { syncdb } = this.course_actions;
+    for (const record of syncdb.get()) {
+      if (record?.get("deleted")) {
+        for (const table in primary_key) {
+          const key = primary_key[table];
+          if (record.get(key)) {
+            console.log("deleting ", record.toJS());
+            syncdb.delete({ [key]: record.get(key) });
+            break;
+          }
+        }
+      }
+    }
+    syncdb.commit();
   }
 }

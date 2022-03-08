@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
+
 import { Alert } from "../../antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
 import { A, Icon, Space } from "../../components";
@@ -35,7 +35,7 @@ export const NonMemberProjectWarning: React.FC<Options> = (opts) => {
         <span>
           Your {total} members-only hosting {plural(total, "upgrade")} are
           already in use on other projects. You can{" "}
-          <A href={url} style={{ cursor: "pointer" }}>
+          <A href={url}>
             purchase further upgrades{" "}
           </A>{" "}
           by adding a subscription (you can add the same subscription multiple
@@ -47,7 +47,7 @@ export const NonMemberProjectWarning: React.FC<Options> = (opts) => {
       suggestion = (
         <span>
           <Space />
-          <A href={url} style={{ cursor: "pointer" }}>
+          <A href={url}>
             Licenses start at about $3/month...
           </A>
         </span>

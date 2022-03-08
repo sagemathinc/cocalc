@@ -8,7 +8,7 @@ Settings and configuration for editing this file.
 */
 
 import { Map } from "immutable";
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 import { EditorDescription } from "../frame-tree/types";
 import { is_different } from "@cocalc/util/misc";
 // import from icon only necessary for testing via Jest

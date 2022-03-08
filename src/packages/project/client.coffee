@@ -33,9 +33,9 @@ async   = require('async')
 
 message    = require('@cocalc/util/message')
 misc       = require('@cocalc/util/misc')
-misc_node  = require('@cocalc/util-node/misc_node')
-synctable2 = require('@cocalc/util/sync/table')
-syncdb2    = require('@cocalc/util/sync/editor/db')
+misc_node  = require('@cocalc/backend/misc_node')
+synctable2 = require('@cocalc/sync/table')
+syncdb2    = require('@cocalc/sync/editor/db')
 schema     = require('@cocalc/util/schema')
 
 sage_session = require('./sage_session')
@@ -61,7 +61,7 @@ winston = getLogger('Client')
 
 DEBUG = false
 # Easy way to enable debugging in any project anywhere.
-DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
+DEBUG_FILE = join(process.env.HOME, '.smc-DEBUG')
 if fs.existsSync(DEBUG_FILE)
     DEBUG = true
 else if kucalc.IN_KUCALC
@@ -524,7 +524,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             blob : required   # Buffer of data
             sha1 : undefined
-            uuid : undefined  # if given is uuid derived from sha1
+            uuid : undefined  # if given then uuid must be derived from sha1 hash
             cb   : undefined  # (err, resp)
         if opts.uuid?
             uuid = opts.uuid

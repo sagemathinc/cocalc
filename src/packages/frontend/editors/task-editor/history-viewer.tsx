@@ -12,7 +12,7 @@ import { TaskList } from "./list";
 import { CSS, React, useState } from "../../app-framework";
 import { Icon } from "../../components";
 import { cmp } from "@cocalc/util/misc";
-import { SyncDB } from "@cocalc/util/sync/editor/db";
+import { SyncDB } from "@cocalc/sync/editor/db";
 import { Tasks } from "./types";
 
 const SHOW_DONE_STYLE: CSS = {

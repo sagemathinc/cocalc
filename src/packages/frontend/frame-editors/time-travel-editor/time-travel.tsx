@@ -8,13 +8,7 @@
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
 
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 import { Loading } from "../../components";
 
 import { TimeTravelActions } from "./actions";
@@ -32,7 +26,7 @@ import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
 import json_stable from "json-stable-stringify";
-import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
 import {
   HistoryViewer as JupyterHistoryViewer,

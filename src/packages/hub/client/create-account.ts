@@ -24,14 +24,12 @@ import {
 } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
-import { PostgreSQL } from "../postgres/types";
-const { api_key_action } = require("../api/manage");
-import {
-  get_server_settings,
-  have_active_registration_tokens,
-  get_passports,
-} from "../utils";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import apiKeyAction from "@cocalc/server/api/manage";
+import { have_active_registration_tokens, get_passports } from "../utils";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import { getLogger } from "@cocalc/hub/logger";
+import passwordHash from "@cocalc/backend/auth/password-hash";
 
 const winston = getLogger("create-account");
 
@@ -74,6 +72,7 @@ async function get_db_client(db: PostgreSQL) {
 }
 
 // if the email address's domain should go through SSO, return the domain name
+// THIS HAS BEEN REWRITTEN AT @cocalc/server/auth/is-domain-exclusive-sso
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
   email?: string
@@ -86,7 +85,7 @@ async function is_domain_exclusive_sso(
 
   const blocked = new Set<string>([]);
   for (const pp of passports) {
-    for (const domain of pp.conf.exclusive_domains ?? []) {
+    for (const domain of pp.conf?.exclusive_domains ?? []) {
       blocked.add(domain);
     }
   }
@@ -100,6 +99,12 @@ async function is_domain_exclusive_sso(
 }
 
 // return true if allowed to continue creating an account (either no token required or token matches)
+// NOTE: completely rewritten in src/packages/server/auth/tokens/redeem.ts
+// This is not really used (except for the settings app sign in page, which is going to get deleted).
+// Also it has a bug:  Basically, you have a big try/catch and you rollback the transaction if there
+// is an exception. However, if something goes wrong your code actually just does return "error message.".
+// Hence if ever anybody enters an incorrect token, the transaction just gets left opened -- it is
+// never committed or rolled back.
 async function check_registration_token(
   db: PostgreSQL,
   token: string | undefined
@@ -314,7 +319,7 @@ export async function create_account(
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
       password_hash: opts.mesg.password
-        ? auth.password_hash(opts.mesg.password)
+        ? passwordHash(opts.mesg.password)
         : undefined,
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent,
@@ -394,8 +399,7 @@ export async function create_account(
 
     if (opts.mesg.get_api_key) {
       dbg("get_api_key -- generate key and include in response message");
-      mesg1.api_key = await callback2(api_key_action, {
-        database: opts.database,
+      mesg1.api_key = await apiKeyAction({
         account_id,
         password: opts.mesg.password,
         action: "regenerate",

@@ -8,7 +8,7 @@ This (and the ProjectQuotaBoundsTable) are currently only showed
 in the backend static pages, so the tooltips are not visible there (no javascript).
 */
 
-import { Component, React, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
