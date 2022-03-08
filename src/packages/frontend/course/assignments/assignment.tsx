@@ -118,7 +118,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       user_map,
     } = props;
 
-    const buttonSize = useButtonSize();
+    const { bsSize } = useButtonSize();
 
     const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
     const [
@@ -516,7 +516,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         <Button
           key="assign"
           bsStyle={bsStyle}
-          bsSize={buttonSize}
+          bsSize={bsSize}
           onClick={show_copy_confirm}
           disabled={copy_confirm}
         >
@@ -576,7 +576,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         set_copy_assignment_confirm_overwrite(false);
       };
       return (
-        <Button key="cancel" onClick={cancel} bsSize={buttonSize}>
+        <Button key="cancel" onClick={cancel} bsSize={bsSize}>
           Close
         </Button>
       );
@@ -915,7 +915,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           }}
           disabled={copy_confirm}
           bsStyle={bsStyle}
-          bsSize={buttonSize}
+          bsSize={bsSize}
         >
           <Tip
             title={
@@ -984,7 +984,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           }}
           disabled={copy_confirm}
           bsStyle={bsStyle}
-          bsSize={buttonSize}
+          bsSize={bsSize}
         >
           <Tip
             title={
@@ -1050,7 +1050,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           }}
           disabled={copy_confirm}
           bsStyle={bsStyle}
-          bsSize={buttonSize}
+          bsSize={bsSize}
         >
           <Tip
             title={
@@ -1090,7 +1090,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         ? "check-square-o"
         : "square-o";
       return (
-        <Button onClick={toggle_skip_grading} bsSize={buttonSize}>
+        <Button onClick={toggle_skip_grading} bsSize={bsSize}>
           <Icon name={icon} /> Skip entering grades
         </Button>
       );
@@ -1152,7 +1152,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           }}
           disabled={copy_confirm}
           bsStyle={bsStyle}
-          bsSize={buttonSize}
+          bsSize={bsSize}
         >
           <Tip
             title={
@@ -1196,14 +1196,14 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
               key="yes"
               onClick={delete_assignment}
               bsStyle="danger"
-              bsSize={buttonSize}
+              bsSize={bsSize}
             >
               <Icon name="trash" /> Delete
             </Button>
             <Button
               key="no"
               onClick={() => set_confirm_delete(false)}
-              bsSize={buttonSize}
+              bsSize={bsSize}
             >
               Cancel
             </Button>
@@ -1238,7 +1238,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Button
               onClick={() => set_confirm_delete(true)}
               disabled={confirm_delete}
-              bsSize={buttonSize}
+              bsSize={bsSize}
             >
               <Icon name="trash" /> Delete
             </Button>

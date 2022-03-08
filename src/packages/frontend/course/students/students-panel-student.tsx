@@ -3,26 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// CoCalc libraries
-import * as misc from "@cocalc/util/misc";
-import { is_different } from "@cocalc/util/misc";
-import { Card, Col, Input, Row } from "antd";
-import React, { useEffect, useState } from "react";
-import { DebounceInput } from "react-debounce-input";
 import {
   Button,
   ButtonGroup,
   FormControl,
   FormGroup,
   Well,
-} from "../../antd-bootstrap";
-// React libraries and components
-import { Rendered } from "../../app-framework";
-import { Icon, MarkdownInput, Space, TimeAgo, Tip } from "../../components";
-import { ProjectMap, UserMap } from "../../todo-types";
-// CoCalc components
-import { User } from "../../users";
-import { webapp_client } from "../../webapp-client";
+} from "@cocalc/frontend/antd-bootstrap";
+import { Rendered } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  MarkdownInput,
+  Space,
+  TimeAgo,
+  Tip,
+} from "@cocalc/frontend/components";
+import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as misc from "@cocalc/util/misc";
+import { is_different } from "@cocalc/util/misc";
+import { Button as AntdButton, Card, Col, Input, Row, Tooltip } from "antd";
+import React, { useEffect, useState } from "react";
+import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
 import {
@@ -31,17 +34,16 @@ import {
   NBgraderRunInfo,
   StudentRecord,
 } from "../store";
+import { RESEND_INVITE_BEFORE } from "../student-projects/actions";
 import * as styles from "../styles";
 import * as util from "../util";
+import { useButtonSize } from "../util";
 
 export interface StudentNameDescription {
   full: string;
   first: string;
   last: string;
 }
-
-import { RESEND_INVITE_BEFORE } from "../student-projects/actions";
-import { Button as AntdButton, Tooltip } from "antd";
 
 /*
  Updates based on:
@@ -106,6 +108,8 @@ export const Student: React.FC<StudentProps> = React.memo(
     if (store == null) throw Error("store must be defined");
 
     const hasAccount = student.get("account_id") != null;
+
+    const { bsSize, antdSize } = useButtonSize();
 
     const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
     const [editing_student, set_editing_student] = useState<boolean>(false);
@@ -289,7 +293,7 @@ export const Student: React.FC<StudentProps> = React.memo(
       const student_project_id = student.get("project_id");
       if (student_project_id != null) {
         return (
-          <Button onClick={open_project}>
+          <Button onClick={open_project} bsSize={bsSize}>
             <Tip
               placement="right"
               title="Student project"
@@ -306,7 +310,7 @@ export const Student: React.FC<StudentProps> = React.memo(
             title="Create the student project"
             tip="Create a new project for this student, then add the student as a collaborator, and also add any collaborators on the project containing this course."
           >
-            <Button onClick={create_project}>
+            <Button onClick={create_project} bsSize={bsSize}>
               <Icon name="plus-circle" /> Create student project
             </Button>
           </Tip>
@@ -327,11 +331,14 @@ export const Student: React.FC<StudentProps> = React.memo(
         const disable_save = !student_changed();
         return (
           <ButtonGroup>
-            <Button onClick={cancel_student_edit}>Cancel</Button>
+            <Button onClick={cancel_student_edit} bsSize={bsSize}>
+              Cancel
+            </Button>
             <Button
               onClick={save_student_changes}
               bsStyle="success"
               disabled={disable_save}
+              bsSize={bsSize}
             >
               <Icon name="save" /> Save
             </Button>
@@ -339,7 +346,7 @@ export const Student: React.FC<StudentProps> = React.memo(
         );
       } else {
         return (
-          <Button onClick={show_edit_name_dialogue}>
+          <Button onClick={show_edit_name_dialogue} bsSize={bsSize}>
             <Icon name="address-card" /> Edit student...
           </Button>
         );
@@ -393,10 +400,12 @@ export const Student: React.FC<StudentProps> = React.memo(
             Are you sure you want to delete this student?
             <Space />
             <ButtonGroup>
-              <Button onClick={delete_student} bsStyle="danger">
+              <Button onClick={delete_student} bsStyle="danger" bsSize={bsSize}>
                 <Icon name="trash" /> YES, Delete
               </Button>
-              <Button onClick={() => set_confirm_delete(false)}>Cancel</Button>
+              <Button onClick={() => set_confirm_delete(false)} bsSize={bsSize}>
+                Cancel
+              </Button>
             </ButtonGroup>
           </div>
         );
@@ -412,13 +421,13 @@ export const Student: React.FC<StudentProps> = React.memo(
       }
       if (student.get("deleted")) {
         return (
-          <Button onClick={undelete_student}>
+          <Button onClick={undelete_student} bsSize={bsSize}>
             <Icon name="trash" /> Undelete
           </Button>
         );
       } else {
         return (
-          <Button onClick={() => set_confirm_delete(true)}>
+          <Button onClick={() => set_confirm_delete(true)} bsSize={bsSize}>
             <Icon name="trash" /> Delete...
           </Button>
         );
@@ -444,6 +453,7 @@ export const Student: React.FC<StudentProps> = React.memo(
       return (
         <Tooltip placement="bottom" title={when}>
           <AntdButton
+            size={antdSize}
             onClick={() =>
               actions.student_projects.invite_student_to_project({
                 student: student.get("email_address"), // we use email address to trigger sending an actual email!

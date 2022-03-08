@@ -114,7 +114,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
 
     const clicked_nbgrader = useRef<Date>();
     const actions = useActions<CourseActions>({ name });
-    const buttonSize = useButtonSize();
+    const { bsSize } = useButtonSize();
     const [recopy, set_recopy] = useRecopy();
 
     function open(
@@ -199,7 +199,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
             bsStyle={"default"}
             disabled={is_editing}
             style={{ marginRight: "5px" }}
-            bsSize={buttonSize}
+            bsSize={bsSize}
           >
             {text}
           </Button>
@@ -332,7 +332,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
         <Button
           bsStyle="success"
           key="save"
-          bsSize={buttonSize}
+          bsSize={bsSize}
           onClick={() => stop_editing()}
         >
           Save
@@ -360,7 +360,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="recopy_confirm"
             bsStyle="danger"
-            bsSize={buttonSize}
+            bsSize={bsSize}
             onClick={() => {
               set_recopy(name, false);
               copy();
@@ -376,7 +376,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
         v.push(
           <Button
             key="copy_cancel"
-            bsSize={buttonSize}
+            bsSize={bsSize}
             onClick={() => set_recopy(name, false)}
           >
             Cancel
@@ -404,7 +404,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="copy"
             bsStyle="warning"
-            bsSize={buttonSize}
+            bsSize={bsSize}
             onClick={() => set_recopy(name, true)}
           >
             <Tip
@@ -435,7 +435,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
         <div key="open_recopy">
           {render_open_recopy_confirm(name, copy, copy_tip, placement)}
           <Space />
-          <Button key="open" bsSize={buttonSize} onClick={open}>
+          <Button key="open" bsSize={bsSize} onClick={open}>
             <Tip title="Open assignment" placement={placement} tip={open_tip}>
               <Icon name="folder-open" /> Open
             </Tip>
@@ -447,23 +447,13 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     function render_open_copying(name: Steps, open, stop): Rendered {
       return (
         <ButtonGroup key="open_copying">
-          <Button
-            key="copy"
-            bsStyle="success"
-            disabled={true}
-            bsSize={buttonSize}
-          >
+          <Button key="copy" bsStyle="success" disabled={true} bsSize={bsSize}>
             <Icon name="cocalc-ring" spin /> {name}ing
           </Button>
-          <Button
-            key="stop"
-            bsStyle="danger"
-            onClick={stop}
-            bsSize={buttonSize}
-          >
+          <Button key="stop" bsStyle="danger" onClick={stop} bsSize={bsSize}>
             <Icon name="times" />
           </Button>
-          <Button key="open" onClick={open} bsSize={buttonSize}>
+          <Button key="open" onClick={open} bsSize={bsSize}>
             <Icon name="folder-open" /> Open
           </Button>
         </ButtonGroup>
@@ -477,7 +467,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       }
       return (
         <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
-          <Button onClick={copy} bsStyle={"primary"} bsSize={buttonSize}>
+          <Button onClick={copy} bsStyle={"primary"} bsSize={bsSize}>
             <Icon
               name="share-square"
               rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}

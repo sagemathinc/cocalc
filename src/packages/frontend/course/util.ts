@@ -24,6 +24,7 @@ import {
 import { IconName } from "@cocalc/frontend/components/icon";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ButtonSize } from "@cocalc/frontend//antd-bootstrap";
+import { SizeType } from "antd/lib/config-provider/SizeContext";
 
 // See https://github.com/sagemathinc/cocalc/issues/5660 for why windowing is
 // disabled.  Basically, what happens is that active input fields get unmounted
@@ -374,12 +375,12 @@ function projectStatusCoCalcCom(opts): ProjectStatus {
 
 // the list of assignments, in particular with peer grading, has a large number of buttons
 // in a single row. We mitigate this by rendering the buttons smaller if the screen is narrower.
-export function useButtonSize(): ButtonSize {
+export function useButtonSize(): { bsSize: ButtonSize; antdSize: SizeType } {
   const [size, setSize] = useState<ButtonSize>("small");
   const { width } = useWindowDimensions();
   useEffect(() => {
     const next = width < 1024 ? "xsmall" : "small";
     if (next != size) setSize(next);
   });
-  return size;
+  return { bsSize: size, antdSize: size === "xsmall" ? "small" : "middle" };
 }
