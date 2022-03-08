@@ -34,13 +34,14 @@ export function markdown_to_slate(
 ): Descendant[] {
   // Parse the markdown:
   // const t0 = new Date().valueOf();
-  const { tokens, meta } = parse_markdown(markdown, no_meta);
+  const { tokens, meta, lines, math } = parse_markdown(markdown, no_meta);
+  window.tokens = tokens;
 
   const doc: Descendant[] = [];
   if (meta != null) {
     doc.push(createMetaNode(meta));
   }
-  const state: State = { marks: {}, nesting: 0 };
+  const state: State = { marks: {}, nesting: 0, lines, math };
   for (const token of tokens) {
     for (const node of parse(token, state, cache)) {
       doc.push(node);

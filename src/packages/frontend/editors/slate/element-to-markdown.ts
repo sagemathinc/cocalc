@@ -6,6 +6,7 @@
 import { Element } from "slate";
 import { Info, serialize } from "./slate-to-markdown";
 import { getChildInfoHook, getSlateToMarkdown } from "./elements";
+import stringify from "json-stable-stringify";
 
 export interface ChildInfo extends Info {
   // Child info is like info, but we all any other property -- see
@@ -19,6 +20,11 @@ export function serializeElement(node: Element, info: Info): string {
   if (!Element.isElement(node)) {
     // make typescript happier.
     throw Error("BUG -- serializeElement takes an element as input");
+  }
+
+  const cachedMarkdown = info.cache?.[stringify(node)];
+  if (cachedMarkdown != null) {
+    return cachedMarkdown;
   }
 
   const childInfo = {
@@ -39,6 +45,7 @@ export function serializeElement(node: Element, info: Info): string {
       })
     );
   }
+
   let children = v.join("");
   const slateToMarkdown = getSlateToMarkdown(node["type"]);
   const md = slateToMarkdown({ node, children, info, childInfo });

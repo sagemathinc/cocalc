@@ -72,13 +72,6 @@ register({
       return "";
     }
 
-    if (info.cache != null) {
-      const c = info.cache[JSON.stringify(node)];
-      if (c != null) {
-        children = c;
-      }
-    }
-
     // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.
     const s = children.trimLeft() + "\n";
     if (info.lastChild || info.parent?.type == "list_item") return s;

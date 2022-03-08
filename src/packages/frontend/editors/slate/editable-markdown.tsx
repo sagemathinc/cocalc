@@ -424,7 +424,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // There is an assumption here that markdown_to_slate produces
       // a document that is properly normalized.  If that isn't the
       // case, things will go horribly wrong, since it'll be impossible
-      // to convert the document to equal nextEditorValue.
+      // to convert the document to equal nextEditorValue.  In the current
+      // code we do nomalize the output of markdown_to_slate, so
+      // that assumption is definitely satisfied.
       const nextEditorValue = markdown_to_slate(
         newVal,
         false,
@@ -502,6 +504,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // This only gets set when running in cc-in-cc dev mode.
       const { Editor, Node, Path, Range, Text } = require("slate");
       (window as any).cc.slate = {
+        slateDiff,
         editor,
         Transforms,
         ReactEditor,

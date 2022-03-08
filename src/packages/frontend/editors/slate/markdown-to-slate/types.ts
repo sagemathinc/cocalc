@@ -19,9 +19,12 @@ export interface Marks {
 export interface State {
   marks: Marks;
   nesting: number;
+  lines: string[];
+  math: string[];
 
   open_type?: string;
   close_type?: string;
+  open_token?: Token;
   contents?: Token[];
   attrs?: string[][];
   block?: boolean;

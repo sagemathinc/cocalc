@@ -8,6 +8,10 @@ import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { register } from "./register";
 import { parse } from "./parse";
+import stringify from "json-stable-stringify";
+import { replace_math } from "@cocalc/util/mathjax-utils";
+import { MATH_TAGS } from "./parse-markdown";
+import { math_unescape } from "@cocalc/util/markdown-utils";
 
 function handleClose({ token, state, cache }) {
   if (!state.close_type) return;
@@ -29,7 +33,12 @@ function handleClose({ token, state, cache }) {
     } else {
       // Not nested, so done: parse the accumulated array of children
       // using a new state:
-      const child_state: State = { marks: state.marks, nesting: 0 };
+      const child_state: State = {
+        nesting: 0,
+        marks: state.marks,
+        lines: state.lines,
+        math: state.math,
+      };
       const children: Descendant[] = [];
       let isEmpty = true;
       // Note a RULE: "Block nodes can only contain other blocks, or inline and text nodes."
@@ -78,6 +87,26 @@ function handleClose({ token, state, cache }) {
         markdown,
         cache,
       });
+      if (cache != null) {
+        if (state.open_token?.level === 0 && state.open_token?.map != null) {
+          // top level block is easy:
+          markdown =
+            state.lines
+              .slice(state.open_token.map[0], state.open_token.map[1])
+              .join("\n")
+              .trimEnd() + "\n\n";
+          markdown = math_unescape(
+            replace_math(markdown, state.math, MATH_TAGS)
+          );
+        } else {
+          if (markdown) {
+            markdown += "\n";
+          }
+        }
+        if (markdown) {
+          cache[stringify(node)] = markdown;
+        }
+      }
       if (type == "bullet_list" || type == "ordered_list") {
         // tight-ness is ONLY used by lists and we only want it to propagate
         // up to the enclosing list.

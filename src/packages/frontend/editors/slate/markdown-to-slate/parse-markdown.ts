@@ -24,6 +24,13 @@ import { endswith, startswith } from "@cocalc/util/misc";
 import { replace_math } from "../util";
 import { Token } from "./types";
 
+export const MATH_TAGS = {
+  open: "`" + MATH_ESCAPE,
+  close: MATH_ESCAPE + "`",
+  display_open: "\n```\n" + MATH_ESCAPE,
+  display_close: MATH_ESCAPE + "\n```\n",
+};
+
 // Set math tokens to have the math type, rather than "code_inline" and fenced blocks, which
 // is what the markdown-it parser delivered them as.
 // Why? We have a pre-processor that encodes math formulas as inline code, since
@@ -86,8 +93,8 @@ function process_math_tokens(tokens: Token[], math): void {
 // For each line that ends in a single trailing space
 // instead make it end in the following unused unicode
 // character:
-const TRAILING_WHITESPACE_SUB = "\uFE20";
-const TRAILING_WHITESPACE_REG = /\uFE20/g;
+// const TRAILING_WHITESPACE_SUB = "\uFE20";
+// const TRAILING_WHITESPACE_REG = /\uFE20/g;
 // On the slate side, we substitute these back as spaces.
 // This is critical to do since markdown-it (and the markdown spec)
 // just silently removes a single trailing space from any line,
@@ -99,30 +106,35 @@ const TRAILING_WHITESPACE_REG = /\uFE20/g;
 // types *two spaces* temporarily at the end of a line.  However,
 // that means newline in markdown, and at this point there is little
 // that can be done.
-function replaceSingleTrailingWhitespace(markdown: string): string {
-  // This one little regexp does exactly what we want:
-  // (?<=\S) = match a non-whitespace but don't capture it - see https://stackoverflow.com/questions/3926451/how-to-match-but-not-capture-part-of-a-regex
-  // \  = single space
-  // $ = end of line, because of the "m"
-  // gm = global and m means $ matches end of each line, not whole string.
-  return markdown.replace(/(?<=\S)\ $/gm, TRAILING_WHITESPACE_SUB);
-}
+// function replaceSingleTrailingWhitespace(markdown: string): string {
+//   // This one little regexp does exactly what we want:
+//   // (?<=\S) = match a non-whitespace but don't capture it - see https://stackoverflow.com/questions/3926451/how-to-match-but-not-capture-part-of-a-regex
+//   // \  = single space
+//   // $ = end of line, because of the "m"
+//   // gm = global and m means $ matches end of each line, not whole string.
+//   return markdown.replace(/(?<=\S)\ $/gm, TRAILING_WHITESPACE_SUB);
+// }
 
-function restoreSingleTrailingWhitespace(tokens) {
-  for (const token of tokens) {
-    if (token.content && token.content.includes(TRAILING_WHITESPACE_SUB)) {
-      token.content = token.content.replace(TRAILING_WHITESPACE_REG, " ");
-      if (token.children != null) {
-        restoreSingleTrailingWhitespace(token.children);
-      }
-    }
-  }
-}
+// function restoreSingleTrailingWhitespace(tokens) {
+//   for (const token of tokens) {
+//     if (token.content && token.content.includes(TRAILING_WHITESPACE_SUB)) {
+//       token.content = token.content.replace(TRAILING_WHITESPACE_REG, " ");
+//       if (token.children != null) {
+//         restoreSingleTrailingWhitespace(token.children);
+//       }
+//     }
+//   }
+// }
 
 export function parse_markdown(
   markdown: string,
   no_meta?: boolean
-): { tokens: Token[]; meta?: string } {
+): {
+  tokens: Token[];
+  meta?: string;
+  lines: string[];
+  math: string[];
+} {
   // const t0 = new Date().valueOf();
   let meta: undefined | string = undefined;
 
@@ -132,20 +144,17 @@ export function parse_markdown(
     meta = x.header;
   }
 
-  markdown = replaceSingleTrailingWhitespace(markdown);
   markdown = math_escape(markdown);
-  let [text, math] = remove_math(markdown, {
-    open: "`" + MATH_ESCAPE,
-    close: MATH_ESCAPE + "`",
-    display_open: "\n```\n" + MATH_ESCAPE,
-    display_close: MATH_ESCAPE + "\n```\n",
-  });
+  let [text, math] = remove_math(markdown, MATH_TAGS);
+
+  const lines = text.split("\n");
+  // markdown = replaceSingleTrailingWhitespace(text);
 
   const tokens: Token[] = markdown_it.parse(text, {});
   process_math_tokens(tokens, math);
   // window.parse_markdown = { tokens, meta };
   // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   // console.log("tokens", tokens);
-  restoreSingleTrailingWhitespace(tokens);
-  return { tokens, meta };
+  // restoreSingleTrailingWhitespace(tokens);
+  return { tokens, meta, lines, math };
 }
