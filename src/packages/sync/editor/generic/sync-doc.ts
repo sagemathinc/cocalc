@@ -2386,10 +2386,6 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
-    // Inform client code about any changes.
-    // This is likely to be what code wants when they issue commit,
-    // in case they did a batch of sets without commiting.
-    this.emit_change();
 
     // Now save to backend as a new patch:
     this.emit("user-change");
