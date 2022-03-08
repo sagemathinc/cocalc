@@ -613,7 +613,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     const ext = filename_extension(path);
     const a = file_associations[ext];
     // Latex editor -- open tex files in same frame:
-    if (this_path_ext == "tex" && a.editor == "latex") return true;
+    if (this_path_ext == "tex" && a?.editor == "latex") return true;
     // Open file in this tab of it can be edited as code, or no editor
     // so text is the fallback.
     if (a == null || a.editor == "codemirror") {
