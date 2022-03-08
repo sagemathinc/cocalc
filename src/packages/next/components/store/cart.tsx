@@ -27,6 +27,7 @@ import useIsMounted from "lib/hooks/mounted";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 import OtherItems from "./other-items";
+import { untangleUptime } from "@cocalc/util/consts/site-license";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -35,6 +36,8 @@ export default function ShoppingCart() {
   const cart = useAPI("/shopping/cart/get");
   const items = useMemo(() => {
     if (!cart.result) return undefined;
+    // TODO deal with errors returned by useAPI
+    if (cart.result.error != null) return undefined;
     const x: any[] = [];
     let subTotal = 0;
     for (const item of cart.result) {
@@ -314,6 +317,7 @@ function DescriptionColumn({
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(description.run_limit);
+  const { idle_timeout, always_running } = untangleUptime(input.custom_uptime);
 
   function editableQuota() {
     return (
@@ -323,7 +327,8 @@ function DescriptionColumn({
             ram: input.custom_ram,
             cpu: input.custom_cpu,
             disk: input.custom_disk,
-            always_running: input.custom_always_running,
+            always_running,
+            idle_timeout,
             member: input.custom_member,
             user: input.user,
           })}
@@ -453,4 +458,3 @@ function DescriptionColumn({
     </>
   );
 }
-

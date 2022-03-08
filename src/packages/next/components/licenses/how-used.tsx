@@ -185,7 +185,7 @@ export default function HowLicenseUsed({ account_id }) {
   }, []);
 
   return (
-    <div style={{ width: "100%", overflowX: "scroll" }}>
+    <div style={{ width: "100%", overflowX: "auto", minHeight: "50vh" }}>
       <h3>How a License You Manage is Being Used</h3>
       Select a license you manage to see how it is being used. You can see{" "}
       <i>all</i> projects that have this license applied to them (even if you

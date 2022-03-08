@@ -25,7 +25,7 @@ def write_version_file():
     os.system("npm run build")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Update SMC version number')
+    parser = argparse.ArgumentParser(description='Update CoCalc frontend version number')
     args = parser.parse_args()
     write_version_file()
 

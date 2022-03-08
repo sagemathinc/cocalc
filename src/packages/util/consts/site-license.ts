@@ -46,7 +46,7 @@ export function requiresMemberhosting(key?: Uptime | string): boolean {
   return LicenseIdleTimeouts[key]?.requireMemberhosting ?? false;
 }
 
-export type Uptime = keyof typeof LicenseIdleTimeouts | "always_running";
+export type Uptime = Keys | "always_running";
 
 export function untangleUptime(uptime: Uptime): {
   always_running: boolean;
