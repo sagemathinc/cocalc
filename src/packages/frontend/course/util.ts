@@ -23,7 +23,7 @@ import {
 } from "@cocalc/util/misc";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { ButtonSize } from "../antd-bootstrap";
+import { ButtonSize } from "@cocalc/frontend//antd-bootstrap";
 
 // See https://github.com/sagemathinc/cocalc/issues/5660 for why windowing is
 // disabled.  Basically, what happens is that active input fields get unmounted

@@ -17,6 +17,7 @@ import { fromJS, List, Map } from "immutable";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { Result } from "../student-projects/run-in-all-projects";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
@@ -210,10 +211,16 @@ const PROJECT_LINK_STYLE: CSS = {
 } as const;
 
 const CODE_STYLE: CSS = {
-  maxHeight: "200ex",
+  maxHeight: "200px",
   overflow: "auto",
   fontSize: "90%",
   padding: "2px",
+} as const;
+
+const ERR_STYLE: CSS = {
+  ...CODE_STYLE,
+  color: "white",
+  background: COLORS.ANTD_RED,
 } as const;
 
 const Output: React.FC<{ result: TerminalCommandOutput }> = React.memo(
@@ -228,19 +235,18 @@ const Output: React.FC<{ result: TerminalCommandOutput }> = React.memo(
     const project_id: string = result.get("project_id");
     const title: string = redux.getStore("projects").get_title(project_id);
 
+    const stdout = result.get("stdout");
     const stderr = result.get("stderr");
+    const noresult = !stdout && !stderr;
 
     return (
       <div style={{ padding: 0, width: "100%" }}>
         <a style={PROJECT_LINK_STYLE} onClick={open_project}>
           {title}
         </a>
-        <pre style={CODE_STYLE}>
-          {result.get("stdout")}
-          {stderr && (
-            <div style={{ color: "white", background: "red" }}>{stderr}</div>
-          )}
-        </pre>
+        {stdout && <pre style={CODE_STYLE}>{stdout}</pre>}
+        {stderr && <pre style={ERR_STYLE}>{stderr}</pre>}
+        {noresult && <div>No result/possibly timeout</div>}
       </div>
     );
   }

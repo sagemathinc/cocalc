@@ -22,7 +22,8 @@ import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import { map as awaitMap } from "awaiting";
 
-export const MAX_PARALLEL_TASKS = 20; // for tasks that are "easy" to run in parallel, e.g. starting projects
+// for tasks that are "easy" to run in parallel, e.g. starting projects
+export const MAX_PARALLEL_TASKS = 30;
 
 export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
@@ -369,16 +370,11 @@ export class StudentProjectsActions {
   public async action_all_student_projects(
     action: "start" | "stop"
   ): Promise<void> {
-    const state = (function () {
-      switch (action) {
-        case "start":
-          return "starting";
-        case "stop":
-          return "stopping";
-        default:
-          throw new Error(`unknown desired project_action ${action}`);
-      }
-    })();
+    if (!["start", "stop"].includes(action)) {
+      throw new Error(`unknown desired project_action ${action}`);
+    }
+    const a2s = { start: "starting", stop: "stopping" } as const;
+    const state: "starting" | "stopping" = a2s[action];
 
     this.course_actions.setState({ action_all_projects_state: state });
     this.course_actions.shared_project.action_shared_project(action);
@@ -401,11 +397,10 @@ export class StudentProjectsActions {
 
     const task = async (student_project_id) => {
       if (!student_project_id) return;
-      if (store.get("action_all_projects_state") !== state) {
-        return;
-      }
-      const done = await selectedAction(student_project_id);
-      //console.log(`${action} project ${student_project_id}`, done);
+      // abort if cancelled
+      if (store.get("action_all_projects_state") !== state) return;
+      // returns true/false, could be useful some day
+      await selectedAction(student_project_id);
     };
 
     await awaitMap(store.get_student_project_ids(), MAX_PARALLEL_TASKS, task);
@@ -421,17 +416,49 @@ export class StudentProjectsActions {
     timeout?: number,
     log?: Function
   ): Promise<Result[]> {
+    // in case "stop all projects" is running
+    this.cancel_action_all_student_projects();
+
     const store = this.get_store();
     // calling start also deals with possibility that it's in stop state.
-    await this.action_all_student_projects("start");
-    return await run_in_all_projects(
-      // as string[] is right since map option isn't set (make typescript happy)
-      store.get_student_project_ids(),
-      command,
-      args,
-      timeout,
-      log
-    );
+    const id = this.course_actions.set_activity({
+      desc: "Running a command across all student projects…",
+    });
+    let id1: number | undefined = this.course_actions.set_activity({
+      desc: "Starting projects …",
+    });
+    let i = 0;
+    const student_project_ids = store.get_student_project_ids();
+    const num = student_project_ids.length;
+
+    const clear_id1 = () => {
+      if (id1 != null) {
+        this.course_actions.set_activity({ id: id1 });
+      }
+    };
+
+    const done = (result: Result) => {
+      i += 1;
+      log?.(result);
+      clear_id1();
+      id1 = this.course_actions.set_activity({
+        desc: `Project ${i}/${num} finished…`,
+      });
+    };
+
+    try {
+      return await run_in_all_projects(
+        // as string[] is right since map option isn't set (make typescript happy)
+        student_project_ids,
+        command,
+        args,
+        timeout,
+        done
+      );
+    } finally {
+      this.course_actions.set_activity({ id });
+      clear_id1();
+    }
   }
 
   public async set_all_student_project_titles(title: string): Promise<void> {
