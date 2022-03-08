@@ -94,7 +94,7 @@ function handleClose({ token, state, cache }) {
             state.lines
               .slice(state.open_token.map[0], state.open_token.map[1])
               .join("\n")
-              .trimEnd() + "\n\n";
+              .replace(/\n+$/, "") + "\n\n";
           markdown = math_unescape(
             replace_math(markdown, state.math, MATH_TAGS)
           );
