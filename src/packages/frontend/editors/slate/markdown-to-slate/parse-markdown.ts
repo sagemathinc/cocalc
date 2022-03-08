@@ -22,7 +22,7 @@ import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, MATH_ESCAPE } from "@cocalc/util/mathjax-utils";
 import { endswith, startswith } from "@cocalc/util/misc";
 import { replace_math } from "../util";
-import { Token } from "./types";
+import type { Token } from "./types";
 
 export const MATH_TAGS = {
   open: "`" + MATH_ESCAPE,

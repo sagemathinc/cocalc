@@ -9,8 +9,9 @@ import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta/type";
-
+import stringify from "json-stable-stringify";
 import normalize from "./normalize";
+import getSource from "./source";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   // console.log("parse", JSON.stringify({ token, state }));
@@ -35,7 +36,7 @@ export function markdown_to_slate(
   // Parse the markdown:
   // const t0 = new Date().valueOf();
   const { tokens, meta, lines, math } = parse_markdown(markdown, no_meta);
-  window.tokens = tokens;
+  // window.tokens = tokens;
 
   const doc: Descendant[] = [];
   if (meta != null) {
@@ -44,6 +45,11 @@ export function markdown_to_slate(
   const state: State = { marks: {}, nesting: 0, lines, math };
   for (const token of tokens) {
     for (const node of parse(token, state, cache)) {
+      if (cache != null && token.level === 0 && token.map != null) {
+        // cache here when token is only one (e.g., fenced code block),
+        // and cache in handle-close when parsing a block.
+        cache[stringify(node)] = getSource(token, lines, math);
+      }
       doc.push(node);
     }
   }

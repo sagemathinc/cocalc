@@ -76,6 +76,7 @@ export type { SlateEditor };
 // This is the default and the component can be explicitly created
 // with a windowing disabled.
 const USE_WINDOWING = true;
+// const USE_WINDOWING = false;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
 // text is "unusable" for even medium size documents
@@ -521,8 +522,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               editor.insertText(x);
               inserted += x;
               console.log(`inserted: "${inserted}"`);
-              await delay(300 * Math.random());
-              if (Math.random() < 0.3) {
+              await delay(150 * Math.random());
+              if (Math.random() < 0.25) {
                 await delay(1.1 * SAVE_DEBOUNCE_MS);
               }
             }

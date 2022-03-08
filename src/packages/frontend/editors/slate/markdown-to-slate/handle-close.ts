@@ -9,9 +9,7 @@ import { getMarkdownToSlate } from "../elements/register";
 import { register } from "./register";
 import { parse } from "./parse";
 import stringify from "json-stable-stringify";
-import { replace_math } from "@cocalc/util/mathjax-utils";
-import { MATH_TAGS } from "./parse-markdown";
-import { math_unescape } from "@cocalc/util/markdown-utils";
+import getSource from "./source";
 
 function handleClose({ token, state, cache }) {
   if (!state.close_type) return;
@@ -89,15 +87,7 @@ function handleClose({ token, state, cache }) {
       });
       if (cache != null) {
         if (state.open_token?.level === 0 && state.open_token?.map != null) {
-          // top level block is easy:
-          markdown =
-            state.lines
-              .slice(state.open_token.map[0], state.open_token.map[1])
-              .join("\n")
-              .replace(/\n+$/, "") + "\n\n";
-          markdown = math_unescape(
-            replace_math(markdown, state.math, MATH_TAGS)
-          );
+          markdown = getSource(state.open_token, state.lines, state.math);
         } else {
           if (markdown) {
             markdown += "\n";

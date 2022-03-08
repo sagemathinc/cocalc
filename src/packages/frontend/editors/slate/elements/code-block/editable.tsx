@@ -12,7 +12,7 @@ import {
 import { register, RenderElementProps } from "../register";
 import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
-import { ensure_ends_in_newline, indent } from "../../util";
+//import { indent } from "../../util";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
 
@@ -79,7 +79,11 @@ const Element: React.FC<RenderElementProps> = ({
 
 function fromSlate({ node }) {
   const value = node.value as string;
-  if (node.fence) {
+
+  // We always convert them to fenced, because otherwise collaborative editing just
+  // isn't possible, e.g., because you can't have blank lines at the end.  This isn't
+  // too bad, since the conversion only happens for code blocks you actually touch.
+  if (true || node.fence) {
     const info = node.info.trim() ?? "";
     // There is one special case with fenced codeblocks that we
     // have to worry about -- if they contain ```, then we need
@@ -92,9 +96,10 @@ function fromSlate({ node }) {
     while (value.indexOf(fence) != -1) {
       fence += "`";
     }
-    return fence + info + "\n" + ensure_ends_in_newline(value) + fence + "\n\n";
-  } else {
-    return indent(ensure_ends_in_newline(value), 4) + "\n";
+    return fence + info + "\n" + value + "\n" + fence + "\n\n";
+    // this was the old code for non-fenced blocks:
+    //   } else {
+    //     return indent(value, 4) + "\n\n";
   }
 }
 
