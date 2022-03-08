@@ -62,7 +62,7 @@ register({
     */
   },
 
-  fromSlate: ({ node, children, info }) => {
+  fromSlate: ({ children, info }) => {
     if (children.trim() == "") {
       // We discard empty paragraphs entirely, since that's
       // what markdown does. Also, to make void blocks easier to
