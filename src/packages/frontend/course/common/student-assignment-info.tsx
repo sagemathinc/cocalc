@@ -294,6 +294,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
           <Button
             key="nbgrader"
             disabled={running}
+            bsSize={bsSize}
             onClick={() => {
               if (
                 clicked_nbgrader.current != null &&

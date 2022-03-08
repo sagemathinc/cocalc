@@ -73,7 +73,7 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
             </p>
           </div>
           <br />
-          <Button onClick={open_project} size={"large"}>
+          <Button onClick={open_project} size={"large"} type={"primary"}>
             Open shared project...
           </Button>
           <hr />

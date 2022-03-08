@@ -10,6 +10,7 @@ import {
   useActions,
   useIsMountedRef,
   useRedux,
+  useEffect,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
@@ -119,6 +120,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
     const [studentInputFocused, setStudentInputFocused] =
       useState<boolean>(false);
+
+    useEffect(() => {
+      set_selected_option_num(selected_option_nodes?.length ?? 0);
+    }, [selected_option_nodes]);
 
     // student_list not a list, but has one, plus some extra info.
     const student_list: StudentList = React.useMemo(() => {
@@ -283,8 +288,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function add_selector_changed(e): void {
       const opts = e.target.selectedOptions;
-      set_selected_option_nodes(opts);
-      set_selected_option_num(opts.length);
+      // It's important to make a shallow copy, because somehow this array is modified in-place
+      // and hence this call to set the array doesn't register a change (e.g. selected_option_num stays in sync)
+      set_selected_option_nodes([...opts]);
     }
 
     function add_selected_students(options) {
@@ -345,7 +351,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       set_err(undefined);
       set_add_select(undefined);
       set_selected_option_nodes(undefined);
-      set_selected_option_num(0);
       set_add_search("");
       set_existing_students(undefined);
     }
@@ -403,7 +408,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           if (existing) {
             return "Student already added";
           } else {
-            return "No student found";
+            return "Select student(s)";
           }
         case 1:
           return "Add student";
@@ -431,7 +436,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       const btn_text = get_add_selector_button_text(existing);
       const disabled =
         options.length === 0 ||
-        (options.length >= 2 && selected_option_num === 0);
+        (options.length >= 1 && selected_option_num === 0);
       return (
         <Button
           onClick={() => add_selected_students(options)}
