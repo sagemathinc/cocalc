@@ -103,6 +103,7 @@ import { clearCanvas, drawCurve, getMaxCanvasSizeScale } from "./elements/pen";
 import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 import Cursors from "./cursors";
 
@@ -142,6 +143,7 @@ export default function Canvas({
   previewMode,
   cursors,
 }: Props) {
+  const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
 
@@ -403,25 +405,18 @@ export default function Canvas({
       return;
     }
     // request to change viewport.
-    setCenterPositionData(centerOfRect(viewport));
+    // Do this in next render loop, since otherwise it can sometimes
+    // be premature and fail, e.g., when opening a document.
+    setTimeout(() => setCenterPositionData(centerOfRect(viewport)), 0);
   }, [frame.desc.get("viewport")]);
 
-  // Handle setting a center position for the visible window
-  // by restoring last known viewport center on first mount.
-  // The center is nice since it is meaningful even if browser
-  // viewport has changed (e.g., font size, window size, etc.)
+  // If no set viewport, fit to screen.
   useEffect(() => {
     if (isNavigator) return;
-    const viewport = frame.desc.get("viewport")?.toJS();
-    if (viewport == null) {
+    if (frame.desc.get("viewport") == null) {
       // document was never opened before in this browser,
       // so fit to screen.
       frame.actions.fitToScreen(frame.id, true);
-      return;
-    }
-    const center = centerOfRect(viewport);
-    if (center != null) {
-      setCenterPositionData(center);
     }
   }, []);
 
@@ -457,6 +452,7 @@ export default function Canvas({
 
   // set center position in Data coordinates.
   function setCenterPositionData({ x, y }: Point): void {
+    if (!isMountedRef.current) return;
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
     if (cur == null) return;
@@ -482,6 +478,7 @@ export default function Canvas({
         frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
+      lastViewport.current = viewport;
       const rect = rectSpan(elements);
       const s =
         Math.min(
@@ -490,7 +487,6 @@ export default function Canvas({
         ) * 0.95; // 0.95 for extra room too.
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
-      lastViewport.current = viewport;
       setCenterPositionData({
         x: rect.x + rect.w / 2,
         y: rect.y + rect.h / 2,
