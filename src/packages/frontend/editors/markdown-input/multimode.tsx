@@ -242,6 +242,7 @@ export default function MultiMarkdownInput({
       </div>
       {mode == "markdown" && (
         <MarkdownInput
+          divRef={editorDivRef}
           selectionRef={selectionRef}
           value={value}
           onChange={onChange}

@@ -277,6 +277,7 @@ export default function Focused({
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
             pointerEvents: "all",
+            zIndex: 1,
           }}
         >
           <EditBar

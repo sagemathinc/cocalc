@@ -123,13 +123,6 @@ export default function DragHandle({
             h = w / ar;
           }
         }
-        if (["text", "note"].includes(selectedElements[0].type)) {
-          // only allow changing the WIDTH, not height - the height should get
-          // automatically determined by rendered content.
-          // TODO: need to make height get computed in next render loop.
-          // For now -- just reset the height to before the drag changed it.
-          h = element.h;
-        }
 
         setTimeout(() => {
           setPosition({ x: 0, y: 0 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
@@ -37,6 +37,22 @@ function EditText({
   noteMode?: boolean;
   cursors?;
 }) {
+  const expandIfNecessary = useCallback(() => {
+    // possibly adjust height.  We do this in the next render
+    // loop because sometimes when the change fires the dom
+    // hasn't updated the height of the containing div yet,
+    // so we end up setting the height 1 step behind reality.
+    // We never make the height smaller -- user can manually do that.
+    const elt = editorDivRef.current;
+    if (elt == null) return;
+    const height = (elt.offsetHeight ?? 0) + 2 * PADDING + 2 + 15;
+    if (height > (element.h ?? 0)) {
+      actions.setElement({
+        obj: { id: element.id, h: height },
+        commit: false,
+      });
+    }
+  }, [element]);
   const isMounted = useIsMountedRef();
   const [value, setValue] = useState<string>(element.str ?? "");
   const [editFocus, setEditFocus] = useState<boolean>(false);
@@ -99,7 +115,10 @@ function EditText({
         minimal
         hideHelp
         editorDivRef={editorDivRef}
-        onFocus={() => setEditFocus(true)}
+        onFocus={() => {
+          setEditFocus(true);
+          expandIfNecessary();
+        }}
         onBlur={() => setEditFocus(false)}
         onShiftEnter={() => {
           const id = actions.createAdjacentElement(element.id, "bottom");
@@ -113,23 +132,7 @@ function EditText({
         onChange={(value) => {
           valueRef.current = value;
           setValue(value);
-          setTimeout(() => {
-            // possibly adjust height.  We do this in the next render
-            // loop because sometimes when the change fires the dom
-            // hasn't updated the height of the containing div yet,
-            // so we end up setting the height 1 step behind reality.
-            const elt = editorDivRef.current;
-            if (elt == null) return;
-            const height = elt.offsetHeight;
-            if (height != null) {
-              if (element.h != height) {
-                actions.setElement({
-                  obj: { id: element.id, h: height + 2 * PADDING + 2 + 15 },
-                  commit: false,
-                });
-              }
-            }
-          }, 0);
+          setTimeout(expandIfNecessary, 0);
         }}
         editBarStyle={{
           top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,

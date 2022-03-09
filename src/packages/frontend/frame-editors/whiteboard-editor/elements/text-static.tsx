@@ -8,7 +8,11 @@ interface Props {
 export const PADDING: number = 10;
 
 export default function Text({ element }: Props) {
-  const style = { ...getStyle(element), padding: PADDING };
+  const style = {
+    ...getStyle(element),
+    padding: PADDING,
+    height: "auto",
+  };
   return (
     <StaticMarkdown
       value={element.str?.trim() ? element.str : "Type text"}

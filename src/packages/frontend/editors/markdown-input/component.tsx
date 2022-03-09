@@ -26,8 +26,8 @@ import { A } from "../../components";
 import { useTypedRedux, useRedux, redux, ReactDOM } from "../../app-framework";
 import {
   CSSProperties,
-  FC,
   MutableRefObject,
+  RefObject,
   ReactNode,
   useEffect,
   useRef,
@@ -91,9 +91,10 @@ interface Props {
   onUndo?: () => void; // user requests undo -- if given, codemirror's internal undo is not used
   onRedo?: () => void; // user requests redo
   onSave?: () => void; // user requests save
+  divRef?: RefObject<HTMLDivElement>;
 }
 
-export const MarkdownInput: FC<Props> = ({
+export function MarkdownInput({
   project_id,
   path,
   value,
@@ -123,7 +124,8 @@ export const MarkdownInput: FC<Props> = ({
   onUndo,
   onRedo,
   onSave,
-}) => {
+  divRef,
+}: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const theme = useRedux(["account", "editor_settings", "theme"]);
@@ -706,6 +708,7 @@ export const MarkdownInput: FC<Props> = ({
     <div>
       {value != "" ? render_instructions() : undefined}
       <div
+        ref={divRef}
         style={{
           ...(is_focused ? FOCUSED_STYLE : BLURED_STYLE),
           ...style,
@@ -748,7 +751,7 @@ export const MarkdownInput: FC<Props> = ({
   }
 
   return body;
-};
+}
 
 function upload_target(path: string, file: { name: string }): string {
   // path to our upload target, but relative to path.

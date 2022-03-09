@@ -9,7 +9,6 @@ export const STYLE = {
   boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
   padding: "15px",
   width: "100%",
-  height: "100%",
   border: "1px solid lightgrey",
   overflow: "hidden",
 } as CSSProperties;
