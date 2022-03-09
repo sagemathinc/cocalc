@@ -19,7 +19,9 @@ const Element = ({ attributes, children, element }) => {
   const focused = useFocused();
   const selected = useSelected();
   const border =
-    focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
+    focused && selected
+      ? `1px solid ${FOCUSED_COLOR}`
+      : `1px solid transparent`;
   const html = ((element.html as string) ?? "").trim();
   const ref = useProcessLinks([html]);
   // this feels ugly in practice, and we have the source so not doing it.

@@ -53,7 +53,9 @@ export const EditBar: React.FC<Props> = ({
   return (
     <div
       style={{
-        borderBottom: isCurrent ? "1px solid lightgray" : "1px solid white",
+        borderBottom: isCurrent
+          ? "1px solid lightgray"
+          : "1px solid transparent",
         height: HEIGHT,
         display: "flex",
         flexDirection: "row",

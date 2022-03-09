@@ -29,7 +29,7 @@ const Element: React.FC<RenderElementProps> = ({
   const selected = useSelected();
 
   const border =
-    focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
+    focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid transparent`;
 
   return (
     <span {...attributes}>
