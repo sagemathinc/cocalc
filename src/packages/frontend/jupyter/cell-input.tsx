@@ -242,15 +242,39 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           saveDebounceMs={SAVE_DEBOUNCE_MS}
           cmOptions={cmOptions}
           autoFocus={props.is_focused || props.is_current}
-          onUndo={() => {
-            props.actions?.undo();
-          }}
-          onRedo={() => {
-            props.actions?.redo();
-          }}
-          onSave={() => {
-            props.actions?.save();
-          }}
+          onUndo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.undo();
+                }
+          }
+          onRedo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.redo();
+                }
+          }
+          onSave={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.save();
+                }
+          }
+          onCursors={
+            props.actions == null
+              ? undefined
+              : (cursors) => {
+                  const id = props.cell.get("id");
+                  const cur = cursors.map((z) => {
+                    return { ...z, id };
+                  });
+                  props.actions?.set_cursor_locs(cur);
+                }
+          }
+          cursors={props.cell.get("cursors")?.toJS()}
         />
       );
     }
