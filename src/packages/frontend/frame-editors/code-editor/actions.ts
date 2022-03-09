@@ -1387,7 +1387,11 @@ export class Actions<
   syncstring_commit(): void {
     if (this._state === "closed") return;
     if (this._syncstring != null) {
-      this._syncstring.commit();
+      // we pass true since here we want any UI for this or any derived
+      // editor to immediately react when we commit. This is particularly
+      // important in the whiteboard where we draw/move objects, and show
+      // a preview, then the real thing only after the change event from commit.
+      this._syncstring.commit(true);
     }
   }
 

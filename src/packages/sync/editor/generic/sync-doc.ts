@@ -2382,9 +2382,18 @@ export class SyncDoc extends EventEmitter {
   // were changes and false otherwise.   This works
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
-  public commit(): boolean {
+  public commit(emitChangeImmediately = false): boolean {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
+    }
+
+    if (emitChangeImmediately) {
+      // used for local clients.   NOTE: don't do this without explicit
+      // request, since it could in some cases cause serious trouble.
+      // E.g., for the jupyter backend doing this by default causes
+      // an infinite recurse.  Having this as an option is important, e.g.,
+      // to avoid flicker/delay in the UI.
+      this.emit_change();
     }
 
     // Now save to backend as a new patch:
