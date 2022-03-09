@@ -49,8 +49,8 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
     webapp_client.account_id as string,
     "ssh_keys",
   ]);
+
   return (
-    <div>
       <SSHKeyList ssh_keys={ssh_keys} project_id={project.get("project_id")}>
         <div>
           <p>
@@ -73,6 +73,5 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
         />
         {render_ssh_notice()}
       </SSHKeyList>
-    </div>
   );
 });

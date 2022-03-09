@@ -4,10 +4,10 @@
  */
 
 import { Map } from "immutable";
-import { Popconfirm } from "antd";
+import { Popconfirm, Typography } from "antd";
 
 import { redux } from "../../app-framework";
-import { HelpIcon, Icon, Space, TimeAgo } from "../../components";
+import { HelpIcon, Icon, SettingBox, Space, TimeAgo } from "../../components";
 import { cmp } from "@cocalc/util/misc";
 import { Panel, Row, Col, Button } from "../../antd-bootstrap";
 
@@ -22,7 +22,7 @@ export const SSHKeyList: React.FC<{
   function render_header() {
     return (
       <>
-        <Icon name="list-ul" /> SSH keys <Space />
+        SSH keys <Space />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
       </>
     );
@@ -65,15 +65,17 @@ export const SSHKeyList: React.FC<{
       return cmp(a.fp, b.fp);
     });
     return (
-      <Panel style={{ marginBottom: "0px" }}>{v.map((x) => x.component)}</Panel>
+      <SettingBox style={{ marginBottom: "0px" }} show_header={false}>
+        {v.map((x) => x.component)}
+      </SettingBox>
     );
   }
 
   return (
-    <Panel header={render_header()}>
+    <SettingBox title={render_header()} icon={"list-ul"}>
       {children}
       {render_keys()}
-    </Panel>
+    </SettingBox>
   );
 };
 
@@ -119,18 +121,20 @@ const OneSSHKey: React.FC<{
         marginBottom: "5px",
       }}
     >
-      <Col md={1}>
+      <Col md={1} style={{ marginRight: "8px" }}>
         <Icon style={key_style} name="key" />
       </Col>
       <Col md={8}>
         <div style={{ fontWeight: 600 }}>{ssh_key.get("title")}</div>
         <span style={{ fontWeight: 600 }}>Fingerprint: </span>
-        <code>{ssh_key.get("fingerprint")}</code>
+        <Typography.Text code style={{ fontSize: "80%" }}>
+          {ssh_key.get("fingerprint")}
+        </Typography.Text>
         <br />
         Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
         {render_last_use()}
       </Col>
-      <Col md={3}>
+      <Col md={2}>
         <Popconfirm
           title={
             <div>
