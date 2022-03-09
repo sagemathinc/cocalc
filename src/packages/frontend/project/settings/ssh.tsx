@@ -3,18 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
+import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
+import { React, redux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { replace } from "lodash";
-import React from "react";
-import * as misc from "@cocalc/util/misc";
-import { Icon } from "../../components";
-import { redux } from "../../app-framework";
-
 import { Project } from "./types";
-import { UserMap } from "@cocalc/frontend/todo-types";
-import { webapp_client } from "../../webapp-client";
-
-import { SSHKeyAdder } from "../../account/ssh-keys/ssh-key-adder";
-import { SSHKeyList } from "../../account/ssh-keys/ssh-key-list";
 
 interface Props {
   project: Project;
@@ -22,7 +17,7 @@ interface Props {
 }
 
 export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
-  const { project, account_id } = props;
+  const { project } = props;
 
   const project_id = project.get("project_id");
 

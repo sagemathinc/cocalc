@@ -8,6 +8,7 @@ import { Icon, IconName } from "./icon";
 import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
+import { TooltipPlacement } from "antd/lib/tooltip";
 
 const TIP_STYLE: CSS = {
   wordWrap: "break-word",
