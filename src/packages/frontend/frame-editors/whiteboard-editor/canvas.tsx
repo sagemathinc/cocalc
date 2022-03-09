@@ -486,14 +486,14 @@ export default function Canvas({
       const rect = rectSpan(elements);
       const s =
         Math.min(
-          MAX_ZOOM,
+          1 / 0.95,
           Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
         ) * 0.95; // 0.95 for extra room too.
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       lastViewport.current = viewport;
       setCenterPositionData({
-        x: rect.x + rect.w / 2 - 50 / canvasScale, // a little breathing room for the toolbar
+        x: rect.x + rect.w / 2,
         y: rect.y + rect.h / 2,
       });
       saveViewport();
