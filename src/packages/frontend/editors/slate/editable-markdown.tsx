@@ -129,6 +129,7 @@ interface Props {
     setSelection: Function;
     getSelection: Function;
   } | null>;
+  height?: string; // css style or if "auto", then editor will grow to size of content instead of scrolling.
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -155,6 +156,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     noVfill,
     divRef,
     selectionRef,
+    height,
   }) => {
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
@@ -636,7 +638,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
           autoFocus={autoFocus}
-          className={!disableWindowing ? "smc-vfill" : undefined}
+          className={
+            !disableWindowing && height != "auto" ? "smc-vfill" : undefined
+          }
           readOnly={read_only}
           renderElement={Element}
           renderLeaf={Leaf}
@@ -690,11 +694,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let body = (
       <div
         ref={divRef}
-        className={noVfill ? undefined : "smc-vfill"}
+        className={noVfill || height == "auto" ? undefined : "smc-vfill"}
         style={{
-          overflow: noVfill ? undefined : "auto",
+          overflow: noVfill || height == "auto" ? undefined : "auto",
           backgroundColor: "white",
           ...style,
+          height,
+          minHeight: height == "auto" ? "50px" : undefined,
         }}
       >
         {!hidePath && (
@@ -711,10 +717,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           hideSearch={hideSearch}
         />
         <div
-          className={noVfill ? undefined : "smc-vfill"}
+          className={noVfill || height == "auto" ? undefined : "smc-vfill"}
           style={{
             ...STYLE,
             fontSize: font_size,
+            height,
           }}
         >
           {mentions.Mentions}

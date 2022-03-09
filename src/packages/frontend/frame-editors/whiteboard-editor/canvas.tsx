@@ -93,7 +93,6 @@ import {
 } from "./math";
 import {
   MIN_ZOOM,
-  MAX_ZOOM,
   DEFAULT_FONT_SIZE,
   MIN_FONT_SIZE,
   MAX_FONT_SIZE,

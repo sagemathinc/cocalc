@@ -231,7 +231,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         <MarkdownInput
           cacheId={props.id}
           value={props.cell.get("input") ?? ""}
-          height="50vh"
+          height="auto"
           onChange={(value) => {
             props.actions?.set_cell_input(props.id, value, true);
           }}

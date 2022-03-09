@@ -39,8 +39,8 @@ const STYLE = {
   width: "100%",
   overflow: "auto",
   overflowX: "hidden",
-  border: "1px solid #cfcfcf",
-  borderRadius: "5px",
+  border: "1px solid #dfdfdf",
+  borderRadius: "3px",
   lineHeight: "1.21429em",
   marginBottom: "1em", // consistent with <p> tag.
 } as CSS;
@@ -119,7 +119,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
         // set the CSS to indicate this
         setCSS({
-          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          backgroundColor: options?.theme != null ? "" : "#fafafa",
           color: "",
         });
       } else {
@@ -135,7 +135,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         focusEditor();
       } else {
         setCSS({
-          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          backgroundColor: options?.theme != null ? "" : "#fafafa",
           color: "",
         });
       }

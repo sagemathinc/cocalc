@@ -222,7 +222,10 @@ export const MarkdownInput: FC<Props> = ({
     }
 
     cm.current.on("blur", () => set_is_focused(false));
-    cm.current.on("focus", () => set_is_focused(true));
+    cm.current.on("focus", () => {
+      set_is_focused(true);
+      cm.current?.refresh();
+    });
 
     if (onUndo != null) {
       cm.current.undo = () => {
@@ -255,7 +258,7 @@ export const MarkdownInput: FC<Props> = ({
     const e: any = cm.current.getWrapperElement();
     e.setAttribute(
       "style",
-      `height:100%; font-family:sans-serif !important;` +
+      `height:${height}; font-family:sans-serif !important;` +
         (!options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "")
     );
 
@@ -323,6 +326,10 @@ export const MarkdownInput: FC<Props> = ({
         },
       };
     }
+
+    setTimeout(() => {
+      cm.current?.refresh();
+    }, 0);
 
     // clean up
     return () => {
@@ -702,7 +709,10 @@ export const MarkdownInput: FC<Props> = ({
         style={{
           ...(is_focused ? FOCUSED_STYLE : BLURED_STYLE),
           ...style,
-          ...{ fontSize: `${fontSize ? fontSize : defaultFontSize}px`, height },
+          ...{
+            fontSize: `${fontSize ? fontSize : defaultFontSize}px`,
+            height,
+          },
         }}
       >
         {render_mentions_popup()}

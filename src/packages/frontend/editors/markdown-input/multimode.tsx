@@ -43,7 +43,7 @@ interface Props {
   onShiftEnter?: (value: string) => void;
   placeholder?: string;
   fontSize?: number;
-  height?: string;
+  height?: string; // css height and also "auto" is fully supported.
   style?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
@@ -82,6 +82,8 @@ interface Props {
   onUndo?: () => void; // called when user requests to undo
   onRedo?: () => void; // called when user requests redo
   onSave?: () => void; // called when user requests to save document
+
+  compact?: boolean; // optimize for compact embedded usage.
 }
 
 export default function MultiMarkdownInput({
@@ -92,7 +94,7 @@ export default function MultiMarkdownInput({
   onShiftEnter,
   placeholder,
   fontSize,
-  height,
+  height = "auto",
   style,
   autoFocus,
   enableMentions,
@@ -119,6 +121,8 @@ export default function MultiMarkdownInput({
   onUndo,
   onRedo,
   onSave,
+
+  compact,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -231,6 +235,7 @@ export default function MultiMarkdownInput({
                 : "Edit markdown here with support for LaTeX. Toggle to edit text directly."
             }
           >
+            {compact ? "" : mode == "editor" ? "Editor" : "Source"}{" "}
             <Icon name="markdown" />
           </Popover>
         </div>
@@ -283,7 +288,7 @@ export default function MultiMarkdownInput({
             width: "100%",
             fontSize: "14px" /* otherwise button bar can be skewed */,
           }}
-          className="smc-vfill"
+          className={height != "auto" ? "smc-vfill" : undefined}
         >
           <EditableMarkdown
             selectionRef={selectionRef}
@@ -301,11 +306,9 @@ export default function MultiMarkdownInput({
             pageStyle={
               minimal
                 ? { background: undefined, padding: 0 }
-                : {
-                    padding: "5px 15px",
-                    height: height ?? "100%",
-                  }
+                : { padding: "5px 15px" }
             }
+            height={height}
             editBarStyle={editBarStyle}
             saveDebounceMs={saveDebounceMs}
             actions={{
