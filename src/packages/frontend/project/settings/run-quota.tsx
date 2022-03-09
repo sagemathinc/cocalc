@@ -9,7 +9,12 @@ import {
   PoweroffOutlined,
 } from "@ant-design/icons";
 import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { QuestionMarkText, Tip } from "@cocalc/frontend/components";
+import {
+  NoWrap,
+  QuestionMarkText,
+  TimeAgo,
+  Tip,
+} from "@cocalc/frontend/components";
 import { plural, round2, seconds2hms } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
@@ -106,9 +111,11 @@ function useRunQuota(project_id: string): DisplayQuota {
 function useMaxUpgrades(): DisplayQuota {
   const [max_upgrades, set_max_upgrades] = useState<DisplayQuota>({});
   const mu = useTypedRedux("customize", "max_upgrades");
+  console.log("mu", mu?.toJS());
   if (mu != null) {
-    const next = mu.toJS();
-    for (const [key, val] of Object.entries(next)) {
+    const next: any = {};
+    for (const [key, val] of Object.entries(mu.toJS())) {
+      console.log("useMaxUpgrades", key, val);
       if (typeof val !== "number") continue;
       if (key == "idle_timeout") {
         next[key] = seconds2hms(val, false, false);
@@ -126,15 +133,29 @@ function useMaxUpgrades(): DisplayQuota {
   return max_upgrades;
 }
 
-function useCurrentUsage(run_quota): DisplayQuota {
-  const [cu, set_cu] = useState<DisplayQuota>({});
-  const next: DisplayQuota = {};
+type CurrentUsage = { [key in keyof RunQuota]: number | string };
+
+function useCurrentUsage({ project_id, run_quota }): CurrentUsage {
+  const project_map = useTypedRedux("projects", "project_map");
+  const last_edited = project_map?.getIn([project_id, "last_edited"]);
+  const rq = project_map?.getIn([project_id, "run_quota"]);
+  const idle_timeout = rq?.get("idle_timeout"); // seconds
+  const stopps =
+    typeof idle_timeout === "number"
+      ? last_edited.valueOf() + 1000 * idle_timeout
+      : undefined;
+
+  const [cu, set_cu] = useState<CurrentUsage>({});
+  console.log("current usage", run_quota);
+  const next: CurrentUsage = {};
   PROJECT_UPGRADES.field_order.map((name: string) => {
     const key = upgrade2quota_key(name);
     if (["member_host", "network", "always_running"].includes(name)) {
-      next[name] = run_quota[name];
+      next[key] = run_quota[name];
+    } else if (name === "mintime") {
+      next[key] = stopps;
     } else {
-      next[name] = name + "→" + key;
+      next[key] = ""; // name + "→" + key;
     }
   });
   if (!isEqual(next, cu)) {
@@ -147,7 +168,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, project_state: state } = props;
   const run_quota = useRunQuota(project_id);
   const max_upgrades = useMaxUpgrades();
-  const cur_usage = useCurrentUsage(run_quota);
+  const cur_usage = useCurrentUsage({ project_id, run_quota });
 
   const project_status = useTypedRedux({ project_id }, "status");
   console.log("project_status", project_status?.toJS());
@@ -166,7 +187,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       const desc = PARAMS[name]?.desc ?? "";
       const limit = key == "idle_timeout" && ar ? "&infin;" : quota_limit(key);
       const maximum = max_upgrades?.[name] ?? "N/A";
-      const usage = cur_usage?.[name] ?? "";
+      const usage = cur_usage?.[key] ?? "";
       return { key, display, limit, maximum, desc, usage };
     });
   }, [run_quota, cur_usage, max_upgrades]);
@@ -197,8 +218,17 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       } else {
         return <CloseCircleTwoTone twoToneColor={COLORS.ANTD_RED} />;
       }
+    } else if (typeof val === "number") {
+      if (record.key === "idle_timeout") {
+        return <TimeAgo date={val} />;
+      }
     }
-    return <Text strong={type === "limit"}>{val}</Text>;
+
+    return (
+      <Text strong={type === "limit"}>
+        <NoWrap>{val}</NoWrap>
+      </Text>
+    );
   }
 
   function render_maximum(text, record) {
@@ -236,9 +266,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
               Quota
             </QuestionMarkText>
           }
-          render={(text) => (
-            <span style={{ whiteSpace: "nowrap" }}>{text}</span>
-          )}
+          render={(text) => <NoWrap>{text}</NoWrap>}
           dataIndex="display"
           width={6}
         />
