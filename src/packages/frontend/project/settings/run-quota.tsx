@@ -7,10 +7,9 @@ import {
   CheckCircleTwoTone,
   CloseCircleTwoTone,
   PoweroffOutlined,
-  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Tip } from "@cocalc/frontend/components";
+import { QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { plural, round2, seconds2hms } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
@@ -62,14 +61,6 @@ function quota2upgrade_key(key: string): keyof Upgrades {
   }
   return key as keyof Upgrades;
 }
-
-const Q: React.FC<{ children; tip }> = ({ children, tip }) => {
-  return (
-    <Tip tip={tip}>
-      {children} <QuestionCircleOutlined />
-    </Tip>
-  );
-};
 
 interface QuotaData {
   key: string;
@@ -187,16 +178,16 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Tip
           tip={`The project is currently not running. Start the project to see the ${what}.`}
         >
-          <PoweroffOutlined />
+          <PoweroffOutlined style={{ color: COLORS.GRAY_L }} />
         </Tip>
       );
     }
     const val = record[type];
     if (record.key === "idle_timeout" && val === "&infin;") {
       return (
-        <Q tip="If the project stops or the underlying VM goes into maintenance, the project will automatically restart.">
+        <QuestionMarkText tip="If the project stops or the underlying VM goes into maintenance, the project will automatically restart.">
           &infin;
-        </Q>
+        </QuestionMarkText>
       );
     }
 
@@ -232,14 +223,18 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         dataSource={data}
         size="small"
         pagination={false}
-        expandedRowRender={render_extra}
+        rowClassName={() => "cursor-pointer"}
+        expandable={{
+          expandedRowRender: (record) => render_extra(record),
+          expandRowByClick: true,
+        }}
       >
         <Table.Column<QuotaData>
           key="key"
           title={
-            <Q tip="Name of the quota. Click on [+] to expand its details">
+            <QuestionMarkText tip="Name of the quota. Click on [+] to expand its details">
               Quota
-            </Q>
+            </QuestionMarkText>
           }
           render={(text) => (
             <span style={{ whiteSpace: "nowrap" }}>{text}</span>
@@ -249,7 +244,11 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         />
         <Table.Column<QuotaData>
           key="key"
-          title={<Q tip="Current usage of the project.">Usage</Q>}
+          title={
+            <QuestionMarkText tip="Current usage of the project.">
+              Usage
+            </QuestionMarkText>
+          }
           dataIndex="usage"
           render={(_, record) => render_value(record, "usage")}
           width={1}
@@ -258,9 +257,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Table.Column<QuotaData>
           key="key"
           title={
-            <Q tip="Usage limit imposed by the current quota. Adjust Quotas or Licenses to change this limit.">
+            <QuestionMarkText tip="Usage limit imposed by the current quota. Adjust Quotas or Licenses to change this limit.">
               Limit
-            </Q>
+            </QuestionMarkText>
           }
           dataIndex="value"
           render={(_, record) => render_value(record, "limit")}
@@ -270,9 +269,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Table.Column<QuotaData>
           key="key"
           title={
-            <Q tip="Largest possible quota value. Projects can't be upgraded beyond that limit.">
-              Max. Quota
-            </Q>
+            <QuestionMarkText tip="Largest possible quota value. Projects can't be upgraded beyond that limit.">
+              Max.
+            </QuestionMarkText>
           }
           dataIndex="maximum"
           render={render_maximum}

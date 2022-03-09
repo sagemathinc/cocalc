@@ -48,3 +48,5 @@ export { UpgradeAdjustor, UPGRADE_ERROR_STYLE } from "./upgrade-adjustor";
 export { HTML } from "./html";
 export { Markdown } from "./markdown";
 export * from "./table-of-contents";
+export { NoWrap } from "./nowrap";
+export { QuestionMarkText } from "./question-mark-text";

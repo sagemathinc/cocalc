@@ -15,6 +15,7 @@ interface Props {
   close?: () => void;
   children?: React.ReactNode;
   style?: CSS;
+  bodyStyle?: CSS;
 }
 
 const STYLE: CSS = {
@@ -22,7 +23,15 @@ const STYLE: CSS = {
 };
 
 export const SettingBox: React.FC<Props> = React.memo((props: Props) => {
-  const { icon, title, show_header = true, close, children, style } = props;
+  const {
+    icon,
+    title,
+    show_header = true,
+    close,
+    children,
+    style,
+    bodyStyle,
+  } = props;
 
   function renderTitle() {
     if (!show_header) {
@@ -48,6 +57,7 @@ export const SettingBox: React.FC<Props> = React.memo((props: Props) => {
       extra={renderExtra()}
       type="inner"
       style={{ ...STYLE, ...style }}
+      bodyStyle={bodyStyle}
     >
       {children}
     </Card>
