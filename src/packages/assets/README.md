@@ -70,7 +70,7 @@ This JSON dictionary contains descriptions of each library. It is hand curated o
 ```
 {
  "language": {
-   "libary name": {
+   "library name": {
      "descr"        : "long description of the library",
      "doc"          : "documentation URL",
      "name"         : "Name",

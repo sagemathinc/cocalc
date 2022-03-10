@@ -89,7 +89,7 @@ export default function Whiteboard({ customize }) {
                     easily navigate with an <strong>overview map</strong>,
                   </li>
                   <li>
-                    every change you make is recorded via browseable{" "}
+                    every change you make is recorded via browsable{" "}
                     <strong>TimeTravel</strong>,
                   </li>
                   <li>

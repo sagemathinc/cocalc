@@ -232,7 +232,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         ids[changefeed_id] = client_name
         return false
 
-    # Corresonding decrement of count of the number of changefeeds by a given client.
+    # Corresponding decrement of count of the number of changefeeds by a given client.
     _dec_changefeed_count: (id, table) =>
         return
         client_name = @_user_get_changefeed_id_to_user[id]
@@ -1016,7 +1016,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter - pg_where or check_hook)"}
 
         # Apply default options to the get query (don't impact changefeed)
-        # The user can overide these, e.g., if they were to want to explicitly increase a limit
+        # The user can override these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
         user_options = {}
         for x in opts.options
@@ -1082,7 +1082,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 else
                     pg_where[i] = {"project_id = ANY(select project_id from projects where users ? $::TEXT)" : 'account_id'}
 
-        # Now we fill in all the parametrized substitions in the pg_where list.
+        # Now we fill in all the parametrized substitutions in the pg_where list.
         subs = {}
         for x in pg_where
             if misc.is_object(x)

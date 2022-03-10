@@ -171,7 +171,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
 
             # This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
             # an unhandled exception gets raised, which is nasty.
-            # From docs: "Note that the exit-event may or may not fire after an error has occured. "
+            # From docs: "Note that the exit-event may or may not fire after an error has occurred. "
             r.on 'error', (err) ->
                 if not exit_code?
                     exit_code = 1

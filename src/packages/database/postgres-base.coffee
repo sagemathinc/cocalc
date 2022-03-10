@@ -7,7 +7,7 @@
 
 exports.DEBUG = true
 
-# If database conection is non-responsive but no error raised directly
+# If database connection is non-responsive but no error raised directly
 # by db client, then we will know and fix, rather than just sitting there...
 DEFAULT_TIMEOUS_MS = 60000
 
@@ -414,7 +414,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
                                      # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                     # with corresponding params set.  Undefined valued fields are ignored and types may be omited.
+                                     # with corresponding params set.  Undefined valued fields are ignored and types may be omitted.
             conflict  : undefined    # If given, then values must also be given; appends this to query:
                                      #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
                                      # Or, if conflict starts with "ON CONFLICT", then just include as is, e.g.,

@@ -20,7 +20,7 @@ async function get(req): Promise<Item[]> {
   if (account_id == null) {
     throw Error("must be signed in to get shopping cart information");
   }
-  // recent = postgresql time, e.g., "1 day".  Can be omited, in which case default is "1 week".
+  // recent = postgresql time, e.g., "1 day".  Can be omitted, in which case default is "1 week".
   const { recent } = req.body;
   return await getRecentPurchases({ account_id, recent });
 }

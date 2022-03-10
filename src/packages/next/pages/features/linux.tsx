@@ -329,7 +329,7 @@ export function FullLinuxTerminal() {
               <li>
                 Compile programs written in{" "}
                 <strong>
-                  C/C++, Java, Rust, Assembly, Fortan, Julia, Zig, Haskell,
+                  C/C++, Java, Rust, Assembly, Fortran, Julia, Zig, Haskell,
                 </strong>{" "}
                 etc.
               </li>

@@ -300,7 +300,7 @@
       },
       { "feature": "Full Linux", "cocalc": true, "cloud": true, "lxd": true },
       {
-        "feature": "Count of of pre-installed packages, by runing 'apt list --installed | wc -l' or 'rpm -qa | wc -l'",
+        "feature": "Count of of pre-installed packages, by running 'apt list --installed | wc -l' or 'rpm -qa | wc -l'",
         "cocalc": "~ 9500",
         "cloud": null,
         "lxd": "~ 200",
