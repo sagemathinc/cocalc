@@ -62,6 +62,7 @@ export class ProjectStatusServer extends EventEmitter {
   private disk_mb?: number;
   private cpu_pct?: number;
   private mem_pct?: number;
+  private mem_rss?: number;
   private components: { [name in ComponentName]?: number | null } = {};
 
   constructor(testing = false) {
@@ -115,9 +116,10 @@ export class ProjectStatusServer extends EventEmitter {
     const cg = this.info.cgroup;
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
-      const { mem_pct, cpu_pct } = cgroup_stats(cg, du_tmp);
+      const { mem_pct, cpu_pct, mem_rss } = cgroup_stats(cg, du_tmp);
       this.mem_pct = mem_pct;
       this.cpu_pct = cpu_pct;
+      this.mem_rss = Math.round(mem_rss);
       do_alert("memory", mem_pct > ALERT_HIGH_PCT);
       do_alert("cpu-cgroup", cpu_pct > ALERT_HIGH_PCT);
     }
@@ -204,6 +206,7 @@ export class ProjectStatusServer extends EventEmitter {
         disk_mb: this.disk(),
         mem_pct: this.memory(),
         cpu_pct: this.cpu(),
+        mem_rss: this.mem_rss,
       },
       version: version,
     };

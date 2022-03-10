@@ -216,6 +216,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
       <RunQuota
         project_id={project_id}
         project_state={project.getIn(["state", "state"])}
+        project={project}
       />
     );
   }

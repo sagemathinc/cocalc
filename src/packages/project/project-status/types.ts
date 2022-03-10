@@ -44,7 +44,8 @@ export interface ProjectStatus {
   alerts: Alert[];
   usage: {
     disk_mb?: number;
-    mem_pct?: number;
+    mem_pct?: number; // 0-100%
     cpu_pct?: number;
+    mem_rss?: number; // mb
   };
 }

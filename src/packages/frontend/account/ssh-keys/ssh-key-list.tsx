@@ -3,13 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
-import { Popconfirm, Typography } from "antd";
-
-import { redux } from "../../app-framework";
-import { HelpIcon, Icon, SettingBox, Space, TimeAgo } from "../../components";
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { redux } from "@cocalc/frontend/app-framework";
+import {
+  HelpIcon,
+  Icon,
+  SettingBox,
+  Space,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
-import { Panel, Row, Col, Button } from "../../antd-bootstrap";
+import { Popconfirm, Typography } from "antd";
+import { Map } from "immutable";
 
 // Children are rendered above the list of SSH Keys
 // Takes an optional Help string or node to render as a help modal
