@@ -516,6 +516,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (old_cell == null || old_cell.get("pos") !== new_cell.get("pos")) {
         cell_list_needs_recompute = true;
       }
+      // preserve cursor info if happen to have it, rather than just letting
+      // it get deleted whenever the cell changes.
+      if (old_cell?.has("cursors")) {
+        new_cell = new_cell.set("cursors", old_cell.get("cursors"));
+      }
       this.setState({ cells: cells.set(id, new_cell) });
       if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
         this.edit_cell_metadata(id); // updates the state during active editing.

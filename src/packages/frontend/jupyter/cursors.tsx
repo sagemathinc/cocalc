@@ -12,7 +12,7 @@ React component that represents cursors of other users.
 const CURSOR_TIME_MS = 45000;
 const HIDE_NAME_TIMEOUT_MS = 5000;
 
-import { useRef, useState, useEffect } from "react";
+import { MutableRefObject, useRef, useState, useEffect } from "react";
 import { Map } from "immutable";
 import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -32,11 +32,12 @@ interface CursorProps {
   top?: string; // doesn't change
   time?: number;
   paddingText?: string; // paddingText -- only used in slate to move cursor over one letter to place cursor at end of text
+  showNameRef?: MutableRefObject<((time?) => void) | null>;
 }
 
 export const Cursor: React.FC<CursorProps> = React.memo(
   (props: CursorProps) => {
-    const { name, color, top, time, paddingText } = props;
+    const { name, color, top, time, paddingText, showNameRef } = props;
     const isMountedRef = useIsMountedRef();
 
     const timer = useRef<number | null>(null);
@@ -77,6 +78,10 @@ export const Cursor: React.FC<CursorProps> = React.memo(
       if (timeout) {
         set_timer(timeout);
       }
+    }
+
+    if (showNameRef != null) {
+      showNameRef.current = show_name;
     }
 
     function renderCursor(): Rendered {
@@ -182,6 +187,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
     const isMountedRef = useIsMountedRef();
     const elt = useRef<HTMLDivElement | null>(null);
     const posRef = useRef<{ line: number; ch: number } | null>(null);
+    const showNameRef = useRef<((time?) => void) | null>(null);
 
     useEffect(() => {
       elt.current = document.createElement("div");
@@ -227,13 +233,20 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
         setTimeout(positionCursor, 1000);
       } else {
         codemirror.addWidget(pos, elt.current, false);
+        showNameRef.current?.(2000);
       }
     }
 
     function renderCursor(): void {
       if (elt.current != null) {
         ReactDOM.render(
-          <Cursor name={name} color={color} top={"-1.2em"} time={time} />,
+          <Cursor
+            name={name}
+            color={color}
+            top={"-1.2em"}
+            time={time}
+            showNameRef={showNameRef}
+          />,
           elt.current
         );
       }
@@ -313,10 +326,7 @@ export const Cursors: React.FC<CursorsProps> = React.memo(
       cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = getProfile(account_id, user_map);
         locs.forEach((pos) => {
-          const tm = pos.get("time");
-          if (tm == null) {
-            return;
-          }
+          const tm = pos.get("time") ?? new Date();
           const t = tm.valueOf();
           if (now - t <= CURSOR_TIME_MS) {
             v.push(
