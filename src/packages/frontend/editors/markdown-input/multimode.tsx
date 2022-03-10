@@ -265,20 +265,18 @@ export default function MultiMarkdownInput({
           submitMentionsRef={submitMentionsRef}
           extraHelp={extraHelp}
           hideHelp={hideHelp}
-          onBlur={
-            onBlur != null
-              ? (value) => {
-                  onChange(value);
-                  if (!ignoreBlur.current) {
-                    onBlur();
-                  }
-                }
-              : undefined
-          }
+          onBlur={(value) => {
+            onChange?.(value);
+            if (!ignoreBlur.current) {
+              onBlur?.();
+            }
+          }}
           onFocus={onFocus}
           onSave={onSave}
           onUndo={onUndo}
           onRedo={onRedo}
+          onCursors={onCursors}
+          cursors={cursorsMap}
         />
       )}
       {mode == "editor" && (
@@ -321,7 +319,7 @@ export default function MultiMarkdownInput({
                 onChange?.(value);
                 setMode("markdown");
               },
-              set_cursor_locs: onCursors != null ? onCursors : undefined,
+              set_cursor_locs: onCursors,
               undo: onUndo,
               redo: onRedo,
               save: onSave as any,

@@ -39,6 +39,7 @@ import { Complete, Item } from "./complete";
 import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
 import { debounce } from "lodash";
+import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
 
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
@@ -91,6 +92,8 @@ interface Props {
   onUndo?: () => void; // user requests undo -- if given, codemirror's internal undo is not used
   onRedo?: () => void; // user requests redo
   onSave?: () => void; // user requests save
+  onCursors?: (cursors: { x: number; y: number }[]) => void; // cursor location(s).
+  cursors?: CursorsType;
   divRef?: RefObject<HTMLDivElement>;
 }
 
@@ -124,6 +127,8 @@ export function MarkdownInput({
   onUndo,
   onRedo,
   onSave,
+  onCursors,
+  cursors,
   divRef,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
@@ -135,7 +140,7 @@ export function MarkdownInput({
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function | null>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
-  const [is_focused, set_is_focused] = useState<boolean>(!!autoFocus);
+  const [isFocused, setIsFocused] = useState<boolean>(!!autoFocus);
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
@@ -223,11 +228,23 @@ export function MarkdownInput({
       cm.current.on("focus", onFocus);
     }
 
-    cm.current.on("blur", () => set_is_focused(false));
+    cm.current.on("blur", () => setIsFocused(false));
     cm.current.on("focus", () => {
-      set_is_focused(true);
+      setIsFocused(true);
       cm.current?.refresh();
     });
+    if (onCursors != null) {
+      cm.current.on("cursorActivity", () => {
+        if (cm.current == null || !isFocused) return;
+        if ((cm.current as any)._setValueNoJump) return;
+        onCursors(
+          cm.current
+            .getDoc()
+            .listSelections()
+            .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }))
+        );
+      });
+    }
 
     if (onUndo != null) {
       cm.current.undo = () => {
@@ -435,7 +452,7 @@ export function MarkdownInput({
     } else {
       s1 = upload_link(path, file);
     }
-    cm.current.setValue(input.replace(s0, s1));
+    cm.current.setValueNoJump(input.replace(s0, s1));
     onChange?.(cm.current.getValue());
   }
 
@@ -451,7 +468,7 @@ export function MarkdownInput({
       // not there anymore; maybe user already submitted -- do nothing further.
       return;
     }
-    cm.current.setValue(input.replace(s, ""));
+    cm.current.setValueNoJump(input.replace(s, ""));
     onChange?.(cm.current.getValue());
     // delete from project itself
     const target = join(aux_file(path, AUX_FILE_EXT), file.name);
@@ -710,7 +727,7 @@ export function MarkdownInput({
       <div
         ref={divRef}
         style={{
-          ...(is_focused ? FOCUSED_STYLE : BLURED_STYLE),
+          ...(isFocused ? FOCUSED_STYLE : BLURED_STYLE),
           ...style,
           ...{
             fontSize: `${fontSize ? fontSize : defaultFontSize}px`,
@@ -719,6 +736,9 @@ export function MarkdownInput({
         }}
       >
         {render_mentions_popup()}
+        {cursors != null && cm.current != null && (
+          <Cursors cursors={cursors} codemirror={cm.current} />
+        )}
         <textarea
           style={{ display: "none" }}
           ref={textarea_ref}

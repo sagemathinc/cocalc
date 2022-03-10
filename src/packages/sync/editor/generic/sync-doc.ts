@@ -37,6 +37,11 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 5;
 
+// This parameter determines throttling when broadcasting cursor position
+// updates.   Make this larger to reduce bandwidth at the expense of making
+// cursors less responsive.
+const CURSOR_THROTTLE_MS = 750;
+
 type XPatch = any;
 
 import { EventEmitter } from "events";
@@ -1466,10 +1471,11 @@ export class SyncDoc extends EventEmitter {
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
 
-    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000, {
-      leading: true,
-      trailing: true,
-    });
+    this.set_cursor_locs = throttle(
+      this.set_cursor_locs.bind(this),
+      CURSOR_THROTTLE_MS,
+      { leading: true, trailing: true }
+    );
     dbg("done");
   }
 

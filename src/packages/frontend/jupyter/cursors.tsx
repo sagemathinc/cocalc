@@ -12,8 +12,10 @@ React component that represents cursors of other users.
 const CURSOR_TIME_MS = 45000;
 const HIDE_NAME_TIMEOUT_MS = 5000;
 
+import { useRef, useState, useEffect } from "react";
 import { Map } from "immutable";
 import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 import { times_n } from "./util";
 
@@ -35,21 +37,19 @@ interface CursorProps {
 export const Cursor: React.FC<CursorProps> = React.memo(
   (props: CursorProps) => {
     const { name, color, top, time, paddingText } = props;
+    const isMountedRef = useIsMountedRef();
 
-    const mounted = React.useRef<boolean>(false); // TODO: don't do this
-    const timer = React.useRef<number | null>(null);
-    const [render_name, set_render_name] = React.useState<boolean>(true);
+    const timer = useRef<number | null>(null);
+    const [render_name, set_render_name] = useState<boolean>(true);
 
-    React.useEffect(() => {
-      mounted.current = true;
+    useEffect(() => {
       set_timer(HIDE_NAME_TIMEOUT_MS);
       return () => {
-        mounted.current = false;
         clear_timer();
       };
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
       show_name(HIDE_NAME_TIMEOUT_MS);
     }, [time]);
 
@@ -66,13 +66,13 @@ export const Cursor: React.FC<CursorProps> = React.memo(
     }
 
     function hide_name(): void {
-      if (!mounted.current) return;
+      if (!isMountedRef.current) return;
       clear_timer();
       set_render_name(false);
     }
 
     function show_name(timeout?: number): void {
-      if (!mounted.current) return;
+      if (!isMountedRef.current) return;
       set_render_name(true);
       if (timeout) {
         set_timer(timeout);
@@ -179,21 +179,17 @@ interface PositionedCursorProps {
 const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
   (props: PositionedCursorProps) => {
     const { name, color, line, ch, codemirror, time } = props;
-    const mounted = React.useRef<boolean>(false);
-    const elt = React.useRef<HTMLDivElement | null>(null);
-    const [pos, set_pos] = React.useState<{ line: number; ch: number } | null>(
-      null
-    );
+    const isMountedRef = useIsMountedRef();
+    const elt = useRef<HTMLDivElement | null>(null);
+    const posRef = useRef<{ line: number; ch: number } | null>(null);
 
-    React.useEffect(() => {
-      mounted.current = true;
+    useEffect(() => {
       elt.current = document.createElement("div");
       elt.current.style.position = "absolute";
       elt.current.style["z-index"] = "5";
-      render_cursor();
+      renderCursor();
       codemirror.addWidget({ line, ch }, elt.current, false);
       return () => {
-        mounted.current = false;
         if (elt.current != null) {
           ReactDOM.unmountComponentAtNode(elt.current);
           elt.current.remove();
@@ -202,19 +198,25 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
       };
     }, []);
 
-    React.useEffect(() => {
-      set_pos({ line, ch });
-      position_cursor();
-      // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
-      render_cursor();
+    useEffect(() => {
+      posRef.current = { line, ch };
+      positionCursor();
+      // Always update how widget is rendered (this will at least cause it
+      // to display for 2 seconds after move/change).
+      renderCursor();
     }, [line, ch]);
 
-    function position_cursor(): void {
-      if (!mounted.current || pos == null || elt.current == null) {
+    function positionCursor(): void {
+      if (
+        !isMountedRef.current ||
+        posRef.current == null ||
+        elt.current == null
+      ) {
         return;
       }
 
       // move the cursor widget to pos:
+      const pos = posRef.current;
       // A *big* subtlety here is that if one user holds down a key and types a lot, then their
       // cursor will move *before* their new text arrives.  This sadly leaves the cursor
       // being placed in a position that does not yet exist, hence fails.   To address this,
@@ -222,13 +224,13 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
       const x = codemirror.getLine(pos.line);
       if (x == null || pos.ch > x.length) {
         // oh crap, impossible to position cursor!  Try again in 1s.
-        setTimeout(position_cursor, 1000);
+        setTimeout(positionCursor, 1000);
       } else {
         codemirror.addWidget(pos, elt.current, false);
       }
     }
 
-    function render_cursor(): void {
+    function renderCursor(): void {
       if (elt.current != null) {
         ReactDOM.render(
           <Cursor name={name} color={color} top={"-1.2em"} time={time} />,
@@ -252,40 +254,43 @@ interface StaticPositionedCursorProps {
   time?: number;
 }
 
-const StaticPositionedCursor: React.FC<StaticPositionedCursorProps> = React.memo(
-  (props: StaticPositionedCursorProps) => {
-    const { name, color, line, ch, time } = props;
+const StaticPositionedCursor: React.FC<StaticPositionedCursorProps> =
+  React.memo(
+    (props: StaticPositionedCursorProps) => {
+      const { name, color, line, ch, time } = props;
 
-    const style: React.CSSProperties = {
-      position: "absolute",
-      height: 0,
-      lineHeight: "normal",
-      fontFamily: "monospace",
-      whiteSpace: "pre",
-      top: "4px", // must match what is used in codemirror-static.
-      left: "4px",
-      pointerEvents: "none", // so clicking in the spaces (the string position below) doesn't break click to focus cell.
-    };
+      const style: React.CSSProperties = {
+        position: "absolute",
+        height: 0,
+        lineHeight: "normal",
+        fontFamily: "monospace",
+        whiteSpace: "pre",
+        top: "4px", // must match what is used in codemirror-static.
+        left: "4px",
+        pointerEvents: "none", // so clicking in the spaces (the string position below) doesn't break click to focus cell.
+      };
 
-    // we position using newlines and blank spaces, so no measurement is needed.
-    const position = times_n("\n", line) + times_n(" ", ch);
+      // we position using newlines and blank spaces, so no measurement is needed.
+      const position = times_n("\n", line) + times_n(" ", ch);
 
-    return (
-      <div style={style}>
-        {position}
-        <Cursor time={time} name={name} color={color} />
-      </div>
-    );
-  },
-  (prev, next) =>
-    prev.line === next.line &&
-    prev.ch === next.ch &&
-    prev.name === next.name &&
-    prev.color === next.color
-);
+      return (
+        <div style={style}>
+          {position}
+          <Cursor time={time} name={name} color={color} />
+        </div>
+      );
+    },
+    (prev, next) =>
+      prev.line === next.line &&
+      prev.ch === next.ch &&
+      prev.name === next.name &&
+      prev.color === next.color
+  );
+
+export type CursorsType = Map<string, any>;
 
 interface CursorsProps {
-  cursors: Map<string, any>;
+  cursors: CursorsType;
   codemirror?: any; // optional codemirror editor instance
 }
 
@@ -293,12 +298,11 @@ export const Cursors: React.FC<CursorsProps> = React.memo(
   (props: CursorsProps) => {
     const { cursors, codemirror } = props;
     const user_map = useTypedRedux("users", "user_map");
-    // const account_id = useTypedRedux("account", "account_id");
-    const [, set_n] = React.useState<number>(0);
+    const [, set_n] = useState<number>(0);
 
-    React.useEffect(() => {
-      const i_id = setInterval(() => set_n((n) => n + 1), CURSOR_TIME_MS / 2);
-      return () => clearInterval(i_id);
+    useEffect(() => {
+      const id = setInterval(() => set_n((n) => n + 1), CURSOR_TIME_MS / 2);
+      return () => clearInterval(id);
     }, []);
 
     const now = server_time().valueOf();
@@ -315,11 +319,6 @@ export const Cursors: React.FC<CursorsProps> = React.memo(
           }
           const t = tm.valueOf();
           if (now - t <= CURSOR_TIME_MS) {
-            /* if (account_id === account_id) {
-              // Don't show our own cursor, we just haven't made this
-              // possible due to only keying by account_id.
-              return;
-            }*/
             v.push(
               <C
                 key={v.length}
