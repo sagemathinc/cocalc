@@ -74,26 +74,38 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 
   function editor_actions(): Actions | undefined {
     if (props.is_subframe && props.actions != null) {
-      return props.actions.get_code_editor(props.id)?.get_actions();
+      // in this case props.actions is the frame tree actions, not the actions for the particular file.
+      const actions = props.actions.get_code_editor(props.id)?.get_actions();
+      if (actions == null) return;
+      // The actions we just got are for the frame with given id.  It's possible
+      // (e.g., see #5779) that the frame id has not changed, but the actions have
+      // changed to be for a different file.  If this is the case, return null:
+      if (actions.path != props.path) return;
+      return actions;
     } else {
+      // in this case props.actions is the actions for the particular file we're editing.
       return props.actions;
     }
   }
 
   useEffect(() => {
+    cm_destroy();
     init_codemirror(props);
     return () => {
       // clean up because unmounting.
       if (cmRef.current != null && !props.is_public) {
         save_editor_state();
-        // We can't just use save_syncstring(), since if this is
-        // the last editor, then editor_actions()._cm may already be empty.
-        editor_actions()?.set_value(cmRef.current.getValue());
-        editor_actions()?.syncstring_commit();
+        const actions = editor_actions();
+        if (actions != null) {
+          // We can't just use save_syncstring(), since if this is
+          // the last editor, then editor_actions()._cm may already be empty.
+          editor_actions()?.set_value(cmRef.current.getValue());
+          editor_actions()?.syncstring_commit();
+        }
         cm_destroy();
       }
     };
-  }, []);
+  }, [props.path]);
 
   useEffect(cm_update_font_size, [props.font_size]);
 

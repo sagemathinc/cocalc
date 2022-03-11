@@ -466,8 +466,8 @@ export class Actions<
     if (this._state == "closed") {
       return;
     }
-    window.removeEventListener("resize", this.set_resize);
     this._state = "closed";
+    window.removeEventListener("resize", this.set_resize);
     this.__save_local_view_state();
     // switch back to non-debounced version, in case called after this point.
     this._save_local_view_state = this.__save_local_view_state;
@@ -1383,7 +1383,9 @@ export class Actions<
   }
 
   syncstring_commit(): void {
-    if (this._state === "closed") return;
+    // We also skip if the syncstring hasn't yet been initialized.
+    // This happens in some cae
+    if (this._state === "closed" || this._syncstring.state != "ready") return;
     if (this._syncstring != null) {
       this._syncstring.commit();
     }
@@ -1410,7 +1412,10 @@ export class Actions<
   }
 
   private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
-    if (this._state === "closed") return;
+    // note -- we don't try to set the syncstring if actions are closed
+    // or the syncstring isn't initialized yet.  The latter case happens when
+    // switching the file that is being edited in a frame, e.g., for latex.
+    if (this._state === "closed" || this._syncstring.state != "ready") return;
     const cur = this._syncstring.to_str();
     if (cur === value) {
       // did not actually change.
@@ -2560,7 +2565,7 @@ export class Actions<
   }
 
   public async init_code_editor(id: string, path: string): Promise<void> {
-    this.code_editors.init_code_editor(id, path);
+    await this.code_editors.init_code_editor(id, path);
   }
 
   public get_matching_frame(obj: object): string | undefined {

@@ -7,6 +7,7 @@
 Show errors and warnings.
 */
 
+import { Alert } from "antd";
 import { sortBy } from "lodash";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
@@ -15,7 +16,7 @@ import { BuildLogs } from "./actions";
 import { Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { use_build_logs } from "./hooks";
-import { EditorState } from "../frame-tree/types"
+import { EditorState } from "../frame-tree/types";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -182,21 +183,12 @@ function should_memoize(prev, next): boolean {
 // the function above is used for React.memo, see bottom
 export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
   (props) => {
-    const {
-      /*id,*/
-      name,
-      actions,
-      /*editor_state,*/
-      /*is_fullscreen,*/
-      /*project_id,*/
-      /*path,*/
-      /*reload,*/
-      /*font_size,*/
-    } = props;
+    const { name, actions } = props;
 
     const build_logs: BuildLogs = use_build_logs(name);
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
+    const includeError: string = useRedux([name, "includeError"]) ?? "";
 
     function render_status(): Rendered {
       if (status) {
@@ -315,6 +307,15 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
           fontSize: "10pt",
         }}
       >
+        {includeError && (
+          <Alert
+            style={{ margin: "15px" }}
+            type="error"
+            showIcon
+            message={"\\include error -- ensure all included files exist"}
+            description={includeError.replace(/Error:/g, "")}
+          />
+        )}
         {render_hint()}
         {render_status()}
         {render_groups()}
