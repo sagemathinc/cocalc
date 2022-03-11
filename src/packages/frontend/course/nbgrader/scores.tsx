@@ -8,9 +8,12 @@ Component that shows all the scores for all problems and notebooks in a given as
 */
 
 import { Alert, Card } from "antd";
-import { Icon } from "../../components";
-import { Rendered, redux, useState } from "../../app-framework";
-import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
+import { Icon } from "@cocalc/frontend/components";
+import { Rendered, useState, useActions } from "@cocalc/frontend/app-framework";
+import {
+  NotebookScores,
+  Score,
+} from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";
 import { CourseActions } from "../actions";
 import { autograded_filename } from "../util";
@@ -41,11 +44,9 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     set_show_all,
   } = props;
 
-  const [editingScore, setEditingScore] = useState<State>({});
+  const actions = useActions<CourseActions>({ name });
 
-  function get_actions(): CourseActions {
-    return redux.getActions(name);
-  }
+  const [editingScore, setEditingScore] = useState<State>({});
 
   function render_show_all(): Rendered {
     if (!show_all) return;
@@ -69,7 +70,6 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
   }
 
   function open_filename(filename: string): void {
-    const actions = get_actions();
     actions.assignments.open_file_in_collected_assignment(
       assignment_id,
       student_id,
@@ -151,7 +151,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     if (isNaN(score) || !isFinite(score)) {
       return; // invalid scores gets thrown away
     }
-    get_actions().assignments.set_specific_nbgrader_score(
+    actions.assignments.set_specific_nbgrader_score(
       assignment_id,
       student_id,
       filename,

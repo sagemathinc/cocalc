@@ -13,13 +13,12 @@ so there is no commoon containing react component that we control...
 
 import {
   React,
-  Component,
   Rendered,
-  rclass,
   redux,
-  rtypes,
   AppRedux,
-} from "../../app-framework";
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Loading, ActivityDisplay, ErrorDisplay } from "../../components";
 import {
   AssignmentsMap,
@@ -30,7 +29,7 @@ import {
 import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
-import { merge, values } from "@cocalc/util/misc";
+import { values } from "@cocalc/util/misc";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
 import { CourseStore } from "../../course/store";
@@ -45,19 +44,6 @@ export interface FrameProps {
   course_panel: any; // TODO...
   actions: CourseEditorActions;
   desc: Map<string, any>;
-}
-
-interface ReduxProps {
-  students?: StudentsMap;
-  user_map?: UserMap;
-  project_map?: ProjectMap;
-  assignments?: AssignmentsMap;
-  handouts?: HandoutsMap;
-  settings?: CourseSettingsRecord;
-  configuring_projects?: boolean;
-  reinviting_students?: boolean;
-  activity?: Map<string, any>;
-  error?: string;
 }
 
 export interface PanelProps {
@@ -77,166 +63,163 @@ export interface PanelProps {
   reinviting_students?: boolean;
 }
 
-class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
-  static reduxProps = ({ project_id, path }) => {
-    const name = course_redux_name(project_id, path);
-    return {
-      [name]: {
-        students: rtypes.immutable.Map,
-        assignments: rtypes.immutable.Map,
-        handouts: rtypes.immutable.Map,
-        settings: rtypes.immutable.Map,
-        configuring_projects: rtypes.bool,
-        reinviting_students: rtypes.bool,
-        error: rtypes.string,
-        activity: rtypes.immutable.Map,
-      },
-      users: {
-        user_map: rtypes.immutable,
-      },
-      projects: {
-        project_map: rtypes.immutable,
-      },
-    };
-  };
+const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
+  (props: FrameProps) => {
+    const { id, project_id, path, font_size, course_panel, actions, desc } =
+      props;
 
-  private render_panel(): Rendered {
-    if (
-      this.props.students == null ||
-      this.props.user_map == null ||
-      this.props.project_map == null ||
-      this.props.assignments == null ||
-      this.props.handouts == null ||
-      this.props.settings == null
-    ) {
-      return <Loading theme={"medium"} />;
+    const name = course_redux_name(project_id, path);
+
+    const students: StudentsMap | undefined = useRedux(name, "students");
+    const assignments: AssignmentsMap | undefined = useRedux(
+      name,
+      "assignments"
+    );
+    const handouts: HandoutsMap | undefined = useRedux(name, "handouts");
+    const settings: CourseSettingsRecord | undefined = useRedux(
+      name,
+      "settings"
+    );
+    const configuring_projects: boolean | undefined = useRedux(
+      name,
+      "configuring_projects"
+    );
+    const reinviting_students: boolean | undefined = useRedux(
+      name,
+      "reinviting_students"
+    );
+    const activity: Map<string, any> | undefined = useRedux(name, "activity");
+    const error: string | undefined = useRedux(name, "error");
+    const user_map = useTypedRedux("users", "user_map");
+    const project_map = useTypedRedux("projects", "project_map");
+
+    function render_panel(): Rendered {
+      if (
+        students == null ||
+        user_map == null ||
+        project_map == null ||
+        assignments == null ||
+        handouts == null ||
+        settings == null
+      ) {
+        return <Loading theme={"medium"} />;
+      }
+
+      const props: PanelProps = {
+        frame_id: id,
+        name,
+        project_id,
+        path,
+        students,
+        user_map,
+        project_map,
+        assignments,
+        handouts,
+        configuring_projects,
+        reinviting_students,
+        settings,
+        redux,
+        actions: redux.getActions(name),
+      };
+
+      return (
+        <>
+          {render_activity()}
+          {render_error()}
+          {render_pay_banner()}
+          {render_tab_bar()}
+          {React.createElement(course_panel, props)}
+        </>
+      );
     }
 
-    const name = course_redux_name(this.props.project_id, this.props.path);
+    function counts(): {
+      students: number;
+      assignments: number;
+      handouts: number;
+    } {
+      const store: CourseStore = redux.getStore(name) as CourseStore;
+      if (store == null) return { students: 0, assignments: 0, handouts: 0 }; // shouldn't happen?
+      // have to use these functions on the store since only count non-deleted ones
+      return {
+        students: store.num_students(),
+        assignments: store.num_assignments(),
+        handouts: store.num_handouts(),
+      };
+    }
 
-    const props: PanelProps = {
-      frame_id: this.props.id,
-      name,
-      project_id: this.props.project_id,
-      path: this.props.path,
-      students: this.props.students,
-      user_map: this.props.user_map,
-      project_map: this.props.project_map,
-      assignments: this.props.assignments,
-      handouts: this.props.handouts,
-      configuring_projects: this.props.configuring_projects,
-      reinviting_students: this.props.reinviting_students,
-      settings: this.props.settings,
-      redux,
-      actions: redux.getActions(name),
-    };
+    function render_tab_bar(): Rendered {
+      return (
+        <CourseTabBar
+          actions={actions}
+          frame_id={id}
+          type={desc.get("type")}
+          counts={counts()}
+        />
+      );
+    }
 
-    return (
-      <>
-        {this.render_activity(name)}
-        {this.render_error(name)}
-        {this.render_pay_banner()}
-        {this.render_tab_bar(name)}
-        {React.createElement(this.props.course_panel, props)}
-      </>
-    );
-  }
+    function render_pay_banner(): Rendered {
+      if (students == null || settings == null) return;
+      return (
+        <PayBanner
+          show_config={() => {
+            actions.set_frame_type(id, "course_configuration");
+          }}
+          settings={settings}
+          num_students={students.size}
+          tab={desc.get("type", "").slice("course_".length)}
+        />
+      );
+    }
 
-  private counts(name: string): {
-    students: number;
-    assignments: number;
-    handouts: number;
-  } {
-    const store: CourseStore = redux.getStore(name) as CourseStore;
-    if (store == null) return { students: 0, assignments: 0, handouts: 0 }; // shouldn't happen?
-    // have to use these functions on the store since only count non-deleted ones
-    return {
-      students: store.num_students(),
-      assignments: store.num_assignments(),
-      handouts: store.num_handouts(),
-    };
-  }
+    function render_activity(): Rendered {
+      if (activity == null) return;
+      return (
+        <ActivityDisplay
+          activity={values(activity.toJS()) as any}
+          trunc={80}
+          on_clear={() => {
+            const actions = redux.getActions(name) as CourseActions;
+            if (actions != null) actions.clear_activity();
+          }}
+        />
+      );
+    }
 
-  private render_tab_bar(name: string): Rendered {
-    return (
-      <CourseTabBar
-        actions={this.props.actions}
-        frame_id={this.props.id}
-        type={this.props.desc.get("type")}
-        counts={this.counts(name)}
-      />
-    );
-  }
+    function render_error(): Rendered {
+      if (!error) return;
+      return (
+        <ErrorDisplay
+          banner={true}
+          error={error}
+          onClose={() => {
+            const actions = redux.getActions(name) as CourseActions;
+            if (actions != null) actions.set_error("");
+          }}
+        />
+      );
+    }
 
-  private render_pay_banner(): Rendered {
-    if (this.props.students == null || this.props.settings == null) return;
-    return (
-      <PayBanner
-        show_config={() => {
-          this.props.actions.set_frame_type(
-            this.props.id,
-            "course_configuration"
-          );
-        }}
-        settings={this.props.settings}
-        num_students={this.props.students.size}
-        tab={this.props.desc.get("type", "").slice("course_".length)}
-      />
-    );
-  }
-
-  private render_activity(name: string): Rendered {
-    if (this.props.activity == null) return;
-    return (
-      <ActivityDisplay
-        activity={values(this.props.activity.toJS()) as any}
-        trunc={80}
-        on_clear={() => {
-          const actions = redux.getActions(name) as CourseActions;
-          if (actions != null) actions.clear_activity();
-        }}
-      />
-    );
-  }
-
-  private render_error(name: string): Rendered {
-    if (!this.props.error) return;
-    return (
-      <ErrorDisplay
-        banner={true}
-        error={this.props.error}
-        onClose={() => {
-          const actions = redux.getActions(name) as CourseActions;
-          if (actions != null) actions.set_error("");
-        }}
-      />
-    );
-  }
-
-  public render(): Rendered {
     return (
       <div
-        style={{ fontSize: `${this.props.font_size}px`, margin: "0 0 0 15px" }}
+        style={{ fontSize: `${font_size}px`, margin: "0 0 0 15px" }}
         className="smc-vfill"
       >
-        {this.render_panel()}
+        {render_panel()}
       </div>
     );
   }
-}
-
-const ReduxCoursePanelWrapper = rclass(CoursePanelWrapper);
+);
 
 export function wrap(Panel) {
   const course_panel = (props) => React.createElement(Panel, props);
 
-  class Wrapped extends Component<FrameProps> {
-    public render(): Rendered {
-      return React.createElement(
-        ReduxCoursePanelWrapper,
-        merge({ course_panel }, this.props)
-      );
-    }
-  }
+  const Wrapped: React.FC<FrameProps> = (props: FrameProps) => {
+    return React.createElement(CoursePanelWrapper, {
+      ...{ course_panel },
+      ...props,
+    });
+  };
   return Wrapped;
 }

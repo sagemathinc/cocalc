@@ -11,23 +11,28 @@
    be in the home directory.
 */
 
+import { realpath } from "fs/promises";
 import { resolve } from "path";
 
-export function canonical_paths(paths: string[]): string[] {
+export async function canonical_paths(paths: string[]): Promise<string[]> {
   const v: string[] = [];
 
-  const { HOME } = process.env;
-  if (HOME == null) {
+  const { HOME: HOME_ENV } = process.env;
+  if (HOME_ENV == null) {
     throw Error("HOME environment variable must be defined");
   }
 
+  // realpath is necessary, because in some circumstances the home dir is made up of a symlink
+  const HOME = await realpath(HOME_ENV);
+
   for (let path of paths) {
-    path = resolve(path);
+    path = await realpath(resolve(path));
     if (path.startsWith(HOME)) {
       v.push(path.slice(HOME.length + 1));
     } else {
       v.push(HOME + "/.smc/root" + path);
     }
   }
+
   return v;
 }
