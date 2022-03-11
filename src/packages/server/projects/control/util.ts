@@ -239,7 +239,7 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
           status[path] = pid;
         }
       } else if (path == "start-timestamp.txt") {
-        status.start_ts = parseInt(val)
+        status.start_ts = parseInt(val);
       } else if (path == "session-id.txt") {
         status.session_id = val;
       } else if (path.endsWith(".port")) {

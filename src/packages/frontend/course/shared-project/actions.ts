@@ -156,7 +156,7 @@ export class SharedProjectActions {
 
       // Also set the compute image
       await this.set_project_compute_image();
-      await this.set_datastore_and_envvars()
+      await this.set_datastore_and_envvars();
     } catch (err) {
       this.actions.set_error(`Error configuring shared project - ${err}`);
     } finally {

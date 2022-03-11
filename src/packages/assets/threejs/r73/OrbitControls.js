@@ -794,7 +794,7 @@
 
 			window.removeEventListener( 'keydown', onKeyDown, false );
 
-		}
+		};
 
 		this.domElement.addEventListener( 'contextmenu', contextmenu, false );
 
