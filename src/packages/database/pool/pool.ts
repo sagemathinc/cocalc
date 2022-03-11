@@ -10,17 +10,15 @@ import {
 } from "@cocalc/backend/data";
 import dbPassword from "./password";
 export * from "./util";
-import /*getCachedPool, */{ Length } from "./cached";
+import getCachedPool, { Length } from "./cached";
 
 import { Pool } from "pg";
 let pool: Pool | undefined = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
-  // temporarily disabling all caching, since there is an issue.
-  //   if (cacheLength != null) {
-  //     return getCachedPool(cacheLength);
-  //   }
-  cacheLength = cacheLength;
+  if (cacheLength != null) {
+    return getCachedPool(cacheLength);
+  }
   if (pool == null) {
     pool = new Pool({ password: dbPassword(), user, host, database });
   }

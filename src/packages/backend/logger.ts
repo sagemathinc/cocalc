@@ -83,7 +83,7 @@ function initTransports() {
     }
     // Similar as in debug source code, except I stuck a timestamp
     // at the beginning, which I like... except also aware of
-    // non-printf formating.
+    // non-printf formatting.
     const line = `${new Date().toISOString()}: ${myFormat(...args)}\n`;
 
     if (transports.console) {
