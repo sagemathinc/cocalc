@@ -61,6 +61,7 @@ export class ProjectStatusServer extends EventEmitter {
   private elevated_cpu_procs: { [pid: string]: number } = {};
   private disk_mb?: number;
   private cpu_pct?: number;
+  private cpu_tot?: number; // total time in seconds
   private mem_pct?: number;
   private mem_rss?: number;
   private components: { [name in ComponentName]?: number | null } = {};
@@ -116,9 +117,10 @@ export class ProjectStatusServer extends EventEmitter {
     const cg = this.info.cgroup;
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
-      const { mem_pct, cpu_pct, mem_rss } = cgroup_stats(cg, du_tmp);
+      const { mem_pct, cpu_pct, cpu_tot, mem_rss } = cgroup_stats(cg, du_tmp);
       this.mem_pct = mem_pct;
       this.cpu_pct = cpu_pct;
+      this.cpu_tot = cpu_tot;
       this.mem_rss = Math.round(mem_rss);
       do_alert("memory", mem_pct > ALERT_HIGH_PCT);
       do_alert("cpu-cgroup", cpu_pct > ALERT_HIGH_PCT);
@@ -184,14 +186,23 @@ export class ProjectStatusServer extends EventEmitter {
     return alerts;
   }
 
-  private disk(): number | undefined {
-    return this.disk_mb;
-  }
-  private cpu() {
-    return this.cpu_pct;
-  }
-  private memory() {
-    return this.mem_pct;
+  private fake_data(): ProjectStatus["usage"] {
+    const lastUsage = this.last?.["usage"];
+
+    const next = (key, max) => {
+      const last = lastUsage?.[key] ?? max / 2;
+      const dx = max / 50;
+      const val = last + dx * Math.random() - dx / 2;
+      return Math.round(Math.min(max, Math.max(0, val)));
+    };
+
+    return {
+      disk_mb: next("disk", 3000),
+      mem_pct: next("mem_pct", 100),
+      cpu_pct: next("cpu_pct", 100),
+      cpu_tot: (lastUsage?.["cpu_tot"] ?? 0) + Math.random() / 10,
+      mem_rss: next("mem_rss", 1000),
+    };
   }
 
   // this function takes the "info" we have (+ more maybe?)
@@ -200,16 +211,24 @@ export class ProjectStatusServer extends EventEmitter {
   // but still only emit new objects if it is either really necessary (new alert)
   // or after some time. This must be a low-frequency and low-volume stream of data.
   private update(): void {
+    const fake_data = false; // set this to true if you're developing (otherwise you don't get any data)
+
+    const usage = fake_data
+      ? this.fake_data()
+      : {
+          disk_mb: this.disk_mb,
+          mem_pct: this.mem_pct,
+          cpu_pct: this.cpu_pct,
+          cpu_tot: this.cpu_tot,
+          mem_rss: this.mem_rss,
+        };
+
     this.status = {
       alerts: this.alerts(), // alerts must come first, it updates some fields
-      usage: {
-        disk_mb: this.disk(),
-        mem_pct: this.memory(),
-        cpu_pct: this.cpu(),
-        mem_rss: this.mem_rss,
-      },
+      usage,
       version: version,
     };
+
     // deep comparison check via lodash
     if (!isEqual(this.status, this.last)) {
       this.emit("status", this.status);

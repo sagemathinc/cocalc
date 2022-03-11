@@ -46,6 +46,7 @@ export interface ProjectStatus {
     disk_mb?: number;
     mem_pct?: number; // 0-100%
     cpu_pct?: number;
+    cpu_tot?: number; // in seconds
     mem_rss?: number; // mb
   };
 }

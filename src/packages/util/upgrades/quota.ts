@@ -953,3 +953,33 @@ function make_number_parser(fn: Str2Num): NumParser {
 const to_int: NumParser = make_number_parser(parseInt);
 
 const to_float: NumParser = make_number_parser(parseFloat);
+
+// used by frontend/settings/run quota, but it could also be used here (a TODO)
+export function upgrade2quota_key(key: string): keyof Quota {
+  switch (key) {
+    case "mintime":
+      return "idle_timeout";
+    case "memory":
+      return "memory_limit";
+    case "cores":
+      return "cpu_limit";
+    case "cpu_shares":
+      return "cpu_request";
+  }
+  return key as keyof Quota;
+}
+
+// inverse of the above
+export function quota2upgrade_key(key: string): keyof Upgrades {
+  switch (key) {
+    case "idle_timeout":
+      return "mintime";
+    case "memory_limit":
+      return "memory";
+    case "cpu_limit":
+      return "cores";
+    case "cpu_request":
+      return "cpu_shares";
+  }
+  return key as keyof Upgrades;
+}
