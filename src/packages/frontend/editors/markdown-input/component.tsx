@@ -29,6 +29,7 @@ import {
   MutableRefObject,
   RefObject,
   ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -75,6 +76,7 @@ interface Props {
   onEscape?: () => void;
   onBlur?: (value: string) => void;
   onFocus?: () => void;
+  isFocused?: boolean; // see docs in multimode.tsx
   placeholder?: string;
   height?: string;
   extraHelp?: ReactNode;
@@ -134,6 +136,7 @@ export function MarkdownInput({
   divRef,
   onCursorTop,
   onCursorBottom,
+  isFocused,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -144,7 +147,8 @@ export function MarkdownInput({
   const dropzone_ref = useRef<Dropzone>(null);
   const upload_close_preview_ref = useRef<Function | null>(null);
   const current_uploads_ref = useRef<{ [name: string]: boolean } | null>(null);
-  const [isFocused, setIsFocused] = useState<boolean>(!!autoFocus);
+  const [isFocusedStyle, setIsFocusedStyle] = useState<boolean>(!!autoFocus);
+  const isFocusedRef = useRef<boolean>(!!autoFocus);
 
   const [mentions, set_mentions] = useState<undefined | Item[]>(undefined);
   const [mentions_offset, set_mentions_offset] = useState<
@@ -156,6 +160,31 @@ export function MarkdownInput({
     change: EventHandlerFunction;
     from: { line: number; ch: number };
   }>();
+
+  const focus = useCallback(() => {
+    if (isFocusedRef.current) return; // already focused
+    const ed = cm.current;
+    if (ed == null) return;
+    ed.getInputField().focus({ preventScroll: true });
+  }, []);
+
+  const blur = useCallback(() => {
+    if (!isFocusedRef.current) return; // already blured
+    const ed = cm.current;
+    if (ed == null) return;
+    ed.getInputField().blur();
+  }, []);
+
+  useEffect(() => {
+    console.log(isFocused, isFocusedRef.current);
+    if (isFocusedRef.current == null || cm.current == null) return;
+
+    if (isFocused && !isFocusedRef.current) {
+      focus();
+    } else if (!isFocused && isFocusedRef.current) {
+      blur();
+    }
+  }, [isFocused]);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -258,14 +287,18 @@ export function MarkdownInput({
       cm.current.on("focus", onFocus);
     }
 
-    cm.current.on("blur", () => setIsFocused(false));
+    cm.current.on("blur", () => {
+      isFocusedRef.current = false;
+      setIsFocusedStyle(false);
+    });
     cm.current.on("focus", () => {
-      setIsFocused(true);
+      isFocusedRef.current = true;
+      setIsFocusedStyle(true);
       cm.current?.refresh();
     });
     if (onCursors != null) {
       cm.current.on("cursorActivity", () => {
-        if (cm.current == null || !isFocused) return;
+        if (cm.current == null || !isFocusedRef.current) return;
         if ((cm.current as any)._setValueNoJump) return;
         onCursors(
           cm.current
@@ -757,7 +790,7 @@ export function MarkdownInput({
       <div
         ref={divRef}
         style={{
-          ...(isFocused ? FOCUSED_STYLE : BLURED_STYLE),
+          ...(isFocusedStyle ? FOCUSED_STYLE : BLURED_STYLE),
           ...style,
           ...{
             fontSize: `${fontSize ? fontSize : defaultFontSize}px`,

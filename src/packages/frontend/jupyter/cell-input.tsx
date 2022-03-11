@@ -229,7 +229,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
-          cacheId={props.id}
+          hideHelp
+          cacheId={`${props.id}${frameActions.current?.frame_id}`}
           value={props.cell.get("input") ?? ""}
           height="auto"
           onChange={(value) => {
@@ -280,6 +281,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           }}
           onCursorBottom={() => {
             frameActions.current?.adjacentCell(0, 1);
+          }}
+          isFocused={props.is_focused}
+          onFocus={() => {
+            const actions = frameActions.current;
+            if (actions != null) {
+              actions.unselect_all_cells();
+              actions.set_cur_id(props.id);
+              actions.set_mode("edit");
+            }
           }}
         />
       );

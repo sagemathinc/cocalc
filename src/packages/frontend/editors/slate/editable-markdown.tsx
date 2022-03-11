@@ -132,6 +132,7 @@ interface Props {
   height?: string; // css style or if "auto", then editor will grow to size of content instead of scrolling.
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
+  isFocused?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -161,6 +162,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     height,
     onCursorTop,
     onCursorBottom,
+    isFocused,
   }) => {
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
@@ -229,6 +231,17 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       return ed as SlateEditor;
     }, []);
+
+    useEffect(() => {
+      if (ReactEditor.isFocused(editor) != isFocused) {
+        console.log("need to fix focus state");
+        if (isFocused) {
+          ReactEditor.focus(editor);
+        } else {
+          ReactEditor.blur(editor);
+        }
+      }
+    }, [isFocused]);
 
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value ?? "", false, editor.syncCache)

@@ -90,6 +90,10 @@ interface Props {
   // of a cell to an adjacent cell).
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
+
+  // Declarative control of whether or not the editor is focused.  Only has an imput
+  // if it is explicitly set to true or false.
+  isFocused?: boolean;
 }
 
 export default function MultiMarkdownInput({
@@ -129,6 +133,7 @@ export default function MultiMarkdownInput({
   onCursorTop,
   onCursorBottom,
   compact,
+  isFocused,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -285,6 +290,7 @@ export default function MultiMarkdownInput({
           cursors={cursorsMap}
           onCursorTop={onCursorTop}
           onCursorBottom={onCursorBottom}
+          isFocused={isFocused}
         />
       )}
       {mode == "editor" && (
@@ -348,6 +354,7 @@ export default function MultiMarkdownInput({
             hideSearch
             onCursorTop={onCursorTop}
             onCursorBottom={onCursorBottom}
+            isFocused={isFocused}
           />
         </div>
       )}

@@ -658,18 +658,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function focus_cm(): void {
-    if (cm.current == null) return;
-    // Because we use react-window, it is critical to preventScroll
-    // when focusing!  Unfortunately, CodeMirror's api does not
-    // expose this option, so we have to bypass it in the dangerous
-    // way below, which could break were CodeMirror to be refactored!
-    // TODO: send them a PR to expose this.
-    if (cm.current.display == null || cm.current.display.input == null) return;
-    if (cm.current.display.input.textarea != null) {
-      cm.current.display.input.textarea.focus({ preventScroll: true });
-    } else if (cm.current.display.input.div != null) {
-      cm.current.display.input.div.focus({ preventScroll: true });
-    }
+    const ed = cm.current;
+    if (ed == null) return;
+    ed.getInputField().focus({ preventScroll: true });
   }
 
   function render_complete() {
