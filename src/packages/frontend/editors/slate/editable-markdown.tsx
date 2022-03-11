@@ -13,7 +13,7 @@ import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { createEditor, Descendant, Editor, Transforms } from "slate";
-import { withFix4131, withNonfatalRange } from "./patches";
+import { withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -168,13 +168,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const cur = actions.getSlateEditor?.(id);
       if (cur != null) return cur;
       const ed = withNonfatalRange(
-        withFix4131(
-          withInsertBreakHack(
-            withNormalize(
-              withAutoFormat(
-                withIsInline(withIsVoid(withReact(createEditor())))
-              )
-            )
+        withInsertBreakHack(
+          withNormalize(
+            withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
           )
         )
       ) as SlateEditor;
