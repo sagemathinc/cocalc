@@ -22,28 +22,28 @@ const ERROR_STYLE: CSS = {
 
 interface Props {
   name: string;
-  path: string;
-  project_id: string;
-  is_public: boolean;
-  font_size: number;
-  editor_state: EditorState;
-  active_id: string;
-  editor_settings?: AccountState["editor_settings"];
-  terminal?: Map<string, any>;
-  settings: Map<string, any>;
-  status: string;
-  derived_file_types: Set<string>;
-  available_features: AvailableFeatures;
-  resize: number;
   actions: Actions;
+  active_id: string;
+  available_features: AvailableFeatures;
   component: any; // ??
-  spec: EditorDescription;
+  derived_file_types: Set<string>;
   desc: NodeDesc;
   editor_actions: Actions;
+  editor_settings?: AccountState["editor_settings"];
+  editor_state: EditorState;
+  font_size: number;
   is_fullscreen: boolean;
-  reload?: number;
+  is_public: boolean;
   is_subframe: boolean;
   local_view_state: Map<string, any>;
+  path: string;
+  project_id: string;
+  reload?: number;
+  resize: number;
+  settings: Map<string, any>;
+  spec: EditorDescription;
+  status: string;
+  terminal?: Map<string, any>;
   // is_visible: true if the entire frame tree is visible (i.e., the tab is shown);
   // knowing this can be critical for rendering certain types of editors, e.g.,
   // see https://github.com/sagemathinc/cocalc/issues/5133 where xterm.js would get
@@ -55,37 +55,48 @@ interface Props {
 
 export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
   const {
-    name,
-    path,
-    project_id,
-    is_public,
-    font_size,
-    editor_state,
-    active_id,
-    editor_settings,
-    terminal,
-    settings,
-    status,
-    derived_file_types,
-    available_features,
-    resize,
     actions,
-    spec,
+    active_id,
+    available_features,
+    derived_file_types,
     desc,
     editor_actions,
+    editor_settings,
+    editor_state,
+    font_size,
     is_fullscreen,
-    reload,
+    is_public,
     is_subframe,
-    local_view_state,
     is_visible,
+    local_view_state,
+    path,
+    project_id,
+    reload,
+    resize,
+    settings,
+    spec,
+    status,
     tab_is_visible,
+    terminal,
   } = props;
+
+  if (editor_actions == null) {
+    throw Error("bug -- editor_actions must not be null");
+  }
+
+  if (editor_actions.name == null) {
+    throw Error("bug -- editor_actions.name must not be null");
+  }
+
+  // for redux, not props.name!
+  const { name } = editor_actions;
 
   // Must be CamelCase
   const TheComponent = props.component as any;
 
   const read_only: boolean | undefined = useRedux(name, "read_only");
   const cursors: Map<string, any> | undefined = useRedux(name, "cursors");
+
   const value: string | undefined = useRedux(name, "value");
   const misspelled_words: Set<string> | undefined = useRedux(
     name,
@@ -99,21 +110,13 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     "gutter_markers"
   );
 
-  if (editor_actions == null) {
-    throw Error("bug -- editor_actions must not be null");
-  }
-
-  if (editor_actions.name == null) {
-    throw Error("bug -- editor_actions.name must not be null");
-  }
-
   function render_leaf(): Rendered {
     if (!is_loaded) return <Loading theme="medium" />;
     if (TheComponent == null) throw Error("component must not be null");
     return (
       <TheComponent
         id={desc.get("id")}
-        name={name}
+        name={props.name}
         actions={actions}
         editor_actions={editor_actions}
         mode={spec.mode}

@@ -15,7 +15,6 @@ const VIEWERS: ReadonlyArray<string> = [
   "pdf_embed",
   "build",
 ];
-
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
@@ -89,6 +88,7 @@ interface LatexEditorState extends CodeEditorState {
   knitr: boolean;
   knitr_error: boolean; // true, if there is a knitr problem
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
+  includeError?: string;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -620,7 +620,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_build(time: number, force: boolean): Promise<void> {
-    ((this as unknown) as any).setState({ build_logs: Map() });
+    (this as unknown as any).setState({ build_logs: Map() });
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
@@ -726,9 +726,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // this.output_directory.
   private get_output_directory(): string | undefined {
     if (this.knitr) return;
-    const s: string | List<string> | undefined = this.store.get(
-      "build_command"
-    );
+    const s: string | List<string> | undefined =
+      this.store.get("build_command");
     if (!s) {
       return;
     }
@@ -761,9 +760,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
-    const s: string | List<string> | undefined = this.store.get(
-      "build_command"
-    );
+    const s: string | List<string> | undefined =
+      this.store.get("build_command");
     if (!s) {
       return;
     }
@@ -910,7 +908,14 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // get canonical path names for each file
     const api = await project_api(this.project_id);
-    const files2 = await api.canonical_paths(files1);
+    let files2;
+    try {
+      files2 = await api.canonical_paths(files1);
+      this.setState({ includeError: "" });
+    } catch (err) {
+      this.setState({ includeError: err.toString() });
+      return;
+    }
 
     // record all relative paths
     for (let i = 0; i < files2.length; i++) {
