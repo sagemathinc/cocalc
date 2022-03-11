@@ -285,7 +285,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       // right now... We need to switch to something like we do with
       // CodeEditorManager.
       let is_subframe: boolean = false;
-      let name_leaf = name;
+      // TODO is there a function somewhere defining this `editor-X-Y` pattern?
+      let name_leaf = `editor-${project_id}-${desc.get("path", path)}`;
       let actions_leaf = actions;
       if (
         spec.name === "TimeTravel" &&

@@ -2510,7 +2510,7 @@ export class Actions<
       if (node == null) return id;
       if (node.get("path") == path) return id; // already done;
       // Change it --
-      this.set_frame_to_code_editor(id, path);
+      await this.set_frame_to_code_editor(id, path);
       return id;
     }
 

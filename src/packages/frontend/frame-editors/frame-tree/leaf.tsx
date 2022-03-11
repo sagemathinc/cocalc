@@ -21,29 +21,29 @@ const ERROR_STYLE: CSS = {
 } as const;
 
 interface Props {
+  actions: Actions;
+  active_id: string;
+  available_features: AvailableFeatures;
+  component: any; // ??
+  derived_file_types: Set<string>;
+  desc: NodeDesc;
+  editor_actions: Actions;
+  editor_settings?: AccountState["editor_settings"];
+  editor_state: EditorState;
+  font_size: number;
+  is_fullscreen: boolean;
+  is_public: boolean;
+  is_subframe: boolean;
+  local_view_state: Map<string, any>;
   name: string;
   path: string;
   project_id: string;
-  is_public: boolean;
-  font_size: number;
-  editor_state: EditorState;
-  active_id: string;
-  editor_settings?: AccountState["editor_settings"];
-  terminal?: Map<string, any>;
-  settings: Map<string, any>;
-  status: string;
-  derived_file_types: Set<string>;
-  available_features: AvailableFeatures;
-  resize: number;
-  actions: Actions;
-  component: any; // ??
-  spec: EditorDescription;
-  desc: NodeDesc;
-  editor_actions: Actions;
-  is_fullscreen: boolean;
   reload?: number;
-  is_subframe: boolean;
-  local_view_state: Map<string, any>;
+  resize: number;
+  settings: Map<string, any>;
+  spec: EditorDescription;
+  status: string;
+  terminal?: Map<string, any>;
   // is_visible: true if the entire frame tree is visible (i.e., the tab is shown);
   // knowing this can be critical for rendering certain types of editors, e.g.,
   // see https://github.com/sagemathinc/cocalc/issues/5133 where xterm.js would get
@@ -55,30 +55,30 @@ interface Props {
 
 export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
   const {
+    actions,
+    active_id,
+    available_features,
+    derived_file_types,
+    desc,
+    editor_actions,
+    editor_settings,
+    editor_state,
+    font_size,
+    is_fullscreen,
+    is_public,
+    is_subframe,
+    is_visible,
+    local_view_state,
     name,
     path,
     project_id,
-    is_public,
-    font_size,
-    editor_state,
-    active_id,
-    editor_settings,
-    terminal,
-    settings,
-    status,
-    derived_file_types,
-    available_features,
-    resize,
-    actions,
-    spec,
-    desc,
-    editor_actions,
-    is_fullscreen,
     reload,
-    is_subframe,
-    local_view_state,
-    is_visible,
+    resize,
+    settings,
+    spec,
+    status,
     tab_is_visible,
+    terminal,
   } = props;
 
   // Must be CamelCase
@@ -86,6 +86,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
 
   const read_only: boolean | undefined = useRedux(name, "read_only");
   const cursors: Map<string, any> | undefined = useRedux(name, "cursors");
+
   const value: string | undefined = useRedux(name, "value");
   const misspelled_words: Set<string> | undefined = useRedux(
     name,
