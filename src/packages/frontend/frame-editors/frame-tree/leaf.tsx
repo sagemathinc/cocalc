@@ -21,6 +21,7 @@ const ERROR_STYLE: CSS = {
 } as const;
 
 interface Props {
+  name: string;
   actions: Actions;
   active_id: string;
   available_features: AvailableFeatures;
@@ -35,7 +36,6 @@ interface Props {
   is_public: boolean;
   is_subframe: boolean;
   local_view_state: Map<string, any>;
-  name: string;
   path: string;
   project_id: string;
   reload?: number;
@@ -69,7 +69,6 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     is_subframe,
     is_visible,
     local_view_state,
-    name,
     path,
     project_id,
     reload,
@@ -80,6 +79,17 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     tab_is_visible,
     terminal,
   } = props;
+
+  if (editor_actions == null) {
+    throw Error("bug -- editor_actions must not be null");
+  }
+
+  if (editor_actions.name == null) {
+    throw Error("bug -- editor_actions.name must not be null");
+  }
+
+  // for redux, not props.name!
+  const { name } = editor_actions;
 
   // Must be CamelCase
   const TheComponent = props.component as any;
@@ -100,21 +110,13 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     "gutter_markers"
   );
 
-  if (editor_actions == null) {
-    throw Error("bug -- editor_actions must not be null");
-  }
-
-  if (editor_actions.name == null) {
-    throw Error("bug -- editor_actions.name must not be null");
-  }
-
   function render_leaf(): Rendered {
     if (!is_loaded) return <Loading theme="medium" />;
     if (TheComponent == null) throw Error("component must not be null");
     return (
       <TheComponent
         id={desc.get("id")}
-        name={name}
+        name={props.name}
         actions={actions}
         editor_actions={editor_actions}
         mode={spec.mode}
