@@ -11,24 +11,34 @@ import {
 import {
   React,
   useEffect,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
+import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { ProjectStatus } from "@cocalc/project/project-status/types";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { plural, round2, seconds2hms } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 import {
   Quota,
   quota2upgrade_key,
   upgrade2quota_key,
+  Upgrades,
 } from "@cocalc/util/upgrades/quota";
 import { Table, Typography } from "antd";
-import { isEqual } from "lodash";
+import { fromPairs, isEqual } from "lodash";
 import { IdleTimeoutPct, PercentBar } from "./run-quota-components";
 import { Project } from "./types";
+
 const { Text } = Typography;
+const MAX_UPGRADES = upgrades.max_per_project;
 
 const PARAMS = PROJECT_UPGRADES.params;
 
@@ -89,30 +99,25 @@ function useRunQuota(project_id: string): DisplayQuota {
 }
 
 function useMaxUpgrades(): DisplayQuota {
-  const [max_upgrades, set_max_upgrades] = useState<DisplayQuota>({});
-  const mu = useTypedRedux("customize", "max_upgrades");
-  //console.log("mu", mu?.toJS());
+  const [maxUpgrades, setMaxUpgrades] = useState<DisplayQuota>({});
+  const customMaxUpgrades = useTypedRedux("customize", "max_upgrades");
   useEffect(() => {
-    if (mu != null) {
-      const next: any = {};
-      for (const [key, val] of Object.entries(mu.toJS())) {
-        console.log("useMaxUpgrades", key, val);
-        if (typeof val !== "number") continue;
-        if (key == "idle_timeout") {
-          next[key] = seconds2hms(val, false, false);
-        } else {
-          const up_key = quota2upgrade_key(key);
-          const dval = PARAMS[up_key].display_factor * val;
-          const unit = PARAMS[up_key].display_unit;
-          next[key] = renderValueUnit(dval, unit);
-        }
-      }
-      if (!isEqual(next, max_upgrades)) {
-        set_max_upgrades(next);
+    const maxUpgradesData = { ...MAX_UPGRADES, ...customMaxUpgrades?.toJS() };
+    const next: any = {};
+    for (const [key, val] of Object.entries(maxUpgradesData)) {
+      if (typeof val !== "number") continue;
+      if (key == "idle_timeout") {
+        next[key] = seconds2hms(val, false, false);
+      } else {
+        const up_key = quota2upgrade_key(key);
+        const dval = PARAMS[up_key].display_factor * val;
+        const unit = PARAMS[up_key].display_unit;
+        next[key] = renderValueUnit(dval, unit);
       }
     }
-  }, [mu]);
-  return max_upgrades;
+    if (!isEqual(next, maxUpgrades)) setMaxUpgrades(next);
+  }, [customMaxUpgrades]);
+  return maxUpgrades;
 }
 
 type CurrentUsage = { [key in keyof RunQuota]: number | string | JSX.Element };
@@ -179,33 +184,32 @@ function useCurrentUsage({ project_id }): CurrentUsage {
       return "";
     }
 
-    const next: CurrentUsage = {};
+    const next: CurrentUsage = fromPairs(
+      PROJECT_UPGRADES.field_order.map((name: keyof Upgrades) => {
+        const key = upgrade2quota_key(name);
+        switch (name) {
+          case "mintime":
+            return [key, whenWillProjectStopp()];
+          case "disk_quota":
+            return [key, disk()];
+          case "memory_request":
+            return [key, memory_dedicated()];
+          case "memory":
+            return [key, memory_shared()];
+          case "cores":
+            return [key, cpuTime()];
+          case "cpu_shares": // dedicated cpu, nothing to show
+            return [key, ""];
+          case "member_host":
+          case "always_running":
+          case "network":
+            return [key, runQuota.get(key)];
+          default:
+            return [key, name];
+        }
+      })
+    );
 
-    PROJECT_UPGRADES.field_order.map((name) => {
-      const key = upgrade2quota_key(name);
-      switch (name) {
-        case "mintime":
-          next[key] = whenWillProjectStopp();
-          break;
-        case "disk_quota":
-          next[key] = disk();
-          break;
-        case "memory_request":
-          next[key] = memory_dedicated();
-          break;
-        case "memory":
-          next[key] = memory_shared();
-          break;
-        case "cores":
-          next[key] = cpuTime();
-          break;
-        case "cpu_shares": // dedicated, nothing to show
-          next[key] = "";
-          break;
-        default:
-          next[key] = name;
-      }
-    });
     if (!isEqual(next, currentUsage)) setCurrentUsage(next);
   }, [
     runQuota,
@@ -218,30 +222,51 @@ function useCurrentUsage({ project_id }): CurrentUsage {
 
 export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, project_state /* project */ } = props;
-  const run_quota = useRunQuota(project_id);
-  const max_upgrades = useMaxUpgrades();
+  const runQuota = useRunQuota(project_id);
+  const maxUpgrades = useMaxUpgrades();
   //const projectStatus = project.get("status");
   const currentUsage = useCurrentUsage({ project_id });
+  const is_commercial = useTypedRedux("customize", "is_commercial");
+  const kucalc = useTypedRedux("customize", "kucalc");
+
+  // on non cocalc.com setups, we hider the member hosting entry
+  const displayedFields = useMemo(
+    () =>
+      PROJECT_UPGRADES.field_order.filter((key: keyof Upgrades) => {
+        switch (kucalc) {
+          case KUCALC_COCALC_COM:
+            // show all rows on cocalc.com
+            return true;
+          case KUCALC_ON_PREMISES:
+            // there is no member hosting
+            return "member_host" !== key;
+          case KUCALC_DISABLED:
+            // TODO there is probably nothing regarding quotas to show
+            return "member_host" !== key && "disk_quota" !== key;
+        }
+      }),
+    [kucalc]
+  );
 
   function quotaValue(key: keyof RunQuota): string | boolean | number {
-    const val = run_quota[key];
+    const val = runQuota[key];
     if (val == null) return "N/A";
     return val;
   }
 
   const data = React.useMemo(() => {
-    const ar = !!run_quota.always_running;
-    return PROJECT_UPGRADES.field_order.map((name: string) => {
+    const ar = !!runQuota.always_running;
+    return displayedFields.map((name: string) => {
       const key = upgrade2quota_key(name);
       const display = PARAMS[name]?.display ?? name;
       const desc = PARAMS[name]?.desc ?? "";
       const quota = key == "idle_timeout" && ar ? "&infin;" : quotaValue(key);
-      const maximum = max_upgrades?.[name] ?? "N/A";
+      const maximum = maxUpgrades?.[name] ?? "N/A";
       const usage =
         project_state === "running" ? currentUsage?.[key] ?? "" : "";
       return { key, display, quota, maximum, desc, usage };
     });
-  }, [run_quota, currentUsage, max_upgrades]);
+  }, [runQuota, currentUsage, maxUpgrades]);
 
   function renderExtraMaximum(record) {
     if (SHOW_MAX.includes(record.key)) {
@@ -249,15 +274,45 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderExtraDedicated(record) {
-    return <>dedicated {record.key}</>;
+  function renderExtraExplanation(record) {
+    const dedicatedVM = (
+      <>
+        If you need more RAM or CPU, consider upgrading to a{" "}
+        <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated VM</A>.
+      </>
+    );
+
+    const dedicatedDisk = (
+      <>
+        It is possible to rent a{" "}
+        <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated Disk</A> for
+        much more storage, or attach{" "}
+        <A href="https://doc.cocalc.com/project-settings.html#cloud-storage-remote-file-systems">
+          files hosted online
+        </A>
+        .
+      </>
+    );
+
+    switch (record.key) {
+      case "memory_request":
+      case "memory_limit":
+      case "cpu_limit":
+      case "cpu_request":
+        return is_commercial ? dedicatedVM : <></>;
+      case "disk_quota":
+        return is_commercial ? dedicatedDisk : <></>;
+      case "idle_timeout":
+      default:
+        return <></>;
+    }
   }
 
   function renderExtra(record) {
     return (
       <>
-        {record.desc}. {renderExtraMaximum(record)}{" "}
-        {renderExtraDedicated(record)}
+        {record.desc} {renderExtraMaximum(record)}{" "}
+        {renderExtraExplanation(record)}
       </>
     );
   }
@@ -271,19 +326,18 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function renderUsage(record) {
-    if (QUOTAS_BOOLEAN.includes(record.key)) return;
     if (project_state != "running") return;
-    const val = record["usage"];
-    if (typeof val === "boolean") {
-      return renderBoolean(val);
-    } else if (typeof val === "number") {
+    const { usage } = record;
+    if (typeof usage === "boolean") {
+      return renderBoolean(usage);
+    } else if (typeof usage === "number") {
       if (record.key === "idle_timeout") {
-        return val;
+        return usage;
       }
     } else {
       return (
         <Text>
-          <NoWrap>{val}</NoWrap>
+          <NoWrap>{usage}</NoWrap>
         </Text>
       );
     }
@@ -340,7 +394,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Table.Column<QuotaData>
           key="key"
           title={
-            <QuestionMarkText tip="Name of the quota. Click on [+] to expand its details">
+            <QuestionMarkText tip="Name of the quota. Click on [+] to expand details.">
               Quota
             </QuestionMarkText>
           }
@@ -363,7 +417,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Table.Column<QuotaData>
           key="key"
           title={
-            <QuestionMarkText tip="Usage limit imposed by the current quota. Adjust Quotas or Licenses to change this limit.">
+            <QuestionMarkText tip="Usage limit imposed by the current quota. Adjust quotas or licenses to change this limit.">
               Limit
             </QuestionMarkText>
           }

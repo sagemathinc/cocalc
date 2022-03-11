@@ -6,7 +6,7 @@
 import { React, useState } from "@cocalc/frontend/app-framework";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Progress, Typography } from "antd";
+import { Progress } from "antd";
 import { useInterval } from "react-interval-hook";
 
 export const PercentBar: React.FC<{
