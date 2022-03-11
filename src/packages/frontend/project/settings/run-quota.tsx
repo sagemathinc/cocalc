@@ -22,7 +22,7 @@ import {
   KUCALC_DISABLED,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { plural, round2, seconds2hms } from "@cocalc/util/misc";
+import { plural, round2, seconds2hms, server_time } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { upgrades } from "@cocalc/util/upgrade-spec";
@@ -48,13 +48,11 @@ type DisplayQuota = { [key in keyof Quota]: Value };
 
 const SHOW_MAX: readonly string[] = [
   "disk_quota",
-  "memory_request",
-  "cpu_request",
   "cpu_limit",
   "memory_limit",
 ] as const;
 
-const QUOTAS_BOOLEAN = ["member_host", "network", "always_running"] as const;
+//const QUOTAS_BOOLEAN = ["member_host", "network", "always_running"] as const;
 
 interface QuotaData {
   key: string;
@@ -120,7 +118,8 @@ function useMaxUpgrades(): DisplayQuota {
   return maxUpgrades;
 }
 
-type CurrentUsage = { [key in keyof RunQuota]: number | string | JSX.Element };
+type Usage = { display: string; element: JSX.Element | boolean } | null;
+type CurrentUsage = { [key in keyof RunQuota]: Usage };
 
 function useCurrentUsage({ project_id }): CurrentUsage {
   const project_status = useTypedRedux({ project_id }, "status");
@@ -131,10 +130,17 @@ function useCurrentUsage({ project_id }): CurrentUsage {
 
   const [currentUsage, setCurrentUsage] = useState<CurrentUsage>({});
 
+  function valPct(val, total): number {
+    return Math.min(100, Math.round((100 * val) / total));
+  }
+
   function pct(val, total) {
-    if (typeof val !== "number") return "";
-    const valPct = Math.min(100, Math.round((100 * val) / total));
-    return <PercentBar percent={valPct} />;
+    if (typeof val !== "number") return null;
+    const pct = valPct(val, total);
+    return {
+      element: <PercentBar percent={pct} />,
+      display: `${round2(pct)}%`,
+    };
   }
 
   useEffect(() => {
@@ -146,17 +152,24 @@ function useCurrentUsage({ project_id }): CurrentUsage {
       return pct(usage.disk_mb, disk_quota);
     }
 
-    function memory_shared() {
-      return <PercentBar percent={usage.mem_pct} />;
-    }
-
-    function memory_dedicated() {
+    function memory() {
+      // this also displays the "dedicated memory" amount, past of entire limite
       const mem_req = runQuota.get("memory_request"); // mb
-      if (typeof mem_req === "number" && typeof usage.mem_rss === "number") {
-        return pct(Math.min(mem_req, usage.mem_rss), mem_req);
-      } else {
-        return "";
-      }
+      const mem_limit = runQuota.get("memory_limit"); // mb
+      const { mem_pct, mem_rss } = usage;
+
+      if (
+        typeof mem_limit !== "number" ||
+        typeof mem_req !== "number" ||
+        typeof mem_rss !== "number" ||
+        typeof mem_pct !== "number"
+      )
+        return null;
+      const pct2 = valPct(Math.min(mem_req, mem_rss), mem_limit);
+      return {
+        element: <PercentBar percent={mem_pct} percent2={pct2} />,
+        display: `${Math.round(mem_rss)}MB (${round2(mem_pct)}%)`,
+      };
     }
 
     function cpuTime() {
@@ -164,50 +177,69 @@ function useCurrentUsage({ project_id }): CurrentUsage {
       const pct = usage.cpu_pct;
       if (typeof cpu === "number") {
         const txt = seconds2hms(cpu, false, true);
-        return <PercentBar percent={pct} format={() => txt} />;
+        return {
+          element: <PercentBar percent={pct} format={() => txt} />,
+          display: `${pct}% at a total of ${txt} during this session.`,
+        };
       }
-      return "";
+      return null;
     }
 
     function whenWillProjectStopp() {
       const always_running = runQuota?.get("always_running") ?? false;
-      if (always_running) return ""; // not applicable
+      if (always_running) return null; // not applicable
       const idle_timeout = runQuota?.get("idle_timeout"); // seconds
+      const diff = Math.max(
+        0,
+        (server_time().valueOf() - last_edited.valueOf()) / 1000
+      );
       if (typeof idle_timeout === "number") {
-        return (
-          <IdleTimeoutPct
-            idle_timeout={idle_timeout}
-            last_edited={last_edited}
-          />
-        );
+        return {
+          display: seconds2hms(diff, false, false),
+          element: (
+            <IdleTimeoutPct
+              idle_timeout={idle_timeout}
+              last_edited={last_edited}
+            />
+          ),
+        };
       }
-      return "";
+      return null;
+    }
+
+    function getNetwork(key) {
+      return {
+        display: runQuota.get(key) ? "true" : "false",
+        element: runQuota.get(key),
+      };
     }
 
     const next: CurrentUsage = fromPairs(
-      PROJECT_UPGRADES.field_order.map((name: keyof Upgrades) => {
-        const key = upgrade2quota_key(name);
-        switch (name) {
-          case "mintime":
-            return [key, whenWillProjectStopp()];
-          case "disk_quota":
-            return [key, disk()];
-          case "memory_request":
-            return [key, memory_dedicated()];
-          case "memory":
-            return [key, memory_shared()];
-          case "cores":
-            return [key, cpuTime()];
-          case "cpu_shares": // dedicated cpu, nothing to show
-            return [key, ""];
-          case "member_host":
-          case "always_running":
-          case "network":
-            return [key, runQuota.get(key)];
-          default:
-            return [key, name];
+      PROJECT_UPGRADES.field_order.map(
+        (name: keyof Upgrades): [string, Usage] => {
+          const key = upgrade2quota_key(name);
+          switch (name) {
+            case "mintime":
+              return [key, whenWillProjectStopp()];
+            case "disk_quota":
+              return [key, disk()];
+            case "memory_request":
+              return [key, null];
+            case "memory":
+              return [key, memory()];
+            case "cores":
+              return [key, cpuTime()];
+            case "cpu_shares": // dedicated cpu, nothing to show
+              return [key, null];
+            case "member_host":
+            case "always_running":
+            case "network":
+              return [key, getNetwork(key)];
+            default:
+              return [key, { display: name, element: <>{name}</> }];
+          }
         }
-      })
+      )
     );
 
     if (!isEqual(next, currentUsage)) setCurrentUsage(next);
@@ -233,6 +265,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const displayedFields = useMemo(
     () =>
       PROJECT_UPGRADES.field_order.filter((key: keyof Upgrades) => {
+        // we collect dedicated quotas in the overall limit
+        if (key === "cpu_shares" || key === "memory_request") return false;
+
         switch (kucalc) {
           case KUCALC_COCALC_COM:
             // show all rows on cocalc.com
@@ -254,23 +289,50 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     return val;
   }
 
+  function displayedName(name: keyof Upgrades): string {
+    if (name === "cores") return "CPU";
+    if (name === "memory") return "Memory";
+    return PARAMS[name]?.display ?? name;
+  }
+
+  function getMaxDedicated(name) {
+    if (name === "memory") return maxUpgrades?.["memory_request"] ?? "N/A";
+    if (name === "cores") return maxUpgrades?.["cpu_shares"] ?? "N/A";
+  }
+
+  function getQuotaDedicated({ key, name }) {
+    if (name === "memory") return quotaValue("memory_request");
+    if (name === "cores") return quotaValue("cpu_request");
+  }
+
   const data = React.useMemo(() => {
     const ar = !!runQuota.always_running;
-    return displayedFields.map((name: string) => {
+    return displayedFields.map((name: keyof Upgrades) => {
       const key = upgrade2quota_key(name);
-      const display = PARAMS[name]?.display ?? name;
-      const desc = PARAMS[name]?.desc ?? "";
-      const quota = key == "idle_timeout" && ar ? "&infin;" : quotaValue(key);
-      const maximum = maxUpgrades?.[name] ?? "N/A";
-      const usage =
-        project_state === "running" ? currentUsage?.[key] ?? "" : "";
-      return { key, display, quota, maximum, desc, usage };
+      return {
+        key,
+        display: displayedName(name),
+        desc: PARAMS[name]?.desc ?? "",
+        quota: key == "idle_timeout" && ar ? "&infin;" : quotaValue(key),
+        quotaDedicated: getQuotaDedicated({ key, name }),
+        maximum: maxUpgrades?.[name] ?? "N/A",
+        maxDedicated: getMaxDedicated(name),
+        usage: project_state === "running" ? currentUsage?.[key] ?? "" : "",
+      };
     });
   }, [runQuota, currentUsage, maxUpgrades]);
 
   function renderExtraMaximum(record) {
     if (SHOW_MAX.includes(record.key)) {
-      return <>The maximum possible quota is {record.maximum}.</>;
+      return (
+        <>
+          The maximum possible quota is {record.maximum}
+          {record.maxDedicated != null && (
+            <>, of which {record.maxDedicated} could be dedicated</>
+          )}
+          .
+        </>
+      );
     }
   }
 
@@ -308,10 +370,20 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function renderQuotaValue({ quota, quotaDedicated, usage }) {
+    return (
+      `Usage right now is ${usage.display}. ` +
+      `The quota limit is ${quota}` +
+      (quotaDedicated != null
+        ? `, of which ${quotaDedicated} are dedicated to this project.`
+        : ".")
+    );
+  }
+
   function renderExtra(record) {
     return (
       <>
-        {record.desc} {renderExtraMaximum(record)}{" "}
+        {record.desc} {renderQuotaValue(record)} {renderExtraMaximum(record)}{" "}
         {renderExtraExplanation(record)}
       </>
     );
@@ -327,17 +399,16 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
 
   function renderUsage(record) {
     if (project_state != "running") return;
-    const { usage } = record;
-    if (typeof usage === "boolean") {
-      return renderBoolean(usage);
-    } else if (typeof usage === "number") {
-      if (record.key === "idle_timeout") {
-        return usage;
-      }
+    const usage: Usage = record.usage;
+    if (usage == null) return;
+    const { element } = usage;
+    if (typeof element === "boolean") {
+      return renderBoolean(element);
     } else {
+      // wrapped in "Text", because that works better with the table layout
       return (
         <Text>
-          <NoWrap>{usage}</NoWrap>
+          <NoWrap>{element}</NoWrap>
         </Text>
       );
     }
@@ -409,7 +480,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
               Usage
             </QuestionMarkText>
           }
-          dataIndex="usage"
+          dataIndex="key"
           render={(_, record) => renderUsage(record)}
           width={1}
           align={"right"}

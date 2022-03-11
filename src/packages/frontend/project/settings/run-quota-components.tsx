@@ -11,16 +11,25 @@ import { useInterval } from "react-interval-hook";
 
 export const PercentBar: React.FC<{
   percent?: number;
+  percent2?: number; // part of the main bar, should be < percent
   format?: (pct?: number) => React.ReactNode;
-}> = ({ percent, format }) => {
+}> = ({ percent, percent2, format }) => {
   if (percent == null) return null;
+
+  function props() {
+    if (typeof percent2 === "number") {
+      return { success: { percent: percent2 } };
+    }
+  }
+
   return (
     <Progress
       percent={percent}
-      status={"normal"}
       strokeColor={COLORS.GRAY_L}
       size={"small"}
       format={format}
+      status={"normal"}
+      {...props()}
     />
   );
 };
