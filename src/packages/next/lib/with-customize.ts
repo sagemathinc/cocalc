@@ -27,7 +27,8 @@ export default async function withCustomize(
 ) {
   let customize;
   try {
-    customize = await getCustomize();
+    // NOTE: important to make a (shallow) copy, since customize gets mutated below.
+    customize = { ...(await getCustomize()) };
   } catch (_err) {
     // fallback to be empty; during static build
     // this happens.
