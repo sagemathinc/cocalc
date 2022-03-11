@@ -3,19 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, redux, useRedux, useActions } from "../../app-framework";
+import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
+import {
+  CSS,
+  React,
+  redux,
+  useActions,
+  useRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Icon, NumberInput } from "@cocalc/frontend/components";
+import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { Card, Radio } from "antd";
-import { Checkbox } from "../../antd-bootstrap";
-import { A, Icon, NumberInput } from "../../components";
-import { SelectProject } from "../../projects/select-project";
-
 import { CourseActions } from "../actions";
 import {
   NBGRADER_CELL_TIMEOUT_MS,
-  NBGRADER_TIMEOUT_MS,
   NBGRADER_MAX_OUTPUT,
   NBGRADER_MAX_OUTPUT_PER_CELL,
-} from "../assignments/actions";
+  NBGRADER_TIMEOUT_MS,
+} from "../assignments/consts";
 
 const radioStyle: CSS = {
   display: "block",

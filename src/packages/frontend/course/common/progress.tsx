@@ -7,21 +7,20 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { Component } from "../../app-framework";
-import { Icon, Space } from "../../components";
-
+import { React, CSS } from "@cocalc/frontend/app-framework";
+import { Icon, Space } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
-import * as misc from "@cocalc/util/misc";
-
-const progress_info = {
+const progress_info: CSS = {
   color: COLORS.GRAY_D,
   marginLeft: "10px",
   whiteSpace: "normal",
-};
+} as const;
 
-const progress_info_done = misc.copy(progress_info);
-progress_info_done.color = COLORS.BS_GREEN_DD;
+const progress_info_done = {
+  ...progress_info,
+  color: COLORS.BS_GREEN_DD,
+} as const;
 
 interface ProgressProps {
   done: number;
@@ -30,50 +29,50 @@ interface ProgressProps {
   skipped?: boolean;
 }
 
-export class Progress extends Component<ProgressProps> {
-  render_checkbox() {
-    if (this.props.not_done === 0) {
-      return (
-        <span style={{ fontSize: "12pt" }}>
-          <Icon name="check-circle" />
-          <Space />
-        </span>
-      );
-    }
-  }
+export const Progress: React.FC<ProgressProps> = React.memo(
+  (props: ProgressProps) => {
+    const { done, not_done, step, skipped } = props;
 
-  render_status() {
-    if (!this.props.skipped) {
-      return (
-        <>
-          ({this.props.done} / {this.props.not_done + this.props.done}{" "}
-          {this.props.step})
-        </>
-      );
-    } else {
-      return <>Skipped</>;
+    function render_checkbox() {
+      if (not_done === 0) {
+        return (
+          <span style={{ fontSize: "12pt" }}>
+            <Icon name="check-circle" />
+            <Space />
+          </span>
+        );
+      }
     }
-  }
 
-  render() {
-    let style;
-    if (
-      this.props.done == null ||
-      this.props.not_done == null ||
-      this.props.step == null
-    ) {
+    function render_status() {
+      if (!skipped) {
+        return (
+          <>
+            ({done} / {not_done + done} {step})
+          </>
+        );
+      } else {
+        return <>Skipped</>;
+      }
+    }
+
+    function style(): CSS {
+      if (not_done === 0) {
+        return progress_info_done;
+      } else {
+        return progress_info;
+      }
+    }
+
+    if (done == null || not_done == null || step == null) {
       return <span />;
-    }
-    if (this.props.not_done === 0) {
-      style = progress_info_done;
     } else {
-      style = progress_info;
+      return (
+        <div style={style()}>
+          {render_checkbox()}
+          {render_status()}
+        </div>
+      );
     }
-    return (
-      <div style={style}>
-        {this.render_checkbox()}
-        {this.render_status()}
-      </div>
-    );
   }
-}
+);
