@@ -25,7 +25,7 @@ export default async function getPublicPathInfo(
     throw Error("invalid id or relativePath");
   }
 
-  // TODO: currently not using any cacheing because when editing and saving, we want info to update.
+  // TODO: currently not using any caching because when editing and saving, we want info to update.
   // However, we should implement this by using a query param to prevent using cache?
   const pool = getPool();
 

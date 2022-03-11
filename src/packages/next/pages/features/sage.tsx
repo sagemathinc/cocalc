@@ -123,7 +123,7 @@ export default function Sage({ customize }) {
                   </li>
                   <li>
                     All your files are private, stored persistently, snapshotted
-                    and backed up; morever, you can <b>rsync</b> them to your
+                    and backed up; moreover, you can <b>rsync</b> them to your
                     computer or push them to <b>GitHub</b>.
                   </li>
                   <li>

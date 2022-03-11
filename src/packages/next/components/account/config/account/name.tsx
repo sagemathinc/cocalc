@@ -30,7 +30,7 @@ you when you are @mentioned.   CoCalc does NOT have
 a policy that you must user your real name, and you can change your
 name at any time.`;
 
-const unlistedDesc = `By deafult both your name and exact email address are
+const unlistedDesc = `By default both your name and exact email address are
 used when people search to add users as collaborators to projects.  There is
 no way to do a search for partial email addresses, and your email address
 is never revealed to other users.   If you choose to be unlisted, then you can

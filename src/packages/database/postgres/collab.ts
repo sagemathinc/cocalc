@@ -20,7 +20,7 @@ export async function add_collaborators_to_projects(
     // In case of project tokens, this mutates the projects array.
     await verify_write_access_to_projects(db, account_id, projects, tokens);
   } catch (err) {
-    // There is one case where a user can add themselve to a project that they
+    // There is one case where a user can add themself to a project that they
     // are not a collaborator on, which is a TA can add themself to a course project.
     // Technically this is the case when accounts[0] == account_id and
     // projects[0] points to a course in project_id where account_id is a

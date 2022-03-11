@@ -90,7 +90,7 @@ register({
           {deleting && <Loading>Deleting Your Account...</Loading>}
           {!deleting && (
             <>
-              <Icon name="trash" /> Permenantly Delete My {siteName} Account
+              <Icon name="trash" /> Permanently Delete My {siteName} Account
               {name != fullName && <>&nbsp;(type your full name above)</>}
             </>
           )}

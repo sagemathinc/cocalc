@@ -9,7 +9,7 @@ const desc = {
   jupyter_line_numbers: `Display line numbers to the left of input cells in Jupyter notebooks.`,
   ask_jupyter_kernel: `Each time you create a new Jupyter notebook, by default it will ask which kernel to use.
 If you disable this option, then new notebooks will open using the kernel that you most recently explicitly
-selcted.  You can of course change the kernel of any notebook at any time in the Kernel dropdown menu.`,
+selected.  You can of course change the kernel of any notebook at any time in the Kernel dropdown menu.`,
   jupyter_classic: `CoCalc includes a mode where it embeds
 the classical Jupyter notebook in an iframe and installs a plugin to enable realtime collaboration.
 However, collaboration does not work as well as in the default Jupyter editor.`,

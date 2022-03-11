@@ -591,7 +591,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
 
     ###
-    # Syncstring maintainence
+    # Syncstring maintenance
     ###
     syncstring_maintenance: (opts) =>
         opts = defaults opts,

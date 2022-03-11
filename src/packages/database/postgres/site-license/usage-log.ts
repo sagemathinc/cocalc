@@ -305,7 +305,7 @@ export async function projects_that_used_license(
 
   One of these triples overlaps with the interval from begin to end if:
 
-      - start <= begin and begin <= stop, i.e. begin is in ther interval [start, stop]
+      - start <= begin and begin <= stop, i.e. begin is in the interval [start, stop]
       - begin = start and start <= end  , i.e. starts is in the interval [begin, end]
 
   */
