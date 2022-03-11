@@ -86,7 +86,7 @@ async function handle_api_call(data: Mesg, primus: any): Promise<any> {
     case "rename_file":
       return await rename_file(data.src, data.dest, winston);
     case "canonical_paths":
-      return canonical_paths(data.paths);
+      return await canonical_paths(data.paths);
     case "configuration":
       return await get_configuration(data.aspect, data.no_cache);
     case "prettier": // deprecated
