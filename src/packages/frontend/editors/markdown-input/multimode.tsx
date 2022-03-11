@@ -84,6 +84,12 @@ interface Props {
   onSave?: () => void; // called when user requests to save document
 
   compact?: boolean; // optimize for compact embedded usage.
+
+  // onCursorTop and onCursorBottom are called when the cursor is on top line and goes up,
+  // so that client could move to another editor (e.g., in Jupyter this is how you move out
+  // of a cell to an adjacent cell).
+  onCursorTop?: () => void;
+  onCursorBottom?: () => void;
 }
 
 export default function MultiMarkdownInput({
@@ -117,11 +123,11 @@ export default function MultiMarkdownInput({
   noVfill,
   editorDivRef,
   cmOptions,
-
   onUndo,
   onRedo,
   onSave,
-
+  onCursorTop,
+  onCursorBottom,
   compact,
 }: Props) {
   const { project_id, path } = useFrameContext();
@@ -277,6 +283,8 @@ export default function MultiMarkdownInput({
           onRedo={onRedo}
           onCursors={onCursors}
           cursors={cursorsMap}
+          onCursorTop={onCursorTop}
+          onCursorBottom={onCursorBottom}
         />
       )}
       {mode == "editor" && (
@@ -338,6 +346,8 @@ export default function MultiMarkdownInput({
               }
             }}
             hideSearch
+            onCursorTop={onCursorTop}
+            onCursorBottom={onCursorBottom}
           />
         </div>
       )}

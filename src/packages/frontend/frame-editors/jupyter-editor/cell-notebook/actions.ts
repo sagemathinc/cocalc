@@ -915,4 +915,13 @@ export class NotebookFrameActions {
       this.input_editors[id].refresh();
     }
   }
+
+  adjacentCell(y: number, delta: number): void {
+    this.move_cursor(delta);
+    this.set_input_editor_cursor(this.store.get("cur_id"), {
+      x: 0,
+      y,
+    });
+    this.scroll("cell visible");
+  }
 }

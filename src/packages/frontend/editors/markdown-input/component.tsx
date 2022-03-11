@@ -95,6 +95,8 @@ interface Props {
   onCursors?: (cursors: { x: number; y: number }[]) => void; // cursor location(s).
   cursors?: CursorsType;
   divRef?: RefObject<HTMLDivElement>;
+  onCursorTop?: () => void;
+  onCursorBottom?: () => void;
 }
 
 export function MarkdownInput({
@@ -130,6 +132,8 @@ export function MarkdownInput({
   onCursors,
   cursors,
   divRef,
+  onCursorTop,
+  onCursorBottom,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -181,6 +185,32 @@ export function MarkdownInput({
         cm.execCommand("newlineAndIndent");
       }
     };
+
+    if (onCursorTop != null) {
+      extraKeys["Up"] = (cm) => {
+        const cur = cm.getCursor();
+        if (cur?.line === cm.firstLine() && cur?.ch === 0) {
+          onCursorTop();
+        } else {
+          CodeMirror.commands.goLineUp(cm);
+        }
+      };
+    }
+    if (onCursorBottom != null) {
+      extraKeys["Down"] = (cm) => {
+        const cur = cm.getCursor();
+        const n = cm.lastLine();
+        const cur_line = cur?.line;
+        const cur_ch = cur?.ch;
+        const line = cm.getLine(n);
+        const line_length = line?.length;
+        if (cur_line === n && cur_ch === line_length) {
+          onCursorBottom();
+        } else {
+          CodeMirror.commands.goLineDown(cm);
+        }
+      };
+    }
 
     const options = cmOptions ?? {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!

@@ -18,6 +18,8 @@ export interface SlateEditor extends ReactEditor {
   getSourceValue: (fragment?) => string;
   syncCache?: any;
   windowedListRef: ControlRef;
+  onCursorBottom?: () => void;
+  onCursorTop?: () => void;
 }
 
 /*

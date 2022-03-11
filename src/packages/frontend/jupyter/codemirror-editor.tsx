@@ -467,14 +467,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function adjacent_cell(y: number, delta: number): void {
-    const frame_actions = frameActions.current;
-    if (frame_actions == null) return;
-    frame_actions.move_cursor(delta);
-    frame_actions.set_input_editor_cursor(frame_actions.store.get("cur_id"), {
-      x: 0,
-      y,
-    });
-    frame_actions.scroll("cell visible");
+    frameActions.current?.adjacentCell(y, delta);
   }
 
   function whitespace_before_cursor(): boolean {

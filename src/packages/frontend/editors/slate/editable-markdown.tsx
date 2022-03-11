@@ -130,6 +130,8 @@ interface Props {
     getSelection: Function;
   } | null>;
   height?: string; // css style or if "auto", then editor will grow to size of content instead of scrolling.
+  onCursorTop?: () => void;
+  onCursorBottom?: () => void;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -157,6 +159,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     divRef,
     selectionRef,
     height,
+    onCursorTop,
+    onCursorBottom,
   }) => {
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
@@ -219,6 +223,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           },
         };
       }
+
+      ed.onCursorBottom = onCursorBottom;
+      ed.onCursorTop = onCursorTop;
 
       return ed as SlateEditor;
     }, []);

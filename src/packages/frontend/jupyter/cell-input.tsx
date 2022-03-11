@@ -275,6 +275,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 }
           }
           cursors={props.cell.get("cursors")?.toJS()}
+          onCursorTop={() => {
+            frameActions.current?.adjacentCell(-1, -1);
+          }}
+          onCursorBottom={() => {
+            frameActions.current?.adjacentCell(0, 1);
+          }}
         />
       );
     }
