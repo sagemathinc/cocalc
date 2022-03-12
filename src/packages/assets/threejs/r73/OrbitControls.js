@@ -237,7 +237,7 @@
 				// restrict phi to be between desired limits
 				phi = Math.max( this.minPolarAngle, Math.min( this.maxPolarAngle, phi ) );
 
-				// restrict phi to be betwee EPS and PI-EPS
+				// restrict phi to be between EPS and PI-EPS
 				phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
 
 				var radius = offset.length() * scale;
@@ -794,7 +794,7 @@
 
 			window.removeEventListener( 'keydown', onKeyDown, false );
 
-		}
+		};
 
 		this.domElement.addEventListener( 'contextmenu', contextmenu, false );
 

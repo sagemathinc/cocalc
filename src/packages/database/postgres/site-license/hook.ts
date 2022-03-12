@@ -202,7 +202,7 @@ class SiteLicenseHook {
     const nextLicense: SiteLicenses = {};
     const validLicenses = await this.getValidLicenses();
 
-    // it's important to start testing with decrasing priority.
+    // it's important to start testing with decreasing priority.
     for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...

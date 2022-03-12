@@ -26,7 +26,7 @@ export default async function handle(req, res) {
 async function signOut(req): Promise<void> {
   const { all } = req.body;
   if (all) {
-    // invalidate all rememember me cookies for this account.
+    // invalidate all remember me cookies for this account.
     const account_id = await getAccountId(req);
     if (!account_id) return; // not signed in
     await deleteAllRememberMe(account_id);

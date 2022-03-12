@@ -32,7 +32,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # For tables:
     #    - a list of tables
     #    - 'all' (the string) -- backs up everything in the SMC schema (not the database!)
-    #    - 'critical' -- backs up only smaller critical tables, which we would desparately
+    #    - 'critical' -- backs up only smaller critical tables, which we would desperately
     #                    need for disaster recovery
     backup_tables: (opts) =>
         opts = defaults opts,

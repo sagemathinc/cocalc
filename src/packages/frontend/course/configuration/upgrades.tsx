@@ -21,6 +21,7 @@ import {
   redux,
   Rendered,
   TypedMap,
+  useActions,
   useIsMountedRef,
   useRef,
   useState,
@@ -94,6 +95,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   const is_mounted_ref = useIsMountedRef();
   const upgrade_is_invalid = useRef<boolean>(false);
 
+  const course_actions = useActions<CourseActions>({ name });
+
   const [upgrade_quotas, set_upgrade_quotas] = useState<boolean>(false); // true if display the quota upgrade panel
   const [upgrades, set_upgrades] = useState<object>({});
   const [upgrade_plan, set_upgrade_plan] = useState<object | undefined>(
@@ -107,10 +110,6 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     "projects",
     "all_projects_have_been_loaded"
   );
-
-  function get_actions(): CourseActions {
-    return redux.getActions(name);
-  }
 
   function get_store(): CourseStore {
     return redux.getStore(name) as any;
@@ -129,10 +128,9 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function save_upgrade_quotas(): void {
     set_upgrade_quotas(false);
-    const a = get_actions();
     const goal = get_upgrade_goal();
-    a.configuration.set_upgrade_goal(goal);
-    a.student_projects.upgrade_all_student_projects(goal);
+    course_actions.configuration.set_upgrade_goal(goal);
+    course_actions.student_projects.upgrade_all_student_projects(goal);
   }
 
   function render_upgrade_heading(num_projects) {
@@ -516,15 +514,13 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   }
 
   function add_site_license_id(license_id: string): void {
-    const actions = get_actions();
-    actions.configuration.add_site_license_id(license_id);
-    actions.configuration.configure_all_projects();
+    course_actions.configuration.add_site_license_id(license_id);
+    course_actions.configuration.configure_all_projects();
   }
 
   function remove_site_license_id(license_id: string): void {
-    const actions = get_actions();
-    actions.configuration.remove_site_license_id(license_id);
-    actions.configuration.configure_all_projects();
+    course_actions.configuration.remove_site_license_id(license_id);
+    course_actions.configuration.configure_all_projects();
   }
 
   function render_site_license_text(): Rendered {
@@ -593,9 +589,10 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
           disabled={disabled}
           style={{ marginLeft: "15px", marginTop: "15px" }}
           onChange={(e) => {
-            const actions = get_actions();
-            actions.configuration.set_site_license_strategy(e.target.value);
-            actions.configuration.configure_all_projects(true);
+            course_actions.configuration.set_site_license_strategy(
+              e.target.value
+            );
+            course_actions.configuration.configure_all_projects(true);
           }}
           value={site_license_strategy ?? "serial"}
         >
@@ -647,7 +644,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
         <Button
           onClick={async () => {
             try {
-              await get_actions().student_projects.remove_all_project_licenses();
+              await course_actions.student_projects.remove_all_project_licenses();
               alert_message({
                 type: "info",
                 message:
@@ -697,7 +694,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   }
 
   function handle_institute_pay_checkbox(e): void {
-    return get_actions().configuration.set_pay_choice(
+    return course_actions.configuration.set_pay_choice(
       "institute",
       e.target.checked
     );

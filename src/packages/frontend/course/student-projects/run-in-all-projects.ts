@@ -3,7 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { start_project, exec } from "../../frame-editors/generic/client";
+import {
+  start_project,
+  exec,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { map as awaitMap } from "awaiting";
+import { MAX_PARALLEL_TASKS } from "./actions";
 
 async function run_in_project(
   project_id: string,
@@ -29,8 +34,7 @@ export async function run_in_all_projects(
   timeout?: number,
   log?: Function
 ): Promise<Result[]> {
-  const v: Result[] = [];
-  for (const project_id of project_ids) {
+  const task = async (project_id) => {
     let result: Result;
     try {
       result = await run_in_project(project_id, command, args, timeout);
@@ -43,10 +47,9 @@ export async function run_in_all_projects(
         exit_code: -1,
       };
     }
-    v.push(result);
-    if (log != null) {
-      log(result);
-    }
-  }
-  return v;
+    if (log != null) log(result);
+    return result;
+  };
+
+  return await awaitMap(project_ids, MAX_PARALLEL_TASKS, task);
 }

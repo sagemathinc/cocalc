@@ -27,7 +27,7 @@ export default function Backups() {
       </p>
       <p>
         These backups are complementary to{" "}
-        <A href="#a-timetravel">TimeTravel</A> and provide browseable backups of
+        <A href="#a-timetravel">TimeTravel</A> and provide browsable backups of
         images and data files in addition to the documents you are actively
         editing.
       </p>

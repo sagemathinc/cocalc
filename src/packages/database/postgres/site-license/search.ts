@@ -46,7 +46,7 @@ export async function matching_site_licenses(
 
 // This is dumb but will be sufficiently fast up to probably 5K licenses.
 // This is not user facing functionality.  We could maybe restrict to last_used
-// in the few months by default (optinally anything) and this would last
+// in the few months by default (optionally anything) and this would last
 // much longer...
 export async function matching_site_licenses(
   db: PostgreSQL,

@@ -145,7 +145,7 @@ function go(step) {
 		ne = document.getElementById('slide0');
 		snum = 0;
 	}
-	if (step < 0) {incpos = incrementals[snum].length} else {incpos = 0;}
+	if (step < 0) {incpos = incrementals[snum].length;} else {incpos = 0;}
 	if (incrementals[snum].length > 0 && incpos == 0) {
 		for (var i = 0; i < incrementals[snum].length; i++) {
 			if (hasClass(incrementals[snum][i], 'current'))

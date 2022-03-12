@@ -3,17 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
+import { close, path_split } from "@cocalc/util/misc";
+import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { JupyterActions } from "../browser-actions";
-import { ImmutableMetadata, Metadata } from "./types";
-import { NBGraderStore } from "./store";
-import clearSolution from "./clear-solutions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
+import clearSolution from "./clear-solutions";
 import { set_checksum } from "./compute-checksums";
-import { delay } from "awaiting";
-import { close, path_split } from "@cocalc/util/misc";
-import { STUDENT_SUBDIR } from "../../course/assignments/actions";
+import { NBGraderStore } from "./store";
+import { ImmutableMetadata, Metadata } from "./types";
 
 export class NBGraderActions {
   private jupyter_actions: JupyterActions;

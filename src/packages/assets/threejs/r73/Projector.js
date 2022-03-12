@@ -315,7 +315,7 @@ THREE.Projector = function () {
 			pushUv: pushUv,
 			pushLine: pushLine,
 			pushTriangle: pushTriangle
-		}
+		};
 
 	};
 

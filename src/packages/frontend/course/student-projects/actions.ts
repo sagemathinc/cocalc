@@ -20,6 +20,10 @@ import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import { map as awaitMap } from "awaiting";
+
+// for tasks that are "easy" to run in parallel, e.g. starting projects
+export const MAX_PARALLEL_TASKS = 30;
 
 export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
@@ -363,13 +367,16 @@ export class StudentProjectsActions {
   }
 
   // start or stop projects of all (non-deleted) students running
-  public action_all_student_projects(action: "start" | "stop"): void {
-    if (action == "start") {
-      this.course_actions.setState({ action_all_projects_state: "starting" });
-    } else if (action === "stop") {
-      this.course_actions.setState({ action_all_projects_state: "stopping" });
+  public async action_all_student_projects(
+    action: "start" | "stop"
+  ): Promise<void> {
+    if (!["start", "stop"].includes(action)) {
+      throw new Error(`unknown desired project_action ${action}`);
     }
+    const a2s = { start: "starting", stop: "stopping" } as const;
+    const state: "starting" | "stopping" = a2s[action];
 
+    this.course_actions.setState({ action_all_projects_state: state });
     this.course_actions.shared_project.action_shared_project(action);
 
     const store = this.get_store();
@@ -378,17 +385,25 @@ export class StudentProjectsActions {
     if (projects_actions == null) {
       throw Error("projects actions must be defined");
     }
-    let f = projects_actions[action + "_project"];
-    if (f == null) {
-      throw Error(`invalid action "${action}"`);
-    }
-    f = f.bind(projects_actions);
-    for (const [, student] of store.get_students()) {
-      if (student.get("deleted")) continue;
-      const project_id = student.get("project_id");
-      if (!project_id) continue;
-      f(project_id);
-    }
+
+    const selectedAction = (function () {
+      switch (action) {
+        case "start":
+          return projects_actions.start_project.bind(projects_actions);
+        case "stop":
+          return projects_actions.stop_project.bind(projects_actions);
+      }
+    })();
+
+    const task = async (student_project_id) => {
+      if (!student_project_id) return;
+      // abort if cancelled
+      if (store.get("action_all_projects_state") !== state) return;
+      // returns true/false, could be useful some day
+      await selectedAction(student_project_id);
+    };
+
+    await awaitMap(store.get_student_project_ids(), MAX_PARALLEL_TASKS, task);
   }
 
   public cancel_action_all_student_projects(): void {
@@ -401,18 +416,49 @@ export class StudentProjectsActions {
     timeout?: number,
     log?: Function
   ): Promise<Result[]> {
+    // in case "stop all projects" is running
+    this.cancel_action_all_student_projects();
+
     const store = this.get_store();
-    // calling start also deals with possibility that
-    // it's in stop state.
-    this.action_all_student_projects("start");
-    return await run_in_all_projects(
-      // as string[] is right since map option isn't set (make typescript happy)
-      store.get_student_project_ids(),
-      command,
-      args,
-      timeout,
-      log
-    );
+    // calling start also deals with possibility that it's in stop state.
+    const id = this.course_actions.set_activity({
+      desc: "Running a command across all student projects…",
+    });
+    let id1: number | undefined = this.course_actions.set_activity({
+      desc: "Starting projects …",
+    });
+    let i = 0;
+    const student_project_ids = store.get_student_project_ids();
+    const num = student_project_ids.length;
+
+    const clear_id1 = () => {
+      if (id1 != null) {
+        this.course_actions.set_activity({ id: id1 });
+      }
+    };
+
+    const done = (result: Result) => {
+      i += 1;
+      log?.(result);
+      clear_id1();
+      id1 = this.course_actions.set_activity({
+        desc: `Project ${i}/${num} finished…`,
+      });
+    };
+
+    try {
+      return await run_in_all_projects(
+        // as string[] is right since map option isn't set (make typescript happy)
+        student_project_ids,
+        command,
+        args,
+        timeout,
+        done
+      );
+    } finally {
+      this.course_actions.set_activity({ id });
+      clear_id1();
+    }
   }
 
   public async set_all_student_project_titles(title: string): Promise<void> {

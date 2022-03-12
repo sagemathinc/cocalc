@@ -4,7 +4,12 @@
  */
 
 import { Map } from "immutable";
-import { TypedMap } from "../app-framework";
+import {
+  TypedMap,
+  useEffect,
+  useState,
+  useWindowDimensions,
+} from "../app-framework";
 import { StudentsMap } from "./store";
 import { AssignmentCopyStep } from "./types";
 import {
@@ -18,6 +23,8 @@ import {
 } from "@cocalc/util/misc";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { ButtonSize } from "@cocalc/frontend//antd-bootstrap";
+import { SizeType } from "antd/lib/config-provider/SizeContext";
 
 // See https://github.com/sagemathinc/cocalc/issues/5660 for why windowing is
 // disabled.  Basically, what happens is that active input fields get unmounted
@@ -40,7 +47,6 @@ export function windowing(estimated_row_size) {
 }
 
 // Pure functions used in the course manager
-
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {
     return [
@@ -365,4 +371,16 @@ function projectStatusCoCalcCom(opts): ProjectStatus {
     state,
     tip: "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
   };
+}
+
+// the list of assignments, in particular with peer grading, has a large number of buttons
+// in a single row. We mitigate this by rendering the buttons smaller if the screen is narrower.
+export function useButtonSize(): { bsSize: ButtonSize; antdSize: SizeType } {
+  const [size, setSize] = useState<ButtonSize>("small");
+  const { width } = useWindowDimensions();
+  useEffect(() => {
+    const next = width < 1024 ? "xsmall" : "small";
+    if (next != size) setSize(next);
+  });
+  return { bsSize: size, antdSize: size === "xsmall" ? "small" : "middle" };
 }

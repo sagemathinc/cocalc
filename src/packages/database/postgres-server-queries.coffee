@@ -416,7 +416,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # **TODO:** need to make it so insertion into the table still would yield an error due to
                 # unique constraint; this will require probably moving the passports
                 # object to a separate table.  This is important, since this is exactly the place where
-                # a race condition might cause touble!
+                # a race condition might cause trouble!
                 @passport_exists
                     strategy : opts.passport_strategy
                     id       : opts.passport_id
@@ -965,7 +965,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         ], (err) => opts.cb(err, locals.customer))
 
     ###
-    Auxillary billing related queries
+    Auxiliary billing related queries
     ###
     get_coupon_history: (opts) =>
         opts = defaults opts,
@@ -2300,7 +2300,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     ensure_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
             account_id : required
-            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to actually change them.
+            fix        : true       # if true, will fix projects in database whose quotas exceed the allotted amount; it is the caller's responsibility to actually change them.
             cb         : required   # cb(err, excess)
         dbg = @_dbg("ensure_user_project_upgrades_are_valid(account_id='#{opts.account_id}')")
         dbg()

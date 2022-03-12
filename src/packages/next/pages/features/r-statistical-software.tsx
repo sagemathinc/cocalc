@@ -262,7 +262,7 @@ export default function R({ customize }) {
               updated in an HTML or PDF panel.
             </p>
             <p>
-              <strong>Syntax highlighting</strong> for markdown and emedded
+              <strong>Syntax highlighting</strong> for markdown and embedded
               programming code—according to their language—makes it easy to
               visually understand the source file.
             </p>
