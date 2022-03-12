@@ -231,10 +231,6 @@ export default function MultiMarkdownInput({
         <div
           style={{
             fontSize: "14px",
-            position: "absolute",
-            right: 1,
-            top: 1,
-            zIndex: 100,
             padding: "0px 3px",
             boxShadow: "#ccc 1px 3px 5px",
             fontWeight: 250,
@@ -242,6 +238,9 @@ export default function MultiMarkdownInput({
             ...markdownToggleStyle,
             cursor: "pointer",
             color: mode == "markdown" ? "blue" : "black",
+            ...(mode == "editor"
+              ? { position: "absolute", top: 1, right: 1 }
+              : { float: "right" }),
           }}
           onClick={() => {
             setMode(mode == "editor" ? "markdown" : "editor");

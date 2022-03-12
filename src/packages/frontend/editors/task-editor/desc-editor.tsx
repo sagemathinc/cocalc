@@ -55,7 +55,7 @@ export default function DescriptionEditor({
         height={"auto"}
         placeholder={"Enter a description..."}
         lineWrapping={true}
-        extraHelp={"Use #hashtags to easily label and filter your tasks."}
+        hideHelp
         autoFocus
         onSave={() => {
           actions.save();
@@ -68,7 +68,7 @@ export default function DescriptionEditor({
         }}
       />
       <Button onClick={saveAndClose} style={{ marginTop: "5px" }}>
-        <Icon name="save" /> Save
+        <Icon name="save" /> Save (Shift+Enter)
       </Button>
     </div>
   );
