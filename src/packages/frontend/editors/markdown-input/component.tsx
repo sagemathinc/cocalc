@@ -588,14 +588,15 @@ export function MarkdownInput({
   }
 
   function render_mobile_instructions() {
-    if (hideHelp) return;
-    // TODO: make clicking on drag and drop thing pop up dialog
+    if (hideHelp) {
+      return <div style={{ height: "24px" }}></div>;
+    }
     return (
       <div
         style={{
           color: "#767676",
-          fontSize: "12.5px",
-          padding: "5px 15px",
+          fontSize: "12px",
+          padding: "2.5px 15px",
           background: "white",
         }}
       >
@@ -604,39 +605,33 @@ export function MarkdownInput({
         <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
           Markdown
         </A>{" "}
-        and{" "}
-        <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">
-          LaTeX formulas
-        </A>
-        . {render_upload_instructions()}
+        and <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">LaTeX</A>.{" "}
+        {render_upload_instructions()}
         {extraHelp}
       </div>
     );
   }
 
   function render_desktop_instructions() {
-    // TODO: make depend on the options
-    // TODO: make clicking on drag and drop thing pop up dialog
-    if (hideHelp) return;
+    if (hideHelp) return <div style={{ height: "24px" }}></div>;
     return (
       <div
         style={{
-          fontSize: "12.5px",
-          padding: "5px 15px",
           color: "#767676",
+          fontSize: "12px",
+          padding: "2.5px 15px",
           background: "white",
         }}
       >
-        Shift+Enter when done. {render_mention_instructions()}
-        Use{" "}
         <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">
           Markdown
-        </A>{" "}
-        and{" "}
+        </A>
+        {" and "}
         <A href="https://en.wikibooks.org/wiki/LaTeX/Mathematics">
           LaTeX formulas
         </A>
-        . {render_upload_instructions()}
+        . {render_mention_instructions()}
+        {render_upload_instructions()}
         {extraHelp}
       </div>
     );
@@ -649,7 +644,7 @@ export function MarkdownInput({
     return (
       <>
         {" "}
-        Use @name to refer to collaborators
+        Use @name to mention people
         {render_mention_email()}.{" "}
       </>
     );
@@ -658,10 +653,10 @@ export function MarkdownInput({
   function render_upload_instructions(): JSX.Element | undefined {
     if (!enableUpload) return;
     const text = IS_MOBILE ? (
-      <a>Tap here to attach files.</a>
+      <a>Tap here to upload images.</a>
     ) : (
       <>
-        Attach files by dragging & dropping, <a>selecting</a> or pasting them.
+        Attach images by drag & drop, <a>select</a> or paste.
       </>
     );
     return (

@@ -211,8 +211,8 @@ export const Message: React.FC<Props> = React.memo((props) => {
       // no editing functionality of not in a project with a path.
       return;
     }
-    props.scroll_into_view();
     props.actions.set_editing(props.message, true);
+    props.scroll_into_view();
   }
 
   function avatar_column() {

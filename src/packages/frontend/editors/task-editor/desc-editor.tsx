@@ -55,7 +55,6 @@ export default function DescriptionEditor({
         height={"auto"}
         placeholder={"Enter a description..."}
         lineWrapping={true}
-        hideHelp
         autoFocus
         onSave={() => {
           actions.save();

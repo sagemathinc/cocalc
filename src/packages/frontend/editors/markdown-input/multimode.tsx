@@ -49,6 +49,7 @@ interface Props {
   fontSize?: number;
   height?: string; // css height and also "auto" is fully supported.
   style?: CSSProperties;
+  modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
   enableUpload?: boolean;
@@ -143,6 +144,7 @@ export default function MultiMarkdownInput({
   isFocused,
   registerEditor,
   unregisterEditor,
+  modeSwitchStyle,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -237,10 +239,16 @@ export default function MultiMarkdownInput({
             background: "white",
             ...markdownToggleStyle,
             cursor: "pointer",
-            color: mode == "markdown" ? "blue" : "black",
-            ...(mode == "editor"
-              ? { position: "absolute", top: 1, right: 1 }
+            color: "black",
+            ...(mode == "editor" || hideHelp
+              ? {
+                  position: "absolute",
+                  top: 1,
+                  right: 1,
+                  zIndex: 1,
+                }
               : { float: "right" }),
+            ...modeSwitchStyle,
           }}
           onClick={() => {
             setMode(mode == "editor" ? "markdown" : "editor");
