@@ -21,6 +21,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
 
+export interface EditorFunctions {
+  set_cursor?: (pos: { x?: number; y?: number }) => void;
+}
+
 interface MultimodeState {
   mode?: Mode;
   markdown?: any;
@@ -94,6 +98,9 @@ interface Props {
   // Declarative control of whether or not the editor is focused.  Only has an imput
   // if it is explicitly set to true or false.
   isFocused?: boolean;
+
+  registerEditor?: (editor: EditorFunctions) => void;
+  unregisterEditor?: () => void;
 }
 
 export default function MultiMarkdownInput({
@@ -134,6 +141,8 @@ export default function MultiMarkdownInput({
   onCursorBottom,
   compact,
   isFocused,
+  registerEditor,
+  unregisterEditor,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -291,6 +300,8 @@ export default function MultiMarkdownInput({
           onCursorTop={onCursorTop}
           onCursorBottom={onCursorBottom}
           isFocused={isFocused}
+          registerEditor={registerEditor}
+          unregisterEditor={unregisterEditor}
         />
       )}
       {mode == "editor" && (
@@ -355,6 +366,8 @@ export default function MultiMarkdownInput({
             onCursorTop={onCursorTop}
             onCursorBottom={onCursorBottom}
             isFocused={isFocused}
+            registerEditor={registerEditor}
+            unregisterEditor={unregisterEditor}
           />
         </div>
       )}

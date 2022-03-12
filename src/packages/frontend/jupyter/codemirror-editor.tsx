@@ -21,6 +21,7 @@ import CodeMirror from "codemirror";
 import { CSSProperties } from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -67,17 +68,6 @@ export interface Actions extends CompleteActions {
   save: () => Promise<void>;
 }
 
-// Todo: the frame-editor/code-editor needs a similar treatment...?
-export interface EditorFunctions {
-  save: () => string | undefined;
-  set_cursor: (pos: { x?: number; y?: number }) => void;
-  tab_key: () => void;
-  shift_tab_key: () => void;
-  refresh: () => void;
-  get_cursor: () => { line: number; ch: number };
-  get_cursor_xy: () => { x: number; y: number };
-}
-
 interface CodeMirrorEditorProps {
   actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
@@ -95,6 +85,8 @@ interface CodeMirrorEditorProps {
   complete?: ImmutableMap<any, any>;
   style?: CSSProperties;
   onKeyDown?: (cm, e) => void;
+  registerEditor?: (EditorFunctions) => void;
+  unregisterEditor?: () => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -113,6 +105,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   complete,
   style,
   onKeyDown,
+  registerEditor,
+  unregisterEditor,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -194,7 +188,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   function cm_destroy(): void {
     if (cm.current != null) {
-      frameActions.current?.unregister_input_editor(id);
+      unregisterEditor?.();
       cm_last_remote.current = null;
       cm.current.save = null;
       if (cm_change.current != null) {
@@ -627,8 +621,22 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     cm.current.undo = cm_undo;
     cm.current.redo = cm_redo;
 
+    if (registerEditor != null) {
+      registerEditor({
+        save: cm_save,
+        set_cursor: cm_set_cursor,
+        tab_key: tab_key,
+        shift_tab_key: shift_tab_key,
+        refresh: cm_refresh,
+        get_cursor: () => cm.current.getCursor(),
+        get_cursor_xy: () => {
+          const pos = cm.current.getCursor();
+          return { x: pos.ch, y: pos.line };
+        },
+      });
+    }
     if (frameActions.current) {
-      const editor: EditorFunctions = {
+      const editor = {
         save: cm_save,
         set_cursor: cm_set_cursor,
         tab_key: tab_key,

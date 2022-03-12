@@ -42,6 +42,8 @@ import { mentionableUsers } from "./mentionable-users";
 import { debounce } from "lodash";
 import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
 
+import { EditorFunctions } from "./multimode";
+
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
 
@@ -99,6 +101,8 @@ interface Props {
   divRef?: RefObject<HTMLDivElement>;
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
+  registerEditor?: (editor: EditorFunctions) => void;
+  unregisterEditor?: () => void;
 }
 
 export function MarkdownInput({
@@ -137,6 +141,8 @@ export function MarkdownInput({
   onCursorTop,
   onCursorBottom,
   isFocused,
+  registerEditor,
+  unregisterEditor,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -176,7 +182,6 @@ export function MarkdownInput({
   }, []);
 
   useEffect(() => {
-    console.log(isFocused, isFocusedRef.current);
     if (isFocusedRef.current == null || cm.current == null) return;
 
     if (isFocused && !isFocusedRef.current) {
@@ -409,6 +414,20 @@ export function MarkdownInput({
       };
     }
 
+    if (registerEditor != null) {
+      registerEditor({
+        set_cursor: (pos: { x?: number; y?: number }) => {
+          if (cm.current == null) return;
+          let { x = 0, y = 0 } = pos; // must be defined!
+          if (y < 0) {
+            // for getting last line...
+            y += cm.current.lastLine() + 1;
+          }
+          cm.current.setCursor({ line: y, ch: x });
+        },
+      });
+    }
+
     setTimeout(() => {
       cm.current?.refresh();
     }, 0);
@@ -416,6 +435,7 @@ export function MarkdownInput({
     // clean up
     return () => {
       if (cm.current == null) return;
+      unregisterEditor?.();
       cm.current.getWrapperElement().remove();
       cm.current = undefined;
     };

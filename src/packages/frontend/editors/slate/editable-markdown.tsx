@@ -63,6 +63,8 @@ import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/con
 
 import { delay } from "awaiting";
 
+import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimode";
+
 import type { SlateEditor } from "./types";
 export type { SlateEditor };
 
@@ -133,6 +135,8 @@ interface Props {
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
   isFocused?: boolean;
+  registerEditor?: (editor: EditorFunctions) => void;
+  unregisterEditor?: () => void;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -163,6 +167,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     onCursorTop,
     onCursorBottom,
     isFocused,
+    registerEditor,
+    unregisterEditor,
   }) => {
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
@@ -233,8 +239,38 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
+      if (registerEditor != null) {
+        registerEditor({
+          set_cursor: ({ y }) => {
+            // This is used for navigating in Jupyter.  Of course cursors
+            // or NOT given by x,y positions in Slate, so we have to interpret
+            // this as follows, since that's what is used by our Jupyter actions.
+            //    y = 0: top of document
+            //    y = -1: bottom of document
+            let path;
+            if (y == 0) {
+              // top of doc
+              path = [0, 0];
+            } else if (y == -1) {
+              // bottom of doc
+              path = [editor.children.length - 1, 0];
+            } else {
+              return;
+            }
+            const focus = { path, offset: 0 };
+            Transforms.setSelection(editor, {
+              focus,
+              anchor: focus,
+            });
+          },
+        });
+
+        return unregisterEditor;
+      }
+    });
+
+    useEffect(() => {
       if (ReactEditor.isFocused(editor) != isFocused) {
-        console.log("need to fix focus state");
         if (isFocused) {
           ReactEditor.focus(editor);
         } else {

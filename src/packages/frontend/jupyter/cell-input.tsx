@@ -167,6 +167,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
         />
       );
     }
@@ -290,6 +299,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
               actions.set_cur_id(props.id);
               actions.set_mode("edit");
             }
+          }}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
         />
       );
