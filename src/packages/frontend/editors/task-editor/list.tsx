@@ -79,7 +79,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       if (index === -1) {
         return;
       }
-      windowed_list_ref?.current?.scrollToRow(index);
+      windowed_list_ref?.current?.scrollToRow(index, 'top');
     }
 
     function render_task(index, task_id) {
