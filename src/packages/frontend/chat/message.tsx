@@ -13,7 +13,6 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
-  INPUT_HEIGHT,
 } from "./utils";
 import { Markdown } from "./markdown";
 
@@ -366,7 +365,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
         input={edited_message}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}
-        height={INPUT_HEIGHT}
+        height={"auto"}
         onChange={(value) => {
           edited_message_ref.current = value;
           set_edited_message(value);

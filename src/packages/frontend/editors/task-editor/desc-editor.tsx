@@ -52,7 +52,7 @@ export default function DescriptionEditor({
         onFocus={actions.disable_key_handler}
         enableUpload={true}
         enableMentions={true}
-        height={"30vH"}
+        height={"auto"}
         placeholder={"Enter a description..."}
         lineWrapping={true}
         extraHelp={"Use #hashtags to easily label and filter your tasks."}
