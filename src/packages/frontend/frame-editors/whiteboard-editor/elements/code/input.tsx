@@ -22,6 +22,7 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   isFocused?: boolean;
+  cursors?: { [account_id: string]: any[] };
 }
 
 export default function Input({
@@ -30,6 +31,7 @@ export default function Input({
   onFocus,
   onBlur,
   isFocused,
+  cursors,
 }: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
@@ -60,6 +62,7 @@ export default function Input({
         options={getCMOptions()}
         value={element.str ?? ""}
         complete={complete}
+        cursors={fromJS(cursors)}
         onKeyDown={(cm, e) => {
           if (
             e.key == "Enter" &&

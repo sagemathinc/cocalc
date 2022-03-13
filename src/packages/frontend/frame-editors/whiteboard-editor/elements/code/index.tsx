@@ -10,16 +10,23 @@ interface Props {
   element: Element;
   focused?: boolean;
   canvasScale: number;
+  cursors?: { [account_id: string]: any[] };
 }
 
-export default function Code({ element, focused, canvasScale }: Props) {
+export default function Code({
+  element,
+  focused,
+  canvasScale,
+  cursors,
+}: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
   const [editFocus, setEditFocus] = useState<boolean>(false);
   const mousePosRef = useRef<number[]>([]);
 
-  return (
-    <div style={getStyle(element)}>
-      {!hideInput && focused && (
+  const renderInput = () => {
+    if (hideInput) return;
+    if (focused || cursors != null) {
+      return (
         <div
           className={editFocus ? "nodrag" : undefined}
           onMouseDown={(e) => {
@@ -48,6 +55,7 @@ export default function Code({ element, focused, canvasScale }: Props) {
           }}
         >
           <Input
+            cursors={cursors}
             isFocused={editFocus}
             element={element}
             focused={focused}
@@ -55,8 +63,14 @@ export default function Code({ element, focused, canvasScale }: Props) {
             onBlur={() => setEditFocus(false)}
           />
         </div>
-      )}
-      {!hideInput && !focused && <InputStatic element={element} />}
+      );
+    }
+    return <InputStatic element={element} />;
+  };
+
+  return (
+    <div style={getStyle(element)}>
+      {renderInput()}
       {!hideOutput && element.data?.output && (
         <div className="nodrag">
           <Output element={element} />
