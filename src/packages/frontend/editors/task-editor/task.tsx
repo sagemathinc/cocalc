@@ -86,19 +86,17 @@ export const Task: React.FC<Props> = React.memo(
     }
 
     const color = task.get("color");
+    if (color) {
+      style.background = color;
+      style.color = avatar_fontcolor(color);
+    }
 
     return (
       <Grid
         style={style}
         onClick={() => actions?.set_current_task(task.get("task_id"))}
       >
-        <Row
-          style={
-            color
-              ? { background: color, color: avatar_fontcolor(color) }
-              : undefined
-          }
-        >
+        <Row>
           <Col sm={1}>
             {actions != null && <DragHandle sortable={sortable} />}
             {actions != null && (
