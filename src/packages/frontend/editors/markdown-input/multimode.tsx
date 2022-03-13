@@ -65,7 +65,6 @@ interface Props {
   onFocus?: () => void;
   minimal?: boolean;
   editBarStyle?: CSSProperties;
-  markdownToggleStyle?: CSSProperties;
 
   // onCursors is called when user cursor(s) move.  "editable" mode only supports a single
   // cursor right now, but "markdown" mode supports multiple cursors.  An array is
@@ -129,7 +128,6 @@ export default function MultiMarkdownInput({
   onFocus,
   minimal,
   editBarStyle,
-  markdownToggleStyle,
   onCursors,
   cursors,
   noVfill,
@@ -237,7 +235,6 @@ export default function MultiMarkdownInput({
             boxShadow: "#ccc 1px 3px 5px",
             fontWeight: 250,
             background: "white",
-            ...markdownToggleStyle,
             cursor: "pointer",
             color: "black",
             ...(mode == "editor" || hideHelp
@@ -287,6 +284,7 @@ export default function MultiMarkdownInput({
           lineNumbers={lineNumbers}
           cmOptions={cmOptions}
           height={height}
+          instructionsStyle={editBarStyle}
           style={style}
           autoFocus={focused}
           submitMentionsRef={submitMentionsRef}

@@ -81,6 +81,7 @@ interface Props {
   isFocused?: boolean; // see docs in multimode.tsx
   placeholder?: string;
   height?: string;
+  instructionsStyle?: CSSProperties;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
   fontSize?: number;
@@ -123,6 +124,7 @@ export function MarkdownInput({
   onFocus,
   placeholder,
   height,
+  instructionsStyle,
   extraHelp,
   hideHelp,
   fontSize,
@@ -589,7 +591,7 @@ export function MarkdownInput({
 
   function render_mobile_instructions() {
     if (hideHelp) {
-      return <div style={{ height: "24px" }}></div>;
+      return <div style={{ height: "24px", ...instructionsStyle }}></div>;
     }
     return (
       <div
@@ -598,6 +600,7 @@ export function MarkdownInput({
           fontSize: "12px",
           padding: "2.5px 15px",
           background: "white",
+          ...instructionsStyle,
         }}
       >
         {render_mention_instructions()}
@@ -613,7 +616,8 @@ export function MarkdownInput({
   }
 
   function render_desktop_instructions() {
-    if (hideHelp) return <div style={{ height: "24px" }}></div>;
+    if (hideHelp)
+      return <div style={{ height: "24px", ...instructionsStyle }}></div>;
     return (
       <div
         style={{
@@ -621,6 +625,7 @@ export function MarkdownInput({
           fontSize: "12px",
           padding: "2.5px 15px",
           background: "white",
+          ...instructionsStyle,
         }}
       >
         <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">

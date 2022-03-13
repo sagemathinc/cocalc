@@ -108,7 +108,6 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
-        compact
         cacheId={element.id}
         noVfill
         autoFocus
@@ -150,7 +149,7 @@ function EditText({
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
         }}
-        markdownToggleStyle={noteMode ? { right: "-23px" } : undefined}
+        modeSwitchStyle={{ top: "-24px", right: "-24px" }}
         onCursors={(cursors) => {
           actions.setCursors(element.id, cursors);
         }}
