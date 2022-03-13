@@ -186,9 +186,11 @@ function markdownAutoformatAt(
       start = Math.min(i - 1, start);
     }
   } else {
-    for (const mark of ["`", "**", "*", "_", "~~"]) {
-      if (text0.endsWith(mark)) {
-        const i = text.lastIndexOf(mark, text0.length - mark.length - 1);
+    // The text formatting markers and *also* math formatting.
+    // Note that $$ is first since $ would match it.
+    for (const delim of ["`", "**", "*", "_", "~~", "$$", "$"]) {
+      if (text0.endsWith(delim)) {
+        const i = text.lastIndexOf(delim, text0.length - delim.length - 1);
         if (i != -1) {
           start = Math.min(i - 1, start);
           break;
