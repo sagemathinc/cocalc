@@ -270,6 +270,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     useEffect(() => {
+      if (isFocused == null) return;
       if (ReactEditor.isFocused(editor) != isFocused) {
         if (isFocused) {
           ReactEditor.focus(editor);
