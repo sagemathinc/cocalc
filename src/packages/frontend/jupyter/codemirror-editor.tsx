@@ -87,6 +87,8 @@ interface CodeMirrorEditorProps {
   onKeyDown?: (cm, e) => void;
   registerEditor?: (EditorFunctions) => void;
   unregisterEditor?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -107,6 +109,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   onKeyDown,
   registerEditor,
   unregisterEditor,
+  onFocus,
+  onBlur,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -206,6 +210,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function cm_focus(): void {
+    onFocus?.();
     cm_is_focused.current = true;
     if (cm.current == null || actions == null) {
       return;
@@ -220,6 +225,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function cm_blur(): void {
+    onBlur?.();
     cm_is_focused.current = false;
     if (cm.current == null || actions == null) {
       return;

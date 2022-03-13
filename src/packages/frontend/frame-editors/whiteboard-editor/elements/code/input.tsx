@@ -18,9 +18,17 @@ interface Props {
   element: Element;
   focused?: boolean;
   canvasScale: number;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
-export default function Input({ element, focused, canvasScale }: Props) {
+export default function Input({
+  element,
+  focused,
+  canvasScale,
+  onFocus,
+  onBlur,
+}: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
     undefined
@@ -30,10 +38,13 @@ export default function Input({ element, focused, canvasScale }: Props) {
   }, [element.id]); // frame can't change meaningfully.
 
   const cm = (
-    <div>
+    <div className="nodrag">
       <CodeMirrorEditor
+        is_focused={true}
         actions={actions}
         id={element.id}
+        onFocus={onFocus}
+        onBlur={onBlur}
         options={getCMOptions()}
         value={element.str ?? ""}
         complete={complete}
