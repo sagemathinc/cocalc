@@ -26,7 +26,6 @@ interface Props {
 
 export default function Input({
   element,
-  focused,
   canvasScale,
   onFocus,
   onBlur,

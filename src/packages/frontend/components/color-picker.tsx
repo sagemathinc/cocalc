@@ -36,13 +36,16 @@ interface Props {
   onChange?: (htmlColor: string) => void;
   style?: CSSProperties;
   defaultPicker?: keyof typeof Pickers;
+  toggle?: ReactNode;
 }
 export default function ColorPicker({
   color,
   onChange,
   style,
   defaultPicker,
+  toggle,
 }: Props) {
+  const [visible, setVisible] = useState<boolean>(!toggle);
   const [picker, setPicker] = useState<keyof typeof Pickers>(
     defaultPicker ?? localStorage["defaultColorPicker"] ?? "circle"
   );
@@ -55,8 +58,23 @@ export default function ColorPicker({
       </Option>
     );
   }
+  if (!visible && toggle) {
+    return (
+      <div onClick={() => setVisible(true)} style={{ cursor: "pointer" }}>
+        {toggle}
+      </div>
+    );
+  }
   return (
     <div style={style}>
+      {toggle && (
+        <div
+          style={{ float: "right", cursor: "pointer" }}
+          onClick={() => setVisible(false)}
+        >
+          <Icon name={"times"} />
+        </div>
+      )}
       <div
         style={{
           display: "flex",
