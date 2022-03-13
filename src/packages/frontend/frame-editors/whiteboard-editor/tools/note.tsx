@@ -23,7 +23,7 @@ export default function NoteToolPanel() {
       Preview={Preview}
       ButtonPreview={ButtonPreview}
       buttonTitle={({ fontSize, fontFamily, color }) =>
-        `Font size: ${fontSize}px` +
+        `Font size: ${fontSize ?? DEFAULT_FONT_SIZE}px` +
         (fontFamily ? `; Font family: ${fontFamily}` : "") +
         (color ? `; Color: ${color}` : "")
       }

@@ -115,6 +115,8 @@ export default function ToolPanel<Params>({
         }}
       >
         <Popover
+          mouseEnterDelay={0.2 /* because tip obstructs column to the right */}
+          mouseLeaveDelay={0}
           placement="right"
           title={
             <div style={{ textAlign: "center" }}>{buttonTitle?.(params)}</div>
