@@ -19,6 +19,7 @@ import { DoneCheckbox } from "./done";
 import { header_part } from "./desc-rendering";
 import { SelectedHashtags, TaskMap } from "./types";
 import { TaskActions } from "./actions";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 interface Props {
   actions?: TaskActions;
@@ -84,12 +85,20 @@ export const Task: React.FC<Props> = React.memo(
       min_toggle = header_part(desc) !== desc.trim();
     }
 
+    const color = task.get("color");
+
     return (
       <Grid
         style={style}
         onClick={() => actions?.set_current_task(task.get("task_id"))}
       >
-        <Row>
+        <Row
+          style={
+            color
+              ? { background: color, color: avatar_fontcolor(color) }
+              : undefined
+          }
+        >
           <Col sm={1}>
             {actions != null && <DragHandle sortable={sortable} />}
             {actions != null && (
@@ -108,6 +117,7 @@ export const Task: React.FC<Props> = React.memo(
               project_id={project_id}
               task_id={task.get("task_id")}
               desc={task.get("desc") ?? ""}
+              color={color}
               full_desc={full_desc}
               editing={editing_desc}
               is_current={is_current}

@@ -574,6 +574,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public set_current_task(task_id: string): void {
+    if (this.store.get("current_task_id") == task_id) return;
     this.setState({ current_task_id: task_id });
     this.scroll_into_view();
   }
@@ -687,6 +688,10 @@ export class TaskActions extends Actions<TaskState> {
     save: boolean = true
   ): void {
     this.set_task(task_id, { desc }, false, save);
+  }
+
+  public set_color(task_id: string, color: string, save: boolean = true): void {
+    this.set_task(task_id, { color }, false, save);
   }
 
   public toggle_full_desc(task_id: string | undefined): void {

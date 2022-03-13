@@ -14,12 +14,14 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TaskActions } from "./actions";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import ColorPicker from "@cocalc/frontend/components/color-picker";
 
 interface Props {
   actions: TaskActions;
   task_id: string;
   desc: string;
   font_size: number; // used only to cause refresh
+  color?: string;
 }
 
 export default function DescriptionEditor({
@@ -27,6 +29,7 @@ export default function DescriptionEditor({
   task_id,
   desc,
   font_size,
+  color,
 }: Props) {
   const commit = useDebouncedCallback(() => {
     actions.commit();
@@ -65,10 +68,20 @@ export default function DescriptionEditor({
         onRedo={() => {
           actions.redo();
         }}
+        minimal
+        editBarStyle={{ marginBottom: "10px" }}
       />
       <Button onClick={saveAndClose} style={{ marginTop: "5px" }}>
         <Icon name="save" /> Save (Shift+Enter)
       </Button>
+      <ColorPicker
+        color={color}
+        onChange={(color) => {
+          actions.set_color(task_id, color);
+          commit();
+        }}
+        style={{ float: "right" }}
+      />
     </div>
   );
 }

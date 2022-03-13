@@ -24,6 +24,7 @@ interface Props {
   project_id?: string;
   task_id: string;
   desc: string;
+  color?: string;
   editing: boolean;
   full_desc: boolean;
   is_current: boolean;
@@ -40,6 +41,7 @@ export const Description: React.FC<Props> = React.memo(
     project_id,
     task_id,
     desc,
+    color,
     editing,
     full_desc,
     is_current,
@@ -62,6 +64,7 @@ export const Description: React.FC<Props> = React.memo(
             actions={actions}
             task_id={task_id}
             desc={desc}
+            color={color}
             font_size={font_size}
           />
         </div>
