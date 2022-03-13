@@ -17,46 +17,46 @@ export default function Code({ element, focused, canvasScale }: Props) {
   const [editFocus, setEditFocus] = useState<boolean>(false);
   const mousePosRef = useRef<number[]>([]);
 
-  function renderInput() {
-    if (hideInput) return;
-    if (editFocus) {
-      return (
-        <Input
-          element={element}
-          focused={focused}
-          canvasScale={canvasScale}
-          onBlur={() => setEditFocus(false)}
-        />
-      );
-    }
-    if (focused) {
-      return (
+  return (
+    <div style={getStyle(element)}>
+      {!hideInput && focused && (
         <div
+          className={editFocus ? "nodrag" : undefined}
           onMouseDown={(e) => {
-            mousePosRef.current = [e.clientX, e.clientY];
+            if (editFocus) {
+              mousePosRef.current = [];
+            } else {
+              // have to set it to focused since otherwise
+              // we can't set it to not focused to unfocus
+              // it (since the click to drag focuses the
+              // editor internally).
+              setEditFocus(true);
+              mousePosRef.current = [e.clientX, e.clientY];
+            }
           }}
           onMouseUp={(e) => {
+            if (mousePosRef.current.length == 0) return;
             if (
               e.clientX == mousePosRef.current?.[0] &&
               e.clientY == mousePosRef.current?.[1]
             ) {
               setEditFocus(true);
             } else {
-              // defocus on move
+              // defocus on/after move
               setEditFocus(false);
             }
           }}
         >
-          <InputStatic element={element} />
+          <Input
+            isFocused={editFocus}
+            element={element}
+            focused={focused}
+            canvasScale={canvasScale}
+            onBlur={() => setEditFocus(false)}
+          />
         </div>
-      );
-    }
-    return <InputStatic element={element} />;
-  }
-
-  return (
-    <div style={getStyle(element)}>
-      {renderInput()}
+      )}
+      {!hideInput && !focused && <InputStatic element={element} />}
       {!hideOutput && element.data?.output && (
         <div className="nodrag">
           <Output element={element} />

@@ -104,6 +104,7 @@ interface Props {
   onCursorBottom?: () => void;
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
+  refresh?: any; // refresh codemirror if this changes
 }
 
 export function MarkdownInput({
@@ -145,6 +146,7 @@ export function MarkdownInput({
   isFocused,
   registerEditor,
   unregisterEditor,
+  refresh,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -192,6 +194,10 @@ export function MarkdownInput({
       blur();
     }
   }, [isFocused]);
+
+  useEffect(() => {
+    cm.current?.refresh();
+  }, [refresh]);
 
   useEffect(() => {
     // initialize the codemirror editor

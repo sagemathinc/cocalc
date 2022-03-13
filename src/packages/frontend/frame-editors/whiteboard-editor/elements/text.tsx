@@ -108,15 +108,18 @@ function EditText({
         mousePosRef.current = [e.clientX, e.clientY];
       }}
       onMouseUp={(e) => {
+        // NOTE: in raw markdown source mode we don't get the mouseDown click, so always focus.
         if (
-          e.clientX == mousePosRef.current?.[0] &&
-          e.clientY == mousePosRef.current?.[1]
+          mousePosRef.current.length == 0 ||
+          (e.clientX == mousePosRef.current?.[0] &&
+            e.clientY == mousePosRef.current?.[1])
         ) {
           setEditFocus(true);
         } else {
           // defocus on move
           setEditFocus(false);
         }
+        mousePosRef.current = [];
       }}
       style={{
         ...getStyle(element),
@@ -128,7 +131,9 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        fixedMode={element.rotate ? "editor" : undefined}
         cacheId={element.id}
+        refresh={canvasScale}
         noVfill
         minimal
         hideHelp

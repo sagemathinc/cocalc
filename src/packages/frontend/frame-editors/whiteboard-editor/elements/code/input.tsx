@@ -13,6 +13,7 @@ import { getJupyterActions } from "./actions";
 import { Actions as WhiteboardActions } from "../../actions";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
+import { SELECTED_BORDER_COLOR } from "../style";
 
 interface Props {
   element: Element;
@@ -20,6 +21,7 @@ interface Props {
   canvasScale: number;
   onFocus?: () => void;
   onBlur?: () => void;
+  isFocused?: boolean;
 }
 
 export default function Input({
@@ -28,6 +30,7 @@ export default function Input({
   canvasScale,
   onFocus,
   onBlur,
+  isFocused,
 }: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
@@ -37,10 +40,20 @@ export default function Input({
     return new Actions(frame, element.id, setComplete);
   }, [element.id]); // frame can't change meaningfully.
 
-  const cm = (
-    <div className="nodrag">
+  return (
+    <div>
       <CodeMirrorEditor
-        is_focused={true}
+        refresh={canvasScale /* fresh if canvas scale changes */}
+        contenteditable={
+          true /* we *must* use contenteditable so scaling works */
+        }
+        style={{
+          border: isFocused
+            ? `1px solid ${SELECTED_BORDER_COLOR}`
+            : "1px solid rgb(207, 207, 207)",
+          borderRadius: "2px",
+        }}
+        is_focused={isFocused}
         actions={actions}
         id={element.id}
         onFocus={onFocus}
@@ -84,21 +97,6 @@ export default function Input({
       />
     </div>
   );
-  if (focused && canvasScale != 1) {
-    return (
-      <div
-        style={{
-          transform: `scale(${1 / canvasScale})`,
-          transformOrigin: "top left",
-          fontSize: (element.data?.fontSize ?? 14) * canvasScale,
-        }}
-      >
-        {cm}
-      </div>
-    );
-  } else {
-    return cm;
-  }
 }
 
 class Actions implements EditorActions {

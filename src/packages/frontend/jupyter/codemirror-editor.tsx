@@ -18,7 +18,7 @@ import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect } from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -89,6 +89,8 @@ interface CodeMirrorEditorProps {
   unregisterEditor?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  contenteditable?: boolean; // make true for whiteboard so works when scaled.
+  refresh?: any; // if this changes, then cm.refresh() is called.
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -111,6 +113,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   unregisterEditor,
   onFocus,
   onBlur,
+  contenteditable,
+  refresh,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -125,7 +129,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   const frameActions = useNotebookFrameActions();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (frameActions.current?.frame_id != null) {
       key.current = `${frameActions.current.frame_id}${id}`;
     }
@@ -139,7 +143,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    cm.current?.refresh();
+  }, [refresh]);
+
+  useEffect(() => {
     if (cm.current == null) {
       init_codemirror(options, value);
       return;
@@ -149,7 +157,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
   }, [options, value]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     cm_refresh();
   }, [font_size, is_scrolling]);
 
@@ -160,13 +168,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // we would fail to update the cm editor, which would is
   // a disaster.  May be root cause of
   //    https://github.com/sagemathinc/cocalc/issues/3978
-  React.useEffect(() => {
+  useEffect(() => {
     if (cm.current?.getValue() != value) {
       cm_merge_remote(value);
     }
   }, [value, cm.current?.getValue()]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // can't do anything if there is no codemirror editor
     if (cm.current == null) return;
 
@@ -566,6 +574,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       options0.readOnly = true;
     }
 
+    if (contenteditable) {
+      options0.inputStyle = "contenteditable" as "contenteditable";
+    }
+
     cm.current = CodeMirror(function (elt) {
       if (node.parentNode == null) return;
       node.parentNode.replaceChild(elt, node);
@@ -592,7 +604,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       vim_mode.current = false;
     }
 
-    const css: any = { height: "auto" };
+    const css: CSSProperties = { height: "auto" };
     if (options0.theme == null) {
       css.backgroundColor = "#fff";
     }

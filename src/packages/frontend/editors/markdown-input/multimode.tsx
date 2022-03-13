@@ -43,6 +43,7 @@ interface Props {
   cacheId?: string; // unique **within this file**; the project_id and path are automatically also used
   value?: string;
   defaultMode?: Mode; // defaults to editor or whatever was last used (as stored in localStorage)
+  fixedMode?: Mode; // only use this mode; no option to switch
   onChange: (value: string) => void;
   onShiftEnter?: (value: string) => void;
   placeholder?: string;
@@ -101,12 +102,16 @@ interface Props {
 
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
+
+  // refresh codemirror if this changes
+  refresh?: any;
 }
 
 export default function MultiMarkdownInput({
   cacheId,
   value,
   defaultMode,
+  fixedMode,
   onChange,
   onShiftEnter,
   placeholder,
@@ -143,6 +148,7 @@ export default function MultiMarkdownInput({
   registerEditor,
   unregisterEditor,
   modeSwitchStyle,
+  refresh,
 }: Props) {
   const { project_id, path } = useFrameContext();
 
@@ -153,7 +159,8 @@ export default function MultiMarkdownInput({
   }
 
   const [mode, setMode0] = useState<Mode>(
-    getCache()?.mode ??
+    fixedMode ??
+      getCache()?.mode ??
       defaultMode ??
       localStorage[LOCAL_STORAGE_KEY] ??
       "editor"
@@ -228,41 +235,43 @@ export default function MultiMarkdownInput({
           setTimeout(() => (ignoreBlur.current = false), 100);
         }}
       >
-        <div
-          style={{
-            fontSize: "14px",
-            padding: "0px 3px",
-            boxShadow: "#ccc 1px 3px 5px",
-            fontWeight: 250,
-            background: "white",
-            cursor: "pointer",
-            color: "black",
-            ...(mode == "editor" || hideHelp
-              ? {
-                  position: "absolute",
-                  top: 1,
-                  right: 1,
-                  zIndex: 1,
-                }
-              : { float: "right" }),
-            ...modeSwitchStyle,
-          }}
-          onClick={() => {
-            setMode(mode == "editor" ? "markdown" : "editor");
-          }}
-        >
-          <Popover
-            title="Markdown"
-            content={
-              mode == "editor"
-                ? "This is editable text with support for LaTeX.  Toggle to edit markdown source."
-                : "Edit markdown here with support for LaTeX. Toggle to edit text directly."
-            }
+        {!fixedMode && (
+          <div
+            style={{
+              fontSize: "14px",
+              padding: "0px 3px",
+              boxShadow: "#ccc 1px 3px 5px",
+              fontWeight: 250,
+              background: "white",
+              cursor: "pointer",
+              color: "black",
+              ...(mode == "editor" || hideHelp
+                ? {
+                    position: "absolute",
+                    top: 1,
+                    right: 1,
+                    zIndex: 1,
+                  }
+                : { float: "right" }),
+              ...modeSwitchStyle,
+            }}
+            onClick={() => {
+              setMode(mode == "editor" ? "markdown" : "editor");
+            }}
           >
-            {compact ? "" : mode == "editor" ? "Editor" : "Source"}{" "}
-            <Icon name="markdown" />
-          </Popover>
-        </div>
+            <Popover
+              title="Markdown"
+              content={
+                mode == "editor"
+                  ? "This is editable text with support for LaTeX.  Toggle to edit markdown source."
+                  : "Edit markdown here with support for LaTeX. Toggle to edit text directly."
+              }
+            >
+              {compact ? "" : mode == "editor" ? "Editor" : "Source"}{" "}
+              <Icon name="markdown" />
+            </Popover>
+          </div>
+        )}
       </div>
       {mode == "markdown" && (
         <MarkdownInput
@@ -307,6 +316,7 @@ export default function MultiMarkdownInput({
           isFocused={isFocused}
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
+          refresh={refresh}
         />
       )}
       {mode == "editor" && (
