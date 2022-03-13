@@ -663,6 +663,14 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public edit_desc(task_id: string | undefined): void {
+    // close any that were currently in edit state before opening new one
+    const local = this.store.get("local_task_state");
+    for (const [id, state] of local) {
+      if (state.get("editing_desc")) {
+        this.stop_editing_desc(id);
+      }
+    }
+
     this.set_local_task_state(task_id, { editing_desc: true });
   }
 
