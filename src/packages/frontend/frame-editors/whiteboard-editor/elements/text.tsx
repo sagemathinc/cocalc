@@ -98,6 +98,8 @@ function EditText({
 
   useEffect(save, [value]);
 
+  // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
+  // including break first render of the overall canvas if any text is focused.
   return (
     <div
       style={{
@@ -110,7 +112,6 @@ function EditText({
       <MultiMarkdownInput
         cacheId={element.id}
         noVfill
-        autoFocus
         minimal
         hideHelp
         editorDivRef={editorDivRef}
@@ -149,7 +150,7 @@ function EditText({
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
         }}
-        modeSwitchStyle={{ top: "-24px", right: "-24px" }}
+        modeSwitchStyle={{ top: "-24px" }}
         onCursors={(cursors) => {
           actions.setCursors(element.id, cursors);
         }}
