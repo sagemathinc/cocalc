@@ -19,7 +19,7 @@ register({
     const border =
       focused && selected ? `1px solid ${FOCUSED_COLOR}` : "1px solid #d9d9d9";
     const backgroundColor = focused && selected ? "#1990ff" : "#fafafa";
-    const color = focused && selected ? "white" : undefined;
+    const color = focused && selected ? "white" : "#1b95e0";
 
     return (
       <span {...attributes}>
