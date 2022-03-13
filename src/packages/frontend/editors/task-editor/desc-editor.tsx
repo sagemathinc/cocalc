@@ -42,7 +42,7 @@ export default function DescriptionEditor({
   }, []);
 
   return (
-    <div style={{ border: "1px solid #40a9ff", padding: "0 15px 15px 15px" }}>
+    <div style={{ border: "1px solid #40a9ff", padding: "5px 15px" }}>
       <MarkdownInput
         cacheId={task_id}
         value={desc}
