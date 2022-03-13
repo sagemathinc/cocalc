@@ -238,9 +238,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
-          hideHelp
           cacheId={`${props.id}${frameActions.current?.frame_id}`}
           value={props.cell.get("input") ?? ""}
+          placeholder={"Type text..."}
           height="auto"
           onChange={(value) => {
             props.actions?.set_cell_input(props.id, value, true);

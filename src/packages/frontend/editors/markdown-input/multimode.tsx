@@ -373,6 +373,7 @@ export default function MultiMarkdownInput({
             isFocused={isFocused}
             registerEditor={registerEditor}
             unregisterEditor={unregisterEditor}
+            placeholder={placeholder}
           />
         </div>
       )}

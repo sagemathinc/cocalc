@@ -27,7 +27,6 @@ import {
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
 import { Actions } from "./types";
-
 import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
@@ -106,6 +105,7 @@ const STYLE = {
 
 interface Props {
   value?: string;
+  placeholder?: string;
   actions?: Actions;
   read_only?: boolean;
   font_size?: number;
@@ -145,6 +145,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     id: id0,
     read_only,
     value,
+    placeholder,
     font_size: font_size0,
     is_current,
     is_fullscreen,
@@ -690,6 +691,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
+          placeholder={placeholder}
           autoFocus={autoFocus}
           className={
             !disableWindowing && height != "auto" ? "smc-vfill" : undefined

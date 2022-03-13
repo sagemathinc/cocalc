@@ -36,7 +36,6 @@ export default function Input({ element, focused, canvasScale }: Props) {
         id={element.id}
         options={getCMOptions()}
         value={element.str ?? ""}
-        is_focused={focused}
         complete={complete}
         onKeyDown={(cm, e) => {
           if (

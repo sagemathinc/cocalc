@@ -56,7 +56,7 @@ export default function DescriptionEditor({
         enableUpload={true}
         enableMentions={true}
         height={"auto"}
-        placeholder={"Enter a description..."}
+        placeholder={"Enter description..."}
         lineWrapping={true}
         autoFocus
         onSave={() => {

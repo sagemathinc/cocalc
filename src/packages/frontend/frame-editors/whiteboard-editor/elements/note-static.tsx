@@ -7,7 +7,6 @@ import { Props } from "./render-static";
 export const STYLE = {
   borderBottomRightRadius: "60px 5px",
   boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
-  padding: "15px",
   width: "100%",
   border: "1px solid lightgrey",
   overflow: "hidden",
@@ -23,6 +22,7 @@ export default function Note({ element }: Props) {
       style={{
         ...STYLE,
         background: element.data?.color ?? DEFAULT_NOTE.color,
+        padding: "15px",
       }}
     >
       <Text element={{ ...element, data }} />

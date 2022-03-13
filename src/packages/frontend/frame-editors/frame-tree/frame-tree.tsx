@@ -340,6 +340,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           status={status}
           tab_is_visible={tab_is_visible}
           terminal={terminal}
+          placeholder={spec.placeholder}
         />
       );
     }

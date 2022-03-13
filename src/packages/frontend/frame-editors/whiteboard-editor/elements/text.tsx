@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
-import TextStatic, { getStyle, PADDING } from "./text-static";
+import TextStatic, { getStyle, PADDING, PLACEHOLDER } from "./text-static";
 export { getStyle };
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
@@ -55,6 +55,7 @@ function EditText({
   }, [element]);
   const isMounted = useIsMountedRef();
   const [value, setValue] = useState<string>(element.str ?? "");
+
   const [editFocus, setEditFocus] = useState<boolean>(false);
   const { actions, id: frameId } = useFrameContext();
   const editorDivRef = useRef<HTMLDivElement>(null);
@@ -100,11 +101,28 @@ function EditText({
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
+  const mousePosRef = useRef<number[]>([]);
   return (
     <div
+      onMouseDown={(e) => {
+        mousePosRef.current = [e.clientX, e.clientY];
+      }}
+      onMouseUp={(e) => {
+        if (
+          e.clientX == mousePosRef.current?.[0] &&
+          e.clientY == mousePosRef.current?.[1]
+        ) {
+          setEditFocus(true);
+        } else {
+          // defocus on move
+          setEditFocus(false);
+        }
+      }}
       style={{
         ...getStyle(element),
-        padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
+        padding: noteMode
+          ? `${PADDING + 15}px`
+          : `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}
@@ -114,7 +132,9 @@ function EditText({
         noVfill
         minimal
         hideHelp
+        placeholder={PLACEHOLDER}
         editorDivRef={editorDivRef}
+        isFocused={editFocus}
         onFocus={() => {
           setEditFocus(true);
           expandIfNecessary();
