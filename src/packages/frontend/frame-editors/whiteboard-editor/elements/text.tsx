@@ -148,8 +148,11 @@ function EditText({
         onFocus={() => {
           setEditFocus(true);
           expandIfNecessary();
+          // NOTE: we do not do "setEditFocus(false)" with onBlur, because
+          // there are many ways to "blur" the slate editor technically, but
+          // still want to consider it focused, e.g., editing math and code
+          // cells, and clicking a checkbox.
         }}
-        onBlur={() => setEditFocus(false)}
         onShiftEnter={() => {
           const id = actions.createAdjacentElement(element.id, "bottom");
           if (!id) return;
