@@ -220,7 +220,8 @@ export class ProjectStatusServer extends EventEmitter {
   // but still only emit new objects if it is either really necessary (new alert)
   // or after some time. This must be a low-frequency and low-volume stream of data.
   private update(): void {
-    const fake_data = false; // set this to true if you're developing (otherwise you don't get any data)
+    // set this to true if you're developing (otherwise you don't get any data)
+    const fake_data = process.env.COCALC_FAKE_DATA === "true";
 
     const usage = fake_data
       ? this.fake_data()

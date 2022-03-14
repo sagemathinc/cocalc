@@ -2253,7 +2253,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query : 'SELECT settings, users, site_license FROM projects'
                     where : 'project_id = $::UUID' : opts.project_id
                     cb    : one_result (err, x) =>
-                        console.log("get_project_quotas:", err, x)
                         settings = x.settings
                         site_license = x.site_license
                         users = x.users
