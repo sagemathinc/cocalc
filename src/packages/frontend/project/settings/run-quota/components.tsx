@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "@cocalc/frontend/app-framework";
+import { React, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Progress } from "antd";
@@ -18,7 +18,7 @@ export const PercentBar: React.FC<{
 
   function props() {
     if (typeof percent2 === "number") {
-      return { success: { percent: percent2 } };
+      return { success: { percent: percent2, strokeColor: COLORS.GRAY_D } };
     }
   }
 
@@ -39,17 +39,25 @@ export const IdleTimeoutPct: React.FC<{
   idle_timeout: number;
   last_edited: Date;
 }> = ({ idle_timeout, last_edited }) => {
-  const [pct, setPct] = useState<number>(calc());
+  const [pct, setPct] = useState<number | null>(null);
 
-  function calc() {
+  function update() {
     const used = Math.max(0, server_time().valueOf() - last_edited.valueOf());
     const pct = Math.ceil(100 * Math.min(1, used / (1000 * idle_timeout)));
-    return pct;
+    setPct(pct);
   }
 
+  useEffect(() => {
+    update();
+  }, [last_edited]);
+
   useInterval(() => {
-    setPct(calc());
+    update();
   }, 1000 * 30);
 
-  return <PercentBar percent={pct} />;
+  if (pct == null) {
+    return null;
+  } else {
+    return <PercentBar percent={pct} />;
+  }
 };

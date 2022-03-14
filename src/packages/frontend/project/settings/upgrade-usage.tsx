@@ -91,28 +91,31 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   function list_user_contributions() {
     const info: string[] = [];
     const applied = upgrades_you_applied_to_this_project;
-    if (applied == null) return;
-    const quota_params = PROJECT_UPGRADES.params;
+    if (applied == null) {
+      return "You have not contributed any upgrades to this project.";
+    }
 
-    for (const name in quota_params) {
-      const param = quota_params[name];
+    const getAmount = ({ val, param, factor }) => {
+      if (typeof val === "boolean") {
+        return val ? "1" : "0";
+      } else {
+        const amount = round2((val ?? 0) * factor);
+        const unit = param.display_unit
+          ? plural(amount, param.display_unit)
+          : "";
+        return `${amount} ${unit}`;
+      }
+    };
+
+    for (const name in PROJECT_UPGRADES.params) {
+      const param = PROJECT_UPGRADES.params[name];
       const factor = param.display_factor;
       const val = applied[name];
       // we only show those values, where the user actually contributed something
       if (val == null || val === false || val === 0) continue;
       const display = param.display;
-      const amountStr = (function () {
-        if (typeof val === "boolean") {
-          return val ? "1" : "0";
-        } else {
-          const amount = round2((val ?? 0) * factor);
-          const unit = param.display_unit
-            ? plural(amount, param.display_unit)
-            : "";
-          return `${amount} ${unit}`;
-        }
-      })();
-      info.push(`${display}: ${amountStr}`);
+      const amount = getAmount({ val, param, factor });
+      info.push(`${display}: ${amount}`);
     }
 
     return to_human_list(info);

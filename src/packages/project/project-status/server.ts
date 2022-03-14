@@ -15,26 +15,27 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-import { EventEmitter } from "events";
-import { delay } from "awaiting";
-import { isEqual } from "lodash";
+import { getLogger } from "@cocalc/project/logger";
 import { how_long_ago_m } from "@cocalc/util/misc";
+import { version } from "@cocalc/util/smc-version";
+import { delay } from "awaiting";
+import { EventEmitter } from "events";
+import { isEqual } from "lodash";
+import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
+import { ProjectInfo } from "../project-info/types";
 import {
-  ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,
+  ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   RAISE_ALERT_AFTER_MIN,
 } from "./const";
-import { ProjectStatus, Alert, AlertType, ComponentName } from "./types";
-import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "../project-info/types";
-import { version } from "@cocalc/util/smc-version";
+import { Alert, AlertType, ComponentName, ProjectStatus } from "./types";
 import { cgroup_stats } from "./utils";
 
-// only return the "next" value, if it is significantly different from "prev"
+// TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {
 //  return next;
 //}
-import { getLogger } from "@cocalc/project/logger";
+
 const winston = getLogger("ProjectStatusServer");
 
 // tracks, when for the first time we saw an elevated value
@@ -64,6 +65,7 @@ export class ProjectStatusServer extends EventEmitter {
   private cpu_tot?: number; // total time in seconds
   private mem_pct?: number;
   private mem_rss?: number;
+  private mem_tot?: number;
   private components: { [name in ComponentName]?: number | null } = {};
 
   constructor(testing = false) {
@@ -117,13 +119,15 @@ export class ProjectStatusServer extends EventEmitter {
     const cg = this.info.cgroup;
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
-      const { mem_pct, cpu_pct, cpu_tot, mem_rss } = cgroup_stats(cg, du_tmp);
-      this.mem_pct = mem_pct;
-      this.cpu_pct = cpu_pct;
-      this.cpu_tot = cpu_tot;
-      this.mem_rss = Math.round(mem_rss);
-      do_alert("memory", mem_pct > ALERT_HIGH_PCT);
-      do_alert("cpu-cgroup", cpu_pct > ALERT_HIGH_PCT);
+      // we round/quantisize values to reduce the number of updates
+      const cgStats = cgroup_stats(cg, du_tmp);
+      this.mem_pct = Math.ceil(cgStats.mem_pct);
+      this.cpu_pct = Math.ceil(cgStats.cpu_pct);
+      this.cpu_tot = Math.ceil(cgStats.cpu_tot);
+      this.mem_tot = 10 * Math.ceil(cgStats.mem_tot / 10);
+      this.mem_rss = 10 * Math.ceil(cgStats.mem_rss / 10);
+      do_alert("memory", cgStats.mem_pct > ALERT_HIGH_PCT);
+      do_alert("cpu-cgroup", cgStats.cpu_pct > ALERT_HIGH_PCT);
     }
   }
 
@@ -196,12 +200,17 @@ export class ProjectStatusServer extends EventEmitter {
       return Math.round(Math.min(max, Math.max(0, val)));
     };
 
+    const mem_tot = 3000;
+    const mem_pct = next("mem_pct", 100);
+    const mem_rss = Math.round((mem_tot * mem_pct) / 100);
+
     return {
       disk_mb: next("disk", 3000),
-      mem_pct: next("mem_pct", 100),
+      mem_tot,
+      mem_pct,
       cpu_pct: next("cpu_pct", 100),
       cpu_tot: (lastUsage?.["cpu_tot"] ?? 0) + Math.random() / 10,
-      mem_rss: next("mem_rss", 1000),
+      mem_rss,
     };
   }
 
@@ -221,6 +230,7 @@ export class ProjectStatusServer extends EventEmitter {
           cpu_pct: this.cpu_pct,
           cpu_tot: this.cpu_tot,
           mem_rss: this.mem_rss,
+          mem_tot: this.mem_tot,
         };
 
     this.status = {
