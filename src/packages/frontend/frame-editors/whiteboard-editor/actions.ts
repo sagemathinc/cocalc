@@ -275,7 +275,7 @@ export class Actions extends BaseActions<State> {
   }
 
   clearSelection(frameId: string): void {
-    this.set_frame_tree({ id: frameId, selection: [] });
+    this.set_frame_tree({ id: frameId, selection: [], editFocus: false });
   }
 
   // Sets the selection to either a single element or a list
@@ -293,6 +293,7 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" | "toggle" = "only",
     expandGroups: boolean = true // for internal use when we recurse
   ): void {
+    this.setEditFocus(frameId, false);
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
@@ -340,6 +341,7 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" = "only",
     expandGroups: boolean = true
   ): void {
+    this.setEditFocus(frameId, false);
     const X = new Set(ids);
     if (expandGroups) {
       // extend id list to contain any groups it intersects.
@@ -864,6 +866,10 @@ export class Actions extends BaseActions<State> {
   set_font_size(id: string, font_size: number): void {
     font_size = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, font_size));
     this.set_frame_tree({ id, font_size });
+  }
+
+  setEditFocus(id: string, editFocus: boolean): void {
+    this.set_frame_tree({ id, editFocus });
   }
 }
 

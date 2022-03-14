@@ -58,9 +58,14 @@ export default function getKeyHandler(
     const selection = node.get("selection");
     if (selection?.size == 1) {
       // Exactly one element is selected.
-      // TOOD: For now, we allow for escape, though it would be better for that to have multiple steps...
       if (key == "escape") {
-        actions.clearSelection(frameId);
+        if (node.get("editFocus")) {
+          // currently editing something, e.g., text -- so step out of that.
+          actions.setEditFocus(frameId, false);
+        } else {
+          // not editing anything, so deselect element.
+          actions.clearSelection(frameId);
+        }
         return;
       }
       const elt = actions.getElement(selection.get(0));

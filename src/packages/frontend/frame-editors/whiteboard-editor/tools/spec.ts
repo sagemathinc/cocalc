@@ -37,7 +37,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "default",
     tip: "Select",
     readOnly: true,
-    key: "a", // matches photoshop's "Direct Selection tool"
+    key: "v", // "v" = what figma and miro use.
   },
   text: {
     icon: "text1",

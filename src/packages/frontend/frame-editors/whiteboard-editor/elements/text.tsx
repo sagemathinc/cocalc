@@ -42,6 +42,7 @@ function EditText({
   cursors?;
   focused?: boolean;
 }) {
+  const { actions, id: frameId, desc } = useFrameContext();
   const expandIfNecessary = useCallback(() => {
     // possibly adjust height.  We do this in the next render
     // loop because sometimes when the change fires the dom
@@ -62,8 +63,17 @@ function EditText({
   const [value, setValue] = useState<string>(element.str ?? "");
   const [mode, setMode] = useState<string>("");
 
-  const [editFocus, setEditFocus] = useState<boolean>(false);
-  const { actions, id: frameId } = useFrameContext();
+  const [editFocus, setEditFocus0] = useState<boolean>(false);
+  const setEditFocus = (state: boolean) => {
+    setEditFocus0(state);
+    actions.setEditFocus(frameId, state);
+  };
+  useEffect(() => {
+    if (editFocus && !desc.get("editFocus")) {
+      setEditFocus0(false);
+    }
+  }, [desc.get("editFocus")]);
+
   const editorDivRef = useRef<HTMLDivElement>(null);
   const lastRemote = useRef<string>(element.str ?? "");
   const valueRef = useRef<string>(value);
