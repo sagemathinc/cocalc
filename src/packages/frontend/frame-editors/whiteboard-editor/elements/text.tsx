@@ -20,7 +20,10 @@ interface Props {
 }
 
 export default function Text(props: Props) {
-  if (props.readOnly || !props.focused || props.element.locked) {
+  if (
+    (props.readOnly || !props.focused || props.element.locked) &&
+    props.cursors == null
+  ) {
     return <TextStatic element={props.element} />;
   }
   return <EditText {...props} />;
@@ -31,11 +34,13 @@ function EditText({
   canvasScale,
   noteMode,
   cursors,
+  focused,
 }: {
   element: Element;
   canvasScale: number;
   noteMode?: boolean;
   cursors?;
+  focused?: boolean;
 }) {
   const expandIfNecessary = useCallback(() => {
     // possibly adjust height.  We do this in the next render
@@ -131,7 +136,7 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
-        fixedMode={element.rotate ? "editor" : undefined}
+        fixedMode={element.rotate || !focused ? "editor" : undefined}
         cacheId={element.id}
         refresh={canvasScale}
         noVfill
@@ -160,6 +165,7 @@ function EditText({
           setTimeout(expandIfNecessary, 0);
         }}
         editBarStyle={{
+          visibility: !focused ? "hidden" : undefined,
           top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,
           left: "5px",
           position: "absolute",

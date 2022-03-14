@@ -6,7 +6,7 @@ import { Props } from "./render";
 
 export default function Note(props: Props) {
   const { element, focused } = props;
-  if (!focused) {
+  if (!focused && props.cursors == null) {
     return <NoteStatic element={element} />;
   }
   const data = {
