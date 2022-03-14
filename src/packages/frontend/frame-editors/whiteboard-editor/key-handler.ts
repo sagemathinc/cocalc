@@ -68,10 +68,8 @@ export default function getKeyHandler(
         }
         return;
       }
-      const elt = actions.getElement(selection.get(0));
-      if (elt && ["note", "text", "code", "chat", "timer"].includes(elt.type)) {
-        // do NOT use any keyboard shortcut on anything editable via the keyboard.
-        // TODO: maybe better would be to have an editing or not editing state... NOT sure though!
+      if (node.get("editFocus")) {
+        // do NOT use any keyboard shortcut on anything editable via the keyboard when editing.
         return;
       }
     }

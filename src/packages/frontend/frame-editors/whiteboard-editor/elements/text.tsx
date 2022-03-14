@@ -69,8 +69,8 @@ function EditText({
     actions.setEditFocus(frameId, state);
   };
   useEffect(() => {
-    if (editFocus && !desc.get("editFocus")) {
-      setEditFocus0(false);
+    if (editFocus != desc.get("editFocus")) {
+      setEditFocus0(desc.get("editFocus"));
     }
   }, [desc.get("editFocus")]);
 

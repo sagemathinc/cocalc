@@ -4,7 +4,8 @@ import Input from "./input";
 import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFrameContext } from "../../hooks";
 
 interface Props {
   element: Element;
@@ -20,7 +21,20 @@ export default function Code({
   cursors,
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
-  const [editFocus, setEditFocus] = useState<boolean>(false);
+
+  // TODO: refactor this with text.tsx:
+  const { actions, id: frameId, desc } = useFrameContext();
+  const [editFocus, setEditFocus0] = useState<boolean>(false);
+  const setEditFocus = (state: boolean) => {
+    setEditFocus0(state);
+    actions.setEditFocus(frameId, state);
+  };
+  useEffect(() => {
+    if (editFocus != desc.get("editFocus")) {
+      setEditFocus0(desc.get("editFocus"));
+    }
+  }, [desc.get("editFocus")]);
+
   const mousePosRef = useRef<number[]>([]);
 
   const renderInput = () => {

@@ -1241,8 +1241,9 @@ export default function Canvas({
       onTouchEnd={!isNavigator ? onTouchEnd : undefined}
       onTouchCancel={!isNavigator ? onTouchCancel : undefined}
       onCopy={
-        !isNavigator
-          ? (event: ClipboardEvent<HTMLDivElement>) => {
+        isNavigator || frame.desc.get("editFocus")
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
               event.preventDefault();
               const selectedElements = getSelectedElements({
                 elements,
@@ -1254,10 +1255,9 @@ export default function Canvas({
                 encoded
               );
             }
-          : undefined
       }
       onCut={
-        isNavigator || readOnly
+        isNavigator || readOnly || frame.desc.get("editFocus")
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               event.preventDefault();
@@ -1274,7 +1274,7 @@ export default function Canvas({
             }
       }
       onPaste={
-        isNavigator || readOnly
+        isNavigator || readOnly || frame.desc.get("editFocus")
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               const encoded = event.clipboardData.getData(
