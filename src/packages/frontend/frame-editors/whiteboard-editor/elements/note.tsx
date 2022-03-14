@@ -17,6 +17,7 @@ export default function Note(props: Props) {
     <div
       style={{
         ...STYLE,
+        overflow: "visible",
         background: element.data?.color ?? DEFAULT_NOTE.color,
       }}
     >

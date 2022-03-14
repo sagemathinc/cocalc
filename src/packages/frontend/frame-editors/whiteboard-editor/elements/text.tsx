@@ -60,6 +60,7 @@ function EditText({
   }, [element]);
   const isMounted = useIsMountedRef();
   const [value, setValue] = useState<string>(element.str ?? "");
+  const [mode, setMode] = useState<string>("");
 
   const [editFocus, setEditFocus] = useState<boolean>(false);
   const { actions, id: frameId } = useFrameContext();
@@ -106,13 +107,18 @@ function EditText({
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
-  const mousePosRef = useRef<number[]>([]);
+  const mousePosRef = useRef<number[] | true>([]);
   return (
     <div
       onMouseDown={(e) => {
+        if (editFocus) {
+          mousePosRef.current = true;
+          return;
+        }
         mousePosRef.current = [e.clientX, e.clientY];
       }}
       onMouseUp={(e) => {
+        if (mousePosRef.current === true) return;
         // NOTE: in raw markdown source mode we don't get the mouseDown click, so always focus.
         if (
           mousePosRef.current.length == 0 ||
@@ -167,13 +173,12 @@ function EditText({
           setValue(value);
           setTimeout(expandIfNecessary, 0);
         }}
+        onModeChange={setMode}
         editBarStyle={{
-          visibility: !focused ? "hidden" : undefined,
+          visibility: !focused || mode == "markdown" ? "hidden" : undefined,
           top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,
-          left: "5px",
+          left: "-24px",
           position: "absolute",
-          border: "1px solid #ccc",
-          borderRadius: "3px",
           boxShadow: "1px 3px 5px #ccc",
           margin: "5px",
           minWidth: "500px",
@@ -184,7 +189,11 @@ function EditText({
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
         }}
-        modeSwitchStyle={{ top: "-24px" }}
+        modeSwitchStyle={{
+          top: noteMode || mode == "markdown" ? "-54px" : "-82px",
+          right: "-24px",
+          transform: `scale(${1 / Math.max(1, canvasScale)})`,
+        }}
         onCursors={(cursors) => {
           actions.setCursors(element.id, cursors);
         }}

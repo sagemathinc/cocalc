@@ -3,7 +3,7 @@ Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
 import { useEffect } from "react";
-import { Popover } from "antd";
+import { Button, Popover } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
@@ -45,6 +45,7 @@ interface Props {
   defaultMode?: Mode; // defaults to editor or whatever was last used (as stored in localStorage)
   fixedMode?: Mode; // only use this mode; no option to switch
   onChange: (value: string) => void;
+  onModeChange?: (mode: Mode) => void;
   onShiftEnter?: (value: string) => void;
   placeholder?: string;
   fontSize?: number;
@@ -113,6 +114,7 @@ export default function MultiMarkdownInput({
   defaultMode,
   fixedMode,
   onChange,
+  onModeChange,
   onShiftEnter,
   placeholder,
   fontSize,
@@ -166,9 +168,14 @@ export default function MultiMarkdownInput({
       "editor"
   );
 
+  useEffect(() => {
+    onModeChange?.(mode);
+  }, []);
+
   const setMode = (mode: Mode) => {
     localStorage[LOCAL_STORAGE_KEY] = mode;
     setMode0(mode);
+    onModeChange?.(mode);
     if (cacheId !== undefined) {
       multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
         ...getCache(),
@@ -239,7 +246,6 @@ export default function MultiMarkdownInput({
           <div
             style={{
               fontSize: "14px",
-              padding: "0px 3px",
               boxShadow: "#ccc 1px 3px 5px",
               fontWeight: 250,
               background: "white",
@@ -248,8 +254,8 @@ export default function MultiMarkdownInput({
               ...(mode == "editor" || hideHelp
                 ? {
                     position: "absolute",
-                    top: 1,
-                    right: 1,
+                    top: 0,
+                    right: 0,
                     zIndex: 1,
                   }
                 : { float: "right" }),
@@ -263,12 +269,19 @@ export default function MultiMarkdownInput({
               title="Markdown"
               content={
                 mode == "editor"
-                  ? "This is editable text with support for LaTeX.  Toggle to edit markdown source."
-                  : "Edit markdown here with support for LaTeX. Toggle to edit text directly."
+                  ? "This is editable rich text with support for LaTeX.  Click to edit markdown source."
+                  : "Edit markdown here with support for LaTeX. Click to edit rich text."
               }
             >
-              {compact ? "" : mode == "editor" ? "Editor" : "Source"}{" "}
-              <Icon name="markdown" />
+              <Button size="small">
+                {compact ? (
+                  <Icon name="markdown" />
+                ) : mode == "editor" ? (
+                  "Text"
+                ) : (
+                  "Markdown"
+                )}
+              </Button>
             </Popover>
           </div>
         )}

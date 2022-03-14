@@ -309,7 +309,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
-          modeSwitchStyle={{ right: "30px" }}
+          modeSwitchStyle={{ marginRight: "32px" }}
         />
       );
     }
