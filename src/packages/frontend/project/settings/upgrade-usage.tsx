@@ -91,6 +91,11 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   function list_user_contributions() {
     const info: string[] = [];
     const applied = upgrades_you_applied_to_this_project;
+    const noUpgrades = "You have not contributed any upgrades to this project.";
+
+    if (applied == null) {
+      return noUpgrades;
+    }
 
     const getAmount = ({ val, param, factor }) => {
       if (typeof val === "boolean") {
@@ -116,7 +121,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     }
 
     if (info.length === 0) {
-      return "You have not contributed any upgrades to this project.";
+      return noUpgrades;
     }
 
     return to_human_list(info);

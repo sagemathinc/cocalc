@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.37.0",
+  "version": "1.37.1",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -43,7 +43,7 @@
     "@ant-design/icons": "^4.3.0",
     "@cocalc/assets": "^1.6.0",
     "@cocalc/cdn": "^1.10.0",
-    "@cocalc/hub": "^1.45.2",
+    "@cocalc/hub": "^1.46.0",
     "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/project": "^1.16.0",
     "@cocalc/sync": "^0.3.0",
