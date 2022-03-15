@@ -33,6 +33,8 @@ import {
 const { Text } = Typography;
 const PARAMS = PROJECT_UPGRADES.params;
 
+const INFINITY_CHAR = "∞";
+
 interface Props {
   project_id: string;
   project_state?: "opened" | "running" | "starting" | "stopping";
@@ -78,7 +80,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         key,
         display: displayedName(name),
         desc: PARAMS[name]?.desc ?? "",
-        quota: key == "idle_timeout" && ar ? "&infin;" : quotaValue(key),
+        quota: key == "idle_timeout" && ar ? INFINITY_CHAR : quotaValue(key),
         quotaDedicated: getQuotaDedicated(name),
         maximum: maxUpgrades?.[name] ?? "N/A",
         maxDedicated: getMaxDedicated(name),
@@ -137,7 +139,8 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       case "disk_quota":
         return is_commercial ? dedicatedDisk : <></>;
       case "idle_timeout":
-        return idleTimeoutInfo;
+        // special case: if we have always running, don't tell the user to increase idle timeout (stupid)
+        return record.quota != INFINITY_CHAR ? idleTimeoutInfo : "";
       default:
         return <></>;
     }
@@ -151,7 +154,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       const curStr =
         usage != null
           ? `Usage right now is ${usage.display} with a quota limit of ${quota}`
-          : `The overall quota limit is ${quota}`;
+          : `The quota limit is ${quota}`;
       const dediStr =
         quotaDedicated != null
           ? `, of which ${quotaDedicated} are dedicated to this project.`
