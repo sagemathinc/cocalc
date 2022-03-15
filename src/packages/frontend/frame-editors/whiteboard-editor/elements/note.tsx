@@ -19,6 +19,7 @@ export default function Note(props: Props) {
         ...STYLE,
         overflow: "visible",
         background: element.data?.color ?? DEFAULT_NOTE.color,
+        padding: "10px",
       }}
     >
       <Text {...props} element={{ ...element, data }} noteMode />

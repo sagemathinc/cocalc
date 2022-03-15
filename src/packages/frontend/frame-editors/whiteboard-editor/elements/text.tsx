@@ -144,9 +144,7 @@ function EditText({
       }}
       style={{
         ...getStyle(element),
-        padding: noteMode
-          ? `${PADDING + 15}px`
-          : `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
+        padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}
@@ -186,22 +184,20 @@ function EditText({
         onModeChange={setMode}
         editBarStyle={{
           visibility: !focused || mode == "markdown" ? "hidden" : undefined,
-          top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,
+          top: `${-55 - 5 / canvasScale}px`,
           left: "-24px",
           position: "absolute",
           boxShadow: "1px 3px 5px #ccc",
           margin: "5px",
           minWidth: "500px",
           background: "white",
-          transform: noteMode
-            ? `scale(${Math.min(0.8, 1 / canvasScale)})`
-            : `scale(${1 / canvasScale})`,
+          transform: `scale(${1 / canvasScale})`,
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
         }}
         modeSwitchStyle={{
-          top: noteMode || mode == "markdown" ? "-54px" : "-82px",
-          right: "-24px",
+          top: "-82px",
+          left: "-18px",
           transform: `scale(${1 / Math.max(1, canvasScale)})`,
         }}
         onCursors={(cursors) => {
@@ -217,6 +213,7 @@ function EditText({
         onRedo={() => {
           actions.redo();
         }}
+        compact
       />
     </div>
   );

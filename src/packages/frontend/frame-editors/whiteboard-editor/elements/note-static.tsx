@@ -22,7 +22,7 @@ export default function Note({ element }: Props) {
       style={{
         ...STYLE,
         background: element.data?.color ?? DEFAULT_NOTE.color,
-        padding: "15px",
+        padding: "10px",
       }}
     >
       <Text element={{ ...element, data }} />

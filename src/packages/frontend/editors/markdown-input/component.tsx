@@ -105,6 +105,7 @@ interface Props {
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
   refresh?: any; // refresh codemirror if this changes
+  compact?: boolean;
 }
 
 export function MarkdownInput({
@@ -147,6 +148,7 @@ export function MarkdownInput({
   registerEditor,
   unregisterEditor,
   refresh,
+  compact,
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -351,11 +353,13 @@ export function MarkdownInput({
     }
 
     const e: any = cm.current.getWrapperElement();
-    e.setAttribute(
-      "style",
-      `height:${height}; font-family:sans-serif !important;` +
-        (!options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "")
-    );
+    let s = `height:${height}; font-family:sans-serif !important;`;
+    if (compact) {
+      s += "padding:0";
+    } else {
+      s += !options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "";
+    }
+    e.setAttribute("style", s);
 
     if (enableMentions) {
       cm.current.on("change", (_cm, changeObj) => {

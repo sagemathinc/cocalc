@@ -5,7 +5,7 @@ interface Props {
   element: Element;
 }
 
-export const PADDING: number = 10;
+export const PADDING: number = 5;
 export const PLACEHOLDER = "Type text...";
 
 export default function Text({ element }: Props) {

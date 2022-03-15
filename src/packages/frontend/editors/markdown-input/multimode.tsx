@@ -3,7 +3,7 @@ Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
 import { useEffect } from "react";
-import { Button, Popover } from "antd";
+import { Popover, Radio } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
@@ -17,7 +17,6 @@ import {
 } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
 
@@ -245,12 +244,8 @@ export default function MultiMarkdownInput({
         {!fixedMode && (
           <div
             style={{
-              fontSize: "14px",
-              boxShadow: "#ccc 1px 3px 5px",
-              fontWeight: 250,
               background: "white",
-              cursor: "pointer",
-              color: "black",
+              color: "#666",
               ...(mode == "editor" || hideHelp
                 ? {
                     position: "absolute",
@@ -261,28 +256,27 @@ export default function MultiMarkdownInput({
                 : { float: "right" }),
               ...modeSwitchStyle,
             }}
-            onClick={() => {
-              setMode(mode == "editor" ? "markdown" : "editor");
-            }}
           >
-            <Popover
-              title="Markdown"
-              content={
-                mode == "editor"
-                  ? "This is editable rich text with support for LaTeX.  Click to edit markdown source."
-                  : "Edit markdown here with support for LaTeX. Click to edit rich text."
-              }
-            >
-              <Button size="small">
-                {compact ? (
-                  <Icon name="markdown" />
-                ) : mode == "editor" ? (
-                  "Text"
-                ) : (
-                  "Markdown"
-                )}
-              </Button>
-            </Popover>
+            <Radio.Group
+              options={[
+                // fontWeight is needed to undo a stupid conflict with bootstrap css, which will go away when we get rid of that ancient nonsense.
+                {
+                  label: <span style={{ fontWeight: 400 }}>Text</span>,
+                  value: "editor",
+                },
+                {
+                  label: <span style={{ fontWeight: 400 }}>Markdown</span>,
+                  value: "markdown",
+                },
+              ]}
+              onChange={(e) => {
+                console.log("value");
+                setMode(e.target.value as Mode);
+              }}
+              value={mode}
+              optionType="button"
+              size="small"
+            />
           </div>
         )}
       </div>
@@ -300,7 +294,7 @@ export default function MultiMarkdownInput({
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
           onShiftEnter={onShiftEnter}
-          placeholder={placeholder}
+          placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
           lineWrapping={lineWrapping}
           lineNumbers={lineNumbers}
@@ -330,6 +324,7 @@ export default function MultiMarkdownInput({
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
           refresh={refresh}
+          compact={compact}
         />
       )}
       {mode == "editor" && (
@@ -396,7 +391,7 @@ export default function MultiMarkdownInput({
             isFocused={isFocused}
             registerEditor={registerEditor}
             unregisterEditor={unregisterEditor}
-            placeholder={placeholder}
+            placeholder={placeholder ?? "Type text..."}
           />
         </div>
       )}
