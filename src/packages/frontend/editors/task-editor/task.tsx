@@ -97,6 +97,14 @@ export const Task: React.FC<Props> = React.memo(
         onClick={() => actions?.set_current_task(task.get("task_id"))}
       >
         <Row>
+          <Col sm={1} style={{ textAlign: "center" }}>
+            <DoneCheckbox
+              actions={actions}
+              read_only={read_only}
+              done={!!task.get("done")}
+              task_id={task.get("task_id")}
+            />
+          </Col>
           <Col sm={1}>
             {actions != null && <DragHandle sortable={sortable} />}
             {actions != null && (
@@ -142,14 +150,6 @@ export const Task: React.FC<Props> = React.memo(
             <span style={{ fontSize: "10pt", color: "#666" }}>
               <Changed last_edited={task.get("last_edited")} />
             </span>
-          </Col>
-          <Col sm={1}>
-            <DoneCheckbox
-              actions={actions}
-              read_only={read_only}
-              done={!!task.get("done")}
-              task_id={task.get("task_id")}
-            />
           </Col>
         </Row>
       </Grid>

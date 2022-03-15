@@ -28,7 +28,7 @@ const STYLE: CSS = {
 export const DoneCheckbox: React.FC<Props> = React.memo(
   ({ done, read_only, task_id, actions }) => {
     return (
-      <div
+      <span
         onClick={() => {
           if (read_only || actions == null) return;
           if (done) {
@@ -40,7 +40,7 @@ export const DoneCheckbox: React.FC<Props> = React.memo(
         style={STYLE}
       >
         <Icon name={done ? "check-square-o" : "square-o"} />
-      </div>
+      </span>
     );
   }
 );
