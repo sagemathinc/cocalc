@@ -138,7 +138,7 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
       const txt = seconds2hms(cpu, false, true);
       return {
         element: <PercentBar percent={pct} format={() => txt} />,
-        display: `${pct}% at a total of ${txt} during this session`,
+        display: `${pct}% (in total ${txt} of CPU time)`,
       };
     }
     return;
