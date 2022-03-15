@@ -16,8 +16,8 @@ Hence in particular, information like cpu, memory and disk are smoothed out and 
 */
 
 import { getLogger } from "@cocalc/project/logger";
-import { how_long_ago_m } from "@cocalc/util/misc";
-import { version } from "@cocalc/util/smc-version";
+import { how_long_ago_m, round1 } from "@cocalc/util/misc";
+import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
@@ -27,6 +27,7 @@ import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   RAISE_ALERT_AFTER_MIN,
+  STATUS_UPDATES_INTERVAL_S,
 } from "./const";
 import { Alert, AlertType, ComponentName, ProjectStatus } from "./types";
 import { cgroup_stats } from "./utils";
@@ -37,6 +38,11 @@ import { cgroup_stats } from "./utils";
 //}
 
 const winston = getLogger("ProjectStatusServer");
+
+function quantize(val, order) {
+  const q = Math.round(Math.pow(10, order));
+  return Math.round(q * Math.ceil(val / q));
+}
 
 // tracks, when for the first time we saw an elevated value
 // we clear it if we're below a threshold (in the clear)
@@ -66,7 +72,8 @@ export class ProjectStatusServer extends EventEmitter {
   private mem_pct?: number;
   private mem_rss?: number;
   private mem_tot?: number;
-  private components: { [name in ComponentName]?: number | null } = {};
+  private components: { [name in ComponentName]?: number | undefined } = {};
+  private lastEmit: number = 0; // timestamp, when status was emitted last
 
   constructor(testing = false) {
     super();
@@ -81,7 +88,37 @@ export class ProjectStatusServer extends EventEmitter {
       //this.dbg(`got info timestamp=${info.timestamp}`);
       this.info = info;
       this.update();
+      this.emitInfo();
     });
+  }
+
+  // checks if there the current state (after update()) should be emitted
+  private emitInfo(): void {
+    if (this.lastEmit === 0) {
+      this.dbg("emitInfo[last=0]", this.status);
+      this.doEmit();
+      return;
+    }
+
+    // if alert changed, emit immediately
+    if (!isEqual(this.last?.alerts, this.status?.alerts)) {
+      this.dbg("emitInfo[alert]", this.status);
+      this.doEmit();
+    } else {
+      // deep comparison check via lodash and we rate limit
+      const recent =
+        this.lastEmit + 1000 * STATUS_UPDATES_INTERVAL_S > Date.now();
+      const changed = !isEqual(this.status, this.last);
+      if (!recent && changed) {
+        this.dbg("emitInfo[changed]", this.status);
+        this.doEmit();
+      }
+    }
+  }
+
+  private doEmit(): void {
+    this.emit("status", this.status);
+    this.lastEmit = Date.now();
   }
 
   public setComponentAlert(name: ComponentName) {
@@ -103,7 +140,7 @@ export class ProjectStatusServer extends EventEmitter {
 
     const do_alert = (type: AlertType, is_bad: boolean) => {
       if (is_bad) {
-        // if it isn't good, set it once to the timestamp (and let it age)
+        // if it isn't fine, set it once to the timestamp (and let it age)
         if (this.elevated[type] == null) {
           this.elevated[type] = ts;
         }
@@ -120,12 +157,13 @@ export class ProjectStatusServer extends EventEmitter {
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
       // we round/quantisize values to reduce the number of updates
+      // and also send less data with each update
       const cgStats = cgroup_stats(cg, du_tmp);
-      this.mem_pct = Math.ceil(cgStats.mem_pct);
-      this.cpu_pct = Math.ceil(cgStats.cpu_pct);
-      this.cpu_tot = Math.ceil(cgStats.cpu_tot);
-      this.mem_tot = 10 * Math.ceil(cgStats.mem_tot / 10);
-      this.mem_rss = 10 * Math.ceil(cgStats.mem_rss / 10);
+      this.mem_pct = Math.round(cgStats.mem_pct);
+      this.cpu_pct = Math.round(cgStats.cpu_pct);
+      this.cpu_tot = Math.round(cgStats.cpu_tot);
+      this.mem_tot = quantize(cgStats.mem_tot, 1);
+      this.mem_rss = quantize(cgStats.mem_rss, 1);
       do_alert("memory", cgStats.mem_pct > ALERT_HIGH_PCT);
       do_alert("cpu-cgroup", cgStats.cpu_pct > ALERT_HIGH_PCT);
     }
@@ -203,13 +241,14 @@ export class ProjectStatusServer extends EventEmitter {
     const mem_tot = 3000;
     const mem_pct = next("mem_pct", 100);
     const mem_rss = Math.round((mem_tot * mem_pct) / 100);
+    const cpu_tot = round1((lastUsage?.["cpu_tot"] ?? 0) + Math.random() / 10);
 
     return {
       disk_mb: next("disk", 3000),
       mem_tot,
       mem_pct,
       cpu_pct: next("cpu_pct", 100),
-      cpu_tot: (lastUsage?.["cpu_tot"] ?? 0) + Math.random() / 10,
+      cpu_tot,
       mem_rss,
     };
   }
@@ -220,9 +259,15 @@ export class ProjectStatusServer extends EventEmitter {
   // but still only emit new objects if it is either really necessary (new alert)
   // or after some time. This must be a low-frequency and low-volume stream of data.
   private update(): void {
-    // set this to true if you're developing (otherwise you don't get any data)
-    const fake_data = process.env.COCALC_USAGE_FAKE_DATA === "true";
+    this.last = this.status;
 
+    // alerts must come first, it updates usage status fields
+    const alerts = this.alerts();
+
+    // set this to true if you're developing (otherwise you don't get any data)
+    const fake_data = false;
+
+    // collect status fields in usage object
     const usage = fake_data
       ? this.fake_data()
       : {
@@ -234,17 +279,7 @@ export class ProjectStatusServer extends EventEmitter {
           mem_tot: this.mem_tot,
         };
 
-    this.status = {
-      alerts: this.alerts(), // alerts must come first, it updates some fields
-      usage,
-      version: version,
-    };
-
-    // deep comparison check via lodash
-    if (!isEqual(this.status, this.last)) {
-      this.emit("status", this.status);
-    }
-    this.last = this.status;
+    this.status = { alerts, usage, version: smcVersion };
   }
 
   private async get_status(): Promise<ProjectStatus | undefined> {

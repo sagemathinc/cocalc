@@ -12,6 +12,6 @@ export function cgroup_stats(cg: CGroup, du?: DiskUsageInfo) {
   const mem_tot = cg.mem_stat.hierarchical_memory_limit;
   const mem_pct = 100 * Math.min(1, mem_rss / mem_tot);
   const cpu_pct = 100 * Math.min(1, cg.cpu_usage_rate / cg.cpu_cores_limit);
-  const cpu_tot = Math.ceil((2 * cg.cpu_usage) / 2); // we round/quantisize to reduce the number of updates
+  const cpu_tot = cg.cpu_usage; // seconds
   return { mem_rss, mem_tot, mem_pct, cpu_pct, cpu_tot };
 }
