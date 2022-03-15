@@ -22,13 +22,18 @@ async function stopIdleProjects(stopProject: (string) => Promise<void>) {
   const runningProjects = (
     await callback2(db()._query, {
       query:
-        "SELECT project_id, EXTRACT(EPOCH FROM NOW() - last_edited) as idle_time, settings FROM projects WHERE state ->> 'state' = 'running'",
+        "SELECT project_id, EXTRACT(EPOCH FROM NOW() - last_edited) as idle_time, settings, run_quota FROM projects WHERE state ->> 'state' = 'running'",
     })
   ).rows;
   logger.debug("got ", runningProjects);
   for (const project of runningProjects) {
-    const { project_id, idle_time, settings } = project;
-    const mintime = settings?.mintime ?? DEFAULT_QUOTAS.mintime;
+    const { project_id, idle_time, settings, run_quota } = project;
+    // take the run_quota or the admin setting into account (if nothing, then the default)
+    // and in any case, at lesat 10 mintues
+    const mintime = Math.max(
+      10 * 60,
+      run_quota?.idle_timeout ?? settings?.mintime ?? DEFAULT_QUOTAS.mintime
+    );
     const always_running = settings?.always_running ?? false;
     if (!always_running && idle_time > mintime) {
       // stopProject is async, but we don't await it (and it doesn't raise),
