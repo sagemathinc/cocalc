@@ -27,6 +27,7 @@ import {
   RunQuotaType,
   SHOW_MAX,
   Usage,
+  Value,
 } from "./misc";
 
 const { Text } = Typography;
@@ -47,7 +48,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const maxUpgrades = useMaxUpgrades();
   const displayedFields = useDisplayedFields();
 
-  function quotaValue(key: keyof RunQuotaType): string | boolean | number {
+  function quotaValue(key: keyof RunQuotaType): Value {
     const val = runQuota[key];
     if (val == null) return "N/A";
     return val;
@@ -69,9 +70,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     if (name === "cores") return quotaValue("cpu_request");
   }
 
-  const data = React.useMemo(() => {
+  const data: QuotaData[] = React.useMemo(() => {
     const ar = !!runQuota.always_running;
-    return displayedFields.map((name: keyof Upgrades) => {
+    return displayedFields.map((name: keyof Upgrades): QuotaData => {
       const key = upgrade2quota_key(name);
       return {
         key,
@@ -81,12 +82,12 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         quotaDedicated: getQuotaDedicated(name),
         maximum: maxUpgrades?.[name] ?? "N/A",
         maxDedicated: getMaxDedicated(name),
-        usage: project_state === "running" ? currentUsage?.[key] ?? "" : "",
+        usage: project_state === "running" ? currentUsage?.[key] : undefined,
       };
     });
   }, [runQuota, currentUsage, maxUpgrades]);
 
-  function renderExtraMaximum(record) {
+  function renderExtraMaximum(record: QuotaData) {
     if (SHOW_MAX.includes(record.key)) {
       return (
         <>
@@ -100,7 +101,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderExtraExplanation(record) {
+  function renderExtraExplanation(record: QuotaData) {
     const dedicatedVM = (
       <>
         If you need more RAM or CPU, consider upgrading to a{" "}
@@ -142,20 +143,24 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderQuotaValue({ key, quota, quotaDedicated, usage }) {
-    if (QUOTAS_BOOLEAN.includes(key)) {
+  function renderQuotaValue(record: QuotaData) {
+    const { key, quota, quotaDedicated, usage } = record;
+    if (QUOTAS_BOOLEAN.includes(key as any)) {
       return `This quota is ${quota ? "enabled" : "disabled"}.`;
     } else {
-      return (
-        `Usage right now is ${usage.display} with a quota limit of ${quota}` +
-        (quotaDedicated != null
+      const curStr =
+        usage != null
+          ? `Usage right now is ${usage.display} with a quota limit of ${quota}`
+          : `The overall quota limit is ${quota}`;
+      const dediStr =
+        quotaDedicated != null
           ? `, of which ${quotaDedicated} are dedicated to this project.`
-          : ".")
-      );
+          : ".";
+      return `${curStr}${dediStr}`;
     }
   }
 
-  function renderExtra(record) {
+  function renderExtra(record: QuotaData) {
     return (
       <>
         {record.desc} {renderQuotaValue(record)} {renderExtraMaximum(record)}{" "}
@@ -172,10 +177,10 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderUsage(record) {
+  function renderUsage(record: QuotaData) {
     if (project_state != "running") return;
     // the usage of a boolean quota is always the same as its value
-    if (QUOTAS_BOOLEAN.includes(record.key)) return;
+    if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
     const usage: Usage = record.usage;
     if (usage == null) return;
     const { element } = usage;
@@ -191,7 +196,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderQuotaLimit(record) {
+  function renderQuotaLimit(record: QuotaData) {
     if (project_state != "running") {
       return (
         <Tip

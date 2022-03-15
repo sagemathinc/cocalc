@@ -20,23 +20,30 @@ export const SHOW_MAX: readonly string[] = [
   "memory_limit",
 ] as const;
 
-export interface QuotaData {
-  key: string;
-  display: string;
-  value: Value;
-  maximum: string | undefined;
-}
-
 export const MAX_UPGRADES = upgrades.max_per_project;
 export const PARAMS = PROJECT_UPGRADES.params;
 
 export type RunQuotaType = Partial<Quota>;
-export type Value = string | boolean;
+export type Value = string | boolean | number;
 export type DisplayQuota = { [key in keyof Quota]: Value };
-export type Usage = { display: string; element: JSX.Element | boolean } | null;
+export type Usage =
+  | { display: string | undefined; element: JSX.Element | boolean }
+  | undefined;
 export type CurrentUsage = { [key in keyof RunQuotaType]: Usage };
 
-export function renderValueUnit(val, unit) {
+export interface QuotaData {
+  key: string;
+  desc: string;
+  quota: Value;
+  quotaDedicated: Value | undefined;
+  maximum: string | undefined;
+  maxDedicated: string | undefined;
+  display: string | undefined;
+  usage: Usage;
+}
+
+export function renderValueUnit(val, unit): string {
   val = round2(val);
   return `${val} ${plural(val, unit)}`;
 }
+
