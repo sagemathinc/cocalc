@@ -46,7 +46,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   //const projectStatus = project.get("status");
   const currentUsage = useCurrentUsage({ project_id });
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const runQuota = useRunQuota(project_id);
+  const runQuota = useRunQuota(project_id, project_state === "running");
   const maxUpgrades = useMaxUpgrades();
   const displayedFields = useDisplayedFields();
 
@@ -87,7 +87,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         usage: project_state === "running" ? currentUsage?.[key] : undefined,
       };
     });
-  }, [runQuota, currentUsage, maxUpgrades]);
+  }, [runQuota, currentUsage, maxUpgrades, project_state === "running"]);
 
   function renderExtraMaximum(record: QuotaData) {
     if (SHOW_MAX.includes(record.key)) {
@@ -146,10 +146,18 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function booleanQuotaStr(quota) {
+    if (typeof quota === "boolean") {
+      return quota ? "enabled" : "disabled";
+    } else {
+      return "N/A";
+    }
+  }
+
   function renderQuotaValue(record: QuotaData) {
     const { key, quota, quotaDedicated, usage } = record;
     if (QUOTAS_BOOLEAN.includes(key as any)) {
-      return `This quota is ${quota ? "enabled" : "disabled"}.`;
+      return `This quota is ${booleanQuotaStr(quota)}.`;
     } else {
       const curStr =
         usage != null

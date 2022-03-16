@@ -33,28 +33,40 @@ import {
   Usage,
 } from "./misc";
 
-export function useRunQuota(project_id: string): DisplayQuota {
-  const [run_quota, set_run_quota] = useState<DisplayQuota>({});
+export function useRunQuota(
+  project_id: string,
+  projectIsRunning
+): DisplayQuota {
+  const [runQuota, setRunQuota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
   const rq = project_map?.getIn([project_id, "run_quota"]);
-  if (rq != null) {
-    const next = rq.toJS();
-    for (const [key, val] of Object.entries(next)) {
-      if (typeof val !== "number") continue;
-      if (key == "idle_timeout") {
-        next[key] = seconds2hms(val, false, false);
-      } else {
-        const up_key = quota2upgrade_key(key);
-        // no display factor!
-        const unit = PARAMS[up_key].display_unit;
-        next[key] = renderValueUnit(val, unit);
-      }
+  // NOTE: even if project is NOT running, we do know the run quota
+  // the problem is this information is not accurate, because only upon
+  // startup the validity of a license is determined.
+  const next = useMemo(() => {
+    if (rq == null || !projectIsRunning) {
+      return {};
+    } else {
+      return rq
+        .map((val, key) => {
+          if (typeof val !== "number") {
+            return val;
+          } else if (key == "idle_timeout") {
+            return seconds2hms(val, false, false);
+          } else {
+            const up_key = quota2upgrade_key(key);
+            // no display factor!
+            const unit = PARAMS[up_key].display_unit;
+            return renderValueUnit(val, unit);
+          }
+        })
+        .toJS();
     }
-    if (!isEqual(next, run_quota)) {
-      set_run_quota(next);
-    }
+  }, [rq, projectIsRunning]);
+  if (!isEqual(next, runQuota)) {
+    setRunQuota(next);
   }
-  return run_quota;
+  return runQuota;
 }
 
 export function useMaxUpgrades(): DisplayQuota {
