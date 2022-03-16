@@ -3,11 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  CheckCircleTwoTone,
-  CloseCircleTwoTone,
-  PoweroffOutlined,
-} from "@ant-design/icons";
+import { PoweroffOutlined } from "@ant-design/icons";
 import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -128,7 +124,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     const idleTimeoutInfo = (
       <>
         To increase the idle timeout, either purchase a new license with a
-        larger timeout period or even "always running".
+        larger timeout period or the "always running" quota.
       </>
     );
 
