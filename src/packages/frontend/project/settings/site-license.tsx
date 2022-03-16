@@ -23,25 +23,31 @@ interface Props {
   site_license?: Map<string, Map<string, number>>;
 }
 
+export async function applyLicense({
+  project_id,
+  license_id,
+}: {
+  project_id: string;
+  license_id: string;
+}): Promise<void> {
+  const actions = redux.getActions("projects");
+  // newly added licenses
+  try {
+    await actions.add_site_license_to_project(project_id, license_id);
+    await actions.restart_project(project_id);
+  } catch (err) {
+    alert_message({
+      type: "error",
+      message: `Unable to add license key -- ${err}`,
+    });
+    return;
+  }
+}
+
 export const SiteLicense: React.FC<Props> = (props: Props) => {
   const { project_id, site_license } = props;
 
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
-
-  async function set_license(license_id: string): Promise<void> {
-    const actions = redux.getActions("projects");
-    // newly added licenses
-    try {
-      await actions.add_site_license_to_project(project_id, license_id);
-      await actions.restart_project(project_id);
-    } catch (err) {
-      alert_message({
-        type: "error",
-        message: `Unable to add license key -- ${err}`,
-      });
-      return;
-    }
-  }
 
   function render_site_license_text(): Rendered {
     if (!show_site_license) return;
@@ -60,7 +66,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           exclude={site_license?.keySeq().toJS()}
           onSave={(license_id) => {
             set_show_site_license(false);
-            set_license(license_id);
+            applyLicense({ project_id, license_id });
           }}
           onCancel={() => set_show_site_license(false)}
         />
