@@ -31,7 +31,7 @@ export default function ChatDynamic({ element, focused }: Props) {
 }
 
 function Conversation({ element, focused }: Props) {
-  const { actions } = useFrameContext();
+  const { actions, id: frameId } = useFrameContext();
   const [input, setInput] = useState<string>("");
 
   return (
@@ -44,6 +44,12 @@ function Conversation({ element, focused }: Props) {
       {focused && (
         <div style={{ height: "125px", display: "flex" }} className="nodrag">
           <ChatInput
+            onFocus={() => {
+              actions.setEditFocus(frameId, true);
+            }}
+            onBlur={() => {
+              actions.setEditFocus(frameId, false);
+            }}
             cacheId={element.id}
             hideHelp
             height={"123px"}

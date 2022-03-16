@@ -20,6 +20,8 @@ interface Props {
   hideHelp?: boolean;
   style?: CSSProperties;
   cacheId?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -28,6 +30,8 @@ export const ChatInput: React.FC<Props> = (props) => {
     props.font_size ?? useRedux(["font_size"], project_id, path);
   return (
     <MarkdownInput
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
       cacheId={props.cacheId}
       value={props.input}
       enableUpload={true}

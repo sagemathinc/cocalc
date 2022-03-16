@@ -115,30 +115,35 @@ function EditText({
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
   const mousePosRef = useRef<number[] | true>([]);
+  const onMouseDown = (e) => {
+    if (editFocus) {
+      mousePosRef.current = true;
+      return;
+    }
+    mousePosRef.current = [e.clientX, e.clientY];
+  };
+  const onMouseUp = (e) => {
+    if (mousePosRef.current === true) return;
+    // NOTE: in raw markdown source mode we don't get the mouseDown click, so always focus.
+    if (
+      mousePosRef.current.length == 0 ||
+      (e.clientX == mousePosRef.current?.[0] &&
+        e.clientY == mousePosRef.current?.[1])
+    ) {
+      setEditFocus(true);
+    } else {
+      // defocus on move
+      setEditFocus(false);
+    }
+    mousePosRef.current = [];
+  };
+
   return (
     <div
-      onMouseDown={(e) => {
-        if (editFocus) {
-          mousePosRef.current = true;
-          return;
-        }
-        mousePosRef.current = [e.clientX, e.clientY];
-      }}
-      onMouseUp={(e) => {
-        if (mousePosRef.current === true) return;
-        // NOTE: in raw markdown source mode we don't get the mouseDown click, so always focus.
-        if (
-          mousePosRef.current.length == 0 ||
-          (e.clientX == mousePosRef.current?.[0] &&
-            e.clientY == mousePosRef.current?.[1])
-        ) {
-          setEditFocus(true);
-        } else {
-          // defocus on move
-          setEditFocus(false);
-        }
-        mousePosRef.current = [];
-      }}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onTouchStart={(e) => onMouseDown(e.touches[0])}
+      onTouchEnd={onMouseUp}
       style={{
         ...getStyle(element),
         padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,

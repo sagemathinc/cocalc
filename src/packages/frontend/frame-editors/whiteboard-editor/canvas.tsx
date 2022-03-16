@@ -300,6 +300,7 @@ export default function Canvas({
 
   useWheel(
     (state) => {
+      if (frame.desc.get("editFocus")) return;
       if (state.event.ctrlKey) return; // handled elsewhere
       offset.translate({ x: state.delta[0], y: state.delta[1] });
     },

@@ -34,8 +34,15 @@ mathPlugin.rules["cocalc"] = { ...mathPlugin.rules["dollars"] };
 mathPlugin.rules["cocalc"].block.push({
   name: "math_block",
   rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy, // regexp to match \begin{...}...\end{...} environment.
-  tmpl: "<section><eqn>$1</eqn></section>",
   tag: "\\",
+});
+mathPlugin.rules["cocalc"].inline.push({
+  name: "math_inline_double",
+  rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy,
+  tag: "\\",
+  displayMode: true,
+  pre: mathPlugin.$_pre,
+  post: mathPlugin.$_post,
 });
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");

@@ -39,11 +39,12 @@ register({
   slateType: "math_inline",
   Element,
   fromSlate: ({ node }) => {
-    let s = "$" + node.value + "$";
-    if (node.display) {
-      s = "$" + s + "$";
-    }
-    return s;
+    const delim = node.value.trim().startsWith("\\begin{")
+      ? ""
+      : node.display
+      ? "$$"
+      : "$";
+    return `${delim}${node.value}${delim}`;
   },
 });
 
@@ -51,6 +52,15 @@ register({
   slateType: "math_block",
   Element,
   fromSlate: ({ node }) => {
-    return "$$\n" + node.value + "\n$$\n\n";
+    const value = node.value.trim();
+    let start, end;
+    if (value.startsWith("\\begin{")) {
+      start = "";
+      end = "\n\n";
+    } else {
+      start = "\n$$\n";
+      end = "\n$$\n\n";
+    }
+    return `${start}${value}${end}`;
   },
 });
