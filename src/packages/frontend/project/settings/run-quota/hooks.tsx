@@ -134,11 +134,12 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
   function cpuTime(usage) {
     const cpu = usage.cpu_tot;
     const pct = usage.cpu_pct;
-    if (typeof cpu === "number") {
-      const txt = seconds2hms(cpu, false, true);
+    if (typeof cpu === "number" && typeof pct === "number") {
+      const hms = seconds2hms(cpu, false, true);
+      const txt = `${pct}% (${hms})`;
       return {
         element: <PercentBar percent={pct} format={() => txt} />,
-        display: `${pct}% (in total ${txt} of CPU time)`,
+        display: `${pct}% (in total ${hms} of CPU time)`,
       };
     }
     return;

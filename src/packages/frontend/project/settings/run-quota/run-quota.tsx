@@ -191,11 +191,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       return renderBoolean(element);
     } else {
       // wrapped in "Text", because that works better with the table layout
-      return (
-        <Text>
-          <NoWrap>{element}</NoWrap>
-        </Text>
-      );
+      return <NoWrap>{element}</NoWrap>;
     }
   }
 
@@ -250,36 +246,36 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         <Table.Column<QuotaData>
           key="key"
           title={
-            <QuestionMarkText tip="Name of the quota. Click on [+] to expand details.">
+            <QuestionMarkText tip="Name of the quota. Click on a row to expand details.">
               Name
             </QuestionMarkText>
           }
           render={(text) => <NoWrap>{text}</NoWrap>}
           dataIndex="display"
-          width={6}
+          width={"30%"}
         />
         <Table.Column<QuotaData>
           key="key"
           title={
-            <QuestionMarkText tip="Current setting or usage of this project.">
+            <QuestionMarkText tip="Current setting or active usage.">
               Usage
             </QuestionMarkText>
           }
           dataIndex="key"
           render={(_, record) => renderUsage(record)}
-          width={1}
-          align={"right"}
+          width={"45%"}
+          align={"left"}
         />
         <Table.Column<QuotaData>
           key="key"
           title={
-            <QuestionMarkText tip="Usage limit imposed by the current quota. Adjust quotas or licenses to change this limit.">
+            <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">
               Value
             </QuestionMarkText>
           }
           dataIndex="limit"
           render={(_, record) => renderQuotaLimit(record)}
-          width={1}
+          width={"25%"}
           align={"right"}
         />
       </Table>
