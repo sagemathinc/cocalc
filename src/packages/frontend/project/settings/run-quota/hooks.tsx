@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map } from "immutable";
 import {
   useEffect,
   useMemo,
@@ -23,8 +24,9 @@ import {
   Upgrades,
 } from "@cocalc/util/upgrades/quota";
 import { fromPairs, isEqual } from "lodash";
-import { IdleTimeoutPct, PercentBar } from "./components";
+import { IdleTimeoutPct, PercentBar, renderBoolean } from "./components";
 import {
+  booleanValueStr,
   CurrentUsage,
   DisplayQuota,
   MAX_UPGRADES,
@@ -110,17 +112,25 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
   const project_status = useTypedRedux({ project_id }, "status");
 
   const project_map = useTypedRedux("projects", "project_map");
-  const last_edited = project_map?.getIn([project_id, "last_edited"]);
-  const runQuota = project_map?.getIn([project_id, "run_quota"]);
+  const last_edited: Date | undefined = project_map?.getIn([
+    project_id,
+    "last_edited",
+  ]);
+  const runQuota: Map<string, number> | undefined = project_map?.getIn([
+    project_id,
+    "run_quota",
+  ]);
 
   const [currentUsage, setCurrentUsage] = useState<CurrentUsage>({});
 
   function disk(usage) {
+    if (runQuota == null) return;
     const disk_quota = runQuota.get("disk_quota"); // mb
     return pct(usage.disk_mb, disk_quota, "MB");
   }
 
   function memory(usage) {
+    if (runQuota == null) return;
     // this also displays the "dedicated memory" amount, past of entire limite
     const mem_req = runQuota.get("memory_request"); // mb
     const mem_limit = runQuota.get("memory_limit"); // mb
@@ -158,6 +168,7 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
   }
 
   function whenWillProjectStopp() {
+    if (last_edited == null) return;
     const always_running = runQuota?.get("always_running") ?? false;
     if (always_running) return; // not applicable
     const idle_timeout = runQuota?.get("idle_timeout"); // seconds
@@ -179,10 +190,12 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
     return;
   }
 
-  function getNetwork(key) {
+  function getBoolean(key) {
+    if (runQuota == null) return;
+    const val = runQuota.get(key);
     return {
-      display: runQuota.get(key) ? "true" : "false",
-      element: runQuota.get(key),
+      display: booleanValueStr(val),
+      element: renderBoolean(val),
     };
   }
 
@@ -210,7 +223,7 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
             case "member_host":
             case "always_running":
             case "network":
-              return [key, getNetwork(key)];
+              return [key, getBoolean(key)];
             default:
               return [key, { display: name, element: <>{name}</> }];
           }

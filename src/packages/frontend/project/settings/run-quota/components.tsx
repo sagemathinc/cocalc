@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CheckCircleTwoTone, CloseCircleTwoTone } from "@ant-design/icons";
 import { React, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -61,3 +62,11 @@ export const IdleTimeoutPct: React.FC<{
     return <PercentBar percent={pct} />;
   }
 };
+
+export function renderBoolean(val) {
+  if (val) {
+    return <CheckCircleTwoTone twoToneColor={COLORS.ANTD_GREEN} />;
+  } else {
+    return <CloseCircleTwoTone twoToneColor={COLORS.ANTD_RED} />;
+  }
+}

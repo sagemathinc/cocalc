@@ -47,3 +47,11 @@ export function renderValueUnit(val, unit): string {
   return `${val} ${plural(val, unit)}`;
 }
 
+export function booleanValueStr(quota) {
+  if (typeof quota === "boolean") {
+    return quota ? "enabled" : "disabled";
+  } else {
+    return "N/A";
+  }
+}
+

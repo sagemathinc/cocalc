@@ -15,6 +15,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { upgrade2quota_key, Upgrades } from "@cocalc/util/upgrades/quota";
 import { Table, Typography } from "antd";
 import { Project } from "../types";
+import { renderBoolean } from "./components";
 import {
   useCurrentUsage,
   useDisplayedFields,
@@ -22,6 +23,7 @@ import {
   useRunQuota,
 } from "./hooks";
 import {
+  booleanValueStr,
   QuotaData,
   QUOTAS_BOOLEAN,
   RunQuotaType,
@@ -146,18 +148,10 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function booleanQuotaStr(quota) {
-    if (typeof quota === "boolean") {
-      return quota ? "enabled" : "disabled";
-    } else {
-      return "N/A";
-    }
-  }
-
   function renderQuotaValue(record: QuotaData) {
     const { key, quota, quotaDedicated, usage } = record;
     if (QUOTAS_BOOLEAN.includes(key as any)) {
-      return `This quota is ${booleanQuotaStr(quota)}.`;
+      return `This quota is ${booleanValueStr(quota)}.`;
     } else {
       const curStr =
         usage != null
@@ -180,14 +174,6 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function renderBoolean(val) {
-    if (val) {
-      return <CheckCircleTwoTone twoToneColor={COLORS.ANTD_GREEN} />;
-    } else {
-      return <CloseCircleTwoTone twoToneColor={COLORS.ANTD_RED} />;
-    }
-  }
-
   function renderUsage(record: QuotaData) {
     if (project_state != "running") return;
     // the usage of a boolean quota is always the same as its value
@@ -195,12 +181,8 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     const usage: Usage = record.usage;
     if (usage == null) return;
     const { element } = usage;
-    if (typeof element === "boolean") {
-      return renderBoolean(element);
-    } else {
-      // wrapped in "Text", because that works better with the table layout
-      return <NoWrap>{element}</NoWrap>;
-    }
+    // wrapped in "Text", because that works better with the table layout
+    return <NoWrap>{element}</NoWrap>;
   }
 
   function renderQuotaLimit(record: QuotaData) {
