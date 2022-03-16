@@ -3,27 +3,54 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import humanizeList from "humanize-list";
-import { server_time } from "../frame-editors/generic/client";
 import {
   CSS,
   React,
   redux,
+  useState,
   useMemo,
-  useTypedRedux,
   useStore,
-} from "../app-framework";
-const { Alert } = require("react-bootstrap");
-import { Icon, A } from "../components";
-export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Icon } from "@cocalc/frontend/components";
+import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
+import {
+  SiteLicenseInput,
+  useManagedLicenses,
+} from "@cocalc/frontend/site-licenses/input";
+import { Alert } from "antd";
+import humanizeList from "humanize-list";
 import { allow_project_to_run } from "./client-side-throttle";
+import { applyLicense } from "./settings/site-license";
+
+export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
+
+const ELEVATED_DAYS = 10;
 
 // explains implications for having no internet and/or no member hosting
-const A_STYLE = {
+const A_STYLE: CSS = {
   cursor: "pointer",
-  color: "white",
   fontWeight: "bold",
-} as CSS;
+} as const;
+
+const A_STYLE_ELEVATED: CSS = {
+  ...A_STYLE,
+  color: "white",
+};
+
+const ALERT_STYLE: CSS = {
+  padding: "5px 10px",
+  marginBottom: 0,
+  fontSize: "10pt",
+  borderRadius: 0,
+} as const;
+
+const ALERT_STYLE_ELEVATED: CSS = {
+  ...ALERT_STYLE,
+  color: "white",
+  background: "red",
+  fontSize: "12pt",
+} as const;
 
 interface Props {
   project_id: string;
@@ -50,107 +77,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     "free_warning_closed"
   );
 
-  function message(host: boolean, internet: boolean): JSX.Element | undefined {
-    const allow_run = allow_project_to_run(project_id);
-
-    const proj_created =
-      project_map?.getIn([project_id, "created"]) ?? new Date(0);
-    const age_ms: number = server_time().getTime() - proj_created.getTime();
-    const age_days = age_ms / (24 * 60 * 60 * 1000);
-
-    const trial_project = (
-      <strong>
-        <A href={DOC_TRIAL} style={A_STYLE}>
-          Free Trial (Day {Math.floor(age_days)})
-        </A>
-      </strong>
-    );
-    const no_internet =
-      "you can't install packages, clone from GitHub, or download datasets";
-    const no_host = ["expect VERY bad performance (e.g., 10 times slower!)"];
-    const inetquota =
-      "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
-    const memberquota =
-      "https://doc.cocalc.com/billing.html#what-is-member-hosting";
-    const add_license =
-      "https://doc.cocalc.com/project-settings.html#project-add-license";
-    const buy_and_upgrade = (
-      <>
-        <a
-          style={A_STYLE}
-          onClick={() => {
-            redux.getActions("page").set_active_tab("account");
-            const account_actions = redux.getActions("account");
-            account_actions.set_show_purchase_form(true);
-            account_actions.set_active_tab("licenses");
-          }}
-        >
-          <u>buy a license</u> (starting at about $3/month)
-        </a>{" "}
-        and then{" "}
-        <A style={A_STYLE} href={add_license}>
-          <u>apply it to this project</u>
-        </A>
-      </>
-    );
-    if (!allow_run) {
-      return (
-        <span>
-          {trial_project} - There are too many free trial projects running right
-          now. Try again later or {buy_and_upgrade}.
-        </span>
-      );
-    }
-    if (host && internet) {
-      return (
-        <span>
-          {trial_project} – {buy_and_upgrade}.
-          <br />
-          Otherwise, {humanizeList([...no_host, no_internet])}
-          {"."}
-        </span>
-      );
-    } else if (host) {
-      return (
-        <span>
-          {trial_project} – upgrade to{" "}
-          <A href={memberquota} style={A_STYLE}>
-            <u>Member Hosting</u>
-          </A>{" "}
-          or {humanizeList(no_host)}
-          {"."}
-        </span>
-      );
-    } else if (internet) {
-      return (
-        <span>
-          <strong>No internet access</strong> – upgrade{" "}
-          <A href={inetquota} style={A_STYLE}>
-            <u>Internet Access</u>
-          </A>{" "}
-          or {no_internet}
-          {"."}
-        </span>
-      );
-    }
-  }
-
-  function render_learn_more(color): JSX.Element {
-    const style = {
-      ...A_STYLE,
-      ...{ fontWeight: "bold" as "bold", color: color },
-    };
-    return (
-      <>
-        {" – "}
-        <A href={DOC_TRIAL} style={style}>
-          <u>more info</u>
-        </A>
-        {"..."}
-      </>
-    );
-  }
-
+  // paying usres are allowed to have a setting to hide banner unconditionally
   if (other_settings?.get("no_free_warnings")) {
     return null;
   }
@@ -178,25 +105,217 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     return null;
   }
 
-  const style = {
-    padding: "5px 10px",
-    marginBottom: 0,
-    fontSize: "12pt",
-    borderRadius: 0,
-    color: "white",
-    background: "red",
-  } as CSS;
+  // timestamp, when this project was created. won't change over time.
+  const projCreatedTS =
+    project_map?.getIn([project_id, "created"]) ?? new Date(0);
 
-  const mesg = message(host, internet);
+  // list of all licenses applied to this project
+  const projectSiteLicenses =
+    project_map?.get(project_id)?.get("site_license")?.keySeq().toJS() ?? [];
 
   return (
-    <Alert bsStyle="warning" style={style}>
-      <Icon
-        name="exclamation-triangle"
-        style={{ float: "right", marginTop: "3px" }}
-      />
-      <Icon name="exclamation-triangle" /> {mesg}
-      {render_learn_more(style.color)}
-    </Alert>
+    <TrialBannerComponent
+      project_id={project_id}
+      projectSiteLicenses={projectSiteLicenses}
+      proj_created={projCreatedTS.getTime()}
+      host={host}
+      internet={internet}
+    />
   );
 });
+
+interface BannerProps {
+  project_id: string;
+  projectSiteLicenses: string[];
+  host: boolean;
+  internet: boolean;
+  proj_created: number; // timestamp when project started
+}
+
+// string and URLs
+const NO_INTERNET =
+  "you can't install packages, clone from GitHub, or download datasets";
+const NO_HOST = ["expect VERY bad performance (up to several times slower!)"];
+const INET_QUOTA =
+  "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
+const MEMBER_QUOTA =
+  "https://doc.cocalc.com/billing.html#what-is-member-hosting";
+// const ADD_LICENSE = "https://doc.cocalc.com/project-settings.html#project-add-license";
+
+const TrialBannerComponent: React.FC<BannerProps> = React.memo(
+  (props: BannerProps) => {
+    const { host, internet, project_id, proj_created, projectSiteLicenses } =
+      props;
+
+    const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
+    const managedLicenses = useManagedLicenses();
+
+    const age_ms: number = server_time().getTime() - proj_created;
+    const ageDays = age_ms / (24 * 60 * 60 * 1000);
+
+    // when to show the more intimidating red banner:
+    // after $ELEVATED_DAYS days
+    // but not if there are already any licenses applied to the project
+    // and also if user manages at least one license
+    const elevated =
+      ageDays >= ELEVATED_DAYS &&
+      projectSiteLicenses.length === 0 &&
+      managedLicenses?.size === 0;
+    const style = elevated ? ALERT_STYLE_ELEVATED : ALERT_STYLE;
+    const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
+
+    const trial_project = (
+      <strong>
+        <A href={DOC_TRIAL} style={a_style}>
+          Free Trial (Day {Math.floor(ageDays)})
+        </A>
+      </strong>
+    );
+
+    function renderMessage(): JSX.Element | undefined {
+      const buy_and_upgrade = (
+        <>
+          <a
+            style={a_style}
+            onClick={() => {
+              redux.getActions("page").set_active_tab("account");
+              const account_actions = redux.getActions("account");
+              account_actions.set_show_purchase_form(true);
+              account_actions.set_active_tab("licenses");
+            }}
+          >
+            <u>buy a license</u> (starting at about $3/month)
+          </a>{" "}
+          and then{" "}
+          <a style={a_style} onClick={() => setShowAddLicense(true)}>
+            <u>apply it to this project</u>
+          </a>
+        </>
+      );
+
+      const allow_run = allow_project_to_run(project_id);
+      if (!allow_run) {
+        return (
+          <span>
+            {trial_project} - There are too many free trial projects running
+            right now. Try again later or {buy_and_upgrade}.
+          </span>
+        );
+      }
+
+      if (host && internet) {
+        return (
+          <span>
+            {trial_project} – {buy_and_upgrade}.
+            <br />
+            Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
+            {"."}
+          </span>
+        );
+      } else if (host) {
+        return (
+          <span>
+            {trial_project} – upgrade to{" "}
+            <A href={MEMBER_QUOTA} style={a_style}>
+              <u>Member Hosting</u>
+            </A>{" "}
+            or {humanizeList(NO_HOST)}
+            {"."}
+          </span>
+        );
+      } else if (internet) {
+        return (
+          <span>
+            <strong>No internet access</strong> – upgrade{" "}
+            <A href={INET_QUOTA} style={a_style}>
+              <u>Internet Access</u>
+            </A>{" "}
+            or {NO_INTERNET}
+            {"."}
+          </span>
+        );
+      }
+    }
+
+    function renderLearnMore(color): JSX.Element {
+      const style = {
+        ...a_style,
+        ...{ fontWeight: "bold" as "bold", color: color },
+      };
+      return (
+        <>
+          {" – "}
+          <A href={DOC_TRIAL} style={style}>
+            <u>more info</u>
+          </A>
+          {"..."}
+        </>
+      );
+    }
+
+    function renderApplySiteLicense() {
+      if (!showAddLicense) return;
+
+      // NOTE: we show this dialog even if user does not manage any licenses,
+      // because the user could have one via another channel and just wants to add it directly via copy/paste.
+      return (
+        <>
+          <br />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              flex: "1 0 auto",
+            }}
+          >
+            <div
+              style={{
+                margin: "10px 10px 10px 0",
+                verticalAlign: "bottom",
+                display: "flex",
+                fontWeight: "bold",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Select a license:
+            </div>
+            <SiteLicenseInput
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 0 auto",
+              }}
+              exclude={projectSiteLicenses}
+              onSave={(license_id) => {
+                setShowAddLicense(false);
+                applyLicense({ project_id, license_id });
+              }}
+              onCancel={() => setShowAddLicense(false)}
+            />
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <Alert
+        type="warning"
+        style={style}
+        icon={
+          <Icon
+            name="exclamation-triangle"
+            style={{ float: "right", marginTop: "3px" }}
+          />
+        }
+        description={
+          <>
+            <Icon name="exclamation-triangle" />{" "}
+            <span style={{ fontSize: style.fontSize }}>{renderMessage()}</span>{" "}
+            {renderLearnMore(style.color)}
+            {renderApplySiteLicense()}
+          </>
+        }
+      />
+    );
+  }
+);
