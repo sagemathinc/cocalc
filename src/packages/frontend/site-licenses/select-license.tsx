@@ -6,13 +6,14 @@ Component takes as input data that describes a licens.
 IMPORTANT: this component must work in *both* from nextjs and static.
 */
 
-import { ReactNode, useRef, useMemo, useState } from "react";
-import { Alert, Button, Checkbox, Select, Space } from "antd";
-const { Option } = Select;
-import { isValidUUID, days_ago as daysAgo, len } from "@cocalc/util/misc";
-import { describe_quota as describeQuota } from "@cocalc/util/db-schema/site-licenses";
-import { keys } from "lodash";
+import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { describe_quota as describeQuota } from "@cocalc/util/db-schema/site-licenses";
+import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
+import { Alert, Button, Checkbox, Select, Space } from "antd";
+import { keys } from "lodash";
+import { ReactNode, useMemo, useRef, useState } from "react";
+const { Option } = Select;
 
 export interface License {
   expires?: Date;
@@ -28,6 +29,7 @@ interface Props {
   managedLicenses: { [id: string]: License };
   defaultLicenseId?: string;
   confirmLabel?: ReactNode;
+  style?: CSS;
 }
 
 export default function SelectLicense({
@@ -38,6 +40,7 @@ export default function SelectLicense({
   exclude,
   managedLicenses,
   confirmLabel,
+  style,
 }: Props) {
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -92,7 +95,7 @@ export default function SelectLicense({
   const valid = isValidUUID(licenseId);
 
   return (
-    <div>
+    <div style={style}>
       <div style={{ width: "100%", display: "flex" }}>
         <Select
           style={{ margin: "5px 15px 10px 0", flex: 1 }}
