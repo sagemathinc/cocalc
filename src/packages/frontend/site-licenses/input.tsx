@@ -5,21 +5,37 @@
 
 // Inputing a site license, e.g., for a project, course, etc.
 
-import { redux, useTypedRedux, useEffect } from "../app-framework";
-import { Loading } from "../components";
+import {
+  React,
+  redux,
+  useTypedRedux,
+  useEffect,
+  CSS,
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 import SelectLicense, { License } from "./select-license";
+
+export function useManagedLicenses() {
+  const managedLicenses = useTypedRedux("billing", "managed_licenses");
+
+  useEffect(() => {
+    redux.getActions("billing").update_managed_licenses();
+  }, []);
+
+  return managedLicenses;
+}
 
 interface Props {
   onSave: (licenseId: string) => void;
   onCancel: () => void;
   exclude?: string[];
+  style?: CSS;
 }
 
-export function SiteLicenseInput({ onSave, onCancel, exclude }: Props) {
-  const managedLicenses = useTypedRedux("billing", "managed_licenses");
-  useEffect(() => {
-    redux.getActions("billing").update_managed_licenses();
-  }, []);
+export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
+  const { onSave, onCancel, exclude, style } = props;
+
+  const managedLicenses = useManagedLicenses();
 
   if (managedLicenses == null) return <Loading />;
 
@@ -30,6 +46,7 @@ export function SiteLicenseInput({ onSave, onCancel, exclude }: Props) {
       exclude={exclude}
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
       confirmLabel={"Apply License"}
+      style={style}
     />
   );
-}
+};

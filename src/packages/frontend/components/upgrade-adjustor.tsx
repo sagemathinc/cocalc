@@ -430,13 +430,8 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     // user has no upgrades on their account
     return <span></span>;
   } else {
-    const {
-      limits,
-      remaining,
-      current,
-      totals,
-      proj_remainder,
-    } = get_quota_info();
+    const { limits, remaining, current, totals, proj_remainder } =
+      get_quota_info();
     const buttons = (
       <ButtonToolbar style={{ marginTop: "10px" }}>
         <Button
@@ -454,7 +449,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     );
 
     return (
-      <Alert bsStyle="warning" style={props.style}>
+      <Alert bsStyle="warning" style={{ ...{ width: "100%" }, ...props.style }}>
         {!props.omit_header && (
           <div>
             <h3>

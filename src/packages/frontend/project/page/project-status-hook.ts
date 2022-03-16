@@ -2,11 +2,11 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { React } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
+import { React } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ProjectStatus as WSProjectStatus } from "../websocket/project-status";
 import { ProjectStatus } from "@cocalc/project/project-status/types";
-import { ProjectActions } from "../../project_actions";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { useProjectState } from "../page/project-state-hook";
 
 // this records data from the synctable "project_status" in redux.

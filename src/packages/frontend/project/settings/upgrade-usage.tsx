@@ -3,35 +3,42 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { ProjectsActions } from "@cocalc/frontend/todo-types";
-import { QuotaConsole } from "./quota-console";
+import {
+  CSS,
+  React,
+  redux,
+  Rendered,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   Loading,
-  UpgradeAdjustor,
   SettingBox,
+  UpgradeAdjustor,
 } from "@cocalc/frontend/components";
-import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { URLBox } from "./url-box";
-import { Project } from "./types";
-import { HelpEmailLink } from "../../customize";
-import { SiteLicense } from "./site-license";
+import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { ShowSupportLink } from "@cocalc/frontend/support";
+import { ProjectsActions } from "@cocalc/frontend/todo-types";
+import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
+import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { is_zero_map } from "@cocalc/util/misc";
 import {
   DedicatedDisk,
   DedicatedVM,
   dedicated_disk_display,
 } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import { plural } from "@cocalc/util/misc";
-import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
+import { Button, Card, Typography } from "antd";
+import { QuotaConsole } from "./quota-console";
+import { RunQuota } from "./run-quota";
+import { SiteLicense } from "./site-license";
+import { Project } from "./types";
+import { URLBox } from "./url-box";
 
-const { ShowSupportLink } = require("../../support");
-const { Row, Col, Button } = require("react-bootstrap");
-const { PROJECT_UPGRADES } = require("@cocalc/util/schema");
-
+const UPGRADE_BUTTON_STYLE: CSS = {
+  paddingBottom: "15px",
+};
 interface Props {
   project_id: string;
   project: Project;
@@ -81,35 +88,87 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     set_show_adjustor(false);
   }
 
+  function list_user_contributions() {
+    const info: string[] = [];
+    const applied = upgrades_you_applied_to_this_project;
+    const noUpgrades = "You have not contributed any upgrades to this project.";
+
+    if (applied == null) {
+      return noUpgrades;
+    }
+
+    const getAmount = ({ val, param, factor }) => {
+      if (typeof val === "boolean") {
+        return val ? "1" : "0";
+      } else {
+        const amount = round2((val ?? 0) * factor);
+        const unit = param.display_unit
+          ? plural(amount, param.display_unit)
+          : "";
+        return `${amount} ${unit}`;
+      }
+    };
+
+    for (const name in PROJECT_UPGRADES.params) {
+      const param = PROJECT_UPGRADES.params[name];
+      const factor = param.display_factor;
+      const val = applied[name];
+      // we only show those values, where the user actually contributed something
+      if (val == null || val === false || val === 0) continue;
+      const display = param.display;
+      const amount = getAmount({ val, param, factor });
+      info.push(`${display}: ${amount}`);
+    }
+
+    if (info.length === 0) {
+      return noUpgrades;
+    }
+
+    return to_human_list(info);
+  }
+
+  function render_contributions() {
+    // never show if not commercial
+    // not being displayed since button not clicked
+    const showAdjustor = is_commercial && show_adjustor;
+    const style = showAdjustor ? { padding: 0 } : {};
+    const adjust = (
+      <Button disabled={show_adjustor} onClick={() => set_show_adjustor(true)}>
+        <Icon name="arrow-circle-up" /> Adjust...
+      </Button>
+    );
+    return (
+      <Card
+        title="Your upgrade contributions"
+        extra={adjust}
+        type="inner"
+        bodyStyle={style}
+      >
+        {showAdjustor ? render_upgrade_adjustor() : list_user_contributions()}
+      </Card>
+    );
+  }
+
   function render_upgrades_button(): Rendered {
     if (!is_commercial) return; // never show if not commercial
+    // dedicated VMs have fixed quotas, hence there is nothing to adjust
     if (dedicated_resources?.vm !== false) return;
+    const noUpgrades = is_zero_map(upgrades_you_can_use);
     return (
-      <Row style={{ borderBottom: "1px solid grey", paddingBottom: "15px" }}>
-        <Col sm={12}>
-          {is_zero_map(upgrades_you_can_use) ? (
-            <div style={{ float: "right" }}>
-              Increase these quotas using a license below.
-            </div>
-          ) : (
-            <Button
-              bsStyle="primary"
-              disabled={show_adjustor}
-              onClick={() => set_show_adjustor(true)}
-              style={{ float: "right", marginBottom: "5px" }}
-            >
-              <Icon name="arrow-circle-up" /> Adjust your upgrade
-              contributions...
-            </Button>
-          )}
-        </Col>
-      </Row>
+      <div style={UPGRADE_BUTTON_STYLE}>
+        {noUpgrades ? (
+          <Typography.Text type="secondary">
+            <Typography.Text strong>Note:</Typography.Text> You can increase
+            these quotas by adding a license below.
+          </Typography.Text>
+        ) : (
+          <>{render_contributions()}</>
+        )}
+      </div>
     );
   }
 
   function render_upgrade_adjustor(): Rendered {
-    if (!is_commercial) return; // never show if not commercial
-    if (!show_adjustor) return; // not being displayed since button not clicked
     if (!all_projects_have_been_loaded) {
       // Have to wait for this to get accurate value right now.
       // Plan to fix: https://github.com/sagemathinc/cocalc/issues/4123
@@ -135,12 +194,13 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_quota_console(): Rendered {
-    // Note -- we always render this, even if is_commercial is false,
-    // since we want admins to be able to change the quotas.
-    // except if this runs on a dedicated VM – where the back-end manages the quotas
+    // Since 2022-03, we only render this for admins – the whole info is in the "run quota" box,
+    // below are upgrade contributions (deprecated), and then the license quota upgrades.
+    // Not showsn if this runs on a dedicated VM – where the back-end manages the fixed quotas.
     if (dedicated_resources?.vm !== false) {
       return render_dedicated_vm();
     }
+    if (!account_groups.includes("admin")) return;
     return (
       <QuotaConsole
         project_id={project_id}
@@ -155,6 +215,17 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
         kucalc={kucalc}
         is_commercial={is_commercial}
         site_license_upgrades={site_license_upgrades}
+        expand_admin_only={true}
+      />
+    );
+  }
+
+  function render_run_quota(): Rendered {
+    return (
+      <RunQuota
+        project_id={project_id}
+        project_state={project.getIn(["state", "state"])}
+        project={project}
       />
     );
   }
@@ -238,24 +309,27 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     // site licenses are also used in on-prem setups to tweak project quotas
     if (!in_kucalc) return;
     return (
-      <>
-        <hr />
-        <SiteLicense
-          project_id={project_id}
-          site_license={project.get("site_license") as any}
-        />
-      </>
+      <SiteLicense
+        project_id={project_id}
+        site_license={project.get("site_license") as any}
+      />
     );
   }
 
   return (
-    <SettingBox title="Project usage and quotas" icon="dashboard">
-      {render_upgrades_button()}
-      {render_upgrade_adjustor()}
-      {render_quota_console()}
-      {render_dedicated_disks()}
-      {render_site_license()}
-      {render_support()}
+    <SettingBox
+      title="Project usage and quotas"
+      icon="dashboard"
+      bodyStyle={{ padding: 0 }}
+    >
+      {render_run_quota()}
+      <div style={{ padding: "16px" }}>
+        {render_upgrades_button()}
+        {render_quota_console()}
+        {render_dedicated_disks()}
+        {render_site_license()}
+        {render_support()}
+      </div>
     </SettingBox>
   );
 });
