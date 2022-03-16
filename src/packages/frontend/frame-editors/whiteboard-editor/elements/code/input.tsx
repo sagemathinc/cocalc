@@ -81,6 +81,8 @@ export default function Input({
             if (e.altKey || e.metaKey) {
               // this is "evaluate and make new cell"...?
             } else if (e.shiftKey) {
+              // This is super annoying.
+              /*
               // this is "evaluate and move to next cell, making one if there isn't one."
               const id = frame.actions.createAdjacentElement(
                 element.id,
@@ -90,6 +92,7 @@ export default function Input({
               frame.actions.setSelectedTool(frame.id, "select");
               frame.actions.setSelection(frame.id, id);
               frame.actions.centerElement(id);
+              */
             } else if (e.ctrlKey) {
               // this is "evaluate keeping focus", so nothing further to do.
             }

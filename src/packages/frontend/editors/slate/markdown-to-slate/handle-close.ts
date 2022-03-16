@@ -35,7 +35,6 @@ function handleClose({ token, state, cache }) {
         nesting: 0,
         marks: state.marks,
         lines: state.lines,
-        math: state.math,
       };
       const children: Descendant[] = [];
       let isEmpty = true;
@@ -87,7 +86,7 @@ function handleClose({ token, state, cache }) {
       });
       if (cache != null) {
         if (state.open_token?.level === 0 && state.open_token?.map != null) {
-          markdown = getSource(state.open_token, state.lines, state.math);
+          markdown = getSource(state.open_token, state.lines);
         } else {
           if (markdown) {
             markdown += "\n";

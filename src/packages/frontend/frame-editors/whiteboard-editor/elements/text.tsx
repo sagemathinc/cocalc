@@ -15,7 +15,6 @@ interface Props {
   focused?: boolean;
   canvasScale: number;
   readOnly?: boolean;
-  noteMode?: boolean; // used for sticky note
   cursors?: { [account_id: string]: any[] };
 }
 
@@ -32,13 +31,11 @@ export default function Text(props: Props) {
 function EditText({
   element,
   canvasScale,
-  noteMode,
   cursors,
   focused,
 }: {
   element: Element;
   canvasScale: number;
-  noteMode?: boolean;
   cursors?;
   focused?: boolean;
 }) {
@@ -168,11 +165,8 @@ function EditText({
           // cells, and clicking a checkbox.
         }}
         onShiftEnter={() => {
-          const id = actions.createAdjacentElement(element.id, "bottom");
-          if (!id) return;
-          actions.setSelectedTool(frameId, "select");
-          actions.setSelection(frameId, id);
-          actions.centerElement(id);
+          setEditFocus(false);
+          actions.clearSelection(frameId);
         }}
         value={value}
         fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}

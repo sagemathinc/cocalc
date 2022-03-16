@@ -24,7 +24,6 @@ function handleChildren({ token, state, cache }) {
     marks: { ...state.marks },
     nesting: 0,
     lines: state.lines,
-    math: state.math,
   };
   const children: Descendant[] = [];
   for (const token2 of token.children) {

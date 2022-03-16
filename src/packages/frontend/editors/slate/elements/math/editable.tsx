@@ -14,7 +14,7 @@ const Element: React.FC<RenderElementProps> = ({
   children,
   element,
 }) => {
-  if (element.type != "display_math" && element.type != "inline_math") {
+  if (element.type != "math_block" && element.type != "math_inline") {
     // type guard.
     throw Error("bug");
   }
@@ -25,7 +25,7 @@ const Element: React.FC<RenderElementProps> = ({
     <span {...attributes}>
       <SlateMath
         value={element.value}
-        isInline={!!element["isInline"]}
+        isInline={!!element["isInline"] && !element["display"]}
         onChange={(value) => {
           setElement({ value });
         }}
@@ -36,15 +36,19 @@ const Element: React.FC<RenderElementProps> = ({
 };
 
 register({
-  slateType: "inline_math",
+  slateType: "math_inline",
   Element,
   fromSlate: ({ node }) => {
-    return "$" + node.value + "$";
+    let s = "$" + node.value + "$";
+    if (node.display) {
+      s = "$" + s + "$";
+    }
+    return s;
   },
 });
 
 register({
-  slateType: "display_math",
+  slateType: "math_block",
   Element,
   fromSlate: ({ node }) => {
     return "$$\n" + node.value + "\n$$\n\n";

@@ -28,20 +28,21 @@ declare global {
   }
 }
 
-$.fn.katex = function () {
-  this.each(katex_plugin);
+$.fn.katex = function (opts?: { preProcess?: boolean }) {
+  this.each((i) => {
+    katex_plugin($(this[i]), opts?.preProcess);
+  });
   return this;
 };
 
-function katex_plugin(): void {
-  // @ts-ignore
-  const elt = $(this);
-
+function katex_plugin(elt, preProcess): void {
   // Run Mathjax's processor on this DOM node.
   // This puts any math it detects in nice script tags:
   //    <script type="math/tex">x^2</script>
   //    <script type="math/tex; mode=display">x^2</script>
-  tex2jax.PreProcess(elt[0]);
+  if (preProcess) {
+    tex2jax.PreProcess(elt[0]);
+  }
 
   const always_use_mathjax: boolean =
     redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;

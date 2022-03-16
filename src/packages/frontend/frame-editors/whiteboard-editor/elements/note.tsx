@@ -22,7 +22,7 @@ export default function Note(props: Props) {
         padding: "10px",
       }}
     >
-      <Text {...props} element={{ ...element, data }} noteMode />
+      <Text {...props} element={{ ...element, data }} />
     </div>
   );
 }

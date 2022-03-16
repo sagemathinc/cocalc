@@ -3,7 +3,7 @@ Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
 import { useEffect } from "react";
-import { Popover, Radio } from "antd";
+import { Radio } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";

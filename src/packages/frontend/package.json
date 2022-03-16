@@ -106,6 +106,7 @@
     "markdown-it-emoji": "^2.0.0",
     "markdown-it-front-matter": "^0.2.1",
     "markdown-it-mathjax": "^2.0.0",
+    "markdown-it-texmath": "^0.9.7",
     "mathjax": "^2.7.9",
     "md5": "^2",
     "memoize-one": "^5.1.1",

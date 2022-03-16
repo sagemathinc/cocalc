@@ -48,7 +48,9 @@ export function slate_to_markdown(
     });
   }
   // this makes whitespace at top/bottom consistent with prettier
-  markdown = markdown.trim() + "\n";
+  // do NOT trim whitespace at beginning, because if markdown starts
+  // with 4-space indented code block, it would get mangled.
+  markdown = markdown.trimRight() + "\n";
 
   //console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
   //console.log("slate_to_markdown", { slate, markdown });

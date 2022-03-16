@@ -433,14 +433,14 @@ function transformToEquation(editor: Editor, display: boolean): void {
   let node: Node;
   if (display) {
     node = {
-      type: "display_math",
+      type: "math_block",
       value,
       isVoid: true,
       children: [{ text: "" }],
     };
   } else {
     node = {
-      type: "inline_math",
+      type: "math_inline",
       value,
       isVoid: true,
       isInline: true,

@@ -35,20 +35,20 @@ export function markdown_to_slate(
 ): Descendant[] {
   // Parse the markdown:
   // const t0 = new Date().valueOf();
-  const { tokens, meta, lines, math } = parse_markdown(markdown, no_meta);
+  const { tokens, meta, lines } = parse_markdown(markdown, no_meta);
   // window.tokens = tokens;
 
   const doc: Descendant[] = [];
   if (meta != null) {
     doc.push(createMetaNode(meta));
   }
-  const state: State = { marks: {}, nesting: 0, lines, math };
+  const state: State = { marks: {}, nesting: 0, lines };
   for (const token of tokens) {
     for (const node of parse(token, state, cache)) {
       if (cache != null && token.level === 0 && token.map != null) {
         // cache here when token is only one (e.g., fenced code block),
         // and cache in handle-close when parsing a block.
-        cache[stringify(node)] = getSource(token, lines, math);
+        cache[stringify(node)] = getSource(token, lines);
       }
       doc.push(node);
     }

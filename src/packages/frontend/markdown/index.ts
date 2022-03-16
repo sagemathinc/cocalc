@@ -19,13 +19,26 @@ import emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";
+import mathPlugin from "markdown-it-texmath";
 export { parseHeader } from "./header";
 import Markdown from "./component";
 export { Markdown };
 
+// The markdown-it-texmath plugin is very impressive, but it doesn't parse
+// things like \begin{equation}x^3$\end{equation} without dollar signs.
+// However, that is a basic requirement for cocalc in order to preserve
+// Jupyter classic compatibility.  So we monkey patch the plugin
+// and extend the regexps to also recognize these.  We do this with a new
+// delim object, to avoid any potential conflicts.
+mathPlugin.rules["cocalc"] = { ...mathPlugin.rules["dollars"] };
+mathPlugin.rules["cocalc"].block.push({
+  name: "math_block",
+  rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy, // regexp to match \begin{...}...\end{...} environment.
+  tmpl: "<section><eqn>$1</eqn></section>",
+  tag: "\\",
+});
+
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
-import { remove_math, replace_math } from "@cocalc/util/mathjax-utils"; // from project Jupyter
 
 export const OPTIONS: MarkdownIt.Options = {
   html: true,
@@ -34,12 +47,39 @@ export const OPTIONS: MarkdownIt.Options = {
   breaks: false, // breaks=true is NOT liked by many devs.
 };
 
-const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin, mentionPlugin];
-const PLUGINS_NO_HASHTAGS = [emojiPlugin, checkboxPlugin, mentionPlugin];
+const PLUGINS = [
+  [
+    mathPlugin,
+    {
+      delimiters: "cocalc",
+      engine: {
+        renderToString: (tex, options) => {
+          // We need to continue to support rendering to MathJax as an option,
+          // but texmath only supports katex.  Thus we output by default to
+          // html using script tags, which are then parsed later using our
+          // katex/mathjax plugin.
+          return `<script type="math/tex${
+            options.displayMode ? "; mode=display" : ""
+          }">${tex}</script>`;
+        },
+      },
+    },
+  ],
+  [emojiPlugin],
+  [checkboxPlugin],
+  [hashtagPlugin],
+  [mentionPlugin],
+];
+const PLUGINS_NO_HASHTAGS = [
+  [mathPlugin, { delimiters: "cocalc" }],
+  [emojiPlugin],
+  [checkboxPlugin],
+  [mentionPlugin],
+];
 
 function usePlugins(m, plugins) {
-  for (const plugin of plugins) {
-    m.use(plugin);
+  for (const [plugin, options] of plugins) {
+    m.use(plugin, options);
   }
 }
 
@@ -111,14 +151,7 @@ function process(
   mode: "default" | "frontmatter",
   options?: Options
 ): MD2html {
-  let text: string;
-  let math: string[];
-  [text, math] = remove_math(math_escape(markdown_string));
-  if (options?.processMath != null) {
-    for (let i = 0; i < math.length; i++) {
-      math[i] = options.processMath(math[i]);
-    }
-  }
+  const text = markdown_string;
 
   let html: string;
   let frontmatter = "";
@@ -141,13 +174,6 @@ function process(
       html = markdown_it.render(text);
     }
   }
-
-  // console.log(3, JSON.stringify(html));
-  // Substitute processed math back in.
-  html = replace_math(html, math);
-  // console.log(4, JSON.stringify(html));
-  html = math_unescape(html);
-  // console.log(5, JSON.stringify(html));
   return { html, frontmatter };
 }
 

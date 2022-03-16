@@ -29,6 +29,7 @@ export const Markdown: React.FC<Props> = (props) => {
     <HTML
       id={props.id}
       auto_render_math={true}
+      preProcessMath={false}
       value={to_html()}
       style={props.style}
       project_id={props.project_id}
