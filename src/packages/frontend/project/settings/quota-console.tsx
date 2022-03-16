@@ -37,6 +37,7 @@ interface Props {
   all_upgrades_to_this_project?: object;
   is_commercial?: boolean;
   kucalc?: string;
+  expand_admin_only?: boolean;
 }
 
 // the typing is very sloppy. parts of the UI use 0/1 for boolean, other parts
@@ -67,7 +68,10 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     project_status,
     kucalc,
     all_upgrades_to_this_project = {},
+    expand_admin_only = false,
   } = props;
+
+  const is_admin = account_groups.includes("admin");
 
   const [editing, setEditing] = useState<boolean>(false);
 
@@ -267,12 +271,12 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
   }
 
   function render_admin_edit_buttons(): Rendered {
-    if (account_groups.includes("admin")) {
+    if (is_admin) {
       if (editing) {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
-              <ButtonToolbar style={{ float: "right", marginTop: "15px" }}>
+              <ButtonToolbar style={{ float: "right" }}>
                 <Button
                   onClick={save_admin_editing}
                   bsStyle="warning"
@@ -292,9 +296,9 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
               <Button
                 onClick={start_admin_editing}
                 bsStyle="warning"
-                style={{ float: "right", marginTop: "15px" }}
+                style={{ float: "right" }}
               >
-                <Icon name="pencil" /> Admin Edit...
+                <Icon name="pencil" /> Admin Quotas...
               </Button>
             </Col>
           </Row>
@@ -556,22 +560,29 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     },
   };
 
+  function render_quota_rows() {
+    // we only show all the entries if this is an admin actively editing the settings quotas
+    if (is_admin && expand_admin_only && !editing) return;
+
+    return PROJECT_UPGRADES.field_order.map((name) => {
+      return render_quota_row(
+        name,
+        quotas_edit_config[name],
+        settings.get(name),
+        upgrades[name],
+        quota_params[name],
+        site_license[name]
+      );
+    });
+  }
+
   const upgrades = all_upgrades_to_this_project;
   const site_license = site_license_upgrades ?? {};
 
   return (
     <div>
       {render_admin_edit_buttons()}
-      {PROJECT_UPGRADES.field_order.map((name) => {
-        return render_quota_row(
-          name,
-          quotas_edit_config[name],
-          settings.get(name),
-          upgrades[name],
-          quota_params[name],
-          site_license[name]
-        );
-      })}
+      {render_quota_rows()}
     </div>
   );
 };

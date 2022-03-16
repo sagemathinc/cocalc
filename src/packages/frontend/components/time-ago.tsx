@@ -147,7 +147,9 @@ interface TimeAgoProps {
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
-  ({ popover, placement, tip, live, style, date, minPeriod }) => {
+  (props: TimeAgoElementProps) => {
+    const { popover, placement, tip, live, style, date, minPeriod } = props;
+
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
 
