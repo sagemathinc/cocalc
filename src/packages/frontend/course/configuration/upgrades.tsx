@@ -353,7 +353,25 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     const purchased_upgrades = account_store.get_total_upgrades();
     if (is_zero_map(purchased_upgrades)) {
       // user has no upgrades on their account -- show nothing here.
-      return;
+      return (
+        <Alert
+          type="warning"
+          message={
+            <div>
+              <p>You do not have any upgrades.</p>
+              {is_commercial && (
+                <p>
+                  Please go ahead and purchase a license for your course, see
+                  above.
+                </p>
+              )}
+              <p>
+                <Button onClick={() => set_upgrade_quotas(false)}>Close</Button>
+              </p>
+            </div>
+          }
+        />
+      );
     }
 
     const course_store = get_store();

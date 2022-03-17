@@ -120,7 +120,7 @@ upgrades.params = {
     pricing_unit: "day",
     pricing_factor: 1 / 86400,
     input_type: "number",
-    desc: "If the project is not used for this long, then it will be automatically stopped.",
+    desc: "If the project is not explicitly used via the web interface for this long, then it will be automatically stopped.",
   },
   network: {
     display: "Internet access",
@@ -130,7 +130,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.",
+    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download data, software packages, etc.",
   },
   member_host: {
     display: "Member hosting",
@@ -140,7 +140,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
+    desc: "Runs this project on a machine hosting less projects, without no free trial projects and random reboots.",
   },
   always_running: {
     display: "Always running",

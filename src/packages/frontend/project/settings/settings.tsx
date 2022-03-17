@@ -3,22 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import * as misc from "@cocalc/util/misc";
-import { ErrorDisplay, Loading } from "../../components";
-import { rtypes, rclass } from "../../app-framework";
-
-import { Body } from "./body";
+import { rclass, rtypes } from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import {
-  ProjectMap,
-  UserMap,
-  StripeCustomer,
   Customer,
+  ProjectMap,
+  StripeCustomer,
+  UserMap,
 } from "@cocalc/frontend/todo-types";
-
-import { webapp_client } from "../../webapp-client";
-const { Alert } = require("react-bootstrap");
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as misc from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
+import React from "react";
+import { Body } from "./body";
+
+const { Alert } = require("react-bootstrap");
 
 interface ReactProps {
   project_id: string;

@@ -5,41 +5,42 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
-import { List } from "immutable";
-import {
-  redux,
-  Redux,
-  rclass,
-  rtypes,
-  Store,
-  Actions,
-  useTypedRedux,
-} from "./app-framework";
-import React from "react";
-import {
-  A,
-  Loading,
-  Space,
-  smc_version,
-  build_date,
-  smc_git_rev,
-  UNIT,
-  r_join,
-} from "./components";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+  KUCALC_ON_PREMISES,
+  site_settings_conf,
+} from "@cocalc/util/db-schema/site-defaults";
 import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";
-import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
+import { gtag_id } from "@cocalc/util/theme";
+import { Quota } from "@cocalc/util/upgrades/quota";
+import { List } from "immutable";
 import { join } from "path";
-import { appBasePath } from "./customize/app-base-path";
-
-export { TermsOfService } from "./customize/terms-of-service";
-
 import {
-  KUCALC_DISABLED,
-  KUCALC_COCALC_COM,
-  KUCALC_ON_PREMISES,
-} from "@cocalc/util/db-schema/site-defaults";
+  Actions,
+  rclass,
+  React,
+  redux,
+  Redux,
+  rtypes,
+  Store,
+  TypedMap,
+  useTypedRedux,
+} from "./app-framework";
+import {
+  A,
+  build_date,
+  Loading,
+  r_join,
+  smc_git_rev,
+  smc_version,
+  Space,
+  UNIT,
+} from "./components";
+import { appBasePath } from "./customize/app-base-path";
+export { TermsOfService } from "./customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -88,7 +89,7 @@ export interface CustomizeState {
   kucalc: string;
   logo_rectangular: string;
   logo_square: string;
-  max_upgrades: string;
+  max_upgrades: TypedMap<Quota>;
   nonfree_countries?: List<string>;
   onprem_quota_heading: string;
   organization_email: string;
@@ -438,7 +439,6 @@ export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
 export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
 export const SystemStatusUrl = join(appBasePath, "info/status");
 
-import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;

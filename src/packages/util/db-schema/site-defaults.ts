@@ -50,6 +50,10 @@ export type SiteSettingsKeys =
   | "share_server"
   | "landing_pages";
 
+type Mapping = { [key: string]: string | number | boolean };
+
+type ToVal = boolean | string | number | Mapping;
+
 export interface Config {
   readonly name: string;
   readonly desc: string;
@@ -63,7 +67,7 @@ export interface Config {
   readonly to_val?: (
     val: string,
     config?: { [key in SiteSettingsKeys]?: string }
-  ) => boolean | string | number;
+  ) => ToVal;
   // this optional function derives the visual representation for the admin (fallback: to_val)
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
@@ -107,6 +111,12 @@ export const only_ints = (val) =>
   );
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
+export const from_json = (conf): Mapping => {
+  try {
+    if (conf !== null) return JSON.parse(conf) ?? {};
+  } catch (_) {}
+  return {};
+};
 
 // TODO a cheap'n'dirty validation is good enough
 //const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
@@ -350,6 +360,7 @@ export const site_settings_conf: SiteSettings = {
     desc: "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}",
     show: only_onprem,
+    to_val: from_json,
   },
   ssh_gateway: {
     name: "SSH Gateway",

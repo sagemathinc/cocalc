@@ -32,6 +32,8 @@ required = defaults.required
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('@cocalc/util/schema')
 
+{ quota } = require("@cocalc/util/upgrades/quota")
+
 { DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/compute-images")
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
@@ -284,12 +286,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_server_settings_cached: (opts) =>
         opts = defaults opts,
             cb: required
-        query = @get_db_query()
-        if !query
-            opts.cb("database not connected")
-            return
         try
-            opts.cb(undefined, await getServerSettings(query))
+            opts.cb(undefined, await getServerSettings())
         catch err
             opts.cb(err)
 
@@ -2248,23 +2246,28 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             cb         : required
-        settings = project_upgrades = undefined
+        settings = users = site_license = server_settings = undefined
         async.parallel([
             (cb) =>
-                @get_project_settings
-                    project_id : opts.project_id
-                    cb         : (err, x) =>
-                        settings = x; cb(err)
+                @_query
+                    query : 'SELECT settings, users, site_license FROM projects'
+                    where : 'project_id = $::UUID' : opts.project_id
+                    cb    : one_result (err, x) =>
+                        settings = x.settings
+                        site_license = x.site_license
+                        users = x.users
+                        cb(err)
             (cb) =>
-                @get_project_upgrades
-                    project_id : opts.project_id
-                    cb         : (err, x) =>
-                        project_upgrades = x; cb(err)
+                @get_server_settings_cached
+                    cb : (err, x) =>
+                        server_settings = x
+                        cb(err)
         ], (err) =>
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, misc.map_sum(settings, project_upgrades))
+                upgrades = quota(settings, users, site_license, server_settings)
+                opts.cb(undefined, upgrades)
         )
 
     # Return mapping from project_id to map listing the upgrades this particular user

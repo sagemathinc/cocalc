@@ -8,6 +8,7 @@ import { Icon, IconName } from "./icon";
 import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
+import { TooltipPlacement } from "antd/lib/tooltip";
 
 const TIP_STYLE: CSS = {
   wordWrap: "break-word",
@@ -19,8 +20,8 @@ type Size = "xsmall" | "small" | "medium" | "large";
 type Trigger = "hover" | "focus" | "click" | "contextMenu";
 
 interface Props {
-  title: string | JSX.Element | JSX.Element[]; // not checked for update
-  placement?;
+  title?: string | JSX.Element | JSX.Element[]; // not checked for update
+  placement?: TooltipPlacement;
   tip?: string | JSX.Element | JSX.Element[]; // not checked for update
   size?: Size; // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
   delayShow?: number;

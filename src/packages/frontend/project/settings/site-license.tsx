@@ -6,17 +6,18 @@
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
-import { Map } from "immutable";
-import { redux, Rendered, useState } from "../../app-framework";
-import { Button } from "../../antd-bootstrap";
-import { Icon } from "../../components";
-import { alert_message } from "../../alerts";
+import { Card } from "antd";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
 import {
   SiteLicensePublicInfoTable,
   SiteLicenses,
-} from "../../site-licenses/site-license-public-info";
-import { SiteLicenseInput } from "../../site-licenses/input";
-import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
+} from "@cocalc/frontend/site-licenses/site-license-public-info";
+import { Map } from "immutable";
 
 interface Props {
   project_id: string;
@@ -92,24 +93,32 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <div>
-      <h4>
-        <Icon name="key" /> Licenses
-      </h4>
+    <Card
+      title={
+        <h4>
+          <Icon name="key" /> Licenses
+        </h4>
+      }
+      type="inner"
+      style={{ marginTop: "15px" }}
+      bodyStyle={{ padding: "0px" }}
+    >
       {render_current_licenses()}
       <br />
-      <Button
-        onClick={() => set_show_site_license(true)}
-        disabled={show_site_license}
-      >
-        <Icon name="key" /> Upgrade using a license key...
-      </Button>
-      {render_site_license_text()}
-      <br />
-      <br />
-      <span style={{ fontSize: "13pt" }}>
-        <PurchaseOneLicenseLink />
-      </span>
-    </div>
+      <div style={{ padding: "15px" }}>
+        <Button
+          onClick={() => set_show_site_license(true)}
+          disabled={show_site_license}
+        >
+          <Icon name="key" /> Upgrade using a license key...
+        </Button>
+        {render_site_license_text()}
+        <br />
+        <br />
+        <span style={{ fontSize: "13pt" }}>
+          <PurchaseOneLicenseLink />
+        </span>
+      </div>
+    </Card>
   );
 };
