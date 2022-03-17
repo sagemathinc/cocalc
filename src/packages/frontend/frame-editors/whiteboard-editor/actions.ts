@@ -415,8 +415,7 @@ export class Actions extends BaseActions<State> {
   }
 
   in_undo_mode(): boolean {
-    if (this._syncstring == null) return false;
-    return this._syncstring.in_undo_mode();
+    return this._syncstring?.in_undo_mode();
   }
 
   fitToScreen(id: string, state: boolean = true): void {

@@ -42,6 +42,7 @@ function EditText({
 }) {
   const { actions, id: frameId } = useFrameContext();
   const expandIfNecessary = useCallback(() => {
+    if (actions.in_undo_mode()) return;
     // possibly adjust height.  We do this in the next render
     // loop because sometimes when the change fires the dom
     // hasn't updated the height of the containing div yet,
@@ -66,22 +67,22 @@ function EditText({
   const editorDivRef = useRef<HTMLDivElement>(null);
   const lastRemote = useRef<string>(element.str ?? "");
   const valueRef = useRef<string>(value);
-  const setting = useRef<boolean>(false);
+  const settingRef = useRef<boolean>(false);
   const save = useMemo(() => {
     return debounce(() => {
       if (!isMounted.current || lastRemote.current == valueRef.current) return;
       lastRemote.current = valueRef.current;
       try {
-        setting.current = true;
+        settingRef.current = true;
         actions.setElement({ obj: { id: element.id, str: valueRef.current } });
       } finally {
-        setting.current = false;
+        settingRef.current = false;
       }
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
   useEffect(() => {
-    if (setting.current) return;
+    if (settingRef.current) return;
     const base = lastRemote.current;
     const remote = element.str ?? "";
     const newVal = threeWayMerge({
@@ -106,35 +107,34 @@ function EditText({
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
-  const mousePosRef = useRef<number[] | true>([]);
-  const onMouseDown = (e) => {
-    if (editFocus) {
-      mousePosRef.current = true;
+  const mouseClickRef = useRef<{ moved: boolean; editFocus: boolean }>({
+    moved: false,
+    editFocus,
+  });
+  const onMouseDown = () => {
+    mouseClickRef.current = { moved: false, editFocus };
+  };
+  const onMouseMove = () => {
+    mouseClickRef.current.moved = true;
+  };
+  const onMouseUp = () => {
+    if (mouseClickRef.current.moved) {
+      // mouse moved as part of "click"
+      if (!mouseClickRef.current.editFocus) {
+        setEditFocus(false);
+      }
       return;
     }
-    mousePosRef.current = [e.clientX, e.clientY];
-  };
-  const onMouseUp = (e) => {
-    if (mousePosRef.current === true) return;
-    // NOTE: in raw markdown source mode we don't get the mouseDown click, so always focus.
-    if (
-      mousePosRef.current.length == 0 ||
-      (e.clientX == mousePosRef.current?.[0] &&
-        e.clientY == mousePosRef.current?.[1])
-    ) {
-      setEditFocus(true);
-    } else {
-      // defocus on move
-      setEditFocus(false);
-    }
-    mousePosRef.current = [];
+    setEditFocus(true);
   };
 
   return (
     <div
       onMouseDown={onMouseDown}
+      onTouchStart={onMouseDown}
+      onMouseMove={onMouseMove}
+      onTouchMove={onMouseMove}
       onMouseUp={onMouseUp}
-      onTouchStart={(e) => onMouseDown(e.touches[0])}
       onTouchEnd={onMouseUp}
       style={{
         ...getStyle(element),
