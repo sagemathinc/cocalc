@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { Element } from "../types";
 import { getStyle } from "./text";
-import { ChatInput } from "@cocalc/frontend/chat/input";
 import { useFrameContext } from "../hooks";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
@@ -10,6 +9,8 @@ import { Button, Comment, Tooltip } from "antd";
 import { trunc_middle } from "@cocalc/util/misc";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { redux } from "@cocalc/frontend/app-framework";
+import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import useEditFocus from "./edit-focus";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -31,8 +32,9 @@ export default function ChatDynamic({ element, focused }: Props) {
 }
 
 function Conversation({ element, focused }: Props) {
-  const { actions, id: frameId } = useFrameContext();
+  const { actions } = useFrameContext();
   const [input, setInput] = useState<string>("");
+  const [editFocus, setEditFocus] = useEditFocus(!!focused);
 
   return (
     <div style={getChatStyle(element)}>
@@ -42,22 +44,29 @@ function Conversation({ element, focused }: Props) {
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
       {focused && (
-        <div style={{ height: "125px", display: "flex" }} className="nodrag">
-          <ChatInput
+        <div
+          style={{ height: "125px", display: "flex" }}
+          className={editFocus ? "nodrag" : undefined}
+          onClick={() => {
+            if (!editFocus) setEditFocus(true);
+          }}
+        >
+          <MultiMarkdownInput
             onFocus={() => {
-              actions.setEditFocus(frameId, true);
+              setEditFocus(true);
             }}
             onBlur={() => {
-              actions.setEditFocus(frameId, false);
+              setEditFocus(false);
             }}
+            isFocused={editFocus}
             cacheId={element.id}
             hideHelp
             height={"123px"}
-            input={input}
+            value={input}
             onChange={(value) => {
               setInput(value);
             }}
-            on_send={(input) => {
+            onShiftEnter={(input) => {
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}
@@ -65,6 +74,7 @@ function Conversation({ element, focused }: Props) {
           />
           <Tooltip title="Send message (shift+enter)">
             <Button
+              disabled={!input.trim()}
               type="primary"
               style={{ height: "100%", marginLeft: "5px" }}
               onClick={() => {

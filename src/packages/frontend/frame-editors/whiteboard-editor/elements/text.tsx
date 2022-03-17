@@ -9,6 +9,7 @@ import { debounce } from "lodash";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import useEditFocus from "./edit-focus";
 
 interface Props {
   element: Element;
@@ -39,7 +40,7 @@ function EditText({
   cursors?;
   focused?: boolean;
 }) {
-  const { actions, id: frameId, desc } = useFrameContext();
+  const { actions, id: frameId } = useFrameContext();
   const expandIfNecessary = useCallback(() => {
     // possibly adjust height.  We do this in the next render
     // loop because sometimes when the change fires the dom
@@ -60,16 +61,7 @@ function EditText({
   const [value, setValue] = useState<string>(element.str ?? "");
   const [mode, setMode] = useState<string>("");
 
-  const [editFocus, setEditFocus0] = useState<boolean>(false);
-  const setEditFocus = (state: boolean) => {
-    setEditFocus0(state);
-    actions.setEditFocus(frameId, state);
-  };
-  useEffect(() => {
-    if (editFocus != desc.get("editFocus")) {
-      setEditFocus0(desc.get("editFocus"));
-    }
-  }, [desc.get("editFocus")]);
+  const [editFocus, setEditFocus] = useEditFocus(false);
 
   const editorDivRef = useRef<HTMLDivElement>(null);
   const lastRemote = useRef<string>(element.str ?? "");
