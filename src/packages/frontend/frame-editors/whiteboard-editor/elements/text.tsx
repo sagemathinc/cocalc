@@ -10,6 +10,7 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useEditFocus from "./edit-focus";
+import useMouseClickDrag from "./mouse-click-drag";
 
 interface Props {
   element: Element;
@@ -107,35 +108,12 @@ function EditText({
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
-  const mouseClickRef = useRef<{ moved: boolean; editFocus: boolean }>({
-    moved: false,
-    editFocus,
-  });
-  const onMouseDown = () => {
-    mouseClickRef.current = { moved: false, editFocus };
-  };
-  const onMouseMove = () => {
-    mouseClickRef.current.moved = true;
-  };
-  const onMouseUp = () => {
-    if (mouseClickRef.current.moved) {
-      // mouse moved as part of "click"
-      if (!mouseClickRef.current.editFocus) {
-        setEditFocus(false);
-      }
-      return;
-    }
-    setEditFocus(true);
-  };
+
+  const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
   return (
     <div
-      onMouseDown={onMouseDown}
-      onTouchStart={onMouseDown}
-      onMouseMove={onMouseMove}
-      onTouchMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onTouchEnd={onMouseUp}
+      {...mouseClickDrag}
       style={{
         ...getStyle(element),
         padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,

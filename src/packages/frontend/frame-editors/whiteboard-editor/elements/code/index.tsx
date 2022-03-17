@@ -4,8 +4,8 @@ import Input from "./input";
 import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
-import { useRef } from "react";
 import useEditFocus from "../edit-focus";
+import useMouseClickDrag from "../mouse-click-drag";
 
 interface Props {
   element: Element;
@@ -21,45 +21,17 @@ export default function Code({
   cursors,
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
-
   const [editFocus, setEditFocus] = useEditFocus(false);
-
-  const mousePosRef = useRef<number[]>([]);
+  const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
   const renderInput = () => {
     if (hideInput) return;
     if (focused || cursors != null) {
       return (
-        <div
-          className={editFocus ? "nodrag" : undefined}
-          onMouseDown={(e) => {
-            if (editFocus) {
-              mousePosRef.current = [];
-            } else {
-              // have to set it to focused since otherwise
-              // we can't set it to not focused to unfocus
-              // it (since the click to drag focuses the
-              // editor internally).
-              setEditFocus(true);
-              mousePosRef.current = [e.clientX, e.clientY];
-            }
-          }}
-          onMouseUp={(e) => {
-            if (mousePosRef.current.length == 0) return;
-            if (
-              e.clientX == mousePosRef.current?.[0] &&
-              e.clientY == mousePosRef.current?.[1]
-            ) {
-              setEditFocus(true);
-            } else {
-              // defocus on/after move
-              setEditFocus(false);
-            }
-          }}
-        >
+        <div className={editFocus ? "nodrag" : undefined} {...mouseClickDrag}>
           <Input
             cursors={cursors}
-            isFocused={editFocus}
+            isFocused={focused && editFocus}
             element={element}
             focused={focused}
             canvasScale={canvasScale}

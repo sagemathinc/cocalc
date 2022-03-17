@@ -18,6 +18,7 @@ export default function NotFocused({ children, id, selectable }: Props) {
         cursor: selectable ? "pointer" : undefined,
       }}
       onClick={(e) => onClick(selectable, id, e, frame)}
+      onTouchStart={(e) => onClick(selectable, id, e, frame)}
     >
       {children}
     </div>
