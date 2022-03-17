@@ -276,6 +276,7 @@ export default function MultiMarkdownInput({
               optionType="button"
               size="small"
               buttonStyle="solid"
+              style={{ display: "block" }}
             />
           </div>
         )}
