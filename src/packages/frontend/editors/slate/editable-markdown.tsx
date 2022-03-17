@@ -53,6 +53,7 @@ import { useSearch, SearchHook } from "./search";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
+import { resetSelection } from "./control";
 
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
@@ -517,11 +518,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           err
         );
         // set to beginning of document -- better than crashing.
-        const focus = { path: [0, 0], offset: 0 };
-        Transforms.setSelection(editor, {
-          focus,
-          anchor: focus,
-        });
+        resetSelection(editor);
       }
 
       if (EXPENSIVE_DEBUG) {
