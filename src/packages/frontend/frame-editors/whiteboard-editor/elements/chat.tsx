@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { Element } from "../types";
@@ -12,6 +12,7 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
+import Composing from "./chat-composing";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -39,12 +40,7 @@ function Conversation({ element, focused }: Props) {
   );
   const [editFocus, setEditFocus] = useEditFocus(!!focused);
 
-  const ignoreNextChangeRef = useRef<boolean>(false);
   const saveChat = useDebouncedCallback((input) => {
-    if (ignoreNextChangeRef.current) {
-      ignoreNextChangeRef.current = false;
-      return;
-    }
     actions.saveChat({ id: element.id, input });
   }, 1500);
 
@@ -63,6 +59,7 @@ function Conversation({ element, focused }: Props) {
         element={element}
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
+      <Composing element={element} focused={focused} />
       {(focused || len(element.data) === 0) && (
         <div
           style={{ height: "125px", display: "flex" }}
@@ -83,16 +80,25 @@ function Conversation({ element, focused }: Props) {
             hideHelp
             height={"123px"}
             value={input}
+            style={{ flex: 1 }}
             onChange={(input) => {
               setInput(input);
               saveChat(input);
             }}
             onShiftEnter={(input) => {
-              ignoreNextChangeRef.current = true;
+              saveChat.flush();
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}
-            style={{ flex: 1 }}
+            onSave={() => {
+              actions.save(true);
+            }}
+            onUndo={() => {
+              actions.undo();
+            }}
+            onRedo={() => {
+              actions.redo();
+            }}
           />
           <Tooltip title="Send message (shift+enter)">
             <Button
@@ -113,21 +119,29 @@ function Conversation({ element, focused }: Props) {
   );
 }
 
-function Message({
+export function Message({
   element,
-  messageNumber,
+  messageId,
 }: {
   element: Element;
-  messageNumber: number;
+  messageId: number | string;
 }) {
-  const { input, sender_id, sender_name, time } =
-    element.data?.[messageNumber] ?? {};
+  let { input, sender_id, sender_name, time } = element.data?.[messageId] ?? {};
+  if (typeof messageId == "string") {
+    sender_id = messageId;
+  }
   return (
     <div style={messageStyle}>
       <Comment
         author={sender_id ? getName(sender_id) ?? sender_name : undefined}
         avatar={sender_id ? <Avatar account_id={sender_id} /> : undefined}
-        content={<StaticMarkdown value={input ?? ""} />}
+        content={
+          typeof messageId == "number" ? (
+            <StaticMarkdown value={input ?? ""} />
+          ) : (
+            <Icon name="ellipsis" style={{ fontSize: "24px" }} />
+          )
+        }
         datetime={<TimeAgo date={time} />}
       />
     </div>

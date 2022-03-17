@@ -92,7 +92,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     icon: "comment",
     cursor: "crosshair",
     tip: "Chat",
-    config: new Set(["fontSize", "color"]),
+    config: new Set(["color"]),
     key: "c",
     type: "icon",
   },

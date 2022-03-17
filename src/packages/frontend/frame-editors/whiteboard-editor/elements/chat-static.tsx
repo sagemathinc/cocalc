@@ -34,7 +34,7 @@ export function getChatStyle(element: Element): CSSProperties {
     display: "flex",
     flexDirection: "column",
     overflowY: "auto",
-    border: `2px solid ${element.data?.color ?? "#ccc"}`,
+    border: `3px solid ${element.data?.color ?? "#ccc"}`,
     borderRadius: "5px",
     boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
   };
@@ -47,7 +47,7 @@ export function ChatLog({
 }: {
   element: Element;
   style: CSSProperties;
-  Message: FC<{ element: Element; messageNumber: number }>;
+  Message: FC<{ element: Element; messageId: number | string }>;
 }) {
   const divRef = useRef(null);
   useEffect(() => {
@@ -58,7 +58,7 @@ export function ChatLog({
   }, [element.data]);
   const v: ReactNode[] = [];
   for (const n of messageNumbers(element)) {
-    v.push(<Message key={n} element={element} messageNumber={n} />);
+    v.push(<Message key={n} element={element} messageId={n} />);
   }
   return (
     <div className="nodrag" ref={divRef} style={style}>
@@ -81,6 +81,7 @@ export function lastMessageNumber(element: Element): number {
 function messageNumbers(element: Element): number[] {
   const v: number[] = [];
   for (const field in element.data ?? {}) {
+    if (field.length == 36) continue;
     const k = parseInt(field);
     if (!isNaN(k)) {
       v.push(k);
@@ -97,19 +98,25 @@ export const messageStyle = {
   padding: "5px 15px",
 } as CSSProperties;
 
-function Message({
+export function Message({
   element,
-  messageNumber,
+  messageId,
 }: {
   element: Element;
-  messageNumber: number;
+  messageId: number | string;
 }) {
-  const { input, sender_name, time } = element.data?.[messageNumber] ?? {};
+  const { input, sender_name, time } = element.data?.[messageId] ?? {};
   return (
     <div style={messageStyle}>
       <Comment
         author={sender_name}
-        content={<StaticMarkdown value={input ?? ""} />}
+        content={
+          typeof messageId == "number" ? (
+            <StaticMarkdown value={input ?? ""} />
+          ) : (
+            "..."
+          )
+        }
         datetime={new Date(time).toLocaleString()}
       />
     </div>
