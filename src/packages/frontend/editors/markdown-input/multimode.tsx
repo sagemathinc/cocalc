@@ -199,7 +199,12 @@ export default function MultiMarkdownInput({
     const cache = getCache();
     if (cache?.[mode] != null && selectionRef.current != null) {
       // restore selection on mount.
-      selectionRef.current.setSelection(cache?.[mode]);
+      try {
+        selectionRef.current.setSelection(cache?.[mode]);
+      } catch (_err) {
+        // expected that sometimes this will fail, since after all the selection from last
+        // use might be invalid now due to another user changing the document, etc.
+      }
     }
     return () => {
       if (selectionRef.current == null || cacheId == null) return;

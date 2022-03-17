@@ -226,6 +226,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (selectionRef != null) {
         selectionRef.current = {
           setSelection: (selection: any) => {
+            if (!selection) return;
+            // We confirm that the selection is valid.
+            // If not, this will throw an error.
+            const { anchor, focus } = selection;
+            Editor.node(editor, anchor);
+            Editor.node(editor, focus);
             ed.selection = selection;
           },
           getSelection: () => {
@@ -498,13 +504,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // with a view with things like loan $'s escaped.'
       //       console.log(
       //         "selection before patching",
-      //         JSON.stringify(editor.selection)
+      //         JSON.stringify(editor.selection),
+      //         /*JSON.stringify(editor.children)*/
       //       );
       if (operations.length > 0) {
         editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
         applyOperations(editor, operations);
       }
-      // console.log("selection after patching", JSON.stringify(editor.selection));
+      //       console.log(
+      //         "selection after patching",
+      //         JSON.stringify(editor.selection),
+      //         /*JSON.stringify(editor.children)*/
+      //       );
       try {
         if (editor.selection != null) {
           const { anchor, focus } = editor.selection;
