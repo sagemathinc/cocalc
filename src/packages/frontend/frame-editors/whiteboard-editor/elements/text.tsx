@@ -42,6 +42,7 @@ function EditText({
 }) {
   const { actions, id: frameId } = useFrameContext();
   const expandIfNecessary = useCallback(() => {
+    if (actions.in_undo_mode()) return;
     // possibly adjust height.  We do this in the next render
     // loop because sometimes when the change fires the dom
     // hasn't updated the height of the containing div yet,
@@ -66,22 +67,22 @@ function EditText({
   const editorDivRef = useRef<HTMLDivElement>(null);
   const lastRemote = useRef<string>(element.str ?? "");
   const valueRef = useRef<string>(value);
-  const setting = useRef<boolean>(false);
+  const settingRef = useRef<boolean>(false);
   const save = useMemo(() => {
     return debounce(() => {
       if (!isMounted.current || lastRemote.current == valueRef.current) return;
       lastRemote.current = valueRef.current;
       try {
-        setting.current = true;
+        settingRef.current = true;
         actions.setElement({ obj: { id: element.id, str: valueRef.current } });
       } finally {
-        setting.current = false;
+        settingRef.current = false;
       }
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
   useEffect(() => {
-    if (setting.current) return;
+    if (settingRef.current) return;
     const base = lastRemote.current;
     const remote = element.str ?? "";
     const newVal = threeWayMerge({
