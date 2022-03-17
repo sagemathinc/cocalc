@@ -270,12 +270,12 @@ export default function MultiMarkdownInput({
                 },
               ]}
               onChange={(e) => {
-                console.log("value");
                 setMode(e.target.value as Mode);
               }}
               value={mode}
               optionType="button"
               size="small"
+              buttonStyle="solid"
             />
           </div>
         )}

@@ -34,6 +34,7 @@ mathPlugin.rules["cocalc"] = { ...mathPlugin.rules["dollars"] };
 mathPlugin.rules["cocalc"].block.push({
   name: "math_block",
   rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy, // regexp to match \begin{...}...\end{...} environment.
+  tmpl: "<section><eqn>$1</eqn></section>",
   tag: "\\",
 });
 mathPlugin.rules["cocalc"].inline.push({
@@ -41,6 +42,7 @@ mathPlugin.rules["cocalc"].inline.push({
   rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy,
   tag: "\\",
   displayMode: true,
+  tmpl: "<section><eqn>$1</eqn></section>",
   pre: mathPlugin.$_pre,
   post: mathPlugin.$_post,
 });
