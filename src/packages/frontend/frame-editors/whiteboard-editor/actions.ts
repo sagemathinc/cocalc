@@ -542,6 +542,24 @@ export class Actions extends BaseActions<State> {
     });
   }
 
+  saveChat({ id, input }: { id: string; input: string }) {
+    const element = this.store.get("elements")?.get(id)?.toJS();
+    if (element == null) {
+      // no-op no such element - TODO
+      console.warn("no cell with id", id);
+      return;
+    }
+    const time = new Date().valueOf();
+    const sender_id = this.redux.getStore("account").get_account_id();
+    const sender_name = getName(sender_id);
+    this.setElementData({
+      element,
+      obj: { [sender_id]: { input, time, sender_name } },
+      commit: true,
+      cursors: [{}],
+    });
+  }
+
   sendChat({ id, input }: { id: string; input: string }) {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null) {
@@ -575,6 +593,7 @@ export class Actions extends BaseActions<State> {
               sender_id,
               sender_name,
             },
+            [sender_id]: null, // delete saved composing message
           },
           commit: true,
           cursors: [{}],
@@ -592,6 +611,7 @@ export class Actions extends BaseActions<State> {
           sender_id,
           sender_name,
         },
+        [sender_id]: null, // delete saved composing message
       },
       commit: true,
       cursors: [{}],

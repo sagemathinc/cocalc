@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { Element } from "../types";
 import { getStyle } from "./text";
@@ -6,11 +7,11 @@ import { useFrameContext } from "../hooks";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { Button, Comment, Tooltip } from "antd";
-import { trunc_middle } from "@cocalc/util/misc";
+import { len, trunc_middle } from "@cocalc/util/misc";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { redux } from "@cocalc/frontend/app-framework";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import useEditFocus from "./edit-focus";
+import { useDebouncedCallback } from "use-debounce";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -33,8 +34,27 @@ export default function ChatDynamic({ element, focused }: Props) {
 
 function Conversation({ element, focused }: Props) {
   const { actions } = useFrameContext();
-  const [input, setInput] = useState<string>("");
+  const [input, setInput] = useState<string>(
+    element.data?.[redux.getStore("account").get_account_id()]?.input ?? ""
+  );
   const [editFocus, setEditFocus] = useEditFocus(!!focused);
+
+  const ignoreNextChangeRef = useRef<boolean>(false);
+  const saveChat = useDebouncedCallback((input) => {
+    if (ignoreNextChangeRef.current) {
+      ignoreNextChangeRef.current = false;
+      return;
+    }
+    actions.saveChat({ id: element.id, input });
+  }, 1500);
+
+  // When the component goes to be unmounted, we will fetch data if the input has changed.
+  useEffect(
+    () => () => {
+      saveChat.flush();
+    },
+    [saveChat]
+  );
 
   return (
     <div style={getChatStyle(element)}>
@@ -43,7 +63,7 @@ function Conversation({ element, focused }: Props) {
         element={element}
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
-      {focused && (
+      {(focused || len(element.data) === 0) && (
         <div
           style={{ height: "125px", display: "flex" }}
           className={editFocus ? "nodrag" : undefined}
@@ -63,10 +83,12 @@ function Conversation({ element, focused }: Props) {
             hideHelp
             height={"123px"}
             value={input}
-            onChange={(value) => {
-              setInput(value);
+            onChange={(input) => {
+              setInput(input);
+              saveChat(input);
             }}
             onShiftEnter={(input) => {
+              ignoreNextChangeRef.current = true;
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}
