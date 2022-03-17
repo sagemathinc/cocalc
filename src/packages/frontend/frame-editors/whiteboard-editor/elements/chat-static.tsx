@@ -33,7 +33,6 @@ export function getChatStyle(element: Element): CSSProperties {
     height: `${element.h - 60}px`,
     display: "flex",
     flexDirection: "column",
-    overflowY: "auto",
     border: `3px solid ${element.data?.color ?? "#ccc"}`,
     borderRadius: "5px",
     boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",

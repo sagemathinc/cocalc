@@ -36,6 +36,7 @@ export default function ChatDynamic({ element, focused }: Props) {
 function Conversation({ element, focused }: Props) {
   const { actions } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(!!focused);
+  const [mode, setMode] = useState<string>("");
 
   const saveChat = useDebouncedCallback((input) => {
     actions.saveChat({ id: element.id, input });
@@ -68,7 +69,11 @@ function Conversation({ element, focused }: Props) {
       <ChatLog
         Message={Message}
         element={element}
-        style={{ flex: 1, overflowY: "auto", background: "white" }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          background: "white",
+        }}
       />
       <Composing element={element} focused={focused} />
       {(focused || len(element.data) === 0) && (
@@ -89,9 +94,16 @@ function Conversation({ element, focused }: Props) {
             isFocused={editFocus}
             cacheId={element.id}
             hideHelp
+            noVfill
+            minimal
             height={"123px"}
             value={input}
-            style={{ flex: 1 }}
+            style={{
+              flex: 1,
+              ...(mode == "editor"
+                ? { border: "1px solid #ccc", padding: "10px" }
+                : undefined),
+            }}
             onChange={(input) => {
               setInput(input);
               saveChat(input);
@@ -109,6 +121,26 @@ function Conversation({ element, focused }: Props) {
               saveChat.cancel();
               actions.redo();
             }}
+            editBarStyle={{
+              visibility:
+                !editFocus || mode == "markdown" ? "hidden" : undefined,
+              top: "-36px",
+              left: "122px",
+              position: "absolute",
+              boxShadow: "1px 3px 5px #ccc",
+              margin: "5px",
+              minWidth: "500px",
+              background: "white",
+              fontFamily: "sans-serif",
+            }}
+            modeSwitchStyle={{
+              visibility: !editFocus ? "hidden" : undefined,
+              top: "-31px",
+              left: 0,
+              width: "126px",
+              boxShadow: "1px 3px 5px #ccc",
+            }}
+            onModeChange={setMode}
           />
           <Tooltip title="Send message (shift+enter)">
             <Button
