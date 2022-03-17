@@ -60,7 +60,7 @@ export function ChatLog({
     v.push(<Message key={n} element={element} messageId={n} />);
   }
   return (
-    <div className="nodrag" ref={divRef} style={style}>
+    <div ref={divRef} style={style}>
       {v}
     </div>
   );
