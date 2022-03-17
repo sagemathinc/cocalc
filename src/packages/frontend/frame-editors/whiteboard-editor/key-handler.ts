@@ -30,15 +30,6 @@ export default function getKeyHandler(
     if (node == null) return;
     const key = e.key.toLowerCase();
 
-    // These always get handled by the global handler:
-    if (key == "z" && (e.metaKey || e.ctrlKey)) {
-      if (e.shiftKey) {
-        actions.redo();
-      } else {
-        actions.undo();
-      }
-      return;
-    }
     if (key == "s" && (e.metaKey || e.ctrlKey)) {
       actions.save(true);
       e.preventDefault();
@@ -76,6 +67,14 @@ export default function getKeyHandler(
 
     if (activeElementIsInput()) return;
 
+    if (key == "z" && (e.metaKey || e.ctrlKey)) {
+      if (e.shiftKey) {
+        actions.redo();
+      } else {
+        actions.undo();
+      }
+      return;
+    }
     if (key == "-") {
       actions.decrease_font_size(frameId);
       return;

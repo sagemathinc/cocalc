@@ -35,14 +35,25 @@ export default function ChatDynamic({ element, focused }: Props) {
 
 function Conversation({ element, focused }: Props) {
   const { actions } = useFrameContext();
-  const [input, setInput] = useState<string>(
-    element.data?.[redux.getStore("account").get_account_id()]?.input ?? ""
-  );
   const [editFocus, setEditFocus] = useEditFocus(!!focused);
 
   const saveChat = useDebouncedCallback((input) => {
     actions.saveChat({ id: element.id, input });
   }, 1500);
+
+  const [input, setInput] = useState<string>("");
+  // we ensure input is set properly to what's in the element
+  // when it is focused.  When NOT focused, we don't bother,
+  // to avoid wasting resources.
+  useEffect(() => {
+    if (!focused) return;
+    const input1 =
+      element.data?.[redux.getStore("account").get_account_id()]?.input ?? "";
+    if (input1 != input) {
+      saveChat.cancel();
+      setInput(input1);
+    }
+  }, [element, focused]);
 
   // When the component goes to be unmounted, we will fetch data if the input has changed.
   useEffect(
@@ -86,17 +97,16 @@ function Conversation({ element, focused }: Props) {
               saveChat(input);
             }}
             onShiftEnter={(input) => {
-              saveChat.flush();
+              saveChat.cancel();
               actions.sendChat({ id: element.id, input });
               setInput("");
             }}
-            onSave={() => {
-              actions.save(true);
-            }}
             onUndo={() => {
+              saveChat.cancel();
               actions.undo();
             }}
             onRedo={() => {
+              saveChat.cancel();
               actions.redo();
             }}
           />

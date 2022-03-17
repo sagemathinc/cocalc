@@ -189,7 +189,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         // this somehow.  Note that codemirror has no .blur().
         // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
         await delay(1);
-        cm.current.getInputField().blur();
+        cm.current?.getInputField().blur();
       }
     })();
 
