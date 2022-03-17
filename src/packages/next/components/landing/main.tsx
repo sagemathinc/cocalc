@@ -3,23 +3,43 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Breadcrumb, Layout } from "antd";
 const { Content } = Layout;
 
 interface Props {
   children: React.ReactNode;
   style?: React.CSSProperties;
+  nav?: JSX.Element[]; // list of links
 }
 
 const STYLE: React.CSSProperties = {
-  minHeight: "50vh",
-  padding: "50px",
+  minHeight: "75vh",
+  padding: "0 50px",
+  maxWidth: "992px", // Antd screen-lg
+  width: "100%",
+  margin: "0 auto",
 };
 
 export default function Main(props: Props) {
-  const { children } = props;
+  const { nav, children } = props;
 
   const style = { ...STYLE, ...props.style };
 
-  return <Content style={style}>{children}</Content>;
+  function renderNav() {
+    if (nav == null) return null;
+    return (
+      <Breadcrumb style={{ margin: "50px 0 25px 0" }}>
+        {nav.map((entry, idx) => (
+          <Breadcrumb.Item key={idx}>{entry}</Breadcrumb.Item>
+        ))}
+      </Breadcrumb>
+    );
+  }
+
+  return (
+    <Content style={style}>
+      {renderNav()}
+      {children}
+    </Content>
+  );
 }
