@@ -139,18 +139,20 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
 
-      let students = util.parse_students(props.students, user_map, redux);
+      const students_ordered = util.parse_students(students, user_map, redux);
       if (active_student_sort != null) {
-        students.sort(util.pick_student_sorter(active_student_sort.toJS()));
+        students_ordered.sort(
+          util.pick_student_sorter(active_student_sort.toJS())
+        );
         if (active_student_sort.get("is_descending")) {
-          students.reverse();
+          students_ordered.reverse();
         }
       }
 
       // Deleted and non-deleted students
       const deleted: any[] = [];
       const non_deleted: any[] = [];
-      for (const x of students) {
+      for (const x of students_ordered) {
         if (x.deleted) {
           deleted.push(x);
         } else {
@@ -159,33 +161,37 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       }
       const num_deleted = deleted.length;
 
-      students = non_deleted;
-      if (show_deleted) {
-        // but show at the end...
-        students = students.concat(deleted);
-      }
+      const students_shown = show_deleted
+        ? non_deleted.concat(deleted) // show deleted ones at the end...
+        : non_deleted;
 
       let num_omitted = 0;
-      if (search) {
-        const words = search_split(search.toLowerCase());
-        const w: any[] = [];
-        for (const x of students) {
-          const target = [
-            x.first_name ?? "",
-            x.last_name ?? "",
-            x.email_address ?? "",
-          ]
-            .join(" ")
-            .toLowerCase();
-          if (search_match(target, words)) {
-            w.push(x);
+      const students_next = (function () {
+        if (search) {
+          const words = search_split(search.toLowerCase());
+          const students_filtered: any[] = [];
+          for (const x of students_shown) {
+            const target = [
+              x.first_name ?? "",
+              x.last_name ?? "",
+              x.email_address ?? "",
+            ]
+              .join(" ")
+              .toLowerCase();
+            if (search_match(target, words)) {
+              students_filtered.push(x);
+            } else {
+              num_omitted += 1;
+            }
           }
+          return students_filtered;
+        } else {
+          return students_shown;
         }
-        students = w;
-      }
+      })();
 
-      return { students, num_omitted, num_deleted };
-    }, [students, props.students, show_deleted, search]);
+      return { students: students_next, num_omitted, num_deleted };
+    }, [students, show_deleted, search, active_student_sort]);
 
     async function do_add_search(e): Promise<void> {
       // Search for people to add to the course
