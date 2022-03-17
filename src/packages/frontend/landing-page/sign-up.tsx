@@ -3,15 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { ReactDOM, Rendered, redux } from "../app-framework";
-import { Passports } from "../passports";
-import { PassportStrategy } from "../account/passport-types";
-import { List } from "immutable";
-
-import { UNIT, Icon, Loading } from "../components";
+import { PassportStrategy } from "@cocalc/frontend/account/passport-types";
+import {
+  ReactDOM,
+  redux,
+  Rendered,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, UNIT } from "@cocalc/frontend/components";
+import { set_local_storage } from "@cocalc/frontend/misc";
+import { Passports } from "@cocalc/frontend/passports";
 import { COLORS } from "@cocalc/util/theme";
-import { set_local_storage } from "../misc";
+import { List } from "immutable";
+import React from "react";
 
 const {
   HelpEmailLink,
@@ -43,7 +47,7 @@ export const WELL_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies?: List<PassportStrategy>;
+  strategies?: List<TypedMap<PassportStrategy>>;
   email_signup?: boolean;
   get_api_key?: string;
   sign_up_error?: any;

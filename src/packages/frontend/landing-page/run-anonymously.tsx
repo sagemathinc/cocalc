@@ -23,7 +23,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
   const [anon_checkbox, set_anon_checkbox] = useState(!show_terms);
   const site_name = useTypedRedux("customize", "site_name");
 
-  if (!allow_anon) return null;   // important -- this must be after any use hooks above!
+  if (!allow_anon) return null; // important -- this must be after any use hooks above!
 
   const run_anonymously = (e) => {
     e.preventDefault();

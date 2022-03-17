@@ -13,9 +13,15 @@ Table({
   fields: {
     strategy: {
       type: "string",
+      desc: "a unique lower-case alphanumeric space-free identifier",
     },
     conf: {
       type: "map",
+      desc: "a JSON object with the configuration for this strategy, consumed by the 'auth.ts' module",
+    },
+    info: {
+      type: "map",
+      desc: "additional public information about this strategy, displayed on the next.js pages, etc.",
     },
   },
 });

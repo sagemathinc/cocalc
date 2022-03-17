@@ -7,38 +7,45 @@
 The Landing Page
 */
 
-import * as immutable from "immutable";
-import { Component, rclass, rtypes, Rendered } from "../app-framework";
-import { Row, Col, Alert } from "../antd-bootstrap";
-import { A, UNIT } from "../components";
-import { SiteDescription, Footer } from "../customize";
-import { SignUp } from "./sign-up";
-import { SignIn } from "./sign-in";
-import { RunAnonymously } from "./run-anonymously";
-import { ForgotPassword } from "./forgot-password";
-import { ResetPassword } from "./reset-password";
-import { Connecting } from "./connecting";
-import { QueryParams } from "../misc/query-params";
+import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
-  NAME as LAUNCH_ACTIONS_NAME,
-  launch_action_description,
-  LaunchTypes,
-} from "../launch/actions";
-import { NAME as ComputeImageStoreName } from "../custom-software/util";
-import { ComputeImages, launchcode2display } from "../custom-software/init";
-import { ShowSupportLink } from "../support";
-import { PassportStrategy } from "../account/passport-types";
+  React,
+  Rendered,
+  TypedMap,
+  useMemo,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, UNIT } from "@cocalc/frontend/components";
+import { Footer, SiteDescription } from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
+import * as immutable from "immutable";
+import { PassportStrategy } from "../account/passport-types";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ComputeImages, launchcode2display } from "../custom-software/init";
+import { NAME as ComputeImageStoreName } from "../custom-software/util";
+import {
+  LaunchTypes,
+  launch_action_description,
+  NAME as LAUNCH_ACTIONS_NAME,
+} from "../launch/actions";
+import { ShowSupportLink } from "../support";
+import { Connecting } from "./connecting";
+import { ForgotPassword } from "./forgot-password";
+import { ResetPassword } from "./reset-password";
+import { RunAnonymously } from "./run-anonymously";
+import { SignIn } from "./sign-in";
+import { SignUp } from "./sign-up";
 
 const DESC_FONT = "sans-serif";
 
 interface Props {
-  strategies?: immutable.List<PassportStrategy>;
+  strategies?: immutable.List<TypedMap<PassportStrategy>>;
   exclusive_sso_domains?: Set<string>;
-  sign_up_error?: immutable.Map<string, any>;
+  sign_up_error?: TypedMap<{ generic: string }>;
   sign_in_error?: string;
   signing_in?: boolean;
   signing_up?: boolean;
@@ -53,103 +60,81 @@ interface Props {
   has_account?: boolean;
 }
 
-interface reduxProps {
-  get_api_key?: string;
+export const LandingPage: React.FC<Props> = (props: Props) => {
+  const {
+    strategies,
+    exclusive_sso_domains,
+    sign_up_error,
+    sign_in_error,
+    signing_in,
+    signing_up,
+    forgot_password_error,
+    forgot_password_success,
+    show_forgot_password,
+    token,
+    reset_key,
+    reset_password_error,
+    remember_me,
+    has_remember_me,
+    has_account,
+  } = props;
 
-  site_name?: string;
-  is_commercial?: boolean;
-  _is_configured?: boolean;
-  logo_square?: string;
-  logo_rectangular?: string;
-  help_email?: string;
-  terms_of_service?: string;
-  terms_of_service_url?: string;
-  email_signup?: boolean;
+  const get_api_key = useTypedRedux("page", "get_api_key");
+  //const site_name = useTypedRedux("customize", "site_name");
+  const is_commercial = useTypedRedux("customize", "is_commercial");
+  const _is_configured = useTypedRedux("customize", "_is_configured");
+  const logo_square = useTypedRedux("customize", "logo_square");
+  const logo_rectangular = useTypedRedux("customize", "logo_rectangular");
+  const help_email = useTypedRedux("customize", "help_email");
+  const terms_of_service = useTypedRedux("customize", "terms_of_service");
+  const terms_of_service_url = useTypedRedux(
+    "customize",
+    "terms_of_service_url"
+  );
+  const email_signup = useTypedRedux("customize", "email_signup");
+  const sign_in_email_address = useTypedRedux(
+    "account",
+    "sign_in_email_address"
+  );
+  const type: LaunchTypes | undefined = useRedux(LAUNCH_ACTIONS_NAME, "type");
+  const launch: string | undefined = useRedux(LAUNCH_ACTIONS_NAME, "launch");
+  const images: ComputeImages | undefined = useTypedRedux(
+    ComputeImageStoreName,
+    "images"
+  );
 
-  sign_in_email_address?: string;
+  const show_terms: boolean = useMemo(() => {
+    return terms_of_service?.length > 0 || terms_of_service_url?.length > 0;
+  }, [terms_of_service, terms_of_service_url]);
 
-  type?: LaunchTypes;
-  launch?: string;
-  images?: ComputeImages;
-}
-
-interface State {
-  show_terms: boolean;
-}
-
-class LandingPage extends Component<Props & reduxProps, State> {
-  constructor(props) {
-    super(props);
-    const show_terms =
-      props.terms_of_service?.length > 0 ||
-      props.terms_of_service_url?.length > 0;
-    this.state = {
-      show_terms,
-    };
-  }
-
-  static reduxProps() {
-    return {
-      page: {
-        get_api_key: rtypes.string,
-      },
-      customize: {
-        site_name: rtypes.bool,
-        is_commercial: rtypes.bool,
-        _is_configured: rtypes.bool,
-        logo_square: rtypes.string,
-        logo_rectangular: rtypes.string,
-        help_email: rtypes.string,
-        terms_of_service: rtypes.string,
-        terms_of_service_url: rtypes.string,
-        email_signup: rtypes.bool,
-      },
-      account: {
-        sign_in_email_address: rtypes.string,
-      },
-      [LAUNCH_ACTIONS_NAME]: {
-        type: rtypes.string,
-        launch: rtypes.string,
-      },
-      [ComputeImageStoreName]: {
-        images: rtypes.immutable,
-      },
-    };
-  }
-
-  private render_password_reset(): Rendered {
-    const reset_key = this.props.reset_key;
-    if (!reset_key) {
-      return;
-    }
+  function render_password_reset(): Rendered {
+    if (!reset_key) return;
     return (
       <ResetPassword
         reset_key={reset_key}
-        reset_password_error={this.props.reset_password_error}
-        help_email={this.props.help_email}
+        reset_password_error={reset_password_error}
+        help_email={help_email}
       />
     );
   }
 
-  private render_forgot_password(): Rendered {
-    if (!this.props.show_forgot_password) {
+  function render_forgot_password(): Rendered {
+    if (!show_forgot_password) {
       return;
     }
     return (
       <ForgotPassword
         initial_email_address={
-          this.props.sign_in_email_address != null
-            ? this.props.sign_in_email_address
-            : ""
+          sign_in_email_address != null ? sign_in_email_address : ""
         }
-        forgot_password_error={this.props.forgot_password_error}
-        forgot_password_success={this.props.forgot_password_success}
+        forgot_password_error={forgot_password_error}
+        forgot_password_success={forgot_password_success}
       />
     );
   }
 
-  private render_support(): Rendered {
-    if (!this.props.is_commercial) {
+  function render_support(): Rendered {
+    if (!is_commercial) {
       return;
     }
 
@@ -160,28 +145,23 @@ class LandingPage extends Component<Props & reduxProps, State> {
     );
   }
 
-  private render_launch_action(): Rendered {
-    if (
-      this.props.type == null ||
-      this.props.launch == null ||
-      this.props.images == null
-    ) {
+  function render_launch_action(): Rendered {
+    if (type == null || launch == null || images == null) {
       return;
     }
-    const descr = launch_action_description(this.props.type);
+    const descr = launch_action_description(type);
     if (descr == null) return;
     let message;
     let bsStyle: "info" | "danger" = "info";
 
-    if (this.props.type == "csi") {
-      const display = launchcode2display(this.props.images, this.props.launch);
+    if (type == "csi") {
+      const display = launchcode2display(images, launch);
 
       if (display == null) {
         bsStyle = "danger";
         message = (
           <>
-            Custom Software Image <code>{this.props.launch}</code> does not
-            exist!
+            Custom Software Image <code>{launch}</code> does not exist!
           </>
         );
       } else {
@@ -194,7 +174,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
     } else {
       message = (
         <>
-          {descr}: <code>{this.props.launch}</code>
+          {descr}: <code>{launch}</code>
         </>
       );
     }
@@ -208,24 +188,18 @@ class LandingPage extends Component<Props & reduxProps, State> {
     );
   }
 
-  private render_main_page(): Rendered {
+  function render_main_page(): JSX.Element {
     let main_row_style;
-    if (
-      (this.props.remember_me || QueryParams.get("auth_token")) &&
-      !this.props.get_api_key
-    ) {
+    if ((remember_me || QueryParams.get("auth_token")) && !get_api_key) {
       // Just assume user will be signing in.
       return <Connecting />;
     }
 
-    const img_icon = !!this.props.logo_square
-      ? this.props.logo_square
-      : APP_ICON_WHITE;
-    const img_name = !!this.props.logo_rectangular
-      ? this.props.logo_rectangular
+    const img_icon = !!logo_square ? logo_square : APP_ICON_WHITE;
+    const img_name = !!logo_rectangular
+      ? logo_rectangular
       : APP_LOGO_NAME_WHITE;
-    const customized =
-      !!this.props.logo_square && !!this.props.logo_rectangular;
+    const customized = !!logo_square && !!logo_rectangular;
 
     const topbar = {
       img_icon,
@@ -247,17 +221,17 @@ class LandingPage extends Component<Props & reduxProps, State> {
 
     return (
       <div style={{ margin: UNIT }}>
-        {this.render_launch_action()}
-        {this.render_password_reset()}
-        {this.render_forgot_password()}
+        {render_launch_action()}
+        {render_password_reset()}
+        {render_forgot_password()}
         <Row style={main_row_style} className={"visible-xs"}>
           <SignIn
-            get_api_key={this.props.get_api_key}
-            signing_in={this.props.signing_in}
-            sign_in_error={this.props.sign_in_error}
-            has_account={this.props.has_account}
+            get_api_key={get_api_key}
+            signing_in={signing_in}
+            sign_in_error={sign_in_error}
+            has_account={has_account}
             xs={true}
-            strategies={this.props.strategies}
+            strategies={strategies}
             color={topbar.color}
           />
           <div style={{ clear: "both" }}></div>
@@ -288,16 +262,16 @@ class LandingPage extends Component<Props & reduxProps, State> {
             }}
           >
             <SignIn
-              get_api_key={this.props.get_api_key}
-              signing_in={this.props.signing_in}
-              sign_in_error={this.props.sign_in_error}
-              has_account={this.props.has_account}
+              get_api_key={get_api_key}
+              signing_in={signing_in}
+              sign_in_error={sign_in_error}
+              has_account={has_account}
               xs={false}
-              strategies={this.props.strategies}
+              strategies={strategies}
               color={topbar.color}
             />
           </div>
-          {this.props._is_configured ? (
+          {_is_configured ? (
             <div
               style={{
                 display: "inline-block",
@@ -380,34 +354,34 @@ class LandingPage extends Component<Props & reduxProps, State> {
         <Row style={{ minHeight: "60vh" }}>
           <Col md={6}>
             <SignUp
-              sign_up_error={this.props.sign_up_error}
-              strategies={this.props.strategies}
-              get_api_key={this.props.get_api_key}
-              token={this.props.token}
-              has_remember_me={this.props.has_remember_me}
-              signing_up={this.props.signing_up}
-              has_account={this.props.has_account}
-              help_email={this.props.help_email}
-              terms_of_service={this.props.terms_of_service}
-              terms_of_service_url={this.props.terms_of_service_url}
-              email_signup={this.props.email_signup}
-              exclusive_sso_domains={this.props.exclusive_sso_domains}
+              sign_up_error={sign_up_error}
+              strategies={strategies}
+              get_api_key={get_api_key}
+              token={token}
+              has_remember_me={has_remember_me}
+              signing_up={signing_up}
+              has_account={has_account}
+              help_email={help_email}
+              terms_of_service={terms_of_service}
+              terms_of_service_url={terms_of_service_url}
+              email_signup={email_signup}
+              exclusive_sso_domains={exclusive_sso_domains}
             />
           </Col>
           <Col md={6}>
             <div style={{ color: COLORS.GRAY, marginTop: "5px" }}>
-              <RunAnonymously show_terms={this.state.show_terms} />
+              <RunAnonymously show_terms={show_terms} />
               <br />
               <div style={{ textAlign: "center" }}>
-                {this.render_support()}
+                {render_support()}
                 <br />
-                {!this.props.get_api_key ? (
+                {!get_api_key ? (
                   <div>
                     <A href={DOC_URL}>CoCalc documentation</A>
                   </div>
                 ) : undefined}
                 <br />
-                {!this.props.get_api_key ? (
+                {!get_api_key ? (
                   <div>
                     <a href={appBasePath}>Landing page</a>
                   </div>
@@ -421,12 +395,11 @@ class LandingPage extends Component<Props & reduxProps, State> {
     );
   }
 
-  public render(): Rendered {
-    const main_page = this.render_main_page();
-    if (!this.props.get_api_key) {
-      return main_page;
-    }
-    const app = capitalize(this.props.get_api_key);
+  const main_page = render_main_page();
+  if (!get_api_key) {
+    return main_page;
+  } else {
+    const app = capitalize(get_api_key);
     return (
       <div>
         <div style={{ padding: "15px" }}>
@@ -436,8 +409,8 @@ class LandingPage extends Component<Props & reduxProps, State> {
             <br />
             <br />
             This grants <b>full access</b> to all of your CoCalc projects to{" "}
-            {app}, until you explicitly revoke your API key in Account
-            preferences.
+            {app}
+            , until you explicitly revoke your API key in Account preferences.
             <br />
             <br />
             Please sign in or create an account below.
@@ -448,7 +421,4 @@ class LandingPage extends Component<Props & reduxProps, State> {
       </div>
     );
   }
-}
-
-const tmp = rclass(LandingPage);
-export { tmp as LandingPage };
+};
