@@ -7,7 +7,7 @@ import {
   PassportStrategy,
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
-import { React, TypedMap, CSS } from "@cocalc/frontend/app-framework";
+import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -196,8 +196,6 @@ export const Passports: React.FC<Props> = (props: Props) => {
     return <h3 style={style}>Connect with</h3>;
   }
 
-  // This any gets automatically fixed when upgrading to Typescript 3.1+
-  //const strategiesJS = (strategies as any).toJS();
   return (
     <div style={style}>
       {render_heading()}

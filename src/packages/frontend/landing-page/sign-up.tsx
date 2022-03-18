@@ -7,11 +7,13 @@ import { PassportStrategy } from "@cocalc/frontend/account/passport-types";
 import {
   ReactDOM,
   redux,
-  Rendered,
+  useState,
   TypedMap,
+  Rendered,
+  useRef,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, UNIT } from "@cocalc/frontend/components";
-import { set_local_storage } from "@cocalc/frontend/misc";
+//import { set_local_storage } from "@cocalc/frontend/misc";
 import { Passports } from "@cocalc/frontend/passports";
 import { COLORS } from "@cocalc/util/theme";
 import { List } from "immutable";
@@ -68,57 +70,71 @@ interface State {
   domain_blocked: string | undefined;
 }
 
-export class SignUp extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    const show_terms =
-      props.terms_of_service?.length > 0 ||
-      props.terms_of_service_url?.length > 0;
-    this.state = {
-      show_terms,
-      terms_checkbox: !show_terms,
-      user_token: "",
-      domain_blocked: undefined,
-    };
-  }
+export const SignUp: React.FC<Props> = (props: Props) => {
+  const {
+    strategies,
+    email_signup,
+    get_api_key,
+    sign_up_error,
+    token,
+    // has_account,
+    signing_up,
+    // style,
+    // has_remember_me,
+    help_email,
+    terms_of_service,
+    terms_of_service_url,
+    exclusive_sso_domains,
+  } = props;
 
-  make_account = (e) => {
+  const show_terms =
+    (terms_of_service?.length ?? 0) > 0 ||
+    (terms_of_service_url?.length ?? 0) > 0;
+
+  const [terms_checkbox, set_terms_checkbox] = useState<boolean>(!show_terms);
+  const [user_token, set_user_token] = useState<string>("");
+  const [domain_blocked, set_domain_blocked] = useState<string | undefined>();
+
+  const first_name_ref = useRef<HTMLInputElement>();
+  const last_name_ref = useRef<HTMLInputElement>();
+  const email_ref = useRef<HTMLInputElement>();
+  const password_ref = useRef<HTMLInputElement>();
+
+  function make_account(e) {
     e.preventDefault();
     return redux
       .getActions("account")
       .create_account(
-        ReactDOM.findDOMNode(this.refs.first_name)?.value,
-        ReactDOM.findDOMNode(this.refs.last_name)?.value,
-        ReactDOM.findDOMNode(this.refs.email)?.value,
-        ReactDOM.findDOMNode(this.refs.password)?.value,
-        this.state.user_token
+        ReactDOM.findDOMNode(first_name_ref.current)?.value,
+        ReactDOM.findDOMNode(last_name_ref.current)?.value,
+        ReactDOM.findDOMNode(email_ref.current)?.value,
+        ReactDOM.findDOMNode(password_ref.current)?.value,
+        user_token
       );
-  };
+  }
 
-  render_error(field): Rendered {
+  function render_error(field): Rendered {
     const err =
-      this.props.sign_up_error != undefined
-        ? this.props.sign_up_error.get(field)
-        : undefined;
+      sign_up_error != undefined ? sign_up_error.get(field) : undefined;
     if (err != undefined) {
       return <div style={ERROR_STYLE}>{err}</div>;
     }
   }
 
-  render_passports(): Rendered {
-    if (this.props.strategies == undefined) {
+  function render_passports(): Rendered {
+    if (strategies == undefined) {
       return <Loading />;
     }
-    if (this.props.strategies.size <= 1) {
+    if (strategies.size <= 1) {
       return;
     }
     return (
       <div>
         <Passports
-          strategies={this.props.strategies}
-          get_api_key={this.props.get_api_key}
+          strategies={strategies}
+          get_api_key={get_api_key}
           style={{ textAlign: "center" }}
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
         />
         <hr style={{ marginTop: 10, marginBottom: 10 }} />
         Or sign up via email
@@ -127,30 +143,30 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  render_token_input(): Rendered {
-    if (!this.props.token) {
+  function render_token_input(): Rendered {
+    if (!token) {
       return;
     }
     return (
       <FormGroup>
         <FormControl
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
           type={"text"}
           placeholder={"Enter secret token"}
           cocalc-test={"sign-up-token"}
-          onChange={(e) => this.setState({ user_token: e.target.value })}
+          onChange={(e) => set_user_token(e.target.value)}
         />
       </FormGroup>
     );
   }
 
-  render_terms(): Rendered {
-    if (!this.state.show_terms) return undefined;
+  function render_terms(): Rendered {
+    if (!show_terms) return undefined;
     return (
       <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
         <Checkbox
           cocalc-test={"sign-up-tos"}
-          onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
+          onChange={(e) => set_terms_checkbox(e.target.checked)}
         >
           <TermsOfService />
         </Checkbox>
@@ -158,14 +174,14 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  render_first_name(): Rendered {
+  function render_first_name(): Rendered {
     return (
       <FormGroup>
-        {this.render_error("first_name")}
+        {render_error("first_name")}
         <FormControl
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
           name="first_name"
-          ref="first_name"
+          ref={first_name_ref}
           type="text"
           autoFocus={false}
           placeholder="First name"
@@ -176,14 +192,14 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  render_last_name(): Rendered {
+  function render_last_name(): Rendered {
     return (
       <FormGroup>
-        {this.render_error("last_name")}
+        {render_error("last_name")}
         <FormControl
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
           name="last_name"
-          ref="last_name"
+          ref={last_name_ref}
           type="text"
           autoFocus={false}
           placeholder="Last name"
@@ -194,54 +210,54 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  check_email(email: string) {
+  function check_email(email: string) {
     // this is just a quick heuristic – a full check is done in the hub
     const domain = email.split("@")[1]?.trim().toLowerCase();
-    if (domain != null && this.props.exclusive_sso_domains?.has(domain)) {
-      this.setState({ domain_blocked: domain });
-    } else if (this.state.domain_blocked != null) {
-      this.setState({ domain_blocked: undefined });
+    if (domain != null && exclusive_sso_domains?.has(domain)) {
+      set_domain_blocked(domain);
+    } else if (domain_blocked != null) {
+      set_domain_blocked(undefined);
     }
   }
 
-  render_domain_blocked(): Rendered {
-    if (this.state.domain_blocked == null) return;
+  function render_domain_blocked(): Rendered {
+    if (domain_blocked == null) return;
     return (
       <div style={ERROR_STYLE}>
         To sign up with{" "}
-        <code style={{ color: "white" }}>@{this.state.domain_blocked}</code>,
-        you have to use the corresponding SSO connect mechanism listed above!
+        <code style={{ color: "white" }}>@{domain_blocked}</code>, you have to
+        use the corresponding SSO connect mechanism listed above!
       </div>
     );
   }
 
-  render_email(): Rendered {
+  function render_email(): Rendered {
     return (
       <FormGroup>
-        {this.render_error("email_address")}
-        {this.render_domain_blocked()}
+        {render_error("email_address")}
+        {render_domain_blocked()}
         <FormControl
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
           name="email"
-          ref="email"
+          ref={email_ref}
           type="email"
           placeholder="Email address"
           cocalc-test={"sign-up-email"}
           maxLength={254}
-          onChange={(e) => this.check_email(e.target.value)}
+          onChange={(e) => check_email(e.target.value)}
         />
       </FormGroup>
     );
   }
 
-  render_password(): Rendered {
+  function render_password(): Rendered {
     return (
       <FormGroup>
-        {this.render_error("password")}
+        {render_error("password")}
         <FormControl
-          disabled={!this.state.terms_checkbox}
+          disabled={!terms_checkbox}
           name="password"
-          ref="password"
+          ref={password_ref}
           type="password"
           placeholder="Choose a password"
           cocalc-test={"sign-up-password"}
@@ -251,21 +267,21 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  question_blur() {
-    const question: string = ReactDOM.findDOMNode(this.refs.question)?.value;
-    if (!question) return;
-    try {
-      // We store the question in localStorage.
-      // It can get saved to the backend (associated
-      // with their account) once they have signed in
-      // or created an account in some way.
-      set_local_storage("sign_up_how_find_cocalc", question);
-    } catch (err) {
-      // silently fail -- only for analytics.
-    }
-  }
+  // function question_blur() {
+  //   const question: string = ReactDOM.findDOMNode(questionRef.current)?.value;
+  //   if (!question) return;
+  //   try {
+  //     // We store the question in localStorage.
+  //     // It can get saved to the backend (associated
+  //     // with their account) once they have signed in
+  //     // or created an account in some way.
+  //     set_local_storage("sign_up_how_find_cocalc", question);
+  //   } catch (err) {
+  //     // silently fail -- only for analytics.
+  //   }
+  // }
 
-  render_question() {
+  function render_question() {
     /*
     return (
       <>
@@ -275,10 +291,10 @@ export class SignUp extends React.Component<Props, State> {
         <FormGroup>
           <FormControl
             name="question"
-            ref="question"
+            ref={questionRef}
             type="text"
             autoFocus={false}
-            onBlur={this.question_blur.bind(this)}
+            onBlur={question_blur.bind(this)}
           />
         </FormGroup>
       </>
@@ -286,65 +302,58 @@ export class SignUp extends React.Component<Props, State> {
     */
   }
 
-  render_button(): Rendered {
+  function render_button(): Rendered {
     return (
       <Button
         style={{ marginBottom: UNIT, marginTop: UNIT }}
-        disabled={
-          !this.state.terms_checkbox ||
-          this.props.signing_up ||
-          this.state.domain_blocked != null
-        }
+        disabled={!terms_checkbox || signing_up || domain_blocked != null}
         bsStyle={"success"}
         bsSize={"large"}
         type={"submit"}
         cocalc-test={"sign-up-submit"}
         block
       >
-        {this.props.signing_up ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-        Sign Up!
+        {signing_up ? <Icon name="cocalc-ring" spin /> : undefined} Sign Up!
       </Button>
     );
   }
 
-  render_creation_form(): Rendered {
+  function render_creation_form(): Rendered {
     return (
       <div>
-        {this.render_error("generic")}
-        {this.render_error("account_creation_failed")}
-        {this.render_error("other")}
-        {this.render_passports()}
-        {this.props.email_signup && (
+        {render_error("generic")}
+        {render_error("account_creation_failed")}
+        {render_error("other")}
+        {render_passports()}
+        {email_signup && (
           <form
             style={{ marginTop: 20, marginBottom: 20 }}
-            onSubmit={this.make_account}
+            onSubmit={make_account}
           >
-            {this.render_error("token")}
-            {this.render_token_input()}
-            {this.render_first_name()}
-            {this.render_last_name()}
-            {this.render_email()}
-            {this.render_password()}
-            {this.render_button()}
+            {render_error("token")}
+            {render_token_input()}
+            {render_first_name()}
+            {render_last_name()}
+            {render_email()}
+            {render_password()}
+            {render_button()}
           </form>
         )}
       </div>
     );
   }
 
-  render(): Rendered {
-    return (
-      <Well style={WELL_STYLE}>
-        <AccountCreationEmailInstructions />
-        {this.render_question()}
-        {this.render_terms()}
-        {this.render_creation_form()}
-        {!!this.props.help_email ? (
-          <div style={{ textAlign: "center" }}>
-            Email <HelpEmailLink /> if you need help.
-          </div>
-        ) : undefined}
-      </Well>
-    );
-  }
-}
+  return (
+    <Well style={WELL_STYLE}>
+      <AccountCreationEmailInstructions />
+      {render_question()}
+      {render_terms()}
+      {render_creation_form()}
+      {!!help_email ? (
+        <div style={{ textAlign: "center" }}>
+          Email <HelpEmailLink /> if you need help.
+        </div>
+      ) : undefined}
+    </Well>
+  );
+};
