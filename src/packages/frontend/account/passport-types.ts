@@ -1,9 +1,4 @@
-export const PRIMARY_SSO: readonly string[] = [
-  "google",
-  "facebook",
-  "github",
-  "twitter",
-];
+export const PRIMARY_SSO = ["google", "facebook", "github", "twitter"] as const;
 
 export interface PassportStrategy {
   name: string; // the internal ID (also -- name of icon)

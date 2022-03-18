@@ -7,7 +7,7 @@ import {
   PassportStrategy,
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
-import { TypedMap } from "@cocalc/frontend/app-framework";
+import { React, TypedMap, CSS } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -15,7 +15,6 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { List } from "immutable";
 import { join } from "path";
-import React from "react";
 
 interface Props {
   strategies?: List<TypedMap<PassportStrategy>>;
@@ -25,7 +24,7 @@ interface Props {
   disabled?: boolean;
 }
 
-const BASE_ICON_STYLE: React.CSSProperties = Object.freeze({
+const BASE_ICON_STYLE: CSS = {
   display: "inline-block",
   padding: "6px",
   borderRadius: "50%",
@@ -33,9 +32,9 @@ const BASE_ICON_STYLE: React.CSSProperties = Object.freeze({
   height: "50px",
   marginRight: "10px",
   textAlign: "center",
-});
+} as const;
 
-const CUSTOM_ICON_STYLE = Object.freeze({
+const CUSTOM_ICON_STYLE: CSS = {
   ...BASE_ICON_STYLE,
   ...{
     display: "inline-block",
@@ -43,9 +42,9 @@ const CUSTOM_ICON_STYLE = Object.freeze({
     backgroundSize: "contain",
     padding: "0",
   },
-} as React.CSSProperties);
+} as const;
 
-const TEXT_ICON_STYLE: React.CSSProperties = Object.freeze({
+const TEXT_ICON_STYLE: CSS = {
   backgroundColor: COLORS.GRAY_D,
   color: "white",
   fontSize: "24px",
@@ -55,7 +54,7 @@ const TEXT_ICON_STYLE: React.CSSProperties = Object.freeze({
   marginRight: "10px",
   textAlign: "center",
   borderRadius: "10px",
-});
+} as const;
 
 const PASSPORT_ICON_STYLES = {
   facebook: {
@@ -74,23 +73,25 @@ const PASSPORT_ICON_STYLES = {
     backgroundColor: "white",
     color: "black",
   },
-};
+} as const;
 
 export function strategy2display(strategy: PassportStrategy): string {
   return strategy.display ?? capitalize(strategy.name);
 }
 
-export function PassportStrategyIcon({
-  strategy,
-  small,
-}: {
+interface StrategyIconProps {
   strategy: PassportStrategy;
   small?: boolean;
-}) {
+}
+
+export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
+  props: StrategyIconProps
+) => {
+  const { strategy, small } = props;
   const { name, display, icon } = strategy;
   const small_icon = small ? { width: "25px", height: "25px", top: "0" } : {};
-  if (PRIMARY_SSO.indexOf(name) >= 0 && isIconName(name)) {
-    const icon_style: React.CSSProperties = {
+  if (PRIMARY_SSO.indexOf(name as any) >= 0 && isIconName(name)) {
+    const icon_style: CSS = {
       ...BASE_ICON_STYLE,
       ...PASSPORT_ICON_STYLES[name],
       ...small_icon,
@@ -98,7 +99,7 @@ export function PassportStrategyIcon({
     return <Icon name={name} style={icon_style} />;
   } else if (icon != null) {
     // icon is an URL
-    const style: React.CSSProperties = {
+    const style: CSS = {
       ...CUSTOM_ICON_STYLE,
       ...{ backgroundImage: `url("${icon}")` },
       ...small_icon,
@@ -107,14 +108,18 @@ export function PassportStrategyIcon({
   } else {
     return <div style={TEXT_ICON_STYLE}>{display}</div>;
   }
-}
+};
 
-export class Passports extends React.Component<Props> {
-  static defaultProps = {
-    strategies: List([]),
-  };
+export const Passports: React.FC<Props> = (props: Props) => {
+  const {
+    strategies = List([]),
+    get_api_key,
+    no_heading,
+    style,
+    disabled,
+  } = props;
 
-  render_tip(passport_name: string) {
+  function render_tip(passport_name: string) {
     return (
       <>
         Use {passport_name} to sign into your <SiteName /> account instead of an
@@ -123,7 +128,7 @@ export class Passports extends React.Component<Props> {
     );
   }
 
-  private strategy_tip_title(name: string, passport_name: string) {
+  function strategy_tip_title(name: string, passport_name: string) {
     return (
       <span>
         {isIconName(name) ? <Icon name={name} /> : undefined} {passport_name}
@@ -131,33 +136,33 @@ export class Passports extends React.Component<Props> {
     );
   }
 
-  private strategy_style(): React.CSSProperties {
-    const style: React.CSSProperties = { fontSize: "28px" };
-    if (this.props.disabled) {
+  function strategy_style(): CSS {
+    const style: CSS = { fontSize: "28px" };
+    if (disabled) {
       style.opacity = 0.5;
     }
     return style;
   }
 
-  private strategy_url(name: string): string {
+  function strategy_url(name: string): string {
     let url = "";
-    if (!this.props.disabled) {
+    if (!disabled) {
       url = join(appBasePath, "auth", name);
-      if (this.props.get_api_key) {
-        url += `?get_api_key=${this.props.get_api_key}`;
+      if (get_api_key) {
+        url += `?get_api_key=${props.get_api_key}`;
       }
     }
     return url;
   }
 
-  private render_strategy(strategy: PassportStrategy) {
+  function render_strategy(strategy: PassportStrategy) {
     const { name } = strategy;
     if (name === "email") return;
-    const url = this.strategy_url(name);
+    const url = strategy_url(name);
     const passport_name = strategy2display(strategy);
-    const title = this.strategy_tip_title(name, passport_name);
-    const style = this.strategy_style();
-    if (this.props.disabled) {
+    const title = strategy_tip_title(name, passport_name);
+    const style = strategy_style();
+    if (disabled) {
       return (
         <span key={name} style={style}>
           <Tip
@@ -172,11 +177,7 @@ export class Passports extends React.Component<Props> {
     } else {
       return (
         <a href={url} key={name} style={style}>
-          <Tip
-            placement="bottom"
-            title={title}
-            tip={this.render_tip(passport_name)}
-          >
+          <Tip placement="bottom" title={title} tip={render_tip(passport_name)}>
             <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </a>
@@ -184,27 +185,25 @@ export class Passports extends React.Component<Props> {
     }
   }
 
-  private render_heading() {
-    if (this.props.no_heading) {
+  function render_heading() {
+    if (no_heading) {
       return;
     }
-    const style: React.CSSProperties = { marginTop: 0 };
-    if (this.props.disabled) {
+    const style: CSS = { marginTop: 0 };
+    if (disabled) {
       style.opacity = 0.5;
     }
     return <h3 style={style}>Connect with</h3>;
   }
 
-  render() {
-    // This any gets automatically fixed when upgrading to Typescript 3.1+
-    const strategies = (this.props.strategies as any).toJS();
-    return (
-      <div style={this.props.style}>
-        {this.render_heading()}
-        <div style={{ display: "flex" }}>
-          {strategies.map((strategy) => this.render_strategy(strategy))}
-        </div>
+  // This any gets automatically fixed when upgrading to Typescript 3.1+
+  //const strategiesJS = (strategies as any).toJS();
+  return (
+    <div style={style}>
+      {render_heading()}
+      <div style={{ display: "flex" }}>
+        {strategies.map((strategy) => render_strategy(strategy.toJS()))}
       </div>
-    );
-  }
-}
+    </div>
+  );
+};

@@ -16,12 +16,11 @@ import { Passports } from "@cocalc/frontend/passports";
 import { COLORS } from "@cocalc/util/theme";
 import { List } from "immutable";
 import React from "react";
-
-const {
+import {
   HelpEmailLink,
   TermsOfService,
   AccountCreationEmailInstructions,
-} = require("../customize");
+} from "@cocalc/frontend/customize";
 
 const {
   Button,
