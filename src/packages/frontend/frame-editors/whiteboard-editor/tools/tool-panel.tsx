@@ -11,7 +11,7 @@ import { PANEL_STYLE } from "./panel";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { CloseX } from "@cocalc/frontend/components/close-x";
 import { useFrameContext } from "../hooks";
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../math";
 import {
   DEFAULT_FONT_SIZE,
@@ -28,9 +28,11 @@ import { getCountdownMoment } from "@cocalc/frontend/editors/stopwatch/stopwatch
 import { AspectRatio } from "./frame";
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
+export type { Tool };
 import { ELEMENTS } from "../elements/spec";
 import { Element } from "../types";
-export type { Tool };
+import { redux } from "@cocalc/frontend/app-framework";
+import { set_account_table } from "@cocalc/frontend/account/util";
 
 interface AllParams {
   color?: string;
@@ -358,9 +360,6 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
   );
 }
 
-// For now just storing these presets in localStorage.
-// TODO: move to account settings or the document.  NOT SURE?!
-
 interface PresetManager<Params> {
   savePresets: (presets: Params) => void;
   loadPresets: () => Params[];
@@ -396,7 +395,7 @@ export function getPresetManager<Params>(
   DEFAULTS: Params[],
   extraIds?: { [id: number]: Params } // typical for negative id's; hardcoded.
 ): PresetManager<Params> {
-  const key = `whiteboard-tool-presets-${tool}`;
+  const key = `whiteboard_${tool}`;
 
   let x: undefined | Params = undefined;
   for (const id in DEFAULTS) {
@@ -406,25 +405,33 @@ export function getPresetManager<Params>(
   if (x == null) {
     throw Error("there must be at least one default preset");
   }
-  const DEFAULT: Params = x;
+  const DEFAULT: Params = x; // the *first* default.
 
   function loadPresets(): Params[] {
+    let changed: { [id: number]: Params } = {};
     try {
-      const presets = JSON.parse(localStorage[key]);
-      for (let id = 0; id < DEFAULTS.length; id++) {
-        if (presets[id] == null) {
-          presets[id] = { ...DEFAULT };
-        }
-        return presets;
-      }
+      changed = JSON.parse(
+        redux.getStore("account").getIn(["editor_settings", key], "{}")
+      );
     } catch (_err) {
-      // fine
+      changed = {};
     }
-    return DEFAULTS;
+    const presets: Params[] = [];
+    for (let id = 0; id < DEFAULTS.length; id++) {
+      presets.push(changed[id] ?? { ...DEFAULTS[id] });
+    }
+    return presets;
   }
 
   const savePresets = debounce((presets) => {
-    localStorage[key] = JSON.stringify(presets);
+    const v: any = {};
+    for (let id = 0; id < DEFAULTS.length; id++) {
+      if (!isEqual(presets[id], DEFAULTS[id])) {
+        v[id] = presets[id];
+      }
+    }
+    const val = JSON.stringify(v);
+    set_account_table({ editor_settings: { [key]: val } });
   }, 250);
 
   paramsMap[tool] = (id: number) => {
