@@ -408,13 +408,19 @@ export const Footer: React.FC = React.memo(() => {
 
   function contents() {
     const elements = [
-      <A href={appBasePath}>
+      <A key={0} href={appBasePath}>
         <SiteName /> by {organizationName}
       </A>,
-      <A href={SystemStatusUrl}>System Status</A>,
-      <A href={TOSurl}>Terms of Service</A>,
-      <HelpEmailLink />,
-      <span title={webappVersionInfo}>&copy; {YEAR}</span>,
+      <A key={1} href={SystemStatusUrl}>
+        System Status
+      </A>,
+      <A key={2} href={TOSurl}>
+        Terms of Service
+      </A>,
+      <HelpEmailLink key={3} />,
+      <span key={4} title={webappVersionInfo}>
+        &copy; {YEAR}
+      </span>,
     ];
     return r_join(elements, <> &middot; </>);
   }

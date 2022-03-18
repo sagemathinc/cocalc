@@ -124,9 +124,7 @@ export const LandingPage: React.FC<Props> = (props: Props) => {
     }
     return (
       <ForgotPassword
-        initial_email_address={
-          sign_in_email_address != null ? sign_in_email_address : ""
-        }
+        initial_email_address={sign_in_email_address ?? ""}
         forgot_password_error={forgot_password_error}
         forgot_password_success={forgot_password_success}
       />
