@@ -36,12 +36,12 @@ import { EmailAddressSetting } from "./email-address-setting";
 import { APIKeySetting } from "./api-key";
 import { EmailVerification } from "./email-verification";
 import { log } from "../../user-tracking";
-import { PassportStrategy } from "../passport-types";
+import { PassportStrategyFrontend } from "../passport-types";
 import { PassportStrategyIcon, strategy2display } from "../../passports";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
-type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
+type ImmutablePassportStrategy = TypedMap<PassportStrategyFrontend>;
 
 interface Props {
   account_id?: string;

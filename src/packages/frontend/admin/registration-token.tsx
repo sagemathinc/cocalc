@@ -28,7 +28,7 @@ import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, Icon } from "../components";
 import { COLORS } from "@cocalc/util/theme";
-import { PassportStrategy } from "../account/passport-types";
+import { PassportStrategyFrontend } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 
 interface Token {
@@ -541,7 +541,7 @@ export const RegistrationToken: React.FC<{}> = () => {
     if (account_store == null) {
       return <div>Account store not defined -- try again...</div>;
     }
-    const strategies: List<TypedMap<PassportStrategy>> | undefined =
+    const strategies: List<TypedMap<PassportStrategyFrontend>> | undefined =
       account_store.get("strategies");
     if (strategies == null) {
       // I hit this in production once and it crashed my browser.

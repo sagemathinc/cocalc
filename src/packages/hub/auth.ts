@@ -33,41 +33,47 @@
 //
 // Then restart the hubs.
 
-import { Router } from "express";
-import ms from "ms";
-import { callback2 as cb2 } from "@cocalc/util/async-utils";
-import { getLogger } from "@cocalc/hub/logger";
-import { join as path_join } from "path";
-import { v4 } from "uuid";
-import passport from "passport";
-import * as dot from "dot-object";
-import * as _ from "lodash";
-import * as misc from "@cocalc/util/misc";
-const sign_in = require("./sign-in");
-import Cookies from "cookies";
-import express_session from "express-session";
-import { HELP_EMAIL, DNS } from "@cocalc/util/theme";
-import {
-  email_verified_successfully,
-  email_verification_problem,
-  welcome_email,
-} from "./email";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import {
-  PassportStrategy,
-  PRIMARY_SSO,
-} from "@cocalc/frontend/account/passport-types";
-const safeJsonStringify = require("safe-json-stringify");
-import base_path from "@cocalc/backend/base-path";
-import generateHash from "@cocalc/server/auth/hash";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
+import base_path from "@cocalc/backend/base-path";
 import {
-  createRememberMeCookie,
-  COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
-} from "@cocalc/server/auth/remember-me";
+  PassportStrategyDB,
+  PassportStrategyDBConfig,
+  PassportTypes,
+  PassportTypesList,
+} from "@cocalc/database/postgres/passport";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import {
+  PassportStrategyFrontend,
+  PRIMARY_SSO,
+} from "@cocalc/frontend/account/passport-types";
+import { getLogger } from "@cocalc/hub/logger";
 import apiKeyAction from "@cocalc/server/api/manage";
+import generateHash from "@cocalc/server/auth/hash";
+import {
+  COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
+  createRememberMeCookie,
+} from "@cocalc/server/auth/remember-me";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import * as misc from "@cocalc/util/misc";
+import { DNS, HELP_EMAIL } from "@cocalc/util/theme";
+import Cookies from "cookies";
+import * as dot from "dot-object";
+import { Router } from "express";
+import express_session from "express-session";
+import * as _ from "lodash";
+import ms from "ms";
+import passport from "passport";
+import { join as path_join } from "path";
+import { v4 } from "uuid";
+import {
+  email_verification_problem,
+  email_verified_successfully,
+  welcome_email,
+} from "./email";
+const sign_in = require("./sign-in");
+const safeJsonStringify = require("safe-json-stringify");
 
 const logger = getLogger("auth");
 
@@ -76,25 +82,6 @@ const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
 
 // root for authentication related endpoints -- will be prefixed with the base_path
 const AUTH_BASE = "/auth";
-
-type login_info_keys =
-  | "id"
-  | "first_name"
-  | "last_name"
-  | "full_name"
-  | "emails";
-
-export interface PassportStrategyDB extends PassportStrategy {
-  clientID?: string; // Google, Twitter, ... and OAuth2
-  clientSecret?: string; // Google, Twitter, ... and OAuth2
-  authorizationURL?: string; // OAuth2
-  tokenURL?: string; // --*--
-  userinfoURL?: string; // OAuth2, to get a profile
-  login_info?: { [key in login_info_keys]?: string };
-  public?: boolean; // if true it's a public SSO. this is only used in the UI, i.e. when there are no public ones, we allow token based email sign up
-  disabled?: boolean; // if true, ignore this entry. default false.
-  exclusive_domains?: string[];
-}
 
 const { defaults, required } = misc;
 
@@ -340,7 +327,7 @@ export class PassportManager {
   // set in the hub, passed in -- not used by "site_conf", though
   readonly host: string; // e.g. 127.0.0.1
   // configured strategies
-  private strategies: { [k: string]: PassportStrategyDB } | undefined =
+  private passports: { [k: string]: PassportStrategyDB } | undefined =
     undefined;
   // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
@@ -356,25 +343,41 @@ export class PassportManager {
   private async init_passport_settings(): Promise<{
     [k: string]: PassportStrategyDB;
   }> {
-    if (this.strategies != null) {
+    if (this.passports != null) {
       logger.debug("already initialized -- just returning what we have");
-      return this.strategies;
+      return this.passports;
     }
     try {
-      // we always offer email!  (Note: why?  it may make sense to disable.)
-      this.strategies = { email: { name: "email" } };
-      const settings = await cb2(this.database.get_all_passport_settings);
+      // email is always included, if even email singup is disabled
+      // use "register tokens" to restrict this method
+      this.passports = {
+        email: {
+          strategy: "email",
+          conf: { type: "email" },
+          info: { public: true },
+        },
+      };
+      const settings = await this.database.get_all_passport_settings();
       for (const setting of settings) {
-        const name = setting.strategy;
-        const conf = setting.conf as PassportStrategyDB;
-        if (!conf || conf.disabled === true) {
+        // backwards compatibility
+        const conf = setting.conf as any;
+        setting.info = setting.info ?? {};
+        if (setting.info.disabled ?? conf?.disabled ?? false) {
           continue;
         }
-        conf.name = name;
-        conf.public = setting.conf.public ?? true; // set the default
-        this.strategies[name] = conf;
+        for (const deprecated of [
+          "public",
+          "display",
+          "icon",
+          "exclusive_domains",
+        ]) {
+          if (setting.info[deprecated] == null) {
+            setting.info[deprecated] = conf?.[deprecated];
+          }
+        }
+        this.passports[setting.strategy] = setting;
       }
-      return this.strategies;
+      return this.passports;
     } catch (err) {
       logger.debug(`error getting passport settings -- ${err}`);
       throw err;
@@ -400,7 +403,7 @@ export class PassportManager {
   private strategies_v1(res): void {
     const data: string[] = [];
     const known = ["email", ...PRIMARY_SSO];
-    for (const name in this.strategies) {
+    for (const name in this.passports) {
       if (name === "site_conf") continue;
       if (known.indexOf(name) >= 0) {
         data.push(name);
@@ -409,19 +412,25 @@ export class PassportManager {
     res.json(data);
   }
 
-  public get_strategies_v2(): PassportStrategy[] {
-    const data: PassportStrategy[] = [];
-    for (const name in this.strategies) {
+  public get_strategies_v2(): PassportStrategyFrontend[] {
+    const data: PassportStrategyFrontend[] = [];
+    // we cast the result of _.pick to get more type saftey
+    const keys = [
+      "display",
+      "type",
+      "icon",
+      "public",
+      "exclusive_domains",
+    ] as const;
+    for (const name in this.passports) {
       if (name === "site_conf") continue;
       // this is sent to the web client → do not include any secret info!
-      const info = _.pick(this.strategies[name], [
-        "name",
-        "display",
-        "type",
-        "icon",
-        "public",
-        "exclusive_domains",
-      ]);
+      const info: PassportStrategyFrontend = {
+        name,
+        ...(_.pick(this.passports[name].info, keys) as {
+          [key in typeof keys[number]]: any;
+        }),
+      };
       data.push(info);
     }
     return data;
@@ -446,6 +455,29 @@ export class PassportManager {
     passport.serializeUser((user, done) => done(null, user));
     passport.deserializeUser((user: Express.User, done) => done(null, user));
 
+    // this.router endpoints setup
+    this.init_strategies_endpoint();
+    this.init_email_verification();
+    this.init_password_reset_token();
+
+    // prerequisite for setting up any SSO endpoints
+    await this.init_passport_settings();
+
+    const settings = await cb2(this.database.get_server_settings_cached);
+    const dns = settings.dns || DNS;
+    this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
+    logger.debug(`auth_url='${this.auth_url}'`);
+
+    await Promise.all([
+      this.init_strategy(GoogleStrategyConf),
+      this.init_strategy(GithubStrategyConf),
+      this.init_strategy(FacebookStrategyConf),
+      this.init_strategy(TwitterStrategyConf),
+      this.init_extra_strategies(),
+    ]);
+  }
+
+  private init_strategies_endpoint(): void {
     // Return the configured and supported authentication strategies.
     this.router.get(`${AUTH_BASE}/strategies`, (req, res) => {
       if (req.query.v === "2") {
@@ -454,7 +486,9 @@ export class PassportManager {
         this.strategies_v1(res);
       }
     });
+  }
 
+  private async init_email_verification(): Promise<void> {
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
       const { DOMAIN_URL } = require("@cocalc/util/theme");
@@ -486,7 +520,9 @@ export class PassportManager {
         res.send(email_verification_problem(url, err));
       }
     });
+  }
 
+  private init_password_reset_token(): void {
     // reset password: user email link contains a token, which we store in a session cookie.
     // this prevents leaking that token to 3rd parties as a referrer
     // endpoint has to match with @cocalc/hub/password
@@ -507,28 +543,15 @@ export class PassportManager {
         res.redirect("../app");
       }
     });
-
-    // prerequisite for setting up any SSO endpoints
-    await this.init_passport_settings();
-
-    const settings = await cb2(this.database.get_server_settings_cached);
-    const dns = settings.dns || DNS;
-    this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
-    logger.debug(`auth_url='${this.auth_url}'`);
-
-    await Promise.all([
-      this.init_strategy(GoogleStrategyConf),
-      this.init_strategy(GithubStrategyConf),
-      this.init_strategy(FacebookStrategyConf),
-      this.init_strategy(TwitterStrategyConf),
-      this.init_extra_strategies(),
-    ]);
   }
 
-  private extra_strategy_constructor(name: string) {
+  private extra_strategy_constructor(name: PassportTypes) {
     // LDAP via passport-ldapauth: https://github.com/vesse/passport-ldapauth#readme
     // OAuth2 via @passport-next/passport-oauth2: https://github.com/passport-next/passport-oauth2#readme
     // ORCID via passport-orcid: https://github.com/hubgit/passport-orcid#readme
+    if (!PassportTypesList.includes(name)) {
+      throw Error(`hub/auth: unknown extra strategy "${name}"`);
+    }
     switch (name) {
       case "ldap":
         return require("passport-ldapauth").Strategy;
@@ -542,8 +565,12 @@ export class PassportManager {
         return require("passport-orcid").Strategy;
       case "saml":
         return require("passport-saml").Strategy;
+      case "activedirectory":
+        return require("passport-activedirectory").Strategy;
+      case "email":
+        throw new Error("email is a special case, not a strategy");
       default:
-        throw Error(`hub/auth: unknown extra strategy "${name}"`);
+        misc.unreachable(name);
     }
   }
 
@@ -554,27 +581,29 @@ export class PassportManager {
   // here is one example what can be saved in the DB to make this work for a general OAuth2
   // if this SSO is not public (e.g. uni campus, company specific, ...) mark it as {"public":false}!
   //
-  // insert into passport_settings (strategy, conf ) VALUES ( '[unique, e.g. "wowtech"]', '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "cocalc", "profile", ... depends on the config], "clientSecret": "[a password]", "authorizationURL": "https://domain.edu/.../oauth2/authorize", "userinfoURL" :"https://domain.edu/.../oauth2/userinfo",  "tokenURL":"https://domain.edu/.../oauth2/...extras.../access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "[user visible, e.g. "WOW Tech"]", "icon": "https://storage.googleapis.com/square.svg", "public": false}'::JSONB );
+  // insert into passport_settings (strategy, conf, info ) VALUES ( '[unique, e.g. "wowtech"]', '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "cocalc", "profile", ... depends on the config], "clientSecret": "[a password]", "authorizationURL": "https://domain.edu/.../oauth2/authorize", "userinfoURL" :"https://domain.edu/.../oauth2/userinfo",  "tokenURL":"https://domain.edu/.../oauth2/...extras.../access_token",  "login_info" : {"emails" :"emails[0].value"}}'::JSONB, {"display": "[user visible, e.g. "WOW Tech"]", "icon": "https://storage.googleapis.com/square.svg", "public": false}::JSONB);
   //
   // note, the login_info.emails string extracts from the profile object constructed by parse_openid_profile,
   // which is only triggered if there is such a "userinfoURL", which is OAuth2 specific.
   // other auth mechanisms might already provide the profile in passport.js's structure!
   private async init_extra_strategies(): Promise<void> {
-    if (this.strategies == null) throw Error("strategies not initalized!");
+    if (this.passports == null) throw Error("strategies not initalized!");
     const inits: Promise<void>[] = [];
-    for (const [name, strategy] of Object.entries(this.strategies)) {
+    for (const [name, strategy] of Object.entries(this.passports)) {
       if (PRIMARY_STRATEGIES.indexOf(name) >= 0) {
         continue;
       }
-      if (strategy.type == null) {
+      if (strategy.conf.type == null) {
         throw new Error(
           `all "extra" strategies must define their type, in particular also "${name}"`
         );
       }
-      const cons = this.extra_strategy_constructor(strategy.type);
+      const cons = this.extra_strategy_constructor(strategy.conf.type);
       // by default, all of these have .id, but we can overwrite them in the configuration's login_info field
       // the default below works well for OAuth2
-      const dflt_login_info = {
+      const DEFAULT_LOGIN_INFO: Required<
+        PassportStrategyDBConfig["login_info"]
+      > = {
         id: "id",
         first_name: "name.givenName",
         last_name: "name.familyName",
@@ -583,14 +612,14 @@ export class PassportManager {
       const config: StrategyConf = {
         strategy: name,
         PassportStrategyConstructor: cons,
-        login_info: Object.assign(dflt_login_info, strategy.login_info),
-        userinfoURL: strategy.userinfoURL,
+        login_info: { ...DEFAULT_LOGIN_INFO, ...strategy.conf.login_info },
+        userinfoURL: strategy.conf.userinfoURL,
         // e.g. tokenURL will be extracted here, and then passed to the constructor
-        extra_opts: _.omit(strategy, [
-          "name",
-          "display",
+        extra_opts: _.omit(strategy.conf, [
+          "name", // deprecated
+          "display", // deprecated
           "type",
-          "icon",
+          "icon", // deprecated
           "clientID",
           "clientSecret",
           "userinfoURL",
@@ -613,26 +642,26 @@ export class PassportManager {
       userinfoURL,
     } = strategy_config;
     logger.debug(`init_strategy ${strategy}`);
-    if (this.strategies == null) throw Error("strategies not initalized!");
+    if (this.passports == null) throw Error("strategies not initalized!");
     if (strategy == null) {
       logger.debug(`strategy is null -- aborting initialization`);
       return;
     }
 
-    const conf = this.strategies[strategy];
-    if (conf == null) {
-      logger.debug(`conf is null -- aborting initialization`);
+    const confDB = this.passports[strategy];
+    if (confDB == null) {
+      logger.debug(
+        `no conf for strategy=${strategy} in DB -- aborting initialization`
+      );
       return;
     }
 
-    const opts = Object.assign(
-      {
-        clientID: conf.clientID,
-        clientSecret: conf.clientSecret,
-        callbackURL: `${this.auth_url}/${strategy}/return`,
-      },
-      extra_opts
-    );
+    const opts = {
+      clientID: confDB.conf.clientID,
+      clientSecret: confDB.conf.clientSecret,
+      callbackURL: `${this.auth_url}/${strategy}/return`,
+      ...extra_opts,
+    };
 
     // attn: this log line shows secrets
     // logger.debug(`opts = ${safeJsonStringify(opts)}`);

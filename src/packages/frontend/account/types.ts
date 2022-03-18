@@ -5,7 +5,7 @@
 
 import { List, Map } from "immutable";
 import { NewFilenameTypes } from "../project/utils";
-import { PassportStrategy } from "./passport-types";
+import { PassportStrategyFrontend } from "./passport-types";
 import { TypedMap } from "../app-framework";
 import { MessageInfo } from "../client/hub";
 
@@ -68,7 +68,7 @@ export interface AccountState {
   doing_anonymous_setup?: boolean;
   lti_id?: List<string>;
   created?: Date;
-  strategies?: List<TypedMap<PassportStrategy>>;
+  strategies?: List<TypedMap<PassportStrategyFrontend>>;
   token?: boolean; // whether or not a registration token is required when creating an account
   keyboard_variant_options?: List<any>;
   show_forgot_password?: boolean;

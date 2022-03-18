@@ -4,6 +4,7 @@
  */
 
 import getPool from "@cocalc/database/pool";
+import { capitalize } from "@cocalc/util/misc";
 import { sortBy } from "lodash";
 import { SSO } from "./types";
 
@@ -19,10 +20,9 @@ interface Row {
 
 function parseRow(row: Row): SSO | undefined {
   const { strategy, info, icon } = row;
-  const display = row.display ?? strategy;
   return {
     id: strategy,
-    display,
+    display: info.display ?? capitalize(strategy),
     domains: info?.exclusive_domains ?? [],
     descr: info?.description ?? null,
     icon,

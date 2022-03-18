@@ -58,6 +58,7 @@ collab = require('./postgres/collab')
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached} = require('./postgres/passport')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
@@ -318,46 +319,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             strategy : required
             conf     : required
+            info     : undefined
             cb       : required
-        @_query
-            query    : 'INSERT into passport_settings'
-            values   :
-                'strategy::TEXT ' : opts.strategy
-                'conf    ::JSONB' : opts.conf
-            conflict : 'strategy'
-            cb       : opts.cb
+        return await set_passport_settings(@, opts)
 
     get_passport_settings: (opts) =>
         opts = defaults opts,
             strategy : required
-            cb       : required
-        @_query
-            query : 'SELECT conf FROM passport_settings'
-            where :
-                "strategy = $::TEXT" : opts.strategy
-            cb    : one_result('conf', opts.cb)
+        return await get_passport_settings(@, opts)
 
-    get_all_passport_settings: (opts) =>
-        opts = defaults opts,
-            cb       : required
-        @_query
-            query : 'SELECT strategy, conf FROM passport_settings'
-            cb    : all_results(opts.cb)
+    get_all_passport_settings: () =>
+        return await get_all_passport_settings(@)
 
-    get_all_passport_settings_cached: (opts) =>
-        opts = defaults opts,
-            cb       : required
-        passports = getPassportsCached()
-        if passports
-            opts.cb(undefined, passports)
-            return
-        @get_all_passport_settings
-            cb: (err, res) =>
-                if err
-                    opts.cb(err)
-                else
-                    setPassportsCached(res)
-                    opts.cb(undefined, res)
+    get_all_passport_settings_cached: () =>
+        return await get_all_passport_settings_cached(@)
 
     ###
     Account creation, deletion, existence

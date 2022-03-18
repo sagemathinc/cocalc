@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PassportStrategy } from "@cocalc/frontend/account/passport-types";
+import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-types";
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { Markdown } from "@cocalc/frontend/components";
 import { ErrorDisplay } from "@cocalc/frontend/components/error-display";
@@ -18,7 +18,7 @@ interface Props {
   has_account?: boolean;
   xs?: boolean; // extra small
   color: string;
-  strategies?: List<TypedMap<PassportStrategy>>;
+  strategies?: List<TypedMap<PassportStrategyFrontend>>;
   get_api_key?: string;
 }
 

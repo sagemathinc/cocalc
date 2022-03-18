@@ -9,7 +9,7 @@ export default function init(router, isPersonal: boolean) {
     // If we're behind cloudflare, we expose the detected country in the client.
     // Use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
     // to read the ISO 3166-1 Alpha 2 codes.
-    // If it is unknown, the code will be XX and K1 is the Tor-Network.
+    // If it is unknown, the code will be XX. "K1" is the Tor-Network.
     const country = req.headers["cf-ipcountry"] ?? "XX";
     const host = req.headers["host"];
     const config = await webappConfig.get({ host, country });

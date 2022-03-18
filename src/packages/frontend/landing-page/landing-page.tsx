@@ -23,7 +23,7 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import * as immutable from "immutable";
-import { PassportStrategy } from "../account/passport-types";
+import { PassportStrategyFrontend } from "../account/passport-types";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 import { ComputeImages, launchcode2display } from "../custom-software/init";
 import { NAME as ComputeImageStoreName } from "../custom-software/util";
@@ -43,7 +43,7 @@ import { SignUp } from "./sign-up";
 const DESC_FONT = "sans-serif";
 
 interface Props {
-  strategies?: immutable.List<TypedMap<PassportStrategy>>;
+  strategies?: immutable.List<TypedMap<PassportStrategyFrontend>>;
   exclusive_sso_domains?: Set<string>;
   sign_up_error?: TypedMap<{ generic: string }>;
   sign_in_error?: string;

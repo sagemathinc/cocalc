@@ -85,7 +85,7 @@ async function is_domain_exclusive_sso(
 
   const blocked = new Set<string>([]);
   for (const pp of passports) {
-    for (const domain of pp.conf?.exclusive_domains ?? []) {
+    for (const domain of pp.info?.exclusive_domains ?? []) {
       blocked.add(domain);
     }
   }

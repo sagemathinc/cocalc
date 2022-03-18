@@ -5,7 +5,7 @@
 
 import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import type { PassportStrategyDB } from "./auth";
+import { PassportStrategyDB } from "@cocalc/database/postgres/passport";
 
 export async function have_active_registration_tokens(
   db: PostgreSQL
@@ -18,12 +18,8 @@ export async function have_active_registration_tokens(
   return resp.rows[0]?.have_tokens === true;
 }
 
-interface PassportConfig {
-  strategy: string;
-  conf: PassportStrategyDB;
-}
-export type PassportConfigs = PassportConfig[];
-
-export async function get_passports(db: PostgreSQL): Promise<PassportConfigs> {
-  return await callback2(db.get_all_passport_settings_cached);
+export async function get_passports(
+  db: PostgreSQL
+): Promise<PassportStrategyDB[]> {
+  return await db.get_all_passport_settings_cached();
 }

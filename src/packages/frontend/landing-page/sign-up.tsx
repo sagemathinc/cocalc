@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PassportStrategy } from "@cocalc/frontend/account/passport-types";
+import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-types";
 import {
   ReactDOM,
   redux,
@@ -48,7 +48,7 @@ export const WELL_STYLE: React.CSSProperties = {
 };
 
 interface Props {
-  strategies?: List<TypedMap<PassportStrategy>>;
+  strategies?: List<TypedMap<PassportStrategyFrontend>>;
   email_signup?: boolean;
   get_api_key?: string;
   sign_up_error?: any;
@@ -61,13 +61,6 @@ interface Props {
   terms_of_service?: string;
   terms_of_service_url?: string;
   exclusive_sso_domains?: Set<string>;
-}
-
-interface State {
-  terms_checkbox: boolean;
-  user_token: string;
-  show_terms: boolean;
-  domain_blocked: string | undefined;
 }
 
 export const SignUp: React.FC<Props> = (props: Props) => {

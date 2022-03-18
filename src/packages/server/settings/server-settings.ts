@@ -16,13 +16,14 @@ import getPool from "@cocalc/database/pool";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import getLogger from "@cocalc/backend/logger";
+import { PassportStrategyDB } from "@cocalc/database/postgres/passport";
 const L = getLogger("server:server-settings");
 
 // We're just using this to cache this result for a **few seconds**.
 const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;
 type CacheKeys = "server-settings" | "passports";
 // TODO add something for the passports data type?
-const cache = new LRU<CacheKeys, ServerSettings>({
+const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
   max: 10,
   maxAge: 1000 * CACHE_TIME_SECONDS,
 });
@@ -32,17 +33,17 @@ export function resetServerSettingsCache() {
   cache.reset();
 }
 
-export function getPassportsCached() {
-  return cache.get("passports");
+export function getPassportsCached(): PassportStrategyDB[] | undefined {
+  return cache.get("passports") as PassportStrategyDB[] | undefined;
 }
 
-export function setPassportsCached(val) {
+export function setPassportsCached(val: PassportStrategyDB[]) {
   return cache.set("passports", val);
 }
 
 export async function getServerSettings(): Promise<ServerSettings> {
   if (cache.has(KEY)) {
-    return cache.get(KEY)!; // can't be null
+    return cache.get(KEY)! as ServerSettings; // can't be null
   }
   const pool = getPool();
   const { rows } = await pool.query("SELECT name, value FROM server_settings");

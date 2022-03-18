@@ -4,7 +4,7 @@
  */
 
 import {
-  PassportStrategy,
+  PassportStrategyFrontend,
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
 import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
@@ -17,7 +17,7 @@ import { List } from "immutable";
 import { join } from "path";
 
 interface Props {
-  strategies?: List<TypedMap<PassportStrategy>>;
+  strategies?: List<TypedMap<PassportStrategyFrontend>>;
   get_api_key?: string;
   no_heading?: boolean;
   style?: object;
@@ -75,12 +75,12 @@ const PASSPORT_ICON_STYLES = {
   },
 } as const;
 
-export function strategy2display(strategy: PassportStrategy): string {
+export function strategy2display(strategy: PassportStrategyFrontend): string {
   return strategy.display ?? capitalize(strategy.name);
 }
 
 interface StrategyIconProps {
-  strategy: PassportStrategy;
+  strategy: PassportStrategyFrontend;
   small?: boolean;
 }
 
@@ -155,7 +155,7 @@ export const Passports: React.FC<Props> = (props: Props) => {
     return url;
   }
 
-  function render_strategy(strategy: PassportStrategy) {
+  function render_strategy(strategy: PassportStrategyFrontend) {
     const { name } = strategy;
     if (name === "email") return;
     const url = strategy_url(name);

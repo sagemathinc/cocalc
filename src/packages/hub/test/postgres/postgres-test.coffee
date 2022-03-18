@@ -386,7 +386,7 @@ describe 'testing the passport settings table: ', ->
         db.get_passport_settings
             strategy : 'fake'
             cb       : (err, value) ->
-                expect(value).toEqual(token:'foo')
+                expect(value.conf).toEqual(token:'foo')
                 done(err)
     it 'checks that it is also in the list of all passport entries', (done) ->
         db.get_all_passport_settings
