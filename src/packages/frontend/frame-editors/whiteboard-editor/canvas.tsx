@@ -1118,6 +1118,7 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
+    mousePos.current = { clientX: e.clientX, clientY: e.clientY };
     // this us used for zooming:
     mouseMoveRef.current = e;
     lastMouseRef.current = evtToData(e);
@@ -1228,7 +1229,6 @@ export default function Canvas({
           ["hand", "select", "pen", "frame"].includes(selectedTool)
             ? "none"
             : undefined,
-        userSelect: "none",
         overflow: "hidden",
         position: "relative",
       }}
@@ -1257,9 +1257,10 @@ export default function Canvas({
       onTouchEnd={!isNavigator ? onTouchEnd : undefined}
       onTouchCancel={!isNavigator ? onTouchCancel : undefined}
       onCopy={
-        isNavigator || editFocus
+        isNavigator
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
               event.preventDefault();
               const selectedElements = getSelectedElements({
                 elements,
@@ -1273,9 +1274,10 @@ export default function Canvas({
             }
       }
       onCut={
-        isNavigator || readOnly || editFocus
+        isNavigator || readOnly
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
               event.preventDefault();
               const selectedElements = getSelectedElements({
                 elements,
@@ -1290,14 +1292,15 @@ export default function Canvas({
             }
       }
       onPaste={
-        isNavigator || readOnly || editFocus
+        isNavigator || readOnly
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
+              if (editFocus) return;
               const encoded = event.clipboardData.getData(
                 "application/x-cocalc-whiteboard"
               );
               if (encoded) {
-                // copy/paste between whiteboards of their own structued data
+                // copy/paste between whiteboards of their own structured data
                 const pastedElements = decodeForPaste(encoded);
                 /* TODO: should also get where mouse is? */
                 let target: Point | undefined = undefined;
