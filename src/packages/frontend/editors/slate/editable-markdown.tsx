@@ -42,7 +42,7 @@ import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
-import { slatePointToMarkdownPosition } from "./sync";
+import { scrollIntoView, slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
@@ -275,7 +275,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
         return unregisterEditor;
       }
-    });
+    }, [registerEditor, unregisterEditor]);
 
     useEffect(() => {
       if (isFocused == null) return;
@@ -655,6 +655,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // @ts-ignore
           editor.lastSelection = editor.curSelection;
           if (editor.selection != null) {
+            // cursor moved
+            scrollIntoView(editor, editor.selection.focus);
             // @ts-ignore
             editor.curSelection = editor.selection;
           }

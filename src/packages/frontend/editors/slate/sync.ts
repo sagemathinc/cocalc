@@ -148,8 +148,14 @@ export async function scrollIntoView(
   point: Point
 ): Promise<void> {
   if (!ReactEditor.isUsingWindowing(editor)) {
-    const [node] = Editor.node(editor, point);
-    ReactEditor.toDOMNode(editor, node).scrollIntoView({ block: "center" });
+    try {
+      const [node] = Editor.node(editor, point);
+      const elt = ReactEditor.toDOMNode(editor, node);
+      elt.scrollIntoView({ block: "nearest" });
+    } catch (_err) {
+      // There is no guarantee the point is valid, or that
+      // the DOM node exists.
+    }
   } else {
     // TODO: this async is terrible. Also, if we just opened the slate editor,
     // then this will fail due to that restoring!
@@ -157,7 +163,6 @@ export async function scrollIntoView(
     editor.windowedListRef.current?.scrollToItem(scroll);
     await delay(10);
     editor.windowedListRef.current?.scrollToItem(scroll);
-    await delay(500);
   }
 }
 
