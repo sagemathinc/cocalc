@@ -47,21 +47,28 @@ export default function getKeyHandler(
     }
 
     const selection = node.get("selection");
-    if (selection?.size == 1) {
-      // Exactly one element is selected.
-      if (key == "escape") {
-        if (node.get("editFocus")) {
-          // currently editing something, e.g., text -- so step out of that.
-          actions.setEditFocus(frameId, false);
-        } else {
-          // not editing anything, so deselect element.
-          actions.clearSelection(frameId);
+    if (selection != null) {
+      if (selection.size >= 1) {
+        if (key == "escape") {
+          if (node.get("editFocus")) {
+            // currently editing something, e.g., text -- so step out of that.
+            actions.setEditFocus(frameId, false);
+          } else {
+            // not editing anything, so deselect element.
+            actions.clearSelection(frameId);
+          }
+          return;
         }
-        return;
       }
-      if (node.get("editFocus")) {
-        // do NOT use any keyboard shortcut on anything editable via the keyboard when editing.
-        return;
+      if (selection.size == 1) {
+        // Exactly one element is selected.
+        if (node.get("editFocus")) {
+          // do NOT use any keyboard shortcut on anything editable via the keyboard when editing.
+          return;
+        } else if (key == "enter") {
+          // not in editFocus mode but hit enter, so switch to editFocus
+          actions.setEditFocus(frameId, true);
+        }
       }
     }
 
