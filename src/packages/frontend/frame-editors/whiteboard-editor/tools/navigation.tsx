@@ -6,7 +6,6 @@ but in a way that is always present and with an additional
 high level map view.
 */
 
-import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Slider, Tooltip } from "antd";
@@ -160,10 +159,7 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
           display: "flex",
           flexDirection: "column",
           right: 0,
-          bottom:
-            IS_IOS || IS_IPAD
-              ? 30
-              : 0 /* hack due to bottom of screen gets scrolled away on ios */,
+          bottom: 0,
           width: `${width}px`,
           height: `${BAR_HEIGHT + (showMap ? height : 0)}px`,
         }}
