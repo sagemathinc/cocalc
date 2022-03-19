@@ -63,7 +63,9 @@ import RenderElement from "./elements/render";
 import RenderEdge from "./elements/edge";
 import Focused from "./focused";
 import {
+  EDIT_BORDER_COLOR,
   SELECTED_BORDER_COLOR,
+  SELECTED_PADDING,
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
 } from "./elements/style";
@@ -145,6 +147,7 @@ export default function Canvas({
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
+  const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
 
   const gridDivRef = useRef<any>(null);
@@ -595,9 +598,18 @@ export default function Canvas({
                   cursor: "text",
                   border: `${
                     SELECTED_BORDER_WIDTH / canvasScale
-                  }px ${SELECTED_BORDER_TYPE} ${SELECTED_BORDER_COLOR}`,
-                  marginLeft: `-${SELECTED_BORDER_WIDTH / canvasScale}px`,
-                  marginTop: `-${SELECTED_BORDER_WIDTH / canvasScale}px`,
+                  }px ${SELECTED_BORDER_TYPE} ${
+                    frame.desc.get("editFocus")
+                      ? EDIT_BORDER_COLOR
+                      : SELECTED_BORDER_COLOR
+                  }`,
+                  marginLeft: `-${
+                    (SELECTED_BORDER_WIDTH + SELECTED_PADDING) / canvasScale
+                  }px`,
+                  marginTop: `-${
+                    (SELECTED_BORDER_WIDTH + SELECTED_PADDING) / canvasScale
+                  }px`,
+                  padding: `${SELECTED_PADDING / canvasScale}px`,
                 }
               : undefined),
             width: "100%",
@@ -892,6 +904,7 @@ export default function Canvas({
     ) {
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);
+      frame.actions.setEditFocus(frame.id, true);
     }
   }
 
@@ -1250,7 +1263,7 @@ export default function Canvas({
       onTouchEnd={!isNavigator ? onTouchEnd : undefined}
       onTouchCancel={!isNavigator ? onTouchCancel : undefined}
       onCopy={
-        isNavigator || frame.desc.get("editFocus")
+        isNavigator || editFocus
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               event.preventDefault();
@@ -1266,7 +1279,7 @@ export default function Canvas({
             }
       }
       onCut={
-        isNavigator || readOnly || frame.desc.get("editFocus")
+        isNavigator || readOnly || editFocus
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               event.preventDefault();
@@ -1283,7 +1296,7 @@ export default function Canvas({
             }
       }
       onPaste={
-        isNavigator || readOnly || frame.desc.get("editFocus")
+        isNavigator || readOnly || editFocus
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               const encoded = event.clipboardData.getData(

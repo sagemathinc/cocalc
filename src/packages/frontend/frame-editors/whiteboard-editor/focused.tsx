@@ -27,6 +27,7 @@ import { ELEMENTS } from "./elements/spec";
 
 import {
   SELECTED_BORDER_COLOR,
+  EDIT_BORDER_COLOR,
   SELECTED_BORDER_WIDTH,
   SELECTED_BORDER_TYPE,
 } from "./elements/style";
@@ -309,7 +310,11 @@ export default function Focused({
               ? {
                   border: `${
                     SELECTED_BORDER_WIDTH / canvasScale
-                  }px ${SELECTED_BORDER_TYPE} ${SELECTED_BORDER_COLOR}`,
+                  }px ${SELECTED_BORDER_TYPE} ${
+                    frame.desc.get("editFocus")
+                      ? EDIT_BORDER_COLOR
+                      : SELECTED_BORDER_COLOR
+                  }`,
                   marginLeft: `${
                     -SELECTED_BORDER_WIDTH / canvasScale + offset.x
                   }px`,

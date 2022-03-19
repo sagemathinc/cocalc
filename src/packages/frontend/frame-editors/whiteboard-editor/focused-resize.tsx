@@ -11,11 +11,12 @@ import { useFrameContext } from "./hooks";
 import Draggable from "react-draggable";
 import { getPosition, MAX_ELEMENTS } from "./math";
 import { aspectRatioToNumber } from "./tools/frame";
+import { SELECTED_PADDING } from "./elements/style";
 
 const baseHandleSize = 20;
 const handleColor = "#888";
 const handleSize = `${baseHandleSize}px`;
-const handleOffset = `-${baseHandleSize / 2}px`;
+const handleOffset = -baseHandleSize / 2;
 
 const dragHandleCursors = {
   "true-true": "nwse-resize",
@@ -60,14 +61,16 @@ export default function DragHandle({
     transform: `scale(${1 / canvasScale})`,
   } as CSSProperties;
   if (top) {
-    style.top = handleOffset;
+    style.top = `${handleOffset - SELECTED_PADDING}px`;
   } else {
-    style.bottom = handleOffset;
+    style.bottom = `${
+      handleOffset + SELECTED_PADDING + SELECTED_PADDING / 2
+    }px`;
   }
   if (left) {
-    style.left = handleOffset;
+    style.left = `${handleOffset - SELECTED_PADDING}px`;
   } else {
-    style.right = handleOffset;
+    style.right = `${handleOffset + SELECTED_PADDING + SELECTED_PADDING / 2}px`;
   }
   function getOffset(data): { x: number; y: number; w: number; h: number } {
     if (top && left) {

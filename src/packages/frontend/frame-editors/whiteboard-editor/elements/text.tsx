@@ -153,21 +153,18 @@ function EditText({
         onModeChange={setMode}
         editBarStyle={{
           visibility: !focused || mode == "markdown" ? "hidden" : undefined,
-          top: `${-55 - 5 / canvasScale}px`,
+          top: `${-55 - 5}px`,
           left: "-24px",
           position: "absolute",
           boxShadow: "1px 3px 5px #ccc",
           margin: "5px",
           minWidth: "500px",
           background: "white",
-          transform: `scale(${1 / canvasScale})`,
-          transformOrigin: "bottom left",
           fontFamily: "sans-serif",
         }}
         modeSwitchStyle={{
           top: "-82px",
           left: "-18px",
-          transform: `scale(${1 / Math.max(1, canvasScale)})`,
         }}
         onCursors={(cursors) => {
           actions.setCursors(element.id, cursors);
