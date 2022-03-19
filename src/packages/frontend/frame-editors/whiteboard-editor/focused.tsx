@@ -24,6 +24,7 @@ import { isLocked } from "./tools/lock-button";
 import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
 import { ELEMENTS } from "./elements/spec";
+import { useWheel } from "@use-gesture/react";
 
 import {
   SELECTED_BORDER_COLOR,
@@ -85,6 +86,16 @@ export default function Focused({
   const locked = isLocked(selectedElements);
   const hidden = isHidden(selectedElements);
 
+  // Make it so the selected
+  useWheel(
+    (state) => {
+      state.event.stopPropagation();
+    },
+    {
+      target: rectRef,
+      eventOptions: { passive: false, capture: true },
+    }
+  );
   const resizeHandles = useMemo(() => {
     if (
       locked ||

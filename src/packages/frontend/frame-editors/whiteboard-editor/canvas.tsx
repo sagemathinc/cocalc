@@ -303,15 +303,6 @@ export default function Canvas({
 
   useWheel(
     (state) => {
-      if (state.event.target != gridDivRef.current) {
-        // the grid is below all the elements -- it's the background, so we
-        // definitely scroll if you're scrolling that.  Otherwise, you might be
-        // scrolling in an element.
-        const e = state.event.target;
-        if (e?.["tagName"] != "CANVAS") {
-          return;
-        }
-      }
       if (state.event.ctrlKey) return; // handled elsewhere
       offset.translate({ x: state.delta[0], y: state.delta[1] });
     },
