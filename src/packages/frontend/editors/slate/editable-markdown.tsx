@@ -67,6 +67,7 @@ import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimo
 
 import type { SlateEditor } from "./types";
 export type { SlateEditor };
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 
 // Whether or not to use windowing (=only rendering visible elements).
 // I'm going to disable this by default (for production
@@ -701,7 +702,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
-          placeholder={placeholder}
+          placeholder={
+            IS_TOUCH
+              ? undefined
+              : placeholder /* placeholder text makes focusing not work on touch devices, so we disable it. */
+          }
           autoFocus={autoFocus}
           className={
             !disableWindowing && height != "auto" ? "smc-vfill" : undefined
