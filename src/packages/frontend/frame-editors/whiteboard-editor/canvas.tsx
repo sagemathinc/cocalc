@@ -950,10 +950,6 @@ export default function Canvas({
   };
 
   const onTouchStart = (e) => {
-    if (!isNavigator && selectedTool == "hand") {
-      // touch already does hand by default
-      return;
-    }
     onMouseDown(e.touches[0]);
     // This is needed for all touch events when drawing, since otherwise the
     // entire page gets selected randomly when doing things.
@@ -1090,7 +1086,6 @@ export default function Canvas({
   };
 
   const onTouchEnd = (e) => {
-    if (!isNavigator && selectedTool == "hand") return;
     onMouseUp(e);
     if (selectedTool == "pen") {
       e.preventDefault();
@@ -1205,7 +1200,6 @@ export default function Canvas({
   };
 
   const onTouchMove = (e) => {
-    if (!isNavigator && selectedTool == "hand") return;
     onMouseMove(e.touches[0], true);
     if (selectedTool == "pen") {
       e.preventDefault();
@@ -1231,7 +1225,7 @@ export default function Canvas({
         ...style,
         touchAction:
           typeof selectedTool == "string" &&
-          ["select", "pen", "frame"].includes(selectedTool)
+          ["hand", "select", "pen", "frame"].includes(selectedTool)
             ? "none"
             : undefined,
         userSelect: "none",
@@ -1360,7 +1354,7 @@ export default function Canvas({
           left: `${offsetRef.current.left}px`,
           top: `${offsetRef.current.top}px`,
           transform: `scale(${canvasScale})`,
-          transition: "transform left top 0.1s",
+          /*transition: "transform left top 0.1s",*/
           transformOrigin: "top left",
         }}
       >
