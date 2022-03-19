@@ -681,6 +681,7 @@ export default function Canvas({
     );
     const selectedRects: Element[] = [];
     let multi: undefined | boolean = undefined;
+    let isAllEdges = true;
     for (const element of selectedElements) {
       if (element.type == "edge" && elementsMap != null) {
         multi = true;
@@ -691,6 +692,8 @@ export default function Canvas({
             selectedRects.push(a);
           }
         }
+      } else {
+        isAllEdges = false;
       }
       selectedRects.push(element);
     }
@@ -704,6 +707,7 @@ export default function Canvas({
       h: yMax - yMin + 1,
       z: 0,
     };
+
     v.push(
       <Focused
         key={"selection"}
@@ -715,7 +719,9 @@ export default function Canvas({
         readOnly={readOnly}
         multi={multi}
       >
-        <RenderElement element={element} canvasScale={canvasScale} focused />
+        {!isAllEdges && (
+          <RenderElement element={element} canvasScale={canvasScale} focused />
+        )}
       </Focused>
     );
   }

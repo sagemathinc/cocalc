@@ -7,6 +7,7 @@ The official Photoshop keyboard shortcuts are here and can be useful inspiration
 import { Actions } from "./actions";
 import { TOOLS, Tool } from "./tools/spec";
 import { DEFAULT_FONT_SIZE } from "./tools/defaults";
+import { centerOfRect } from "./math";
 
 const selectTool: { [key: string]: Tool } = {};
 for (const tool in TOOLS) {
@@ -21,6 +22,13 @@ for (const tool in TOOLS) {
   }
 }
 
+const KEY_TO_POINT = {
+  arrowup: { x: 0, y: -1 },
+  arrowdown: { x: 0, y: 1 },
+  arrowright: { x: 1, y: 0 },
+  arrowleft: { x: -1, y: 0 },
+};
+
 export default function getKeyHandler(
   actions: Actions,
   frameId: string
@@ -29,6 +37,7 @@ export default function getKeyHandler(
     const node = actions._get_frame_node(frameId);
     if (node == null) return;
     const key = e.key.toLowerCase();
+    //console.log(key);
 
     if (key == "s" && (e.metaKey || e.ctrlKey)) {
       actions.save(true);
@@ -47,7 +56,16 @@ export default function getKeyHandler(
     }
 
     const selection = node.get("selection");
-    if (selection != null) {
+    if (selection != null && selection.size > 0) {
+      if (key.startsWith("arrow") && !node.get("editFocus")) {
+        // Arrow keys but not editing, so move all selected objects 1 pixel:
+        const p = KEY_TO_POINT[key];
+        if (p != null) {
+          actions.moveElements(selection, p);
+          return;
+        }
+      }
+
       if (selection.size >= 1) {
         if (key == "escape") {
           if (node.get("editFocus")) {
@@ -72,7 +90,24 @@ export default function getKeyHandler(
       }
     }
 
-    if (activeElementIsInput()) return;
+    if (activeElementIsInput() || node.get("editFocus")) return;
+
+    if (selection == null || selection.size == 0) {
+      // nothing selected.
+      if (key.startsWith("arrow")) {
+        // arrow key with no selection - -move canvas center.
+        const viewport = node.get("viewport")?.toJS();
+        if (viewport != null) {
+          const center = centerOfRect(viewport);
+          const pt = KEY_TO_POINT[key];
+          if (pt != null) {
+            center.x += pt.x * 10;
+            center.y += pt.y * 10;
+            actions.setViewportCenter(frameId, center);
+          }
+        }
+      }
+    }
 
     if (key == "z" && (e.metaKey || e.ctrlKey)) {
       if (e.shiftKey) {

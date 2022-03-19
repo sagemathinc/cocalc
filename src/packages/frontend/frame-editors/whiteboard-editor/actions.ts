@@ -114,6 +114,10 @@ export class Actions extends BaseActions<State> {
     this._syncstring.set_cursor_locs(cursors, sideEffect);
   }
 
+  private idToElement(id: string): Element | undefined {
+    return this.store.getIn(["elements", id])?.toJS();
+  }
+
   // Create element adjacent to the one with given id.
   // It should be very similar to that one, but with empty content.
   // No op if id doesn't exist.
@@ -452,10 +456,6 @@ export class Actions extends BaseActions<State> {
     this.saveViewport(id, viewport);
   }
 
-  saveCenter(id: string, center: { x: number; y: number }) {
-    this.set_frame_tree({ id, center });
-  }
-
   // define this, so icon shows up at top
   zoom_page_width(id: string): void {
     this.fitToScreen(id);
@@ -780,7 +780,7 @@ export class Actions extends BaseActions<State> {
   }
 
   moveElements(
-    elements: Element[],
+    elements: (Element | string)[],
     offset: Point,
     commit: boolean = true,
     moved: Set<string> = new Set()
@@ -788,7 +788,13 @@ export class Actions extends BaseActions<State> {
     let allElements: undefined | Element[] = undefined;
     const tx = Math.round(offset.x);
     const ty = Math.round(offset.y);
-    for (const element of elements) {
+    for (let element of elements) {
+      if (typeof element == "string") {
+        const x = this.idToElement(element);
+        if (x == null) continue;
+        element = x;
+      }
+      if (typeof element == "string") throw Error("bug");
       const { id } = element;
       if (moved.has(id)) continue;
       const x = element.x + tx;
@@ -806,9 +812,7 @@ export class Actions extends BaseActions<State> {
         if (allElements == null) allElements = this.getElements();
         let overlapping: Element[];
         if (element.hide != null) {
-          overlapping = allElements.filter(
-            (elt) => elt.hide?.["frame"] == element.id
-          );
+          overlapping = allElements.filter((elt) => elt.hide?.["frame"] == id);
         } else {
           overlapping = getOverlappingElements(allElements, element).filter(
             (elt) => elt.type != "frame"
