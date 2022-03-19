@@ -569,3 +569,4 @@ export function closestMidpoint(rect1: Rect, rect2: Rect): Point {
   if (closestPoint === undefined) throw Error("impossible bug");
   return closestPoint;
 }
+

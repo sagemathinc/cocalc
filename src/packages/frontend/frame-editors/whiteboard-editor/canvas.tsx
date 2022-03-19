@@ -106,6 +106,7 @@ import { getElement } from "./tools/tool-panel";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { extendToIncludeEdges } from "./actions";
 
 import Cursors from "./cursors";
 
@@ -1263,6 +1264,7 @@ export default function Canvas({
                 elements,
                 selection,
               });
+              extendToIncludeEdges(selectedElements, elements);
               const encoded = encodeForCopy(selectedElements);
               event.clipboardData.setData(
                 "application/x-cocalc-whiteboard",

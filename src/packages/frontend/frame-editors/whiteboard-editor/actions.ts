@@ -212,8 +212,11 @@ export class Actions extends BaseActions<State> {
   }
 
   private createId(): string {
-    // TODO: make this ensure id is unique!
-    return uuid().slice(0, 8);
+    const elements = this.store.get("elements");
+    while (true) {
+      const id = uuid().slice(0, 8);
+      if (!elements?.has(id)) return id;
+    }
   }
 
   getElement(id: string): Element | undefined {
@@ -230,7 +233,9 @@ export class Actions extends BaseActions<State> {
   }
 
   createElement(obj: Partial<Element>, commit: boolean = true): Element {
-    obj.id = this.createId(); // ensure a new id is used no matter what!
+    if (obj.id == null || this.store.getIn(["elements", obj.id])) {
+      obj.id = this.createId(); // ensure a new id is used, if needed.
+    }
     if (obj.z == null) {
       // most calls to createElement should NOT resort to having to do this.
       obj.z = this.getPageSpan().zMax + 1;
@@ -500,9 +505,10 @@ export class Actions extends BaseActions<State> {
     const ids: string[] = [];
     const idMap: { [id: string]: string } = {};
     for (const element of elements) {
-      idMap[element.id] = this.createId();
-      element.id = idMap[element.id];
-      ids.push(element.id);
+      const newId = this.createId();
+      idMap[element.id] = newId;
+      ids.push(newId);
+      element.id = newId;
     }
     // We adjust any edges below, discarding any that aren't
     // part of what is being pasted.
@@ -631,6 +637,8 @@ export class Actions extends BaseActions<State> {
         elements.push(element);
       }
     }
+    extendToIncludeEdges(elements, this.getElements());
+    console.log("copying ", elements);
     copyToClipboard(elements);
   }
 
@@ -903,4 +911,23 @@ export function elementsList(
     ?.valueSeq()
     .filter((x) => x != null)
     .toJS();
+}
+
+// Mutate selected to also include
+// any edges in elements that are between
+// two elements of selected.
+export function extendToIncludeEdges(
+  selection: Element[],
+  elements: Element[]
+) {
+  const vertices = new Set(selection.map((element) => element.id));
+  for (const element of elements) {
+    if (element.type == "edge" && element.data != null) {
+      const { from, to } = element.data;
+      if (from == null || to == null) continue;
+      if (vertices.has(from) && vertices.has(to) && !vertices.has(element.id)) {
+        selection.push(element);
+      }
+    }
+  }
 }
