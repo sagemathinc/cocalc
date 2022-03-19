@@ -13,9 +13,9 @@ import { Actions } from "../actions";
 import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
-import { getPageSpan, rectSpan, DEFAULT_GAP } from "../math";
+import { getPageSpan } from "../math";
 import { ConfigParams, TOOLS } from "./spec";
-import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
+import { copyToClipboard } from "./clipboard";
 import LockButton, { isLocked } from "./lock-button";
 import HideButton, { isHidden } from "./hide-button";
 import { ELEMENTS } from "../elements/spec";
@@ -388,7 +388,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           copyToClipboard(elements);
         } else if (key == "duplicate") {
           copyToClipboard(elements);
-          pasteElements(actions, elements, frame.id);
+          actions.paste(frame.id, undefined, elements);
         } else if (key == "cut") {
           copyToClipboard(elements);
           actions.deleteElements(elements);
@@ -397,7 +397,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           actions.deleteElements(elements);
           actions.clearSelection(frame.id);
         } else if (key == "paste") {
-          pasteElements(actions, elements, frame.id);
+          actions.paste(frame.id);
         } else if (key == "lock") {
           actions.lockElements(elements);
         } else if (key == "unlock") {
@@ -482,17 +482,4 @@ function getCommonConfigParams(elements: Element[]): Set<ConfigParams> {
     if (params.size == 0) return params;
   }
   return params;
-}
-
-export function pasteElements(actions, elements: Element[], frameId?: string) {
-  // very limited, since you can't easily force paste
-  // from javascript...
-  const pastedElements = pasteFromInternalClipboard();
-  const { x, y, w, h } = rectSpan(elements);
-  const w2 = rectSpan(pastedElements).w;
-  const target = { x: x + w + w2 / 2 + DEFAULT_GAP, y: y + h / 2 };
-  const ids = actions.insertElements(pastedElements, target);
-  if (frameId) {
-    actions.setSelectionMulti(frameId, ids);
-  }
 }

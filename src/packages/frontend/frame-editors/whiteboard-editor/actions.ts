@@ -17,11 +17,13 @@ import { Tool } from "./tools/spec";
 import { Data, Element, ElementsMap, Point, Rect, Placement } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
+  DEFAULT_GAP,
   DEFAULT_WIDTH,
   DEFAULT_HEIGHT,
   getPageSpan,
   centerRectsAt,
   centerOfRect,
+  rectSpan,
   translateRectsZ,
   roundRectParams,
   moveRectAdjacent,
@@ -39,8 +41,8 @@ import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
 import { lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
-import { pasteElements } from "./tools/edit-bar";
 import getKeyHandler from "./key-handler";
+import { pasteFromInternalClipboard } from "./tools/clipboard";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
@@ -638,13 +640,34 @@ export class Actions extends BaseActions<State> {
       }
     }
     extendToIncludeEdges(elements, this.getElements());
-    console.log("copying ", elements);
     copyToClipboard(elements);
   }
 
-  paste(frameId: string) {
-    const elements = elementsList(this.store.get("elements")) ?? [];
-    pasteElements(this, elements, frameId);
+  // paste from the internal buffer.
+  // If nextTo is given, paste next to the elements in nextTo,
+  // e.g., this is used to implemented "duplicate"; otherwise,
+  // pastes to the center of the viewport.
+  paste(
+    frameId: string,
+    _value?: string | true | undefined,
+    nextTo?: Element[]
+  ): void {
+    const pastedElements = pasteFromInternalClipboard();
+    let target: Point;
+    if (nextTo != null) {
+      const { x, y, w, h } = rectSpan(nextTo);
+      const w2 = rectSpan(pastedElements).w;
+      target = { x: x + w + w2 / 2 + DEFAULT_GAP, y: y + h / 2 };
+    } else {
+      const viewport = this._get_frame_node(frameId)?.get("viewport")?.toJS();
+      if (viewport != null) {
+        target = centerOfRect(viewport);
+      } else {
+        target = { x: 0, y: 0 };
+      }
+    }
+    const ids = this.insertElements(pastedElements, target);
+    this.setSelectionMulti(frameId, ids);
   }
 
   centerElement(id: string, frameId?: string) {
