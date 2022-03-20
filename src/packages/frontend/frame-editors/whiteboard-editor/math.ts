@@ -104,9 +104,16 @@ export function getPageSpan(
   return { xMin, xMax, yMin, yMax, zMin, zMax };
 }
 
+// Motivation: edges are represented as rectangles of h=w=0 at position x=y=0,
+// and this function removes those from consideration.
+export function removeTrivial(rects: Rect[]): Rect[] {
+  return rects.filter((rect) => rect.w != 0 || rect.h != 0);
+}
+
 // Get the rectangle spanned by given rectangles.
 // Simpler version of getPageSpan above...
 export function rectSpan(rects: Rect[]): Rect {
+  rects = removeTrivial(rects);
   if (rects.length == 0) {
     return { x: 0, y: 0, w: DEFAULT_WIDTH, h: DEFAULT_HEIGHT };
   }
@@ -569,4 +576,3 @@ export function closestMidpoint(rect1: Rect, rect2: Rect): Point {
   if (closestPoint === undefined) throw Error("impossible bug");
   return closestPoint;
 }
-

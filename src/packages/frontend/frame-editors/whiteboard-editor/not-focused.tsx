@@ -64,7 +64,7 @@ function select(id, e, frame) {
   );
 }
 
-function edge(id, e, frame) {
+function edge(id, _e, frame) {
   const from = frame.desc.getIn(["edgeStart", "id"]);
   if (from != null) {
     const elt = getElement("edge", frame.desc.get("edgeId"));

@@ -9,7 +9,7 @@ import { Element } from "../types";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "../hooks";
-import { Actions } from "../actions";
+import { Actions, extendToIncludeEdges } from "../actions";
 import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
@@ -385,11 +385,15 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           actions.clearSelection(frame.id);
           return;
         } else if (key == "copy") {
+          extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
         } else if (key == "duplicate") {
+          const elements0 = [...elements];
+          extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
-          actions.paste(frame.id, undefined, elements);
+          actions.paste(frame.id, undefined, elements0);
         } else if (key == "cut") {
+          extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
           actions.deleteElements(elements);
           actions.clearSelection(frame.id);
