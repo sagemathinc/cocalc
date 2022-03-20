@@ -81,13 +81,11 @@ function Conversation({ element, focused }: Props) {
           style={{ height: "125px", display: "flex" }}
           className={editFocus ? "nodrag" : undefined}
           onClick={() => {
-            console.log("clicked on chat input div");
             if (focused && !editFocus) {
               setEditFocus(true);
             }
           }}
           onTouchStart={() => {
-            console.log("touch start on chat input div");
             if (focused && !editFocus) {
               setEditFocus(true);
             }

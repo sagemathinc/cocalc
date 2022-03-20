@@ -162,7 +162,7 @@ export default function Canvas({
   });
 
   const lastPinchRef = useRef<number>(0);
-  usePinchToZoom({
+  const isZoomingRef = usePinchToZoom({
     disabled: isNavigator,
     target: canvasRef,
     min: MIN_FONT_SIZE,
@@ -305,6 +305,7 @@ export default function Canvas({
   useWheel(
     (state) => {
       if (state.event.ctrlKey) return; // handled elsewhere
+      if (isZoomingRef.current) return;
       offset.translate({ x: state.delta[0], y: state.delta[1] });
     },
     {
@@ -1177,6 +1178,7 @@ export default function Canvas({
     }
     if (handRef.current != null) {
       // dragging with hand tool
+      if (isZoomingRef.current) return;
       const c = canvasRef.current;
       if (c == null) return;
       const { clientX, clientY, start } = handRef.current;
@@ -1189,6 +1191,7 @@ export default function Canvas({
     e.preventDefault?.(); // only makes sense for mouse not touch.
 
     if (selectedTool == "select" || selectedTool == "frame") {
+      if (isZoomingRef.current) return;
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current[1] = point;

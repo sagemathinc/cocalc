@@ -82,6 +82,11 @@ export default function usePinchToZoom({
   useWheel(
     (state) => {
       if (state.event.ctrlKey) {
+        if (state.first) {
+          isZoomingRef.current = true;
+        } else if (state.last) {
+          isZoomingRef.current = false;
+        }
         // prevent the entire window scrolling on windows or with a mouse.
         state.event.preventDefault();
         save(max - state.offset[1] / smooth, state.first);
@@ -97,9 +102,16 @@ export default function usePinchToZoom({
   );
 
   const lastOffsetRef = useRef<number>(100);
+
+  const isZoomingRef = useRef<boolean>(false);
   usePinch(
     (state) => {
       const { first, offset } = state;
+      if (state.first) {
+        isZoomingRef.current = true;
+      } else if (state.last) {
+        isZoomingRef.current = false;
+      }
       lastOffsetRef.current = offset[0];
       const s = (offset[0] - 1) / pinchMax;
       save(min + s * (max - min), first);
@@ -125,4 +137,6 @@ export default function usePinchToZoom({
       disabled,
     }
   );
+
+  return isZoomingRef;
 }
