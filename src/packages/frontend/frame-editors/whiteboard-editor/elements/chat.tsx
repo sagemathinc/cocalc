@@ -34,8 +34,8 @@ export default function ChatDynamic({ element, focused }: Props) {
 }
 
 function Conversation({ element, focused }: Props) {
-  const { actions } = useFrameContext();
-  const [editFocus, setEditFocus] = useEditFocus(!!focused);
+  const { actions, desc } = useFrameContext();
+  const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
 
   const saveChat = useDebouncedCallback((input) => {
@@ -81,7 +81,16 @@ function Conversation({ element, focused }: Props) {
           style={{ height: "125px", display: "flex" }}
           className={editFocus ? "nodrag" : undefined}
           onClick={() => {
-            if (!editFocus) setEditFocus(true);
+            console.log("clicked on chat input div");
+            if (focused && !editFocus) {
+              setEditFocus(true);
+            }
+          }}
+          onTouchStart={() => {
+            console.log("touch start on chat input div");
+            if (focused && !editFocus) {
+              setEditFocus(true);
+            }
           }}
         >
           <MultiMarkdownInput
@@ -91,7 +100,7 @@ function Conversation({ element, focused }: Props) {
             onBlur={() => {
               setEditFocus(false);
             }}
-            isFocused={editFocus}
+            isFocused={focused && editFocus}
             cacheId={element.id}
             hideHelp
             noVfill

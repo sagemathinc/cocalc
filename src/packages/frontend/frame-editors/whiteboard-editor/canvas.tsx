@@ -746,8 +746,7 @@ export default function Canvas({
     // Draw arrow from source element to where mouse is now.
     const element = getToolElement("edge");
     if (element.data == null) throw Error("bug");
-    element.data.from = edgeStart;
-    element.data.previewTo = edgePreview;
+    element.data = { ...element.data, from: edgeStart, previewTo: edgePreview };
     v.push(
       <RenderEdge
         key="edge-preview"

@@ -583,6 +583,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // not focused part isn't upstream, but we
               // need it to have codemirror blocks.
               if (
+                editor.selection == null ||
                 !ReactEditor.isFocused(editor) ||
                 (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1]))
               ) {

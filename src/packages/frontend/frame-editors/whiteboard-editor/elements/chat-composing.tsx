@@ -12,8 +12,9 @@ export default function Composing({ element, focused }) {
     const v: ReactNode[] = [];
     for (const sender_id in element.data ?? {}) {
       if (sender_id.length != 36) continue;
-      const time = element.data[sender_id]?.time;
+      const { input, time } = element.data[sender_id] ?? {};
       if (
+        input?.trim() &&
         time != null &&
         time >= cutoff &&
         (!focused || sender_id != redux.getStore("account").get_account_id())
