@@ -468,11 +468,12 @@ export class Actions extends BaseActions<State> {
     this.fitToScreen(id);
   }
 
-  // maybe this should NOT be in localStorage somehow... we need something like frame tree state that isn't persisted...
+  // maybe this should NOT be in localStorage somehow... we need
+  // something like frame tree state that isn't persisted...
   setEdgeCreateStart(
     id: string,
     eltId: string,
-    position: EdgeCreatePosition
+    position?: EdgeCreatePosition
   ): void {
     this.set_frame_tree({ id, edgeStart: { id: eltId, position } });
   }

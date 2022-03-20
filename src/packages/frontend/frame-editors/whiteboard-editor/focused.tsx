@@ -248,7 +248,7 @@ export default function Focused({
       h={pos.h}
       style={
         selectedElements.length == 1 &&
-        ["pen", "frame", "icon", "edge"].includes(selectedElements[0].type)
+        ["pen", "frame", "edge"].includes(selectedElements[0].type)
           ? {
               pointerEvents: "none", // otherwise entire element is blocked by this div
             }

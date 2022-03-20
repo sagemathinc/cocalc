@@ -1,5 +1,5 @@
 export const SELECTED_BORDER_COLOR = "#40a9ff";
-export const SELECTED_BORDER_WIDTH = 2.5;
+export const SELECTED_BORDER_WIDTH = 2.5; // WORRY/TODAY: changing this would break size of icon elements...?
 export const SELECTED_BORDER_TYPE = "solid";
 
 // This doesn't fully work when bigger than 1, e.g., the drag handles

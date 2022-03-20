@@ -655,7 +655,11 @@ export default function Canvas({
           h={h}
         >
           <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
-          <NotFocused id={id} selectable={selectedTool == "select"}>
+          <NotFocused
+            id={id}
+            selectable={selectedTool == "select"}
+            edgeCreate={selectedTool == "edge"}
+          >
             {elt}
           </NotFocused>
         </Position>
@@ -856,6 +860,16 @@ export default function Canvas({
       }
       return;
     }
+    if (selectedTool == "edge") {
+      // Creating an edge with the edge tool works like this:
+      //   1. Click once to select "from" element.
+      //   2. Click second time to select "to" element.
+      //if (edgeCreateRef.current == null) {
+      // clicked on no element, so reset state.
+      //}
+      return;
+    }
+
     const position: Partial<Element> = {
       ...evtToData(e),
       z: transformsRef.current.zMax + 1,

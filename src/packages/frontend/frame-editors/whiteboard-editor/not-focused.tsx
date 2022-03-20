@@ -1,32 +1,49 @@
 import { ReactNode } from "react";
 import { useFrameContext } from "./hooks";
-import { getParams } from "./tools/tool-panel";
+import { getElement, getParams } from "./tools/tool-panel";
 
 interface Props {
   children: ReactNode;
   id: string;
   selectable?: boolean;
+  edgeCreate?: boolean;
 }
 
-export default function NotFocused({ children, id, selectable }: Props) {
+export default function NotFocused({
+  children,
+  id,
+  selectable,
+  edgeCreate,
+}: Props) {
   const frame = useFrameContext();
+  const onClick = selectable
+    ? (e) => select(id, e, frame)
+    : edgeCreate
+    ? (e) => edge(id, e, frame)
+    : undefined;
   return (
     <div
+      className={
+        edgeCreate
+          ? `cocalc-whiteboard-edge-select${
+              frame.desc.getIn(["edgeStart", "id"]) === id ? "ed" : ""
+            }`
+          : undefined
+      }
       style={{
         width: "100%",
         height: "100%",
         cursor: selectable ? "pointer" : undefined,
       }}
-      onClick={(e) => onClick(selectable, id, e, frame)}
-      onTouchStart={(e) => onClick(selectable, id, e, frame)}
+      onClick={onClick}
+      onTouchStart={onClick}
     >
       {children}
     </div>
   );
 }
 
-function onClick(selectable, id, e, frame) {
-  if (!selectable) return;
+function select(id, e, frame) {
   e.stopPropagation();
   const edgeStart = frame.desc.get("edgeStart");
   if (edgeStart) {
@@ -45,4 +62,17 @@ function onClick(selectable, id, e, frame) {
     id,
     e.altKey || e.metaKey || e.ctrlKey || e.shiftKey ? "toggle" : "only"
   );
+}
+
+function edge(id, e, frame) {
+  const from = frame.desc.getIn(["edgeStart", "id"]);
+  if (from != null) {
+    const elt = getElement("edge", frame.desc.get("edgeId"));
+    if (from != id) {
+      frame.actions.createEdge(from, id, elt.data);
+    }
+    frame.actions.clearEdgeCreateStart(frame.id);
+  } else {
+    frame.actions.setEdgeCreateStart(frame.id, id);
+  }
 }
