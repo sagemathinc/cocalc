@@ -536,18 +536,24 @@ export class Actions extends BaseActions<State> {
   }
 
   // There may be a lot of options for this...
-  runCodeElement({ id }: { id: string }) {
+
+  runCodeElement({
+    id,
+    str,
+  }: {
+    id: string; // id of cell to run
+    str?: string; // input -- we allow specifying this instead of taking it from the store, in case it just changed and hasn't been saved to the store yet.
+  }) {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null || element.type != "code") {
       // no-op no such element
-      // TODO?!
       console.warn("no cell with id", id);
       return;
     }
     runCode({
       project_id: this.project_id,
       path: this.path,
-      input: element.str ?? "",
+      input: str ?? element.str ?? "",
       id,
       set: (obj) =>
         this.setElementData({ element, obj, commit: true, cursors: [{}] }),

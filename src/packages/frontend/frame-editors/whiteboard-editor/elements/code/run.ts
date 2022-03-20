@@ -22,8 +22,11 @@ export default async function run({
   jupyter_actions.clear_outputs([id], false);
   jupyter_actions.set_cell_input(id, input, false);
   jupyter_actions.run_code_cell(id);
+  // console.log("starting running ", id);
+  // window.jupyter_actions = jupyter_actions;
   function onChange() {
     const cell = store.get("cells").get(id);
+    // console.log("onChange", cell?.toJS());
     if (cell == null) return;
 
     set({ state: cell.get("state"), output: cell.get("output")?.toJS() });

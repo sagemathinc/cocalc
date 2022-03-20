@@ -70,13 +70,15 @@ export default function Input({
           ) {
             // don't do anything else -- we handle:
             e.preventDefault();
-            // ensure use latest inpute, straight from the editor (avoiding all debounce issues)
+            // ensure use latest input, straight from the editor (avoiding all debounce issues)
+            const str = cm.getValue();
             frame.actions.setElement({
-              obj: { id: element.id, str: cm.getValue() },
+              obj: { id: element.id, str },
               commit: false,
             });
+            console.log("using input ", cm.getValue());
             // evaluate in all cases
-            frame.actions.runCodeElement({ id: element.id });
+            frame.actions.runCodeElement({ id: element.id, str });
             // TODO: handle these cases
             if (e.altKey || e.metaKey) {
               // this is "evaluate and make new cell"...?
