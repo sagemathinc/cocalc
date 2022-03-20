@@ -17,7 +17,7 @@ import Hide from "./hide";
 
 export interface Props {
   element: Element;
-  focused: boolean;
+  focused?: boolean;
   canvasScale: number;
   readOnly?: boolean;
   cursors?: { [account_id: string]: any[] };

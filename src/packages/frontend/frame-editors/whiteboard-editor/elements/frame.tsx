@@ -1,4 +1,12 @@
-export default function Frame({ element, focused, canvasScale }) {
+import { Element } from "../types";
+
+interface Props {
+  element: Element;
+  focused?: boolean;
+  canvasScale: number;
+}
+
+export default function Frame({ element, focused, canvasScale }: Props) {
   focused = focused;
   return (
     <div
@@ -11,7 +19,6 @@ export default function Frame({ element, focused, canvasScale }) {
         borderRadius: "3px",
         boxShadow: "1px 3px 5px #ccc",
         background: "rgb(200,200,200,0.05)",
-        ...element.style,
       }}
     ></div>
   );

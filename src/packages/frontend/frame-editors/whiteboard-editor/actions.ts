@@ -484,6 +484,10 @@ export class Actions extends BaseActions<State> {
 
   // returns created element or null if from or to don't exist...
   createEdge(from: string, to: string, data?: Data): Element | undefined {
+    if (from == to) {
+      // no loops
+      return;
+    }
     return this.createElement({
       x: 0,
       y: 0,

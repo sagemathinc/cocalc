@@ -11,6 +11,7 @@ interface Props {
   opacity?: number;
   style?: CSSProperties;
   onClick?: (evt: any) => void;
+  preview?: boolean;
 }
 
 export default function Arrow({
@@ -22,6 +23,7 @@ export default function Arrow({
   opacity,
   style,
   onClick,
+  preview,
 }: Props) {
   const { x: x0, y: y0 } = start;
   const { x: x1, y: y1 } = end;
@@ -45,7 +47,7 @@ export default function Arrow({
       <div
         style={{
           position: "relative",
-          border: `${thickness / 2}px solid ${color}`,
+          border: `${thickness / 2}px ${preview ? "dashed" : "solid"} ${color}`,
           borderRadius: `${thickness}px`,
           color,
           opacity,

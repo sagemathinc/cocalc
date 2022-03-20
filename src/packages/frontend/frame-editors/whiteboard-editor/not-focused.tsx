@@ -1,5 +1,4 @@
-import { ReactNode } from "react";
-import { useFrameContext } from "./hooks";
+import { CSSProperties, ReactNode } from "react";
 import { getElement, getParams } from "./tools/tool-panel";
 
 interface Props {
@@ -7,6 +6,8 @@ interface Props {
   id: string;
   selectable?: boolean;
   edgeCreate?: boolean;
+  edgeStart?: boolean;
+  frame;
 }
 
 export default function NotFocused({
@@ -14,8 +15,9 @@ export default function NotFocused({
   id,
   selectable,
   edgeCreate,
+  edgeStart,
+  frame,
 }: Props) {
-  const frame = useFrameContext();
   const onClick = selectable
     ? (e) => select(id, e, frame)
     : edgeCreate
@@ -25,9 +27,7 @@ export default function NotFocused({
     <div
       className={
         edgeCreate
-          ? `cocalc-whiteboard-edge-select${
-              frame.desc.getIn(["edgeStart", "id"]) === id ? "ed" : ""
-            }`
+          ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
           : undefined
       }
       style={{
@@ -39,9 +39,22 @@ export default function NotFocused({
       onTouchStart={onClick}
     >
       {children}
+      {edgeStart && <div style={HINT}>Select target of edge</div>}
     </div>
   );
 }
+
+const HINT = {
+  position: "absolute",
+  bottom: "-38px",
+  overflow: "visible",
+  width: "150px",
+  background: "white",
+  border: "1px solid #ccc",
+  padding: "5px",
+  borderRadius: "3px",
+  boxShadow: "3px 3px 3px #ccc",
+} as CSSProperties;
 
 function select(id, e, frame) {
   e.stopPropagation();

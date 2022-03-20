@@ -39,6 +39,13 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     readOnly: true,
     key: "v", // "v" = what figma and miro use.
   },
+  edge: {
+    icon: "arrow-right",
+    tip: "Edge",
+    config: new Set(["color", "radius", "opacity"]),
+    key: "e",
+    type: "edge",
+  },
   text: {
     icon: "text1",
     cursor: "text",
@@ -72,13 +79,6 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     resizable: true,
     key: "j",
     type: "code",
-  },
-  edge: {
-    icon: "arrow-right",
-    tip: "Edge",
-    config: new Set(["color", "radius", "opacity"]),
-    key: "e",
-    type: "edge",
   },
   icon: {
     icon: "icons",

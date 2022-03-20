@@ -41,6 +41,7 @@ export interface Data {
   path?: number[]; // right now is encoded as [x,y,x2,y2,x3,y3] to be simpler to JSON.
   from?: string; // id of from node
   to?: string; // id of to node
+  previewTo?: Point; // edge: instead of node, position of mouse -- used for preview edge.
   dir?: number[]; // dir path part of edge
   icon?: IconName; // icon
   hideInput?: boolean; // used for code cells

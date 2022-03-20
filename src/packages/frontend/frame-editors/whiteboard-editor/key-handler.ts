@@ -55,6 +55,11 @@ export default function getKeyHandler(
       return;
     }
 
+    if (key == "escape" && node.get("selectedTool") == "edge") {
+      actions.clearEdgeCreateStart(frameId);
+      return;
+    }
+
     const selection = node.get("selection");
     if (selection != null && selection.size > 0) {
       if (key.startsWith("arrow") && !node.get("editFocus")) {

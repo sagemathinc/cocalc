@@ -174,10 +174,10 @@ export default function Canvas({
       if (first) {
         const rect = scaleDivRef.current?.getBoundingClientRect();
         const mouse =
-          rect != null && mouseMoveRef.current
+          rect != null && mousePosRef.current
             ? {
-                x: mouseMoveRef.current.clientX - rect.left,
-                y: mouseMoveRef.current.clientY - rect.top,
+                x: mousePosRef.current.clientX - rect.left,
+                y: mousePosRef.current.clientY - rect.top,
               }
             : { x: 0, y: 0 };
         firstOffsetRef.current = {
@@ -355,7 +355,7 @@ export default function Canvas({
   // position of mouse right now not transformed in any way,
   // just in case we need it. This is clientX, clientY off
   // of the canvas div.
-  const mousePos = useRef<{ clientX: number; clientY: number } | null>(null);
+  const mousePosRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
   // this is in terms of window coords:
   const [selectRect, setSelectRect] = useState<{
@@ -364,6 +364,8 @@ export default function Canvas({
     w: number;
     h: number;
   } | null>(null);
+
+  const [edgePreview, setEdgePreview] = useState<Point | null>(null);
 
   const penCanvasRef = useRef<any>(null);
   const penCanvasParamsRef = useRef<{
@@ -396,8 +398,6 @@ export default function Canvas({
   // ensure the current center of the viewport is preserved
   // or if the mouse is in the viewport, maintain its position.
   const lastViewport = useRef<Rect | undefined>(undefined);
-  const lastMouseRef = useRef<any>(null);
-  const mouseMoveRef = useRef<any>(null);
 
   // If the viewport changes, but not because we just set it,
   // then we move our current center displayed viewport to match that.
@@ -500,6 +500,9 @@ export default function Canvas({
       frame.actions.fitToScreen(frame.id, false);
     }
   }, [frame.desc.get("fitToScreen")]);
+
+  const edgeStart =
+    selectedTool == "edge" ? frame.desc.getIn(["edgeStart", "id"]) : undefined;
 
   let selectionHandled = false;
   function processElement(element, isNavRectangle = false) {
@@ -645,12 +648,13 @@ export default function Canvas({
         </Focused>
       );
     } else {
+      const isEdgeStart = selectedTool == "edge" && edgeStart == id;
       return (
         <Position
           key={id}
           x={t.x}
           y={t.y}
-          z={isNavRectangle ? z : t.z}
+          z={isNavRectangle ? z : isEdgeStart ? MAX_ELEMENTS : t.z}
           w={w}
           h={h}
         >
@@ -659,6 +663,8 @@ export default function Canvas({
             id={id}
             selectable={selectedTool == "select"}
             edgeCreate={selectedTool == "edge"}
+            edgeStart={isEdgeStart}
+            frame={frame}
           >
             {elt}
           </NotFocused>
@@ -728,6 +734,28 @@ export default function Canvas({
           <RenderElement element={element} canvasScale={canvasScale} focused />
         )}
       </Focused>
+    );
+  }
+
+  if (
+    elementsMap != null &&
+    selectedTool == "edge" &&
+    edgeStart &&
+    edgePreview
+  ) {
+    // Draw arrow from source element to where mouse is now.
+    const element = getToolElement("edge");
+    if (element.data == null) throw Error("bug");
+    element.data.from = edgeStart;
+    element.data.previewTo = edgePreview;
+    v.push(
+      <RenderEdge
+        key="edge-preview"
+        element={element as Element}
+        elementsMap={elementsMap}
+        transforms={transformsRef.current}
+        zIndex={0}
+      />
     );
   }
 
@@ -845,7 +873,9 @@ export default function Canvas({
       ignoreNextClick.current = false;
       return;
     }
-    if (selectedTool == "hand") return;
+    if (selectedTool == "hand") {
+      return;
+    }
     if (selectedTool == "select") {
       if (e.target == gridDivRef.current) {
         // clear selection
@@ -864,9 +894,10 @@ export default function Canvas({
       // Creating an edge with the edge tool works like this:
       //   1. Click once to select "from" element.
       //   2. Click second time to select "to" element.
-      //if (edgeCreateRef.current == null) {
-      // clicked on no element, so reset state.
-      //}
+      if (edgePreview) {
+        frame.actions.clearEdgeCreateStart(frame.id);
+        setEdgePreview(null);
+      }
       return;
     }
 
@@ -1130,10 +1161,13 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
-    mousePos.current = { clientX: e.clientX, clientY: e.clientY };
-    // this us used for zooming:
-    mouseMoveRef.current = e;
-    lastMouseRef.current = evtToData(e);
+    // this us used for zooming, etc.
+    mousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+
+    if (selectedTool == "edge" && edgeStart) {
+      setEdgePreview(evtToData(e));
+      return;
+    }
 
     if (!touch && !e.buttons) {
       // mouse button no longer down - cancel any capture.
@@ -1317,7 +1351,7 @@ export default function Canvas({
                 const pastedElements = decodeForPaste(encoded);
                 /* TODO: should also get where mouse is? */
                 let target: Point | undefined = undefined;
-                const pos = getMousePos(mousePos.current);
+                const pos = getMousePos(mousePosRef.current);
                 if (pos != null) {
                   const { x, y } = pos;
                   target = transformsRef.current.windowToDataNoScale(x, y);
