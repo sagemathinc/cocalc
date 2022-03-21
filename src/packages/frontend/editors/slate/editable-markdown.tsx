@@ -655,8 +655,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // @ts-ignore
           editor.lastSelection = editor.curSelection;
           if (editor.selection != null) {
-            // cursor moved
-            scrollIntoView(editor, editor.selection.focus);
             // @ts-ignore
             editor.curSelection = editor.selection;
           }
