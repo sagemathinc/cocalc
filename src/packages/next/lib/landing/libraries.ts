@@ -1,25 +1,38 @@
 import INVENTORY from "dist/inventory/compute-inventory.json";
 import COMPONENTS from "dist/inventory/compute-components.json";
-import { field_cmp, trunc } from "@cocalc/util/misc";
+import { field_cmp } from "@cocalc/util/misc";
+import { basename } from "path";
 
-const SPEC = {
-  python: {
-    python3: "/usr/bin/python3",
-    python2: "/usr/bin/python2",
-    sage: "sage -python",
-    anaconda: "/ext/anaconda2020.02/bin/python",
-  },
-  R: {
-    r: "/usr/bin/R",
-    sage_r: "sage -R",
-  },
-  octave: {
-    octave: "/usr/local/bin/octave",
-  },
-  julia: {
-    julia: "/ext/bin/julia",
-  },
+export type LanguageName = "python" | "R" | "octave" | "julia";
+
+type SoftwareSpec = {
+  [lang in LanguageName]: {
+    [name: string]: { cmd: string; name: string; doc: string; url: string };
+  };
 };
+
+// cached instance
+let SPEC: Readonly<SoftwareSpec>;
+
+export function getSpec() {
+  if (SPEC != null) return SPEC;
+  const nextSpec: Partial<SoftwareSpec> = {};
+  for (const [cmd, info] of Object.entries(INVENTORY.language_exes)) {
+    if (nextSpec[info.lang] == null) {
+      nextSpec[info.lang] = {};
+    }
+    // the basename of the cmd path
+    const base = cmd.indexOf(" ") > 0 ? cmd : basename(cmd);
+    nextSpec[info.lang][base] = {
+      cmd,
+      name: info.name,
+      doc: info.doc,
+      url: info.url,
+    };
+  }
+  SPEC = nextSpec as SoftwareSpec;
+  return SPEC;
+}
 
 export interface Item {
   name: string;
@@ -28,28 +41,25 @@ export interface Item {
   summary?: string;
   search: string;
 
+  // NOTE: the keys below are just examples.
+  // Use what's stored for each language in the SPEC mapping
   python3?: string;
   sage?: string;
   anaconda?: string;
   python2?: string;
 
-  r?: string;
-  sage_r?: string;
+  R?: string;
+  "sage -R"?: string;
 
   octave?: string;
 
   julia?: string;
 }
 
-export type ProgramName = keyof typeof SPEC;
-
-export default function libraries(
-  prog: ProgramName,
-  maxWidth: number = 30
-): Item[] {
-  const cmd = SPEC[prog];
-  const inventory = INVENTORY[prog];
-  const components = COMPONENTS[prog];
+export default function libraries(lang: LanguageName): Item[] {
+  const cmd = getSpec()[lang];
+  const inventory = INVENTORY[lang];
+  const components = COMPONENTS[lang];
 
   const libs: Item[] = [];
   for (const name in components) {
@@ -63,7 +73,7 @@ export default function libraries(
       search: (name + (summary ?? "")).toLowerCase(),
     };
     for (const env in cmd) {
-      item[env] = trunc(inventory[cmd[env]][name], maxWidth);
+      item[env] = inventory[cmd[env].cmd][name];
     }
     libs.push(item);
   }

@@ -1,8 +1,25 @@
 import { useMemo, useState } from "react";
-import { Input, Table } from "antd";
+import { Input, Table, Typography } from "antd";
 import Code from "components/landing/code";
 import { debounce } from "lodash";
 import executables, { Item } from "lib/landing/executables";
+const { Text } = Typography;
+
+const INFO_STYLE: React.CSSProperties = {
+  overflow: "auto",
+  maxHeight: "10em",
+  maxWidth: "30vw",
+  backgroundColor: "rgba(150, 150, 150, 0.1)",
+  fontSize: "10px",
+  border: "none",
+  borderRadius: "3px",
+};
+
+const PRE_STYLE: React.CSSProperties = {
+  padding: "5px",
+  margin: 0,
+  overflow: "unset", // parent div will show scroll handles
+};
 
 const COLUMNS = [
   {
@@ -10,7 +27,7 @@ const COLUMNS = [
     key: "name",
     dataIndex: "name",
     responsive: ["md" as any],
-    render: (name) => <b style={{ fontSize: "12pt", color: "#666" }}>{name}</b>,
+    render: (name) => <Text strong style={{ fontSize: "12pt" }}>{name}</Text>,
   },
   {
     title: "Path",
@@ -24,18 +41,8 @@ const COLUMNS = [
     dataIndex: "output",
     width: "40%",
     render: (output) => (
-      <div
-        style={{
-          overflow: "scroll",
-          maxHeight: "8em",
-          maxWidth: "30vw",
-          backgroundColor: "rgba(150, 150, 150, 0.1)",
-          fontSize: "10px",
-          border: "1px solid rgba(100, 100, 100, 0.2)",
-          borderRadius: "3px",
-        }}
-      >
-        <pre style={{ padding: "5px" }}>{output}</pre>
+      <div style={INFO_STYLE}>
+        <pre style={PRE_STYLE}>{output}</pre>
       </div>
     ),
   },

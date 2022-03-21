@@ -1,15 +1,16 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import JuliaLibraries from "components/landing/julia-libraries";
-import Image from "components/landing/image";
 import { Alert, Layout } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Image from "components/landing/image";
+import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+import { STYLE_PAGE } from ".";
 import screenshot from "/public/software/julia-jupyter.png";
 
-export default function Software({ customize }) {
+export default function Julia({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Julia Packages in CoCalc" />
@@ -19,14 +20,7 @@ export default function Software({ customize }) {
           backgroundColor: "white",
         }}
       >
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "15px auto",
-            padding: "15px",
-            backgroundColor: "white",
-          }}
-        >
+        <div style={STYLE_PAGE}>
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
             Installed Julia Packages
           </h1>
@@ -68,8 +62,7 @@ export default function Software({ customize }) {
             type="info"
             showIcon
           />
-
-          <JuliaLibraries />
+          <SoftwareLibraries lang="julia" libWidthPct={60} />;
         </div>
         <Footer />
       </Layout.Content>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Input, Table } from "antd";
-import libraries, { Item, ProgramName } from "lib/landing/libraries";
+import libraries, { getSpec, Item, LanguageName } from "lib/landing/libraries";
 import { debounce } from "lodash";
 import A from "components/misc/A";
 
@@ -15,13 +15,12 @@ export function renderName(name, record) {
 }
 
 interface Props {
-  prog: ProgramName;
-  columns;
-  maxWidth?: number;
+  lang: LanguageName;
+  libWidthPct?: number;
 }
 
-export default function SoftwareLibraries({ prog, columns, maxWidth }: Props) {
-  const dataSource = useMemo(() => libraries(prog, maxWidth), [prog, maxWidth]);
+export default function SoftwareLibraries({ lang, libWidthPct = 60 }: Props) {
+  const dataSource = useMemo(() => libraries(lang), [lang]);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
     () =>
@@ -43,6 +42,39 @@ export default function SoftwareLibraries({ prog, columns, maxWidth }: Props) {
       }
     }
   }
+
+  const columns = useMemo(() => {
+    const spec = getSpec();
+    const envs = Object.entries(spec[lang]);
+    const width = (100 - libWidthPct) / envs.length;
+
+    const columns: {
+      width: string;
+      title: string;
+      key: string;
+      dataIndex: string;
+      render?: typeof renderName;
+    }[] = [
+      {
+        width: `${libWidthPct}%`,
+        title: "Library",
+        key: "library",
+        dataIndex: "name",
+        render: renderName,
+      },
+    ];
+
+    for (const [name, val] of envs) {
+      columns.push({
+        width: `${width}%`,
+        title: val.name,
+        key: name,
+        dataIndex: name,
+      });
+    }
+
+    return columns;
+  }, [libWidthPct]);
 
   return (
     <div>

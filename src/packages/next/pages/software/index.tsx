@@ -12,6 +12,13 @@ import JuliaJupyter from "/public/software/julia-jupyter.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import A from "components/misc/A";
 
+export const STYLE_PAGE : React.CSSProperties =  {
+  maxWidth: "900px",
+  margin: "15px auto",
+  padding: "15px",
+  backgroundColor: "white",
+} as const
+
 const dataSource = [
   {
     link: "/software/executables",

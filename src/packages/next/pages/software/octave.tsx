@@ -3,13 +3,14 @@ import Header from "components/landing/header";
 import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import OctaveLibraries from "components/landing/octave-libraries";
 import Image from "components/landing/image";
 import { Alert, Layout } from "antd";
 import A from "components/misc/A";
 import screenshot from "/public/features/cocalc-octave-jupyter-20200511.png";
+import { STYLE_PAGE } from ".";
+import SoftwareLibraries from "components/landing/software-libraries";
 
-export default function Software({ customize }) {
+export default function Octave({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Octave Packages in CoCalc" />
@@ -19,14 +20,7 @@ export default function Software({ customize }) {
           backgroundColor: "white",
         }}
       >
-        <div
-          style={{
-            maxWidth: "900px",
-            margin: "15px auto",
-            padding: "15px",
-            backgroundColor: "white",
-          }}
-        >
+        <div style={STYLE_PAGE}>
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
             GNU Octave Scientific Programming Packages
           </h1>
@@ -59,8 +53,7 @@ export default function Software({ customize }) {
             type="info"
             showIcon
           />
-
-          <OctaveLibraries />
+          <SoftwareLibraries lang="octave" libWidthPct={60} />;
         </div>
         <Footer />
       </Layout.Content>
