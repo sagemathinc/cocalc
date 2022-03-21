@@ -29,23 +29,7 @@ export default function CodeToolPanel() {
       style={{ width: "138px" }}
       editParamsStyle={{ left: "145px" }}
       editableParams={new Set(["fontSize", "radius", "color"])}
-      AlternateTopButtons={JupyterControl}
     />
-  );
-}
-
-function JupyterControl({}) {
-  return (
-    <div
-      style={{
-        fontSize: "14px",
-        border: "1px solid grey",
-        padding: "5px",
-        margin: "5px",
-      }}
-    >
-      Kernel: Python3
-    </div>
   );
 }
 

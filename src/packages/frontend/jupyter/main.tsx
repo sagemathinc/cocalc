@@ -140,7 +140,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     hook_offset,
   } = props;
 
-  const site_name = useTypedRedux("customize", "site_name");
   const editor_settings = useTypedRedux("account", "editor_settings");
 
   // status of tab completion
@@ -364,7 +363,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <span style={KERNEL_STYLE}>
         <Kernel
           is_fullscreen={is_fullscreen}
-          name={name}
           actions={actions}
           usage={usage}
           expected_cell_runtime={expected_cell_runtime}
@@ -604,7 +602,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_select_kernel() {
-    if (editor_settings == null || site_name == null) return;
+    if (editor_settings == null) return;
 
     const ask_jupyter_kernel = editor_settings.get("ask_jupyter_kernel");
     return (
@@ -617,7 +615,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         kernels_by_language={kernels_by_language}
         default_kernel={default_kernel}
         closestKernel={closestKernel}
-        site_name={site_name}
         ask_jupyter_kernel={
           ask_jupyter_kernel == null ? true : ask_jupyter_kernel
         }

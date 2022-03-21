@@ -68,15 +68,14 @@ const BACKEND_STATE_HUMAN = {
 interface KernelProps {
   actions: JupyterActions;
   is_fullscreen?: boolean;
-  name: string;
   usage?: Usage;
-  expected_cell_runtime: number;
+  expected_cell_runtime?: number;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, name, usage, expected_cell_runtime } =
-      props;
+    const { actions, is_fullscreen, usage, expected_cell_runtime } = props;
+    const name = actions.name;
 
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
@@ -347,7 +346,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     function render_usage_graphical() {
       // unknown, e.g, not reporting/working or old backend.
-      if (usage == null) return;
+      if (usage == null || expected_cell_runtime == null) return;
 
       const style: CSS = is_fullscreen
         ? { display: "flex" }

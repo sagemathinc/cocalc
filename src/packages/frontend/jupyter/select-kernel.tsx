@@ -5,6 +5,7 @@
 
 // help users selecting a kernel
 
+import { SiteName } from "@cocalc/frontend/customize";
 import { React, Rendered, CSS } from "../app-framework";
 import {
   Map as ImmutableMap,
@@ -32,7 +33,6 @@ const section_style: CSS = {
 
 interface KernelSelectorProps {
   actions: JupyterActions;
-  site_name: string;
   kernel?: string;
   kernel_info?: any;
   default_kernel?: string;
@@ -47,7 +47,6 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
   (props: KernelSelectorProps) => {
     const {
       actions,
-      site_name,
       kernel,
       kernel_info,
       default_kernel,
@@ -57,27 +56,6 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       kernels_by_language,
       closestKernel,
     } = props;
-
-    // the idea here is to not set the kernel, but still render the notebook.
-    // looks like that's not easy, and well, probably incompatible with classical jupyter.
-
-    /*
-    <Row style={row_style} className={"pull-right"}>
-      {close_button()}
-    </Row>
-
-  close_button() {
-    return (
-      <Button
-        key={"close"}
-        bsStyle={"default"}
-        onClick={() => actions.select_kernel(null)}
-      >
-        {"View without kernel"}
-      </Button>
-    );
-  }
-  */
 
     function kernel_name(name: string): string | undefined {
       return kernel_attr(name, "display_name");
@@ -276,7 +254,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = (
             <>
               Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-              {site_name}.
+              <SiteName />.
             </>
           );
         } else {
@@ -323,9 +301,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_footer(): Rendered {
       return (
         <Row style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
-          <strong>Note:</strong> You can always change the selected kernel later
-          in the »Kernel« menu or by clicking on the kernel information at the
-          top right.
+          <strong>Note:&nbsp;</strong> You can always change the selected kernel
+          later in the Kernel menu or by clicking on the kernel information at
+          the top right.
         </Row>
       );
     }

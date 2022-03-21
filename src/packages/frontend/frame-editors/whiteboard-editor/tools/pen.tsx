@@ -72,7 +72,7 @@ export default function PenToolPanel() {
         marginTop: "-14px",
       }}
       editParamsStyle={{ left: "108px" }}
-      AlternateTopButtons={AlternateTopButtons}
+      AlternateTop={AlternateTop}
     />
   );
 }
@@ -82,7 +82,7 @@ const presetManager = getPresetManager<Params>(tool, DEFAULTS, {
   [ERASER]: { color: "#ffffff", radius: 15 },
 });
 
-function AlternateTopButtons({
+function AlternateTop({
   setSelected,
   selected,
 }: {
@@ -92,6 +92,9 @@ function AlternateTopButtons({
   const fontSize = "20px";
   return (
     <div style={{ margin: "5px 0 10px -8px" }}>
+      <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
+        Pen
+      </div>
       <Tooltip title="Pen">
         <Button
           style={{ width: "25px" }}

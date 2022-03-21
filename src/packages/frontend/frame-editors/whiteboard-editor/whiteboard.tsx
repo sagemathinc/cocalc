@@ -15,6 +15,7 @@ import EdgePanel from "./tools/edge";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "./hooks";
 import Upload from "./tools/upload";
+import KernelPanel from "./elements/code/kernel";
 
 interface Props {
   actions: Actions;
@@ -78,6 +79,7 @@ export default function Whiteboard({
     <div className="smc-vfill" style={{ position: "relative" }}>
       {isFocused && (
         <>
+          {!readOnly && <KernelPanel />}
           <ToolPanel selectedTool={tool ?? "select"} readOnly={readOnly} />
           {!desc.get("selectedToolHidePanel") && (
             <>

@@ -3,6 +3,7 @@ import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+export type { JupyterActions };
 
 export async function getJupyterActions(
   project_id: string,

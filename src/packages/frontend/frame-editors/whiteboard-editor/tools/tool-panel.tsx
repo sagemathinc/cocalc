@@ -52,7 +52,7 @@ interface Props<Params> {
   presetManager: PresetManager<Params>;
   Preview: (Params) => JSX.Element;
   ButtonPreview?: (Params) => JSX.Element;
-  AlternateTopButtons?: (props: {
+  AlternateTop?: (props: {
     setSelected: (number) => void;
     selected: number;
   }) => JSX.Element;
@@ -68,7 +68,7 @@ export default function ToolPanel<Params>({
   tool,
   Preview,
   ButtonPreview,
-  AlternateTopButtons,
+  AlternateTop,
   style,
   editParamsStyle,
   presetStyle,
@@ -164,21 +164,23 @@ export default function ToolPanel<Params>({
         ...style,
       }}
     >
-      <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
-        {TOOLS[tool].tip}
-      </div>
-      {AlternateTopButtons == null && (
-        <Tooltip title={TOOLS[tool].tip}>
-          <Button type="text">
-            <Icon
-              style={{ color: SELECTED, fontSize: "20px" }}
-              name={TOOLS[tool].icon}
-            />
-          </Button>
-        </Tooltip>
+      {AlternateTop == null && (
+        <>
+          <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
+            {TOOLS[tool].tip}
+          </div>
+          <Tooltip title={TOOLS[tool].tip}>
+            <Button type="text">
+              <Icon
+                style={{ color: SELECTED, fontSize: "20px" }}
+                name={TOOLS[tool].icon}
+              />
+            </Button>
+          </Tooltip>
+        </>
       )}
-      {AlternateTopButtons != null && (
-        <AlternateTopButtons selected={selected} setSelected={setSelected} />
+      {AlternateTop != null && (
+        <AlternateTop selected={selected} setSelected={setSelected} />
       )}
       <div>{presetButtons}</div>
       <ResetButton
