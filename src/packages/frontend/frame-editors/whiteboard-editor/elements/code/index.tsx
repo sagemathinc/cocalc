@@ -5,7 +5,6 @@ import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
 import useEditFocus from "../edit-focus";
-import useMouseClickDrag from "../mouse-click-drag";
 
 interface Props {
   element: Element;
@@ -22,13 +21,12 @@ export default function Code({
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
   const [editFocus, setEditFocus] = useEditFocus(false);
-  const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
   const renderInput = () => {
     if (hideInput) return;
     if (focused || cursors != null) {
       return (
-        <div className={editFocus ? "nodrag" : undefined} {...mouseClickDrag}>
+        <div className="nodrag">
           <Input
             cursors={cursors}
             isFocused={focused && editFocus}
@@ -36,6 +34,7 @@ export default function Code({
             focused={focused}
             canvasScale={canvasScale}
             onBlur={() => setEditFocus(false)}
+            onFocus={() => setEditFocus(true)}
           />
         </div>
       );
