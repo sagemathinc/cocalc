@@ -219,7 +219,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           <br />
           <br />
           <CopyToClipBoard
-            value={join(base, `app?${PROJECT_INVITE_QUERY_PARAM}=${token}`)}
+            value={`${base}app?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
             style={{ width: "100%" }}
           />
           <br />
