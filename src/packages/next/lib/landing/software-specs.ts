@@ -10,10 +10,33 @@ import {
   LanguageName,
   SoftwareSpec,
 } from "./types";
+import { promises } from "fs";
+const { readFile } = promises;
+
+interface EnvData {
+  inventory: ComputeInventory;
+  components: ComputeComponents;
+}
+
+async function file2json(path: string): Promise<any> {
+  const data = await readFile(path, "utf8");
+  return JSON.parse(data);
+}
 
 // load the current version of the software specs – if there is a problem, use the locally stored files as fallback.
 // both files go hand-in-hand, hence either both work or both are the fallback!
-async function fetchInventory(): Promise<any> {
+async function fetchInventory(): Promise<EnvData> {
+  // for development, set the env variable to directory, where this files are
+  const localSpec = process.env.COCALC_COMPUTE_ENV_SPEC;
+  if (localSpec != null) {
+    // read compute-inventory.json and compute-components.json from the local filesystem
+    console.log(`reading inventory information from directory ${localSpec}`);
+    return {
+      inventory: await file2json(`${localSpec}/compute-inventory.json`),
+      components: await file2json(`${localSpec}/compute-components.json`),
+    };
+  }
+
   const urlI =
     "https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json";
   const urlC =
@@ -21,8 +44,8 @@ async function fetchInventory(): Promise<any> {
   try {
     const [respI, respC] = await Promise.all([fetch(urlI), fetch(urlC)]);
     if (respI.ok && respC.ok) {
-      const inventory = respI.json();
-      const components = respC.json();
+      const inventory = await respI.json();
+      const components = await respC.json();
       console.log(
         `successfully fetched and loaded software environment config files`
       );
@@ -35,7 +58,10 @@ async function fetchInventory(): Promise<any> {
     }
   } catch (err) {
     console.log(`Error fetching inventory: ${err} -- using fallback.`);
-    return { inventory: INVENTORY, components: COMPONENTS };
+    return {
+      inventory: INVENTORY as ComputeInventory,
+      components: COMPONENTS as ComputeComponents,
+    };
   }
 }
 

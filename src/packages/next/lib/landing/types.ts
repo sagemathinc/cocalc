@@ -46,7 +46,9 @@ export type ComputeInventory = {
 } & {
   [lang in LanguageName]: {
     // for each path, a map of package names to version number
-    [name: string]: string;
+    [path: string]: {
+      [pkgName: string]: string;
+    };
   };
 };
 
@@ -55,9 +57,9 @@ export type ComputeComponents = {
     [name: string]: {
       name: string;
       url: string;
-      descr: string;
-      summary: string;
-    };
+      descr?: string;
+      summary?: string;
+    } | null;
   };
 } & {
   executables: {
