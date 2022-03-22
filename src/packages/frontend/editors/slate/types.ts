@@ -34,6 +34,7 @@ export interface Actions {
   save_editor_state?: (id: string, new_editor_state?: any) => void;
   set_cursor_locs?: (locs: any[]) => void;
   set_value?: (value: string) => void;
+  syncstring_commit?: () => void;
   get_syncstring?: () => SyncString;
   get_matching_frame?: (obj: object) => string | undefined;
   programmatical_goto_line?: (

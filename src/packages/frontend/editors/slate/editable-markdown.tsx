@@ -42,7 +42,7 @@ import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
-import { scrollIntoView, slatePointToMarkdownPosition } from "./sync";
+import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
@@ -402,6 +402,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         const v = editor.getMarkdownValue();
         lastRemote.current = v;
         actions.set_value(v);
+        actions.syncstring_commit?.();
       } finally {
         savingValue.current = false;
       }
@@ -467,13 +468,17 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const lastRemote = useRef<string>(value ?? "");
     useEffect(() => {
       if (value == null) return;
-      if (savingValue.current) return;
+      if (savingValue.current) {
+        return;
+      }
 
+      // BLOCKER: there is something seriously wrong with sync when
+      // **no codemirror editor frame is open**.
       const base = lastRemote.current;
+      lastRemote.current = value;
       const remote = value;
       const local = editor.getMarkdownValue();
       const newVal = threeWayMerge({ base, local, remote });
-      lastRemote.current = remote;
       if (newVal == local) {
         // nothing changed
         return;
@@ -531,6 +536,19 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // set to beginning of document -- better than crashing.
         resetSelection(editor);
       }
+
+      //       (window as any).slateDebug = {
+      //         previousEditorValue,
+      //         nextEditorValue,
+      //         editorValue: editor.children,
+      //         operations,
+      //         slateDiff,
+      //         applyOperations,
+      //         markdown_to_slate,
+      //         value,
+      //         newVal,
+      //         localEval: (s) => console.log(eval(s)),
+      //       };
 
       if (EXPENSIVE_DEBUG) {
         const stringify = require("json-stable-stringify");

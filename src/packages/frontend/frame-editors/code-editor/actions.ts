@@ -1386,7 +1386,7 @@ export class Actions<
 
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
-    // This happens in some cae
+    // This happens in some cases.
     if (this._state === "closed" || this._syncstring.state != "ready") return;
     if (this._syncstring != null) {
       // we pass true since here we want any UI for this or any derived
@@ -1448,7 +1448,7 @@ export class Actions<
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
-    return this._syncstring.emit("change");
+    this._syncstring.emit("change");
   }
 
   async set_codemirror_to_syncstring(): Promise<void> {
