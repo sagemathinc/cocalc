@@ -11,6 +11,7 @@ import SiteName from "components/share/site-name";
 import useCustomize from "lib/use-customize";
 import Cart from "./cart";
 import SiteLicense from "./site-license";
+import Boost from "./boost";
 import Overview from "./overview";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
@@ -78,6 +79,8 @@ export default function ConfigLayout({ page }: Props) {
     switch (main) {
       case "site-license":
         return <SiteLicense />;
+      case "boost":
+        return <Boost />;
       case "cart":
         return <Cart />;
       case "checkout":
@@ -101,7 +104,7 @@ export default function ConfigLayout({ page }: Props) {
         style={{
           padding: 24,
           margin: 0,
-          minHeight: 280,
+          minHeight: "60vh",
         }}
       >
         {main == "overview" && (
