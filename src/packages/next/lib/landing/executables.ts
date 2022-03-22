@@ -1,6 +1,5 @@
 import { capitalize, field_cmp } from "@cocalc/util/misc";
 import { splitFirst, splitLast } from "@cocalc/util/misc-path";
-import INVENTORY from "dist/inventory/compute-inventory.json";
 
 export interface Item {
   name: string;
@@ -8,11 +7,15 @@ export interface Item {
   output: string;
 }
 
-export default function executables() {
+export default function executables(softwareSpec): Item[] {
   const exes: Item[] = [];
-  for (const path in INVENTORY.executables) {
+  for (const path in softwareSpec) {
     const name = capitalize(splitFirst(splitLast(path, "/")[1], "-")[0]);
-    exes.push({ path, output: INVENTORY.executables[path], name });
+    exes.push({
+      path,
+      output: softwareSpec[path],
+      name,
+    });
   }
 
   exes.sort(field_cmp("name"));

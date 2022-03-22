@@ -5,22 +5,35 @@ import Header from "components/landing/header";
 import Image from "components/landing/image";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
-import { Customize } from "lib/customize";
-import { getSpec } from "lib/landing/libraries";
-import withCustomize from "lib/with-customize";
+import { Customize, CustomizeType } from "lib/customize";
+import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
+import {
+  ComputeComponents,
+  ComputeInventory,
+  SoftwareSpec,
+} from "lib/landing/types";
 import { STYLE_PAGE } from ".";
 import screenshot from "/public/features/cocalc-r-jupyter.png";
 
-export default function RSoftware({ customize }) {
+interface Props {
+  customize: CustomizeType;
+  spec: SoftwareSpec["R"];
+  inventory: ComputeInventory["R"];
+  components: ComputeComponents["R"];
+}
+
+export default function R(props: Props) {
+  const { customize, spec, inventory, components } = props;
+
   function renderEnvs() {
     const envs: JSX.Element[] = [];
-    for (const [key, spec] of Object.entries(getSpec()["R"])) {
+    for (const [key, info] of Object.entries(spec)) {
       envs.push(
         <div key={key}>
           <b>
-            <A href={spec.url}>{spec.name}</A>:
+            <A href={info.url}>{info.name}</A>:
           </b>{" "}
-          {spec.doc}
+          {info.doc}
         </div>
       );
     }
@@ -85,7 +98,12 @@ export default function RSoftware({ customize }) {
           {renderBox()}
           <h2>R Statistical Software Environments</h2>
           <ul>{renderEnvs()}</ul>
-          <SoftwareLibraries lang="R" libWidthPct={60} />;
+          <SoftwareLibraries
+            spec={spec}
+            inventory={inventory}
+            components={components}
+            libWidthPct={60}
+          />
         </div>
         <Footer />
       </Layout.Content>
@@ -94,5 +112,5 @@ export default function RSoftware({ customize }) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomize({ context });
+  return await withCustomizedAndSoftwareSpec(context, "R");
 }

@@ -70,6 +70,7 @@
     "@types/react": "^17.0.33",
     "antd": "^4.18.2",
     "antd-img-crop": "^3.16.0",
+    "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "basic-auth": "^2.0.1",
     "cookies": "^0.8.0",

@@ -1,13 +1,26 @@
 import { useMemo, useState } from "react";
 import { Input, Table } from "antd";
-import libraries, { getSpec, Item, LanguageName } from "lib/landing/libraries";
 import { debounce } from "lodash";
 import A from "components/misc/A";
+import {
+  ComputeComponents,
+  ComputeInventory,
+  Item,
+  LanguageName,
+  SoftwareSpec,
+} from "lib/landing/types";
+import { getLibaries } from "lib/landing/get-libraries";
+
+// check if the string is a URL
+function isURL(url?: string) {
+  return url && url.match(/^(http|https):\/\//);
+}
 
 export function renderName(name, record) {
+  const url = record.url;
   return (
     <div>
-      <b>{record.url ? <A href={record.url}>{name}</A> : name}</b>
+      <b>{isURL(url) ? <A href={url}>{name}</A> : name}</b>
       <br />
       {record.summary}
     </div>
@@ -15,12 +28,15 @@ export function renderName(name, record) {
 }
 
 interface Props {
-  lang: LanguageName;
   libWidthPct?: number;
+  spec: SoftwareSpec[LanguageName];
+  inventory: ComputeInventory[LanguageName];
+  components: ComputeComponents[LanguageName];
 }
 
-export default function SoftwareLibraries({ lang, libWidthPct = 60 }: Props) {
-  const dataSource = useMemo(() => libraries(lang), [lang]);
+export default function SoftwareLibraries(props: Props) {
+  const { spec, inventory, components, libWidthPct = 60 } = props;
+  const dataSource = getLibaries(spec, inventory, components);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
     () =>
@@ -43,18 +59,19 @@ export default function SoftwareLibraries({ lang, libWidthPct = 60 }: Props) {
     }
   }
 
-  const columns = useMemo(() => {
-    const spec = getSpec();
-    const envs = Object.entries(spec[lang]);
+  type Columns = {
+    width: string;
+    title: string;
+    key: string;
+    dataIndex: string;
+    render?: typeof renderName;
+  }[];
+
+  const columns = useMemo((): Columns => {
+    const envs = Object.entries(spec);
     const width = (100 - libWidthPct) / envs.length;
 
-    const columns: {
-      width: string;
-      title: string;
-      key: string;
-      dataIndex: string;
-      render?: typeof renderName;
-    }[] = [
+    const columns: Columns = [
       {
         width: `${libWidthPct}%`,
         title: "Library",

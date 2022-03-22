@@ -3,6 +3,7 @@ import { Input, Table, Typography } from "antd";
 import Code from "components/landing/code";
 import { debounce } from "lodash";
 import executables, { Item } from "lib/landing/executables";
+import { ComputeInventory } from "lib/landing/types";
 const { Text } = Typography;
 
 const INFO_STYLE: React.CSSProperties = {
@@ -13,13 +14,13 @@ const INFO_STYLE: React.CSSProperties = {
   fontSize: "10px",
   border: "none",
   borderRadius: "3px",
-};
+} as const;
 
 const PRE_STYLE: React.CSSProperties = {
   padding: "5px",
   margin: 0,
   overflow: "unset", // parent div will show scroll handles
-};
+} as const;
 
 const COLUMNS = [
   {
@@ -27,7 +28,11 @@ const COLUMNS = [
     key: "name",
     dataIndex: "name",
     responsive: ["md" as any],
-    render: (name) => <Text strong style={{ fontSize: "12pt" }}>{name}</Text>,
+    render: (name) => (
+      <Text strong style={{ fontSize: "12pt" }}>
+        {name}
+      </Text>
+    ),
   },
   {
     title: "Path",
@@ -48,8 +53,12 @@ const COLUMNS = [
   },
 ];
 
-export default function ExecutablesTable() {
-  const dataSource = useMemo(executables, []);
+export default function ExecutablesTable({
+  executablesSpec,
+}: {
+  executablesSpec: ComputeInventory["executables"];
+}) {
+  const dataSource = executables(executablesSpec);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
     () =>
