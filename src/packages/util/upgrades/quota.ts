@@ -409,6 +409,7 @@ export function licenseToGroupKey(val: QuotaSetting): string {
   });
 }
 
+
 // some site licenses do not mix.
 // e.g. always_running==true can't upgrade another (especially large) one not having always_running set.
 // also preempt upgrades shouldn't uprade member hosting upgades.
@@ -419,21 +420,7 @@ export function licenseToGroupKey(val: QuotaSetting): string {
 // Fall 2021: on top of that, "dedicted resources" are treated in a special way
 // * VMs: do not mix with any other upgrades, only one per project
 // * disks: orthogonal to VMs, more than one per project is possible
-function selectSiteLicenses(site_licenses: SiteLicenses): {
-  site_licenses: SiteLicenses;
-  dedicated_disks?: DedicatedDisk[];
-  dedicated_vm?: DedicatedVM;
-} {
-  // this "extracts" all dedicated disk upgrades from the site_licenses map
-  const dedicated_disks = select_dedicated_disks(site_licenses);
-
-  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
-
-  // if there is a dedicated VM, we ignore all site licenses.
-  if (dedicated_vm != null) {
-    return { site_licenses: {}, dedicated_disks, dedicated_vm };
-  }
-
+function selectRegularLicenses(site_licenses: SiteLicenses): SiteLicenses {
   // classification: each group is a list of licenses, and only the group
   // with the higest priority is considered for license upgrades.
   const groups: { [key: string]: string[] | null } = {};
@@ -452,12 +439,30 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
     }
   })();
 
-  if (selected == null) return { site_licenses: {}, dedicated_disks };
+  if (selected == null) return {};
 
-  const selected_licenses = selected.reduce((acc, cur) => {
+  return selected.reduce((acc, cur) => {
     acc[cur] = site_licenses[cur];
     return acc;
   }, {});
+}
+
+function selectSiteLicenses(site_licenses: SiteLicenses): {
+  site_licenses: SiteLicenses;
+  dedicated_disks?: DedicatedDisk[];
+  dedicated_vm?: DedicatedVM;
+} {
+  // this "extracts" all dedicated disk upgrades from the site_licenses map
+  const dedicated_disks = select_dedicated_disks(site_licenses);
+
+  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
+
+  // if there is a dedicated VM, we ignore all site licenses.
+  if (dedicated_vm != null) {
+    return { site_licenses: {}, dedicated_disks, dedicated_vm };
+  }
+
+  const selected_licenses = selectRegularLicenses(site_licenses);
 
   return { site_licenses: selected_licenses, dedicated_disks };
 }

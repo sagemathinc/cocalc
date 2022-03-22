@@ -6,7 +6,7 @@
 // this tests kucalc's quota function
 //
 // after any change to quota.ts, be a good citizen and run this test or even extend it
-// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts
+// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts  [--watch]
 
 // import * as init from "./init";
 //let db = undefined;
@@ -27,7 +27,7 @@ import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 import { SiteLicenses } from "../types/site-licenses";
 
-describe("default quota", () => {
+describe("main quota functionality", () => {
   it("basics are fine", () => {
     // quota should work without any arguments
     const basic = quota();
@@ -950,7 +950,9 @@ describe("default quota", () => {
     expect(q1.cpu_request).toEqual(0.25);
     expect(q1.cpu_limit).toEqual(2.5);
   });
+});
 
+describe("always running", () => {
   it("handles always_running admin upgrades", () => {
     const admin1 = quota({ member_host: 1, network: 1, always_running: 1 }, {});
     const exp = {
@@ -995,7 +997,9 @@ describe("default quota", () => {
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
   });
+});
 
+describe("site licenses", () => {
   it("site_license basic update as expected", () => {
     const site_license = {
       "1234-5432-3456-7654": {
@@ -1313,7 +1317,9 @@ describe("default quota", () => {
       dedicated_vm: false,
     });
   });
+});
 
+describe("dedicated", () => {
   it("dedicated vm do not mix with quotas /1", () => {
     const site_license = {
       a1: {
@@ -1411,7 +1417,9 @@ describe("default quota", () => {
     const q = quota({}, { userX: {} }, site_license);
     expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
   });
+});
 
+describe("idle timeout license", () => {
   it("licensed idle timeout / member + short", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
@@ -1680,6 +1688,68 @@ describe("default quota", () => {
       member_host: true,
       memory_limit: 1500, // 1500 min for members
       memory_request: 300, // oc ratio
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+});
+
+describe("boost", () => {
+  it("add 4 gb ram to a small license", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost: {
+        quota: { ram: 4, member: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("rejects a single boost license", () => {
+    const site_licenses: SiteLicenses = {
+      boost: {
+        quota: { ram: 4, member: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: false,
+      memory_limit: 1000,
+      memory_request: 300,
       network: true,
       privileged: false,
       dedicated_disks: [],

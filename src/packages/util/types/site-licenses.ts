@@ -16,6 +16,7 @@ export interface SiteLicenseQuota {
   // 1. they don't mix, just like member/free and always_running does not mix
   // 2. we define the timeout spans indirectly, gives us a bit of room to modify this later on.
   idle_timeout?: "short" | "medium" | "day";
+  boost?: boolean; // default false
 }
 
 // For typescript use of these from user side, we make this available:
