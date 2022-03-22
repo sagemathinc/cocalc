@@ -82,7 +82,7 @@ export default function ExecutablesTable({
   }
 
   return (
-    <div>
+    <div style={{ clear: "both" }}>
       <h2>Showing {data.length} executables</h2>
       <Input.Search
         style={{ padding: "0 30px 15px 0", width: "50%", minWidth: "300px" }}

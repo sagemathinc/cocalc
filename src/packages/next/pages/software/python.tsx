@@ -12,14 +12,8 @@ import {
   ComputeInventory,
   SoftwareSpec,
 } from "lib/landing/types";
-import { STYLE_PAGE } from ".";
+import { STYLE_PAGE, STYLE_PAGE_WIDE } from ".";
 import pythonScreenshot from "/public/features/frame-editor-python.png";
-
-// STYLE_PAGE should have a max width of 1200px
-const STYLE_PAGE_WIDE = {
-  ...STYLE_PAGE,
-  maxWidth: "1200px",
-} as const;
 
 interface Props {
   customize: CustomizeType;

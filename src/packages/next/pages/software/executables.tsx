@@ -9,7 +9,7 @@ import { Customize, CustomizeType } from "lib/customize";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import { ComputeInventory } from "lib/landing/types";
 import executablesScreenshot from "public/software/executables.png";
-import { STYLE_PAGE } from ".";
+import { STYLE_PAGE, STYLE_PAGE_WIDE } from ".";
 interface Props {
   customize: CustomizeType;
   executablesSpec: ComputeInventory["executables"];
@@ -20,7 +20,10 @@ export default function Executables(props: Props) {
 
   function renderInfo() {
     return (
-      <>
+      <div style={{ maxWidth: STYLE_PAGE.maxWidth, margin: "0 auto" }}>
+        <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
+          Executables in CoCalc
+        </h1>
         <div style={{ width: "50%", float: "right", paddingBottom: "15px" }}>
           <Image
             src={executablesScreenshot}
@@ -41,7 +44,7 @@ export default function Executables(props: Props) {
           binaries. You have a lot of control about your own project, which is a
           containerized x86_64 Ubuntu Linux environment.{" "}
         </p>
-      </>
+      </div>
     );
   }
 
@@ -54,10 +57,7 @@ export default function Executables(props: Props) {
           backgroundColor: "white",
         }}
       >
-        <div style={STYLE_PAGE}>
-          <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            Executables in CoCalc
-          </h1>
+        <div style={STYLE_PAGE_WIDE}>
           {renderInfo()}
           <ExecutablesTable executablesSpec={executablesSpec} />
         </div>
