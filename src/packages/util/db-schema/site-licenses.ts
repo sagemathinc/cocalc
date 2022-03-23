@@ -41,13 +41,18 @@ export function describe_quota(
     delete quota.uptime;
   }
 
-  let desc: string = "";
-  if (!short) {
-    desc =
-      (quota.user == "business" ? "Business" : "Academic") +
-      " license providing ";
-  }
   const v: string[] = [];
+  const isBoost = quota.boost === true;
+
+  let intro = "";
+  if (!short) {
+    const user = quota.user == "business" ? "Business" : "Academic";
+    const booster = isBoost ? "booster" : "";
+    intro = `${user} license ${booster} providing`;
+  } else if (isBoost) {
+    // even if "short", we tell the user this i a boost license
+    intro = `Boost`;
+  }
 
   if (quota.ram) {
     v.push(`${quota.ram}GB RAM`);
@@ -74,7 +79,7 @@ export function describe_quota(
       `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
     );
   } else {
-    if (quota.member) {
+    if (quota.member && !isBoost) {
       v.push("member" + (short ? "" : " hosting"));
     }
   }
@@ -96,9 +101,10 @@ export function describe_quota(
       }
     }
   }
-  v.push("network"); // always provided, because we trust customers.
-  desc += v.join(", ");
-  return desc;
+  if (!isBoost) {
+    v.push("network"); // always provided, because we trust customers.
+  }
+  return `${intro} ${v.join(", ")}`;
 }
 
 Table({
