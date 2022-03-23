@@ -17,7 +17,7 @@ interface Props {
   onSuccess: () => void; // if given, call after sign up *succeeds*.
 }
 
-export default function Try({ minimal, onSuccess } : Props) {
+export default function Try({ minimal, onSuccess }: Props) {
   const { siteName, anonymousSignup } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
   const [error, setError] = useState<string>("");
@@ -44,7 +44,7 @@ export default function Try({ minimal, onSuccess } : Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px 30px 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
@@ -57,8 +57,14 @@ export default function Try({ minimal, onSuccess } : Props) {
       <div style={LOGIN_STYLE}>
         {error && <Alert type="error" message={error} showIcon />}
         Try {siteName} <b>without</b>{" "}
-        <A href="/auth/sign-up" external={!!minimal}>creating an account</A> or{" "}
-        <A href="/auth/sign-in" external={!!minimal}>signing in</A>!
+        <A href="/auth/sign-up" external={!!minimal}>
+          creating an account
+        </A>{" "}
+        or{" "}
+        <A href="/auth/sign-in" external={!!minimal}>
+          signing in
+        </A>
+        !
         <Button
           disabled={state != "wait"}
           shape="round"

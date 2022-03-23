@@ -24,6 +24,7 @@ export const PassportTypesList = [
   "gitlab2",
   "apple",
   "microsoft",
+  "azure-ad",
 ] as const;
 
 export type PassportTypes = typeof PassportTypesList[number];

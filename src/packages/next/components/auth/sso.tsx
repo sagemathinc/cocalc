@@ -6,13 +6,7 @@ import { join } from "path";
 import { useRouter } from "next/router";
 import apiPost from "lib/api/post";
 import Loading from "components/share/loading";
-
-export interface Strategy {
-  name: string;
-  display: string;
-  icon: string;
-  backgroundColor?: string;
-}
+import { Strategy } from "@cocalc/util/types/sso";
 
 interface Props {
   strategies?: Strategy[];
@@ -56,13 +50,15 @@ export default function SSO({ strategies, size, style, header }: Props) {
     <div style={{ ...style }}>
       {header}
       <div style={{ marginLeft: "-5px" }}>
-        {strategies2.map((strategy) => (
-          <StrategyAvatar
-            key={strategy.name}
-            strategy={strategy}
-            size={size ?? 60}
-          />
-        ))}
+        {strategies2
+          .filter((s) => s.public)
+          .map((strategy) => (
+            <StrategyAvatar
+              key={strategy.name}
+              strategy={strategy}
+              size={size ?? 60}
+            />
+          ))}
       </div>
     </div>
   );

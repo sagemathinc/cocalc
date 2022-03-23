@@ -1,16 +1,17 @@
-import { Alert, Button, Checkbox, Input } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import SquareLogo from "components/logo-square";
-import useCustomize from "lib/use-customize";
-import A from "components/misc/A";
 import {
-  len,
   is_valid_email_address as isValidEmailAddress,
+  len,
 } from "@cocalc/util/misc";
-import apiPost from "lib/api/post";
-import SSO, { Strategy } from "./sso";
-import { LOGIN_STYLE } from "./shared";
+import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Button, Checkbox, Input } from "antd";
+import SquareLogo from "components/logo-square";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useCustomize from "lib/use-customize";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { LOGIN_STYLE } from "./shared";
+import SSO from "./sso";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
@@ -147,7 +148,7 @@ export default function SignUp({
   }
 
   return (
-    <div style={{ padding: "0 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo

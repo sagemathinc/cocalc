@@ -1,13 +1,14 @@
-import { Alert, Button, Input } from "antd";
-import { useState } from "react";
-import SquareLogo from "components/logo-square";
-import useCustomize from "lib/use-customize";
-import A from "components/misc/A";
-import SSO, { Strategy } from "./sso";
-import { LOGIN_STYLE } from "./shared";
-import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Button, Input } from "antd";
 import Contact from "components/landing/contact";
+import SquareLogo from "components/logo-square";
+import A from "components/misc/A";
+import apiPost from "lib/api/post";
+import useCustomize from "lib/use-customize";
+import { useState } from "react";
+import { LOGIN_STYLE } from "./shared";
+import SSO from "./sso";
 
 interface Props {
   strategies?: Strategy[];
@@ -21,6 +22,8 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  const haveSSO = strategies != null && strategies.length > 0;
 
   async function signIn() {
     if (signingIn) return;
@@ -37,7 +40,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
@@ -49,14 +52,14 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          {strategies != null
-            ? strategies.length > 0
-              ? "Sign in using your email address or a single sign on provider."
-              : "Sign in using your email address."
-            : "Sign in"}
+          {strategies == null
+            ? "Sign in"
+            : haveSSO
+            ? "Sign in using your email address or a single sign on provider."
+            : "Sign in using your email address."}
         </div>
         <form>
-          {strategies != null && strategies.length > 0 && (
+          {haveSSO && (
             <div style={{ textAlign: "center", margin: "20px 0" }}>
               <SSO
                 strategies={strategies}

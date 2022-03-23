@@ -1,15 +1,16 @@
-import register from "../register";
-import Loading from "components/share/loading";
-import useEditTable from "lib/hooks/edit-table";
-import useAPI from "lib/hooks/api";
-import { Alert, Button, Popconfirm, Space } from "antd";
-import { ReactNode, useState } from "react";
-import { Strategy, StrategyAvatar } from "components/auth/sso";
-import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
-import SiteName from "components/share/site-name";
 import { len } from "@cocalc/util/misc";
+import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Button, Popconfirm, Space } from "antd";
+import { StrategyAvatar } from "components/auth/sso";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useEditTable from "lib/hooks/edit-table";
+import { ReactNode, useState } from "react";
+import register from "../register";
 
 interface Data {
   passports?: object;

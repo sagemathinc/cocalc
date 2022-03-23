@@ -13,12 +13,13 @@ interface Props {
 }
 
 const STYLE: React.CSSProperties = {
+  background: "white",
   minHeight: "75vh",
-  padding: "0 50px",
   maxWidth: "992px", // Antd screen-lg
   width: "100%",
   margin: "0 auto",
-};
+  padding: "0",
+} as const;
 
 export default function Main(props: Props) {
   const { nav, children } = props;

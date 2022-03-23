@@ -91,7 +91,7 @@ export default function Signup(props: Props) {
   return (
     <Customize value={customize}>
       <Head title={`${SSO_SUBTITLE} – ${display}`} />
-      <Layout>
+      <Layout style={{ background: "white" }}>
         <Header />
         <Main nav={nav()}>{main()}</Main>
         <Footer />

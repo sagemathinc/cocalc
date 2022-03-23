@@ -573,6 +573,8 @@ export class PassportManager {
         return require("passport-apple").Strategy;
       case "microsoft":
         return require("passport-microsoft").Strategy;
+      case "azure-ad":
+        return require("passport-azure-ad").Strategy;
       case "email":
         throw new Error("email is a special case, not a strategy");
       default:

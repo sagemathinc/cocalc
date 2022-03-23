@@ -117,7 +117,7 @@ export default function SignupIndex(props: Props) {
   return (
     <Customize value={customize}>
       <Head title={SSO_SUBTITLE} />
-      <Layout>
+      <Layout style={{background: "white"}}>
         <Header />
         <Main nav={ssoNav()}>{main()}</Main>
         <Footer />
