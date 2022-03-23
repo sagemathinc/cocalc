@@ -51,7 +51,9 @@ type LicenseSubs = {
 
 // for each license_id, we want to know if/when it expires and if it is a trial -- trials are ignored
 type LicenseInfo = {
-  [license_id: string]: { expires: Date | undefined; trial: boolean };
+  [license_id: string]:
+    | { expires: Date | undefined; trial: boolean }
+    | undefined; // undefined if license is not in the DB
 };
 
 // Get all license expire times from database at once, so we don't
@@ -157,7 +159,7 @@ async function sync_subscriptions_to_licenses(
         `WARNING: no known license '${license_id}' for subscription '${sub.id}'`
       );
     }
-    const expires: Date | undefined = licenses[license_id].expires;
+    const expires: Date | undefined = licenses[license_id]?.expires;
 
     // we check, if the given subscription of that license is still funding it
     if (is_funding(sub)) {
@@ -233,7 +235,7 @@ async function expire_cancelled_subscriptions(
     } else {
       const msg = `license_id '${license_id}' is not funded by any subscription`;
       // maybe trial without expiration?
-      if (licenses[license_id].trial) {
+      if (licenses[license_id]?.trial ?? false) {
         L(`${msg}, but it is a trial`);
       } else {
         L(`${msg}`);
