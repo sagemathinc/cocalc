@@ -567,6 +567,12 @@ export class PassportManager {
         return require("passport-saml").Strategy;
       case "activedirectory":
         return require("passport-activedirectory").Strategy;
+      case "gitlab2":
+        return require("passport-gitlab2").Strategy;
+      case "apple":
+        return require("passport-apple").Strategy;
+      case "microsoft":
+        return require("passport-microsoft").Strategy;
       case "email":
         throw new Error("email is a special case, not a strategy");
       default:

@@ -9,11 +9,7 @@ import {
 } from "@cocalc/server/settings/server-settings";
 import { CB, PostgreSQL } from "./types";
 
-export type LoginInfoKeys =
-  | "id"
-  | "first_name"
-  | "last_name"
-  | "emails";
+export type LoginInfoKeys = "id" | "first_name" | "last_name" | "emails";
 
 // google, facebook, etc ... are not included, they're hardcoded
 export const PassportTypesList = [
@@ -25,6 +21,9 @@ export const PassportTypesList = [
   "oauth2next",
   "orcid",
   "saml",
+  "gitlab2",
+  "apple",
+  "microsoft",
 ] as const;
 
 export type PassportTypes = typeof PassportTypesList[number];
