@@ -22,6 +22,7 @@ import {
   LicenseStatus,
   siteLicenseSelectionKeys,
   licenseToGroupKey,
+  isSiteLicenseQuotaSetting,
 } from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
@@ -179,16 +180,32 @@ class SiteLicenseHook {
    * license is considered first (and applied), and then a higher priority license is considered next,
    * the quota algorithm will only pick the higher priority license in the second iteration, causing the
    * effective quotas to be different, and hence actually both licenses seem to be applied but they are not.
+   *
+   * additionally (march 2022): start with regular licenses, then boost licenses
    */
   private orderedSiteLicenseIDs(validLicenses): string[] {
     const ids = Object.keys(this.currentSiteLicense).filter((id) => {
       return validLicenses.get(id) != null;
     });
-    const order = Array.from(siteLicenseSelectionKeys());
-    const orderedIds = sortBy(ids, (id) => {
-      const key = licenseToGroupKey(validLicenses.get(id).toJS());
-      return order.indexOf(key);
-    });
+    const groupKeyOrdering = Array.from(siteLicenseSelectionKeys());
+
+    // first all regular licenses (boost == false), then the boost licenses
+    const orderedIds: string[] = [];
+    for (const boost of [false, true]) {
+      const idsPartition = ids.filter((id) => {
+        const val = this.currentSiteLicense[id];
+        // one group is every license, while the other are those where quota.boost is true
+        return (
+          isSiteLicenseQuotaSetting(val) && (val.quota.boost ?? false) === boost
+        );
+      });
+      orderedIds.push(
+        ...sortBy(idsPartition, (id) => {
+          const key = licenseToGroupKey(validLicenses.get(id).toJS());
+          return groupKeyOrdering.indexOf(key);
+        })
+      );
+    }
     return orderedIds;
   }
 
@@ -206,7 +223,7 @@ class SiteLicenseHook {
     for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
-        // We could put some sort of error here in case, though I don't know what
+        // We could put some sort of error here in case, though I don't know whatlicesnlicesneses
         // we would do with it.
         this.dbg.info(`skipping invalid license ${license_id} -- invalid UUID`);
         continue;

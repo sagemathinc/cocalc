@@ -279,7 +279,7 @@ function calcDefaultQuotas(site_settings?: SiteSettingsQuotas): Quota {
   return quota;
 }
 
-function isSiteLicenseQuotaSetting(
+export function isSiteLicenseQuotaSetting(
   slq?: QuotaSetting
 ): slq is SiteLicenseQuotaSetting {
   return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
