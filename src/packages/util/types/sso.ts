@@ -4,5 +4,5 @@ export interface Strategy {
   display: string; // name to display for SSO
   icon: string; // name of or URL to icon to display for SSO
   backgroundColor: string; // background color for icon, if not a link
-  public: boolean; // true for general broad audiences, like google
+  public: boolean; // true for general broad audiences, like google, default true
 }

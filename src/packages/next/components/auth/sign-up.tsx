@@ -13,7 +13,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { LOGIN_STYLE } from "./shared";
 import SSO from "./sso";
 
-const LINE = { margin: "15px 0" } as CSSProperties;
+const LINE: CSSProperties = { margin: "15px 0" } as const;
 
 interface Props {
   strategies?: Strategy[];
@@ -69,6 +69,7 @@ export default function SignUp({
   const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
     strategies
   );
+
   useEffect(() => {
     if (strategies2 === undefined) {
       (async () => {

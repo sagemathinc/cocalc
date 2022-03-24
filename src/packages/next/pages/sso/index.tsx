@@ -105,8 +105,8 @@ export default function SignupIndex(props: Props) {
         <Paragraph>
           Sign up at {customize.siteName} via one of these 3<sup>rd</sup> party
           organizations. You need to have an account at the respective entity in
-          order to complete the single sign on process. In many cases, this will
-          be the only way you can sign up using your organization specific email
+          order to complete the single sign on process. Usually, this will be
+          the only way you can sign up using your organization specific email
           address.
         </Paragraph>
         <Paragraph>{renderSSOList()}</Paragraph>
@@ -117,7 +117,7 @@ export default function SignupIndex(props: Props) {
   return (
     <Customize value={customize}>
       <Head title={SSO_SUBTITLE} />
-      <Layout style={{background: "white"}}>
+      <Layout style={{ background: "white" }}>
         <Header />
         <Main nav={ssoNav()}>{main()}</Main>
         <Footer />
