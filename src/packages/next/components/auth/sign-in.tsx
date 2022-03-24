@@ -6,9 +6,9 @@ import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LOGIN_STYLE } from "./shared";
-import SSO from "./sso";
+import SSO, { RequiredSSO } from "./sso";
 
 interface Props {
   strategies?: Strategy[];
@@ -24,6 +24,18 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   const [error, setError] = useState<string>("");
 
   const haveSSO = strategies != null && strategies.length > 0;
+
+  // based on email: if user has to sign up via SSO, this will tell which strategy to use.
+  const requiredSSO: Strategy | undefined = useMemo(() => {
+    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
+    if (!haveSSO) return;
+    const domain = email.trim().toLowerCase().split("@")[1];
+    for (const strategy of strategies) {
+      if (strategy.exclusiveDomains.includes(domain)) {
+        return strategy;
+      }
+    }
+  }, [email]);
 
   async function signIn() {
     if (signingIn) return;
@@ -45,6 +57,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+            priority={true}
           />
           <h1>Sign In to {siteName}</h1>
         </div>
@@ -65,7 +78,9 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
                 strategies={strategies}
                 size={email ? 24 : undefined}
                 style={
-                  email ? { float: "right", marginBottom: "20px" } : undefined
+                  email
+                    ? { textAlign: "right", marginBottom: "20px" }
+                    : undefined
                 }
               />
             </div>
@@ -77,8 +92,15 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
-          {/* Don't ever hide password input, since that messes up autofill */}
-          <div style={{ marginTop: "30px" }}>
+
+          <RequiredSSO strategy={requiredSSO} />
+          {/* Don't remove password input, since that messes up autofill. Hide for forced SSO. */}
+          <div
+            style={{
+              marginTop: "30px",
+              visibility: requiredSSO == null ? "visible" : "hidden",
+            }}
+          >
             <p>Password </p>
             <Input.Password
               style={{ fontSize: "12pt" }}
@@ -91,7 +113,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
               }}
             />
           </div>
-          {email && (
+          {email && requiredSSO == null && (
             <Button
               disabled={signingIn || !(password?.length >= 6)}
               shape="round"

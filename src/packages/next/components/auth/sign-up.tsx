@@ -9,9 +9,9 @@ import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { LOGIN_STYLE } from "./shared";
-import SSO from "./sso";
+import SSO, { RequiredSSO } from "./sso";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -84,8 +84,21 @@ export default function SignUp({
     return <Loading />;
   }
 
+  // based on email: if user has to sign up via SSO, this will tell which strategy to use.
+  const requiredSSO: Strategy | undefined = useMemo(() => {
+    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
+    if (strategies2 == null || strategies2.length === 0) return;
+    const domain = email.trim().toLowerCase().split("@")[1];
+    for (const strategy of strategies2) {
+      if (strategy.exclusiveDomains.includes(domain)) {
+        return strategy;
+      }
+    }
+  }, [strategies2 == null, email]);
+
   submittable.current = !!(
     terms &&
+    requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
     email &&
     isValidEmailAddress(email) &&
@@ -154,6 +167,7 @@ export default function SignUp({
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+            priority={true}
           />
           <h1>Create a {siteName} Account</h1>
           {accountCreationInstructions}
@@ -205,6 +219,7 @@ export default function SignUp({
               strategies={strategies2}
             />
           )}
+          <RequiredSSO strategy={requiredSSO} />
           {issues.email && (
             <Alert
               style={LINE}
@@ -220,7 +235,7 @@ export default function SignUp({
               }
             />
           )}
-          {terms && email && (
+          {terms && email && requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -236,7 +251,7 @@ export default function SignUp({
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {terms && email && password?.length >= 6 && (
+          {terms && email && requiredSSO == null && password?.length >= 6 && (
             <div style={LINE}>
               <p>First name</p>
               <Input
@@ -248,7 +263,7 @@ export default function SignUp({
               />
             </div>
           )}
-          {terms && email && password && firstName && (
+          {terms && email && password && requiredSSO == null && firstName && (
             <div style={LINE}>
               <p>Last name</p>
               <Input
@@ -276,6 +291,8 @@ export default function SignUp({
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
+              : requiredSSO != null
+              ? "You must sign up via SSO"
               : !password || password.length < 6
               ? "Choose password with at least 6 characters"
               : !firstName
@@ -336,7 +353,9 @@ function EmailOrSSO({ email, setEmail, signUp, strategies }) {
           <SSO
             strategies={strategies}
             size={email ? 24 : undefined}
-            style={email ? { float: "right", marginBottom: "20px" } : undefined}
+            style={
+              email ? { textAlign: "right", marginBottom: "20px" } : undefined
+            }
           />
         </div>
       )}

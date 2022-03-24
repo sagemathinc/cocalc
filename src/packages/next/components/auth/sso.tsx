@@ -1,12 +1,14 @@
-import { Avatar, Tooltip } from "antd";
-import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import basePath from "lib/base-path";
-import { join } from "path";
-import { useRouter } from "next/router";
-import apiPost from "lib/api/post";
-import Loading from "components/share/loading";
 import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Avatar, Tooltip, Typography } from "antd";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import basePath from "lib/base-path";
+import { useRouter } from "next/router";
+import { join } from "path";
+import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
+
+const { Text } = Typography;
 
 interface SSOProps {
   strategies?: Strategy[];
@@ -58,17 +60,18 @@ export default function SSO(props: SSOProps) {
     if (!havePrivateSSO) return;
 
     // a fake entry to point the user to the page for private SSO login options
-    const sso = {
+    const sso: Strategy = {
       name: "sso",
       display: "Single Sing On",
       icon: "api",
       backgroundColor: "",
       public: true,
+      exclusiveDomains: [],
     };
 
     return (
       <>
-        {"External sinle-sign-on: "}
+        {"External Single-Sign-On: "}
         <StrategyAvatar key={"sso"} strategy={sso} size={size ?? 60} />
       </>
     );
@@ -167,5 +170,32 @@ export function StrategyAvatar(props: AvatarProps) {
     >
       {renderAvatar()}
     </Tooltip>
+  );
+}
+
+export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
+  if (strategy == null) return null;
+  return (
+    <Alert
+      style={{ margin: "15px 0" }}
+      type="info"
+      showIcon={false}
+      message={`Single-Sign-On required`}
+      description={
+        <>
+          <p>
+            You must sign up using the <Text strong>{strategy.display}</Text>{" "}
+            SSO strategy.
+          </p>
+          <p style={{ textAlign: "center" }}>
+            <StrategyAvatar
+              key={strategy.name}
+              strategy={strategy}
+              size={120}
+            />
+          </p>
+        </>
+      }
+    />
   );
 }
