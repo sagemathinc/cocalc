@@ -62,7 +62,7 @@ export default function SSO(props: SSOProps) {
     // a fake entry to point the user to the page for private SSO login options
     const sso: Strategy = {
       name: "sso",
-      display: "Single Sing On",
+      display: "Single-Sign-On",
       icon: "api",
       backgroundColor: "",
       public: true,

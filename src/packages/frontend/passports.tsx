@@ -7,7 +7,7 @@ import {
   PassportStrategyFrontend,
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
-import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
+import { CSS, React, TypedMap, useMemo } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -26,12 +26,21 @@ interface Props {
 
 const BASE_ICON_STYLE: CSS = {
   display: "inline-block",
-  padding: "6px",
+  padding: "10px",
   borderRadius: "50%",
   width: "50px",
   height: "50px",
   marginRight: "10px",
   textAlign: "center",
+  verticalAlign: "middle",
+} as const;
+
+const SMALL_ICON_STYLE: CSS = {
+  width: "25px",
+  height: "25px",
+  top: "0",
+  padding: "4px",
+  fontSize: "15px",
 } as const;
 
 const CUSTOM_ICON_STYLE: CSS = {
@@ -53,6 +62,7 @@ const TEXT_ICON_STYLE: CSS = {
   height: "50px",
   marginRight: "10px",
   textAlign: "center",
+  verticalAlign: "middle",
   borderRadius: "10px",
 } as const;
 
@@ -73,6 +83,10 @@ const PASSPORT_ICON_STYLES = {
     backgroundColor: "white",
     color: "black",
   },
+  sso: {
+    backgroundColor: "black",
+    color: "white",
+  },
 } as const;
 
 export function strategy2display(strategy: PassportStrategyFrontend): string {
@@ -89,14 +103,25 @@ export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
 ) => {
   const { strategy, small } = props;
   const { name, display, icon } = strategy;
-  const small_icon = small ? { width: "25px", height: "25px", top: "0" } : {};
+  const small_icon = small ? SMALL_ICON_STYLE : {};
+  const icon_style: CSS = {
+    ...BASE_ICON_STYLE,
+    ...small_icon,
+  };
   if (PRIMARY_SSO.indexOf(name as any) >= 0 && isIconName(name)) {
-    const icon_style: CSS = {
-      ...BASE_ICON_STYLE,
-      ...PASSPORT_ICON_STYLES[name],
-      ...small_icon,
-    };
-    return <Icon name={name} style={icon_style} />;
+    return (
+      <Icon
+        name={name}
+        style={{ ...icon_style, ...PASSPORT_ICON_STYLES[name] }}
+      />
+    );
+  } else if (name === "sso" && isIconName(icon)) {
+    return (
+      <Icon
+        name={icon}
+        style={{ ...icon_style, ...PASSPORT_ICON_STYLES[name] }}
+      />
+    );
   } else if (icon != null) {
     // icon is an URL
     const style: CSS = {
@@ -119,7 +144,11 @@ export const Passports: React.FC<Props> = (props: Props) => {
     disabled,
   } = props;
 
-  function render_tip(passport_name: string) {
+  const havePrivateSSO = strategies.some(
+    (strategy) => strategy.get("public", true) === false
+  );
+
+  function renderTip(passport_name: string) {
     return (
       <>
         Use {passport_name} to sign into your <SiteName /> account instead of an
@@ -128,7 +157,7 @@ export const Passports: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function strategy_tip_title(name: string, passport_name: string) {
+  function strategyTipTitle(name: string, passport_name: string) {
     return (
       <span>
         {isIconName(name) ? <Icon name={name} /> : undefined} {passport_name}
@@ -136,7 +165,7 @@ export const Passports: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function strategy_style(): CSS {
+  function strategyStyle(): CSS {
     const style: CSS = { fontSize: "28px" };
     if (disabled) {
       style.opacity = 0.5;
@@ -144,24 +173,29 @@ export const Passports: React.FC<Props> = (props: Props) => {
     return style;
   }
 
-  function strategy_url(name: string): string {
+  function strategyURL(name: string): string {
     let url = "";
     if (!disabled) {
-      url = join(appBasePath, "auth", name);
-      if (get_api_key) {
-        url += `?get_api_key=${props.get_api_key}`;
+      if (name === "sso") {
+        // this is a next.js page listing all non-public SSO strategies
+        url = join(appBasePath + "sso");
+      } else {
+        url = join(appBasePath, "auth", name);
+        if (get_api_key) {
+          url += `?get_api_key=${props.get_api_key}`;
+        }
       }
     }
     return url;
   }
 
-  function render_strategy(strategy: PassportStrategyFrontend) {
+  function renderStrategy(strategy: PassportStrategyFrontend) {
     const { name } = strategy;
     if (name === "email") return;
-    const url = strategy_url(name);
+    const url = strategyURL(name);
     const passport_name = strategy2display(strategy);
-    const title = strategy_tip_title(name, passport_name);
-    const style = strategy_style();
+    const title = strategyTipTitle(name, passport_name);
+    const style = strategyStyle();
     if (disabled) {
       return (
         <span key={name} style={style}>
@@ -177,7 +211,7 @@ export const Passports: React.FC<Props> = (props: Props) => {
     } else {
       return (
         <a href={url} key={name} style={style}>
-          <Tip placement="bottom" title={title} tip={render_tip(passport_name)}>
+          <Tip placement="bottom" title={title} tip={renderTip(passport_name)}>
             <PassportStrategyIcon strategy={strategy} />
           </Tip>
         </a>
@@ -185,7 +219,7 @@ export const Passports: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_heading() {
+  function renderHeading() {
     if (no_heading) {
       return;
     }
@@ -196,11 +230,31 @@ export const Passports: React.FC<Props> = (props: Props) => {
     return <h3 style={style}>Connect with</h3>;
   }
 
+  function renderPublicStrategies() {
+    return strategies
+      .filter((strategy) => strategy.get("public", true))
+      .map((strategy) => renderStrategy(strategy.toJS()));
+  }
+
+  function renderPrivateSSO() {
+    if (!havePrivateSSO) return;
+    return (
+      // "fake" SSO strategy to point to the SSO next.js page
+      renderStrategy({
+        name: "sso",
+        display: "Single-Sign-On",
+        icon: "api",
+        public: true,
+      })
+    );
+  }
+
   return (
     <div style={style}>
-      {render_heading()}
+      {renderHeading()}
       <div style={{ display: "flex" }}>
-        {strategies.map((strategy) => render_strategy(strategy.toJS()))}
+        {renderPublicStrategies()}
+        {renderPrivateSSO()}
       </div>
     </div>
   );

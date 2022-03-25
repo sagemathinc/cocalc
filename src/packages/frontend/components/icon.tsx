@@ -511,7 +511,8 @@ export const IconName = undefined; // Javascript needs this, though we are only 
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
-export function isIconName(name: string): name is IconName {
+export function isIconName(name?: string): name is IconName {
+  if (name == null) return false;
   return IconSpec[name] != null;
 }
 
