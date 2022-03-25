@@ -135,18 +135,15 @@ export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
   }
 };
 
-export const Passports: React.FC<Props> = (props: Props) => {
-  const {
-    strategies = List([]),
-    get_api_key,
-    no_heading,
-    style,
-    disabled,
-  } = props;
+interface PassportStrategyProps {
+  strategy: PassportStrategyFrontend;
+  disabled?: boolean;
+  get_api_key?: string;
+}
 
-  const havePrivateSSO = strategies.some(
-    (strategy) => strategy.get("public", true) === false
-  );
+export const PassportStrategy: React.FC<PassportStrategyProps> = (props) => {
+  const { strategy, disabled = false, get_api_key } = props;
+  const { name } = strategy;
 
   function renderTip(passport_name: string) {
     return (
@@ -182,42 +179,53 @@ export const Passports: React.FC<Props> = (props: Props) => {
       } else {
         url = join(appBasePath, "auth", name);
         if (get_api_key) {
-          url += `?get_api_key=${props.get_api_key}`;
+          url += `?get_api_key=${get_api_key}`;
         }
       }
     }
     return url;
   }
 
-  function renderStrategy(strategy: PassportStrategyFrontend) {
-    const { name } = strategy;
-    if (name === "email") return;
-    const url = strategyURL(name);
-    const passport_name = strategy2display(strategy);
-    const title = strategyTipTitle(name, passport_name);
-    const style = strategyStyle();
-    if (disabled) {
-      return (
-        <span key={name} style={style}>
-          <Tip
-            placement="bottom"
-            title={title}
-            tip={"Please agree to the terms of service first."}
-          >
-            <PassportStrategyIcon strategy={strategy} />
-          </Tip>
-        </span>
-      );
-    } else {
-      return (
-        <a href={url} key={name} style={style}>
-          <Tip placement="bottom" title={title} tip={renderTip(passport_name)}>
-            <PassportStrategyIcon strategy={strategy} />
-          </Tip>
-        </a>
-      );
-    }
+  if (name === "email") return null;
+  const url = strategyURL(name);
+  const passport_name = strategy2display(strategy);
+  const title = strategyTipTitle(name, passport_name);
+  const style = strategyStyle();
+  if (disabled) {
+    return (
+      <span key={name} style={style}>
+        <Tip
+          placement="bottom"
+          title={title}
+          tip={"Please agree to the terms of service first."}
+        >
+          <PassportStrategyIcon strategy={strategy} />
+        </Tip>
+      </span>
+    );
+  } else {
+    return (
+      <a href={url} key={name} style={style}>
+        <Tip placement="bottom" title={title} tip={renderTip(passport_name)}>
+          <PassportStrategyIcon strategy={strategy} />
+        </Tip>
+      </a>
+    );
   }
+};
+
+export const Passports: React.FC<Props> = (props: Props) => {
+  const {
+    strategies = List([]),
+    get_api_key,
+    no_heading,
+    style,
+    disabled,
+  } = props;
+
+  const havePrivateSSO = strategies.some(
+    (strategy) => strategy.get("public", true) === false
+  );
 
   function renderHeading() {
     if (no_heading) {
@@ -236,19 +244,29 @@ export const Passports: React.FC<Props> = (props: Props) => {
         (strategy) =>
           strategy.get("public", true) || strategy.get("do_not_hide", false)
       )
-      .map((strategy) => renderStrategy(strategy.toJS()));
+      .map((strategy) => (
+        <PassportStrategy
+          key={strategy.get("name")}
+          disabled={disabled}
+          get_api_key={get_api_key}
+          strategy={strategy.toJS()}
+        />
+      ));
   }
 
   function renderPrivateSSO() {
     if (!havePrivateSSO) return;
     return (
       // "fake" SSO strategy to point to the SSO next.js page
-      renderStrategy({
-        name: "sso",
-        display: "Single-Sign-On",
-        icon: "api",
-        public: true,
-      })
+      <PassportStrategy
+        disabled={disabled}
+        strategy={{
+          name: "sso",
+          display: "Single-Sign-On",
+          icon: "api",
+          public: true,
+        }}
+      />
     );
   }
 

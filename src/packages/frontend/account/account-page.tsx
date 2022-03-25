@@ -58,13 +58,14 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
+  // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
     if (strategies == null) return;
-    const domains = new Set<string>([]);
+    const domains: { [domain: string]: string } = {};
     for (const strat of strategies) {
       const doms = strat.get("exclusive_domains");
       for (const dom of doms ?? []) {
-        domains.add(dom);
+        domains[dom] = strat.get("name");
       }
     }
     return domains;

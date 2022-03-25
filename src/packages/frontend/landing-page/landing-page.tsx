@@ -44,7 +44,7 @@ const DESC_FONT = "sans-serif";
 
 interface Props {
   strategies?: immutable.List<TypedMap<PassportStrategyFrontend>>;
-  exclusive_sso_domains?: Set<string>;
+  exclusive_sso_domains?: {[domain: string]: string};
   sign_up_error?: TypedMap<{ generic: string }>;
   sign_in_error?: string;
   signing_in?: boolean;

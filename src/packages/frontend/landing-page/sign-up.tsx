@@ -7,22 +7,22 @@ import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-type
 import {
   ReactDOM,
   redux,
-  useState,
-  TypedMap,
   Rendered,
+  TypedMap,
   useRef,
+  useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, UNIT } from "@cocalc/frontend/components";
+import {
+  AccountCreationEmailInstructions,
+  HelpEmailLink,
+  TermsOfService,
+} from "@cocalc/frontend/customize";
 //import { set_local_storage } from "@cocalc/frontend/misc";
-import { Passports } from "@cocalc/frontend/passports";
+import { Passports, PassportStrategy } from "@cocalc/frontend/passports";
 import { COLORS } from "@cocalc/util/theme";
 import { List } from "immutable";
 import React from "react";
-import {
-  HelpEmailLink,
-  TermsOfService,
-  AccountCreationEmailInstructions,
-} from "@cocalc/frontend/customize";
 
 const {
   Button,
@@ -60,7 +60,7 @@ interface Props {
   help_email?: string;
   terms_of_service?: string;
   terms_of_service_url?: string;
-  exclusive_sso_domains?: Set<string>;
+  exclusive_sso_domains?: { [domain: string]: string };
 }
 
 export const SignUp: React.FC<Props> = (props: Props) => {
@@ -77,7 +77,7 @@ export const SignUp: React.FC<Props> = (props: Props) => {
     help_email,
     terms_of_service,
     terms_of_service_url,
-    exclusive_sso_domains,
+    exclusive_sso_domains = {},
   } = props;
 
   const show_terms =
@@ -206,10 +206,25 @@ export const SignUp: React.FC<Props> = (props: Props) => {
   function check_email(email: string) {
     // this is just a quick heuristic – a full check is done in the hub
     const domain = email.split("@")[1]?.trim().toLowerCase();
-    if (domain != null && exclusive_sso_domains?.has(domain)) {
+    if (domain != null && exclusive_sso_domains[domain] != null) {
       set_domain_blocked(domain);
     } else if (domain_blocked != null) {
       set_domain_blocked(undefined);
+    }
+  }
+
+  function render_exclusive_sso() {
+    if (domain_blocked == null) return;
+    const name = exclusive_sso_domains[domain_blocked];
+    const strategy = strategies?.find((s) => s.get("name") == name);
+    if (strategy != null) {
+      return (
+        <div style={{ textAlign: "center" }}>
+          <PassportStrategy strategy={strategy.toJS()} />
+        </div>
+      );
+    } else {
+      return { name };
     }
   }
 
@@ -219,7 +234,8 @@ export const SignUp: React.FC<Props> = (props: Props) => {
       <div style={ERROR_STYLE}>
         To sign up with{" "}
         <code style={{ color: "white" }}>@{domain_blocked}</code>, you have to
-        use the corresponding SSO connect mechanism listed above!
+        use the corresponding SSO connect mechanism:
+        {render_exclusive_sso()}
       </div>
     );
   }
