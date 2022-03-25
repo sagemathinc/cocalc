@@ -421,6 +421,7 @@ export class PassportManager {
       "icon",
       "public",
       "exclusive_domains",
+      "do_not_hide",
     ] as const;
     for (const name in this.passports) {
       if (name === "site_conf") continue;

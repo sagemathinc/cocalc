@@ -13,7 +13,8 @@ export default async function getStrategies(): Promise<Strategy[]> {
            COALESCE(info -> 'icon',              conf -> 'icon')              as icon,
            COALESCE(info -> 'display',           conf -> 'display')           as display,
            COALESCE(info -> 'public',            conf -> 'public')            as public,
-           COALESCE(info -> 'exclusive_domains', conf -> 'exclusive_domains') as exclusive_domains
+           COALESCE(info -> 'exclusive_domains', conf -> 'exclusive_domains') as exclusive_domains,
+           COALESCE(info -> 'do_not_hide',      'false'::JSONB)               as do_not_hide
 
     FROM passport_settings
     WHERE strategy != 'site_conf'
@@ -28,8 +29,9 @@ export default async function getStrategies(): Promise<Strategy[]> {
       display,
       icon: row.icon ?? row.strategy,
       backgroundColor: COLORS[row.strategy] ?? "",
-      public: (row.public ?? true),
+      public: row.public ?? true,
       exclusiveDomains: row.exclusive_domains ?? [],
+      doNotHide: row.do_not_hide ?? false,
     };
   });
 }

@@ -6,4 +6,5 @@ export interface Strategy {
   backgroundColor: string; // background color for icon, if not a link
   public: boolean; // true for general broad audiences, like google, default true
   exclusiveDomains: string[]; // list of domains, e.g. ["foo.com"], which must go through that SSO mechanism (and block regular email signup)
+  doNotHide: boolean; // if true and a public=false, show it directly on the login/signup page
 }

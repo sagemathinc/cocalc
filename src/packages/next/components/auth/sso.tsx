@@ -67,6 +67,7 @@ export default function SSO(props: SSOProps) {
       backgroundColor: "",
       public: true,
       exclusiveDomains: [],
+      doNotHide: true,
     };
 
     return (
@@ -80,7 +81,7 @@ export default function SSO(props: SSOProps) {
   function renderStrategies() {
     if (strategies2 == null) return;
     return strategies2
-      .filter((s) => s.public)
+      .filter((s) => s.public || s.doNotHide)
       .map((strategy) => (
         <StrategyAvatar
           key={strategy.name}

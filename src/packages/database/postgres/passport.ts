@@ -41,6 +41,7 @@ export interface PassportStrategyDBConfig {
 
 export interface PassportStrategyDBInfo {
   public?: boolean; // default true
+  do_not_hide?: boolean; // default false, only relevant for public=false SSOs, which will be shown on the login/signup page directly
   exclusive_domains?: string[]; // list of domains, e.g. ["foo.com"], which must go through that SSO mechanism (and hence block normal email signup)
   display?: string; // e.g. "WOW Tech", fallback: capitalize(strategy)
   description?: string; // markdown

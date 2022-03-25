@@ -7,7 +7,7 @@ import {
   PassportStrategyFrontend,
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
-import { CSS, React, TypedMap, useMemo } from "@cocalc/frontend/app-framework";
+import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -232,7 +232,10 @@ export const Passports: React.FC<Props> = (props: Props) => {
 
   function renderPublicStrategies() {
     return strategies
-      .filter((strategy) => strategy.get("public", true))
+      .filter(
+        (strategy) =>
+          strategy.get("public", true) || strategy.get("do_not_hide", false)
+      )
       .map((strategy) => renderStrategy(strategy.toJS()));
   }
 
