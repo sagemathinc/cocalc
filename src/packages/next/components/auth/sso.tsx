@@ -105,7 +105,7 @@ export default function SSO(props: SSOProps) {
 }
 
 interface AvatarProps {
-  strategy: Strategy;
+  strategy: Pick<Strategy, "name" | "display" | "icon" | "backgroundColor">;
   size: number;
   noLink?: boolean;
   toolTip?: ReactNode;
@@ -113,7 +113,8 @@ interface AvatarProps {
 
 export function StrategyAvatar(props: AvatarProps) {
   const { strategy, size, noLink, toolTip } = props;
-  const { name, display, icon, backgroundColor } = strategy;
+  const { name, display, backgroundColor } = strategy;
+  const icon = strategy.icon ?? "link"; // icon could be "null", hence the ??
   const ssoHREF = useSSOHref(name);
 
   const STYLE = {
@@ -122,7 +123,7 @@ export function StrategyAvatar(props: AvatarProps) {
     margin: "0 2px",
   } as CSSProperties;
 
-  const iconImg = icon.includes("://") ? (
+  const iconImg = icon?.includes("://") ? (
     <img
       src={icon}
       style={{
@@ -153,7 +154,7 @@ export function StrategyAvatar(props: AvatarProps) {
     <Tooltip
       title={
         <>
-          {icon.includes("://") ? (
+          {icon?.includes("://") ? (
             ""
           ) : (
             <Icon

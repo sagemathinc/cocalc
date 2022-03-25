@@ -18,7 +18,7 @@ const STYLE: React.CSSProperties = {
   maxWidth: "992px", // Antd screen-lg
   width: "100%",
   margin: "0 auto",
-  padding: "0",
+  padding: "0 20px",
 } as const;
 
 export default function Main(props: Props) {

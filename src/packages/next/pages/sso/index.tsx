@@ -4,7 +4,8 @@
  */
 
 import { to_human_list } from "@cocalc/util/misc";
-import { Layout, Typography } from "antd";
+import { Card, Col, Layout, Row, Typography } from "antd";
+import { StrategyAvatar } from "components/auth/sso";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -18,41 +19,6 @@ import Link from "next/link";
 
 const { Paragraph, Text } = Typography;
 
-/*
-For development, this is a list of commands to get some suitable test data into your DB:
-
--- DELETE FROM passport_settings;
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'food',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "Food University", "icon": "https://img.icons8.com/glyph-neue/344/food-and-wine.png"}'::JSONB,
-    '{"description": "This is the SSO mechanism for anyone associated with Food University", "public": false, "exclusive_domains": ["food.edu"]}'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'abacus',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"},"display": "Abacus Inc.", "icon": "https://img.icons8.com/external-smashingstocks-outline-color-smashing-stocks/344/external-abacus-online-education-smashingstocks-outline-color-smashing-stocks.png" }'::JSONB,
-    '{"description": "This is the SSO mechanism for anyone associated with Abacus Inc", "public": false, "exclusive_domains": ["abacus.edu", "dadacus.edu", "nadacus.edu"]}'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'flight',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "Flight Research", "icon": "https://img.icons8.com/external-kiranshastry-solid-kiranshastry/344/external-flight-interface-kiranshastry-solid-kiranshastry.png" }'::JSONB,
-    '{"description": "This is to sign up with CoCalc as a student of **Flight Research International, Inc.**\n\nMore information:\n\n- [airplane.edu](http://airplane.edu/)\n\n- [yet another link](http://nowhere.com)", "public": false, "exclusive_domains": ["airplane.edu"]}'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'minimal',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "Minimal", "icon": "https://img.icons8.com/external-others-zulfa-mahendra/344/external-animal-halloween-others-zulfa-mahendra-3.png" }'::JSONB,
-    '{"public": false, "exclusive_domains": ["minimal.edu"]}'::JSONB
-);
-
-*/
-
 interface Props {
   customize: CustomizeType;
   ssos: SSO[];
@@ -65,23 +31,37 @@ export default function SignupIndex(props: Props) {
 
   function renderDomains(domains) {
     if (domains == null || domains.length === 0) return;
-    return (
-      <>
-        {": "}
-        <Text type="secondary">{to_human_list(domains ?? [])}</Text>
-      </>
-    );
+    return <Text type="secondary">{to_human_list(domains ?? [])}</Text>;
+  }
+
+  function extra(sso) {
+    return <Link href={`/sso/${sso.id}`}>more</Link>;
   }
 
   function renderSSOs() {
     return ssos.map((sso: SSO) => {
+      const strategy = {
+        name: sso.id,
+        size: 64,
+        backgroundColor: "",
+        icon: sso.icon,
+        display: sso.display,
+      };
       return (
-        <li key={sso.id} style={{ marginTop: "10px" }}>
-          <Link href={`/sso/${sso.id}`}>
-            <a style={{ fontWeight: "bold" }}>{sso.display}</a>
-          </Link>
-          {renderDomains(sso.domains)}
-        </li>
+        <Col xs={12} md={6} key={sso.id}>
+          <Card
+            size="small"
+            title={<Text strong>{sso.display}</Text>}
+            extra={extra(sso)}
+          >
+            <Paragraph style={{ textAlign: "center" }}>
+              <StrategyAvatar strategy={strategy} size={64} />
+            </Paragraph>
+            <Paragraph style={{ textAlign: "center", marginBottom: 0 }}>
+              {renderDomains(sso.domains)}
+            </Paragraph>
+          </Card>
+        </Col>
       );
     });
   }
@@ -94,7 +74,11 @@ export default function SignupIndex(props: Props) {
         </Text>
       );
     } else {
-      return <ul>{renderSSOs()}</ul>;
+      return (
+        <Row gutter={[24, 24]} align={"top"} wrap={true}>
+          {renderSSOs()}
+        </Row>
+      );
     }
   }
 
@@ -104,10 +88,10 @@ export default function SignupIndex(props: Props) {
         <h1>{SSO_SUBTITLE}</h1>
         <Paragraph>
           Sign up at {customize.siteName} via one of these 3<sup>rd</sup> party
-          organizations. You need to have an account at the respective entity in
-          order to complete the single sign on process. Usually, this will be
-          the only way you can sign up using your organization specific email
-          address.
+          single-sign-on mechanisms. You need to have an account at the
+          respective organization in order to complete the sign-up process.
+          Usually, this will be the only way you can sign up using your
+          organization specific email address.
         </Paragraph>
         <Paragraph>{renderSSOList()}</Paragraph>
       </>

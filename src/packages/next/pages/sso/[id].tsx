@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { to_human_list } from "@cocalc/util/misc";
+import { r_human_list } from "@cocalc/frontend/components/r_human_list";
 import { Button, Layout, Typography } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -54,7 +54,7 @@ export default function Signup(props: Props) {
     return (
       <Paragraph>
         This is required for email addresses at{" "}
-        <Text italic>{to_human_list(domains ?? [])}</Text>.
+        {r_human_list((domains ?? []).map((d) => <Text code>{d}</Text>))}
       </Paragraph>
     );
   }
