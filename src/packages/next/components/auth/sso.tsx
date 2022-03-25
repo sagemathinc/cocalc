@@ -207,8 +207,10 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
   );
 }
 
-// based on (partially) entered email address
+// based on (partially) entered email address.
 // if user has to sign up via SSO, this will tell which strategy to use.
+// this also checks for subdomains via a simple heuristic – the precise test is on the backend.
+// hence this should be good enough to catch @email.foo.edu for foo.edu domains
 export function useRequiredSSO(
   strategies: Strategy[] | undefined,
   email: string | undefined
@@ -217,10 +219,13 @@ export function useRequiredSSO(
     // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
     if (email == null) return;
     if (strategies == null || strategies.length === 0) return;
-    const domain = email.trim().toLowerCase().split("@")[1];
+    if (email.indexOf("@") === -1) return;
+    const emailDomain = email.trim().toLowerCase().split("@")[1];
+    if (!emailDomain) return;
     for (const strategy of strategies) {
-      if (strategy.exclusiveDomains.includes(domain)) {
-        return strategy;
+      for (const ssoDomain of strategy.exclusiveDomains) {
+        if (emailDomain === ssoDomain || emailDomain.endsWith(`.${ssoDomain}`))
+          return strategy;
       }
     }
   }, [strategies == null, email]);
