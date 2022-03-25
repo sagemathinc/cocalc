@@ -1424,11 +1424,6 @@ export class Actions<
     // or the syncstring isn't initialized yet.  The latter case happens when
     // switching the file that is being edited in a frame, e.g., for latex.
     if (this._state === "closed" || this._syncstring.state != "ready") return;
-    const cur = this._syncstring.to_str();
-    if (cur === value) {
-      // did not actually change.
-      return;
-    }
     if (!do_not_exit_undo_mode) {
       // If we are NOT doing an undo operation, then setting the
       // syncstring due to any
@@ -1442,6 +1437,11 @@ export class Actions<
       // because tricky stuff involving the codemirror editor having
       // separate state and changing.
       this._syncstring.exit_undo_mode();
+    }
+    const cur = this._syncstring.to_str();
+    if (cur === value) {
+      // did not actually change.
+      return;
     }
     // Now actually set the value.
     this._syncstring.from_str(value);
