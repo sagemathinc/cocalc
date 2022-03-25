@@ -6,9 +6,9 @@ import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { LOGIN_STYLE } from "./shared";
-import SSO, { RequiredSSO } from "./sso";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
 interface Props {
   strategies?: Strategy[];
@@ -26,16 +26,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   const haveSSO = strategies != null && strategies.length > 0;
 
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
-  const requiredSSO: Strategy | undefined = useMemo(() => {
-    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
-    if (!haveSSO) return;
-    const domain = email.trim().toLowerCase().split("@")[1];
-    for (const strategy of strategies) {
-      if (strategy.exclusiveDomains.includes(domain)) {
-        return strategy;
-      }
-    }
-  }, [email]);
+  const requiredSSO = useRequiredSSO(strategies, email);
 
   async function signIn() {
     if (signingIn) return;
@@ -68,12 +59,20 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
           {strategies == null
             ? "Sign in"
             : haveSSO
-            ? "Sign in using your email address or a single sign on provider."
+            ? requiredSSO != null
+              ? "Sign in using your single-sign-on provider"
+              : "Sign in using your email address or a single-sign-on provider."
             : "Sign in using your email address."}
         </div>
         <form>
           {haveSSO && (
-            <div style={{ textAlign: "center", margin: "20px 0" }}>
+            <div
+              style={{
+                textAlign: "center",
+                margin: "20px 0",
+                display: requiredSSO == null ? "inherit" : "none",
+              }}
+            >
               <SSO
                 strategies={strategies}
                 size={email ? 24 : undefined}
@@ -98,7 +97,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
           <div
             style={{
               marginTop: "30px",
-              visibility: requiredSSO == null ? "visible" : "hidden",
+              display: requiredSSO == null ? "inherit" : "none",
             }}
           >
             <p>Password </p>

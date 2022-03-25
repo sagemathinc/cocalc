@@ -9,9 +9,9 @@ import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { LOGIN_STYLE } from "./shared";
-import SSO, { RequiredSSO } from "./sso";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -85,16 +85,7 @@ export default function SignUp({
   }
 
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
-  const requiredSSO: Strategy | undefined = useMemo(() => {
-    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
-    if (strategies2 == null || strategies2.length === 0) return;
-    const domain = email.trim().toLowerCase().split("@")[1];
-    for (const strategy of strategies2) {
-      if (strategy.exclusiveDomains.includes(domain)) {
-        return strategy;
-      }
-    }
-  }, [strategies2 == null, email]);
+  const requiredSSO = useRequiredSSO(strategies2, email);
 
   submittable.current = !!(
     terms &&
@@ -217,6 +208,7 @@ export default function SignUp({
               setEmail={setEmail}
               signUp={signUp}
               strategies={strategies2}
+              hideSSO={requiredSSO != null}
             />
           )}
           <RequiredSSO strategy={requiredSSO} />
@@ -334,31 +326,53 @@ export default function SignUp({
   );
 }
 
-function EmailOrSSO({ email, setEmail, signUp, strategies }) {
+interface EmailOrSSOProps {
+  email: string;
+  setEmail: (email: string) => void;
+  signUp: () => void;
+  strategies?: Strategy[];
+  hideSSO?: boolean;
+}
+
+function EmailOrSSO(props: EmailOrSSOProps) {
+  const { email, setEmail, signUp, strategies = [], hideSSO = false } = props;
   const { emailSignup } = useCustomize();
-  if (strategies == null) {
-    strategies = [];
+
+  function renderSSO() {
+    if (strategies.length == 0) return;
+
+    const emailStyle: CSSProperties = email
+      ? { textAlign: "right", marginBottom: "20px" }
+      : {};
+
+    const style: CSSProperties = {
+      display: hideSSO ? "none" : "block",
+      ...emailStyle,
+    };
+
+    return (
+      <div style={{ textAlign: "center", margin: "20px 0" }}>
+        <SSO
+          strategies={strategies}
+          size={email ? 24 : undefined}
+          style={style}
+        />
+      </div>
+    );
   }
+
   return (
     <div>
       <p>
-        {strategies.length > 0 && emailSignup
-          ? "Sign up using either your email address or a single sign on provider."
+        {hideSSO
+          ? "Sign up using your single-sign-on provider"
+          : strategies.length > 0 && emailSignup
+          ? "Sign up using either your email address or a single-sign-on provider."
           : emailSignup
           ? "Enter the email address you will use to sign in."
           : "Sign up using a single sign on provider."}
       </p>
-      {strategies.length > 0 && (
-        <div style={{ textAlign: "center", margin: "20px 0" }}>
-          <SSO
-            strategies={strategies}
-            size={email ? 24 : undefined}
-            style={
-              email ? { textAlign: "right", marginBottom: "20px" } : undefined
-            }
-          />
-        </div>
-      )}
+      {renderSSO()}
       {emailSignup && (
         <p>
           <Input

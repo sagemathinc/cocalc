@@ -8,7 +8,7 @@ import { useRouter } from "next/router";
 import { join } from "path";
 import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
 
-const { Text } = Typography;
+const { Link: AntdLink } = Typography;
 
 interface SSOProps {
   strategies?: Strategy[];
@@ -112,8 +112,8 @@ interface AvatarProps {
 
 export function StrategyAvatar(props: AvatarProps) {
   const { strategy, size, noLink, toolTip } = props;
-  const router = useRouter();
   const { name, display, icon, backgroundColor } = strategy;
+  const ssoHREF = useSSOHref(name);
 
   const STYLE = {
     fontSize: `${size - 2}px`,
@@ -141,10 +141,7 @@ export function StrategyAvatar(props: AvatarProps) {
       return avatar;
     } else {
       return (
-        <a
-          href={getLink(name, join(router.basePath, router.pathname))}
-          style={{ margin: "0 2.5px", cursor: "pointer" }}
-        >
+        <a href={ssoHREF} style={{ margin: "0 2.5px", cursor: "pointer" }}>
           {avatar}
         </a>
       );
@@ -173,19 +170,29 @@ export function StrategyAvatar(props: AvatarProps) {
   );
 }
 
+function useSSOHref(name?: string) {
+  const router = useRouter();
+  if (name == null) return "";
+  return getLink(name, join(router.basePath, router.pathname));
+}
+
 export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
+  const ssoHREF = useSSOHref(strategy?.name);
   if (strategy == null) return null;
   return (
     <Alert
       style={{ margin: "15px 0" }}
-      type="info"
+      type="warning"
       showIcon={false}
       message={`Single-Sign-On required`}
       description={
         <>
           <p>
-            You must sign up using the <Text strong>{strategy.display}</Text>{" "}
-            SSO strategy.
+            You must sign up using the{" "}
+            <AntdLink strong underline href={ssoHREF}>
+              {strategy.display}
+            </AntdLink>{" "}
+            Single-Sign-On strategy.
           </p>
           <p style={{ textAlign: "center" }}>
             <StrategyAvatar
@@ -198,4 +205,23 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
       }
     />
   );
+}
+
+// based on (partially) entered email address
+// if user has to sign up via SSO, this will tell which strategy to use.
+export function useRequiredSSO(
+  strategies: Strategy[] | undefined,
+  email: string | undefined
+): Strategy | undefined {
+  return useMemo(() => {
+    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
+    if (email == null) return;
+    if (strategies == null || strategies.length === 0) return;
+    const domain = email.trim().toLowerCase().split("@")[1];
+    for (const strategy of strategies) {
+      if (strategy.exclusiveDomains.includes(domain)) {
+        return strategy;
+      }
+    }
+  }, [strategies == null, email]);
 }
