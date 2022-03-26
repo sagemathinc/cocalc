@@ -9,7 +9,7 @@ const editor = withNormalize(withIsInline(withIsVoid(createEditor())));
 export default function normalize(children) {
   //console.log("about to normalize..."); //, JSON.stringify(children));
   editor.children = children;
-  Editor.normalize(editor, { force: true });
+  Editor.normalize(editor);
   // console.log("after normalize:"); //, JSON.stringify(editor.children));
   return editor.children;
 }

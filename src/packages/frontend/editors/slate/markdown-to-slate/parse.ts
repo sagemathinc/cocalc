@@ -78,9 +78,14 @@ export function markdown_to_slate(
   we just always normalize.  This isn't too expensive, and is worth it
   to ensure sanity.
   */
-  return normalize(doc);
-  //   return doc;
+  //   console.log(
+  //     "time: markdown_to_slate without normalize",
+  //     new Date().valueOf() - t0,
+  //     "ms"
+  //   );
+  const ndoc = normalize(doc);
 
   // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });
+  return ndoc;
 }

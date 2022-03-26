@@ -502,7 +502,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // code we do nomalize the output of markdown_to_slate, so
       // that assumption is definitely satisfied.
       const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
-
       const operations = slateDiff(previousEditorValue, nextEditorValue);
       if (operations.length == 0) {
         // no actual change needed.
