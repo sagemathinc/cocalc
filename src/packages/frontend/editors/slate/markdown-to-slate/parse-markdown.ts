@@ -26,12 +26,14 @@ import { markdown_it, parseHeader } from "@cocalc/frontend/markdown";
 
 import type { Token } from "./types";
 
-// For each line that ends in a single trailing space
-// instead make it end in the following unused unicode
-// character:
-const TRAILING_WHITESPACE_SUB = "\uFE20";
+// Before feeding to markdown-it and tokenizing, for
+// each line that ends in a single trailing space,
+// append the following unused unicode character:
+const TRAILING_WHITESPACE_CHR = "\uFE20";
+const TRAILING_WHITESPACE_SUB = " " + TRAILING_WHITESPACE_CHR;
 const TRAILING_WHITESPACE_REG = /\uFE20/g;
-// On the slate side, we substitute these back as spaces.
+// Once tokenized, we remove the funny unicode character, leaving the
+// single trailing space.
 // This is critical to do since markdown-it (and the markdown spec)
 // just silently removes a single trailing space from any line,
 // but that's often what people type as they are typing.  With
@@ -53,8 +55,8 @@ function replaceSingleTrailingWhitespace(markdown: string): string {
 
 function restoreSingleTrailingWhitespace(tokens) {
   for (const token of tokens) {
-    if (token.content && token.content.includes(TRAILING_WHITESPACE_SUB)) {
-      token.content = token.content.replace(TRAILING_WHITESPACE_REG, " ");
+    if (token.content && token.content.includes(TRAILING_WHITESPACE_CHR)) {
+      token.content = token.content.replace(TRAILING_WHITESPACE_REG, "");
       if (token.children != null) {
         restoreSingleTrailingWhitespace(token.children);
       }
