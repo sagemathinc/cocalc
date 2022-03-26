@@ -53,7 +53,7 @@ register(
       editor.saveValue(true);
       extra.actions.undo(extra.id);
     }
-    editor.hasUnsavedChanges = false;
+    editor.resetHasUnsavedChanges();
     //ReactEditor.focus(editor);
     return true;
   }
@@ -70,7 +70,7 @@ register(
       editor.saveValue(true);
       extra.actions.redo(extra.id);
     }
-    editor.hasUnsavedChanges = false;
+    editor.resetHasUnsavedChanges();
     //ReactEditor.focus(editor);
     return true;
   }

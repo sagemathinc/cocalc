@@ -11,7 +11,9 @@ export interface SlateEditor extends ReactEditor {
   lastSelection?: Range;
   curSelection?: Range;
   inverseSearch: (boolean?) => Promise<void>;
-  hasUnsavedChanges?: boolean;
+  hasUnsavedChanges: () => boolean;
+  _hasUnsavedChanges: any;
+  resetHasUnsavedChanges: () => void;
   markdownValue?: string;
   getMarkdownValue: () => string;
   getPlainValue: () => string;
@@ -50,4 +52,5 @@ export interface Actions {
   redo?: (id: string) => void;
   shiftEnter?: (value: string) => void;
   altEnter?: (value: string) => void;
+  _syncstring?: any;
 }

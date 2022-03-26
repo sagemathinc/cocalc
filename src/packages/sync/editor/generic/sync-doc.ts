@@ -2817,6 +2817,7 @@ export class SyncDoc extends EventEmitter {
             return;
           }
         }
+        this.emit("before-change");
       }
     }
 

@@ -56,10 +56,9 @@ import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { resetSelection } from "./control";
 
 import { markdown_to_html } from "@cocalc/frontend/markdown";
-import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
-// const SAVE_DEBOUNCE_MS = 100;
+//const SAVE_DEBOUNCE_MS = 300;
 
 import { delay } from "awaiting";
 
@@ -194,8 +193,33 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         return fragment ? slate_to_markdown(fragment) : ed.getMarkdownValue();
       };
 
+      // hasUnsavedChanges is true if the children changed
+      // since last time resetHasUnsavedChanges() was called.
+      ed._hasUnsavedChanges = undefined;
+      ed.resetHasUnsavedChanges = () => {
+        delete ed.markdownValue;
+        ed._hasUnsavedChanges = ed.children;
+      };
+      ed.hasUnsavedChanges = () => {
+        return ed._hasUnsavedChanges !== ed.children;
+      };
+
       ed.getMarkdownValue = () => {
-        if (ed.markdownValue != null && !ed.hasUnsavedChanges) {
+        if (ed.markdownValue != null && !ed.hasUnsavedChanges()) {
+          /* if (
+            ed.markdownValue !=
+            slate_to_markdown(ed.children, {
+              cache: ed.syncCache,
+            })
+          ) {
+            window.getMarkdownValue = {
+              a: ed.markdownValue,
+              b: slate_to_markdown(ed.children, {
+                cache: ed.syncCache,
+              }),
+            };
+            throw Error("cached markdown value is wrong!");
+          } */
           return ed.markdownValue;
         }
         ed.markdownValue = slate_to_markdown(ed.children, {
@@ -210,16 +234,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       };
 
       ed.saveValue = (force?) => {
-        if (!force && !editor.hasUnsavedChanges) {
+        if (!force && !editor.hasUnsavedChanges()) {
           return;
         }
-        if (force) {
-          editor.markdownValue = undefined;
-        }
-        editor.hasUnsavedChanges = false;
-        setSyncstringFromSlate();
-
-        actions.ensure_syncstring_is_saved?.();
+        setSyncstringFromSlate(true);
       };
 
       ed.syncCache = {};
@@ -242,6 +260,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       ed.onCursorBottom = onCursorBottom;
       ed.onCursorTop = onCursorTop;
+
+      if (actions._syncstring != null) {
+        actions._syncstring.on("before-change", () => {
+          setSyncstringFromSlate(false);
+        });
+        actions._syncstring.on("change", () => {
+          setEditorToValue(actions._syncstring.to_str());
+        });
+      }
 
       return ed as SlateEditor;
     }, []);
@@ -390,21 +417,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     };
 
     useEffect(() => {
+      if (actions._syncstring == null) {
+        setEditorToValue(value);
+      }
       if (value != "Loading...") {
         restoreScroll();
       }
     }, [value]);
 
-    function setSyncstringFromSlate() {
+    function setSyncstringFromSlate(commit) {
       if (actions.set_value == null) return;
-      try {
-        savingValue.current = true;
-        const v = editor.getMarkdownValue();
-        lastRemote.current = v;
-        actions.set_value(v);
-        actions.syncstring_commit?.();
-      } finally {
-        savingValue.current = false;
+      const markdown = editor.getMarkdownValue();
+      actions.set_value(markdown);
+      if (commit) {
+        editor.resetHasUnsavedChanges();
+        actions.ensure_syncstring_is_saved?.();
       }
     }
 
@@ -453,38 +480,19 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     useEffect(() => {
       if (!is_current) {
-        if (editor.hasUnsavedChanges) {
+        if (editor.hasUnsavedChanges()) {
           // just switched from focused to not and there was
           // an unsaved change, so save state.
-          editor.hasUnsavedChanges = false;
-          setSyncstringFromSlate();
+          editor.resetHasUnsavedChanges();
+          setSyncstringFromSlate(true);
           actions.ensure_syncstring_is_saved?.();
         }
       }
     }, [is_current]);
 
-    // possible new value from upstream
-    const savingValue = useRef<boolean>(false);
-    const lastRemote = useRef<string>(value ?? "");
-    useEffect(() => {
+    const setEditorToValue = (value) => {
       if (value == null) return;
-      if (savingValue.current) {
-        return;
-      }
-
-      // BLOCKER: there is something seriously wrong with sync when
-      // **no codemirror editor frame is open**.
-      const base = lastRemote.current;
-      lastRemote.current = value;
-      const remote = value;
-      const local = editor.getMarkdownValue();
-      const newVal = threeWayMerge({ base, local, remote });
-      if (newVal == local) {
-        // nothing changed
-        return;
-      }
-
-      editor.markdownValue = newVal;
+      editor.resetHasUnsavedChanges();
       const previousEditorValue = editor.children;
 
       // we only use the latest version of the document
@@ -496,13 +504,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // to convert the document to equal nextEditorValue.  In the current
       // code we do nomalize the output of markdown_to_slate, so
       // that assumption is definitely satisfied.
-      const nextEditorValue = markdown_to_slate(
-        newVal,
-        false,
-        editor.syncCache
-      );
+      const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
 
       const operations = slateDiff(previousEditorValue, nextEditorValue);
+      if (operations.length == 0) {
+        // no actual change needed.
+        return;
+      }
       // Applying this operation below will immediately trigger
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
@@ -512,10 +520,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       //         JSON.stringify(editor.selection),
       //         /*JSON.stringify(editor.children)*/
       //       );
-      if (operations.length > 0) {
-        editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
-        applyOperations(editor, operations);
-      }
+      editor.syncCausedUpdate = true;
+      applyOperations(editor, operations);
       //       console.log(
       //         "selection after patching",
       //         JSON.stringify(editor.selection),
@@ -537,18 +543,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         resetSelection(editor);
       }
 
-      //       (window as any).slateDebug = {
-      //         previousEditorValue,
-      //         nextEditorValue,
-      //         editorValue: editor.children,
-      //         operations,
-      //         slateDiff,
-      //         applyOperations,
-      //         markdown_to_slate,
-      //         value,
-      //         newVal,
-      //         localEval: (s) => console.log(eval(s)),
-      //       };
+      //       if ((window as any).cc?.slate != null) {
+      //         (window as any).cc.slate.eval = (s) => console.log(eval(s));
+      //       }
 
       if (EXPENSIVE_DEBUG) {
         const stringify = require("json-stable-stringify");
@@ -577,11 +574,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             applyOperations,
             markdown_to_slate,
             value,
-            newVal,
           };
         }
       }
-    }, [value]);
+    };
 
     if ((window as any).cc != null) {
       // This only gets set when running in cc-in-cc dev mode.
@@ -599,17 +595,31 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         markdown_to_slate,
         robot: async (s: string, iterations = 1) => {
           let inserted = "";
+          let lastOffset = editor.selection?.focus.offset;
           for (let n = 0; n < iterations; n++) {
             for (const x of s) {
               editor.insertText(x);
               inserted += x;
-              console.log(`inserted: "${inserted}"`);
-              await delay(150 * Math.random());
-              if (Math.random() < 0.25) {
-                await delay(1.1 * SAVE_DEBOUNCE_MS);
+              const offset = editor.selection?.focus.offset;
+              console.log(
+                `${
+                  n + 1
+                }/${iterations}: inserted '${inserted}'; focus="${JSON.stringify(
+                  editor.selection?.focus
+                )}"`
+              );
+              if (offset != (lastOffset ?? 0) + 1) {
+                console.error("SYNC FAIL!!", { offset, lastOffset });
+                return;
+              }
+              lastOffset = offset;
+              await delay(130 * Math.random());
+              if (Math.random() < 0.2) {
+                await delay(1.3 * SAVE_DEBOUNCE_MS);
               }
             }
           }
+          console.log("SUCCESS!");
         },
       };
     }
@@ -652,62 +662,57 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       );
     };
 
+    // WARNING: onChange does not fire immediately after changes occur.
+    // It is fired by react and happens in some potentialy later render
+    // loop after changes.  Thus you absolutely can't depend on it in any
+    // way for checking if the state of the editor has changed.  Instead
+    // check editor.children itself explicitly.
     const onChange = (newEditorValue) => {
       if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
       updateLinkURL();
       updateListProperties();
-      try {
-        // Track where the last editor selection was,
-        // since this is very useful to know, e.g., for
-        // understanding cursor movement, format fallback, etc.
+      // Track where the last editor selection was,
+      // since this is very useful to know, e.g., for
+      // understanding cursor movement, format fallback, etc.
+      // @ts-ignore
+      if (editor.lastSelection == null && editor.selection != null) {
+        // initialize
         // @ts-ignore
-        if (editor.lastSelection == null && editor.selection != null) {
-          // initialize
-          // @ts-ignore
-          editor.lastSelection = editor.curSelection = editor.selection;
-        }
-        // @ts-ignore
-        if (!isEqual(editor.selection, editor.curSelection)) {
-          // @ts-ignore
-          editor.lastSelection = editor.curSelection;
-          if (editor.selection != null) {
-            // @ts-ignore
-            editor.curSelection = editor.selection;
-          }
-        }
-
-        if (editorValue === newEditorValue) {
-          // Editor didn't actually change value so nothing to do.
-          return;
-        }
-
-        if (!editor.ignoreNextOnChange) {
-          editor.hasUnsavedChanges = true;
-          // markdown value now not known.
-          editor.markdownValue = undefined;
-        }
-
-        setEditorValue(newEditorValue);
-
-        // Update mentions state whenever editor actually changes.
-        // This may pop up the mentions selector.
-        mentions.onChange();
-
-        if (!is_current) {
-          // Do not save when editor not current since user could be typing
-          // into another editor of the same underlying document.   This will
-          // cause bugs (e.g., type, switch from slate to codemirror, type, and
-          // see what you typed into codemirror disappear). E.g., this
-          // happens due to a spurious change when the editor is defocused.
-
-          return;
-        }
-        saveValueDebounce();
-      } finally {
-        editor.ignoreNextOnChange = false;
+        editor.lastSelection = editor.curSelection = editor.selection;
       }
+      // @ts-ignore
+      if (!isEqual(editor.selection, editor.curSelection)) {
+        // @ts-ignore
+        editor.lastSelection = editor.curSelection;
+        if (editor.selection != null) {
+          // @ts-ignore
+          editor.curSelection = editor.selection;
+        }
+      }
+
+      if (editorValue === newEditorValue) {
+        // Editor didn't actually change value so nothing to do.
+        return;
+      }
+
+      setEditorValue(newEditorValue);
+
+      // Update mentions state whenever editor actually changes.
+      // This may pop up the mentions selector.
+      mentions.onChange();
+
+      if (!is_current) {
+        // Do not save when editor not current since user could be typing
+        // into another editor of the same underlying document.   This will
+        // cause bugs (e.g., type, switch from slate to codemirror, type, and
+        // see what you typed into codemirror disappear). E.g., this
+        // happens due to a spurious change when the editor is defocused.
+
+        return;
+      }
+      saveValueDebounce();
     };
 
     useEffect(() => {
