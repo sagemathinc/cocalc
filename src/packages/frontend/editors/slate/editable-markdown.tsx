@@ -509,26 +509,56 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // code we do nomalize the output of markdown_to_slate, so
       // that assumption is definitely satisfied.
       const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
-      const operations = slateDiff(previousEditorValue, nextEditorValue);
-      if (operations.length == 0) {
-        // no actual change needed.
-        return;
-      }
-      // Applying this operation below will immediately trigger
-      // an onChange, which it is best to ignore to save time and
-      // also so we don't update the source editor (and other browsers)
-      // with a view with things like loan $'s escaped.'
-      //       console.log(
-      //         "selection before patching",
-      //         JSON.stringify(editor.selection),
-      //         /*JSON.stringify(editor.children)*/
-      //       );
-      editor.syncCausedUpdate = true;
-      applyOperations(editor, operations);
 
-      // Now that we have transformed editor into the new value
-      // let's save the fact that we haven't changed anything.
-      editor.resetHasUnsavedChanges();
+      try {
+        if (!ReactEditor.isFocused(editor)) {
+          // This is a **MASSIVE** optimization.  E.g., for a few thousand
+          // lines markdown file with about 500 top level elements (and lots
+          // of nested lists), applying operations below starting with the
+          // empty document can take 5-10 seconds, whereas just setting the
+          // value is instant.  The drawback to directly setting the value
+          // is only that it messes up selection, and it's difficult
+          // to know where to move the selection to after changing.
+          // However, if the editor isn't focused, we don't have to worry
+          // about selection at all.  TODO: we might be able to avoid the
+          // slateDiff stuff entirely via some tricky stuff, e.g., managing
+          // the cursor on the plain text side before/after the change, since
+          // codemirror is much faster att "setValueNoJump".
+          // The main time we use this optimization here is when opening the
+          // document in the first place, in which case we're converting
+          // the document from "Loading..." to it's initial value.
+          // Also, the default config is source text focused on the left and
+          // editable text acting as a preview on the right not focused, and
+          // again this makes things fastest.
+          editor.syncCausedUpdate = true;
+          // we call "onChange" instead of setEditorValue, since
+          // we want all the change handler stuff to happen, e.g.,
+          // broadcasting cursors.
+          onChange(nextEditorValue);
+          return;
+        }
+
+        const operations = slateDiff(previousEditorValue, nextEditorValue);
+        if (operations.length == 0) {
+          // no actual change needed.
+          return;
+        }
+        // Applying this operation below will immediately trigger
+        // an onChange, which it is best to ignore to save time and
+        // also so we don't update the source editor (and other browsers)
+        // with a view with things like loan $'s escaped.'
+        //       console.log(
+        //         "selection before patching",
+        //         JSON.stringify(editor.selection),
+        //         /*JSON.stringify(editor.children)*/
+        //       );
+        editor.syncCausedUpdate = true;
+        applyOperations(editor, operations);
+      } finally {
+        // In all cases, now that we have transformed editor into the new value
+        // let's save the fact that we haven't changed anything yet:
+        editor.resetHasUnsavedChanges();
+      }
 
       try {
         if (editor.selection != null) {
