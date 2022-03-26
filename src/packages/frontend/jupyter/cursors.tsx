@@ -9,8 +9,8 @@ React component that represents cursors of other users.
 
 // How long until another user's cursor is no longer displayed, if they don't move.
 // (NOTE: might take a little longer since we use a long interval.)
-const CURSOR_TIME_MS = 45000;
-const HIDE_NAME_TIMEOUT_MS = 5000;
+const CURSOR_TIME_MS = 20000;
+const HIDE_NAME_TIMEOUT_MS = 1500;
 
 import { MutableRefObject, useRef, useState, useEffect } from "react";
 import { Map } from "immutable";
@@ -91,7 +91,9 @@ export const Cursor: React.FC<CursorProps> = React.memo(
             <span
               style={{
                 width: 0,
-                height: "1em",
+                left: 0,
+                top: 0,
+                height: "1.4em",
                 borderLeft: "2px solid",
                 position: "absolute",
               }}
@@ -114,6 +116,8 @@ export const Cursor: React.FC<CursorProps> = React.memo(
         <>
           <span
             style={{
+              left: 0,
+              top: 0,
               height: "1em",
               borderRight: "2px solid",
               position: "absolute",
@@ -153,13 +157,14 @@ export const Cursor: React.FC<CursorProps> = React.memo(
               fontSize: "10pt",
               color: "#fff",
               top: "-2px",
-              left: "-2px",
+              left: "8px",
               padding: "2px",
               whiteSpace: "nowrap",
               background: color,
               fontFamily: "sans-serif",
               boxShadow: "3px 3px 5px 0px #bbb",
-              opacity: 0.8,
+              borderRadius: "3px",
+              zIndex: 1,
             }}
           >
             {renderPaddingText()}
