@@ -1,8 +1,26 @@
 import { useMemo, useState } from "react";
-import { Input, Table } from "antd";
+import { Input, Table, Typography } from "antd";
 import Code from "components/landing/code";
 import { debounce } from "lodash";
 import executables, { Item } from "lib/landing/executables";
+import { ComputeInventory } from "lib/landing/types";
+const { Text } = Typography;
+
+const INFO_STYLE: React.CSSProperties = {
+  overflow: "auto",
+  maxHeight: "10em",
+  maxWidth: "30vw",
+  backgroundColor: "rgba(150, 150, 150, 0.1)",
+  fontSize: "10px",
+  border: "none",
+  borderRadius: "3px",
+} as const;
+
+const PRE_STYLE: React.CSSProperties = {
+  padding: "5px",
+  margin: 0,
+  overflow: "unset", // parent div will show scroll handles
+} as const;
 
 const COLUMNS = [
   {
@@ -10,7 +28,11 @@ const COLUMNS = [
     key: "name",
     dataIndex: "name",
     responsive: ["md" as any],
-    render: (name) => <b style={{ fontSize: "12pt", color: "#666" }}>{name}</b>,
+    render: (name) => (
+      <Text strong style={{ fontSize: "12pt" }}>
+        {name}
+      </Text>
+    ),
   },
   {
     title: "Path",
@@ -24,25 +46,19 @@ const COLUMNS = [
     dataIndex: "output",
     width: "40%",
     render: (output) => (
-      <div
-        style={{
-          overflow: "scroll",
-          maxHeight: "8em",
-          maxWidth: "30vw",
-          backgroundColor: "rgba(150, 150, 150, 0.1)",
-          fontSize: "10px",
-          border: "1px solid rgba(100, 100, 100, 0.2)",
-          borderRadius: "3px",
-        }}
-      >
-        <pre style={{ padding: "5px" }}>{output}</pre>
+      <div style={INFO_STYLE}>
+        <pre style={PRE_STYLE}>{output}</pre>
       </div>
     ),
   },
 ];
 
-export default function ExecutablesTable() {
-  const dataSource = useMemo(executables, []);
+export default function ExecutablesTable({
+  executablesSpec,
+}: {
+  executablesSpec: ComputeInventory["executables"];
+}) {
+  const dataSource = executables(executablesSpec);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
     () =>
@@ -66,7 +82,7 @@ export default function ExecutablesTable() {
   }
 
   return (
-    <div>
+    <div style={{ clear: "both" }}>
       <h2>Showing {data.length} executables</h2>
       <Input.Search
         style={{ padding: "0 30px 15px 0", width: "50%", minWidth: "300px" }}

@@ -35,8 +35,16 @@ CodeMirror.registerHelper("fold", "stex", function (cm, start) {
       // find environment close
       const END = "\\end";
       let level = 0;
-      const begin = new RegExp(`\\\\begin\\s*{${environ}}`);
-      const end = new RegExp(`\\\\end\\s*{${environ}}`);
+      let begin, end;
+      try {
+        begin = new RegExp(`\\\\begin\\s*{${environ}}`);
+        end = new RegExp(`\\\\end\\s*{${environ}}`);
+      } catch (_err) {
+        // This can happen, e.g., if somebody puts something totally wrong for the environment.
+        // See https://github.com/sagemathinc/cocalc/issues/5794
+        // Here's a reasonable fallback:
+        return [undefined, undefined];
+      }
       for (let i = start.line; i <= cm.lastLine(); i++) {
         const cur = cm.getLine(i);
         const m = cur.search(begin);
