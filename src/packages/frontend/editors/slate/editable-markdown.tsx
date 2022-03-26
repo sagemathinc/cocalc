@@ -195,13 +195,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       // hasUnsavedChanges is true if the children changed
       // since last time resetHasUnsavedChanges() was called.
-      ed._hasUnsavedChanges = undefined;
+      ed._hasUnsavedChanges = false;
       ed.resetHasUnsavedChanges = () => {
         delete ed.markdownValue;
         ed._hasUnsavedChanges = ed.children;
       };
       ed.hasUnsavedChanges = () => {
-        if (ed._hasUnsavedChanges === undefined) {
+        if (ed._hasUnsavedChanges === false) {
           // initially no unsaved changes
           return false;
         }
@@ -490,6 +490,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const setEditorToValue = (value) => {
       if (value == null) return;
+      if (value == editor.getMarkdownValue()) {
+        // nothing to do, and in fact doing something
+        // could be really annoying, since we don't want to
+        // autoformat via markdown everything immediately,
+        // as ambiguity is resolved while typing...
+        return;
+      }
       const previousEditorValue = editor.children;
 
       // we only use the latest version of the document
@@ -664,6 +671,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // way for checking if the state of the editor has changed.  Instead
     // check editor.children itself explicitly.
     const onChange = (newEditorValue) => {
+      if (editor._hasUnsavedChanges === false) {
+        // just for initial change.
+        editor._hasUnsavedChanges = undefined;
+      }
       if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
