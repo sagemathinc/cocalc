@@ -201,25 +201,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         ed._hasUnsavedChanges = ed.children;
       };
       ed.hasUnsavedChanges = () => {
+        if (ed._hasUnsavedChanges === undefined) {
+          // initially no unsaved changes
+          return false;
+        }
         return ed._hasUnsavedChanges !== ed.children;
       };
 
       ed.getMarkdownValue = () => {
         if (ed.markdownValue != null && !ed.hasUnsavedChanges()) {
-          /* if (
-            ed.markdownValue !=
-            slate_to_markdown(ed.children, {
-              cache: ed.syncCache,
-            })
-          ) {
-            window.getMarkdownValue = {
-              a: ed.markdownValue,
-              b: slate_to_markdown(ed.children, {
-                cache: ed.syncCache,
-              }),
-            };
-            throw Error("cached markdown value is wrong!");
-          } */
           return ed.markdownValue;
         }
         ed.markdownValue = slate_to_markdown(ed.children, {
@@ -237,7 +227,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         if (!force && !editor.hasUnsavedChanges()) {
           return;
         }
-        setSyncstringFromSlate(true);
+        setSyncstringFromSlate();
+        actions.ensure_syncstring_is_saved?.();
       };
 
       ed.syncCache = {};
@@ -425,14 +416,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    function setSyncstringFromSlate(commit) {
-      if (actions.set_value == null) return;
+    function setSyncstringFromSlate() {
+      if (actions.set_value == null) {
+        // no way to save the value out (e.g., just beginning to test
+        // using the component).
+        return;
+      }
+      if (!editor.hasUnsavedChanges()) {
+        // there are no changes to save
+        return;
+      }
+
       const markdown = editor.getMarkdownValue();
       actions.set_value(markdown);
-      if (commit) {
-        editor.resetHasUnsavedChanges();
-        actions.ensure_syncstring_is_saved?.();
-      }
+
+      // Record that the syncstring's value is now equal to ours:
+      editor.resetHasUnsavedChanges();
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,
@@ -483,8 +482,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         if (editor.hasUnsavedChanges()) {
           // just switched from focused to not and there was
           // an unsaved change, so save state.
-          editor.resetHasUnsavedChanges();
-          setSyncstringFromSlate(true);
+          setSyncstringFromSlate();
           actions.ensure_syncstring_is_saved?.();
         }
       }
@@ -492,7 +490,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const setEditorToValue = (value) => {
       if (value == null) return;
-      editor.resetHasUnsavedChanges();
       const previousEditorValue = editor.children;
 
       // we only use the latest version of the document
@@ -522,11 +519,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       //       );
       editor.syncCausedUpdate = true;
       applyOperations(editor, operations);
-      //       console.log(
-      //         "selection after patching",
-      //         JSON.stringify(editor.selection),
-      //         /*JSON.stringify(editor.children)*/
-      //       );
+
+      // Now that we have transformed editor into the new value
+      // let's save the fact that we haven't changed anything.
+      editor.resetHasUnsavedChanges();
+
       try {
         if (editor.selection != null) {
           const { anchor, focus } = editor.selection;
