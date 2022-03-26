@@ -254,7 +254,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       if (actions._syncstring != null) {
         actions._syncstring.on("before-change", () => {
-          setSyncstringFromSlate(false);
+          setSyncstringFromSlate();
         });
         actions._syncstring.on("change", () => {
           setEditorToValue(actions._syncstring.to_str());

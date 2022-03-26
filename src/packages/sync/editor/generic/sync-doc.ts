@@ -257,7 +257,6 @@ export class SyncDoc extends EventEmitter {
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc",
     ]);
 
     if (this.change_throttle) {
@@ -1603,7 +1602,7 @@ export class SyncDoc extends EventEmitter {
         continue;
       }
       dbg("Compute new patch.");
-      await this.sync_remote_and_doc();
+      this.sync_remote_and_doc();
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -2726,10 +2725,9 @@ export class SyncDoc extends EventEmitter {
         assertDefined(this.patch_list);
         this.patch_list.add(v);
 
-        // NOTE: The below sync_remote_and_doc can sometimes
-        // *cause* new entries to be added to this.patch_update_queue.
         dbg("waiting for remote and doc to sync...");
-        await this.sync_remote_and_doc();
+        this.sync_remote_and_doc();
+        await this.patches_table.save();
         if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
         dbg("remote and doc now synced");
 
@@ -2795,30 +2793,16 @@ export class SyncDoc extends EventEmitter {
   /*
     Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
-
-    Only returns once any newly created patches have
-    been sent out.
   */
-  private async sync_remote_and_doc(): Promise<void> {
+  private sync_remote_and_doc(): void {
     if (this.last == null || this.doc == null || this.sync_is_disabled) {
       return;
     }
 
     if (this.state == "ready") {
       // First save any unsaved changes from our live version.
-      // Repeat this until changes stop, since there is an await
-      // in this loop, and user may make changes *during* that
-      // save_patch call, and we must not miss them.
       this.emit("before-change");
-      while (!this.last.is_equal(this.doc)) {
-        if (this.commit()) {
-          await this.patches_table.save();
-          if (this.state != "ready") {
-            return;
-          }
-        }
-        this.emit("before-change");
-      }
+      this.commit();
     }
 
     // Compute the global current state of the document,
