@@ -89,7 +89,10 @@ function handleClose({ token, state, cache }) {
           markdown = getSource(state.open_token, state.lines);
         } else {
           if (markdown) {
-            markdown += "\n";
+            // ensure it ends in two newlines, since it's a block.
+            while (!markdown.endsWith("\n\n")) {
+              markdown += "\n";
+            }
           }
         }
         if (markdown) {
