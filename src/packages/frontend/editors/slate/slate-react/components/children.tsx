@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
@@ -8,7 +8,7 @@ import { useSlateStatic } from "../hooks/use-slate-static";
 import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
-import { WindowedList } from "@cocalc/frontend/components";
+import { Virtuoso } from "react-virtuoso";
 import { shallowCompare } from "@cocalc/util/misc";
 import { SlateEditor } from "../../editable-markdown";
 
@@ -63,13 +63,14 @@ const Children: React.FC<Props> = React.memo(
       Editor.hasInlines(editor, node);
 
     const renderChild = ({ index }) => {
+      //console.log("renderChild", index, JSON.stringify(selection));
       // When windowing, we put a margin at the top of the first cell
       // and the bottom of the last cell.  This makes sure the scroll
       // bar looks right, which it would not if we put a margin around
       // the entire list.
       let marginTop: string | undefined = undefined;
       let marginBottom: string | undefined = undefined;
-      if (path?.length === 0 && windowing != null) {
+      if (windowing != null) {
         if (windowing.marginTop && index === 0) {
           marginTop = windowing.marginTop;
         } else if (
@@ -84,7 +85,7 @@ const Children: React.FC<Props> = React.memo(
         // appears when scrolling and allowing that breaks everything (for now!).
         return (
           <div
-            style={{ height: "0.1px", marginTop, marginBottom }}
+            style={{ height: "1px", marginTop, marginBottom }}
             contentEditable={false}
           />
         );
@@ -146,28 +147,29 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    if (path?.length === 0 && windowing != null) {
-      // top level and using windowing!
+    const virtuoso = useRef(null);
+    //window.virtuoso = virtuoso;
+    if (windowing != null) {
+      // using windowing
       return (
-        <WindowedList
-          controlRef={editor.windowedListRef}
-          render_info={true}
-          row_count={node.children.length}
-          row_renderer={renderChild}
-          overscan_row_count={windowing.overscanRowCount ?? 3}
-          estimated_row_size={windowing.estimatedRowSize ?? 60}
-          row_size_estimator={
-            windowing.rowSizeEstimator
-              ? (index) => {
-                  return node.children[index] != null
-                    ? windowing.rowSizeEstimator?.(node.children[index])
-                    : undefined;
+        <Virtuoso
+          ref={virtuoso}
+          className="smc-vfill"
+          totalCount={node.children.length}
+          itemContent={(index) => (
+            <div style={windowing.rowStyle}>{renderChild({ index })}</div>
+          )}
+          defaultItemHeight={windowing.estimatedRowSize ?? 60}
+          overscan={500}
+          isScrolling={
+            onScroll != null
+              ? (isScrolling: boolean) => {
+                  if (!isScrolling) {
+                    onScroll();
+                  }
                 }
               : undefined
           }
-          row_key={(index) => `${index}`}
-          row_style={windowing.rowStyle}
-          on_scroll={onScroll}
         />
       );
     } else {
@@ -175,10 +177,13 @@ const Children: React.FC<Props> = React.memo(
       const children: JSX.Element[] = [];
       for (let index = 0; index < node.children.length; index++) {
         try {
-          const X = renderChild({ index });
-          children.push(X);
+          children.push(renderChild({ index }));
         } catch (err) {
-          console.warn("SLATE -- issue in renderChild", node.children[index]);
+          console.warn(
+            "SLATE -- issue in renderChild",
+            node.children[index],
+            err
+          );
         }
       }
 

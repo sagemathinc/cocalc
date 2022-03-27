@@ -31,7 +31,6 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
   // **a lot**.
   const updateDOMSelection = () => {
     if (state.isComposing || !ReactEditor.isFocused(editor)) {
-      // console.log("useUpdateDOMSelection: early return");
       return;
     }
 
@@ -45,7 +44,6 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
 
     // If the DOM selection is properly unset, we're done.
     if (!selection && !hasDomSelection) {
-      // console.log("useUpdateDOMSelection: no selection");
       return;
     }
 
@@ -119,9 +117,9 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
   // to immediately set it back.
   useIsomorphicLayoutEffect(updateDOMSelection);
 
-  // We also return this function, so can be called on scroll,
-  // which is needed to support windowing.
-  return updateDOMSelection;
+  // We also attach this function to the editor,
+  // so can be called on scroll, which is needed to support windowing.
+  editor.updateDOMSelection = updateDOMSelection;
 };
 
 export const useDOMSelectionChange = ({
@@ -181,6 +179,8 @@ export const useDOMSelectionChange = ({
     if (selection != null) {
       const info = editor.windowedListRef?.current?.renderInfo;
       if (info != null) {
+        // TODO: need to redo for virtuoso!
+
         // Trickier case due to windowing.  We check if the DOM selection
         // changed due to the windowing system removing rows from the DOM.
         // In such cases, we end up with the DOM selection going outside

@@ -432,7 +432,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  const updateDOMSelection = useUpdateDOMSelection({ editor, state });
+  useUpdateDOMSelection({ editor, state });
   const DOMSelectionChange = useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
@@ -1037,7 +1037,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                 editor.scrollCaretAfterNextScroll = false;
                 editor.scrollCaretIntoView();
               }
-              updateDOMSelection();
+              editor.updateDOMSelection?.();
               props.onScroll?.({} as any);
             }}
           />

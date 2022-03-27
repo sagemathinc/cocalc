@@ -89,14 +89,6 @@ const USE_WINDOWING = true;
 // Even click-dragging and selecting a range breaks often due to
 // things being slow.
 // In contrast, with windowing, everything is **buttery smooth**.
-// Making this overscan small makes things even faster, and also
-// minimizes interference when two users are editing at once.
-// ** This must be at least 2 or our algorithm for maintaining the
-// DOM selection state will not work.  Any upstream editing removes focus.**
-// Setting the count to 10 and editing moby dick **does** feel slightly
-// laggy, whereas around 2 or 3 and it feels usable.
-const OVERSCAN_ROW_COUNT = 3;
-if (OVERSCAN_ROW_COUNT <= 1) throw Error("this can't work!");
 
 const STYLE = {
   width: "100%",
@@ -601,7 +593,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             previousEditorValue,
             nextEditorValue,
             editorValue: editor.children,
-            operations,
             stringify,
             slateDiff,
             applyOperations,
@@ -800,11 +791,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               ? {
                   rowStyle: {
                     padding: "0 70px",
-                    minHeight: "0.1px",
-                    backgroundColor:
-                      "white" /* to avoid overlapping transparent effect when initially measuring */,
+                    minHeight: "1px", // virtuoso can't deal with 0-height items
                   },
-                  overscanRowCount: OVERSCAN_ROW_COUNT,
                   marginTop: "40px",
                   marginBottom: "40px",
                   rowSizeEstimator,
