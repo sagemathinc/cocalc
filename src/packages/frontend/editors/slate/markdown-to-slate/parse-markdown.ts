@@ -45,12 +45,19 @@ const TRAILING_WHITESPACE_REG = /\uFE20/g;
 // that means newline in markdown, and at this point there is little
 // that can be done.
 function replaceSingleTrailingWhitespace(markdown: string): string {
-  // This one little regexp does exactly what we want:
+  // This one little regexp does exactly what we want...
   // (?<=\S) = match a non-whitespace but don't capture it - see https://stackoverflow.com/questions/3926451/how-to-match-but-not-capture-part-of-a-regex
   // \  = single space
   // $ = end of line, because of the "m"
   // gm = global and m means $ matches end of each line, not whole string.
-  return markdown.replace(/(?<=\S)\ $/gm, TRAILING_WHITESPACE_SUB);
+  //return markdown.replace(/(?<=\S)\ $/gm, TRAILING_WHITESPACE_SUB);
+  // Above isn't supported by Safari, but
+  // https://stackoverflow.com/questions/51568821/works-in-chrome-but-breaks-in-safari-invalid-regular-expression-invalid-group
+  // suggests a slight modification that is UGLIER and slower, but works:
+  return markdown.replace(
+    /(?:\S)\ $/gm,
+    (match) => match[0] + TRAILING_WHITESPACE_SUB
+  );
 }
 
 function restoreSingleTrailingWhitespace(tokens) {
