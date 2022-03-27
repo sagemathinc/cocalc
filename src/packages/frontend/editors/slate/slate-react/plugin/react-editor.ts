@@ -30,6 +30,7 @@ import {
 export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
+  scrollIntoDOM: (index: number) => boolean;
   scrollCaretIntoView: (options?: { middle?: boolean }) => void;
   windowedListRef: { current: any };
   scrollCaretAfterNextScroll?: boolean;

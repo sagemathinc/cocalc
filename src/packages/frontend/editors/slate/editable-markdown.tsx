@@ -791,6 +791,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               ? {
                   rowStyle: {
                     padding: "0 70px",
+                    overflow: "hidden", // CRITICAL: this makes it so the div height accounts for margin of contents (e.g., p element has margin), so virtuoso can measure it correctly.  Otherwise, things jump around like crazy.
                     minHeight: "1px", // virtuoso can't deal with 0-height items
                   },
                   marginTop: "40px",

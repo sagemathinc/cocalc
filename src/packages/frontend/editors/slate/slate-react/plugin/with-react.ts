@@ -211,6 +211,25 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
+  // only when windowing is enabled.
+  e.scrollIntoDOM = (index) => {
+    let windowed: boolean = e.windowedListRef.current != null;
+    if (windowed) {
+      const visibleRange = e.windowedListRef.current?.visibleRange;
+      if (visibleRange != null) {
+        const { startIndex, endIndex } = visibleRange;
+        const virtuoso = e.windowedListRef.current.virtuosoRef?.current;
+        if (virtuoso != null) {
+          if (index < startIndex || index > endIndex) {
+            virtuoso.scrollIntoView({ index });
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
   e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
@@ -259,6 +278,9 @@ export const withReact = <T extends Editor>(editor: T) => {
       // into the DOM first.
       let windowed: boolean = e.windowedListRef.current != null;
       if (windowed) {
+        const index = selection.focus.path[0];
+        e.scrollIntoDOM(index);
+        /*
         const info = e.windowedListRef.current.renderInfo;
         const index = selection.focus.path[0];
         if (info != null && index != null) {
@@ -271,6 +293,7 @@ export const withReact = <T extends Editor>(editor: T) => {
             return;
           }
         }
+        */
       }
 
       let domSelection;

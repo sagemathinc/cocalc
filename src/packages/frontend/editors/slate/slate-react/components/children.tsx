@@ -147,20 +147,21 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    const virtuoso = useRef(null);
-    //window.virtuoso = virtuoso;
+    const virtuosoRef = useRef(null);
+
     if (windowing != null) {
       // using windowing
+      /* NOTES:
+       */
       return (
         <Virtuoso
-          ref={virtuoso}
+          ref={virtuosoRef}
           className="smc-vfill"
           totalCount={node.children.length}
           itemContent={(index) => (
             <div style={windowing.rowStyle}>{renderChild({ index })}</div>
           )}
           defaultItemHeight={windowing.estimatedRowSize ?? 60}
-          overscan={500}
           isScrolling={
             onScroll != null
               ? (isScrolling: boolean) => {
@@ -170,6 +171,12 @@ const Children: React.FC<Props> = React.memo(
                 }
               : undefined
           }
+          rangeChanged={(visibleRange) => {
+            editor.windowedListRef.current = {
+              visibleRange,
+              virtuosoRef,
+            };
+          }}
         />
       );
     } else {
