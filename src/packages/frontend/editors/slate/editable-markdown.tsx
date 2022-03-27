@@ -68,27 +68,11 @@ import type { SlateEditor } from "./types";
 export type { SlateEditor };
 
 // Whether or not to use windowing (=only rendering visible elements).
-// I'm going to disable this by default (for production
-// releases), but re-enable it frequently for development.
-// There are a LOT of missing features when using windowing,
-// including subtle issues with selection, scroll state, etc.
-// IMPORTANT: Do not set this to false unless you want to make
-// slate editing **basically unusable** at scale beyond a few pages!!
-// This is the default and the component can be explicitly created
-// with a windowing disabled.
-const USE_WINDOWING = true;
-// const USE_WINDOWING = false;
-
-// Why window?  Unfortunately, due to how slate is designed, actually editing
-// text is "unusable" for even medium size documents
-// without using windowing. E.g., with say 200 top level blocks,
-// just trying to enter random characters quickly on a superfast laptop
-// shows nothing until you pause for a moment.  Totally unacceptable.
-// This is for lots of reasons, including things like decorations being
-// recomputed, caching not really working, DOM being expensive.
-// Even click-dragging and selecting a range breaks often due to
-// things being slow.
-// In contrast, with windowing, everything is **buttery smooth**.
+// This is broken and provides no real value at this point.  However,
+// I guess I'll leave it in for a little while longer, since it mostly
+// works, except on Firefox.
+//const USE_WINDOWING = true;
+const USE_WINDOWING = false;
 
 const STYLE = {
   width: "100%",
