@@ -27,7 +27,7 @@ export function getLibaries(
       search: (name + (summary ?? "")).toLowerCase(),
     };
     for (const env in spec) {
-      const envInfo = inventory[spec[env].cmd][name];
+      const envInfo = inventory[spec[env].cmd]?.[name];
       if (envInfo != null) item[env] = envInfo;
     }
     libs.push(item);
