@@ -39,6 +39,7 @@ const Element = (props: {
     delayedRender = 0,
   } = props;
   // console.log("renderElement", element);
+
   const doRender = useDelayedRender(delayedRender);
   const ref = useRef<HTMLElement>(null);
   const editor = useSlateStatic();
@@ -148,7 +149,7 @@ const MemoizedElement = React.memo(Element, (prev, next) => {
       (!!prev.selection &&
         !!next.selection &&
         Range.equals(prev.selection, next.selection)));
-  //console.log("MemoizedElement", { prev, next, is_equal });
+  // console.log("MemoizedElement", { is_equal, prev, next });
   return is_equal;
 });
 

@@ -23,6 +23,7 @@ const down = ({ editor }: { editor: SlateEditor }) => {
   try {
     const index = cur?.path[0];
     if (
+      editor.windowedListRef.current != null &&
       cur != null &&
       index != null &&
       cur.path[1] == editor.children[cur.path[0]]["children"]?.length - 1
@@ -76,7 +77,7 @@ const up = ({ editor }: { editor: SlateEditor }) => {
   const cur = editor.selection?.focus;
   try {
     const index = cur?.path[0];
-    if (index && cur.path[1] == 0) {
+    if (editor.windowedListRef.current != null && index && cur.path[1] == 0) {
       if (editor.scrollIntoDOM(index - 1)) {
         setTimeout(() => {
           if (cur == editor.selection?.focus) {

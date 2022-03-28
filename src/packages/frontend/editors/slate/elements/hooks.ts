@@ -13,18 +13,18 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Range } from "slate";
 import { path_split } from "@cocalc/util/misc";
-import {
-  useSlate as useSlate0,
-  useSlateStatic as useSlateStatic0,
-} from "../slate-react";
+import { useSlateStatic as useSlateStatic0 } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 import "@cocalc/frontend/misc/process-links/jquery"; // jquery plugin is defined
 
 // Exactly like the normal useSlate hook, except return type is
 // SlateEditor, which we know since we're only using this in CoCalc
 // where we only use our enhanced type.
+// NOTE: for elements *ONLY* useSlateStatic is actually provided,
+// since useSlate would force every element that uses it to update
+// on every editor change, which is no good.
 export const useSlate = () => {
-  return useSlate0() as SlateEditor;
+  return useSlateStatic0() as SlateEditor;
 };
 
 export const useSlateStatic = () => {

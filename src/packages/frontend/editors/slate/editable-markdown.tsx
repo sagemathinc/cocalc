@@ -499,7 +499,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
 
       try {
-        if (!ReactEditor.isFocused(editor)) {
+        if (
+          // length is basically changing from "Loading..."; in this case, just reset everything, rather than transforming via operations (which preserves selection, etc.)
+          (previousEditorValue.length <= 1 && nextEditorValue.length > 30) ||
+          (!disableWindowing && !ReactEditor.isFocused(editor))
+        ) {
           // This is a **MASSIVE** optimization.  E.g., for a few thousand
           // lines markdown file with about 500 top level elements (and lots
           // of nested lists), applying operations below starting with the
@@ -613,6 +617,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Range,
         Text,
         scrollRef,
+        applyOperations,
         markdown_to_slate,
         robot: async (s: string, iterations = 1) => {
           let inserted = "";
@@ -723,7 +728,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
 
       setEditorValue(newEditorValue);
-
       // Update mentions state whenever editor actually changes.
       // This may pop up the mentions selector.
       mentions.onChange();

@@ -57,12 +57,20 @@ const Children: React.FC<Props> = React.memo(
       console.warn("WARNING: unable to find path to node", node, err);
       return <></>;
     }
+    //console.log("render Children", path);
+
     const isLeafBlock =
       Element.isElement(node) &&
       !editor.isInline(node) &&
       Editor.hasInlines(editor, node);
 
-    const renderChild = ({ index }) => {
+    const renderChild = ({
+      index,
+      delay,
+    }: {
+      index: number;
+      delay?: boolean;
+    }) => {
       //console.log("renderChild", index, JSON.stringify(selection));
       // When windowing, we put a margin at the top of the first cell
       // and the bottom of the last cell.  This makes sure the scroll
@@ -113,9 +121,7 @@ const Children: React.FC<Props> = React.memo(
       if (Element.isElement(n)) {
         const x = (
           <ElementComponent
-            delayedRender={
-              true || windowing != null || path.length > 1 ? undefined : index
-            }
+            delayedRender={delay ? index : undefined}
             decorations={ds}
             element={n}
             key={key.id}
@@ -150,6 +156,11 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_INDEX.set(n, i);
       NODE_TO_PARENT.set(n, node);
     }
+
+    // We potentally use delayed rendering the very first time we render more than one child (when not using windowing).
+    // All updates should NOT delay rendering, since that would create a stupid flash, and is pointless.
+    // We only use delayed rendering when windowing is disabled and path length is 1 (the top level).
+    const didDelayedRenderRef = useRef(false);
 
     const virtuosoRef = useRef(null);
 
@@ -186,9 +197,17 @@ const Children: React.FC<Props> = React.memo(
     } else {
       // anything else -- just render the children
       const children: JSX.Element[] = [];
+      const delay =
+        path.length == 0 &&
+        !didDelayedRenderRef.current &&
+        node.children.length > 1;
+      if (delay) {
+        // only do it once, first time that more than one child.
+        didDelayedRenderRef.current = true;
+      }
       for (let index = 0; index < node.children.length; index++) {
         try {
-          children.push(renderChild({ index }));
+          children.push(renderChild({ index, delay }));
         } catch (err) {
           console.warn(
             "SLATE -- issue in renderChild",
