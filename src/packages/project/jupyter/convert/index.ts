@@ -22,7 +22,7 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
   log.debug("start", opts);
   try {
     if (!opts.timeout) {
-      opts.timeout = 30;
+      opts.timeout = 60;
     }
 
     let { j, to } = parseTo(opts.args);

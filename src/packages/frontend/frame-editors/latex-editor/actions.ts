@@ -1070,6 +1070,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
         output_directory: this.get_output_directory(),
+        src: this.path,
       });
       const line = info.Line;
       if (typeof line != "number") {
@@ -1079,18 +1080,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
-
       this.goto_line_in_file(line, info.Input);
     } catch (err) {
       if (err.message.indexOf("ENOENT") != -1) {
-        console.log("err", err);
+        console.log("synctex_pdf_to_tex err:", err);
         // err is just a string exception, and I'm nervous trying
         // to JSON.parse it, so we'll do something less robust,
         // which should have a sufficiently vague message that
         // it is OK.  When you try to run synctex and the synctex
         // file is missing, you get an error with ENOENT in it...
         this.set_error(
-          "Synctex failed to run.  Force Rebuild your project (use the Build frame)o r retry once the build is complete."
+          'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.'
         );
         return;
       }

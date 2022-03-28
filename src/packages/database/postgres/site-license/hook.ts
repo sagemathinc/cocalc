@@ -227,7 +227,7 @@ class SiteLicenseHook {
     for (const license_id of this.orderedSiteLicenseIDs(allValidLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
-        // We could put some sort of error here in case, though I don't know whatlicesnlicesneses
+        // We could put some sort of error here in case, though I don't know what
         // we would do with it.
         this.dbg.info(`skipping invalid license ${license_id} -- invalid UUID`);
         continue;
