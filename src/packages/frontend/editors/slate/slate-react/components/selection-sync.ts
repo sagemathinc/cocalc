@@ -18,7 +18,7 @@ specific hacks at all.
 import { useCallback } from "react";
 import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
 import { ReactEditor } from "..";
-import { EDITOR_TO_ELEMENT, IS_FOCUSED } from "../utils/weak-maps";
+import { EDITOR_TO_ELEMENT } from "../utils/weak-maps";
 import { Editor, Point, Range, Selection, Transforms } from "slate";
 import { hasEditableTarget, isTargetInsideVoid } from "./dom-utils";
 import { DOMElement } from "../utils/dom";
@@ -144,15 +144,6 @@ export const useDOMSelectionChange = ({
   const onDOMSelectionChange = useCallback(() => {
     if (readOnly || state.isComposing) {
       return;
-    }
-
-    const { activeElement } = window.document;
-    const el = ReactEditor.toDOMNode(editor, editor);
-    if (activeElement === el) {
-      state.latestElement = activeElement;
-      IS_FOCUSED.set(editor, true);
-    } else {
-      IS_FOCUSED.delete(editor);
     }
 
     const domSelection = window.getSelection();
