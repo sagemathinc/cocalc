@@ -10,6 +10,7 @@ register({
   slateType: "list_item",
 
   fromSlate: ({ children, info }) => {
+    console.log(children, info);
     let indent = 2;
     let item: string;
 
@@ -32,6 +33,13 @@ register({
       // NOTE: the ? above is so this code works even if the document
       // structure is invalid.
       s += "\n";
+    } else {
+      // if it is tight, make sure it ends with a single newline instead of 2.
+      // This comes up only because of caching of the markdown that produces something.
+      // E.g., if you take a non-tight list in source, then edit it in slate to make it tight, then export back to source.
+      if (s.endsWith("\n\n")) {
+        s = s.slice(0, s.length - 1);
+      }
     }
     return s;
   },

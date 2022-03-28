@@ -230,16 +230,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       ed.onCursorBottom = onCursorBottom;
       ed.onCursorTop = onCursorTop;
 
-      if (actions._syncstring != null) {
-        actions._syncstring.on("before-change", () => {
-          setSyncstringFromSlate();
-        });
-        actions._syncstring.on("change", () => {
-          setEditorToValue(actions._syncstring.to_str());
-        });
-      }
-
       return ed as SlateEditor;
+    }, []);
+
+    // hook up to syncstring if available:
+    useEffect(() => {
+      if (actions._syncstring == null) return;
+      const beforeChange = setSyncstringFromSlate;
+      const change = () => {
+        setEditorToValue(actions._syncstring.to_str());
+      };
+      actions._syncstring.on("before-change", beforeChange);
+      actions._syncstring.on("change", change);
+      return () => {
+        actions._syncstring.removeListener("before-change", beforeChange);
+        actions._syncstring.removeListener("change", change);
+      };
     }, []);
 
     useEffect(() => {

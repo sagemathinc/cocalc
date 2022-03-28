@@ -90,14 +90,11 @@ function handleClose({ token, state, cache }) {
         } else {
           if (markdown) {
             // ensure it ends in two newlines, since it's a block...
-            // unless it's in a list.
-            // EXAMPLES:
-            //  - Tight list:
-            //     1. make a non-tight list in source markdown
-            //     2. change it to be tight in slate editor
-            //     3. the source should stay tight.
-            //  - Why two \n's otherwise?
-            while (!markdown.endsWith(state.tight != null ? "\n" : "\n\n")) {
+            // E.g., of when this is needed is
+            // input like this: "> hy\n>\n> y\n".  then put cursor
+            // before second y and hit enter.  Because of caching need
+            // markdown for last y to be "y\n\n", not just "y\n".
+            while (!markdown.endsWith("\n\n")) {
               markdown += "\n";
             }
           }
