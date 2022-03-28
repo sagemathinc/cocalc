@@ -299,9 +299,8 @@ export class Actions<
       );
     });
 
-    this._syncstring.on(
-      "before-change",
-      this.set_syncstring_to_codemirror.bind(this)
+    this._syncstring.on("before-change", () =>
+      this.set_syncstring_to_codemirror(undefined, true)
     );
     this._syncstring.on(
       "after-change",

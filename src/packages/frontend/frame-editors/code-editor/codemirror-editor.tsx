@@ -235,7 +235,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     if (props.is_public) {
       return;
     }
-    editor_actions()?.set_syncstring_to_codemirror();
+    editor_actions()?.set_syncstring_to_codemirror(undefined, true);
     editor_actions()?.syncstring_commit();
   }
 
