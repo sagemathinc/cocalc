@@ -80,6 +80,7 @@ const Children: React.FC<Props> = React.memo(
           marginBottom = windowing.marginBottom;
         }
       }
+
       if (hiddenChildren?.has(index)) {
         // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
         // appears when scrolling and allowing that breaks everything (for now!).
@@ -112,6 +113,9 @@ const Children: React.FC<Props> = React.memo(
       if (Element.isElement(n)) {
         const x = (
           <ElementComponent
+            delayedRender={
+              true || windowing != null || path.length > 1 ? undefined : index
+            }
             decorations={ds}
             element={n}
             key={key.id}

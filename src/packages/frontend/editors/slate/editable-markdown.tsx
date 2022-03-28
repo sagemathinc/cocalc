@@ -71,7 +71,7 @@ export type { SlateEditor };
 // This is broken and provides no real value at this point.  However,
 // I guess I'll leave it in for a little while longer, since it mostly
 // works, except on Firefox.
-//const USE_WINDOWING = true;
+// const USE_WINDOWING = true;
 const USE_WINDOWING = false;
 
 const STYLE = {
@@ -354,31 +354,43 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       didRestoreRef.current = true;
 
       const scroll = editor_state?.get("scroll");
-      if (scroll == null) return;
+      if (!scroll) return;
 
       // First test for windowing support
       if (!disableWindowing) {
         await new Promise(requestAnimationFrame);
         // Standard embarassing hacks due to waiting to load and measure cells...
-        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        editor.scrollIntoDOM(scroll);
         await delay(10);
-        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        editor.scrollIntoDOM(scroll);
         await delay(500);
-        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        editor.scrollIntoDOM(scroll);
         return;
       }
 
       // No windowing
-      if (scrollRef.current == null) {
-        return;
-      }
-      const elt = $(scrollRef.current);
       // wait until render happens
       await new Promise(requestAnimationFrame);
+      if (scrollRef.current == null || !isMountedRef.current) {
+        return;
+      }
+
+      // wait for async rendering of all children, which is separated
+      // by 1ms, or at least until enough is rendered to scroll to:
+      const elt = $(scrollRef.current);
       elt.scrollTop(scroll);
-      await delay(0);
-      // do any scrolling after image loads
-      elt.find("img").on("load", function () {
+      for (let i = 1; i < editor.children.length; i++) {
+        if (elt[0].scrollHeight >= scroll + 2000) {
+          break;
+        } else {
+          await delay(1);
+          if (!isMountedRef.current) return;
+        }
+      }
+      elt.scrollTop(scroll);
+      // scrolling after image loads
+      elt.find("img").on("load", () => {
+        if (!isMountedRef.current) return;
         elt.scrollTop(scroll);
       });
     };
@@ -600,6 +612,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
         Range,
         Text,
+        scrollRef,
         markdown_to_slate,
         robot: async (s: string, iterations = 1) => {
           let inserted = "";

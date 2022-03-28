@@ -16,6 +16,7 @@ import {
   KEY_TO_ELEMENT,
 } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
+import { useDelayedRender } from "@cocalc/frontend/app-framework/hooks";
 
 /**
  * Element.
@@ -27,6 +28,7 @@ const Element = (props: {
   renderElement?: React.FC<RenderElementProps>;
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
+  delayedRender?: number;
 }) => {
   const {
     decorations,
@@ -34,12 +36,32 @@ const Element = (props: {
     renderElement = (p: RenderElementProps) => <DefaultElement {...p} />,
     renderLeaf,
     selection,
+    delayedRender = 0,
   } = props;
+  // console.log("renderElement", element);
+  const doRender = useDelayedRender(delayedRender);
   const ref = useRef<HTMLElement>(null);
   const editor = useSlateStatic();
   const readOnly = useReadOnly();
-  const isInline = editor.isInline(element);
   const key = ReactEditor.findKey(editor, element);
+
+  // Update element-related weak maps with the DOM element ref.
+  useIsomorphicLayoutEffect(() => {
+    if (ref.current) {
+      KEY_TO_ELEMENT.set(key, ref.current);
+      NODE_TO_ELEMENT.set(element, ref.current);
+      ELEMENT_TO_NODE.set(ref.current, element);
+    } else {
+      KEY_TO_ELEMENT.delete(key);
+      NODE_TO_ELEMENT.delete(element);
+    }
+  });
+
+  if (!doRender) {
+    return null;
+  }
+
+  const isInline = editor.isInline(element);
 
   let children: JSX.Element | null = (
     <Children
@@ -108,18 +130,6 @@ const Element = (props: {
     NODE_TO_INDEX.set(text, 0);
     NODE_TO_PARENT.set(text, element);
   }
-
-  // Update element-related weak maps with the DOM element ref.
-  useIsomorphicLayoutEffect(() => {
-    if (ref.current) {
-      KEY_TO_ELEMENT.set(key, ref.current);
-      NODE_TO_ELEMENT.set(element, ref.current);
-      ELEMENT_TO_NODE.set(ref.current, element);
-    } else {
-      KEY_TO_ELEMENT.delete(key);
-      NODE_TO_ELEMENT.delete(element);
-    }
-  });
 
   return (
     <SelectedContext.Provider value={!!selection}>
