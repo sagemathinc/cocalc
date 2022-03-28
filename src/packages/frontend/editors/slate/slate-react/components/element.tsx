@@ -16,7 +16,6 @@ import {
   KEY_TO_ELEMENT,
 } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
-import { useDelayedRender } from "@cocalc/frontend/app-framework/hooks";
 
 /**
  * Element.
@@ -28,7 +27,6 @@ const Element = (props: {
   renderElement?: React.FC<RenderElementProps>;
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
-  delayedRender?: number;
 }) => {
   const {
     decorations,
@@ -36,11 +34,9 @@ const Element = (props: {
     renderElement = (p: RenderElementProps) => <DefaultElement {...p} />,
     renderLeaf,
     selection,
-    delayedRender = 0,
   } = props;
   // console.log("renderElement", element);
 
-  const doRender = useDelayedRender(delayedRender);
   const ref = useRef<HTMLElement>(null);
   const editor = useSlateStatic();
   const readOnly = useReadOnly();
@@ -57,10 +53,6 @@ const Element = (props: {
       NODE_TO_ELEMENT.delete(element);
     }
   });
-
-  if (!doRender) {
-    return null;
-  }
 
   const isInline = editor.isInline(element);
 
