@@ -58,7 +58,6 @@ import { resetSelection } from "./control";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
-//const SAVE_DEBOUNCE_MS = 300;
 
 import { delay } from "awaiting";
 
@@ -68,11 +67,14 @@ import type { SlateEditor } from "./types";
 export type { SlateEditor };
 
 // Whether or not to use windowing (=only rendering visible elements).
-// This is broken and provides no real value at this point.  However,
-// I guess I'll leave it in for a little while longer, since it mostly
-// works, except on Firefox.
-// const USE_WINDOWING = true;
-const USE_WINDOWING = false;
+// This is unfortunately essential.  I've tried everything I can think
+// of to optimize slate without using windowing, and I just can't do it
+// (and my attempts have always been misleading).  I think the problem is
+// that all the subtle computations that are done when selection, etc.
+// gets updated, just have to be done one way or another anyways. Doing
+// them without the framework of windowing is probably much harder.
+const USE_WINDOWING = true;
+// const USE_WINDOWING = false;
 
 const STYLE = {
   width: "100%",
