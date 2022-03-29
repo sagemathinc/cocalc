@@ -1,4 +1,4 @@
-/*
+/*d
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
@@ -15,7 +15,7 @@ import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { createEditor, Descendant, Editor, Transforms } from "slate";
 import { withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
-import { debounce, isEqual } from "lodash";
+import { debounce, isEqual, throttle } from "lodash";
 import {
   CSS,
   React,
@@ -42,6 +42,7 @@ import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations, preserveScrollPosition } from "./operations";
+import { getScrollState, setScrollState } from "./scroll";
 import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
@@ -318,30 +319,27 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const { listProperties, updateListProperties } = useListProperties(editor);
 
-    const updateScrollState = useMemo(
-      () =>
-        debounce(() => {
-          if (actions.save_editor_state == null) return;
+    const updateScrollState = useMemo(() => {
+      const { save_editor_state } = actions;
+      if (save_editor_state == null) return () => {};
+      if (disableWindowing) {
+        return throttle(() => {
+          if (!isMountedRef.current || !didRestoreScrollRef.current) return;
           const scroll = scrollRef.current?.scrollTop;
           if (scroll != null) {
-            actions.save_editor_state(id, { scroll });
+            save_editor_state(id, { scroll });
           }
-        }, 500),
-      []
-    );
-
-    const updateWindowedScrollState = useMemo(
-      () =>
-        debounce(() => {
-          if (disableWindowing || actions.save_editor_state == null) return;
-          const scroll =
-            editor.windowedListRef.current?.renderInfo?.visibleStartIndex;
+        }, 250);
+      } else {
+        return throttle(() => {
+          if (!isMountedRef.current || !didRestoreScrollRef.current) return;
+          const scroll = getScrollState(editor);
           if (scroll != null) {
-            actions.save_editor_state(id, { scroll });
+            save_editor_state(id, { scroll });
           }
-        }, 500),
-      []
-    );
+        }, 250);
+      }
+    }, []);
 
     const broadcastCursors = useBroadcastCursors({
       editor,
@@ -356,52 +354,46 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
-    const didRestoreRef = useRef<boolean>(false);
-    const restoreScroll = async () => {
-      if (didRestoreRef.current) return; // so we only ever do this once.
-      didRestoreRef.current = true;
+    const didRestoreScrollRef = useRef<boolean>(false);
+    const restoreScroll = useMemo(() => {
+      return async () => {
+        if (didRestoreScrollRef.current) return; // so we only ever do this once.
+        try {
+          const scroll = editor_state?.get("scroll");
+          if (!scroll) return;
 
-      const scroll = editor_state?.get("scroll");
-      if (!scroll) return;
+          if (!disableWindowing) {
+            // Restore scroll for windowing
+            try {
+              await setScrollState(editor, scroll.toJS());
+            } catch (err) {
+              // could happen, e.g, if we change the format or change windowing.
+              console.log(`restoring scroll state -- ${err}`);
+            }
+            return;
+          }
 
-      // First test for windowing support
-      if (!disableWindowing) {
-        await new Promise(requestAnimationFrame);
-        // Standard embarassing hacks due to waiting to load and measure cells...
-        editor.scrollIntoDOM(scroll);
-        await delay(10);
-        editor.scrollIntoDOM(scroll);
-        await delay(500);
-        editor.scrollIntoDOM(scroll);
-        return;
-      }
-
-      // No windowing
-      // wait until render happens
-      await new Promise(requestAnimationFrame);
-      if (scrollRef.current == null || !isMountedRef.current) {
-        return;
-      }
-
-      // wait for async rendering of all children, which is separated
-      // by 1ms, or at least until enough is rendered to scroll to:
-      const elt = $(scrollRef.current);
-      elt.scrollTop(scroll);
-      for (let i = 1; i < editor.children.length; i++) {
-        if (elt[0].scrollHeight >= scroll + 2000) {
-          break;
-        } else {
-          await delay(1);
-          if (!isMountedRef.current) return;
+          // Restore scroll for no windowing.
+          // scroll = the scrollTop position, though we wrap in
+          // exception since it could be anything.
+          await new Promise(requestAnimationFrame);
+          if (scrollRef.current == null || !isMountedRef.current) {
+            return;
+          }
+          const elt = $(scrollRef.current);
+          try {
+            elt.scrollTop(scroll);
+            // scrolling after image loads
+            elt.find("img").on("load", () => {
+              if (!isMountedRef.current) return;
+              elt.scrollTop(scroll);
+            });
+          } catch (_) {}
+        } finally {
+          didRestoreScrollRef.current = true;
         }
-      }
-      elt.scrollTop(scroll);
-      // scrolling after image loads
-      elt.find("img").on("load", () => {
-        if (!isMountedRef.current) return;
-        elt.scrollTop(scroll);
-      });
-    };
+      };
+    }, []);
 
     useEffect(() => {
       if (actions._syncstring == null) {
@@ -618,6 +610,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       (window as any).cc.slate = {
         slateDiff,
         editor,
+        actions,
+        editor_state,
         Transforms,
         ReactEditor,
         Node,
@@ -788,9 +782,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           }}
           decorate={cursorDecorate}
           divref={scrollRef}
-          onScroll={
-            !disableWindowing ? updateWindowedScrollState : updateScrollState
-          }
+          onScroll={updateScrollState}
           style={
             !disableWindowing
               ? undefined

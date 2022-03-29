@@ -33,7 +33,6 @@ import { GutterMarkers } from "./codemirror-gutter-markers";
 import { Actions } from "./actions";
 import { EditorState } from "../frame-tree/types";
 import { Path } from "../frame-tree/path";
-import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 const STYLE = {
   width: "100%",
@@ -72,7 +71,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   const styleActiveLineRef = useRef<boolean>(false);
   const textareaRef = useRef<any>(null);
   const divRef = useRef<any>(null);
-  usePinchToZoom({ target: divRef });
   const isMountedRef = useIsMountedRef();
 
   function editor_actions(): Actions | undefined {

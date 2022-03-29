@@ -162,7 +162,9 @@ const Children: React.FC<Props> = React.memo(
         <Virtuoso
           ref={virtuosoRef}
           onScroll={(e) => {
+            // silly way of getting the scroller element -- obviously not efficient.
             editor.windowedListRef.current.scroller = e.target;
+            onScroll?.();
           }}
           className="smc-vfill"
           totalCount={node.children.length}
@@ -171,15 +173,6 @@ const Children: React.FC<Props> = React.memo(
           )}
           computeItemKey={(index) =>
             ReactEditor.findKey(editor, node.children[index])?.id ?? `${index}`
-          }
-          isScrolling={
-            onScroll != null
-              ? (isScrolling: boolean) => {
-                  if (!isScrolling) {
-                    onScroll();
-                  }
-                }
-              : undefined
           }
           rangeChanged={(visibleRange) => {
             editor.windowedListRef.current.visibleRange = visibleRange;

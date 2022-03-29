@@ -4,7 +4,8 @@
  */
 import { Editor, Operation, Point } from "slate";
 import { isEqual } from "lodash";
-import { SlateEditor } from "./editable-markdown";
+import type { SlateEditor } from "./editable-markdown";
+import { getScrollState, setScrollState } from "./scroll";
 
 export function applyOperations(
   editor: SlateEditor,
@@ -112,11 +113,9 @@ export function preserveScrollPosition(
   editor: SlateEditor,
   operations: Operation[]
 ): void {
-  const startIndex = editor.windowedListRef.current?.visibleRange?.startIndex;
-  if (startIndex == null) return;
-
-  const scroller = editor.windowedListRef.current?.scroller;
-  if (scroller == null) return;
+  const scroll = getScrollState(editor);
+  if (scroll == null) return;
+  const { startIndex, offset } = scroll;
 
   let point: Point | null = { path: [startIndex], offset: 0 };
   // transform point via the operations.
@@ -125,21 +124,8 @@ export function preserveScrollPosition(
     if (point == null) break;
   }
 
-  const index = point?.path[0];
-  if (index == null) return;
+  const newStartIndex = point?.path[0];
+  if (newStartIndex == null) return;
 
-  if (editor.windowedListRef.current?.virtuosoRef.current == null) return;
-  const offset =
-    (scroller.scrollTop ?? 0) -
-    (editor.windowedListRef.current?.firstItemOffset ?? 0);
-  editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(index);
-  // We have to set this twice, or it sometimes doesn't work.  Setting it twice
-  // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
-  // have to first set it above without the offset, then set it with!. Weird.
-  requestAnimationFrame(() => {
-    editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex({
-      index,
-      offset,
-    });
-  });
+  setScrollState(editor, { startIndex: newStartIndex, offset });
 }
