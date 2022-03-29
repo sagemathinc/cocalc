@@ -28,6 +28,9 @@ export function slatePointToMarkdownPosition(
 // this determination.
 // Returns index of -1 if it fails to work for some reason, e.g.,
 // the point doesn't exist in the document.
+// TODO/BUG: This can still be slightly wrong because we don't use caching on the top-level
+// block that contains the cursor.  Thus, e.g., in a big nested list with various markdown
+// that isn't canonical this could make things be slightly off.
 export function slatePointToMarkdown(
   editor: SlateEditor,
   point: Point
@@ -36,14 +39,17 @@ export function slatePointToMarkdown(
   try {
     [node] = Editor.node(editor, point);
   } catch (err) {
+    console.warn(`slate -- invalid point ${point} -- ${err}`);
     // There is no guarantee that point is valid when this is called.
     return { index: -1, markdown: "" };
   }
 
   let markdown = slate_to_markdown(editor.children, {
-    hook: (elt, s) => {
+    cache: editor.syncCache,
+    noCache: new Set([point.path[0]]),
+    hook: (elt) => {
       if (elt !== node) return;
-      return s.slice(0, point.offset) + SENTINEL + s.slice(point.offset);
+      return (s) => s.slice(0, point.offset) + SENTINEL + s.slice(point.offset);
     },
   });
   const index = markdown.indexOf(SENTINEL);
