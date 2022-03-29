@@ -105,3 +105,40 @@ function skipCursor(cursor: { focus: Point | null }, op): boolean {
   cursor.focus = Point.transform(focus, op);
   return false;
 }
+
+// This only has an impact with windowing enabled, which is the only situation where
+// scrolling should be happening anyways.
+export function preserveScrollPosition(
+  editor: SlateEditor,
+  operations: Operation[]
+): void {
+  const startIndex = editor.windowedListRef.current?.visibleRange?.startIndex;
+  if (startIndex == null) return;
+
+  const scroller = editor.windowedListRef.current?.scroller;
+
+  if (scroll == null) return;
+  let point: Point | null = { path: [startIndex], offset: 0 };
+
+  // transform point via the operations.
+  for (const op of operations) {
+    point = Point.transform(point, op);
+    if (point == null) break;
+  }
+  const index = point?.path[0];
+  if (index != null) {
+    const offset =
+      (scroller.scrollTop ?? 0) -
+      (editor.windowedListRef.current.firstItemOffset ?? 0);
+    editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(index);
+    // We have to set this twice, or it sometimes doesn't work.  Setting it twice
+    // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
+    // have to first set it above without the offset, then set it with!. Weird.
+    requestAnimationFrame(() => {
+      editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex({
+        index,
+        offset,
+      });
+    });
+  }
+}

@@ -12,7 +12,7 @@ import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { createEditor, Descendant, Editor, Point, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Transforms } from "slate";
 import { withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -41,7 +41,7 @@ import { withIsInline, withIsVoid } from "./plugins";
 import useUpload from "./upload";
 
 import { slateDiff } from "./slate-diff";
-import { applyOperations } from "./operations";
+import { applyOperations, preserveScrollPosition } from "./operations";
 import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
@@ -541,48 +541,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             // no actual change needed.
             return;
           }
-          // Applying this operation below will immediately trigger
+          // Applying this operation below will trigger
           // an onChange, which it is best to ignore to save time and
           // also so we don't update the source editor (and other browsers)
           // with a view with things like loan $'s escaped.'
-          //       console.log(
-          //         "selection before patching",
-          //         JSON.stringify(editor.selection),
-          //         /*JSON.stringify(editor.children)*/
-          //       );
           editor.syncCausedUpdate = true;
-
-          const startIndex =
-            editor.windowedListRef.current?.visibleRange?.startIndex;
-          if (startIndex != null) {
-            // transform it via the operations.
-
-            let point: Point | null = { path: [startIndex], offset: 0 };
-            for (const op of operations) {
-              point = Point.transform(point, op);
-              if (point == null) break;
-            }
-            const index = point?.path[0];
-            if (index != null) {
-              // TODO: do this right...
-              const offset =
-                ($('[data-virtuoso-scroller="true"]').scrollTop() ?? 0) -
-                (editor.windowedListRef.current.firstItemOffset ?? 0);
-              const location = { index, offset };
-              editor.windowedListRef.current.virtuosoRef.current.scrollToIndex({
-                index,
-              });
-              // We have to set this twice, or it sometimes doesn't work.  Setting it twice
-              // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
-              // have to first set it above without the offset, then set it with!. Weird.
-              requestAnimationFrame(() => {
-                editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(
-                  location
-                );
-              });
-            }
-          }
-
+          preserveScrollPosition(editor, operations);
           applyOperations(editor, operations);
         }
 

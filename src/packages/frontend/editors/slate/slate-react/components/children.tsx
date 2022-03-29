@@ -161,7 +161,9 @@ const Children: React.FC<Props> = React.memo(
       return (
         <Virtuoso
           ref={virtuosoRef}
-          onScroll={undefined /*(e) => console.log(e.target.scrollTop)*/}
+          onScroll={(e) => {
+            editor.windowedListRef.current.scroller = e.target;
+          }}
           className="smc-vfill"
           totalCount={node.children.length}
           itemContent={(index) => (
