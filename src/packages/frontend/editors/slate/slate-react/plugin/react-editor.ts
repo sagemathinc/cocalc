@@ -594,17 +594,7 @@ export const ReactEditor = {
   },
 
   scrollIntoDOM(editor: ReactEditor, path: Path) {
-    const info = editor.windowedListRef.current?.renderInfo;
-    if (info == null) {
-      // not using windowing so everything is always in the DOM.
-      return;
-    }
-    const { overscanStartIndex, overscanStopIndex } = info;
-    if (path[0] >= overscanStartIndex && path[0] <= overscanStopIndex) {
-      return;
-    }
-    // This makes it so the path is to something in the DOM.
-    editor.windowedListRef.current.scrollToItem(path[0]);
+    editor.scrollIntoDOM(path[0]);
   },
 
   forceUpdate(editor: ReactEditor) {

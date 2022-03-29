@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
@@ -151,6 +151,7 @@ const Children: React.FC<Props> = React.memo(
     }
 
     const virtuosoRef = useRef(null);
+    const scrollerRef = useRef(null);
     if (windowing != null) {
       // using windowing
 
@@ -166,8 +167,10 @@ const Children: React.FC<Props> = React.memo(
         <Virtuoso
           ref={virtuosoRef}
           onScroll={(e) => {
-            // silly way of getting the scroller element -- obviously not efficient.
-            editor.windowedListRef.current.scroller = e.target;
+            // TODO: this is maybe a "stupid" way of getting the scroller
+            // element -- obviously not efficient... but on the other hand
+            // only happens if you actually scroll.
+            scrollerRef.current = e.target;
             onScroll?.();
           }}
           className="smc-vfill"
@@ -182,8 +185,12 @@ const Children: React.FC<Props> = React.memo(
             editor.windowedListRef.current.visibleRange = visibleRange;
           }}
           itemsRendered={(items) => {
-            editor.windowedListRef.current.firstItemOffset = items[0]?.offset;
-            editor.windowedListRef.current.secondItemOffset = items[1]?.offset;
+            const scrollTop = scrollerRef.current?.scrollTop ?? 0;
+            // need both items, since may use first if there is no second...
+            editor.windowedListRef.current.firstItemOffset =
+              scrollTop - items[0]?.offset;
+            editor.windowedListRef.current.secondItemOffset =
+              scrollTop - items[1]?.offset;
           }}
         />
       );

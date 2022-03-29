@@ -218,9 +218,9 @@ export const withReact = <T extends Editor>(editor: T) => {
       const visibleRange = e.windowedListRef.current?.visibleRange;
       if (visibleRange != null) {
         const { startIndex, endIndex } = visibleRange;
-        const virtuoso = e.windowedListRef.current.virtuosoRef?.current;
-        if (virtuoso != null) {
-          if (index < startIndex || index > endIndex) {
+        if (index < startIndex || index > endIndex) {
+          const virtuoso = e.windowedListRef.current.virtuosoRef?.current;
+          if (virtuoso != null) {
             virtuoso.scrollIntoView({ index });
             return true;
           }

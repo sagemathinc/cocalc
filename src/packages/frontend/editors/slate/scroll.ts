@@ -11,20 +11,14 @@ export function getScrollState(editor: SlateEditor): ScrollState | undefined {
   if (startIndex == null) return;
   const endIndex = editor.windowedListRef.current?.visibleRange?.endIndex;
   if (endIndex == null) return;
-  const scroller = editor.windowedListRef.current?.scroller;
-  if (scroller == null) return;
 
   let index, offset;
   if (endIndex > startIndex) {
     index = startIndex + 1;
-    offset =
-      (scroller.scrollTop ?? 0) -
-      (editor.windowedListRef.current?.secondItemOffset ?? 0);
+    offset = editor.windowedListRef.current?.secondItemOffset ?? 0;
   } else {
     index = startIndex;
-    offset =
-      (scroller.scrollTop ?? 0) -
-      (editor.windowedListRef.current?.firstItemOffset ?? 0);
+    offset = editor.windowedListRef.current?.firstItemOffset ?? 0;
   }
 
   return { index, offset };
