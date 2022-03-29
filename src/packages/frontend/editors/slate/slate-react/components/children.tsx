@@ -64,11 +64,7 @@ const Children: React.FC<Props> = React.memo(
       !editor.isInline(node) &&
       Editor.hasInlines(editor, node);
 
-    const renderChild = ({
-      index,
-    }: {
-      index: number;
-    }) => {
+    const renderChild = ({ index }: { index: number }) => {
       //console.log("renderChild", index, JSON.stringify(selection));
       // When windowing, we put a margin at the top of the first cell
       // and the bottom of the last cell.  This makes sure the scroll
@@ -155,20 +151,25 @@ const Children: React.FC<Props> = React.memo(
     }
 
     const virtuosoRef = useRef(null);
-
     if (windowing != null) {
       // using windowing
       /* NOTES:
        */
+      if (editor.windowedListRef.current == null) {
+        editor.windowedListRef.current = { virtuosoRef };
+      }
       return (
         <Virtuoso
           ref={virtuosoRef}
+          onScroll={undefined /*(e) => console.log(e.target.scrollTop)*/}
           className="smc-vfill"
           totalCount={node.children.length}
           itemContent={(index) => (
             <div style={windowing.rowStyle}>{renderChild({ index })}</div>
           )}
-          defaultItemHeight={windowing.estimatedRowSize ?? 60}
+          computeItemKey={(index) =>
+            ReactEditor.findKey(editor, node.children[index])?.id ?? `${index}`
+          }
           isScrolling={
             onScroll != null
               ? (isScrolling: boolean) => {
@@ -179,10 +180,10 @@ const Children: React.FC<Props> = React.memo(
               : undefined
           }
           rangeChanged={(visibleRange) => {
-            editor.windowedListRef.current = {
-              visibleRange,
-              virtuosoRef,
-            };
+            editor.windowedListRef.current.visibleRange = visibleRange;
+          }}
+          itemsRendered={(items) => {
+            editor.windowedListRef.current.firstItemOffset = items[0]?.offset;
           }}
         />
       );
@@ -217,3 +218,26 @@ const Children: React.FC<Props> = React.memo(
 );
 
 export default Children;
+
+/*
+function getCursorY(): number | null {
+  const sel = getSelection();
+  if (sel == null || sel.rangeCount == 0) {
+    return null;
+  }
+  return sel.getRangeAt(0)?.getBoundingClientRect().y;
+}
+
+function preserveCursorScrollPosition() {
+  const before = getCursorY();
+  if (before === null) return;
+  requestAnimationFrame(() => {
+    const after = getCursorY();
+    if (after === null) return;
+    const elt = $('[data-virtuoso-scroller="true"]');
+    if (elt) {
+      elt.scrollTop((elt.scrollTop() ?? 0) + (after - before));
+    }
+  });
+}
+*/

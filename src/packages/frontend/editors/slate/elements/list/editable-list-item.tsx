@@ -10,7 +10,6 @@ register({
   slateType: "list_item",
 
   fromSlate: ({ children, info }) => {
-    console.log(children, info);
     let indent = 2;
     let item: string;
 

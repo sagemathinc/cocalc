@@ -12,7 +12,7 @@ import { MutableRefObject, RefObject } from "react";
 import { Map } from "immutable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { createEditor, Descendant, Editor, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Point, Transforms } from "slate";
 import { withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -535,25 +535,74 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // we want all the change handler stuff to happen, e.g.,
           // broadcasting cursors.
           onChange(nextEditorValue);
-          return;
+        } else {
+          const operations = slateDiff(previousEditorValue, nextEditorValue);
+          if (operations.length == 0) {
+            // no actual change needed.
+            return;
+          }
+          // Applying this operation below will immediately trigger
+          // an onChange, which it is best to ignore to save time and
+          // also so we don't update the source editor (and other browsers)
+          // with a view with things like loan $'s escaped.'
+          //       console.log(
+          //         "selection before patching",
+          //         JSON.stringify(editor.selection),
+          //         /*JSON.stringify(editor.children)*/
+          //       );
+          editor.syncCausedUpdate = true;
+
+          const startIndex =
+            editor.windowedListRef.current?.visibleRange?.startIndex;
+          if (startIndex != null) {
+            // transform it via the operations.
+
+            let point: Point | null = { path: [startIndex], offset: 0 };
+            for (const op of operations) {
+              point = Point.transform(point, op);
+              if (point == null) break;
+            }
+            const index = point?.path[0];
+            if (index != null) {
+              // TODO: do this right...
+              const offset =
+                ($('[data-virtuoso-scroller="true"]').scrollTop() ?? 0) -
+                (editor.windowedListRef.current.firstItemOffset ?? 0);
+              const location = { index, offset };
+              editor.windowedListRef.current.virtuosoRef.current.scrollToIndex({
+                index,
+              });
+              // We have to set this twice, or it sometimes doesn't work.  Setting it twice
+              // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
+              // have to first set it above without the offset, then set it with!. Weird.
+              requestAnimationFrame(() => {
+                editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(
+                  location
+                );
+              });
+            }
+          }
+
+          applyOperations(editor, operations);
         }
 
-        const operations = slateDiff(previousEditorValue, nextEditorValue);
-        if (operations.length == 0) {
-          // no actual change needed.
-          return;
-        }
-        // Applying this operation below will immediately trigger
-        // an onChange, which it is best to ignore to save time and
-        // also so we don't update the source editor (and other browsers)
-        // with a view with things like loan $'s escaped.'
-        //       console.log(
-        //         "selection before patching",
-        //         JSON.stringify(editor.selection),
-        //         /*JSON.stringify(editor.children)*/
-        //       );
-        editor.syncCausedUpdate = true;
-        applyOperations(editor, operations);
+        //         if (startNode != null) {
+        //           // where is startNode now - best we can do is a linear search,
+        //           // since anything could have changed.
+        //           for (
+        //             let newIndex = 0;
+        //             newIndex < nextEditorValue.length;
+        //             newIndex++
+        //           ) {
+        //             if (nextEditorValue[newIndex] === startNode) {
+        //               console.log({ newIndex, node: nextEditorValue[newIndex] });
+        //               editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex(
+        //                 newIndex
+        //               );
+        //               break;
+        //             }
+        //           }
+        //         }
       } finally {
         // In all cases, now that we have transformed editor into the new value
         // let's save the fact that we haven't changed anything yet:
@@ -629,12 +678,20 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         markdown_to_slate,
         robot: async (s: string, iterations = 1) => {
           let inserted = "";
-          let lastOffset = editor.selection?.focus.offset;
+          let focus = editor.selection?.focus;
+          if (focus == null) throw Error("must have selection");
+          let lastOffset = focus.offset;
           for (let n = 0; n < iterations; n++) {
             for (const x of s) {
+              Transforms.setSelection(editor, {
+                focus,
+                anchor: focus,
+              });
               editor.insertText(x);
+              focus = editor.selection?.focus;
+              if (focus == null) throw Error("must have selection");
               inserted += x;
-              const offset = editor.selection?.focus.offset;
+              const offset = focus.offset;
               console.log(
                 `${
                   n + 1
@@ -799,6 +856,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             !disableWindowing
               ? {
                   rowStyle: {
+                    // WARNING: do *not* use margin in rowStyle.
                     padding: "0 70px",
                     overflow: "hidden", // CRITICAL: this makes it so the div height accounts for margin of contents (e.g., p element has margin), so virtuoso can measure it correctly.  Otherwise, things jump around like crazy.
                     minHeight: "1px", // virtuoso can't deal with 0-height items
