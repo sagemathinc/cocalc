@@ -1792,7 +1792,7 @@ describe("boost", () => {
       always_running: true,
       cpu_limit: 2,
       cpu_request: 0.05,
-      disk_quota: 6000,
+      disk_quota: 6000, // all 3 licenses
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 6000,

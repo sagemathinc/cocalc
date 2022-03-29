@@ -480,6 +480,7 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
     return { site_licenses: {}, dedicated_disks, dedicated_vm };
   }
 
+  // will only return "regular" site licenses
   const regular = selectMatchingLicenses(site_licenses);
   const all = regular?.selected ?? {};
   if (regular != null) {
