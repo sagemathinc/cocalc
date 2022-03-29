@@ -35,7 +35,7 @@ interface Data {
   fontSize: number;
 }
 
-const pinchMax = 10000000;
+const pinchMax = 1000;
 
 export default function usePinchToZoom({
   target,
