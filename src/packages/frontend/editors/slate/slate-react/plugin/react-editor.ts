@@ -314,8 +314,6 @@ export const ReactEditor = {
    * there is no way to create a reverse DOM Range using Range.setStart/setEnd
    * according to https://dom.spec.whatwg.org/#concept-range-bp-set.
    *
-   * IMPORTANT: This is the part of the slate range that is actually rendered
-   * in the visible virtualized window, in case of windowing.
    */
 
   toDOMRange(editor: ReactEditor, range: Range): DOMRange {
@@ -575,18 +573,18 @@ export const ReactEditor = {
   selectionIsInDOM(editor: ReactEditor): boolean {
     const { selection } = editor;
     if (selection == null) return true;
-    const info = editor.windowedListRef.current?.renderInfo;
-    if (info == null) return true;
-    const { overscanStartIndex, overscanStopIndex } = info;
+    const visibleRange = editor.windowedListRef.current?.visibleRange;
+    if (visibleRange == null) return true; // not using windowing or no info
+    const { startIndex, endIndex } = visibleRange;
     if (
-      selection.anchor.path[0] < overscanStartIndex ||
-      selection.anchor.path[0] > overscanStopIndex
+      selection.anchor.path[0] < startIndex ||
+      selection.anchor.path[0] > endIndex
     ) {
       return false;
     }
     if (
-      selection.focus.path[0] < overscanStartIndex ||
-      selection.focus.path[0] > overscanStopIndex
+      selection.focus.path[0] < startIndex ||
+      selection.focus.path[0] > endIndex
     ) {
       return false;
     }

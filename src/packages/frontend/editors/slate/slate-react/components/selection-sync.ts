@@ -22,8 +22,30 @@ import { EDITOR_TO_ELEMENT } from "../utils/weak-maps";
 import { Editor, Point, Range, Selection, Transforms } from "slate";
 import { hasEditableTarget, isTargetInsideVoid } from "./dom-utils";
 import { DOMElement } from "../utils/dom";
+import { isEqual } from "lodash";
 
-export const useUpdateDOMSelection = ({ editor, state }) => {
+interface SelectionState {
+  isComposing: boolean;
+  shiftKey: boolean;
+  latestElement: DOMElement | null;
+
+  // If part of the selection gets scrolled out of the DOM, we set windowedSelection
+  // to true. The next time the selection in the DOM is read, we then set
+  // windowedSelection to that read value and don't update editor.selection
+  // unless the selection in the DOM is changed to something else manually.
+  // This way editor.selection doesn't change at all (unless user actually manually
+  // changes it), and true selection is then used to select proper part of editor
+  // that is actually rendered in the DOM.
+  windowedSelection?: true | Range;
+}
+
+export const useUpdateDOMSelection = ({
+  editor,
+  state,
+}: {
+  editor: ReactEditor;
+  state: SelectionState;
+}) => {
   // Ensure that the DOM selection state is set to the editor selection.
   // Note that whenever the DOM gets updated (e.g., with every keystroke when editing)
   // the DOM selection gets completely reset (because react replaces the selected text
@@ -40,6 +62,15 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     }
 
     const selection = getWindowedSelection(editor);
+    if (!isEqual(editor.selection, selection)) {
+      // clipping the true selection to fit in window:
+      state.windowedSelection = true;
+    }
+    console.log(
+      "windowed selection = ",
+      JSON.stringify(selection),
+      JSON.stringify(editor.selection)
+    );
     const hasDomSelection = domSelection.type !== "None";
 
     // If the DOM selection is properly unset, we're done.
@@ -54,7 +85,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       editorElement?.contains(domSelection.focusNode);
 
     if (!selection) {
-      // need to clear selection
+      // need to clear selection:
       if (hasDomSelectionInEditor) {
         // the current nontrivial selection is inside the editor,
         // so we just clear it.
@@ -66,6 +97,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     try {
       newDomRange = ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
+      console.log(`slate -- toDOMRange error ${err}`);
       // This error happens e.g., if you set the selection to a
       // point that isn't valid in the document.  TODO: Our
       // autoformat code perhaps stupidly does this sometimes,
@@ -128,11 +160,7 @@ export const useDOMSelectionChange = ({
   readOnly,
 }: {
   editor: ReactEditor;
-  state: {
-    isComposing: boolean;
-    shiftKey: boolean;
-    latestElement: DOMElement | null;
-  };
+  state: SelectionState;
   readOnly: boolean;
 }) => {
   // Listen on the native `selectionchange` event to be able to update any time
@@ -160,35 +188,36 @@ export const useDOMSelectionChange = ({
     let range;
     try {
       range = ReactEditor.toSlateRange(editor, domSelection);
-    } catch (_err) {
+    } catch (err) {
       // isSelectable should catch any situation where the above might cause an
       // error, but in practice it doesn't.  Just ignore selection change when this
       // happens.
+      console.log(`slate selection sync issue - ${err}`);
+      return;
+    }
+    if (state.windowedSelection === true) {
+      state.windowedSelection = range;
       return;
     }
     const { selection } = editor;
     if (selection != null) {
-      const info = editor.windowedListRef?.current?.renderInfo;
-      if (info != null) {
-        // TODO: need to redo for virtuoso!
-
+      const visibleRange = editor.windowedListRef.current?.visibleRange;
+      if (visibleRange != null) {
+        const { startIndex, endIndex } = visibleRange;
         // Trickier case due to windowing.  We check if the DOM selection
         // changed due to the windowing system removing rows from the DOM.
         // In such cases, we end up with the DOM selection going outside
-        // the visible range (it's in the part that is rendered but not
-        // visible), so in that case, we just extend that side of the
-        // DOM selection to where it was before.
-        if (range.anchor.path[0] < info.visibleStartIndex) {
-          range.anchor = selection.anchor;
-        }
-        if (range.focus.path[0] < info.visibleStartIndex) {
-          range.focus = selection.focus;
-        }
-        if (range.anchor.path[0] > info.visibleStopIndex) {
-          range.anchor = selection.anchor;
-        }
-        if (range.focus.path[0] > info.visibleStopIndex) {
-          range.focus = selection.focus;
+        // the visible range;  we extend that side of the DOM selection
+        // to where it was before.
+        if (
+          state.windowedSelection != null &&
+          isEqual(range, state.windowedSelection)
+        ) {
+          console.log(
+            "selection is what was set using window clipping, so not changing"
+          );
+          // make no change
+          return;
         }
 
         // Check if user is shift+clicking to select a range.
@@ -242,6 +271,7 @@ export const useDOMSelectionChange = ({
     }
 
     if (selection == null || !Range.equals(selection, range)) {
+      delete state.windowedSelection;
       Transforms.select(editor, range);
     }
   }, [readOnly]);
@@ -264,7 +294,7 @@ export const useDOMSelectionChange = ({
   return onDOMSelectionChange;
 };
 
-export function getWindowedSelection(editor: ReactEditor): Selection | null {
+function getWindowedSelection(editor: ReactEditor): Selection | null {
   const { selection } = editor;
   if (
     selection == null ||
@@ -276,21 +306,36 @@ export function getWindowedSelection(editor: ReactEditor): Selection | null {
   }
 
   // Now we trim non-collapsed selection to part of window in the DOM.
-  const info = editor.windowedListRef.current.renderInfo;
-  if (info == null) return selection;
+  const visibleRange = editor.windowedListRef.current?.visibleRange;
+  if (visibleRange == null) return selection;
   // console.log(JSON.stringify({selection,info,}));
   const { anchor, focus } = selection;
-  return { anchor: clipPoint(anchor, info), focus: clipPoint(focus, info) };
+  return {
+    anchor: clipPoint(editor, anchor, visibleRange),
+    focus: clipPoint(editor, focus, visibleRange),
+  };
 }
 
-function clipPoint(point: Point, info): Point {
-  const { overscanStartIndex, overscanStopIndex } = info;
+function clipPoint(
+  editor: Editor,
+  point: Point,
+  visibleRange: { startIndex: number; endIndex: number }
+): Point {
+  const { startIndex, endIndex } = visibleRange;
   const n = point.path[0];
-  if (n < overscanStartIndex) {
-    return { path: [overscanStartIndex], offset: 0 };
+  if (n < startIndex) {
+    return { path: [startIndex, 0], offset: 0 };
   }
-  if (n > overscanStopIndex) {
-    return { path: [overscanStopIndex], offset: 0 };
+  if (n > endIndex) {
+    // We have to use Editor.before, since we need to select
+    // the entire endIndex block.  The ?? below should just be
+    // to make typescript happy.
+    return (
+      Editor.before(editor, { path: [endIndex + 1, 0], offset: 0 }) ?? {
+        path: [endIndex, 0],
+        offset: 0,
+      }
+    );
   }
   return point;
 }

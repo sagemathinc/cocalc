@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
@@ -8,7 +8,7 @@ import { useSlateStatic } from "../hooks/use-slate-static";
 import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { shallowCompare } from "@cocalc/util/misc";
 import { SlateEditor } from "../../editable-markdown";
 
@@ -150,8 +150,12 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    const virtuosoRef = useRef(null);
-    const scrollerRef = useRef(null);
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+    // see https://github.com/petyosi/react-virtuoso/issues/274
+    const handleScrollerRef = useCallback((ref) => {
+      scrollerRef.current = ref;
+    }, []);
     if (windowing != null) {
       // using windowing
 
@@ -163,16 +167,14 @@ const Children: React.FC<Props> = React.memo(
       }
       editor.windowedListRef.current.virtuosoRef = virtuosoRef;
 
+      // NOTE: the code for preserving scroll position when editing assumes
+      // the visibleRange really is *visible*.  Thus if you mess with overscan
+      // or related properties below, that will likely break.
       return (
         <Virtuoso
           ref={virtuosoRef}
-          onScroll={(e) => {
-            // TODO: this is maybe a "stupid" way of getting the scroller
-            // element -- obviously not efficient... but on the other hand
-            // only happens if you actually scroll.
-            scrollerRef.current = e.target;
-            onScroll?.();
-          }}
+          scrollerRef={handleScrollerRef}
+          onScroll={onScroll}
           className="smc-vfill"
           totalCount={node.children.length}
           itemContent={(index) => (
