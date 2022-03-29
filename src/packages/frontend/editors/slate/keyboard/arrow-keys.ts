@@ -28,8 +28,10 @@ const down = ({ editor }: { editor: SlateEditor }) => {
       index != null &&
       cur.path[1] == editor.children[cur.path[0]]["children"]?.length - 1
     ) {
+      // moving to the next block:
       if (editor.scrollIntoDOM(index + 1)) {
         setTimeout(() => {
+          // did cursor move -- if not, we manually move it.
           if (cur == editor.selection?.focus) {
             moveCursorDown(editor, true);
             moveCursorToBeginningOfBlock(editor);
@@ -115,3 +117,59 @@ const up = ({ editor }: { editor: SlateEditor }) => {
 };
 
 register({ key: "ArrowUp" }, up);
+
+/*
+The following functions are needed when using windowing, since
+otherwise page up/page down get stuck when the rendered window
+is at the edge.  This is unavoidable, even if we were to
+render a big overscan. If scrolling doesn't move, the code below
+forces a manual move by one page.
+
+NOTE/TODO: none of the code below moves the *cursor*; it only
+moves the scroll position on the page.  In contrast, word,
+google docs and codemirror all move the cursor when you page up/down,
+so maybe that should be implemented...?
+*/
+
+function pageWindowed(sign) {
+  return ({ editor }) => {
+    const scroller = editor.windowedListRef.current?.scrollerRef.current;
+    if (scroller == null) return false;
+    const { scrollTop } = scroller;
+
+    setTimeout(() => {
+      if (scrollTop == scroller.scrollTop) {
+        scroller.scrollTop += sign * scroller.getBoundingClientRect().height;
+      }
+    }, 0);
+
+    return false;
+  };
+}
+
+const pageUp = pageWindowed(-1);
+register({ key: "PageUp" }, pageUp);
+
+const pageDown = pageWindowed(1);
+register({ key: "PageDown" }, pageDown);
+
+function beginningOfDoc({ editor }) {
+  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  if (scroller == null) return false;
+  scroller.scrollTop = 0;
+  return true;
+}
+function endOfDoc({ editor }) {
+  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  if (scroller == null) return false;
+  scroller.scrollTop = 1e20; // basically infinity
+  // might have to do it again do to measuring size of rows...
+  setTimeout(() => {
+    scroller.scrollTop = 1e20;
+  }, 1);
+  return true;
+}
+register({ key: "ArrowUp", meta: true }, beginningOfDoc); // mac
+register({ key: "Home", ctrl: true }, beginningOfDoc); // windows
+register({ key: "ArrowDown", meta: true }, endOfDoc); // mac
+register({ key: "End", ctrl: true }, endOfDoc); // windows

@@ -32,7 +32,7 @@ function KeyToString(k: Key): string {
 // or false-ish to fallback to default behavior.
 export type KeyHandler = (opts: {
   editor: SlateEditor;
-  extra: { actions: Actions; id: string; search:SearchHook };
+  extra: { actions: Actions; id: string; search: SearchHook };
 }) => boolean;
 
 const keyHandlers: { [x: string]: KeyHandler } = {};
