@@ -116,29 +116,30 @@ export function preserveScrollPosition(
   if (startIndex == null) return;
 
   const scroller = editor.windowedListRef.current?.scroller;
+  if (scroller == null) return;
 
-  if (scroll == null) return;
   let point: Point | null = { path: [startIndex], offset: 0 };
-
   // transform point via the operations.
   for (const op of operations) {
     point = Point.transform(point, op);
     if (point == null) break;
   }
+
   const index = point?.path[0];
-  if (index != null) {
-    const offset =
-      (scroller.scrollTop ?? 0) -
-      (editor.windowedListRef.current.firstItemOffset ?? 0);
-    editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(index);
-    // We have to set this twice, or it sometimes doesn't work.  Setting it twice
-    // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
-    // have to first set it above without the offset, then set it with!. Weird.
-    requestAnimationFrame(() => {
-      editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex({
-        index,
-        offset,
-      });
+  if (index == null) return;
+
+  if (editor.windowedListRef.current?.virtuosoRef.current == null) return;
+  const offset =
+    (scroller.scrollTop ?? 0) -
+    (editor.windowedListRef.current?.firstItemOffset ?? 0);
+  editor.windowedListRef.current.virtuosoRef.current.scrollToIndex(index);
+  // We have to set this twice, or it sometimes doesn't work.  Setting it twice
+  // flickers a lot less than.   This might be a bug in virtuoso.  Also, we
+  // have to first set it above without the offset, then set it with!. Weird.
+  requestAnimationFrame(() => {
+    editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex({
+      index,
+      offset,
     });
-  }
+  });
 }

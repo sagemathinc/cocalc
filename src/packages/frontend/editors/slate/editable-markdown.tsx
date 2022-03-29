@@ -507,10 +507,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
 
       try {
+        //const t = new Date();
+
         if (
           // length is basically changing from "Loading..."; in this case, just reset everything, rather than transforming via operations (which preserves selection, etc.)
-          (previousEditorValue.length <= 1 && nextEditorValue.length > 30) ||
-          (!disableWindowing && !ReactEditor.isFocused(editor))
+          previousEditorValue.length <= 1 &&
+          nextEditorValue.length >= 40 &&
+          !ReactEditor.isFocused(editor)
         ) {
           // This is a **MASSIVE** optimization.  E.g., for a few thousand
           // lines markdown file with about 500 top level elements (and lots
@@ -530,11 +533,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // Also, the default config is source text focused on the left and
           // editable text acting as a preview on the right not focused, and
           // again this makes things fastest.
+          // DRAWBACK: this doesn't preserve scroll position and breaks selection.
           editor.syncCausedUpdate = true;
           // we call "onChange" instead of setEditorValue, since
           // we want all the change handler stuff to happen, e.g.,
           // broadcasting cursors.
           onChange(nextEditorValue);
+          // console.log("time to set directly ", new Date() - t);
         } else {
           const operations = slateDiff(previousEditorValue, nextEditorValue);
           if (operations.length == 0) {
@@ -548,25 +553,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           editor.syncCausedUpdate = true;
           preserveScrollPosition(editor, operations);
           applyOperations(editor, operations);
+          // console.log("time to set via diff", new Date() - t);
         }
-
-        //         if (startNode != null) {
-        //           // where is startNode now - best we can do is a linear search,
-        //           // since anything could have changed.
-        //           for (
-        //             let newIndex = 0;
-        //             newIndex < nextEditorValue.length;
-        //             newIndex++
-        //           ) {
-        //             if (nextEditorValue[newIndex] === startNode) {
-        //               console.log({ newIndex, node: nextEditorValue[newIndex] });
-        //               editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex(
-        //                 newIndex
-        //               );
-        //               break;
-        //             }
-        //           }
-        //         }
       } finally {
         // In all cases, now that we have transformed editor into the new value
         // let's save the fact that we haven't changed anything yet:

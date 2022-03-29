@@ -4,7 +4,6 @@
  */
 
 import * as CodeMirror from "codemirror";
-import { delay } from "awaiting";
 import { Descendant, Editor, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
@@ -147,22 +146,34 @@ export async function scrollIntoView(
   editor: ReactEditor,
   point: Point
 ): Promise<void> {
-  if (!ReactEditor.isUsingWindowing(editor)) {
+  const scrollIntoView = () => {
     try {
       const [node] = Editor.node(editor, point);
       const elt = ReactEditor.toDOMNode(editor, node);
-      elt.scrollIntoView({ block: "nearest" });
+      elt.scrollIntoView({ block: "center" });
     } catch (_err) {
       // There is no guarantee the point is valid, or that
       // the DOM node exists.
     }
+  };
+  if (!ReactEditor.isUsingWindowing(editor)) {
+    scrollIntoView();
   } else {
-    // TODO: this async is terrible. Also, if we just opened the slate editor,
-    // then this will fail due to that restoring!
-    const scroll = point.path[0];
-    editor.windowedListRef.current?.scrollToItem(scroll);
-    await delay(10);
-    editor.windowedListRef.current?.scrollToItem(scroll);
+    // TODO: this below makes it so the top of the top-level block containing
+    // the point is displayed.  However, that block could be big, and we
+    // really need to somehow move down to it via some scroll offset.
+    // There is an offset option to scrollToIndex (see use in preserveScrollPosition),
+    // and that might be very helpful.
+    const index = point.path[0];
+    editor.windowedListRef.current?.virtuosoRef.current?.scrollToIndex({
+      index,
+      align: "center",
+    });
+    setTimeout(scrollIntoView, 0);
+    requestAnimationFrame(() => {
+      scrollIntoView();
+      setTimeout(scrollIntoView, 0);
+    });
   }
 }
 
