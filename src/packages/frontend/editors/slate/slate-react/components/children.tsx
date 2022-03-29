@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
@@ -153,11 +153,15 @@ const Children: React.FC<Props> = React.memo(
     const virtuosoRef = useRef(null);
     if (windowing != null) {
       // using windowing
-      /* NOTES:
-       */
+
+      // This is slightly awkward since when splitting frames, the component
+      // gets unmounted and then mounted again, in which case editor.windowedListRef.current
+      // does not get set to null, so we need to write the new virtuosoRef;
       if (editor.windowedListRef.current == null) {
-        editor.windowedListRef.current = { virtuosoRef };
+        editor.windowedListRef.current = {};
       }
+      editor.windowedListRef.current.virtuosoRef = virtuosoRef;
+
       return (
         <Virtuoso
           ref={virtuosoRef}
