@@ -1035,7 +1035,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             onScroll={() => {
               if (editor.scrollCaretAfterNextScroll) {
                 editor.scrollCaretAfterNextScroll = false;
-                editor.scrollCaretIntoView();
               }
               editor.updateDOMSelection?.();
               props.onScroll?.({} as any);
