@@ -183,6 +183,7 @@ const Children: React.FC<Props> = React.memo(
           }}
           itemsRendered={(items) => {
             editor.windowedListRef.current.firstItemOffset = items[0]?.offset;
+            editor.windowedListRef.current.secondItemOffset = items[1]?.offset;
           }}
         />
       );

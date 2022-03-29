@@ -391,6 +391,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           } catch (_) {}
         } finally {
           didRestoreScrollRef.current = true;
+          setOpacity(undefined);
         }
       };
     }, []);
@@ -759,6 +760,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editor.syncCausedUpdate = false;
     }, [editorValue]);
 
+    const [opacity, setOpacity] = useState<number | undefined>(0);
+
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
@@ -845,6 +848,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             ...STYLE,
             fontSize: font_size,
             height,
+            opacity,
           }}
         >
           {mentions.Mentions}
