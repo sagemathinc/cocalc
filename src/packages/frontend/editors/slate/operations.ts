@@ -115,9 +115,9 @@ export function preserveScrollPosition(
 ): void {
   const scroll = getScrollState(editor);
   if (scroll == null) return;
-  const { startIndex, offset } = scroll;
+  const { index, offset } = scroll;
 
-  let point: Point | null = { path: [startIndex], offset: 0 };
+  let point: Point | null = { path: [index], offset: 0 };
   // transform point via the operations.
   for (const op of operations) {
     point = Point.transform(point, op);
@@ -127,5 +127,5 @@ export function preserveScrollPosition(
   const newStartIndex = point?.path[0];
   if (newStartIndex == null) return;
 
-  setScrollState(editor, { startIndex: newStartIndex, offset });
+  setScrollState(editor, { index: newStartIndex, offset });
 }
