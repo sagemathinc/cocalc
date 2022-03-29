@@ -624,10 +624,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @archive_patches
                         string_id : string_id
                         cb        : (err) ->
-                           if err or not opts.delay
-                               cb(err)
-                           else
-                               setTimeout(cb, opts.delay)
+                            if err or not opts.delay
+                                cb(err)
+                            else
+                                setTimeout(cb, opts.delay)
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
         ], (err) =>
             if err
