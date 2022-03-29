@@ -58,19 +58,21 @@ export const useUpdateDOMSelection = ({
 
     const domSelection = window.getSelection();
     if (!domSelection) {
+      delete state.windowedSelection;
       return;
     }
 
     const selection = getWindowedSelection(editor);
-    if (!isEqual(editor.selection, selection)) {
-      // clipping the true selection to fit in window:
-      state.windowedSelection = true;
+    const isCropped = !isEqual(editor.selection, selection);
+    if (!isCropped) {
+      delete state.windowedSelection;
     }
-    console.log(
-      "windowed selection = ",
-      JSON.stringify(selection),
-      JSON.stringify(editor.selection)
-    );
+    //     console.log(
+    //       "\nwindowed selection =",
+    //       JSON.stringify(selection),
+    //       "\neditor.selection   =",
+    //       JSON.stringify(editor.selection)
+    //     );
     const hasDomSelection = domSelection.type !== "None";
 
     // If the DOM selection is properly unset, we're done.
@@ -90,15 +92,20 @@ export const useUpdateDOMSelection = ({
         // the current nontrivial selection is inside the editor,
         // so we just clear it.
         domSelection.removeAllRanges();
+        if (isCropped) {
+          state.windowedSelection = true;
+        }
       }
       return;
     }
     let newDomRange;
     try {
       newDomRange = ReactEditor.toDOMRange(editor, selection);
-    } catch (err) {
-      console.log(`slate -- toDOMRange error ${err}`);
-      // This error happens e.g., if you set the selection to a
+    } catch (_err) {
+      //       console.warn(
+      //         `slate -- toDOMRange error ${_err}, range=${JSON.stringify(selection)}`
+      //       );
+      // This error happens and is expected! e.g., if you set the selection to a
       // point that isn't valid in the document.  TODO: Our
       // autoformat code perhaps stupidly does this sometimes,
       // at least when working on it.
@@ -134,6 +141,10 @@ export const useUpdateDOMSelection = ({
     }
 
     // Finally, make the change:
+    if (isCropped) {
+      // record that we're making a change that diverges from true selection.
+      state.windowedSelection = true;
+    }
     domSelection.setBaseAndExtent(
       newDomRange.startContainer,
       newDomRange.startOffset,
@@ -192,44 +203,33 @@ export const useDOMSelectionChange = ({
       // isSelectable should catch any situation where the above might cause an
       // error, but in practice it doesn't.  Just ignore selection change when this
       // happens.
-      console.log(`slate selection sync issue - ${err}`);
+      console.warn(`slate selection sync issue - ${err}`);
       return;
     }
+
+    // console.log(JSON.stringify({ range, sel: state.windowedSelection }));
     if (state.windowedSelection === true) {
       state.windowedSelection = range;
-      return;
     }
+
     const { selection } = editor;
     if (selection != null) {
       const visibleRange = editor.windowedListRef.current?.visibleRange;
       if (visibleRange != null) {
-        const { startIndex, endIndex } = visibleRange;
-        // Trickier case due to windowing.  We check if the DOM selection
-        // changed due to the windowing system removing rows from the DOM.
-        // In such cases, we end up with the DOM selection going outside
-        // the visible range;  we extend that side of the DOM selection
-        // to where it was before.
+        // Trickier case due to windowing.  If we're not changing the selection
+        // via shift click but the selection in the DOM is trimmed due to windowing,
+        // then make no change to editor.selection based on the DOM.
         if (
+          !state.shiftKey &&
           state.windowedSelection != null &&
           isEqual(range, state.windowedSelection)
         ) {
-          console.log(
-            "selection is what was set using window clipping, so not changing"
-          );
-          // make no change
+          // selection is what was set using window clipping, so not changing
           return;
         }
 
-        // Check if user is shift+clicking to select a range.
-        // This is needed if you select a single point, then
-        // scroll way down (so the point you selected is removed
-        // from the DOM), then shift+click.  In the meantime,
-        // as you scrolled down, the original selection gets
-        // removed from the DOM, at least on some browsers (Safari
-        // but not Chrome as of March 2021).  Fortunately, this
-        // simple code below seems to takes care of all cases, and
-        // doesn't break things even if the selection didn't get
-        // removed, since the behavior is the same.
+        // Shift+clicking to select a range, done via code that works in
+        // case of windowing.
         if (state.shiftKey) {
           // What *should* actually happen on shift+click to extend a
           // selection is not so obvious!  For starters, the behavior
@@ -271,7 +271,6 @@ export const useDOMSelectionChange = ({
     }
 
     if (selection == null || !Range.equals(selection, range)) {
-      delete state.windowedSelection;
       Transforms.select(editor, range);
     }
   }, [readOnly]);
@@ -296,11 +295,7 @@ export const useDOMSelectionChange = ({
 
 function getWindowedSelection(editor: ReactEditor): Selection | null {
   const { selection } = editor;
-  if (
-    selection == null ||
-    editor.windowedListRef?.current == null ||
-    Range.isCollapsed(selection)
-  ) {
+  if (selection == null || editor.windowedListRef?.current == null) {
     // No selection, or not using windowing, or collapsed so easy.
     return selection;
   }
@@ -308,7 +303,6 @@ function getWindowedSelection(editor: ReactEditor): Selection | null {
   // Now we trim non-collapsed selection to part of window in the DOM.
   const visibleRange = editor.windowedListRef.current?.visibleRange;
   if (visibleRange == null) return selection;
-  // console.log(JSON.stringify({selection,info,}));
   const { anchor, focus } = selection;
   return {
     anchor: clipPoint(editor, anchor, visibleRange),
