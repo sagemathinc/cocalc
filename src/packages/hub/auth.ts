@@ -72,6 +72,9 @@ import {
   email_verified_successfully,
   welcome_email,
 } from "./email";
+import bodyParser from "body-parser";
+import Saml2js from "saml2js";
+import handle from "@cocalc/next/lib/share/handle-raw";
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
 
@@ -641,6 +644,20 @@ export class PassportManager {
     await Promise.all(inits);
   }
 
+  private getVerify(strategy: StrategyConf["strategy"]) {
+    switch (strategy) {
+      case "saml":
+        return (profile, done) => {
+          done(undefined, profile);
+        };
+
+      default:
+        return (_accessToken, _refreshToken, params, profile, done) => {
+          done(undefined, { params, profile });
+        };
+    }
+  }
+
   // a generalized strategy initizalier
   private async init_strategy(strategy_config: StrategyConf): Promise<void> {
     const {
@@ -676,9 +693,7 @@ export class PassportManager {
     // attn: this log line shows secrets
     // logger.debug(`opts = ${safeJsonStringify(opts)}`);
 
-    const verify = (_accessToken, _refreshToken, params, profile, done) => {
-      done(undefined, { params, profile });
-    };
+    const verify = this.getVerify(strategy);
 
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
@@ -753,39 +768,54 @@ export class PassportManager {
       passport.authenticate(strategy, auth_opts || {})
     );
 
+    const handleReturn = async (req, res) => {
+      if (req.user == null) {
+        throw Error("req.user == null -- that shouldn't happen");
+      }
+      logger.debug(`${strategy}/return user = ${safeJsonStringify(req.user)}`);
+      const profile = req.user["profile"] as any as passport.Profile;
+      logger.debug(
+        `${strategy}/return profile = ${safeJsonStringify(profile)}`
+      );
+      const login_opts = {
+        strategy,
+        profile, // will just get saved in database
+        req,
+        res,
+        host: this.host,
+      };
+      for (const k in login_info) {
+        const v = login_info[k];
+        const param: string | string[] =
+          typeof v == "function"
+            ? // v is a LoginInfoDerivator<T>
+              v(profile)
+            : // v is a string for dot-object
+              dot.pick(v, profile);
+        Object.assign(login_opts, { [k]: param });
+      }
+      await this.passport_login(login_opts as PassportLogin);
+    };
+
+    if (strategy === "saml") {
+      this.router.post(
+        `${AUTH_BASE}/${strategy}/return`,
+        bodyParser.urlencoded({ extended: false }),
+        passport.authenticate("saml"),
+        async (req, res) => {
+          const xmlResponse = req.body.SAMLResponse;
+          const samlRes = new Saml2js(xmlResponse);
+          if (req.user == null) req.user = {};
+          req.user["profile"] = samlRes.toObject();
+          await handleReturn(req, res);
+        }
+      );
+    }
+
     this.router.get(
       `${AUTH_BASE}/${strategy}/return`,
       passport.authenticate(strategy),
-      async (req, res) => {
-        if (req.user == null) {
-          throw Error("req.user == null -- that shouldn't happen");
-        }
-        logger.debug(
-          `${strategy}/return user = ${safeJsonStringify(req.user)}`
-        );
-        const profile = req.user["profile"] as any as passport.Profile;
-        logger.debug(
-          `${strategy}/return profile = ${safeJsonStringify(profile)}`
-        );
-        const login_opts = {
-          strategy,
-          profile, // will just get saved in database
-          req,
-          res,
-          host: this.host,
-        };
-        for (const k in login_info) {
-          const v = login_info[k];
-          const param: string | string[] =
-            typeof v == "function"
-              ? // v is a LoginInfoDerivator<T>
-                v(profile)
-              : // v is a string for dot-object
-                dot.pick(v, profile);
-          Object.assign(login_opts, { [k]: param });
-        }
-        await this.passport_login(login_opts as PassportLogin);
-      }
+      handleReturn
     );
     logger.debug("initialization successful");
   }
