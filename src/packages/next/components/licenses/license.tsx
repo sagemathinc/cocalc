@@ -1,9 +1,8 @@
 import useAPI from "lib/hooks/api";
 import { Alert, Popover, Progress } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import { CSSProperties } from "react";
 import Loading from "components/share/loading";
-import { capitalize, plural } from "@cocalc/util/misc";
-import { r_join } from "@cocalc/frontend/components/r_join";
+import { capitalize } from "@cocalc/util/misc";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import Timestamp from "components/misc/timestamp";
 import Copyable from "components/misc/copyable";
