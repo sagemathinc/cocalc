@@ -21,9 +21,19 @@ export function fontSizeToZoom(size?: number): number {
   return size ? size / ZOOM100 : 1;
 }
 
-// I'm just setting these globally for the application.  It seems to
-// never be a good idea, and this keeps behavior not subtly changed
-// depending on what editors are open!
+/*
+I'm just setting these globally for the application.  It seems to
+never be a good idea, and this keeps behavior not subtly changed
+depending on what editors are open!
+
+NOTE: These events are only handled by Safari on desktop.  They
+are ignored by desktop chrome, where there is no way to disable
+these gestures, except for disabling the wheel event on parts
+of the page... which has its own problems.  See discussion here:
+https://github.com/pixijs/pixijs/issues/6414 and
+https://developer.mozilla.org/en-US/docs/Web/API/Element/gesturestart_event
+where these events are clearly Safari only.
+*/
 const handler = (e) => {
   e.preventDefault();
 };
