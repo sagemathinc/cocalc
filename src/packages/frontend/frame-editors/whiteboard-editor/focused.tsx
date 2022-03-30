@@ -86,16 +86,18 @@ export default function Focused({
   const locked = isLocked(selectedElements);
   const hidden = isHidden(selectedElements);
 
-  // Make it so the selected
+  // Make it so the selected element can handle it's own mouse wheel events.
+  const divRef = useRef<any>(null);
   useWheel(
     (state) => {
       state.event.stopPropagation();
     },
     {
-      target: rectRef,
+      target: divRef,
       eventOptions: { passive: false, capture: true },
     }
   );
+
   const resizeHandles = useMemo(() => {
     if (
       locked ||
@@ -256,6 +258,7 @@ export default function Focused({
       }
     >
       <div
+        ref={divRef}
         style={{
           visibility: isChanging ? "hidden" : undefined,
         }}
