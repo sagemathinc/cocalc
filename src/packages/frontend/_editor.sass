@@ -614,22 +614,33 @@ code
   margin-right     : -5px
 
 /* IMPORTANT FOR SAGE WORKSHEETS!  Do not remove!
+   This is for the hi font-size's below!
    We override the bootstrap css styles, which hardcode a specific
    pixel font-size for headers, and hence can't be zoomed.
-   See https://github.com/sagemathinc/cocalc/issues/585 */
+   See https://github.com/sagemathinc/cocalc/issues/585
+
+   And the color:inherit is because antd sets the color to black-ish,
+   which is very annoying if we have a dark background and want
+   color white uniformly, e.g., on sticky notes. */
 
 h1
   font-size: 250%
+  color: inherit
 h2
   font-size: 200%
+  color: inherit
 h3
   font-size: 170%
+  color: inherit
 h4
   font-size: 150%
+  color: inherit
 h5
   font-size: 130%
+  color: inherit
 h6
   font-size: 110%
+  color: inherit
 
 /* Important: for display math in Sage Worksheets.
    See https://github.com/sagemathinc/cocalc/issues/136
