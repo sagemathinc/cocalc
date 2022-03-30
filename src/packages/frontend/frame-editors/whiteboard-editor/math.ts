@@ -486,18 +486,20 @@ export function moveUntilNotIntersectingAnything(
   while (true) {
     const before = { x: rect.x, y: rect.y };
     for (const r of rects) {
-      if (areOverlappingRectangles(rect, r)) {
+      const { w, h } = intersectionOfRectangles(rect, r);
+      if (w > 0 && h > 0) {
+        // the rectangles overlap.
         if (dir == "+") {
           if (axis == "x") {
-            rect.x = r.x + r.w + DEFAULT_GAP;
+            rect.x = rect.x + w + DEFAULT_GAP;
           } else if (axis == "y") {
-            rect.y = r.y + r.h + DEFAULT_GAP;
+            rect.y = rect.y + h + DEFAULT_GAP;
           }
         } else {
           if (axis == "x") {
-            rect.x = r.x - (r.w + DEFAULT_GAP);
+            rect.x = rect.x - (w + DEFAULT_GAP);
           } else if (axis == "y") {
-            rect.y = r.y - (r.h + DEFAULT_GAP);
+            rect.y = rect.y - (h + DEFAULT_GAP);
           }
         }
         break;

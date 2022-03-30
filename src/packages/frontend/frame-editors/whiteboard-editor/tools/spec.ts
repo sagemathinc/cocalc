@@ -101,6 +101,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "crosshair",
     tip: "Stopwatches and Timers",
     config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
+    key: "s",
     type: "timer",
   },
   frame: {

@@ -7,7 +7,7 @@
 Whiteboard FRAME Editor Actions
 */
 
-import { Map } from "immutable";
+import { Map as ImmutableMap } from "immutable";
 import { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
@@ -46,7 +46,7 @@ import { pasteFromInternalClipboard } from "./tools/clipboard";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
-  introspect?: Map<string, any>; // used for jupyter cells -- displayed in a separate frame.
+  introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
 }
 
 export class Actions extends BaseActions<State> {
@@ -63,7 +63,7 @@ export class Actions extends BaseActions<State> {
     this.setState({});
     this._syncstring.on("change", (keys) => {
       const elements0 = this.store.get("elements");
-      let elements = elements0 ?? Map({});
+      let elements = elements0 ?? ImmutableMap({});
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
@@ -148,7 +148,14 @@ export class Actions extends BaseActions<State> {
     // TODO: algorithm for doing this is not particular efficient,
     // and scales with number of elements in scene.  It might
     // be much faster to restrict to nearby elements only...?
-    const elements = this.getElements();
+
+    // Note: if the element is not a frame itself, we don't move it
+    // so it avoids intersecting other frames.  E.g., if a note is
+    // in a frame, we should get another note possibly in the frame
+    // that is adjacent.
+    const filter =
+      element.type == "frame" ? undefined : (elt) => elt.get("type") != "frame";
+    const elements = this.getElements(filter);
     const p = placement.toLowerCase();
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
     moveUntilNotIntersectingAnything(element, elements, axis);
@@ -244,8 +251,12 @@ export class Actions extends BaseActions<State> {
     return this.store.getIn(["elements", id])?.toJS();
   }
 
-  private getElements(): Element[] {
-    return (elementsList(this.store.get("elements")) ?? []) as Element[];
+  private getElements(filter?: (ImmutableMap) => boolean): Element[] {
+    let elements = this.store.get("elements");
+    if (filter != null) {
+      elements = elements?.filter((elt) => elt != null && filter(elt));
+    }
+    return (elementsList(elements) ?? []) as Element[];
   }
 
   private getPageSpan(margin: number = 0) {
@@ -969,7 +980,7 @@ export class Actions extends BaseActions<State> {
 }
 
 export function elementsList(
-  elements?: Map<string, any>
+  elements?: ImmutableMap<string, any>
 ): Element[] | undefined {
   return elements
     ?.valueSeq()
