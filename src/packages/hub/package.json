@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.49.2",
+  "version": "1.49.3",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -24,7 +24,7 @@
     "@cocalc/cdn": "^1.10.0",
     "@cocalc/database": "^0.17.0",
     "@cocalc/frontend": "^1.40.1",
-    "@cocalc/next": "^0.37.1",
+    "@cocalc/next": "^0.37.2",
     "@cocalc/server": "^0.18.0",
     "@cocalc/static": "^1.73.1",
     "@cocalc/util": "^1.31.0",
@@ -81,6 +81,7 @@
     "primus": "^8.0.3",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
+    "react": "^17.0.2",
     "read": "^1.0.7",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
