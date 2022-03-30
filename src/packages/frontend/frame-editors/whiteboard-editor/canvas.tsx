@@ -273,33 +273,33 @@ export default function Canvas({
   // for the offset in rendering the scaling div as a
   // result of canvasScale having changed.  If this is done
   // as part of a useEffect, you get a big flicker and random failure.
-  if (
-    !isNavigator &&
-    scaleRef.current != canvasScale &&
-    new Date().valueOf() >= lastPinchRef.current + 500
-  ) {
-    // - canvasScale changed due to something external, rather than
-    // usePinchToZoom above, since when changing due to pinch zoom,
-    // scaleRef has already been set before this call here happens.
-    // - We want to preserve the center of the canvas on zooming.
-    // - Code below is almost identical to usePinch code above,
-    //   except we compute clientX and clientY that would get if mouse
-    //   was in the center.
-    const rect = scaleDivRef.current?.getBoundingClientRect();
-    if (rect != null) {
-      const rect2 = canvasRef.current?.getBoundingClientRect();
-      const clientX = rect2.left + rect2.width / 2;
-      const clientY = rect2.top + rect2.height / 2;
-      const center = {
-        x: clientX - rect.left,
-        y: clientY - rect.top,
-      };
-      const tx = (center.x * canvasScale) / scaleRef.current - center.x;
-      const ty = (center.y * canvasScale) / scaleRef.current - center.y;
-      const o = offset.get();
-      offsetRef.current = { left: o.x - tx, top: o.y - ty };
+  if (scaleRef.current != canvasScale) {
+    if (isNavigator) {
+      scaleRef.current = canvasScale;
+    } else if (new Date().valueOf() >= lastPinchRef.current + 500) {
+      // - canvasScale changed due to something external, rather than
+      // usePinchToZoom above, since when changing due to pinch zoom,
+      // scaleRef has already been set before this call here happens.
+      // - We want to preserve the center of the canvas on zooming.
+      // - Code below is almost identical to usePinch code above,
+      //   except we compute clientX and clientY that would get if mouse
+      //   was in the center.
+      const rect = scaleDivRef.current?.getBoundingClientRect();
+      if (rect != null) {
+        const rect2 = canvasRef.current?.getBoundingClientRect();
+        const clientX = rect2.left + rect2.width / 2;
+        const clientY = rect2.top + rect2.height / 2;
+        const center = {
+          x: clientX - rect.left,
+          y: clientY - rect.top,
+        };
+        const tx = (center.x * canvasScale) / scaleRef.current - center.x;
+        const ty = (center.y * canvasScale) / scaleRef.current - center.y;
+        const o = offset.get();
+        offsetRef.current = { left: o.x - tx, top: o.y - ty };
+      }
+      scaleRef.current = canvasScale;
     }
-    scaleRef.current = canvasScale;
   }
 
   useWheel(
@@ -780,7 +780,13 @@ export default function Canvas({
             });
           }}
         >
-          <div style={{ zIndex: MAX_ELEMENTS + 1, position: "absolute" }}>
+          <div
+            style={{
+              zIndex: MAX_ELEMENTS + 1,
+              position: "absolute",
+              cursor: "move",
+            }}
+          >
             {processElement(
               {
                 id: "nav-frame",

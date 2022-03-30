@@ -222,8 +222,8 @@ export class Actions extends BaseActions<State> {
   }
 
   private getGroupIds(): Set<string> {
-    const X = new Set([]);
-    this.store.get("elements").map((element) => {
+    const X = new Set<string>([]);
+    this.store.get("elements")?.map((element) => {
       const group = element.get("group");
       if (group != null) {
         X.add(group);
