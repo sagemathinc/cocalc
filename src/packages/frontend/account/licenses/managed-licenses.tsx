@@ -28,7 +28,7 @@ export const LICENSES_STYLE: CSS = {
 
 export const ManagedLicenses: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [show_all, set_show_all] = useState<boolean>(false);
   const actions = useActions("billing");
   const is_mounted_ref = useIsMountedRef();
