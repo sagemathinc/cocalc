@@ -301,6 +301,7 @@ export default function MultiMarkdownInput({
           value={value}
           onChange={onChange}
           saveDebounceMs={saveDebounceMs}
+          getValueRef={getValueRef}
           project_id={project_id}
           path={path}
           enableUpload={enableUpload}

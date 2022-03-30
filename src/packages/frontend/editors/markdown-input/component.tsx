@@ -68,6 +68,7 @@ interface Props {
   value?: string;
   onChange?: (value: string) => void;
   saveDebounceMs?: number; // if given, calls to onChange are debounced by this param
+  getValueRef?: MutableRefObject<() => string>;
   enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -120,6 +121,7 @@ export function MarkdownInput({
   style,
   onChange,
   saveDebounceMs,
+  getValueRef,
   onShiftEnter,
   onEscape,
   onBlur,
@@ -268,6 +270,9 @@ export function MarkdownInput({
       extraKeys,
       mode: { name: "gfm" },
     });
+    if (getValueRef != null) {
+      getValueRef.current = cm.current.getValue.bind(cm.current);
+    }
     // UNCOMMENT FOR DEBUGGING ONLY
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
