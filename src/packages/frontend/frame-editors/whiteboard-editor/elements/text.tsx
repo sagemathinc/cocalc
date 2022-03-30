@@ -1,14 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
 import TextStatic, { getStyle, PADDING, PLACEHOLDER } from "./text-static";
 export { getStyle };
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { debounce } from "lodash";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
-import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useEditFocus from "./edit-focus";
 import useMouseClickDrag from "./mouse-click-drag";
 
@@ -59,57 +55,39 @@ function EditText({
       });
     }
   }, [element]);
-  const isMounted = useIsMountedRef();
-  const [value, setValue] = useState<string>(element.str ?? "");
   const [mode, setMode] = useState<string>("");
 
   const [editFocus, setEditFocus] = useEditFocus(false);
 
   const editorDivRef = useRef<HTMLDivElement>(null);
-  const lastRemote = useRef<string>(element.str ?? "");
-  const valueRef = useRef<string>(value);
-  const settingRef = useRef<boolean>(false);
-  const save = useMemo(() => {
-    return debounce(() => {
-      if (!isMounted.current || lastRemote.current == valueRef.current) return;
-      lastRemote.current = valueRef.current;
-      try {
-        settingRef.current = true;
-        actions.setElement({ obj: { id: element.id, str: valueRef.current } });
-      } finally {
-        settingRef.current = false;
-      }
-    }, SAVE_DEBOUNCE_MS);
-  }, []);
-
-  useEffect(() => {
-    if (settingRef.current) return;
-    const base = lastRemote.current;
-    const remote = element.str ?? "";
-    const newVal = threeWayMerge({
-      base,
-      local: valueRef.current,
-      remote,
-    });
-    if (newVal != valueRef.current) {
-      valueRef.current = newVal;
-      lastRemote.current = remote;
-      setValue(newVal);
-    }
-  }, [element.str]);
 
   useEffect(() => {
     return () => {
-      actions.setElement({ obj: { id: element.id, str: valueRef.current } });
+      actions.setElement({
+        obj: { id: element.id, str: getValueRef.current() },
+      });
     };
   }, []);
-
-  useEffect(save, [value]);
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
+
+  const getValueRef = useRef<any>(null);
+  useEffect(() => {
+    if (actions._syncstring == null) return;
+    const beforeChange = () => {
+      const str = getValueRef.current();
+      actions.setElement({
+        obj: { id: element.id, str },
+      });
+    };
+    actions._syncstring.on("before-change", beforeChange);
+    return () => {
+      actions._syncstring.removeListener("before-change", beforeChange);
+    };
+  }, []);
 
   return (
     <div
@@ -122,6 +100,7 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
+        getValueRef={getValueRef}
         fixedMode={element.rotate || !focused ? "editor" : undefined}
         cacheId={element.id}
         refresh={canvasScale}
@@ -143,11 +122,10 @@ function EditText({
           setEditFocus(false);
           actions.clearSelection(frameId);
         }}
-        value={value}
+        value={element.str}
         fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
         onChange={(value) => {
-          valueRef.current = value;
-          setValue(value);
+          actions.setElement({ obj: { id: element.id, str: value } });
           setTimeout(expandIfNecessary, 0);
         }}
         onModeChange={setMode}

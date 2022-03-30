@@ -116,6 +116,7 @@ interface Props {
   isFocused?: boolean;
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
+  getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -149,6 +150,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     isFocused,
     registerEditor,
     unregisterEditor,
+    getValueRef,
   }) => {
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
@@ -196,6 +198,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         });
         return ed.markdownValue;
       };
+
+      if (getValueRef != null) {
+        getValueRef.current = ed.getMarkdownValue;
+      }
 
       ed.getPlainValue = (fragment?) => {
         const markdown = ed.getSourceValue(fragment);
@@ -630,10 +636,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           let lastOffset = focus.offset;
           for (let n = 0; n < iterations; n++) {
             for (const x of s) {
-              Transforms.setSelection(editor, {
-                focus,
-                anchor: focus,
-              });
+              //               Transforms.setSelection(editor, {
+              //                 focus,
+              //                 anchor: focus,
+              //               });
               editor.insertText(x);
               focus = editor.selection?.focus;
               if (focus == null) throw Error("must have selection");
@@ -651,9 +657,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                 return;
               }
               lastOffset = offset;
-              await delay(130 * Math.random());
+              await delay(100 * Math.random());
               if (Math.random() < 0.2) {
-                await delay(1.3 * SAVE_DEBOUNCE_MS);
+                await delay(2 * SAVE_DEBOUNCE_MS);
               }
             }
           }

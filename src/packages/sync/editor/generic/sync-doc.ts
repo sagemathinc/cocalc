@@ -1733,7 +1733,7 @@ export class SyncDoc extends EventEmitter {
        take a little while for the project to save it.
        */
       let success: boolean = false;
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 6; i++) {
         const x = await callback2(this.client.query, {
           query: {
             patches: {
@@ -1745,7 +1745,7 @@ export class SyncDoc extends EventEmitter {
         });
         if (this.state != "ready") return;
         if (x.query.patches == null || x.query.patches.snapshot != snapshot) {
-          await delay((i + 1) * 5000);
+          await delay((i + 1) * 3000);
         } else {
           success = true;
           break;
@@ -1755,6 +1755,15 @@ export class SyncDoc extends EventEmitter {
         throw Error(
           "unable to confirm that snapshot was saved to the database"
         );
+
+        /* Should this be non-fatal?
+        // We make this non-fatal, because throwing an exception could break
+        // other things.
+        console.warn(
+          "WARNING: unable to confirm that snapshot was saved to the database"
+        );
+        return;
+        */
       }
     }
 

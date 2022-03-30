@@ -125,7 +125,7 @@ export class Actions<
   T extends CodeEditorState = CodeEditorState
 > extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
-  protected _syncstring: SyncString;
+  public _syncstring: SyncString;
   protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
   private _syncstring_init: boolean = false; // true once init has happened.
   private _syncdb_init: boolean = false; // true once init has happened
