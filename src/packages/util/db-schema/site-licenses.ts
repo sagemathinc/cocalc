@@ -27,6 +27,7 @@ import {
   untangleUptime,
   Uptime,
 } from "../consts/site-license";
+import { capitalize } from "lodash";
 
 export function describe_quota(
   quota: SiteLicenseQuota & { uptime?: Uptime },
@@ -42,10 +43,10 @@ export function describe_quota(
   }
 
   let desc: string = "";
-  if (!short) {
-    desc =
-      (quota.user == "business" ? "Business" : "Academic") +
-      " license providing ";
+  if (short) {
+    desc += `${capitalize(quota.user)}, `;
+  } else {
+    desc += `${capitalize(quota.user)} license providing `;
   }
   const v: string[] = [];
 

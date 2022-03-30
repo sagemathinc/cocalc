@@ -8,6 +8,7 @@ import { EditableDescription, EditableTitle } from "./editable-license";
 import Timestamp from "components/misc/timestamp";
 import Copyable from "components/misc/copyable";
 import A from "components/misc/A";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
 interface Props {
   license_id: string;
@@ -148,39 +149,9 @@ export function Quota({ quota, upgrades }: { quota?: any; upgrades?: any }) {
       };
     }
   }
-  const v: ReactNode[] = [];
-  if (quota.user) {
-    v.push(capitalize(quota.user));
-  }
-  if (quota.cpu) {
-    v.push(`${quota.cpu} ${plural(quota.cpu, "shared CPU")}`);
-  }
-  if (quota.dedicated_cpu) {
-    v.push(
-      `${quota.dedicated_cpu} ${plural(quota.dedicated_cpu, "dedicated CPU")}`
-    );
-  }
-  if (quota.ram) {
-    v.push(`${quota.ram} ${plural(quota.ram, "GB")} shared RAM`);
-  }
-  if (quota.dedicated_ram) {
-    v.push(
-      `${quota.dedicated_ram} ${plural(
-        quota.dedicated_ram,
-        "GB"
-      )} dedicated RAM`
-    );
-  }
-  if (quota.disk) {
-    v.push(`${quota.disk} ${plural(quota.disk, "GB")} disk`);
-  }
-  if (quota.member) {
-    v.push("member hosting");
-  }
-  if (quota.always_running) {
-    v.push("always running");
-  }
-  return <span>{r_join(v)}</span>;
+
+  const info = describe_quota(quota, true);
+  return <span>{info}</span>;
 }
 
 export function DateRange({ activates, expires, info }) {

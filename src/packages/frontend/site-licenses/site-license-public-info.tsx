@@ -136,6 +136,10 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     if (isLicenseStatus(status_val)) {
       return status_val;
     } else {
+      // right after loading this the first time, the field is null.
+      if (v.expires == null) {
+        return "valid";
+      }
       if (new Date() >= v.expires) {
         return "expired";
       } else if (new Date() < v.activates) {
