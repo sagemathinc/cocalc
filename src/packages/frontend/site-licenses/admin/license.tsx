@@ -3,54 +3,52 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import jsonic from "jsonic";
-import { Rendered, Component, TypedMap } from "../../app-framework";
-import { DebounceInput } from "react-debounce-input";
-import { actions } from "./actions";
-import { Button } from "../../antd-bootstrap";
-import { Alert, Row, Col } from "antd";
-import { license_fields, license_field_type } from "./types";
-import {
-  capitalize,
-  is_date,
-  merge,
-  replace_all,
-  plural,
-  hours_ago,
-  days_ago,
-  weeks_ago,
-  months_ago,
-} from "@cocalc/util/misc";
+import { Projects } from "@cocalc/frontend/admin/users/projects";
+import { Button, Checkbox } from "@cocalc/frontend/antd-bootstrap";
+import { CSS, Rendered, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   A,
   CopyToClipBoard,
   DateTimePicker,
-  TimeAgo,
   Icon,
   Space,
-} from "../../components";
-import { Checkbox } from "../../antd-bootstrap";
+  TimeAgo,
+} from "@cocalc/frontend/components";
+import {
+  capitalize,
+  days_ago,
+  hours_ago,
+  is_date,
+  merge,
+  months_ago,
+  plural,
+  replace_all,
+  weeks_ago,
+} from "@cocalc/util/misc";
+import { SiteLicense } from "@cocalc/util/types/site-licenses";
+import { Alert, Col, Row } from "antd";
+import jsonic from "jsonic";
+import { DebounceInput } from "react-debounce-input";
+import { actions } from "./actions";
+import { Managers } from "./managers";
+import { DisplayQuota, EditQuota } from "./quota";
+import { license_fields, license_field_type, ManagerInfo } from "./types";
 import {
   DisplayUpgrades,
   EditUpgrades,
   scale_by_display_factors,
 } from "./upgrades";
-import { DisplayQuota, EditQuota } from "./quota";
-import { Projects } from "../../admin/users/projects";
-import { Managers } from "./managers";
-import { ManagerInfo } from "./types";
-import { SiteLicense } from "@cocalc/util/types/site-licenses";
 
 const BACKGROUNDS = ["white", "#f8f8f8"];
 
 interface Props {
   editing?: boolean;
+  edits?: TypedMap<SiteLicense>;
+  license: TypedMap<SiteLicense>;
+  manager_info?: ManagerInfo;
   saving?: boolean;
   show_projects?: Date | "now";
-  license: TypedMap<SiteLicense>;
-  edits?: TypedMap<SiteLicense>;
   usage_stats?: number; // for now this is just the number of projects running right now with the license; later it might have hourly/daily/weekly, active, etc.
-  manager_info?: ManagerInfo;
 }
 
 function format_as_label(field: string): string {
@@ -58,32 +56,40 @@ function format_as_label(field: string): string {
   if (field == "info") {
     field = "Structured JSON information";
   }
-
   return replace_all(capitalize(field), "_", " ");
 }
 
-const STATUS_STYLE: React.CSSProperties = {
+const STATUS_STYLE: CSS = {
   display: "inline-block",
   marginBottom: "5px",
-};
+} as const;
 
-export const INPUT_STYLE: React.CSSProperties = {
+export const INPUT_STYLE: CSS = {
   border: "1px solid lightgrey",
   borderRadius: "3px",
   padding: "0 5px",
-};
+} as const;
 
-export class License extends Component<Props> {
-  private render_data(): Rendered[] {
+export const License: React.FC<Props> = (props: Props) => {
+  const {
+    editing,
+    edits,
+    license,
+    manager_info,
+    saving,
+    show_projects,
+    usage_stats,
+  } = props;
+
+  function render_data(): Rendered[] {
     const v: Rendered[] = [];
-    const edits = this.props.edits;
     let i = 0;
     for (const field in license_fields) {
       let val;
-      if (this.props.editing && edits != null && edits.has(field)) {
+      if (editing && edits != null && edits.has(field)) {
         val = edits.get(field);
       } else {
-        val = this.props.license.get(field);
+        val = license.get(field);
         if (val != null && field == "upgrades") {
           // tedious detail: some upgrades have to be scaled before displaying to be edited...
           val = scale_by_display_factors(val);
@@ -91,7 +97,7 @@ export class License extends Component<Props> {
       }
       const backgroundColor = BACKGROUNDS[i % 2];
       i += 1;
-      let x = this.render_value(field, val);
+      let x = render_value(field, val);
       if (field == "id" && typeof x == "string") {
         x = (
           <CopyToClipBoard
@@ -106,7 +112,7 @@ export class License extends Component<Props> {
           style={{
             borderBottom: "1px solid lightgrey",
             backgroundColor,
-            padding: this.props.editing ? "5px 0" : undefined,
+            padding: editing ? "5px 0" : undefined,
           }}
         >
           <Col span={4}>{format_as_label(field)}</Col>
@@ -117,15 +123,15 @@ export class License extends Component<Props> {
     return v;
   }
 
-  private on_change(field, new_val): void {
-    actions.set_edit(this.props.license.get("id"), field, new_val);
+  function on_change(field, new_val): void {
+    actions.set_edit(license.get("id"), field, new_val);
   }
 
-  private render_value(field, val): Rendered | string {
+  function render_value(field, val): Rendered | string {
     let x: Rendered | string = undefined;
     const type: license_field_type = license_fields[field];
-    if (this.props.editing) {
-      const onChange = (new_val) => this.on_change(field, new_val);
+    if (editing) {
+      const onChange = (new_val) => on_change(field, new_val);
       switch (type) {
         case "string":
           x = (
@@ -177,8 +183,8 @@ export class License extends Component<Props> {
           x = (
             <Managers
               managers={val}
-              license_id={this.props.license.get("id")}
-              manager_info={this.props.manager_info}
+              license_id={license.get("id")}
+              manager_info={manager_info}
             />
           );
           break;
@@ -194,7 +200,7 @@ export class License extends Component<Props> {
           x = (
             <EditUpgrades
               upgrades={val}
-              license_id={this.props.license.get("id")}
+              license_id={license.get("id")}
               license_field={field}
             />
           );
@@ -203,7 +209,7 @@ export class License extends Component<Props> {
           x = (
             <EditQuota
               quota={val}
-              license_id={this.props.license.get("id")}
+              license_id={license.get("id")}
               license_field={field}
             />
           );
@@ -353,8 +359,8 @@ export class License extends Component<Props> {
           x = (
             <Managers
               managers={val}
-              license_id={this.props.license.get("id")}
-              manager_info={this.props.manager_info}
+              license_id={license.get("id")}
+              manager_info={manager_info}
             />
           );
           break;
@@ -395,7 +401,7 @@ export class License extends Component<Props> {
       x = (
         <Row>
           <Col md={8}>{x}</Col>
-          <Col md={16}>{this.render_usage_stats(val)}</Col>
+          <Col md={16}>{render_usage_stats(val)}</Col>
         </Row>
       );
     }
@@ -403,44 +409,40 @@ export class License extends Component<Props> {
     return x;
   }
 
-  private render_show_projects_title(): Rendered {
-    if (!this.props.show_projects) return <span />;
-    if (this.props.show_projects == "now")
+  function render_show_projects_title(): Rendered {
+    if (!show_projects) return <span />;
+    if (show_projects == "now")
       return <span>Currently running projects upgraded with this license</span>;
     return (
       <span>
         Projects that ran upgraded with this license since{" "}
-        <TimeAgo date={this.props.show_projects} />
+        <TimeAgo date={show_projects} />
       </span>
     );
   }
 
-  private render_projects(): Rendered {
-    if (!this.props.show_projects) return;
+  function render_projects(): Rendered {
+    if (!show_projects) return;
     return (
       <div style={{ marginTop: "30px" }}>
         <Button
           style={{ float: "right", margin: "5px" }}
-          onClick={() => actions.hide_projects(this.props.license.get("id"))}
+          onClick={() => actions.hide_projects(license.get("id"))}
         >
           Close
         </Button>
         <Projects
-          license_id={this.props.license.get("id")}
-          title={this.render_show_projects_title()}
-          cutoff={this.props.show_projects}
+          license_id={license.get("id")}
+          title={render_show_projects_title()}
+          cutoff={show_projects}
         />
       </div>
     );
   }
 
-  private render_usage_stats(run_limit): Rendered {
+  function render_usage_stats(run_limit): Rendered {
     const style: React.CSSProperties = { fontStyle: "italic" };
-    if (
-      run_limit &&
-      this.props.usage_stats &&
-      this.props.usage_stats >= run_limit
-    ) {
+    if (run_limit && usage_stats && usage_stats >= run_limit) {
       // hitting the limit -- make it clearer!
       style.color = "red";
       style.fontWeight = "bold";
@@ -448,48 +450,37 @@ export class License extends Component<Props> {
     return (
       <div style={{ marginLeft: "5px" }}>
         <span style={style}>
-          {this.props.usage_stats ?? 0} running{" "}
-          {plural(this.props.usage_stats, "project")} currently using this
-          license.
+          {usage_stats ?? 0} running {plural(usage_stats, "project")} currently
+          using this license.
         </span>
         <br />
         Projects using license:{" "}
-        <a
-          onClick={() =>
-            actions.show_projects(this.props.license.get("id"), "now")
-          }
-        >
+        <a onClick={() => actions.show_projects(license.get("id"), "now")}>
           now
         </a>
         ; during the last{" "}
         <a
-          onClick={() =>
-            actions.show_projects(this.props.license.get("id"), hours_ago(1))
-          }
+          onClick={() => actions.show_projects(license.get("id"), hours_ago(1))}
         >
           hour
         </a>
         ,{" "}
         <a
-          onClick={() =>
-            actions.show_projects(this.props.license.get("id"), days_ago(1))
-          }
+          onClick={() => actions.show_projects(license.get("id"), days_ago(1))}
         >
           {" "}
           day
         </a>
         ,{" "}
         <a
-          onClick={() =>
-            actions.show_projects(this.props.license.get("id"), weeks_ago(1))
-          }
+          onClick={() => actions.show_projects(license.get("id"), weeks_ago(1))}
         >
           week
         </a>{" "}
         or{" "}
         <a
           onClick={() =>
-            actions.show_projects(this.props.license.get("id"), months_ago(1))
+            actions.show_projects(license.get("id"), months_ago(1))
           }
         >
           month
@@ -498,29 +489,22 @@ export class License extends Component<Props> {
     );
   }
 
-  private render_buttons(): Rendered {
+  function render_buttons(): Rendered {
     let buttons;
-    const id = this.props.license.get("id");
-    if (this.props.editing) {
+    const id = license.get("id");
+    if (editing) {
       buttons = (
         <>
-          <Button
-            onClick={() => actions.cancel_editing(id)}
-            disabled={this.props.saving}
-          >
+          <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
             Cancel
           </Button>
           <Space />
           <Button
-            disabled={
-              this.props.edits == null ||
-              this.props.edits.size <= 1 ||
-              this.props.saving
-            }
+            disabled={edits == null || edits.size <= 1 || saving}
             bsStyle="success"
             onClick={() => actions.save_editing(id)}
           >
-            <Icon name={"save"} /> {this.props.saving ? "Saving..." : "Save"}
+            <Icon name={"save"} /> {saving ? "Saving..." : "Save"}
           </Button>
         </>
       );
@@ -530,26 +514,26 @@ export class License extends Component<Props> {
     return <div style={{ float: "right" }}>{buttons}</div>;
   }
 
-  private is_active(): { is_active: boolean; why_not?: string } {
+  function check_is_active(): { is_active: boolean; why_not?: string } {
     // Is it active?
-    const activates = this.props.license.get("activates");
+    const activates = license.get("activates");
     if (!activates)
       return { is_active: false, why_not: "no activation date set" };
     if (activates > new Date())
       return { is_active: false, why_not: "it has not yet become activated" };
     // Has it expired?
-    const expires = this.props.license.get("expires");
+    const expires = license.get("expires");
     if (expires && expires <= new Date())
       return { is_active: false, why_not: "it has expired" };
     // Any actual upgrades?
-    const upgrades = this.props.license.get("upgrades");
+    const upgrades = license.get("upgrades");
     if (upgrades != null) {
       for (let [field, val] of upgrades) {
         field = field; // typescript
         if (val) return { is_active: true }; // actual upgrade, so yes is having an impact.
       }
     }
-    const quota = this.props.license.get("quota");
+    const quota = license.get("quota");
     if (quota != null) {
       for (let [field, val] of quota) {
         field = field; // typescript
@@ -562,8 +546,8 @@ export class License extends Component<Props> {
   // Show a message explaining whether -- with the current saved settings --
   // this license will upgrade any projects.  Only shown in view mode, to
   // avoid potentional confusion in edit mode.
-  private render_status(): Rendered {
-    if (this.props.editing) {
+  function render_status(): Rendered {
+    if (editing) {
       return (
         <Alert
           style={STATUS_STYLE}
@@ -577,7 +561,7 @@ export class License extends Component<Props> {
       );
     }
 
-    const { is_active, why_not } = this.is_active();
+    const { is_active, why_not } = check_is_active();
     if (is_active) {
       return (
         <Alert
@@ -607,20 +591,18 @@ export class License extends Component<Props> {
     }
   }
 
-  public render(): Rendered {
-    return (
-      <div
-        style={{
-          border: "1px solid lightgrey",
-          borderRadius: "5px",
-          padding: "10px",
-        }}
-      >
-        {this.render_buttons()}
-        {this.render_status()}
-        {this.render_data()}
-        {this.render_projects()}
-      </div>
-    );
-  }
-}
+  return (
+    <div
+      style={{
+        border: "1px solid lightgrey",
+        borderRadius: "5px",
+        padding: "10px",
+      }}
+    >
+      {render_buttons()}
+      {render_status()}
+      {render_data()}
+      {render_projects()}
+    </div>
+  );
+};
