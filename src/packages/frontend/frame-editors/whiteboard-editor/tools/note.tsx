@@ -47,6 +47,7 @@ function Preview({ fontSize, fontFamily, color }: Params) {
       style={{
         ...STYLE,
         margin: "auto",
+        padding: "15px",
         background: color,
         width: "200px",
         height: "125px",
