@@ -94,8 +94,16 @@ function handleClose({ token, state, cache }) {
             // input like this: "> hy\n>\n> y\n".  then put cursor
             // before second y and hit enter.  Because of caching need
             // markdown for last y to be "y\n\n", not just "y\n".
-            while (!markdown.endsWith("\n\n")) {
-              markdown += "\n";
+            if (node.type == "td" || node.type == "th") {
+              // inside a table
+              // Note that the information about space is gone
+              // at this point, unfortunately.
+              markdown += " |";
+            } else {
+              // ensure ends with blank line
+              while (!markdown.endsWith("\n\n")) {
+                markdown += "\n";
+              }
             }
           }
         }
