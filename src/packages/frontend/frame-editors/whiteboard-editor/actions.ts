@@ -221,6 +221,25 @@ export class Actions extends BaseActions<State> {
     }
   }
 
+  private getGroupIds(): Set<string> {
+    const X = new Set([]);
+    this.store.get("elements").map((element) => {
+      const group = element.get("group");
+      if (group != null) {
+        X.add(group);
+      }
+    });
+    return X;
+  }
+
+  private createGroupId(avoid?: Set<string>): string {
+    const X = this.getGroupIds();
+    while (true) {
+      const id = uuid().slice(0, 8);
+      if (!X.has(id) && (avoid == null || !avoid.has(id))) return id;
+    }
+  }
+
   getElement(id: string): Element | undefined {
     return this.store.getIn(["elements", id])?.toJS();
   }
@@ -382,7 +401,7 @@ export class Actions extends BaseActions<State> {
   // Make it so the elements with the given list of ids
   // form a group.
   public groupElements(ids: string[]) {
-    const group = this.createId();
+    const group = this.createGroupId();
     // TODO: check that this group id isn't already in use
     for (const id of ids) {
       this.setElement({ obj: { id, group }, commit: false });
@@ -502,6 +521,8 @@ export class Actions extends BaseActions<State> {
   // Inserts the given elements, moving them so the center
   // of the rectangle spanned by all elements is the given
   // center point, or (0,0) if not given.
+  // ids of elements are updated to not conflict with existing ids.
+  // Also, any groups are remapped to new groups, to avoid "expanding" existing groups.
   // Returns the ids of the inserted elements.
   insertElements(elements: Element[], center?: Point): string[] {
     elements = cloneDeep(elements); // we will mutate it a lot
@@ -511,11 +532,20 @@ export class Actions extends BaseActions<State> {
     translateRectsZ(elements, this.getPageSpan().zMax + 1);
     const ids: string[] = [];
     const idMap: { [id: string]: string } = {};
+    const groupMap: { [id: string]: string } = {};
     for (const element of elements) {
       const newId = this.createId();
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;
+      if (element.group != null) {
+        let newGroupId = groupMap[element.group];
+        if (newGroupId == null) {
+          newGroupId = this.createGroupId(new Set(Object.keys(groupMap)));
+          groupMap[element.group] = newGroupId;
+        }
+        element.group = newGroupId;
+      }
     }
     // We adjust any edges below, discarding any that aren't
     // part of what is being pasted.
