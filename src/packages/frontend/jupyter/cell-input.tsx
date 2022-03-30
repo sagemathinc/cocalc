@@ -9,6 +9,7 @@ React component that describes the input of a cell
 
 declare const $: any;
 
+import { useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
@@ -234,6 +235,22 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return <div>Unsupported cell type {type}</div>;
     }
 
+    const getValueRef = useRef<any>(null);
+    useEffect(() => {
+      if (props.cell.get("cell_type") != "markdown") return;
+      const actions = props.actions;
+      if (actions == null) return;
+      const beforeChange = () => {
+        if (getValueRef.current == null) return;
+        const value = getValueRef.current();
+        actions.set_cell_input(props.id, value, true);
+      };
+      actions.syncdb.on("before-change", beforeChange);
+      return () => {
+        actions.syncdb.removeListener("before-change", beforeChange);
+      };
+    }, [props.cell.get("cell_type")]);
+
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
       return (
@@ -244,6 +261,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           onChange={(value) => {
             props.actions?.set_cell_input(props.id, value, true);
           }}
+          getValueRef={getValueRef}
           onShiftEnter={(value) => {
             props.actions?.set_cell_input(props.id, value, true);
             frameActions.current?.set_md_cell_not_editing(props.id);

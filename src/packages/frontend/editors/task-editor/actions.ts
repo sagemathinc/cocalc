@@ -45,7 +45,7 @@ import {
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 export class TaskActions extends Actions<TaskState> {
-  private syncdb: SyncDB;
+  public syncdb: SyncDB;
   private project_id: string;
   private path: string;
   private store: TaskStore;

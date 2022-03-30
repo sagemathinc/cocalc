@@ -8,7 +8,7 @@ Edit description of a single task
 */
 
 import { Button } from "antd";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -41,6 +41,20 @@ export default function DescriptionEditor({
     actions.stop_editing_desc(task_id);
   }, []);
 
+  const getValueRef = useRef<any>(null);
+  useEffect(() => {
+    if (actions.syncdb == null) return;
+    const beforeChange = () => {
+      const desc = getValueRef.current();
+      actions.set_desc(task_id, desc, false);
+      commit();
+    };
+    actions.syncdb.on("before-change", beforeChange);
+    return () => {
+      actions.syncdb.removeListener("before-change", beforeChange);
+    };
+  }, []);
+
   return (
     <div style={{ border: "1px solid #40a9ff", padding: "5px 15px" }}>
       <MarkdownInput
@@ -50,6 +64,7 @@ export default function DescriptionEditor({
           actions.set_desc(task_id, desc, false);
           commit();
         }}
+        getValueRef={getValueRef}
         fontSize={font_size}
         onShiftEnter={saveAndClose}
         onFocus={actions.disable_key_handler}
