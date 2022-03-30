@@ -629,6 +629,7 @@ export class PassportManager {
           "display", // deprecated
           "type",
           "icon", // deprecated
+          "login_info", // already extracted, see login_info field above
           "clientID",
           "clientSecret",
           "userinfoURL",
@@ -853,6 +854,7 @@ export class PassportManager {
     opts.first_name = opts.first_name ?? "";
     opts.last_name = opts.last_name ?? "";
 
+    // pick first email that is valid – or the only one in the "emails" param.
     if (opts.emails != null) {
       opts.emails = (() => {
         const emails =
