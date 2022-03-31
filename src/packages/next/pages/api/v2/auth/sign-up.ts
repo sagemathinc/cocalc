@@ -38,8 +38,15 @@ interface Issues {
 export default async function signUp(req, res) {
   if (!isPost(req, res)) return;
 
-  let { terms, email, password, firstName, lastName, registrationToken } =
-    req.body;
+  let {
+    terms,
+    email,
+    password,
+    firstName,
+    lastName,
+    registrationToken,
+    reCaptchaToken,
+  } = req.body;
 
   password = (password ?? "").trim();
   email = (email ?? "").toLowerCase().trim();
@@ -75,7 +82,46 @@ export default async function signUp(req, res) {
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup, anonymous_signup } = await getServerSettings();
+  const { email_signup, anonymous_signup, re_captcha_v3_secret_key } =
+    await getServerSettings();
+
+  if (re_captcha_v3_secret_key) {
+    // Check the Google v3 reCaptcha token.
+    if (!reCaptchaToken) {
+      res.json({
+        issues: {
+          reCaptcha: "reCaptcha token must be provided",
+        },
+      });
+      return;
+    }
+
+    // actually check it -- get the score via post request from google.
+    const url = `https://www.google.com/recaptcha/api/siteverify?secret=${re_captcha_v3_secret_key}&response=${reCaptchaToken}?remoteip=${req.socket.remoteAddress}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (!result.success) {
+      res.json({
+        issues: {
+          reCaptcha: `reCaptcha may be misconfigured or down; contact the site admin.  ${JSON.stringify(
+            result["error-codes"]
+          )}`,
+        },
+      });
+      return;
+    }
+    if (!result.score || result.score < 0.5) {
+      res.json({
+        issues: {
+          reCaptcha:
+            "The reCaptchaV3 test failed; please be more human and try again.",
+        },
+      });
+      return;
+    }
+    // ok, good.
+  }
+
   if (isAnonymous) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {

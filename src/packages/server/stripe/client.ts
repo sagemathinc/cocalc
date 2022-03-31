@@ -13,6 +13,7 @@ import stripeName from "@cocalc/util/stripe/name";
 import { db } from "@cocalc/database";
 import Stripe from "stripe";
 export { Stripe };
+import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 
 import getConn from "./connection";
 import { stripe_sales_tax } from "./sales-tax";
@@ -203,6 +204,17 @@ export class StripeClient {
   ): Promise<void> {
     const dbg = this.dbg("create_new_stripe_customer_from_card_token");
     dbg("create new stripe customer from card token");
+
+    // Check user is not anonymous.  Our user interface never provides
+    // anything stripe related to anon users.  However, an "abuser"
+    // might still try to trigger this.  Anonymous accounts may be easier
+    // to create, e.g., no captcha, so we want to limit their potential for damage.
+    const { is_anonymous } = await getPrivateProfile(this.client.account_id);
+    if (is_anonymous) {
+      throw Error(
+        "anonymous users are not allowed to create a stripe customer"
+      );
+    }
 
     dbg("get identifying info about user");
     const r = await callback2(this.client.database.get_account, {
@@ -483,6 +495,7 @@ export class StripeClient {
   // This is not actually used **YET**.
   public async mesg_admin_create_invoice_item(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_admin_create_invoice_item");
+    dbg();
     await callback(
       this.client.assert_user_is_in_group.bind(this.client),
       "admin"
@@ -516,6 +529,12 @@ export class StripeClient {
       });
     } else {
       dbg("create stripe entry for this customer");
+      const { is_anonymous } = await getPrivateProfile(mesg.account_id);
+      if (is_anonymous) {
+        throw Error(
+          "anonymous users are not allowed to create a stripe customer"
+        );
+      }
       const x = {
         description,
         email,

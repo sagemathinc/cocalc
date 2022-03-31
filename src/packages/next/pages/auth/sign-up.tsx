@@ -9,25 +9,28 @@ import SignUp from "components/auth/sign-up";
 import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { useRouter } from "next/router";
+import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 
 export default function SignUpPage({ customize, strategies, requiresToken }) {
   const { siteName } = customize;
   const router = useRouter();
   return (
-    <Customize value={customize}>
-      <Head title={`Sign up for ${siteName}`} />
-      <Layout>
-        <Header page="sign-up" />
-        <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp
-            strategies={strategies}
-            requiresToken={requiresToken}
-            onSuccess={() => router.push("/")}
-          />
-          <Footer />
-        </Layout.Content>
-      </Layout>
-    </Customize>
+    <GoogleReCaptchaProvider reCaptchaKey={customize.reCaptchaKey}>
+      <Customize value={customize}>
+        <Head title={`Sign up for ${siteName}`} />
+        <Layout>
+          <Header page="sign-up" />
+          <Layout.Content style={{ backgroundColor: "white" }}>
+            <SignUp
+              strategies={strategies}
+              requiresToken={requiresToken}
+              onSuccess={() => router.push("/")}
+            />
+            <Footer />
+          </Layout.Content>
+        </Layout>
+      </Customize>
+    </GoogleReCaptchaProvider>
   );
 }
 

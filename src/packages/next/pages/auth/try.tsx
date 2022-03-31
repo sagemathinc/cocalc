@@ -7,21 +7,24 @@ import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import Try from "components/auth/try";
 import { useRouter } from "next/router";
+import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
   const router = useRouter();
   return (
-    <Customize value={customize}>
-      <Head title={`Try ${siteName} Now!`} />
-      <Layout>
-        <Header page="try" />
-        <Layout.Content style={{ backgroundColor: "white" }}>
-          <Try onSuccess={() => router.push("/")} />
-          <Footer />
-        </Layout.Content>
-      </Layout>
-    </Customize>
+    <GoogleReCaptchaProvider reCaptchaKey={customize.reCaptchaKey}>
+      <Customize value={customize}>
+        <Head title={`Try ${siteName} Now!`} />
+        <Layout>
+          <Header page="try" />
+          <Layout.Content style={{ backgroundColor: "white" }}>
+            <Try onSuccess={() => router.push("/")} />
+            <Footer />
+          </Layout.Content>
+        </Layout>
+      </Customize>
+    </GoogleReCaptchaProvider>
   );
 }
 
