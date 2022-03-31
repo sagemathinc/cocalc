@@ -158,10 +158,11 @@ div#smc-react-container
   border-radius    : 3px
 
 /* fix bootstrap ugliness  */
-
+// The "important" is important for code, since the foreground is almost black,
+// so if there is a dark background this is unreadable.  Must have white background.
 code
   color            : #333
-  background-color : rgba(0,0,0,0)
+  background-color : white !important
   padding          : 0
 
 blockquote p
