@@ -88,6 +88,10 @@ schema.syncstrings = {
       desc:
         "Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).",
     },
+    huge: {
+      type: "boolean",
+      desc: "If true, this syncstring contains too many or too large patches to be processed. Hence if this is set, it won't be processed. TODO: implement a better archiving mechanism and then process such 'huge' syncstrings.",
+    }
   },
 
   pg_indexes: ["last_active", "archived"],
