@@ -811,7 +811,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(err)
                 else
                     for p in patches
-                        p.time = new Date(p.epoch)
+                        # TODO why using epoch and then converting to Date, why not just taking time?
+                        # Besides that: @hsy noticed in development that p.epoch could be a string, resulting in an invalid date.
+                        if typeof p.epoch == 'string'
+                            p.time = new Date(parseInt(p.epoch))
+                        else
+                            p.time = new Date(p.epoch)
                         delete p.epoch
                     opts.cb(undefined, patches)
 
