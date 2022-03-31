@@ -109,7 +109,7 @@ function EditText({
         hideHelp
         placeholder={PLACEHOLDER}
         editorDivRef={editorDivRef}
-        isFocused={editFocus}
+        isFocused={editFocus && focused}
         onFocus={() => {
           setEditFocus(true);
           expandIfNecessary();
