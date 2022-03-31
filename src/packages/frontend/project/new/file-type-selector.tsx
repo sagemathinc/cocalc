@@ -89,6 +89,18 @@ export const FileTypeSelector: React.FC<Props> = ({
               ext="board"
             />
           </Tip>
+          <Tip
+            title="Markdown Document"
+            icon="markdown"
+            tip="Create a rich editable text document backed by markdown that contains mathematical formulas, lists, headings, images and code."
+          >
+            <NewFileButton
+              icon="markdown"
+              name="Markdown Document"
+              on_click={create_file}
+              ext="md"
+            />
+          </Tip>
           {available.sage ? (
             <Tip
               icon="sagemath-bold"
@@ -179,18 +191,6 @@ export const FileTypeSelector: React.FC<Props> = ({
       </Row>
       <Row style={row_style}>
         <Col sm={12}>
-          <Tip
-            title="Markdown File"
-            icon="markdown"
-            tip="Create a Markdown formatted document with real-time preview."
-          >
-            <NewFileButton
-              icon="markdown"
-              name="Markdown"
-              on_click={create_file}
-              ext="md"
-            />
-          </Tip>
           {available.rmd ? (
             <Tip
               title="RMarkdown File"
