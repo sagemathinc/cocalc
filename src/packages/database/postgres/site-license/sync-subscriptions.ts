@@ -154,12 +154,14 @@ async function sync_subscriptions_to_licenses(
 ): Promise<number> {
   let n = 0;
   for (const { license_id, sub } of iter(subs)) {
-    if (licenses[license_id] == null) {
+    const license = licenses[license_id];
+    if (license == null) {
       L(
         `WARNING: no known license '${license_id}' for subscription '${sub.id}'`
       );
     }
-    const expires: Date | undefined = licenses[license_id]?.expires;
+
+    const expires: Date | undefined = license?.expires;
 
     // we check, if the given subscription of that license is still funding it
     if (is_funding(sub)) {

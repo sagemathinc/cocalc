@@ -27,6 +27,7 @@ import {
   untangleUptime,
   Uptime,
 } from "../consts/site-license";
+import { capitalize } from "lodash";
 
 export function describe_quota(
   quota: SiteLicenseQuota & { uptime?: Uptime },
@@ -42,16 +43,13 @@ export function describe_quota(
   }
 
   const v: string[] = [];
+  let intro: string = "";
   const isBoost = quota.boost === true;
-
-  let intro = "";
-  if (!short) {
-    const user = quota.user == "business" ? "Business" : "Academic";
-    const booster = isBoost ? "booster" : "";
-    intro = `${user} license ${booster} providing`;
-  } else if (isBoost) {
-    // even if "short", we tell the user this i a boost license
-    intro = `Boost`;
+  const booster = isBoost ? " booster" : "";
+  if (short) {
+    intro = `${capitalize(quota.user)}${booster},`;
+  } else {
+    intro = `${capitalize(quota.user)} license${booster} providing`;
   }
 
   if (quota.ram) {
