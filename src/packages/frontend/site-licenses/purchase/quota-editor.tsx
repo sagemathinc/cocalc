@@ -386,7 +386,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
-          <Select defaultValue={"short"} onChange={onIdleTimeoutChange}>
+          <Select
+            defaultValue={quota.idle_timeout ?? "short"}
+            onChange={onIdleTimeoutChange}
+          >
             {idleTimeoutUptimeOptions()}
           </Select>{" "}
           idle timeout
