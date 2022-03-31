@@ -34,7 +34,7 @@ const HANDLERS: {
 const priorities: { [priority: number]: string } = {};
 export default function register(
   typeRegexp: string, // string or regexp that matches the MIME type
-  priority: number, // priority used when there are multiple description of same object
+  priority: number, // priority used when there are multiple description of same object: bigger means a higher priority.
   handler: Handler // react component that renders the message.
 ): void {
   if (priority < 0) {

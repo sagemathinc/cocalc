@@ -131,8 +131,8 @@ export default function Octave({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/software/python">provides many packages</A>
-                    for you.
+                    <A href="/software/python">provides many packages</A> for
+                    you.
                   </li>
                   <li>
                     The <A href="/features/latex-editor">LaTeX editor</A> is
@@ -255,7 +255,7 @@ export default function Octave({ customize }) {
             <ul>
               <li>
                 <strong>Manages the entire compilation pipeline for you</strong>
-                : it automatically calls <Code>pyhontex3</Code> or{" "}
+                : it automatically calls <Code>pythontex3</Code> or{" "}
                 <Code>sage</Code> to pre-process the code,
               </li>
               <li>
