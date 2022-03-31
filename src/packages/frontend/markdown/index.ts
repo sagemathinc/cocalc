@@ -31,15 +31,24 @@ export { Markdown };
 // and extend the regexps to also recognize these.  We do this with a new
 // delim object, to avoid any potential conflicts.
 mathPlugin.rules["cocalc"] = { ...mathPlugin.rules["dollars"] };
+
+// TODO: Note that \begin{math} / \end{math} is the only environment that should
+// be inline math rather than display math.  I did not implement this edge case yet,
+// and instead \begin{math} still gets interpreted as displayed math.  Note also,
+// that \begin{math|displaymath}... also breaks when using mathjax (e.g., it's broken
+// in jupyter upstream), but works with our slate editor and renderer.
+
 mathPlugin.rules["cocalc"].block.push({
   name: "math_block",
-  rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy, // regexp to match \begin{...}...\end{...} environment.
+  rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy, // regexp to match \begin{...}...\end{...} environment.
   tmpl: "<section><eqn>$1</eqn></section>",
   tag: "\\",
 });
+
+// using \begin/\end as part of inline markdown...
 mathPlugin.rules["cocalc"].inline.push({
   name: "math_inline_double",
-  rex: /(\\(?:begin)\{[a-z]*\*?\}[\s\S]*?\\(?:end)\{[a-z]*\*?\})/gmy,
+  rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy,
   tag: "\\",
   displayMode: true,
   tmpl: "<section><eqn>$1</eqn></section>",
