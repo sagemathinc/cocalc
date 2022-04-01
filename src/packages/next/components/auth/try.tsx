@@ -11,16 +11,31 @@ import A from "components/misc/A";
 import api from "lib/api/post";
 import { len } from "@cocalc/util/misc";
 import Loading from "components/share/loading";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 
 interface Props {
   minimal?: boolean;
   onSuccess: () => void; // if given, call after sign up *succeeds*.
 }
 
-export default function Try({ minimal, onSuccess } : Props) {
-  const { siteName, anonymousSignup } = useCustomize();
+export default function Try(props: Props) {
+  const { reCaptchaKey } = useCustomize();
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <Try0 {...props} />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function Try0({ minimal, onSuccess }: Props) {
+  const { siteName, anonymousSignup, reCaptchaKey } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
   const [error, setError] = useState<string>("");
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   if (!anonymousSignup) {
     return (
@@ -33,13 +48,22 @@ export default function Try({ minimal, onSuccess } : Props) {
   async function createAnonymousAccount() {
     setState("creating");
     try {
-      const result = await api("/auth/sign-up", {});
+      let reCaptchaToken: undefined | string;
+      if (reCaptchaKey) {
+        if (!executeRecaptcha) {
+          throw Error("Please wait a few seconds, then try again.");
+        }
+        reCaptchaToken = await executeRecaptcha("anonymous");
+      }
+
+      const result = await api("/auth/sign-up", { reCaptchaToken });
       if (result.issues && len(result.issues) > 0) {
-        throw Error(JSON.stringify(result.issues)); // should not happen
+        throw Error(JSON.stringify(result.issues)); // TODO: should not happen, except for captcha error...
       }
       onSuccess?.();
     } catch (err) {
       setError(err.message);
+      setState("wait");
     }
   }
 
@@ -57,8 +81,14 @@ export default function Try({ minimal, onSuccess } : Props) {
       <div style={LOGIN_STYLE}>
         {error && <Alert type="error" message={error} showIcon />}
         Try {siteName} <b>without</b>{" "}
-        <A href="/auth/sign-up" external={!!minimal}>creating an account</A> or{" "}
-        <A href="/auth/sign-in" external={!!minimal}>signing in</A>!
+        <A href="/auth/sign-up" external={!!minimal}>
+          creating an account
+        </A>{" "}
+        or{" "}
+        <A href="/auth/sign-in" external={!!minimal}>
+          signing in
+        </A>
+        !
         <Button
           disabled={state != "wait"}
           shape="round"

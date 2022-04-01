@@ -25,6 +25,7 @@ import {
 import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 import isPost from "lib/api/is-post";
+import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 export default async function signIn(req, res) {
   if (!isPost(req, res)) return;
@@ -38,6 +39,7 @@ export default async function signIn(req, res) {
   }
   let account_id: string;
   try {
+    await reCaptcha(req);
     account_id = await getAccount(email, password);
   } catch (err) {
     res.json({ error: `Problem signing into account -- ${err.message}.` });

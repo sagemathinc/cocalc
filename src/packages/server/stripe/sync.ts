@@ -17,7 +17,7 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 export async function stripe_sync({
   logger,
   database,
-  delay_ms,
+  delay_ms = 500,
 }: {
   logger: { debug: Function };
   database: PostgreSQL;
@@ -33,7 +33,7 @@ export async function stripe_sync({
   const users = (
     await database.async_query({
       query:
-        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND last_active >= NOW() - INTERVAL '1 MONTH'",
+        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND banned IS NOT TRUE  AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH'",
     })
   ).rows;
 

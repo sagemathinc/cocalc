@@ -10,11 +10,9 @@ The Landing Page
 import * as immutable from "immutable";
 import { Component, rclass, rtypes, Rendered } from "../app-framework";
 import { Row, Col, Alert } from "../antd-bootstrap";
-import { A, UNIT } from "../components";
+import { UNIT } from "../components";
 import { SiteDescription, Footer } from "../customize";
-import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
-import { RunAnonymously } from "./run-anonymously";
 import { ForgotPassword } from "./forgot-password";
 import { ResetPassword } from "./reset-password";
 import { Connecting } from "./connecting";
@@ -26,12 +24,12 @@ import {
 } from "../launch/actions";
 import { NAME as ComputeImageStoreName } from "../custom-software/util";
 import { ComputeImages, launchcode2display } from "../custom-software/init";
-import { ShowSupportLink } from "../support";
 import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS, DOC_URL } from "@cocalc/util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 const DESC_FONT = "sans-serif";
 
@@ -145,18 +143,6 @@ class LandingPage extends Component<Props & reduxProps, State> {
         forgot_password_error={this.props.forgot_password_error}
         forgot_password_success={this.props.forgot_password_success}
       />
-    );
-  }
-
-  private render_support(): Rendered {
-    if (!this.props.is_commercial) {
-      return;
-    }
-
-    return (
-      <div>
-        Questions? Create <ShowSupportLink />
-      </div>
     );
   }
 
@@ -368,52 +354,19 @@ class LandingPage extends Component<Props & reduxProps, State> {
           style={{
             color: COLORS.GRAY,
             fontSize: "16pt",
-            margin: "15px 0",
+            margin: "150px 0",
             textAlign: "center",
           }}
         >
           <Col sm={12}>
-            <b>Create a new account</b> below on the left or <b>sign in</b> with
-            an existing account above.
-          </Col>
-        </Row>
-        <Row style={{ minHeight: "60vh" }}>
-          <Col md={6}>
-            <SignUp
-              sign_up_error={this.props.sign_up_error}
-              strategies={this.props.strategies}
-              get_api_key={this.props.get_api_key}
-              token={this.props.token}
-              has_remember_me={this.props.has_remember_me}
-              signing_up={this.props.signing_up}
-              has_account={this.props.has_account}
-              help_email={this.props.help_email}
-              terms_of_service={this.props.terms_of_service}
-              terms_of_service_url={this.props.terms_of_service_url}
-              email_signup={this.props.email_signup}
-              exclusive_sso_domains={this.props.exclusive_sso_domains}
-            />
-          </Col>
-          <Col md={6}>
-            <div style={{ color: COLORS.GRAY, marginTop: "5px" }}>
-              <RunAnonymously show_terms={this.state.show_terms} />
-              <br />
-              <div style={{ textAlign: "center" }}>
-                {this.render_support()}
-                <br />
-                {!this.props.get_api_key ? (
-                  <div>
-                    <A href={DOC_URL}>CoCalc documentation</A>
-                  </div>
-                ) : undefined}
-                <br />
-                {!this.props.get_api_key ? (
-                  <div>
-                    <a href={appBasePath}>Landing page</a>
-                  </div>
-                ) : undefined}
-              </div>
-            </div>
+            <a href={join(appBasePath, "/auth/sign-up")}>
+              Create a new account
+            </a>{" "}
+            or{" "}
+            <a href={join(appBasePath, "/auth/sign-in")}>
+              sign in with an existing account
+            </a>
+            .
           </Col>
         </Row>
         <Footer />
@@ -440,7 +393,15 @@ class LandingPage extends Component<Props & reduxProps, State> {
             preferences.
             <br />
             <br />
-            Please sign in or create an account below.
+            If necessary, please{" "}
+            <a href={join(appBasePath, "/auth/sign-up")}>
+              create a new account
+            </a>{" "}
+            or{" "}
+            <a href={join(appBasePath, "/auth/sign-in")}>
+              sign in with an existing account
+            </a>
+            .
           </div>
         </div>
         <hr />
