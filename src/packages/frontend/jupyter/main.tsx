@@ -7,13 +7,7 @@
 Top-level react component, which ties everything together
 */
 
-import {
-  CSS,
-  React,
-  useRedux,
-  useTypedRedux,
-  Rendered,
-} from "../app-framework";
+import { CSS, React, useRedux, Rendered } from "../app-framework";
 import * as immutable from "immutable";
 
 import { A, ErrorDisplay } from "../components";
@@ -39,7 +33,7 @@ import { KernelSelector } from "./select-kernel";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
 // import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
 const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
-import { Kernel as KernelType, Kernels as KernelsType } from "./util";
+import { Kernels as KernelsType } from "./util";
 import { Scroll, Usage, BackendState } from "./types";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { compute_usage } from "./usage";
@@ -140,8 +134,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     hook_offset,
   } = props;
 
-  const editor_settings = useTypedRedux("account", "editor_settings");
-
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
     name,
@@ -160,7 +152,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "show_kernel_selector",
   ]);
   // string name of the kernel
-  const kernel: undefined | string = useRedux([name, "kernel"]);
   const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
   const error: undefined | KernelsType = useRedux([name, "error"]);
   // settings for all the codemirror editors
@@ -224,35 +215,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "edit_cell_metadata",
   ]);
   const trust: undefined | boolean = useRedux([name, "trust"]);
-  const kernel_info: undefined | immutable.Map<any, any> = useRedux([
-    name,
-    "kernel_info",
-  ]);
   const check_select_kernel_init: undefined | boolean = useRedux([
     name,
     "check_select_kernel_init",
   ]);
-  const kernel_selection: undefined | immutable.Map<string, any> = useRedux([
-    name,
-    "kernel_selection",
-  ]);
-  const kernels_by_name:
-    | undefined
-    | immutable.OrderedMap<string, immutable.Map<string, string>> = useRedux([
-    name,
-    "kernels_by_name",
-  ]);
-  const kernels_by_language:
-    | undefined
-    | immutable.OrderedMap<string, immutable.List<string>> = useRedux([
-    name,
-    "kernels_by_language",
-  ]);
-  const default_kernel: undefined | string = useRedux([name, "default_kernel"]);
-  const closestKernel: undefined | KernelType = useRedux([
-    name,
-    "closestKernel",
-  ]);
+
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
   const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
     name,
@@ -602,24 +569,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_select_kernel() {
-    if (editor_settings == null) return;
-
-    const ask_jupyter_kernel = editor_settings.get("ask_jupyter_kernel");
-    return (
-      <KernelSelector
-        actions={actions}
-        kernel={kernel}
-        kernel_info={kernel_info}
-        kernel_selection={kernel_selection}
-        kernels_by_name={kernels_by_name}
-        kernels_by_language={kernels_by_language}
-        default_kernel={default_kernel}
-        closestKernel={closestKernel}
-        ask_jupyter_kernel={
-          ask_jupyter_kernel == null ? true : ask_jupyter_kernel
-        }
-      />
-    );
+    return <KernelSelector actions={actions} />;
   }
 
   function render_keyboard_shortcuts() {

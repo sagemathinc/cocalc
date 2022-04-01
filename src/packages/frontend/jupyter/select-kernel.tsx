@@ -6,20 +6,22 @@
 // help users selecting a kernel
 
 import { SiteName } from "@cocalc/frontend/customize";
-import { React, Rendered, CSS } from "../app-framework";
 import {
-  Map as ImmutableMap,
-  List,
-  OrderedMap /*, List as ImmutableList*/,
-} from "immutable";
+  React,
+  Rendered,
+  CSS,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend//app-framework";
+import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import * as misc from "@cocalc/util/misc";
-import { isIconName, Icon, Loading } from "../components";
+import { isIconName, Icon, Loading } from "@cocalc/frontend/components";
 import { Col, Row } from "../antd-bootstrap";
 import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
 import * as antd from "antd";
-import { Kernel } from "./util";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
+import { Kernel as KernelType } from "./util";
 
 const main_style: CSS = {
   padding: "20px 10px",
@@ -33,29 +35,38 @@ const section_style: CSS = {
 
 interface KernelSelectorProps {
   actions: JupyterActions;
-  kernel?: string;
-  kernel_info?: any;
-  default_kernel?: string;
-  ask_jupyter_kernel?: boolean;
-  kernel_selection?: ImmutableMap<string, string>;
-  kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
-  kernels_by_language?: OrderedMap<string, List<string>>;
-  closestKernel?: Kernel;
 }
 
 export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
   (props: KernelSelectorProps) => {
-    const {
-      actions,
-      kernel,
-      kernel_info,
-      default_kernel,
-      ask_jupyter_kernel,
-      kernel_selection,
-      kernels_by_name,
-      kernels_by_language,
-      closestKernel,
-    } = props;
+    const { actions } = props;
+    const editor_settings = useTypedRedux("account", "editor_settings");
+
+    const kernel: undefined | string = useRedux([actions.name, "kernel"]);
+    const default_kernel: undefined | string = useRedux([
+      actions.name,
+      "default_kernel",
+    ]);
+    const closestKernel: undefined | KernelType = useRedux([
+      actions.name,
+      "closestKernel",
+    ]);
+    const kernel_info: undefined | ImmutableMap<any, any> = useRedux([
+      actions.name,
+      "kernel_info",
+    ]);
+    const kernel_selection: undefined | ImmutableMap<string, any> = useRedux([
+      actions.name,
+      "kernel_selection",
+    ]);
+    const kernels_by_name:
+      | undefined
+      | OrderedMap<string, ImmutableMap<string, string>> = useRedux([
+      actions.name,
+      "kernels_by_name",
+    ]);
+    const kernels_by_language: undefined | OrderedMap<string, List<string>> =
+      useRedux([actions.name, "kernels_by_language"]);
 
     function kernel_name(name: string): string | undefined {
       return kernel_attr(name, "display_name");
@@ -215,6 +226,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       if (kernels_by_name == null) return;
       // also don't render "last", if we do not know that kernel!
       if (!kernels_by_name.has(name)) return;
+      if (editor_settings == null) return <Loading />;
+      const ask_jupyter_kernel =
+        editor_settings.get("ask_jupyter_kernel") ?? true;
 
       return (
         <Descriptions bordered column={1} style={section_style}>
