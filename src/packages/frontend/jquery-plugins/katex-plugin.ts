@@ -12,6 +12,8 @@ Also immediately falls back to mathjax if account prefs other settings katex
 is explicitly known and set to false.
 */
 
+import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/math/index";
+
 export const jQuery = $;
 declare var $: any;
 import { tex2jax } from "./tex2jax";
@@ -63,6 +65,7 @@ function katex_plugin(elt, preProcess): void {
       };
       let text = node.text();
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
+      text = stripMathEnvironment(text);
       if (always_use_mathjax) {
         const node0: any = node;
         if (node0.mathjax !== undefined) {

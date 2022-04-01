@@ -58,7 +58,7 @@ register({
   toSlate: ({ token }) => {
     return {
       type: "math_inline",
-      value: token.content,
+      value: stripMathEnvironment(token.content),
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
@@ -73,9 +73,23 @@ register({
   toSlate: ({ token }) => {
     return {
       type: "math_block",
-      value: token.content.trim(),
+      value: stripMathEnvironment(token.content).trim(),
       isVoid: true,
       children: [{ text: "" }],
     } as Element;
   },
 });
+
+export function stripMathEnvironment(s: string): string {
+  // These environments get detected, but we must remove them, since once in
+  // math mode they make no sense. All the other environments do make sense.
+  for (const env of ["math", "displaymath"]) {
+    if (s.startsWith(`\\begin{${env}}`)) {
+      return s.slice(
+        `\\begin{${env}}`.length,
+        s.length - `\\end{${env}}`.length - 1
+      );
+    }
+  }
+  return s;
+}
