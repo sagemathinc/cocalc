@@ -97,7 +97,7 @@ export default async function signUp(req, res) {
     }
 
     // actually check it -- get the score via post request from google.
-    const url = `https://www.google.com/recaptcha/api/siteverify?secret=${re_captcha_v3_secret_key}&response=${reCaptchaToken}?remoteip=${req.socket.remoteAddress}`;
+    const url = `https://www.google.com/recaptcha/api/siteverify?secret=${re_captcha_v3_secret_key}&response=${reCaptchaToken}&remoteip=${req.socket.remoteAddress}`;
     const response = await fetch(url);
     const result = await response.json();
     if (!result.success) {
