@@ -137,10 +137,10 @@ class Actions implements EditorActions {
     if (this.jupyter_actions != null) {
       return this.jupyter_actions;
     }
-    this.jupyter_actions = await getJupyterActions(
-      this.frame.project_id,
-      this.frame.path
-    );
+    this.jupyter_actions = await getJupyterActions({
+      project_id: this.frame.project_id,
+      path: this.frame.path,
+    });
     // patch some functions from JupyterActions to use ones defined
     // in this object:
     this.jupyter_actions.select_complete = this.select_complete.bind(this);

@@ -20,7 +20,7 @@ export default function Output({ element }) {
   // Initialize state needed for widgets to work.
   useEffect(() => {
     (async () => {
-      const jupyter_actions = await getJupyterActions(project_id, path);
+      const jupyter_actions = await getJupyterActions({project_id, path});
       if (!isMounted.current) return;
       setJupyterActions(jupyter_actions);
     })();

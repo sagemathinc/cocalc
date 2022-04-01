@@ -13,7 +13,7 @@ export default async function run({
   id: string;
   set: (object) => void;
 }) {
-  const jupyter_actions = await getJupyterActions(project_id, path);
+  const jupyter_actions = await getJupyterActions({ project_id, path });
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
   if (cell == null) {

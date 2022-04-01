@@ -5,11 +5,14 @@ import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 export type { JupyterActions };
 
-export async function getJupyterActions(
-  project_id: string,
-  path: string
-): Promise<JupyterActions> {
-  const actions = await getJupyterFrameEditorActions(project_id, path);
+export async function getJupyterActions({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): Promise<JupyterActions> {
+  const actions = await getJupyterFrameEditorActions({ project_id, path });
   const { jupyter_actions } = actions;
   if (jupyter_actions.syncdb.get_state() != "ready") {
     await once(jupyter_actions.syncdb, "ready");
@@ -17,11 +20,14 @@ export async function getJupyterActions(
   return jupyter_actions;
 }
 
-export async function getJupyterFrameEditorActions(
-  project_id: string,
-  path: string
-): Promise<JupyterEditorActions> {
-  const aux_path = aux_file(path, "ipynb");
+export async function getJupyterFrameEditorActions({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): Promise<JupyterEditorActions> {
+  const aux_path = pathToIpynb(path);
   let actions = redux.getEditorActions(project_id, aux_path) as
     | JupyterEditorActions
     | undefined;
@@ -36,4 +42,19 @@ export async function getJupyterFrameEditorActions(
     throw Error("bug -- actions must be defined");
   }
   return actions;
+}
+
+export function openJupyterNotebook({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): void {
+  const aux_path = pathToIpynb(path);
+  redux.getProjectActions(project_id).open_file({ path: aux_path });
+}
+
+export function pathToIpynb(pathToWhiteboard: string): string {
+  return aux_file(pathToWhiteboard, "ipynb");
 }
