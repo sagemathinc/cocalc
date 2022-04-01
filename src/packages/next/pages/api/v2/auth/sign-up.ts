@@ -28,6 +28,7 @@ import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import isPost from "lib/api/is-post";
+import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 interface Issues {
   terms?: string;
@@ -38,8 +39,14 @@ interface Issues {
 export default async function signUp(req, res) {
   if (!isPost(req, res)) return;
 
-  let { terms, email, password, firstName, lastName, registrationToken } =
-    req.body;
+  let {
+    terms,
+    email,
+    password,
+    firstName,
+    lastName,
+    registrationToken,
+  } = req.body;
 
   password = (password ?? "").trim();
   email = (email ?? "").toLowerCase().trim();
@@ -76,6 +83,18 @@ export default async function signUp(req, res) {
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
   const { email_signup, anonymous_signup } = await getServerSettings();
+
+  try {
+    await reCaptcha(req);
+  } catch (err) {
+    res.json({
+      issues: {
+        reCaptcha: err.message,
+      },
+    });
+    return;
+  }
+
   if (isAnonymous) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {

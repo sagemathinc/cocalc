@@ -19,6 +19,7 @@ import Subscriptions from "./subscriptions";
 import InvoicesAndReceipts from "./invoices-and-receipts";
 import Overview from "./overview";
 import { MainPagesType } from "./consts";
+import Anonymous from "components/misc/anonymous";
 
 const { Content } = Layout;
 
@@ -69,7 +70,7 @@ export default function ConfigLayout({ page }: Props) {
   }
 
   if (is_anonymous) {
-    return <div>Please upgrade to a non-anonymous account.</div>;
+    return <Anonymous/>;
   }
 
   // page could be an empty array, then main is undefined → overview page
