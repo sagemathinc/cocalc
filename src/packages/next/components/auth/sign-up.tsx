@@ -11,7 +11,10 @@ import apiPost from "lib/api/post";
 import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import Loading from "components/share/loading";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
@@ -22,12 +25,17 @@ interface Props {
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
 }
 
-export default function SignUp({
-  strategies,
-  requiresToken,
-  minimal,
-  onSuccess,
-}: Props) {
+export default function SignUp(props: Props) {
+  const { reCaptchaKey } = useCustomize();
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <SignUp0 {...props} />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
   const {
     anonymousSignup,
     siteName,

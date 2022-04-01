@@ -11,14 +11,27 @@ import A from "components/misc/A";
 import api from "lib/api/post";
 import { len } from "@cocalc/util/misc";
 import Loading from "components/share/loading";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 
 interface Props {
   minimal?: boolean;
   onSuccess: () => void; // if given, call after sign up *succeeds*.
 }
 
-export default function Try({ minimal, onSuccess }: Props) {
+export default function Try(props: Props) {
+  const { reCaptchaKey } = useCustomize();
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <Try0 {...props} />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function Try0({ minimal, onSuccess }: Props) {
   const { siteName, anonymousSignup, reCaptchaKey } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
   const [error, setError] = useState<string>("");

@@ -28,6 +28,7 @@ import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import isPost from "lib/api/is-post";
+import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 interface Issues {
   terms?: string;
@@ -45,7 +46,6 @@ export default async function signUp(req, res) {
     firstName,
     lastName,
     registrationToken,
-    reCaptchaToken,
   } = req.body;
 
   password = (password ?? "").trim();
@@ -82,44 +82,17 @@ export default async function signUp(req, res) {
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup, anonymous_signup, re_captcha_v3_secret_key } =
-    await getServerSettings();
+  const { email_signup, anonymous_signup } = await getServerSettings();
 
-  if (re_captcha_v3_secret_key) {
-    // Check the Google v3 reCaptcha token.
-    if (!reCaptchaToken) {
-      res.json({
-        issues: {
-          reCaptcha: "reCaptcha token must be provided",
-        },
-      });
-      return;
-    }
-
-    // actually check it -- get the score via post request from google.
-    const url = `https://www.google.com/recaptcha/api/siteverify?secret=${re_captcha_v3_secret_key}&response=${reCaptchaToken}&remoteip=${req.socket.remoteAddress}`;
-    const response = await fetch(url);
-    const result = await response.json();
-    if (!result.success) {
-      res.json({
-        issues: {
-          reCaptcha: `reCaptcha may be misconfigured or down; contact the site admin.  ${JSON.stringify(
-            result["error-codes"]
-          )}`,
-        },
-      });
-      return;
-    }
-    if (!result.score || result.score < 0.5) {
-      res.json({
-        issues: {
-          reCaptcha:
-            "The reCaptchaV3 test failed; please be more human and try again.",
-        },
-      });
-      return;
-    }
-    // ok, good.
+  try {
+    await reCaptcha(req);
+  } catch (err) {
+    res.json({
+      issues: {
+        reCaptcha: err.message,
+      },
+    });
+    return;
   }
 
   if (isAnonymous) {

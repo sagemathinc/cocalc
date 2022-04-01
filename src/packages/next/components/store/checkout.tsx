@@ -16,8 +16,24 @@ import useIsMounted from "lib/hooks/mounted";
 import PaymentMethods from "components/billing/payment-methods";
 import { copy_without as copyWithout } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
+import useCustomize from "lib/use-customize";
 
-export default function Checkout() {
+export default function CheckoutWithCaptcha() {
+  const { reCaptchaKey } = useCustomize();
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <Checkout />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function Checkout() {
+  const { reCaptchaKey } = useCustomize();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
@@ -50,9 +66,17 @@ export default function Checkout() {
     try {
       setOrderError("");
       setPlacingOrder(true);
+      let reCaptchaToken: undefined | string;
+      if (reCaptchaKey) {
+        if (!executeRecaptcha) {
+          throw Error("Please wait a few seconds, then try again.");
+        }
+        reCaptchaToken = await executeRecaptcha("checkout");
+      }
+
       // This api call tells the backend, "buy everything in my shopping cart."
       // It succeeds if the purchase goes through.
-      await apiPost("/shopping/cart/checkout");
+      await apiPost("/shopping/cart/checkout", { reCaptchaToken });
       // Success!
       if (!isMounted.current) return;
       // If the user is still viewing the page after the purchase happened, we
@@ -226,7 +250,6 @@ export default function Checkout() {
                     style={{ marginTop: "7px", marginBottom: "15px" }}
                     size="large"
                     type="primary"
-                    href="/store/checkout"
                     onClick={placeOrder}
                   >
                     {placingOrder ? (
