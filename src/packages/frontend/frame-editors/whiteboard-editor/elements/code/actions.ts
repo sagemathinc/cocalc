@@ -58,3 +58,7 @@ export function openJupyterNotebook({
 export function pathToIpynb(pathToWhiteboard: string): string {
   return aux_file(pathToWhiteboard, "ipynb");
 }
+
+export async function getMode({ project_id, path }) {
+  return (await getJupyterActions({ project_id, path })).store.get_cm_mode();
+}

@@ -23,6 +23,7 @@ interface Props {
   onBlur?: () => void;
   isFocused?: boolean;
   cursors?: { [account_id: string]: any[] };
+  mode?;
 }
 
 export default function Input({
@@ -32,6 +33,7 @@ export default function Input({
   onBlur,
   isFocused,
   cursors,
+  mode,
 }: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
@@ -59,7 +61,7 @@ export default function Input({
         id={element.id}
         onFocus={onFocus}
         onBlur={onBlur}
-        options={getCMOptions()}
+        options={getCMOptions(mode)}
         value={element.str ?? ""}
         complete={complete}
         cursors={fromJS(cursors)}
@@ -252,8 +254,7 @@ class Actions implements EditorActions {
   }
 }
 
-function getCMOptions() {
-  const mode = "python";
+function getCMOptions(mode) {
   const account = redux.getStore("account");
   const immutable_editor_settings = account?.get("editor_settings");
   const editor_settings = immutable_editor_settings?.toJS() ?? {};

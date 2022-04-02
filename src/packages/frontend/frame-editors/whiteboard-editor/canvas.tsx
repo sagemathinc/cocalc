@@ -908,18 +908,17 @@ export default function Canvas({
     }
 
     // Partial because
-    const element : Partial<Element> = {
+    const element: Partial<Element> = {
       ...evtToData(e),
       z: transformsRef.current.zMax + 1,
-      ...getToolElement(selectedTool)
+      ...getToolElement(selectedTool),
     };
 
     // create element
     const { id } = frame.actions.createElement(element, true);
 
     // in some cases, select it
-    if(selectedTool && TOOLS[selectedTool]?.select)
-    {
+    if (selectedTool && TOOLS[selectedTool]?.select) {
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);
       frame.actions.setEditFocus(frame.id, true);
