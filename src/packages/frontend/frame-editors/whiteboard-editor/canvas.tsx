@@ -924,14 +924,10 @@ export default function Canvas({
       elt = getToolElement("text");
     } else if (selectedTool == "code") {
       elt = getToolElement("code");
-      elt.w = 650;
-      // TODO: this is silly...
-      elt.h = 16 + 2 * (elt.data?.fontSize ?? DEFAULT_FONT_SIZE);
     } else if (selectedTool == "frame") {
       elt = getToolElement("frame");
     } else if (selectedTool == "chat") {
-      elt.w = 375;
-      elt.h = 450;
+      elt = getToolElement("chat");
     }
 
     const element = {

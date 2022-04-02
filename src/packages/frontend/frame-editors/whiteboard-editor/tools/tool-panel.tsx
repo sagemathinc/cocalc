@@ -379,12 +379,20 @@ export function getElement(tool: Tool, id: number): Partial<Element> {
   const data = getParams(tool, id);
   const type = TOOLS[tool]?.type;
   if (type == null) throw Error(`bug -- tool "${tool}" doesn't create element`);
-  const element = {
+  const size = TOOLS[tool]?.size;
+  let w, h;
+  const element: Partial<Element> = {
     type,
     data,
-    w: DEFAULT_WIDTH,
-    h: DEFAULT_HEIGHT,
   };
+  if (size != null) {
+    ({ w, h } = size(element));
+  } else {
+    w = DEFAULT_WIDTH;
+    h = DEFAULT_HEIGHT;
+  }
+  element.w = w;
+  element.h = h;
   const updateSize = ELEMENTS[type]?.updateSize;
   if (updateSize != null) {
     updateSize(element);
