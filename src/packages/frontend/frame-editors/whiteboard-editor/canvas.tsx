@@ -907,46 +907,19 @@ export default function Canvas({
       return;
     }
 
-    const position: Partial<Element> = {
+    // Partial because
+    const element : Partial<Element> = {
       ...evtToData(e),
       z: transformsRef.current.zMax + 1,
-    };
-    let elt: Partial<Element> = { type: selectedTool as any };
-
-    // TODO -- move some of this to the spec?
-    if (selectedTool == "note") {
-      elt = getToolElement("note");
-    } else if (selectedTool == "timer") {
-      elt = getToolElement("timer");
-    } else if (selectedTool == "icon") {
-      elt = getToolElement("icon");
-    } else if (selectedTool == "text") {
-      elt = getToolElement("text");
-    } else if (selectedTool == "code") {
-      elt = getToolElement("code");
-    } else if (selectedTool == "frame") {
-      elt = getToolElement("frame");
-    } else if (selectedTool == "chat") {
-      elt = getToolElement("chat");
-    }
-
-    const element = {
-      ...position,
-      ...elt,
+      ...getToolElement(selectedTool)
     };
 
     // create element
     const { id } = frame.actions.createElement(element, true);
 
     // in some cases, select it
-    if (
-      selectedTool == "text" ||
-      selectedTool == "note" ||
-      selectedTool == "code" ||
-      selectedTool == "timer" ||
-      selectedTool == "chat" ||
-      selectedTool == "frame"
-    ) {
+    if(selectedTool && TOOLS[selectedTool]?.select)
+    {
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);
       frame.actions.setEditFocus(frame.id, true);
