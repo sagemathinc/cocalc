@@ -7,9 +7,9 @@
 
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
-import { Progress, Typography } from "antd";
+import { Popover, Progress, Typography } from "antd";
 import { COLORS } from "@cocalc/util/theme";
-import { A, Icon, IconName, Loading, Tip } from "../components";
+import { A, Icon, IconName, Loading } from "../components";
 import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
@@ -328,14 +328,15 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         </span>
       );
       return (
-        <Tip
+        <Popover
+          mouseEnterDelay={1}
+          mouseLeaveDelay={0}
           title={title}
-          tip={tip}
+          content={<div style={{ maxWidth: "400px" }}>{tip}</div>}
           placement={"bottom"}
-          tip_style={{ maxWidth: "450px" }}
         >
           {body}
-        </Tip>
+        </Popover>
       );
     }
 
