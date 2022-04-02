@@ -15,7 +15,13 @@ import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 
 export default function KernelPanel0() {
   const isMountedRef = useIsMountedRef();
-  const { project_id, path, desc } = useFrameContext();
+  const {
+    project_id,
+    path,
+    desc,
+    id: frameId,
+    actions: whiteboardActions,
+  } = useFrameContext();
   const [actions, setActions] = useState<JupyterActions | null>(null);
 
   useEffect(() => {
@@ -33,7 +39,8 @@ export default function KernelPanel0() {
   const state = actions.store.get("backend_state");
   if (
     desc.get("selectedTool") == "code" ||
-    (state != null && state != "ready")
+    (state != null && state != "ready") ||
+    whiteboardActions.selectionContainsCellOfType(frameId, "code")
   ) {
     return <KernelPanel actions={actions} />;
   }

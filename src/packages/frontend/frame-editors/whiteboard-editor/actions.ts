@@ -14,7 +14,15 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Data, Element, ElementsMap, Point, Rect, Placement } from "./types";
+import {
+  Data,
+  Element,
+  ElementsMap,
+  ElementType,
+  Point,
+  Rect,
+  Placement,
+} from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
@@ -976,6 +984,20 @@ export class Actions extends BaseActions<State> {
 
   setEditFocus(id: string, editFocus: boolean): void {
     this.set_frame_tree({ id, editFocus });
+  }
+
+  // this is useful for context panels, e.g., Jupyter
+  selectionContainsCellOfType(frameId: string, type: ElementType): boolean {
+    const selection = this._get_frame_node(frameId)?.get("selection");
+    if (!selection) return false;
+    const elements = this.store.get("elements");
+    if (elements == null) return false;
+    for (const id of selection) {
+      if (elements.getIn([id, "type"]) == type) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
