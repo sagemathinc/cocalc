@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { Element } from "../types";
@@ -15,6 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { delay } from "awaiting";
+import { useWheel } from "@use-gesture/react";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -77,9 +78,19 @@ function Conversation({ element, focused }: Props) {
     },
     [saveChat]
   );
+  const divRef = useRef<any>(null);
+  useWheel(
+    (state) => {
+      state.event.stopPropagation();
+    },
+    {
+      target: divRef,
+      eventOptions: { passive: false, capture: true },
+    }
+  );
 
   return (
-    <div style={getChatStyle(element)}>
+    <div style={getChatStyle(element)} ref={divRef}>
       <ChatLog
         Message={Message}
         element={element}
