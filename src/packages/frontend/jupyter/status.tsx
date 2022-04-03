@@ -235,13 +235,37 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
-    function get_kernel_tip(): string {
+    function kernelState(): string {
       if (backend_state === "running") {
         switch (kernel_state) {
           case "busy":
-            return "Kernel is busy";
+            return (
+              <>
+                Kernel is busy{" "}
+                <a
+                  onClick={() => {
+                    // using actions rather than frame actions, since I want
+                    // this to work in places other than Jupyter notebooks.
+                    actions.signal("SIGINT");
+                  }}
+                >
+                  (interrupt)
+                </a>
+              </>
+            );
           case "idle":
-            return "Kernel is idle";
+            return (
+              <>
+                Kernel is idle{" "}
+                <a
+                  onClick={() => {
+                    actions.shutdown();
+                  }}
+                >
+                  (halt)
+                </a>
+              </>
+            );
         }
       } else if (backend_state == "starting") {
         return "Kernel is starting";
@@ -275,7 +299,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             borderRight: "1px solid grey",
           }}
         >
-          {get_kernel_tip()}
+          {kernelState()}
         </div>
       );
     }
@@ -288,7 +312,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           : `Backend is ${
               BACKEND_STATE_HUMAN[backend_state] ?? backend_state
             }.`;
-      const kernel_tip = get_kernel_tip();
+      const kernel_tip = kernelState();
 
       const usage_tip = (
         <>
@@ -330,7 +354,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       return (
         <Popover
           mouseEnterDelay={1}
-          mouseLeaveDelay={0}
           title={title}
           content={<div style={{ maxWidth: "400px" }}>{tip}</div>}
           placement={"bottom"}
