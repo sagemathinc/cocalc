@@ -13,6 +13,8 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
+import { delay } from "awaiting";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -56,6 +58,18 @@ function Conversation({ element, focused }: Props) {
     }
   }, [element, focused]);
 
+  const isMountedRef = useIsMountedRef();
+  const clearInput = async () => {
+    setInput("");
+    // There's a potential very slight chance that additional input
+    // from slate will get set in the next event loop, so we make
+    // sure to clear that.  This is due to how onChange and slate work.
+    await delay(1);
+    if (isMountedRef.current) {
+      setInput("");
+    }
+  };
+
   // When the component goes to be unmounted, we will fetch data if the input has changed.
   useEffect(
     () => () => {
@@ -92,6 +106,7 @@ function Conversation({ element, focused }: Props) {
           }}
         >
           <MultiMarkdownInput
+            saveDebounceMs={0}
             onFocus={() => {
               setEditFocus(true);
             }}
@@ -118,7 +133,7 @@ function Conversation({ element, focused }: Props) {
             onShiftEnter={(input) => {
               saveChat.cancel();
               actions.sendChat({ id: element.id, input });
-              setInput("");
+              clearInput();
             }}
             onUndo={() => {
               saveChat.cancel();
@@ -156,7 +171,7 @@ function Conversation({ element, focused }: Props) {
               style={{ height: "100%", marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
-                setInput("");
+                clearInput();
               }}
             >
               Send
