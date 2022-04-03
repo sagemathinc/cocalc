@@ -88,7 +88,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     size: (element) => {
       return {
         w: 650,
-        h: 16 + 4 * (element.data?.fontSize ?? DEFAULT_FONT_SIZE),
+        h: 16 + 6 * (element.data?.fontSize ?? DEFAULT_FONT_SIZE),
       };
     },
   },

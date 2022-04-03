@@ -44,14 +44,20 @@ export interface Data {
   previewTo?: Point; // edge: instead of node, position of mouse -- used for preview edge.
   dir?: number[]; // dir path part of edge
   icon?: IconName; // icon
-  hideInput?: boolean; // used for code cells
-  hideOutput?: boolean; // used for code cells
-  output?: { [index: number]: object }; // code
   countdown?: number; // used for countdown timer.
   state?: TimerState; // for timer
   time?: number; // used by timer
   total?: number; // used by timer
   aspectRatio?: AspectRatio;
+
+  hideInput?: boolean; // used for code cells
+  hideOutput?: boolean; // used for code cells
+  output?: { [index: number]: object }; // code
+  runState?: string;
+  execCount?: number;
+  kernel?: string;
+  start?: number;
+  end?: number;
 }
 
 /*

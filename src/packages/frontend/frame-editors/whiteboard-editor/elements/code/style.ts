@@ -11,7 +11,7 @@ export default function getStyle(element: Element): CSSProperties {
           element.data?.color ?? "#ccc"
         }`
       : undefined,
-    borderRadius: "5px",
+    borderRadius: "3px",
     padding: "5px",
     background: "white",
   };

@@ -4,7 +4,8 @@ The code cell config panel.
 
 import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
 import { DEFAULT_FONT_SIZE } from "./defaults";
-import { COLORS } from "./pen";
+import { COLORS as PEN_COLORS } from "./pen";
+const COLORS = ["#ccc"].concat(PEN_COLORS.slice(0, PEN_COLORS.length - 1));
 
 const tool = "code" as Tool;
 
@@ -22,9 +23,9 @@ export default function CodeToolPanel() {
       Preview={Preview}
       ButtonPreview={ButtonPreview}
       buttonTitle={({ fontSize, radius, color }) =>
-        `Font size: ${fontSize}px` +
+        `Font size: ${fontSize ?? DEFAULT_FONT_SIZE}px` +
         (color ? `; Border: ${color}` : "") +
-        (radius ? `; Width: ${radius}` : "")
+        (radius ? `; Width: ${2 * radius}px` : "")
       }
       style={{ width: "138px" }}
       editParamsStyle={{ left: "145px" }}
@@ -45,7 +46,9 @@ function Preview({ fontSize, radius = 1, color }: Params) {
     <div
       style={{
         border: `${radius * 2}px solid ${color}`,
+        borderRadius: "3px",
         margin: "auto",
+        padding: "5px",
         width: "200px",
         fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
         overflow: "hidden",

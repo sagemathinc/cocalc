@@ -1,5 +1,5 @@
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Button, Checkbox } from "antd";
+import { Button, Checkbox, Tooltip } from "antd";
 import { Element } from "../../types";
 import { useFrameContext } from "../../hooks";
 
@@ -20,30 +20,37 @@ export default function CodeControlBar({ element }: Props) {
         display: "inline-block",
         boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
         position: "absolute",
-        bottom: "5px",
+        top: 0,
         right: "5px",
         zIndex: 2,
       }}
     >
-      <Button
-        onClick={() => {
-          actions.runCodeElement({ id: element.id });
-        }}
-      >
-        <Icon name="play" /> Run
-      </Button>
-      <Checkbox
-        checked={!element.data?.hideInput}
-        style={{ fontWeight: 250, marginLeft: "10px" }}
-        onChange={(e) => {
-          actions.setElementData({
-            element,
-            obj: { hideInput: !e.target.checked },
-          });
-        }}
-      >
-        Input
-      </Checkbox>
+      {!element.data?.hideInput && (
+        <Tooltip title="Evaluate code (Shift+Enter)">
+          <Button
+            size="small"
+            onClick={() => {
+              actions.runCodeElement({ id: element.id });
+            }}
+          >
+            <Icon name="play" /> Run
+          </Button>
+        </Tooltip>
+      )}
+      <Tooltip title="Toggle display of input">
+        <Checkbox
+          checked={!element.data?.hideInput}
+          style={{ fontWeight: 250, marginLeft: "10px" }}
+          onChange={(e) => {
+            actions.setElementData({
+              element,
+              obj: { hideInput: !e.target.checked },
+            });
+          }}
+        >
+          Input
+        </Checkbox>
+      </Tooltip>
     </div>
   );
 }

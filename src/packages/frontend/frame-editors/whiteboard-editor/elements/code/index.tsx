@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
+import InputPrompt from "./input-prompt";
 import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
@@ -10,6 +11,7 @@ import { useAsyncEffect } from "use-async-effect";
 import { getMode } from "./actions";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
+import { useWheel } from "@use-gesture/react";
 
 interface Props {
   element: Element;
@@ -53,9 +55,20 @@ export default function Code({
     }
     return <InputStatic element={element} mode={mode} />;
   };
+  const divRef = useRef<any>(null);
+  useWheel(
+    (state) => {
+      state.event.stopPropagation();
+    },
+    {
+      target: divRef,
+      eventOptions: { passive: false, capture: true },
+    }
+  );
 
   return (
-    <div style={getStyle(element)}>
+    <div ref={divRef} style={getStyle(element)}>
+      {!hideInput && <InputPrompt element={element} />}
       {renderInput()}
       {!hideOutput && element.data?.output && (
         <div className="nodrag">

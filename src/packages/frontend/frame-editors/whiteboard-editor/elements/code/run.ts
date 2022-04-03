@@ -29,7 +29,14 @@ export default async function run({
     //console.log("onChange", cell?.toJS());
     if (cell == null) return;
 
-    set({ state: cell.get("state"), output: cell.get("output")?.toJS() });
+    set({
+      output: cell.get("output")?.toJS(),
+      runState: cell.get("state"),
+      execCount: cell.get("exec_count"),
+      kernel: cell.get("kernel"),
+      start: cell.get("start"),
+      end: cell.get("end"),
+    });
     if (cell.get("state") == "done") {
       store.removeListener("change", onChange);
       // Useful for debugging since can then open the ipynb and see.
