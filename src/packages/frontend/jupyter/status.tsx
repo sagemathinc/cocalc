@@ -5,9 +5,10 @@
 
 // Kernel display
 
+import { ReactNode } from "react";
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
-import { Popover, Progress, Typography } from "antd";
+import { Popover, Popconfirm, Progress, Typography } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { A, Icon, IconName, Loading } from "../components";
 import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
@@ -235,7 +236,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
-    function kernelState(): string {
+    function kernelState(): ReactNode {
       if (backend_state === "running") {
         switch (kernel_state) {
           case "busy":
@@ -257,13 +258,16 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             return (
               <>
                 Kernel is idle{" "}
-                <a
-                  onClick={() => {
+                <Popconfirm
+                  title={"Halt the kernel. All variable state will be lost."}
+                  onConfirm={() => {
                     actions.shutdown();
                   }}
+                  okText={"Halt"}
+                  cancelText={"Cancel"}
                 >
-                  (halt)
-                </a>
+                  <a>(halt...)</a>
+                </Popconfirm>
               </>
             );
         }
