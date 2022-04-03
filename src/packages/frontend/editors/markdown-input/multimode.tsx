@@ -262,7 +262,6 @@ export default function MultiMarkdownInput({
               ...(mode == "editor" || hideHelp
                 ? {
                     position: "absolute",
-                    top: 0,
                     right: 0,
                     zIndex: 1,
                   }

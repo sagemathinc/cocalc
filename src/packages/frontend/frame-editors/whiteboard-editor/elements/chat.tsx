@@ -129,6 +129,7 @@ function Conversation({ element, focused }: Props) {
             hideHelp
             noVfill
             minimal
+            placeholder="Type a message..."
             height={"123px"}
             value={input}
             style={{
@@ -157,7 +158,7 @@ function Conversation({ element, focused }: Props) {
             editBarStyle={{
               visibility:
                 !editFocus || mode == "markdown" ? "hidden" : undefined,
-              top: "-36px",
+              bottom: "-36px",
               left: "122px",
               position: "absolute",
               boxShadow: "1px 3px 5px #ccc",
@@ -168,7 +169,7 @@ function Conversation({ element, focused }: Props) {
             }}
             modeSwitchStyle={{
               visibility: !editFocus ? "hidden" : undefined,
-              top: "-31px",
+              bottom: "-30px",
               left: 0,
               width: "126px",
               boxShadow: "1px 3px 5px #ccc",
