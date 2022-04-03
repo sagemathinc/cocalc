@@ -322,7 +322,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         <>
           <p>
             This shows this kernel's resource usage. The memory limit is
-            determined by the remining "free" memory of this project. Open the "
+            determined by the remaining "free" memory of this project. Open the "
             {PROJECT_INFO_TITLE}" tab see all activities of this project.
           </p>
           <p>

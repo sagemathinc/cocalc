@@ -34,10 +34,8 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts";
 // import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
 const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
 import { Kernels as KernelsType } from "./util";
-import { Scroll, Usage, BackendState } from "./types";
-import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
-import { compute_usage } from "./usage";
-
+import { Scroll } from "./types";
+import useKernelUsage from "./kernel-usage";
 import { JupyterActions } from "./browser-actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
@@ -58,40 +56,6 @@ export const ERROR_STYLE: CSS = {
   maxHeight: "30vh",
   overflow: "auto",
 } as const;
-
-// derive sorted list of timings from all cells
-function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
-  if (cells == null) return [];
-  return cells
-    .toList()
-    .map((v) => {
-      const start = v.get("start");
-      const end = v.get("end");
-      if (start != null && end != null) {
-        return (end - start) / 1000;
-      } else {
-        return null;
-      }
-    })
-    .filter((v) => v != null)
-    .sort()
-    .toJS();
-}
-
-// for the sorted list of cell timing, get the median or quantile.
-// a quick approximation is good enough for us!
-// we basically want to ignore long running cells, treat them as outliers.
-// Using the 75% quantile is quick and easy, avoids working with inter quantile differences
-// and proper outlier detection – like for boxplots, etc.
-// we also cap the lower end with a reasonable minimum.
-// Maybe another choice of quantile works better, something for later …
-function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
-  if (data.length == 0) return min_val;
-  const idx_last = data.length - 1;
-  const idx_q = Math.floor(q * idx_last);
-  const idx = Math.min(idx_last, idx_q);
-  return Math.max(min_val, data[idx]);
-}
 
 interface Props {
   error?: string;
@@ -221,68 +185,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
 
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
-  const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
-    name,
-    "kernel_usage",
-  ]);
-  const backend_state: undefined | BackendState = useRedux([
-    name,
-    "backend_state",
-  ]);
-  const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
 
-  // cell timing statistic
-  const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
-  const expected_cell_runtime = React.useMemo(
-    () => calc_quantile(cell_timings),
-    [cell_timings]
-  );
-
-  // state of UI, derived from usage, timing stats, etc.
-  const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
-  const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
-  const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
-
-  // reset cpu_start time when state changes
-  React.useEffect(() => {
-    if (kernel_state == "busy") {
-      set_cpu_start(Date.now());
-    } else if (cpu_start != null) {
-      set_cpu_start(undefined);
-    }
-  }, [kernel_state]);
-
-  // count seconds when kernel is busy & reset counter
-  React.useEffect(() => {
-    if (cpu_start != null) {
-      timer1.current = setInterval(() => {
-        if (kernel_state == "busy") {
-          set_cpu_runtime((Date.now() - cpu_start) / 1000);
-        } else {
-          set_cpu_runtime(0);
-        }
-      }, 100);
-    } else if (timer1.current != null) {
-      set_cpu_runtime(0);
-      clearInterval(timer1.current);
-    }
-    return () => {
-      if (timer1.current != null) clearInterval(timer1.current);
-    };
-  }, [cpu_start, kernel_state]);
-
-  // based on the info we know, we derive the "usage" object
-  // the "status.tsx" Kernel component and other UI details will visualize it
-  const usage: Usage = React.useMemo(
-    () =>
-      compute_usage({
-        kernel_usage,
-        backend_state,
-        cpu_runtime,
-        expected_cell_runtime,
-      }),
-    [kernel_usage, backend_state, cpu_runtime, expected_cell_runtime]
-  );
+  const { usage, expected_cell_runtime } = useKernelUsage(name);
 
   function render_kernel_error() {
     if (!kernel_error) return;
