@@ -66,36 +66,35 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
           : undefined),
       }}
     >
-      <div
-        onClick={() => {
-          console.log("clicked!");
-        }}
-      >
-        <Kernel actions={actions} />
-      </div>
-      <Popover
-        title={
-          <>
-            <Icon name="jupyter" /> Jupyter Notebook
-          </>
-        }
-        content={
-          <div style={{ maxWidth: "300px" }}>
-            Code in this whiteboard is copied to a Jupyter notebook and
-            executed; click here to open that notebook.
-          </div>
-        }
-      >
-        <Button
-          style={{ margin: "5px" }}
-          size="small"
-          onClick={() => {
-            openJupyterNotebook({ project_id, path });
-          }}
+      <div style={{ display: "flex" }}>
+        <div style={{ flex: 1 }}></div>
+        <div>
+          <Kernel actions={actions} />
+        </div>
+        <Popover
+          title={
+            <>
+              <Icon name="jupyter" /> Jupyter Notebook
+            </>
+          }
+          content={
+            <div style={{ maxWidth: "300px" }}>
+              Code in this whiteboard is copied to a Jupyter notebook and
+              executed; click here to open that notebook.
+            </div>
+          }
         >
-          <Icon name="exchange" />
-        </Button>
-      </Popover>
+          <Button
+            style={{ margin: "5px" }}
+            size="small"
+            onClick={() => {
+              openJupyterNotebook({ project_id, path });
+            }}
+          >
+            <Icon name="exchange" />
+          </Button>
+        </Popover>
+      </div>
       {showKernelSelector && <KernelSelector actions={actions} />}
     </div>
   );
