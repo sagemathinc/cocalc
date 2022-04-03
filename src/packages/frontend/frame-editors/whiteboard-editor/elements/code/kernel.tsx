@@ -80,7 +80,9 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
           content={
             <div style={{ maxWidth: "300px" }}>
               Code in this whiteboard is copied to a Jupyter notebook and
-              executed; click here to open that notebook.
+              executed; click here to open that notebook. Do <b>not</b> expect
+              to be able to edit code in that notebook and have changes
+              reflected in the whiteboard.
             </div>
           }
         >

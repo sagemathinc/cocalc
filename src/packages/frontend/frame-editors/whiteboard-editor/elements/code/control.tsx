@@ -2,6 +2,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Checkbox, Tooltip } from "antd";
 import { Element } from "../../types";
 import { useFrameContext } from "../../hooks";
+import { getJupyterActions } from "./actions";
+import { delay } from "awaiting";
 
 interface Props {
   element: Element;
@@ -9,7 +11,7 @@ interface Props {
 }
 
 export default function CodeControlBar({ element }: Props) {
-  const { actions } = useFrameContext();
+  const { actions, project_id, path } = useFrameContext();
   return (
     <div
       style={{
@@ -25,6 +27,30 @@ export default function CodeControlBar({ element }: Props) {
         zIndex: 2,
       }}
     >
+      {!element.data?.hideInput && element.data?.runState == "busy" && (
+        <Tooltip title="Interrupt running computation">
+          <Button
+            size="small"
+            onClick={async () => {
+              const jupyter_actions = await getJupyterActions({
+                project_id,
+                path,
+              });
+              jupyter_actions.signal("SIGINT");
+              await delay(500);
+              // check if the kernel really stopped, in which case cell is definitely stopped.
+              if (jupyter_actions.store.get("kernel_state") != "running") {
+                actions.setElementData({
+                  element,
+                  obj: { runState: "done" },
+                });
+              }
+            }}
+          >
+            <Icon name="stop" /> Stop
+          </Button>
+        </Tooltip>
+      )}
       {!element.data?.hideInput && (
         <Tooltip title="Evaluate code (Shift+Enter)">
           <Button

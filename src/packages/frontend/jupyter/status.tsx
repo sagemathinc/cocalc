@@ -8,7 +8,7 @@
 import { ReactNode } from "react";
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
-import { Popover, Popconfirm, Progress, Typography } from "antd";
+import { Popover, Popconfirm, Progress, Tooltip, Typography } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { A, Icon, IconName, Loading } from "../components";
 import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
@@ -243,15 +243,17 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             return (
               <>
                 Kernel is busy{" "}
-                <a
-                  onClick={() => {
-                    // using actions rather than frame actions, since I want
-                    // this to work in places other than Jupyter notebooks.
-                    actions.signal("SIGINT");
-                  }}
-                >
-                  (interrupt)
-                </a>
+                <Tooltip title={"Interrupt the running computation"}>
+                  <a
+                    onClick={() => {
+                      // using actions rather than frame actions, since I want
+                      // this to work in places other than Jupyter notebooks.
+                      actions.signal("SIGINT");
+                    }}
+                  >
+                    (interrupt)
+                  </a>
+                </Tooltip>
               </>
             );
           case "idle":
@@ -259,14 +261,18 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               <>
                 Kernel is idle{" "}
                 <Popconfirm
-                  title={"Halt the kernel. All variable state will be lost."}
+                  title={
+                    "Terminal the kernel process? All variable state will be lost."
+                  }
                   onConfirm={() => {
                     actions.shutdown();
                   }}
                   okText={"Halt"}
                   cancelText={"Cancel"}
                 >
-                  <a>(halt...)</a>
+                  <Tooltip title={"Terminate the kernel process"}>
+                    <a>(halt...)</a>
+                  </Tooltip>
                 </Popconfirm>
               </>
             );
@@ -322,8 +328,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         <>
           <p>
             This shows this kernel's resource usage. The memory limit is
-            determined by the remaining "free" memory of this project. Open the "
-            {PROJECT_INFO_TITLE}" tab see all activities of this project.
+            determined by the remaining "free" memory of this project. Open the
+            "{PROJECT_INFO_TITLE}" tab see all activities of this project.
           </p>
           <p>
             <Typography.Text type="secondary">

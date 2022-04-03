@@ -21,8 +21,10 @@ export default function CodeInputPrompt({ element }) {
       start={element.data?.start}
       end={element.data?.end}
       actions={actions}
+      id={element.id}
       hideMove
       hideCut
+      hideRun
     />
   );
 }
