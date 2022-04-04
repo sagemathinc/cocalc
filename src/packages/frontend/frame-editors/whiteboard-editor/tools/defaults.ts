@@ -14,7 +14,7 @@ export const defaultOpacity = 1;
 
 // see https://www.post-it.com/3M/en_US/post-it/ideas/color/
 export const NOTE_COLORS = [
-  "#fff9c4"
+  "#fff9c4",
   "#f5f468",
   "#e8edfa",
   "#f5e3ad",
