@@ -11,7 +11,7 @@ such as Google, and only exists for that purpose.
 
 import Link from "next/link";
 import SiteName from "components/share/site-name";
-import getPool from "@cocalc/database/pool";
+import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import PublicPaths from "components/share/public-paths";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
@@ -85,7 +85,7 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited
+    `SELECT id, path, description, ${timeInSeconds("last_edited")}
     FROM public_paths
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
