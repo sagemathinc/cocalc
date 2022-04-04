@@ -31,6 +31,7 @@ interface CodeMirrorProps {
   is_scrolling?: boolean;
   registerEditor?;
   unregisterEditor?;
+  getValueRef?;
 }
 
 function should_memoize(prev, next) {
@@ -60,6 +61,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       is_scrolling,
       registerEditor,
       unregisterEditor,
+      getValueRef,
     } = props;
 
     const is_mounted = useIsMountedRef();
@@ -107,6 +109,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           complete={complete}
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
+          getValueRef={getValueRef}
         />
       );
     } else {
