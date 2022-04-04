@@ -7,12 +7,16 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.74.0",
+  "version": "1.75.0",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
-    "presets": ["@babel/preset-env"],
-    "plugins": ["@babel/plugin-transform-react-jsx"]
+    "presets": [
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-react-jsx"
+    ]
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
@@ -48,8 +52,8 @@
     "@cocalc/assets": "^1.6.0",
     "@cocalc/backend": "^1.12.1",
     "@cocalc/cdn": "^1.10.0",
-    "@cocalc/frontend": "^1.41.0",
-    "@cocalc/util": "^1.32.0",
+    "@cocalc/frontend": "^1.42.0",
+    "@cocalc/util": "^1.33.0",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.24",
     "@types/jquery": "^3.5.5",
