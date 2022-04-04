@@ -78,7 +78,6 @@ export default function Input({
               obj: { id: element.id, str },
               commit: false,
             });
-            console.log("using input ", cm.getValue());
             // evaluate in all cases
             frame.actions.runCodeElement({ id: element.id, str });
             // TODO: handle these cases

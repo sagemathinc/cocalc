@@ -54,6 +54,7 @@ export default function CodeControlBar({ element }: Props) {
       {!element.data?.hideInput && (
         <Tooltip title="Evaluate code (Shift+Enter)">
           <Button
+            disabled={element.data?.runState == "busy"}
             size="small"
             onClick={() => {
               actions.runCodeElement({ id: element.id });
@@ -75,6 +76,24 @@ export default function CodeControlBar({ element }: Props) {
           }}
         >
           Input
+        </Checkbox>
+      </Tooltip>
+      <Tooltip title="Toggle display of output">
+        <Checkbox
+          disabled={
+            element.data?.output == null ||
+            Object.keys(element.data?.output).length == 0
+          }
+          checked={!element.data?.hideOutput}
+          style={{ fontWeight: 250, marginLeft: "10px" }}
+          onChange={(e) => {
+            actions.setElementData({
+              element,
+              obj: { hideOutput: !e.target.checked },
+            });
+          }}
+        >
+          Output
         </Checkbox>
       </Tooltip>
     </div>

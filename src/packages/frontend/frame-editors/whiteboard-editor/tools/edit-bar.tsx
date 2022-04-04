@@ -68,6 +68,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
             <GroupButton {...props} />
           </>
         )}
+        {!(readOnly || hidden) && <DuplicateButton {...props} />}
         {!readOnly && !hidden && <LockButton elements={elements} />}
         {!readOnly && !locked && <HideButton elements={elements} />}
         {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
@@ -92,7 +93,7 @@ interface ButtonProps {
 function DeleteButton({ elements }: ButtonProps) {
   const { actions, id } = useFrameContext();
   return (
-    <Tooltip title="Delete">
+    <Tooltip title="Delete selected objects">
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
@@ -102,6 +103,23 @@ function DeleteButton({ elements }: ButtonProps) {
         }}
       >
         <Icon name="trash" />
+      </Button>
+    </Tooltip>
+  );
+}
+
+function DuplicateButton({ elements }: ButtonProps) {
+  const { actions, id } = useFrameContext();
+  return (
+    <Tooltip title="Duplicate selected objects">
+      <Button
+        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
+        type="text"
+        onClick={() => {
+          actions.duplicateElements(elements, id);
+        }}
+      >
+        <Icon name="clone" />
       </Button>
     </Tooltip>
   );
@@ -388,10 +406,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
         } else if (key == "duplicate") {
-          const elements0 = [...elements];
-          extendToIncludeEdges(elements, allElements);
-          copyToClipboard(elements);
-          actions.paste(frame.id, undefined, elements0);
+          actions.duplicateElements(elements);
         } else if (key == "cut") {
           extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
@@ -413,17 +428,64 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
         }
       }}
     >
-      {!readOnly && <Menu.Item key="bring-to-front">Bring to front</Menu.Item>}
-      {!readOnly && <Menu.Item key="send-to-back">Send to back</Menu.Item>}
-      {!readOnly && <Menu.Item key="cut">Cut</Menu.Item>}
-      <Menu.Item key="copy">Copy</Menu.Item>
-      {!readOnly && <Menu.Item key="paste">Paste</Menu.Item>}
-      {!readOnly && <Menu.Item key="duplicate">Duplicate</Menu.Item>}
-      {!readOnly && <Menu.Item key="delete">Delete</Menu.Item>}
-      {!readOnly && !hidden && <Menu.Item key="hide">Hide</Menu.Item>}
-      {!readOnly && hidden && <Menu.Item key="unhide">Unhide</Menu.Item>}
-      {!readOnly && !locked && <Menu.Item key="lock">Lock</Menu.Item>}
-      {!readOnly && locked && <Menu.Item key="unlock">Unlock</Menu.Item>}
+      {!readOnly && (
+        <Menu.Item key="bring-to-front">
+          <Icon name={"arrow-circle-up"} /> Bring to front
+        </Menu.Item>
+      )}
+      {!readOnly && (
+        <Menu.Item key="send-to-back">
+          <Icon name={"arrow-circle-down"} />
+          Send to back
+        </Menu.Item>
+      )}
+      {!readOnly && (
+        <Menu.Item key="cut">
+          {" "}
+          <Icon name="cut" /> Cut
+        </Menu.Item>
+      )}
+      <Menu.Item key="copy">
+        {" "}
+        <Icon name="copy" /> Copy
+      </Menu.Item>
+      {!readOnly && (
+        <Menu.Item key="paste">
+          {" "}
+          <Icon name="paste" /> Paste
+        </Menu.Item>
+      )}
+      {!readOnly && (
+        <Menu.Item key="duplicate">
+          <Icon name="clone" /> Duplicate
+        </Menu.Item>
+      )}
+      {!readOnly && (
+        <Menu.Item key="delete">
+          {" "}
+          <Icon name="trash" /> Delete
+        </Menu.Item>
+      )}
+      {!readOnly && !hidden && (
+        <Menu.Item key="hide">
+          <Icon name={"eye-slash"} /> Hide
+        </Menu.Item>
+      )}
+      {!readOnly && hidden && (
+        <Menu.Item key="unhide">
+          <Icon name={"eye"} /> Unhide
+        </Menu.Item>
+      )}
+      {!readOnly && !locked && (
+        <Menu.Item key="lock">
+          <Icon name={"lock"} /> Lock
+        </Menu.Item>
+      )}
+      {!readOnly && locked && (
+        <Menu.Item key="unlock">
+          <Icon name={"lock-open"} /> Unlock
+        </Menu.Item>
+      )}
     </Menu>
   );
 

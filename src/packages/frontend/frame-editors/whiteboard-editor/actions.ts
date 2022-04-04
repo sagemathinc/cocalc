@@ -605,7 +605,12 @@ export class Actions extends BaseActions<State> {
       input: str ?? element.str ?? "",
       id,
       set: (obj) =>
-        this.setElementData({ element, obj, commit: true, cursors: [{}] }),
+        this.setElementData({
+          element,
+          obj: { ...obj, hideOutput: false },
+          commit: true,
+          cursors: [{}],
+        }),
     });
   }
 
@@ -708,26 +713,26 @@ export class Actions extends BaseActions<State> {
   // e.g., this is used to implemented "duplicate"; otherwise,
   // pastes to the center of the viewport.
   paste(
-    frameId: string,
+    frameId?: string,
     _value?: string | true | undefined,
     nextTo?: Element[]
   ): void {
     const pastedElements = pasteFromInternalClipboard();
-    let target: Point;
+    let target: Point = { x: 0, y: 0 };
     if (nextTo != null) {
       const { x, y, w, h } = rectSpan(nextTo);
       const w2 = rectSpan(pastedElements).w;
       target = { x: x + w + w2 / 2 + DEFAULT_GAP, y: y + h / 2 };
-    } else {
+    } else if (frameId != null) {
       const viewport = this._get_frame_node(frameId)?.get("viewport")?.toJS();
       if (viewport != null) {
         target = centerOfRect(viewport);
-      } else {
-        target = { x: 0, y: 0 };
       }
     }
     const ids = this.insertElements(pastedElements, target);
-    this.setSelectionMulti(frameId, ids);
+    if (frameId != null) {
+      this.setSelectionMulti(frameId, ids);
+    }
   }
 
   centerElement(id: string, frameId?: string) {
@@ -919,6 +924,13 @@ export class Actions extends BaseActions<State> {
     if (commit) {
       this.syncstring_commit();
     }
+  }
+
+  duplicateElements(elements: Element[], frameId?: string) {
+    const elements0 = [...elements];
+    extendToIncludeEdges(elements0, this.getElements());
+    copyToClipboard(elements0);
+    this.paste(frameId, undefined, elements);
   }
 
   getGroup(group: string): Element[] {
