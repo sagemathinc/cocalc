@@ -63,7 +63,9 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
           }
           include_avatar_col={show_heads}
           get_user_name={(account_id) => get_user_name(user_map, account_id)}
-          scroll_into_view={() => windowed_list_ref?.current?.scrollToRow(i)}
+          scroll_into_view={() =>
+            windowed_list_ref?.current?.scrollToRow(i, "top")
+          }
         />
       );
     }

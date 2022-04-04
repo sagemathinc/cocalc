@@ -11,6 +11,7 @@ TODO: a lot!
  and so much more!
 */
 
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { delay } from "awaiting";
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
@@ -20,19 +21,12 @@ import {
   ReactDOM,
   useCallback,
   useEffect,
-  useFrameContext,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { fromTextArea, Editor, commands } from "codemirror";
 import { FOCUSED_COLOR } from "../util";
-import {
-  useActions,
-  useFocused,
-  useSelected,
-  useSlate,
-  useCollapsed,
-} from "./hooks";
+import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
   moveCursorDown,
   moveCursorToBeginningOfBlock,
@@ -45,8 +39,8 @@ const STYLE = {
   width: "100%",
   overflow: "auto",
   overflowX: "hidden",
-  border: "1px solid #cfcfcf",
-  borderRadius: "5px",
+  border: "1px solid #dfdfdf",
+  borderRadius: "3px",
   lineHeight: "1.21429em",
   marginBottom: "1em", // consistent with <p> tag.
 } as CSS;
@@ -81,7 +75,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const selected = useSelected();
     const editor = useSlate();
     const collapsed = useCollapsed();
-    const actions = useActions();
+    const { actions } = useFrameContext();
     const { id } = useFrameContext();
 
     const cmRef = useRef<Editor | undefined>(undefined);
@@ -125,7 +119,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
         // set the CSS to indicate this
         setCSS({
-          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          backgroundColor: options?.theme != null ? "" : "#fafafa",
           color: "",
         });
       } else {
@@ -141,7 +135,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         focusEditor();
       } else {
         setCSS({
-          backgroundColor: options?.theme != null ? "" : "#f7f7f7",
+          backgroundColor: options?.theme != null ? "" : "#fafafa",
           color: "",
         });
       }

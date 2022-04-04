@@ -30,7 +30,6 @@ import { AvailableFeatures } from "./types";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { PathNavigator } from "../explorer/path-navigator";
 
-
 interface ReactProps {
   project_id: string;
   actions: ProjectActions;
@@ -252,7 +251,6 @@ export const ProjectNewForm = rclass<ReactProps>(
     }
 
     private render_upload(): JSX.Element {
-      
       return (
         <>
           <Row style={{ marginTop: "20px" }}>
@@ -447,7 +445,8 @@ export const ProjectNewForm = rclass<ReactProps>(
                   fontSize: "16px",
                 }}
               >
-                What would you like to create?
+                What would you like to create? All documents can be
+                simultaneously edited in realtime with your collaborators.
               </div>
               <FileTypeSelector
                 create_file={this.submit}

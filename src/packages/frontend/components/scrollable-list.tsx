@@ -54,7 +54,7 @@ export default function ScrollableList({
     return <WindowedList {...(windowing as WindowedProps)} />;
   }
 
-  const [saveScrollPos] = useDebouncedCallback((event: any) => {
+  const saveScrollPos = useDebouncedCallback((event: any) => {
     if (cacheId == null) return;
     const scrollTop = event.target.scrollTop;
     if (scrollTop != null) {

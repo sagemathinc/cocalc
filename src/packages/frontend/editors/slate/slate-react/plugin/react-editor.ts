@@ -30,6 +30,7 @@ import {
 export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
+  scrollIntoDOM: (index: number) => boolean;
   scrollCaretIntoView: (options?: { middle?: boolean }) => void;
   windowedListRef: { current: any };
   scrollCaretAfterNextScroll?: boolean;
@@ -37,6 +38,7 @@ export interface ReactEditor extends Editor {
   updateHiddenChildren: () => void;
   forceUpdate: (editor: ReactEditor) => void;
   ticks: number;
+  updateDOMSelection?: () => void;
 }
 
 export const ReactEditor = {
@@ -123,6 +125,7 @@ export const ReactEditor = {
    */
 
   focus(editor: ReactEditor, force: boolean = false): void {
+    const { selection } = editor;
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
 
@@ -134,6 +137,15 @@ export const ReactEditor = {
       // checkbox in an empty document).
       el.blur();
       el.focus({ preventScroll: true });
+    }
+    if (selection != null) {
+      // I've changed the focus method to preserve the selection if there is one.
+      // Often when the editor not focused there is no selection. However,
+      // in some cases, e.g., "set the selection, then focus", like we
+      // do when using commands to move the cursors out of editing a void element,
+      // it's very important to restore the selection to where it was before
+      // focusing, since otherwise the selection is reset to the top of the document.
+      Transforms.setSelection(editor, selection);
     }
   },
 
@@ -302,8 +314,6 @@ export const ReactEditor = {
    * there is no way to create a reverse DOM Range using Range.setStart/setEnd
    * according to https://dom.spec.whatwg.org/#concept-range-bp-set.
    *
-   * IMPORTANT: This is the part of the slate range that is actually rendered
-   * in the visible virtualized window, in case of windowing.
    */
 
   toDOMRange(editor: ReactEditor, range: Range): DOMRange {
@@ -563,18 +573,18 @@ export const ReactEditor = {
   selectionIsInDOM(editor: ReactEditor): boolean {
     const { selection } = editor;
     if (selection == null) return true;
-    const info = editor.windowedListRef.current?.render_info;
-    if (info == null) return true;
-    const { overscanStartIndex, overscanStopIndex } = info;
+    const visibleRange = editor.windowedListRef.current?.visibleRange;
+    if (visibleRange == null) return true; // not using windowing or no info
+    const { startIndex, endIndex } = visibleRange;
     if (
-      selection.anchor.path[0] < overscanStartIndex ||
-      selection.anchor.path[0] > overscanStopIndex
+      selection.anchor.path[0] < startIndex ||
+      selection.anchor.path[0] > endIndex
     ) {
       return false;
     }
     if (
-      selection.focus.path[0] < overscanStartIndex ||
-      selection.focus.path[0] > overscanStopIndex
+      selection.focus.path[0] < startIndex ||
+      selection.focus.path[0] > endIndex
     ) {
       return false;
     }
@@ -582,84 +592,7 @@ export const ReactEditor = {
   },
 
   scrollIntoDOM(editor: ReactEditor, path: Path) {
-    const info = editor.windowedListRef.current?.render_info;
-    if (info == null) {
-      // not using windowing so everything is always in the DOM.
-      return;
-    }
-    const { overscanStartIndex, overscanStopIndex } = info;
-    if (path[0] >= overscanStartIndex && path[0] <= overscanStopIndex) {
-      return;
-    }
-    // This makes it so the path is to something in the DOM.
-    editor.windowedListRef.current.scrollToItem(path[0]);
-  },
-
-  // Attempt to move the cursor up or down one line on
-  // Firefox. This hossible code should only be used when windowing is being used,
-  // and is needed because windowing uses absolute positioning, which
-  // totally breaks firefox.  Another approach to this problem might be
-  // to change react-window to turn off absolutely positioning, move
-  // the cursor, then turn absolute positioning back on...
-  moveDOMCursorLineFirefox(
-    editor: ReactEditor,
-    reverse: boolean = false,
-    shift: boolean = false
-  ) {
-    const { selection } = editor;
-    if (selection == null) return; // no cursor
-    const range = ReactEditor.toDOMRange(editor, {
-      anchor: selection.focus,
-      focus: selection.focus,
-    });
-    const rect = range.getBoundingClientRect();
-    let node, offset;
-    const AMOUNT = 22;
-    const delta = reverse ? -AMOUNT - rect.height : AMOUNT; // TODO!
-    if (document["caretPositionFromPoint"] != null) {
-      const caret = document["caretPositionFromPoint"](rect.x, rect.y - delta);
-      if (caret == null) return;
-      node = caret.offsetNode;
-      offset = caret.offset;
-    } else {
-      // not supported
-      return;
-    }
-
-    let focus;
-    try {
-      focus = ReactEditor.toSlatePoint(editor, [node, offset]);
-    } catch (_err) {
-      // This would happen, e.g., if we tried to move the cursor outside of the editor.
-      return;
-    }
-
-    // If the focus point is a text node in a void element, move focus to
-    // that void element. This happens e.g. when moving onto a void element
-    // and if we don't fix it, then the cursor disappears and is stuck.
-    const p = Node.parent(editor, focus.path);
-    if (Editor.isVoid(editor, p)) {
-      focus.path = Path.parent(focus.path);
-      focus.offset = 0;
-    }
-
-    if (
-      Math.abs(selection.focus.path[0] - focus.path[0]) > 1 ||
-      Point.equals(selection.focus, focus)
-    ) {
-      // something went awry, so we fallback to the slate internal
-      // move code, which doesn't know about the DOM, but is better
-      // than nothing.
-      const edge = shift && !Range.isCollapsed(selection) ? "focus" : undefined;
-      Transforms.move(editor, { distance: 1, unit: "line", reverse, edge });
-      return;
-    }
-    if (!shift && Range.isCollapsed(selection)) {
-      Transforms.setSelection(editor, { anchor: focus, focus });
-    } else {
-      // only change focus point
-      Transforms.setSelection(editor, { focus });
-    }
+    editor.scrollIntoDOM(path[0]);
   },
 
   forceUpdate(editor: ReactEditor) {

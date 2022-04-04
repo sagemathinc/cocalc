@@ -41,9 +41,32 @@ import { formatHeading, setSelectionAndFocus } from "./commands";
 const linkify = require("linkify-it")();
 
 export const withInsertText = (editor) => {
-  const { insertText } = editor;
+  const { insertText: insertText0 } = editor;
+
+  const insertText = (text) => {
+    if (editor.marks) {
+      // This case is to work around a strange bug that I don't know how to fix.
+      // If you type in a blank document:
+      //   command+b then "foo"
+      // you will see "oof" in bold.  This happens in many other situations, where
+      // initially when you insert a character in a blank paragraph with a mark, the
+      // cursor doesn't move.  I don't know why.  We thus check after inserting
+      // text that the focus moves, and if not, we move it.
+      const { selection } = editor;
+      insertText0(text);
+      if (
+        editor.selection != null &&
+        editor.selection.focus.offset == selection?.focus.offset
+      ) {
+        Transforms.move(editor, { distance: 1 });
+      }
+    } else {
+      insertText0(text);
+    }
+  };
 
   editor.insertText = (text, autoFormat?) => {
+    if (!text) return;
     if (linkify.test(text)) {
       // inserting a link somehow, e.g., by pasting.  Instead,
       // create a link node instead of plain text.
@@ -70,6 +93,7 @@ export const withInsertText = (editor) => {
         return;
       }
     }
+
     insertText(text);
   };
 
@@ -86,15 +110,20 @@ function markdownAutoformat(editor: SlateEditor): boolean {
   if (!Text.isText(node)) return false;
 
   let r: boolean | Function = false;
-  Editor.withoutNormalizing(editor, () => {
-    editor.apply({
-      type: "split_node",
-      path: selection.focus.path,
-      position: selection.focus.offset - 1,
-      properties: node, // important to preserve text properties on split (seems fine to leave text field)
+  try {
+    Editor.withoutNormalizing(editor, () => {
+      editor.apply({
+        type: "split_node",
+        path: selection.focus.path,
+        position: selection.focus.offset - 1,
+        properties: node, // important to preserve text properties on split (seems fine to leave text field)
+      });
+      r = markdownAutoformatAt(editor, selection.focus.path);
     });
-    r = markdownAutoformatAt(editor, selection.focus.path);
-  });
+  } catch (err) {
+    console.warn(`SLATE -- issue in markdownAutoformat ${err}`);
+  }
+
   if (typeof r == "function") {
     // code to run after normalizing.
     // @ts-ignore
@@ -157,9 +186,11 @@ function markdownAutoformatAt(
       start = Math.min(i - 1, start);
     }
   } else {
-    for (const mark of ["`", "**", "*", "_", "~~"]) {
-      if (text0.endsWith(mark)) {
-        const i = text.lastIndexOf(mark, text0.length - mark.length - 1);
+    // The text formatting markers and *also* math formatting.
+    // Note that $$ is first since $ would match it.
+    for (const delim of ["`", "**", "*", "_", "~~", "$$", "$"]) {
+      if (text0.endsWith(delim)) {
+        const i = text.lastIndexOf(delim, text0.length - delim.length - 1);
         if (i != -1) {
           start = Math.min(i - 1, start);
           break;
@@ -280,8 +311,8 @@ function shift_path(op: Operation, shift: number): void {
 
 // This is pretty scary, but I need it especially in the weird case
 // where you insert a checkbox in an empty document and everything
-// looses focus.
-// This is a SCARY function so please don't export it.
+// loses focus.
+// This is a SCARY function..
 export function focusEditorAt(editor: ReactEditor, point: Point): void {
   setSelectionAndFocus(editor, { focus: point, anchor: point });
 }

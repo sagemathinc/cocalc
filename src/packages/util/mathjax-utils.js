@@ -164,12 +164,38 @@ exports.remove_math = remove_math;
 //
 //  Put back the math strings that were saved.
 //
-function replace_math(text, math) {
+function replace_math(text, math, tags) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
-  return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
-    return math[n];
-  });
+  if (tags == null) {
+    // Easy to do with a regexp
+    return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
+      return math[n];
+    });
+  } else {
+    // harder since tags could be anything.
+    // We assume that tags.display_open doesn't match tags.open and similarly with close,
+    // e.g., the display one is more complicated.
+    // .split might be faster...?
+    while (true) {
+      const i = text.indexOf(tags.display_open);
+      if (i == -1) break;
+      const j = text.indexOf(tags.display_close);
+      if (j == -1) break;
+      const n = parseInt(text.slice(i + tags.display_open.length, j));
+      text =
+        text.slice(0, i) + math[n] + text.slice(j + tags.display_close.length);
+    }
+    while (true) {
+      const i = text.indexOf(tags.open);
+      if (i == -1) break;
+      const j = text.indexOf(tags.close);
+      if (j == -1) break;
+      const n = parseInt(text.slice(i + tags.open.length, j));
+      text = text.slice(0, i) + math[n] + text.slice(j + tags.close.length);
+    }
+    return text;
+  }
 }
 
 exports.replace_math = replace_math;

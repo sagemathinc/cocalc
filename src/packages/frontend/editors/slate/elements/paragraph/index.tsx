@@ -12,7 +12,7 @@ export interface Paragraph extends SlateElement {
 register({
   slateType: "paragraph",
 
-  toSlate: ({ token, children, markdown, cache, state }) => {
+  toSlate: ({ token, children, state }) => {
     if (token.hidden) {
       // this is how markdown-it happens to encode the
       // idea of a "tight list"; it wraps the items
@@ -23,13 +23,7 @@ register({
       // precedence.
       state.tight = true;
     }
-    const x = { type: "paragraph", children } as Paragraph;
-
-    if (markdown != null && cache != null) {
-      cache[JSON.stringify(x)] = markdown;
-    }
-
-    return x;
+    return { type: "paragraph", children } as Paragraph;
   },
 
   StaticElement: ({ attributes, children, element }) => {

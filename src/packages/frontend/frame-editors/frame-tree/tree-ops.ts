@@ -22,7 +22,7 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
     return tree;
   }
   let done = false;
-  var process = function (node) {
+  const process = (node) => {
     if (node == null || done) {
       return node;
     }
@@ -31,7 +31,12 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
       for (const k in obj) {
         const v = obj[k];
         if (k !== "id") {
-          node = node.set(k, fromJS(v));
+          if (v == null) {
+            // null or undefined means "delete", just like with syncdb
+            node = node.delete(k);
+          } else {
+            node = node.set(k, fromJS(v));
+          }
         }
       }
       done = true;

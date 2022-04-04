@@ -13,6 +13,9 @@ export function emptyParagraph() {
   } as Descendant;
 }
 
+export const EMPTY_PARAGRAPH = emptyParagraph(); // don't mutate this; won't work.
+Object.freeze(EMPTY_PARAGRAPH);
+
 export function isWhitespaceParagraph(node: Node | undefined): boolean {
   return (
     node != null &&

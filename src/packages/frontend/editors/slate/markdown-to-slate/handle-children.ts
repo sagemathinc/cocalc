@@ -20,7 +20,11 @@ function handleChildren({ token, state, cache }) {
 
   // Parse all the children with own state, partly inherited
   // from us (e.g., the text marks).
-  const child_state: State = { marks: { ...state.marks }, nesting: 0 };
+  const child_state: State = {
+    marks: { ...state.marks },
+    nesting: 0,
+    lines: state.lines,
+  };
   const children: Descendant[] = [];
   for (const token2 of token.children) {
     for (const node of parse(token2, child_state, cache)) {

@@ -45,7 +45,7 @@ import {
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 export class TaskActions extends Actions<TaskState> {
-  private syncdb: SyncDB;
+  public syncdb: SyncDB;
   private project_id: string;
   private path: string;
   private store: TaskStore;
@@ -434,7 +434,8 @@ export class TaskActions extends Actions<TaskState> {
   public set_task(
     task_id?: string,
     obj?: object,
-    setState: boolean = false
+    setState: boolean = false,
+    save: boolean = true // make new commit to syncdb state
   ): void {
     if (obj == null || this.is_closed) {
       return;
@@ -463,7 +464,9 @@ export class TaskActions extends Actions<TaskState> {
 
     obj["task_id"] = task_id;
     this.syncdb.set(obj);
-    this.syncdb.commit();
+    if (save) {
+      this.commit();
+    }
     if (setState) {
       // also set state directly in the tasks object locally
       // **immediately**; this would happen
@@ -571,6 +574,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public set_current_task(task_id: string): void {
+    if (this.store.get("current_task_id") == task_id) return;
     this.setState({ current_task_id: task_id });
     this.scroll_into_view();
   }
@@ -605,7 +609,7 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.undo();
-    this.syncdb.commit();
+    this.commit();
   }
 
   public redo(): void {
@@ -613,6 +617,10 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.redo();
+    this.commit();
+  }
+
+  public commit(): void {
     this.syncdb.commit();
   }
 
@@ -656,6 +664,14 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public edit_desc(task_id: string | undefined): void {
+    // close any that were currently in edit state before opening new one
+    const local = this.store.get("local_task_state");
+    for (const [id, state] of local) {
+      if (state.get("editing_desc")) {
+        this.stop_editing_desc(id);
+      }
+    }
+
     this.set_local_task_state(task_id, { editing_desc: true });
   }
 
@@ -666,8 +682,16 @@ export class TaskActions extends Actions<TaskState> {
     this.set_task(task_id, { due_date: date });
   }
 
-  public set_desc(task_id: string | undefined, desc: string): void {
-    this.set_task(task_id, { desc });
+  public set_desc(
+    task_id: string | undefined,
+    desc: string,
+    save: boolean = true
+  ): void {
+    this.set_task(task_id, { desc }, false, save);
+  }
+
+  public set_color(task_id: string, color: string, save: boolean = true): void {
+    this.set_task(task_id, { color }, false, save);
   }
 
   public toggle_full_desc(task_id: string | undefined): void {

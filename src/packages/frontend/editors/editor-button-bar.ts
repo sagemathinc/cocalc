@@ -31,6 +31,7 @@ export const FONT_FACES = [
   "Courier",
   "Courier New",
   "Comic Sans MS",
+  "Cursive",
   "Georgia",
   "Helvetica",
   "Impact",

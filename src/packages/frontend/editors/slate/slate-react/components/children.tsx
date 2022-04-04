@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
@@ -8,7 +8,7 @@ import { useSlateStatic } from "../hooks/use-slate-static";
 import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
-import { WindowedList } from "@cocalc/frontend/components";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { shallowCompare } from "@cocalc/util/misc";
 import { SlateEditor } from "../../editable-markdown";
 
@@ -57,19 +57,22 @@ const Children: React.FC<Props> = React.memo(
       console.warn("WARNING: unable to find path to node", node, err);
       return <></>;
     }
+    //console.log("render Children", path);
+
     const isLeafBlock =
       Element.isElement(node) &&
       !editor.isInline(node) &&
       Editor.hasInlines(editor, node);
 
-    const renderChild = ({ index }) => {
+    const renderChild = ({ index }: { index: number }) => {
+      //console.log("renderChild", index, JSON.stringify(selection));
       // When windowing, we put a margin at the top of the first cell
       // and the bottom of the last cell.  This makes sure the scroll
       // bar looks right, which it would not if we put a margin around
       // the entire list.
       let marginTop: string | undefined = undefined;
       let marginBottom: string | undefined = undefined;
-      if (path?.length === 0 && windowing != null) {
+      if (windowing != null) {
         if (windowing.marginTop && index === 0) {
           marginTop = windowing.marginTop;
         } else if (
@@ -79,12 +82,13 @@ const Children: React.FC<Props> = React.memo(
           marginBottom = windowing.marginBottom;
         }
       }
+
       if (hiddenChildren?.has(index)) {
         // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
         // appears when scrolling and allowing that breaks everything (for now!).
         return (
           <div
-            style={{ height: "0.1px", marginTop, marginBottom }}
+            style={{ height: "1px", marginTop, marginBottom }}
             contentEditable={false}
           />
         );
@@ -146,35 +150,66 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    if (path?.length === 0 && windowing != null) {
-      // top level and using windowing!
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+    // see https://github.com/petyosi/react-virtuoso/issues/274
+    const handleScrollerRef = useCallback((ref) => {
+      scrollerRef.current = ref;
+    }, []);
+    if (windowing != null) {
+      // using windowing
+
+      // This is slightly awkward since when splitting frames, the component
+      // gets unmounted and then mounted again, in which case editor.windowedListRef.current
+      // does not get set to null, so we need to write the new virtuosoRef;
+      if (editor.windowedListRef.current == null) {
+        editor.windowedListRef.current = {};
+      }
+      editor.windowedListRef.current.virtuosoRef = virtuosoRef;
+      editor.windowedListRef.current.scrollerRef = scrollerRef;
+
+      // NOTE: the code for preserving scroll position when editing assumes
+      // the visibleRange really is *visible*.  Thus if you mess with overscan
+      // or related properties below, that will likely break.
       return (
-        <WindowedList
-          ref={editor.windowedListRef}
-          render_info={true}
-          row_count={node.children.length}
-          row_renderer={renderChild}
-          overscan_row_count={windowing.overscanRowCount ?? 3}
-          estimated_row_size={windowing.estimatedRowSize ?? 60}
-          row_size_estimator={
-            windowing.rowSizeEstimator
-              ? (index) => {
-                  return node.children[index] != null
-                    ? windowing.rowSizeEstimator?.(node.children[index])
-                    : undefined;
-                }
-              : undefined
+        <Virtuoso
+          ref={virtuosoRef}
+          scrollerRef={handleScrollerRef}
+          onScroll={onScroll}
+          className="smc-vfill"
+          totalCount={node.children.length}
+          itemContent={(index) => (
+            <div style={windowing.rowStyle}>{renderChild({ index })}</div>
+          )}
+          computeItemKey={(index) =>
+            ReactEditor.findKey(editor, node.children[index])?.id ?? `${index}`
           }
-          row_key={(index) => `${index}`}
-          row_style={windowing.rowStyle}
-          on_scroll={onScroll}
+          rangeChanged={(visibleRange) => {
+            editor.windowedListRef.current.visibleRange = visibleRange;
+          }}
+          itemsRendered={(items) => {
+            const scrollTop = scrollerRef.current?.scrollTop ?? 0;
+            // need both items, since may use first if there is no second...
+            editor.windowedListRef.current.firstItemOffset =
+              scrollTop - items[0]?.offset;
+            editor.windowedListRef.current.secondItemOffset =
+              scrollTop - items[1]?.offset;
+          }}
         />
       );
     } else {
       // anything else -- just render the children
       const children: JSX.Element[] = [];
       for (let index = 0; index < node.children.length; index++) {
-        children.push(renderChild({ index }));
+        try {
+          children.push(renderChild({ index }));
+        } catch (err) {
+          console.warn(
+            "SLATE -- issue in renderChild",
+            node.children[index],
+            err
+          );
+        }
       }
 
       return <>{children}</>;
@@ -193,3 +228,26 @@ const Children: React.FC<Props> = React.memo(
 );
 
 export default Children;
+
+/*
+function getCursorY(): number | null {
+  const sel = getSelection();
+  if (sel == null || sel.rangeCount == 0) {
+    return null;
+  }
+  return sel.getRangeAt(0)?.getBoundingClientRect().y;
+}
+
+function preserveCursorScrollPosition() {
+  const before = getCursorY();
+  if (before === null) return;
+  requestAnimationFrame(() => {
+    const after = getCursorY();
+    if (after === null) return;
+    const elt = $('[data-virtuoso-scroller="true"]');
+    if (elt) {
+      elt.scrollTop((elt.scrollTop() ?? 0) + (after - before));
+    }
+  });
+}
+*/

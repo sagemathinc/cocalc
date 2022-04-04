@@ -8,7 +8,7 @@
 export { IS_MACOS } from "@cocalc/frontend/feature";
 
 import { SlateEditor } from "../editable-markdown";
-import { Actions } from "@cocalc/frontend/frame-editors/markdown-editor/actions";
+import { Actions } from "../types";
 import { SearchHook } from "../search";
 
 interface Key {
@@ -32,7 +32,7 @@ function KeyToString(k: Key): string {
 // or false-ish to fallback to default behavior.
 export type KeyHandler = (opts: {
   editor: SlateEditor;
-  extra: { actions: Actions; id: string; search:SearchHook };
+  extra: { actions: Actions; id: string; search: SearchHook };
 }) => boolean;
 
 const keyHandlers: { [x: string]: KeyHandler } = {};

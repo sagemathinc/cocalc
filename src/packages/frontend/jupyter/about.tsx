@@ -94,6 +94,10 @@ export const About: React.FC<AboutProps> = React.memo((props: AboutProps) => {
           <b>Snippets:</b> code samples for many kernels
         </li>
         <li>
+          <b>Whiteboard:</b> create a whiteboard (documented ending in ".board")
+          and use Jupyter cells as part of your whiteboard
+        </li>
+        <li>
           <b>Zoom:</b> easily change font size
         </li>
         <li>

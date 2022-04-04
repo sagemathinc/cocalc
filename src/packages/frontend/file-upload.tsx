@@ -156,9 +156,9 @@ interface FileUploadWrapperProps {
   dest_path: string; // The path for files to be sent
   config?: object; // All supported dropzone.js config options
   event_handlers: {
-    complete?: Function;
-    sending?: Function;
-    removedfile?: Function;
+    complete?: Function | Function[];
+    sending?: Function | Function[];
+    removedfile?: Function | Function[];
   };
   preview_template?: Function; // See http://www.dropzonejs.com/#layout
   show_upload?: boolean; // Whether or not to show upload area
@@ -168,6 +168,7 @@ interface FileUploadWrapperProps {
   dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
   className?: string;
+  trackMouse?: boolean; // if true, report mouse location as second arg to event handlers, so you know where something was dropped.
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
@@ -180,6 +181,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   const preview_ref = useRef(null);
   const zone_ref = useRef(null);
   const dropzone = useRef<Dropzone | null>(null);
+  const mouseEvt = useRef<any>(null);
 
   function get_djs_config() {
     // NOTE: Chunking is absolutely critical to get around hard limits in cloudflare!!
@@ -346,21 +348,21 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
     for (const name in props.event_handlers) {
       // Check if there's an array of event handlers
-      const handlers = props.event_handlers[name];
-      if (is_array(handlers)) {
-        for (let handler of handlers) {
-          // Check if it's an init handler
-          if (handler === "init") {
-            handler(dropzone.current);
+      let handlers = props.event_handlers[name];
+      if (!is_array(handlers)) {
+        handlers = [handlers];
+      }
+      for (let handler of handlers) {
+        if (name === "init") {
+          // Init handler:
+          handler(dropzone.current);
+        } else {
+          // Event handler
+          if (props.trackMouse) {
+            dropzone.current.on(name, (e) => handler(e, mouseEvt.current));
           } else {
             dropzone.current.on(name, handler);
           }
-        }
-      } else {
-        if (name === "init") {
-          handlers(dropzone.current);
-        } else {
-          dropzone.current.on(name, handlers);
         }
       }
     }
@@ -399,7 +401,18 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }
 
   return (
-    <div style={props.style} ref={zone_ref} className={props.className}>
+    <div
+      style={props.style}
+      ref={zone_ref}
+      className={props.className}
+      onMouseMove={
+        props.trackMouse
+          ? (evt) => {
+              mouseEvt.current = evt;
+            }
+          : undefined
+      }
+    >
       {!disabled ? render_preview() : undefined}
       {props.children}
     </div>

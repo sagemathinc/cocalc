@@ -57,10 +57,30 @@ export function setCursor(editor: ReactEditor, point: Point) {
   Transforms.setSelection(editor, { anchor: point, focus: point });
 }
 
+function move(editor: Editor, options?): void {
+  try {
+    Transforms.move(editor, options);
+  } catch (err) {
+    // I saw this once when moving the cursor, and don't think it is worth crashing
+    // the editor completely.
+    console.warn(`Slate: issue moving cursor -- ${err}`);
+    resetSelection(editor);
+  }
+}
+
+export function resetSelection(editor: Editor) {
+  // set to beginning of document -- better than crashing.
+  const focus = { path: [0, 0], offset: 0 };
+  Transforms.setSelection(editor, {
+    focus,
+    anchor: focus,
+  });
+}
+
 export function moveCursorDown(editor: Editor, force: boolean = false): void {
   const focus = editor.selection?.focus;
   if (focus == null) return;
-  Transforms.move(editor, { distance: 1, unit: "line" });
+  move(editor, { distance: 1, unit: "line" });
   if (!force) return;
   const newFocus = editor.selection?.focus;
   if (newFocus == null) return;
@@ -72,7 +92,7 @@ export function moveCursorDown(editor: Editor, force: boolean = false): void {
       path: [editor.children.length],
       node: emptyParagraph(),
     });
-    Transforms.move(editor, { distance: 1, unit: "line" });
+    move(editor, { distance: 1, unit: "line" });
     return;
   }
   ensureCursorNotBlocked(editor);
@@ -81,7 +101,7 @@ export function moveCursorDown(editor: Editor, force: boolean = false): void {
 export function moveCursorUp(editor: Editor, force: boolean = false): void {
   const focus = editor.selection?.focus;
   if (focus == null) return;
-  Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+  move(editor, { distance: 1, unit: "line", reverse: true });
   if (!force) return;
   const newFocus = editor.selection?.focus;
   if (newFocus == null) return;
@@ -93,7 +113,7 @@ export function moveCursorUp(editor: Editor, force: boolean = false): void {
       path: [0],
       node: emptyParagraph(),
     });
-    Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+    move(editor, { distance: 1, unit: "line", reverse: true });
   }
   ensureCursorNotBlocked(editor, true);
 }
@@ -252,7 +272,8 @@ export function isAtBeginningOfBlock(
 }
 
 // True if point is at the end of the containing block
-// that it is in (or top level block if mode='highest')
+// that it is in (or top level block if mode='highest').
+// Also, return false if "at" is not valid.
 export function isAtEndOfBlock(
   editor: Editor,
   options: { at?: Point; mode?: "lowest" | "highest" }
@@ -263,7 +284,13 @@ export function isAtEndOfBlock(
     at = editor.selection?.focus;
     if (at == null) return false;
   }
-  const after = Editor.after(editor, at);
+  let after;
+  try {
+    after = Editor.after(editor, at);
+  } catch (_) {
+    // if "at" is no longer valid for some reason.
+    return false;
+  }
   if (after == null) {
     // at end of the entire document, so definitely at the end of the block
     return true;

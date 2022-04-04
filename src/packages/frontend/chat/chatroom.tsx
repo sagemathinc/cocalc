@@ -325,8 +325,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <ChatInput
-              project_id={project_id}
-              path={path}
               input={input}
               on_send={on_send}
               height={INPUT_HEIGHT}

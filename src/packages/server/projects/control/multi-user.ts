@@ -41,7 +41,7 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
 
-const winston = getLogger("project-control:single-user");
+const winston = getLogger("project-control:multi-user");
 
 const MAX_START_TIME_MS = 30000;
 const MAX_STOP_TIME_MS = 20000;

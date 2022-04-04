@@ -51,9 +51,8 @@ export const Avatar: React.FC<Props> = (props) => {
   // we use the user_map to display the username and face:
   const user_map = useTypedRedux("users", "user_map");
   const [image, set_image] = useState<string | undefined>(undefined);
-  const [background_color, set_background_color] = useState<string>(
-    DEFAULT_COLOR
-  );
+  const [background_color, set_background_color] =
+    useState<string>(DEFAULT_COLOR);
 
   useAsyncEffect(
     async (isMounted) => {
@@ -95,6 +94,15 @@ export const Avatar: React.FC<Props> = (props) => {
         redux.getProjectActions(project_id).open_file({ path });
         return;
       case "file":
+        const actions = redux.getEditorActions(project_id, path);
+        const gotoUser = actions["gotoUser"];
+        if (gotoUser != null) {
+          // This is at least implemented for the whiteboard (which doesn't
+          // have a good notion of lines), but should be done more
+          // generally, replacing the stuff below about cursor_line...
+          gotoUser(props.account_id);
+          return;
+        }
         var line = get_cursor_line();
         if (line != null) {
           redux.getProjectActions(project_id).goto_line(path, line);

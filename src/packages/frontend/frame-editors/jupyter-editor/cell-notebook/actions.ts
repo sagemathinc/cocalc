@@ -23,8 +23,17 @@ import {
   commands,
   CommandDescription,
 } from "@cocalc/frontend/jupyter/commands";
-import { EditorFunctions } from "@cocalc/frontend/jupyter/codemirror-editor";
 import { isEqual } from "lodash";
+
+export interface EditorFunctions {
+  save?: () => string | undefined;
+  set_cursor?: (pos: { x?: number; y?: number }) => void;
+  tab_key?: () => void;
+  shift_tab_key?: () => void;
+  refresh?: () => void;
+  get_cursor?: () => { line: number; ch: number };
+  get_cursor_xy?: () => { x: number; y: number };
+}
 
 declare let DEBUG: boolean;
 
@@ -764,9 +773,8 @@ export class NotebookFrameActions {
 
   public split_current_cell(): void {
     const cur_id = this.store.get("cur_id");
-    const editor = this.input_editors[cur_id];
-    if (editor == null) return; // no cursor, no split.
-    const cursor = editor.get_cursor();
+    const cursor = this.input_editors[cur_id]?.get_cursor?.();
+    if (cursor == null) return; // no cursor, no split.
     this.jupyter_actions.split_cell(cur_id, cursor);
   }
 
@@ -805,9 +813,10 @@ export class NotebookFrameActions {
   public move_edit_cursor(delta: 1 | -1): void {
     const editor = this.input_editors[this.store.get("cur_id")];
     if (editor == null) return;
-    const xy = editor.get_cursor_xy();
+    const xy = editor.get_cursor_xy?.();
+    if (xy == null) return;
     xy.y += delta;
-    editor.set_cursor(xy);
+    editor.set_cursor?.(xy);
   }
 
   // Run all cells strictly above the current cursor position.
@@ -912,7 +921,16 @@ export class NotebookFrameActions {
 
   public refresh(): void {
     for (const id in this.input_editors) {
-      this.input_editors[id].refresh();
+      this.input_editors[id]?.refresh?.();
     }
+  }
+
+  adjacentCell(y: number, delta: number): void {
+    this.move_cursor(delta);
+    this.set_input_editor_cursor(this.store.get("cur_id"), {
+      x: 0,
+      y,
+    });
+    this.scroll("cell visible");
   }
 }

@@ -19,7 +19,12 @@ the old viewer, which is a convenient fallback if somebody needs it for some rea
 import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
-import { filename_extension, keys, path_split, meta_file } from "@cocalc/util/misc";
+import {
+  filename_extension,
+  keys,
+  path_split,
+  meta_file,
+} from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import {
@@ -261,6 +266,17 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         }
         actions.set_frame_tree({ id, version0, version1 });
       }
+      return;
+    }
+  }
+
+  public setTextMode(id: string, text_mode: boolean): void {
+    for (const actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node == null) continue;
+      text_mode = !!text_mode;
+      actions.set_frame_tree({ id, text_mode });
       return;
     }
   }

@@ -51,7 +51,7 @@ function toSlate({ token }) {
     fence: token.type == "fence",
     value,
     info,
-    children: [{ text: " " }],
+    children: [{ text: "" }],
   } as Element;
 }
 
