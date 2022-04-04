@@ -23,8 +23,8 @@ echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
-const DEBUG = true; // only for extreme deebugging.
-//const DEBUG = false; // normal mode
+// const DEBUG = true; // only for extreme debugging.
+const DEBUG = false; // normal mode
 if (DEBUG) {
   console.log("Enabling low level Jupyter kernel debugging.");
 }
