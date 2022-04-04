@@ -796,6 +796,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             !disableWindowing
               ? undefined
               : {
+                  height,
                   position: "relative", // CRITICAL!!! Without this, editor will sometimes scroll the entire frame off the screen.  Do NOT delete position:'relative'.  5+ hours of work to figure this out!  Note that this isn't needed when using windowing above.
                   minWidth: "80%",
                   padding: "70px",

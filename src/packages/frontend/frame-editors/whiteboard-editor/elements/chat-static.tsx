@@ -6,6 +6,7 @@ import { Comment } from "antd";
 import { Element } from "../types";
 import { cmp } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import useWheel from "./scroll-wheel";
 
 export default function ChatStatic({ element }: { element: Element }) {
   return (
@@ -49,6 +50,8 @@ export function ChatLog({
   Message: FC<{ element: Element; messageId: number | string }>;
 }) {
   const divRef = useRef(null);
+  useWheel(divRef);
+
   useEffect(() => {
     const elt = ReactDOM.findDOMNode(divRef.current) as any;
     if (elt) {

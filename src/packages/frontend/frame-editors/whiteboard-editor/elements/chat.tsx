@@ -15,7 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { delay } from "awaiting";
-import { useWheel } from "@use-gesture/react";
+import useWheel from "./scroll-wheel";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -79,18 +79,10 @@ function Conversation({ element, focused }: Props) {
     [saveChat]
   );
   const divRef = useRef<any>(null);
-  useWheel(
-    (state) => {
-      state.event.stopPropagation();
-    },
-    {
-      target: divRef,
-      eventOptions: { passive: false, capture: true },
-    }
-  );
+  useWheel(divRef);
 
   return (
-    <div style={getChatStyle(element)} ref={divRef}>
+    <div style={getChatStyle(element)}>
       <ChatLog
         Message={Message}
         element={element}
@@ -103,6 +95,7 @@ function Conversation({ element, focused }: Props) {
       <Composing element={element} focused={focused} />
       {(focused || len(element.data) === 0) && (
         <div
+          ref={divRef}
           style={{ height: "125px", display: "flex" }}
           className={editFocus ? "nodrag" : undefined}
           onClick={() => {

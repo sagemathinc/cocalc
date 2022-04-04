@@ -11,7 +11,7 @@ import { useAsyncEffect } from "use-async-effect";
 import { getMode } from "./actions";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
-import { useWheel } from "@use-gesture/react";
+import useWheel from "../scroll-wheel";
 
 interface Props {
   element: Element;
@@ -55,16 +55,8 @@ export default function Code({
     }
     return <InputStatic element={element} mode={mode} />;
   };
-  const divRef = useRef<any>(null);
-  useWheel(
-    (state) => {
-      state.event.stopPropagation();
-    },
-    {
-      target: divRef,
-      eventOptions: { passive: false, capture: true },
-    }
-  );
+  const divRef = useRef(null);
+  useWheel(divRef);
 
   return (
     <div ref={divRef} style={getStyle(element)}>
