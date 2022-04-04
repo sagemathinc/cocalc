@@ -97,12 +97,15 @@ export function li_indent(s: string, amount: number = 2): string {
   }
 }
 
-export function ensure_ends_in_newline(s: string): string {
+// Ensure that s ends in **exactly one** newline.
+export function ensure_ends_in_exactly_one_newline(s: string): string {
   if (s[s.length - 1] != "\n") {
     return s + "\n";
-  } else {
-    return s;
   }
+  while (s[s.length - 2] == "\n") {
+    s = s.slice(0, s.length - 1);
+  }
+  return s;
 }
 
 export function ensure_ends_in_two_newline(s: string): string {
