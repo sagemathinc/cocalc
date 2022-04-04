@@ -19,10 +19,12 @@ interface Props {
 export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
   const [edit, setEdit] = useState<boolean>(false);
   const [saveValue, setSaveValue] = useState<string>("");
-  let body;
 
   const icon = (
-    <a onClick={() => (linkURL ? open_new_tab(linkURL) : undefined)}>
+    <a
+      onClick={() => (linkURL ? open_new_tab(linkURL) : undefined)}
+      style={{ marginRight: "5px" }}
+    >
       <Icon name="link" />
     </a>
   );
@@ -30,10 +32,13 @@ export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
     return <></>;
   }
   if (edit) {
-    body = (
+    return (
       <Input
         autoFocus
-        style={{ width: "100%", maxWidth: "50ex" }}
+        style={{
+          width: "100%",
+          maxWidth: "50ex",
+        }}
         addonBefore={icon}
         addonAfter={
           saveValue == linkURL ? (
@@ -53,24 +58,24 @@ export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
       />
     );
   } else {
-    body = (
+    return (
       <div
         onClick={() => setEdit(true)}
         style={{
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",
-          padding: "0 10px",
+          padding: "0 5px",
+          margin: "0 5px",
           borderLeft: "1px solid lightgray",
           borderRight: "1px solid lightgray",
           maxWidth: "50ex",
-          color: !linkURL ? "#999" : undefined,
+          opacity: !linkURL ? "0.5" : undefined,
+          color: "#666",
         }}
       >
         {icon} {linkURL ? linkURL : "Link target..."}
       </div>
     );
   }
-
-  return <div style={{ flex: 1 }}>{body}</div>;
 };

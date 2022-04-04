@@ -40,7 +40,7 @@ interface MarksBarProps {
   editor: SlateEditor;
 }
 
-const MARKS : IconName[] = [
+const MARKS: IconName[] = [
   "bold",
   "italic",
   "underline",
@@ -62,5 +62,9 @@ export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
       />
     );
   }
-  return <div style={{ paddingRight: "10px", flex:1 }}>{v}</div>;
+  return (
+    <div style={{ paddingRight: "10px", flex: 1, whiteSpace: "nowrap" }}>
+      {v}
+    </div>
+  );
 };
