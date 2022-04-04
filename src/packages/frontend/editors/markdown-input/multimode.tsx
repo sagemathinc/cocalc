@@ -66,8 +66,6 @@ interface Props {
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  lineWrapping?: boolean; // only for source codemirror text mode
-  lineNumbers?: boolean; // only for source codemirror text mode
   saveDebounceMs?: number;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -85,8 +83,7 @@ interface Props {
   cursors?: ImmutableMap<string, any>;
   noVfill?: boolean;
   editorDivRef?: RefObject<HTMLDivElement>; // if in slate "editor" mode, this is the top-level div
-  cmOptions?: { [key: string]: any }; // used for codemirror options instead of anything above, e.g,. lineNumbers
-
+  cmOptions?: { [key: string]: any }; // used for codemirror options override above and account settings
   // It is important to handle all of these, rather than trying to rely
   // on some global keyboard shortcuts.  E.g., in vim mode codemirror,
   // user types ":w" in their editor and whole document should save
@@ -134,8 +131,6 @@ export default function MultiMarkdownInput({
   onUploadEnd,
   submitMentionsRef,
   extraHelp,
-  lineWrapping,
-  lineNumbers,
   saveDebounceMs,
   hideHelp,
   onBlur,
@@ -310,8 +305,6 @@ export default function MultiMarkdownInput({
           onShiftEnter={onShiftEnter}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
-          lineWrapping={lineWrapping}
-          lineNumbers={lineNumbers}
           cmOptions={cmOptions}
           height={height}
           instructionsStyle={editBarStyle}
