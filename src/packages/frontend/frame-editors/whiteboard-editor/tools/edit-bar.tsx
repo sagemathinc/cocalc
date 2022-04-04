@@ -435,8 +435,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
       )}
       {!readOnly && (
         <Menu.Item key="send-to-back">
-          <Icon name={"arrow-circle-down"} />
-          Send to back
+          <Icon name={"arrow-circle-down"} /> Send to back
         </Menu.Item>
       )}
       {!readOnly && (
