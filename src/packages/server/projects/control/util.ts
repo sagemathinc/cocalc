@@ -166,7 +166,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   for (const key in env2) {
     if (
       key.startsWith("COCALC_") ||
-      key.startsWith("/root") ||
+      env2[key]?.startsWith("/root") ||
       env2[key] == null
     ) {
       delete env2[key];
