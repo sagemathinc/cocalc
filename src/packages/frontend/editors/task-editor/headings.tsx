@@ -78,7 +78,14 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
       // We hide the done column though since it overlaps and we can't
       // sort by that.
       return (
-        <Row style={{ borderBottom: "1px solid lightgray" }}>
+        <Row style={{ borderBottom: "1px solid lightgray", marginLeft: "8px" }}>
+          <Col
+            xs={1}
+            style={{ color: "#666", textAlign: "center" }}
+            className={"visible-sm-inline visible-md-inline visible-lg-inline"}
+          >
+            Done
+          </Col>
           <Col xs={1} style={{ color: "#666", textAlign: "center" }}></Col>
           <Col xs={6} style={{ color: "#666" }}>
             Description
@@ -100,13 +107,6 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
               HEADINGS[2],
               column === HEADINGS[2] ? dir : undefined
             )}
-          </Col>
-          <Col
-            xs={1}
-            style={{ color: "#666" }}
-            className={"visible-sm-inline visible-md-inline visible-lg-inline"}
-          >
-            Done
           </Col>
         </Row>
       );

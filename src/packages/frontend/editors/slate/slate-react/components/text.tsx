@@ -60,6 +60,11 @@ const Text = (props: {
       KEY_TO_ELEMENT.delete(key);
       NODE_TO_ELEMENT.delete(text);
     }
+
+    // It's also CRITICAL to update the selection after changing the text,
+    // at least when using windowing.
+    // See comment in selection-sync.ts about this.
+    editor.updateDOMSelection?.();
   });
 
   return (
@@ -99,7 +104,6 @@ const MemoizedText = React.memo(Text, (prev, next) => {
   // parent is not included in the analogous function
   // in element.tsx. See my comment here:
   // https://github.com/ianstormtaylor/slate/issues/4056#issuecomment-768059323
-
   const is_equal =
     // next.parent === prev.parent &&
     next.renderLeaf === prev.renderLeaf &&

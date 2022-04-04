@@ -15,12 +15,13 @@ import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { Complete } from "./complete";
+import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
+import { CSSProperties, useEffect } from "react";
 
-import { JupyterActions } from "./browser-actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -41,52 +42,80 @@ const FOCUSED_STYLE: React.CSSProperties = {
   lineHeight: "1.21429em",
 } as const;
 
-// Todo: the frame-editor/code-editor needs a similar treatment...?
-export interface EditorFunctions {
-  save: () => string | undefined;
-  set_cursor: (pos: { x?: number; y?: number }) => void;
-  tab_key: () => void;
-  shift_tab_key: () => void;
-  refresh: () => void;
-  get_cursor: () => { line: number; ch: number };
-  get_cursor_xy: () => { x: number; y: number };
+// This is what we use.  It's satisfied by these actions
+// -- 'import { JupyterActions } from "./browser-actions";',
+// but anybody who wants to use this component could make
+// there own object with this interface and it should work.
+export interface Actions extends CompleteActions {
+  set_cursor_locs: (locs: any[], side_effect?: boolean) => void;
+  set_cell_input: (id: string, input: string, save?: boolean) => void;
+  undo: () => void;
+  redo: () => void;
+  in_undo_mode: () => boolean;
+  is_introspecting: () => boolean;
+  introspect_close: () => void;
+  introspect_at_pos: (
+    code: string,
+    level: 0 | 1,
+    pos: { ch: number; line: number }
+  ) => Promise<void>;
+  complete: (
+    code: string,
+    pos?: { line: number; ch: number } | number,
+    id?: string,
+    offset?: any
+  ) => Promise<boolean>;
+  save: () => Promise<void>;
 }
 
 interface CodeMirrorEditorProps {
-  actions: JupyterActions;
+  actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
+  set_click_coords?: Function; // TODO: type
   font_size?: number; // font_size not explicitly used, but it is critical
   // to re-render on change so Codemirror recomputes itself!
   cursors?: ImmutableMap<any, any>;
-  set_click_coords: Function; // TODO: type
   click_coords?: any; // coordinates if cell was just clicked on
-  set_last_cursor: Function; // TODO: type
+  set_last_cursor?: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
+  style?: CSSProperties;
+  onKeyDown?: (cm, e) => void;
+  registerEditor?: (EditorFunctions) => void;
+  unregisterEditor?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  contenteditable?: boolean; // make true for whiteboard so works when scaled.
+  refresh?: any; // if this changes, then cm.refresh() is called.
 }
 
-export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
-  props: CodeMirrorEditorProps
-) => {
-  const {
-    actions,
-    id,
-    options,
-    value,
-    font_size,
-    cursors,
-    set_click_coords,
-    click_coords,
-    set_last_cursor,
-    last_cursor,
-    is_focused,
-    is_scrolling,
-    complete,
-  } = props;
+export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
+  actions,
+  id,
+  options,
+  value,
+  font_size,
+  cursors,
+  set_click_coords,
+  click_coords,
+  set_last_cursor,
+  last_cursor,
+  is_focused,
+  is_scrolling,
+  complete,
+  style,
+  onKeyDown,
+  registerEditor,
+  unregisterEditor,
+  onFocus,
+  onBlur,
+  contenteditable,
+  refresh,
+}: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
   const cm_change = useRef<any>(null);
@@ -100,7 +129,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
 
   const frameActions = useNotebookFrameActions();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (frameActions.current?.frame_id != null) {
       key.current = `${frameActions.current.frame_id}${id}`;
     }
@@ -114,7 +143,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    cm.current?.refresh();
+  }, [refresh]);
+
+  useEffect(() => {
     if (cm.current == null) {
       init_codemirror(options, value);
       return;
@@ -124,7 +157,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     }
   }, [options, value]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     cm_refresh();
   }, [font_size, is_scrolling]);
 
@@ -135,13 +168,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   // we would fail to update the cm editor, which would is
   // a disaster.  May be root cause of
   //    https://github.com/sagemathinc/cocalc/issues/3978
-  React.useEffect(() => {
+  useEffect(() => {
     if (cm.current?.getValue() != value) {
       cm_merge_remote(value);
     }
   }, [value, cm.current?.getValue()]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // can't do anything if there is no codemirror editor
     if (cm.current == null) return;
 
@@ -156,7 +189,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
         // this somehow.  Note that codemirror has no .blur().
         // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
         await delay(1);
-        cm.current.getInputField().blur();
+        cm.current?.getInputField().blur();
       }
     })();
 
@@ -167,7 +200,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
 
   function cm_destroy(): void {
     if (cm.current != null) {
-      frameActions.current?.unregister_input_editor(id);
+      unregisterEditor?.();
       cm_last_remote.current = null;
       cm.current.save = null;
       if (cm_change.current != null) {
@@ -185,6 +218,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   }
 
   function cm_focus(): void {
+    onFocus?.();
     cm_is_focused.current = true;
     if (cm.current == null || actions == null) {
       return;
@@ -199,11 +233,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   }
 
   function cm_blur(): void {
+    onBlur?.();
     cm_is_focused.current = false;
     if (cm.current == null || actions == null) {
       return;
     }
-    set_last_cursor(cm.current.getCursor());
+    set_last_cursor?.(cm.current.getCursor());
     // NOTE: see https://github.com/sagemathinc/cocalc/issues/5289
     // We had code here that did
     //    frameActions.current?.set_mode("escape");
@@ -310,7 +345,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       return;
     }
     if (
-      !actions.syncdb.in_undo_mode() ||
+      !actions.in_undo_mode() ||
       cm.current.getValue() !== cm_last_remote.current
     ) {
       cm_save();
@@ -344,7 +379,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       }
     }
     if (
-      actions.store.get("introspect") != null &&
+      actions.is_introspecting() &&
       last_introspect_pos != null &&
       last_introspect_pos.line === pos.line &&
       last_introspect_pos.ch === pos.ch
@@ -440,14 +475,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   }
 
   function adjacent_cell(y: number, delta: number): void {
-    const frame_actions = frameActions.current;
-    if (frame_actions == null) return;
-    frame_actions.move_cursor(delta);
-    frame_actions.set_input_editor_cursor(frame_actions.store.get("cur_id"), {
-      x: 0,
-      y,
-    });
-    frame_actions.scroll("cell visible");
+    frameActions.current?.adjacentCell(y, delta);
   }
 
   function whitespace_before_cursor(): boolean {
@@ -546,6 +574,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       options0.readOnly = true;
     }
 
+    if (contenteditable) {
+      options0.inputStyle = "contenteditable" as "contenteditable";
+    }
+
     cm.current = CodeMirror(function (elt) {
       if (node.parentNode == null) return;
       node.parentNode.replaceChild(elt, node);
@@ -572,7 +604,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       vim_mode.current = false;
     }
 
-    const css: any = { height: "auto" };
+    const css: CSSProperties = { height: "auto" };
     if (options0.theme == null) {
       css.backgroundColor = "#fff";
     }
@@ -599,13 +631,30 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     cm.current.on("focus", cm_focus);
     cm.current.on("blur", cm_blur);
     cm.current.on("cursorActivity", cm_cursor);
+    if (onKeyDown != null) {
+      cm.current.on("keydown", (cm, e) => onKeyDown(cm, e));
+    }
 
     // replace undo/redo by our sync aware versions
     cm.current.undo = cm_undo;
     cm.current.redo = cm_redo;
 
+    if (registerEditor != null) {
+      registerEditor({
+        save: cm_save,
+        set_cursor: cm_set_cursor,
+        tab_key: tab_key,
+        shift_tab_key: shift_tab_key,
+        refresh: cm_refresh,
+        get_cursor: () => cm.current.getCursor(),
+        get_cursor_xy: () => {
+          const pos = cm.current.getCursor();
+          return { x: pos.ch, y: pos.line };
+        },
+      });
+    }
     if (frameActions.current) {
-      const editor: EditorFunctions = {
+      const editor = {
         save: cm_save,
         set_cursor: cm_set_cursor,
         tab_key: tab_key,
@@ -623,10 +672,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     if (click_coords != null) {
       // editor clicked on, so restore cursor to that position
       cm.current.setCursor(cm.current.coordsChar(click_coords, "window"));
-      set_click_coords(); // clear them
+      set_click_coords?.(); // clear them
     } else if (last_cursor != null) {
       cm.current.setCursor(last_cursor);
-      set_last_cursor();
+      set_last_cursor?.();
     }
 
     if (is_focused) {
@@ -635,18 +684,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   }
 
   function focus_cm(): void {
-    if (cm.current == null) return;
-    // Because we use react-window, it is critical to preventScroll
-    // when focusing!  Unfortunately, CodeMirror's api does not
-    // expose this option, so we have to bypass it in the dangerous
-    // way below, which could break were CodeMirror to be refactored!
-    // TODO: send them a PR to expose this.
-    if (cm.current.display == null || cm.current.display.input == null) return;
-    if (cm.current.display.input.textarea != null) {
-      cm.current.display.input.textarea.focus({ preventScroll: true });
-    } else if (cm.current.display.input.div != null) {
-      cm.current.display.input.div.focus({ preventScroll: true });
-    }
+    const ed = cm.current;
+    if (ed == null) return;
+    ed.getInputField().focus({ preventScroll: true });
   }
 
   function render_complete() {
@@ -668,7 +708,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
   return (
     <div style={{ width: "100%", overflow: "auto" }}>
       {render_cursors()}
-      <div style={FOCUSED_STYLE}>
+      <div style={{ ...FOCUSED_STYLE, ...style }}>
         <pre
           ref={cm_ref}
           style={{

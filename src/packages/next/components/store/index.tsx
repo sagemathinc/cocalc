@@ -15,6 +15,7 @@ import Boost from "./boost";
 import Overview from "./overview";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
+import Anonymous from "components/misc/anonymous";
 
 const { Content } = Layout;
 
@@ -70,7 +71,7 @@ export default function ConfigLayout({ page }: Props) {
   }
 
   if (is_anonymous) {
-    return <div>Please upgrade to a non-anonymous account.</div>;
+    return <Anonymous />;
   }
 
   const [main] = page;

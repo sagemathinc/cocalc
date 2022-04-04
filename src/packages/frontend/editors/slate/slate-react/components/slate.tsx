@@ -21,12 +21,23 @@ export const Slate = (props: {
 }) => {
   const { editor, children, onChange, value, ...rest } = props;
   const [ticks, setTick] = useState(0);
+
   const context: [ReactEditor] = useMemo(() => {
     editor.children = value;
     editor.ticks = ticks;
     Object.assign(editor, rest);
     return [editor];
   }, [ticks, value, ...Object.values(rest)]);
+
+  // We use a singleton object for the focused context..
+  // It turns out not doing this with these contexts makes slate
+  // **insanely slow** on large documents.  Doing this, and it
+  // is VERY fast.  It probably took over a month of my life to
+  // understand this, so please don't mess it up again!
+  const focused: { isFocused: boolean } = useMemo(() => {
+    return { isFocused: ReactEditor.isFocused(editor) };
+  }, []);
+  focused.isFocused = ReactEditor.isFocused(editor);
 
   const onContextChange = useCallback(() => {
     onChange(editor.children);
@@ -44,7 +55,7 @@ export const Slate = (props: {
   return (
     <SlateContext.Provider value={context}>
       <EditorContext.Provider value={editor}>
-        <FocusedContext.Provider value={ReactEditor.isFocused(editor)}>
+        <FocusedContext.Provider value={focused}>
           {children}
         </FocusedContext.Provider>
       </EditorContext.Provider>

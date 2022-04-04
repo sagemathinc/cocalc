@@ -13,7 +13,6 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
-  INPUT_HEIGHT,
 } from "./utils";
 import { Markdown } from "./markdown";
 
@@ -78,14 +77,15 @@ export const Message: React.FC<Props> = React.memo((props) => {
     [props.message] /* note -- edited_message is a function of props.message */
   );
 
-  const history_size = useMemo(() => props.message.get("history").size, [
-    props.message,
-  ]);
+  const history_size = useMemo(
+    () => props.message.get("history").size,
+    [props.message]
+  );
 
-  const isEditing = useMemo(() => is_editing(props.message, props.account_id), [
-    props.message,
-    props.account_id,
-  ]);
+  const isEditing = useMemo(
+    () => is_editing(props.message, props.account_id),
+    [props.message, props.account_id]
+  );
 
   const editor_name = useMemo(() => {
     return props.get_user_name(
@@ -211,8 +211,8 @@ export const Message: React.FC<Props> = React.memo((props) => {
       // no editing functionality of not in a project with a path.
       return;
     }
-    props.scroll_into_view();
     props.actions.set_editing(props.message, true);
+    props.scroll_into_view();
   }
 
   function avatar_column() {
@@ -297,9 +297,11 @@ export const Message: React.FC<Props> = React.memo((props) => {
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
-          <span style={lighten}>
-            <Time message={props.message} edit={edit_message} />
-          </span>
+          {!isEditing && (
+            <span style={lighten}>
+              <Time message={props.message} edit={edit_message} />
+            </span>
+          )}
           {!isEditing ? (
             <Markdown
               value={value}
@@ -360,12 +362,10 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
     return (
       <ChatInput
-        project_id={props.project_id}
-        path={props.path}
         input={edited_message}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}
-        height={INPUT_HEIGHT}
+        height={"auto"}
         onChange={(value) => {
           edited_message_ref.current = value;
           set_edited_message(value);

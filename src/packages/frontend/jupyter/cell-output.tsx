@@ -15,7 +15,6 @@ import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
 import type { JupyterActions } from "./browser-actions";
 
-
 interface CellOutputProps {
   actions?: JupyterActions;
   name?: string;
@@ -26,6 +25,7 @@ interface CellOutputProps {
   more_output?: ImmutableMap<string, any>;
   trust?: boolean;
   complete?: boolean;
+  hidePrompt?: boolean;
 }
 
 function should_memoize(prev, next) {
@@ -70,11 +70,12 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       more_output,
       trust,
       complete,
+      hidePrompt,
     } = props;
 
     function render_output_prompt() {
       const collapsed = cell.get("collapsed");
-      let exec_count = cell.get('exec_count');;
+      let exec_count = cell.get("exec_count");
       const output = cell.get("output");
       if (output != null) {
         output.forEach((x) => {
@@ -189,7 +190,7 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
         }}
         cocalc-test="cell-output"
       >
-        {render_output_prompt()}
+        {!hidePrompt && render_output_prompt()}
         {render_output_value()}
       </div>
     );

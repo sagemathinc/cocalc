@@ -56,6 +56,9 @@ export type SiteSettingsExtrasKeys =
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
+  | "re_captcha_v3_heading"
+  | "re_captcha_v3_publishable_key"
+  | "re_captcha_v3_secret_key"
   | "email_section"
   | "email_backend"
   | "sendgrid_key"
@@ -117,6 +120,28 @@ export const EXTRAS: SettingsExtras = {
   stripe_secret_key: {
     name: "Stripe Secret",
     desc: "Stripe calls this key 'secret'",
+    default: "",
+    show: only_commercial,
+    password: true,
+  },
+  re_captcha_v3_heading: {
+    // this is cosmetic, otherwise it looks weird.
+    name: "reCaptcha v3 Keys",
+    desc: "You get these from https://www.google.com/recaptcha/intro/v3.html",
+    default: "",
+    show: only_commercial,
+    type: "header",
+  },
+  re_captcha_v3_publishable_key: {
+    name: "reCaptcha v3 Site Key",
+    desc: "",
+    default: "",
+    password: false,
+    show: only_commercial,
+  },
+  re_captcha_v3_secret_key: {
+    name: "reCaptcha v3 Secret Key",
+    desc: "",
     default: "",
     show: only_commercial,
     password: true,

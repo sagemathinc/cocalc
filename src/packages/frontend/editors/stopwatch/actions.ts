@@ -27,13 +27,12 @@ interface Timer {
   total?: number;
   state: TimerState;
   time: number;
+  countdown?: number; // a countdown time is the same a stopwatch, but has this field, which is the number of seconds.
 }
 
 type TimerRecord = TypedMap<Timer>;
 
-export const TimeActions = class TimeActions extends Actions<
-  StopwatchEditorState
-> {
+export class TimeActions extends Actions<StopwatchEditorState> {
   private project_id: string;
   private path: string;
   public syncdb: any;
@@ -61,17 +60,17 @@ export const TimeActions = class TimeActions extends Actions<
     });
 
     if (this.syncdb.get_doc().size === 0) {
-      this.add_stopwatch();
+      this.addStopwatch();
     }
   }
 
-  private _set(obj: Timer): void {
+  private _set(obj: Partial<Timer>): void {
     this.syncdb.set(obj);
     this.syncdb.commit();
     this.syncdb.save_to_disk();
   }
 
-  public add_stopwatch(): void {
+  public addStopwatch(): void {
     // make id equal to the largest current id (or 0 if none)
     let id = 0;
     this.syncdb.get().map((data) => {
@@ -87,16 +86,16 @@ export const TimeActions = class TimeActions extends Actions<
     });
   }
 
-  public delete_stopwatch(id: number): void {
+  public deleteStopwatch(id: number): void {
     this.syncdb.delete({ id });
     if (this.syncdb.get_doc().size === 0) {
-      this.add_stopwatch();
+      this.addStopwatch();
     }
     this.syncdb.commit();
     this.syncdb.save_to_disk();
   }
 
-  public reset_stopwatch(id: number): void {
+  public resetStopwatch(id: number): void {
     this._set({
       id,
       total: 0,
@@ -105,7 +104,7 @@ export const TimeActions = class TimeActions extends Actions<
     });
   }
 
-  public start_stopwatch(id: number): void {
+  public startStopwatch(id: number): void {
     this._set({
       id,
       time: webapp_client.server_time() - 0,
@@ -113,7 +112,7 @@ export const TimeActions = class TimeActions extends Actions<
     });
   }
 
-  public pause_stopwatch(id: number): void {
+  public pauseStopwatch(id: number): void {
     const x = this.syncdb && this.syncdb.get_one({ id });
     if (x == null) return;
     this._set({
@@ -124,10 +123,21 @@ export const TimeActions = class TimeActions extends Actions<
     });
   }
 
-  public set_label(id: number, label: string): void {
+  public setLabel(id: number, label: string): void {
     const x = this.syncdb && this.syncdb.get_one({ id });
     if (x == null) return;
     this._set({ id, label, state: x.get("state"), time: x.get("time") });
+  }
+
+  // Set current displayed time on clock or starting value for timer (and reset timer to be at that value),
+  // where the input is the time in seconds.
+  public setCountdown(id: number, time: number): void {
+    const x = this.syncdb && this.syncdb.get_one({ id });
+    if (x == null) return;
+    this._set({
+      id,
+      countdown: time,
+    });
   }
 
   public time_travel(): void {
@@ -148,4 +158,21 @@ export const TimeActions = class TimeActions extends Actions<
       this.syncdb.redo();
     }
   }
-};
+
+  public addTimer(): void {
+    // make id equal to the largest current id (or 0 if none)
+    let id = 0;
+    this.syncdb.get().map((data) => {
+      id = Math.max(data.get("id"), id);
+    });
+    id += 1; // our new timer has the largest id (so at the bottom)
+    this._set({
+      id,
+      label: "",
+      total: 0,
+      state: "stopped",
+      time: webapp_client.server_time() - 0,
+      countdown: 60,
+    });
+  }
+}

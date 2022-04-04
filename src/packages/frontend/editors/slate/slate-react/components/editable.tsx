@@ -395,7 +395,15 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             if (data instanceof DataTransfer) {
               ReactEditor.insertData(editor, data);
             } else if (typeof data === "string") {
-              Editor.insertText(editor, data);
+              try {
+                Editor.insertText(editor, data);
+              } catch (err) {
+                // I've seen this crash several times in a way I can't reproduce, maybe
+                // when focusing (not sure).  Better make it a warning with useful info.
+                console.warn(
+                  `SLATE -- issue with DOM insertText operation ${err}, ${data}`
+                );
+              }
             }
 
             break;
@@ -424,7 +432,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  const updateDOMSelection = useUpdateDOMSelection({ editor, state });
+  useUpdateDOMSelection({ editor, state });
   const DOMSelectionChange = useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
@@ -554,7 +562,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }) &&
               isDOMNode(event.target)
             ) {
-              const node = ReactEditor.toSlateNode(editor, event.target);
+              let node;
+              try {
+                node = ReactEditor.toSlateNode(editor, event.target);
+              } catch (err) {
+                // node not actually in editor.
+                return;
+              }
               let path;
               try {
                 path = ReactEditor.findPath(editor, node);
@@ -577,6 +591,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // not focused part isn't upstream, but we
               // need it to have codemirror blocks.
               if (
+                editor.selection == null ||
                 !ReactEditor.isFocused(editor) ||
                 (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1]))
               ) {
@@ -1020,9 +1035,8 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             onScroll={() => {
               if (editor.scrollCaretAfterNextScroll) {
                 editor.scrollCaretAfterNextScroll = false;
-                editor.scrollCaretIntoView();
               }
-              updateDOMSelection();
+              editor.updateDOMSelection?.();
               props.onScroll?.({} as any);
             }}
           />

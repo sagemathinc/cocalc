@@ -6,4 +6,4 @@
 // This determines how long the user has to pause typing before
 // their changes are saved to time travel and broadcast to all other
 // users.
-export const SAVE_DEBOUNCE_MS = 1000;
+export const SAVE_DEBOUNCE_MS = 750;

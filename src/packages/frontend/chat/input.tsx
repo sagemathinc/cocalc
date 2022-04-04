@@ -3,28 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useActions, useRedux } from "../app-framework";
-import { MarkdownInput } from "../editors/markdown-input";
+import { CSSProperties } from "react";
+import { useRedux } from "../app-framework";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
+import { useFrameContext } from "../frame-editors/frame-tree/frame-context";
 
 interface Props {
-  project_id: string;
-  path: string;
-  input: string;
+  input?: string;
   on_paste?: (e) => void;
-  on_send: () => void;
+  on_send?: (value: string) => void;
   height?: string;
   onChange: (string) => void;
-  submitMentionsRef: any;
+  submitMentionsRef?: any;
+  font_size?: number;
+  hideHelp?: boolean;
+  style?: CSSProperties;
+  cacheId?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
-  const actions = useActions(props.project_id, props.path);
-  const font_size = useRedux(["font_size"], props.project_id, props.path);
+  const { project_id, path, actions } = useFrameContext();
+  const font_size =
+    props.font_size ?? useRedux(["font_size"], project_id, path);
   return (
     <MarkdownInput
-      project_id={props.project_id}
-      path={props.path}
+      saveDebounceMs={0}
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
+      cacheId={props.cacheId}
       value={props.input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
@@ -42,7 +51,9 @@ export const ChatInput: React.FC<Props> = (props) => {
       }
       fontSize={font_size}
       lineWrapping={true}
+      hideHelp={props.hideHelp}
       autoFocus
+      style={props.style}
     />
   );
 };

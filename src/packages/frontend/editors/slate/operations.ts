@@ -4,7 +4,8 @@
  */
 import { Editor, Operation, Point } from "slate";
 import { isEqual } from "lodash";
-import { SlateEditor } from "./editable-markdown";
+import type { SlateEditor } from "./editable-markdown";
+import { getScrollState, setScrollState } from "./scroll";
 
 export function applyOperations(
   editor: SlateEditor,
@@ -24,26 +25,32 @@ export function applyOperations(
   try {
     editor.applyingOperations = true; // TODO: not sure if this is at all necessary...
 
-    Editor.withoutNormalizing(editor, () => {
-      for (const op of operations) {
-        // Should skip due to just removing whitespace right
-        // before the user's cursor:
-        if (skipCursor(cursor, op)) continue;
-        try {
-          // This can rarely throw an error in production
-          // if somehow the op isn't valid.  Instead of
-          // crashing, we print a warning, and document
-          // "applyOperations" above as "best effort".
-          // In practice, the document *should* converge
-          // when the next diff/patch round occurs.
-          editor.apply(op);
-        } catch (err) {
-          console.warn(
-            `WARNING: Slate issue -- unable to apply an operation to the document -- err=${err}, op=${op}`
-          );
+    try {
+      Editor.withoutNormalizing(editor, () => {
+        for (const op of operations) {
+          // Should skip due to just removing whitespace right
+          // before the user's cursor?
+          if (skipCursor(cursor, op)) continue;
+          try {
+            // This can rarely throw an error in production
+            // if somehow the op isn't valid.  Instead of
+            // crashing, we print a warning, and document
+            // "applyOperations" above as "best effort".
+            // The document *should* converge
+            // when the next diff/patch round occurs.
+            editor.apply(op);
+          } catch (err) {
+            console.warn(
+              `WARNING: Slate issue -- unable to apply an operation to the document -- err=${err}, op=${op}`
+            );
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      console.warn(
+        `WARNING: Slate issue -- unable to apply operations to the document -- err=${err} -- could create invalid state`
+      );
+    }
 
     /* console.log(
       `time: apply ${operations.length} operations`,
@@ -98,4 +105,27 @@ function skipCursor(cursor: { focus: Point | null }, op): boolean {
 
   cursor.focus = Point.transform(focus, op);
   return false;
+}
+
+// This only has an impact with windowing enabled, which is the only situation where
+// scrolling should be happening anyways.
+export function preserveScrollPosition(
+  editor: SlateEditor,
+  operations: Operation[]
+): void {
+  const scroll = getScrollState(editor);
+  if (scroll == null) return;
+  const { index, offset } = scroll;
+
+  let point: Point | null = { path: [index], offset: 0 };
+  // transform point via the operations.
+  for (const op of operations) {
+    point = Point.transform(point, op);
+    if (point == null) break;
+  }
+
+  const newStartIndex = point?.path[0];
+  if (newStartIndex == null) return;
+
+  setScrollState(editor, { index: newStartIndex, offset });
 }

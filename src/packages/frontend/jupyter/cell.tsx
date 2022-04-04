@@ -22,17 +22,17 @@ import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-edit
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 
 interface Props {
+  cell: Map<string, any>; // TODO: types
+  cm_options: Map<string, any>;
+  mode: "edit" | "escape";
+  font_size: number;
+  id?: string; // redundant, since it's in the cell.
   actions?: JupyterActions;
   name?: string;
-  id: string;
-  index: number;
-  cm_options: Map<string, any>;
-  cell: Map<string, any>; // TODO: types
+  index?: number; // position of cell in the list of all cells; just used to optimize rendering and for no other reason.
   is_current?: boolean;
   is_selected?: boolean;
   is_markdown_edit?: boolean;
-  mode: "edit" | "escape";
-  font_size: number;
   project_id?: string;
   directory?: string;
   complete?: Map<string, any>; // TODO: types
@@ -69,9 +69,10 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   // only delay rendering if actions are set (otherwise we break share server)
-  const render = useDelayedRender(props.actions == null ? 0 : props.index);
+  const render = useDelayedRender(props.actions == null ? 0 : props.index ?? 0);
   if (!render) {
     return <></>;
   }
@@ -98,8 +99,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         is_markdown_edit={!!props.is_markdown_edit}
         is_focused={!!(props.is_current && props.mode === "edit")}
         is_current={!!props.is_current}
-        id={props.id}
-        index={props.index}
+        id={id}
+        index={props.index ?? 0}
         font_size={props.font_size}
         project_id={props.project_id}
         directory={props.directory}
@@ -119,7 +120,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         cell={cell}
         actions={props.actions}
         name={props.name}
-        id={props.id}
+        id={id}
         project_id={props.project_id}
         directory={props.directory}
         more_output={props.more_output}
@@ -132,10 +133,10 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function click_on_cell(event: any): void {
     if (event.shiftKey && !props.is_current) {
       clear_selection();
-      frameActions.current?.select_cell_range(props.id);
+      frameActions.current?.select_cell_range(id);
       return;
     }
-    frameActions.current?.set_cur_id(props.id);
+    frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
   }
 
@@ -287,7 +288,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       style={style}
       onMouseUp={props.is_current ? undefined : click_on_cell}
       onDoubleClick={double_click}
-      id={props.id}
+      id={id}
       cocalc-test={"jupyter-cell"}
     >
       {render_metadata_state()}

@@ -7,13 +7,7 @@
 Top-level react component, which ties everything together
 */
 
-import {
-  CSS,
-  React,
-  useRedux,
-  useTypedRedux,
-  Rendered,
-} from "../app-framework";
+import { CSS, React, useRedux, Rendered } from "../app-framework";
 import * as immutable from "immutable";
 
 import { A, ErrorDisplay } from "../components";
@@ -39,11 +33,9 @@ import { KernelSelector } from "./select-kernel";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
 // import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
 const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
-import { Kernel as KernelType, Kernels as KernelsType } from "./util";
-import { Scroll, Usage, BackendState } from "./types";
-import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
-import { compute_usage } from "./usage";
-
+import { Kernels as KernelsType } from "./util";
+import { Scroll } from "./types";
+import useKernelUsage from "./kernel-usage";
 import { JupyterActions } from "./browser-actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
@@ -64,40 +56,6 @@ export const ERROR_STYLE: CSS = {
   maxHeight: "30vh",
   overflow: "auto",
 } as const;
-
-// derive sorted list of timings from all cells
-function calc_cell_timings(cells?: immutable.Map<string, any>): number[] {
-  if (cells == null) return [];
-  return cells
-    .toList()
-    .map((v) => {
-      const start = v.get("start");
-      const end = v.get("end");
-      if (start != null && end != null) {
-        return (end - start) / 1000;
-      } else {
-        return null;
-      }
-    })
-    .filter((v) => v != null)
-    .sort()
-    .toJS();
-}
-
-// for the sorted list of cell timing, get the median or quantile.
-// a quick approximation is good enough for us!
-// we basically want to ignore long running cells, treat them as outliers.
-// Using the 75% quantile is quick and easy, avoids working with inter quantile differences
-// and proper outlier detection – like for boxplots, etc.
-// we also cap the lower end with a reasonable minimum.
-// Maybe another choice of quantile works better, something for later …
-function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
-  if (data.length == 0) return min_val;
-  const idx_last = data.length - 1;
-  const idx_q = Math.floor(q * idx_last);
-  const idx = Math.min(idx_last, idx_q);
-  return Math.max(min_val, data[idx]);
-}
 
 interface Props {
   error?: string;
@@ -140,9 +98,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     hook_offset,
   } = props;
 
-  const site_name = useTypedRedux("customize", "site_name");
-  const editor_settings = useTypedRedux("account", "editor_settings");
-
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
     name,
@@ -161,7 +116,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "show_kernel_selector",
   ]);
   // string name of the kernel
-  const kernel: undefined | string = useRedux([name, "kernel"]);
   const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
   const error: undefined | KernelsType = useRedux([name, "error"]);
   // settings for all the codemirror editors
@@ -225,98 +179,14 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "edit_cell_metadata",
   ]);
   const trust: undefined | boolean = useRedux([name, "trust"]);
-  const kernel_info: undefined | immutable.Map<any, any> = useRedux([
-    name,
-    "kernel_info",
-  ]);
   const check_select_kernel_init: undefined | boolean = useRedux([
     name,
     "check_select_kernel_init",
   ]);
-  const kernel_selection: undefined | immutable.Map<string, any> = useRedux([
-    name,
-    "kernel_selection",
-  ]);
-  const kernels_by_name:
-    | undefined
-    | immutable.OrderedMap<string, immutable.Map<string, string>> = useRedux([
-    name,
-    "kernels_by_name",
-  ]);
-  const kernels_by_language:
-    | undefined
-    | immutable.OrderedMap<string, immutable.List<string>> = useRedux([
-    name,
-    "kernels_by_language",
-  ]);
-  const default_kernel: undefined | string = useRedux([name, "default_kernel"]);
-  const closestKernel: undefined | KernelType = useRedux([
-    name,
-    "closestKernel",
-  ]);
+
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
-  const kernel_usage: undefined | ImmutableUsageInfo = useRedux([
-    name,
-    "kernel_usage",
-  ]);
-  const backend_state: undefined | BackendState = useRedux([
-    name,
-    "backend_state",
-  ]);
-  const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
 
-  // cell timing statistic
-  const cell_timings = React.useMemo(() => calc_cell_timings(cells), [cells]);
-  const expected_cell_runtime = React.useMemo(
-    () => calc_quantile(cell_timings),
-    [cell_timings]
-  );
-
-  // state of UI, derived from usage, timing stats, etc.
-  const [cpu_start, set_cpu_start] = React.useState<number | undefined>();
-  const [cpu_runtime, set_cpu_runtime] = React.useState<number>(0);
-  const timer1 = React.useRef<ReturnType<typeof setInterval> | undefined>();
-
-  // reset cpu_start time when state changes
-  React.useEffect(() => {
-    if (kernel_state == "busy") {
-      set_cpu_start(Date.now());
-    } else if (cpu_start != null) {
-      set_cpu_start(undefined);
-    }
-  }, [kernel_state]);
-
-  // count seconds when kernel is busy & reset counter
-  React.useEffect(() => {
-    if (cpu_start != null) {
-      timer1.current = setInterval(() => {
-        if (kernel_state == "busy") {
-          set_cpu_runtime((Date.now() - cpu_start) / 1000);
-        } else {
-          set_cpu_runtime(0);
-        }
-      }, 100);
-    } else if (timer1.current != null) {
-      set_cpu_runtime(0);
-      clearInterval(timer1.current);
-    }
-    return () => {
-      if (timer1.current != null) clearInterval(timer1.current);
-    };
-  }, [cpu_start, kernel_state]);
-
-  // based on the info we know, we derive the "usage" object
-  // the "status.tsx" Kernel component and other UI details will visualize it
-  const usage: Usage = React.useMemo(
-    () =>
-      compute_usage({
-        kernel_usage,
-        backend_state,
-        cpu_runtime,
-        expected_cell_runtime,
-      }),
-    [kernel_usage, backend_state, cpu_runtime, expected_cell_runtime]
-  );
+  const { usage, expected_cell_runtime } = useKernelUsage(name);
 
   function render_kernel_error() {
     if (!kernel_error) return;
@@ -364,7 +234,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <span style={KERNEL_STYLE}>
         <Kernel
           is_fullscreen={is_fullscreen}
-          name={name}
           actions={actions}
           usage={usage}
           expected_cell_runtime={expected_cell_runtime}
@@ -604,25 +473,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_select_kernel() {
-    if (editor_settings == null || site_name == null) return;
-
-    const ask_jupyter_kernel = editor_settings.get("ask_jupyter_kernel");
-    return (
-      <KernelSelector
-        actions={actions}
-        kernel={kernel}
-        kernel_info={kernel_info}
-        kernel_selection={kernel_selection}
-        kernels_by_name={kernels_by_name}
-        kernels_by_language={kernels_by_language}
-        default_kernel={default_kernel}
-        closestKernel={closestKernel}
-        site_name={site_name}
-        ask_jupyter_kernel={
-          ask_jupyter_kernel == null ? true : ask_jupyter_kernel
-        }
-      />
-    );
+    return <KernelSelector actions={actions} />;
   }
 
   function render_keyboard_shortcuts() {

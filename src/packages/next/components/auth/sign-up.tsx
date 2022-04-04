@@ -11,6 +11,10 @@ import apiPost from "lib/api/post";
 import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import Loading from "components/share/loading";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
@@ -21,17 +25,23 @@ interface Props {
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
 }
 
-export default function SignUp({
-  strategies,
-  requiresToken,
-  minimal,
-  onSuccess,
-}: Props) {
+export default function SignUp(props: Props) {
+  const { reCaptchaKey } = useCustomize();
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <SignUp0 {...props} />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
   const {
     anonymousSignup,
     siteName,
     emailSignup,
     accountCreationInstructions,
+    reCaptchaKey,
   } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
@@ -46,9 +56,12 @@ export default function SignUp({
     terms?: string;
     error?: string;
     registrationToken?: string;
+    reCaptcha?: string;
   }>({});
 
   const submittable = useRef<boolean>(false);
+
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
@@ -98,6 +111,15 @@ export default function SignUp({
     setIssues({});
     try {
       setSigningUp(true);
+
+      let reCaptchaToken: undefined | string;
+      if (reCaptchaKey) {
+        if (!executeRecaptcha) {
+          throw Error("Please wait a few seconds, then try again.");
+        }
+        reCaptchaToken = await executeRecaptcha("signup");
+      }
+
       const result = await apiPost("/auth/sign-up", {
         terms,
         email,
@@ -105,6 +127,7 @@ export default function SignUp({
         firstName,
         lastName,
         registrationToken,
+        reCaptchaToken,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -170,6 +193,16 @@ export default function SignUp({
           }}
         />
         <form>
+          {issues.reCaptcha && (
+            <Alert
+              style={LINE}
+              type="error"
+              showIcon
+              message={issues.reCaptcha}
+              description={<>You may have to contact the site administrator.</>}
+            />
+          )}
+
           {issues.registrationToken && (
             <Alert
               style={LINE}
@@ -263,7 +296,7 @@ export default function SignUp({
           <Button
             shape="round"
             size="large"
-            disabled={!submittable.current}
+            disabled={!submittable.current || signingUp}
             type="primary"
             style={{ width: "100%", marginTop: "15px" }}
             onClick={signUp}
@@ -282,7 +315,14 @@ export default function SignUp({
               ? "Enter your last name above"
               : !isValidEmailAddress(email)
               ? "Enter a valid email address above"
+              : signingUp
+              ? ""
               : "Sign Up!"}
+            {signingUp && (
+              <span style={{ marginLeft: "15px" }}>
+                <Loading>Signing Up...</Loading>
+              </span>
+            )}
           </Button>
         </div>
         {issues.error && (

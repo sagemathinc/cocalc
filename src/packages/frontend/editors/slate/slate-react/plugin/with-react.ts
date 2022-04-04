@@ -5,7 +5,6 @@ import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { findCurrentLineRange } from "../utils/lines";
-import { IS_FIREFOX } from "../utils/environment";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -211,6 +210,25 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
+  // only when windowing is enabled.
+  e.scrollIntoDOM = (index) => {
+    let windowed: boolean = e.windowedListRef.current != null;
+    if (windowed) {
+      const visibleRange = e.windowedListRef.current?.visibleRange;
+      if (visibleRange != null) {
+        const { startIndex, endIndex } = visibleRange;
+        if (index < startIndex || index > endIndex) {
+          const virtuoso = e.windowedListRef.current.virtuosoRef?.current;
+          if (virtuoso != null) {
+            virtuoso.scrollIntoView({ index });
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
   e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
@@ -240,8 +258,7 @@ export const withReact = <T extends Editor>(editor: T) => {
   */
     try {
       const { selection } = e;
-      if (!selection) return;
-      //if (!Range.isCollapsed(selection)) return;
+      if (selection == null) return;
 
       // Important: this doesn't really work well for many types
       // of void elements, e.g, when the focused
@@ -258,16 +275,18 @@ export const withReact = <T extends Editor>(editor: T) => {
       // In case we're using windowing, scroll the block with the focus
       // into the DOM first.
       let windowed: boolean = e.windowedListRef.current != null;
-      if (windowed) {
-        const info = e.windowedListRef.current.render_info;
+      if (windowed && !e.scrollCaretAfterNextScroll) {
         const index = selection.focus.path[0];
-        if (info != null && index != null) {
-          const { overscanStartIndex, overscanStopIndex } = info;
-          if (index < overscanStartIndex || index > overscanStopIndex) {
-            e.windowedListRef.current.scrollToItem(index);
+        const visibleRange = e.windowedListRef.current?.visibleRange;
+        if (visibleRange != null) {
+          const { startIndex, endIndex } = visibleRange;
+          if (index < startIndex || index > endIndex) {
+            // We need to scroll the block containing the cursor into the DOM first?
+            e.scrollIntoDOM(index);
             // now wait until the actual scroll happens before
             // doing the measuring below, or it could be wrong.
             e.scrollCaretAfterNextScroll = true;
+            requestAnimationFrame(() => e.scrollCaretIntoView());
             return;
           }
         }
@@ -290,11 +309,8 @@ export const withReact = <T extends Editor>(editor: T) => {
       const EXTRA = options?.middle
         ? editorRect.height / 2
         : editorRect.height > 100
-        ? IS_FIREFOX
-          ? 60
-          : 20 // need more room on Firefox since we do custom cursor movement
-        : // when using windowing, which doesn't work without enough space.
-          0; // this much more than the min possible to get it on screen.
+        ? 20
+        : 0; // this much more than the min possible to get it on screen.
 
       let offset: number = 0;
       if (selectionRect.top < editorRect.top + EXTRA) {
@@ -308,9 +324,10 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
       if (offset) {
         if (windowed) {
-          e.windowedListRef.current.list_ref?.current?.scrollTo(
-            e.windowedListRef.current?.scroll_info.scrollOffset - offset
-          );
+          const scroller = e.windowedListRef.current.scrollerRef.current;
+          if (scroller != null) {
+            scroller.scrollTop = scroller.scrollTop - offset;
+          }
         } else {
           editorEl.scrollTop = editorEl.scrollTop - offset;
         }

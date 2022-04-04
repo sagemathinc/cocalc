@@ -79,7 +79,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       if (index === -1) {
         return;
       }
-      windowed_list_ref?.current?.scrollToRow(index);
+      windowed_list_ref?.current?.scrollToRow(index, "top");
     }
 
     function render_task(index, task_id) {
@@ -152,7 +152,12 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     }
 
     return (
-      <div className="smc-vfill" ref={main_div_ref} onClick={on_click}>
+      <div
+        className="smc-vfill"
+        ref={main_div_ref}
+        onClick={on_click}
+        style={{ overflow: "hidden" }}
+      >
         <WindowedList
           ref={windowed_list_ref}
           overscan_row_count={10}

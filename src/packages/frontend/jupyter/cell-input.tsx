@@ -9,6 +9,7 @@ React component that describes the input of a cell
 
 declare const $: any;
 
+import { useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
@@ -23,6 +24,8 @@ import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 function href_transform(
   project_id: string | undefined,
@@ -165,6 +168,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
         />
       );
     }
@@ -223,6 +235,102 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return <div>Unsupported cell type {type}</div>;
     }
 
+    const getValueRef = useRef<any>(null);
+    useEffect(() => {
+      if (props.cell.get("cell_type") != "markdown") return;
+      const actions = props.actions;
+      if (actions == null) return;
+      const beforeChange = () => {
+        if (getValueRef.current == null) return;
+        const value = getValueRef.current();
+        actions.set_cell_input(props.id, value, true);
+      };
+      actions.syncdb.on("before-change", beforeChange);
+      return () => {
+        actions.syncdb.removeListener("before-change", beforeChange);
+      };
+    }, [props.cell.get("cell_type")]);
+
+    function renderMarkdownEdit() {
+      const cmOptions = options("markdown").toJS();
+      return (
+        <MarkdownInput
+          cacheId={`${props.id}${frameActions.current?.frame_id}`}
+          value={props.cell.get("input") ?? ""}
+          height="auto"
+          onChange={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+          }}
+          getValueRef={getValueRef}
+          onShiftEnter={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+            frameActions.current?.set_md_cell_not_editing(props.id);
+          }}
+          saveDebounceMs={SAVE_DEBOUNCE_MS}
+          cmOptions={cmOptions}
+          autoFocus={props.is_focused || props.is_current}
+          onUndo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.undo();
+                }
+          }
+          onRedo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.redo();
+                }
+          }
+          onSave={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.save();
+                }
+          }
+          onCursors={
+            props.actions == null
+              ? undefined
+              : (cursors) => {
+                  const id = props.cell.get("id");
+                  const cur = cursors.map((z) => {
+                    return { ...z, id };
+                  });
+                  props.actions?.set_cursor_locs(cur);
+                }
+          }
+          cursors={props.cell.get("cursors")?.toJS()}
+          onCursorTop={() => {
+            frameActions.current?.adjacentCell(-1, -1);
+          }}
+          onCursorBottom={() => {
+            frameActions.current?.adjacentCell(0, 1);
+          }}
+          isFocused={props.is_focused}
+          onFocus={() => {
+            const actions = frameActions.current;
+            if (actions != null) {
+              actions.unselect_all_cells();
+              actions.set_cur_id(props.id);
+              actions.set_mode("edit");
+            }
+          }}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
+          modeSwitchStyle={{ marginRight: "32px" }}
+        />
+      );
+    }
+
     function render_input_value(type: string): Rendered {
       switch (type) {
         case "code":
@@ -230,8 +338,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         case "raw":
           return render_codemirror(type);
         case "markdown":
-          if (props.is_markdown_edit) return render_codemirror(type);
-          else return render_markdown();
+          if (props.is_markdown_edit) {
+            return renderMarkdownEdit();
+            //return render_codemirror(type);
+          } else {
+            return render_markdown();
+          }
         default:
           return render_unsupported(type);
       }

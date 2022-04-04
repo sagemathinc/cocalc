@@ -10,9 +10,11 @@ export interface Info {
   parent?: Node; // the parent of the node being serialized (if there is a parent)
   index?: number; // index of this node among its siblings
   no_escape: boolean; // if true, do not escape text in this node.
-  hook?: (Node, string) => undefined | string;
+  hook?: (Node) => undefined | ((string) => string);
   lastChild: boolean; // true if this is the last child among its siblings.
   cache?;
+  noCache?: Set<number>; // never use cache for these top-level nodes
+  topLevel?: number; // top-level block that contains this node.
 }
 
 export function serialize(node: Node, info: Info): string {
@@ -31,8 +33,9 @@ export function slate_to_markdown(
   slate: Node[],
   options?: {
     no_escape?: boolean;
-    hook?: (Node, string) => undefined | string;
+    hook?: (Node) => undefined | ((string) => string);
     cache?;
+    noCache?: Set<number>;
   }
 ): string {
   // const t = new Date().valueOf();
@@ -43,12 +46,12 @@ export function slate_to_markdown(
       no_escape: !!options?.no_escape,
       hook: options?.hook,
       index: i,
+      topLevel: i,
       lastChild: i == slate.length - 1,
       cache: options?.cache,
+      noCache: options?.noCache,
     });
   }
-  // this makes whitespace at top/bottom consistent with prettier
-  markdown = markdown.trim() + "\n";
 
   //console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
   //console.log("slate_to_markdown", { slate, markdown });

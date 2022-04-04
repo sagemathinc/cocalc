@@ -51,6 +51,7 @@ interface Props {
   // but hidden.
   is_visible: boolean;
   tab_is_visible: boolean; // if that editor tab is active -- see page/page.tsx
+  placeholder?: string;
 }
 
 export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
@@ -78,6 +79,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     status,
     tab_is_visible,
     terminal,
+    placeholder,
   } = props;
 
   if (editor_actions == null) {
@@ -150,6 +152,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         is_subframe={is_subframe}
         is_visible={is_visible}
         tab_is_visible={tab_is_visible}
+        placeholder={placeholder}
       />
     );
   }

@@ -20,6 +20,7 @@ import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   slate: {
+    placeholder: "Enter text...",
     short: "Editable",
     name: "Editable View",
     icon: "pencil",
@@ -44,6 +45,7 @@ const EDITOR_SPEC = {
     ]),
   } as EditorDescription,
   cm: {
+    placeholder: "Enter markdown...",
     short: "Source",
     name: "Source Code",
     icon: "code",

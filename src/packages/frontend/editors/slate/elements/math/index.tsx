@@ -9,14 +9,15 @@ import { register, RenderElementProps, SlateElement } from "../register";
 import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 
 export interface DisplayMath extends SlateElement {
-  type: "display_math";
+  type: "math_block";
   value: string;
   isVoid: true;
 }
 
 export interface InlineMath extends SlateElement {
-  type: "inline_math";
+  type: "math_inline";
   value: string;
+  display?: boolean; // inline but acts as displayed math
   isVoid: true;
   isInline: true;
 }
@@ -25,13 +26,13 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
-  if (element.type != "display_math" && element.type != "inline_math") {
+  if (element.type != "math_block" && element.type != "math_inline") {
     // type guard.
     throw Error("bug");
   }
   const { value } = element;
   const { err, __html } = React.useMemo(
-    () => mathToHtml(value, element.type == "inline_math"),
+    () => mathToHtml(value, element.type == "math_inline" && !element.display),
     [value]
   );
 
@@ -52,28 +53,43 @@ const StaticElement: React.FC<RenderElementProps> = ({
 };
 
 register({
-  slateType: "inline_math",
+  slateType: ["math_inline", "math_inline_double"],
   StaticElement,
   toSlate: ({ token }) => {
     return {
-      type: "inline_math",
-      value: token.content,
+      type: "math_inline",
+      value: stripMathEnvironment(token.content),
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
+      display: token.type == "math_inline_double",
     } as Element;
   },
 });
 
 register({
-  slateType: "display_math",
+  slateType: ["math_block", "math_block_eqno"],
   StaticElement,
   toSlate: ({ token }) => {
     return {
-      type: "display_math",
-      value: token.content.trim(),
+      type: "math_block",
+      value: stripMathEnvironment(token.content).trim(),
       isVoid: true,
-      children: [{ text: " " }],
+      children: [{ text: "" }],
     } as Element;
   },
 });
+
+export function stripMathEnvironment(s: string): string {
+  // These environments get detected, but we must remove them, since once in
+  // math mode they make no sense. All the other environments do make sense.
+  for (const env of ["math", "displaymath"]) {
+    if (s.startsWith(`\\begin{${env}}`)) {
+      return s.slice(
+        `\\begin{${env}}`.length,
+        s.length - `\\end{${env}}`.length - 1
+      );
+    }
+  }
+  return s;
+}

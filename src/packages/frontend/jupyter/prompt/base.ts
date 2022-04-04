@@ -1,10 +1,12 @@
+import { CSSProperties } from "react";
+
 import type { JupyterActions } from "../browser-actions";
 
 export const PROMPT_MIN_WIDTH = "7em";
 
 export const INPUT_PROMPT_COLOR: string = "#303F9F";
 
-export const INPUT_STYLE: React.CSSProperties = {
+export const INPUT_STYLE: CSSProperties = {
   color: INPUT_PROMPT_COLOR,
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
@@ -21,6 +23,10 @@ export interface InputPromptProps {
   end?: number;
   actions?: JupyterActions;
   id?: string;
+  style?: CSSProperties;
+  hideMove?: boolean;
+  hideCut?: boolean;
+  hideRun?: boolean;
 }
 
 export const OUTPUT_STYLE: React.CSSProperties = {

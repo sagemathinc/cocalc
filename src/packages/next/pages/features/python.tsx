@@ -131,8 +131,8 @@ export default function Octave({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/software/python">provides many packages </A>
-                    for you.
+                    <A href="/software/python">provides many packages</A> for
+                    you.
                   </li>
                   <li>
                     The <A href="/features/latex-editor">LaTeX editor</A> is

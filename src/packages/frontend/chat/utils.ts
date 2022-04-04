@@ -12,7 +12,7 @@ import { redux } from "../app-framework";
 import { MentionList } from "./store";
 import { Message } from "./types";
 
-export const INPUT_HEIGHT = "100px";
+export const INPUT_HEIGHT = "130px";
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';

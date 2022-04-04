@@ -765,10 +765,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /* Initialize the redux store and react component for editing
      a particular file.
   */
-  private async init_file_react_redux(
+  async initFileRedux(
     path: string,
-    is_public: boolean
-  ): Promise<{ name: string | undefined; Editor: any }> {
+    is_public: boolean = false
+  ): Promise<string | undefined> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
     await import("./editors/register-all");
@@ -780,6 +780,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.project_id,
       is_public
     );
+    return name;
+  }
+
+  private async init_file_react_redux(
+    path: string,
+    is_public: boolean
+  ): Promise<{ name: string | undefined; Editor: any }> {
+    const name = await this.initFileRedux(path, is_public);
 
     // Make the Editor react component
     const Editor = await project_file.generateAsync(

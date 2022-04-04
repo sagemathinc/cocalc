@@ -37,6 +37,7 @@ export interface Customize {
   index_info_html?: string;
   imprint_html?: string;
   policies_html?: string;
+  reCaptchaKey?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -113,7 +114,11 @@ export default async function getCustomize(): Promise<Customize> {
       settings.zendesk_username &&
       settings.zendesk_uri,
 
+    // obviously only the public key here!
     stripePublishableKey: settings.stripe_publishable_key,
+
+    // obviously only the public key here too!
+    reCaptchaKey: settings.re_captcha_v3_publishable_key,
   } as Customize;
 
   return cachedCustomize;

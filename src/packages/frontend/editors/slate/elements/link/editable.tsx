@@ -69,7 +69,14 @@ export const withInsertBreakHack = (editor) => {
   const { insertBreak } = editor;
 
   editor.insertBreak = () => {
-    const [selectedElement, path] = Editor.parent(editor, editor.selection);
+    let selectedElement, path;
+    try {
+      [selectedElement, path] = Editor.parent(editor, editor.selection);
+    } catch (_err) {
+      // document is empty so no need to do this workaround.
+      insertBreak();
+      return;
+    }
 
     if (Element.isElement(selectedElement) && selectedElement.type === "link") {
       const endPoint = Range.end(editor.selection);

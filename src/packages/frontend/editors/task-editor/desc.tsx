@@ -15,7 +15,7 @@ import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
 import { DescriptionRendered } from "./desc-rendered";
-import { DescriptionEditor } from "./desc-editor";
+import DescriptionEditor from "./desc-editor";
 import { TaskActions } from "./actions";
 
 interface Props {
@@ -24,6 +24,7 @@ interface Props {
   project_id?: string;
   task_id: string;
   desc: string;
+  color?: string;
   editing: boolean;
   full_desc: boolean;
   is_current: boolean;
@@ -40,6 +41,7 @@ export const Description: React.FC<Props> = React.memo(
     project_id,
     task_id,
     desc,
+    color,
     editing,
     full_desc,
     is_current,
@@ -57,14 +59,13 @@ export const Description: React.FC<Props> = React.memo(
         return;
       }
       return (
-        <div style={{marginBottom:'5px'}}>
+        <div style={{ marginBottom: "5px" }}>
           <DescriptionEditor
             actions={actions}
             task_id={task_id}
             desc={desc}
+            color={color}
             font_size={font_size}
-            project_id={project_id}
-            path={path}
           />
         </div>
       );
@@ -99,7 +100,7 @@ export const Description: React.FC<Props> = React.memo(
       return (
         <Button
           onClick={edit}
-          style={{ marginBottom: "5px" }}
+          style={{ margin: "5px 0" }}
           title={"Edit this task (double click or enter key)"}
         >
           <Icon name={"edit"} /> Edit

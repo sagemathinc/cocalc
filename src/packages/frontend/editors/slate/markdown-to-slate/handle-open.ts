@@ -17,6 +17,7 @@ function handleOpen({ token, state }) {
   state.nesting = 0;
   state.attrs = token.attrs;
   state.block = token.block;
+  state.open_token = token;
   return [];
 }
 

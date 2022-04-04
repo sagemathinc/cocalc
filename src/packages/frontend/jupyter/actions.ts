@@ -166,6 +166,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
+  // Only use this on the frontend, of course.
+  protected getFrameActions() {
+    return this.redux.getEditorActions(this.project_id, this.path);
+  }
+
   protected init_client_only(): void {
     throw Error("must define in a derived class");
   }
@@ -510,6 +515,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       if (old_cell == null || old_cell.get("pos") !== new_cell.get("pos")) {
         cell_list_needs_recompute = true;
+      }
+      // preserve cursor info if happen to have it, rather than just letting
+      // it get deleted whenever the cell changes.
+      if (old_cell?.has("cursors")) {
+        new_cell = new_cell.set("cursors", old_cell.get("cursors"));
       }
       this.setState({ cells: cells.set(id, new_cell) });
       if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
@@ -883,11 +893,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return "";
   }
 
-  insert_cell_at(pos: number, save: boolean = true): string {
+  insert_cell_at(
+    pos: number,
+    save: boolean = true,
+    id: string | undefined = undefined // dangerous since could conflict (used by whiteboard)
+  ): string {
     if (this.store.get("read_only")) {
       throw Error("document is read only");
     }
-    const new_id = this.new_id();
+    const new_id = id ?? this.new_id();
     this._set(
       {
         type: "cell",
@@ -952,6 +966,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.syncdb.redo();
     }
   };
+
+  in_undo_mode(): boolean {
+    return this.syncdb?.in_undo_mode() ?? false;
+  }
 
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
@@ -1107,7 +1125,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   }
 
-  public set_cursor_locs(locs: any = [], side_effect?: any): void {
+  public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {
     this.last_cursor_move_time = new Date();
     if (this.syncdb == null) {
       // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
@@ -1499,7 +1517,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: any) => {
+  set_kernel = (kernel: string) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
@@ -1685,7 +1703,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   }
 
-  complete_handle_key = (_: string, keyCode: any): void => {
+  complete_handle_key = (_: string, keyCode: number): void => {
     // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {
@@ -1721,9 +1739,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  is_introspecting(): boolean {
+    const actions = this.getFrameActions() as any;
+    return actions?.store?.get("introspect") != null;
+  }
+
   introspect_close = () => {
-    if (this.store.get("introspect") != null) {
-      this.setState({ introspect: undefined });
+    if (this.is_introspecting()) {
+      this.getFrameActions()?.setState({ introspect: undefined });
     }
   };
 
@@ -1740,7 +1763,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     code: string,
     level: 0 | 1,
     cursor_pos?: number
-  ): Promise<void> => {
+  ): Promise<immutable.Map<string, any> | undefined> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
 
@@ -1764,13 +1787,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       introspect = { error: err };
     }
     if (this._introspect_request > req) return;
-    this.setState({ introspect: immutable.fromJS(introspect) });
+    const i = immutable.fromJS(introspect);
+    this.getFrameActions()?.setState({
+      introspect: i,
+    });
+    return i; // convenient / useful, e.g., for use by whiteboard.
   };
 
   clear_introspect = (): void => {
     this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1;
-    this.setState({ introspect: undefined });
+    this.getFrameActions()?.setState({ introspect: undefined });
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {

@@ -125,7 +125,7 @@ export class Actions<
   T extends CodeEditorState = CodeEditorState
 > extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
-  protected _syncstring: SyncString;
+  public _syncstring: SyncString;
   protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
   private _syncstring_init: boolean = false; // true once init has happened.
   private _syncdb_init: boolean = false; // true once init has happened
@@ -138,6 +138,7 @@ export class Actions<
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
+  protected disable_cursors: boolean = false;
 
   public project_id: string;
   public path: string;
@@ -236,7 +237,7 @@ export class Actions<
       this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
+        cursors: !this.disable_cursors,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
@@ -246,7 +247,7 @@ export class Actions<
       this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
+        cursors: !this.disable_cursors,
       });
     } else if (this.doctype == "syncdb") {
       if (
@@ -261,6 +262,7 @@ export class Actions<
         path: this.path,
         primary_keys: this.primary_keys,
         string_cols: this.string_cols,
+        cursors: !this.disable_cursors,
       });
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
@@ -297,9 +299,8 @@ export class Actions<
       );
     });
 
-    this._syncstring.on(
-      "before-change",
-      this.set_syncstring_to_codemirror.bind(this)
+    this._syncstring.on("before-change", () =>
+      this.set_syncstring_to_codemirror(undefined, true)
     );
     this._syncstring.on(
       "after-change",
@@ -1384,13 +1385,19 @@ export class Actions<
 
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
-    // This happens in some cae
+    // This happens in some cases.
     if (this._state === "closed" || this._syncstring.state != "ready") return;
     if (this._syncstring != null) {
-      this._syncstring.commit();
+      // we pass true since here we want any UI for this or any derived
+      // editor to immediately react when we commit. This is particularly
+      // important in the whiteboard where we draw/move objects, and show
+      // a preview, then the real thing only after the change event from commit.
+      this._syncstring.commit(true);
     }
   }
 
+  // Sets value of syncstring to the given value.  If there are any
+  // codemirror editors, their value also gets sets directly.
   public set_value(value: string, do_not_exit_undo_mode?: boolean): void {
     if (this._state === "closed") return;
     const cm = this._get_cm();
@@ -1416,11 +1423,6 @@ export class Actions<
     // or the syncstring isn't initialized yet.  The latter case happens when
     // switching the file that is being edited in a frame, e.g., for latex.
     if (this._state === "closed" || this._syncstring.state != "ready") return;
-    const cur = this._syncstring.to_str();
-    if (cur === value) {
-      // did not actually change.
-      return;
-    }
     if (!do_not_exit_undo_mode) {
       // If we are NOT doing an undo operation, then setting the
       // syncstring due to any
@@ -1435,12 +1437,17 @@ export class Actions<
       // separate state and changing.
       this._syncstring.exit_undo_mode();
     }
+    const cur = this._syncstring.to_str();
+    if (cur === value) {
+      // did not actually change.
+      return;
+    }
     // Now actually set the value.
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
-    return this._syncstring.emit("change");
+    this._syncstring.emit("change");
   }
 
   async set_codemirror_to_syncstring(): Promise<void> {
@@ -1739,6 +1746,15 @@ export class Actions<
       if (this.store.get("status") === status) {
         this.setState({ status: "" });
       }
+    }
+  }
+
+  // convenient to have...
+  set_uploading(state: boolean): void {
+    if (state) {
+      this.set_status("Uploading file...", 45);
+    } else {
+      this.set_status("");
     }
   }
 

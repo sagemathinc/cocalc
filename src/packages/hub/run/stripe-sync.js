@@ -51,9 +51,21 @@ async function upgrade_check() {
 
 async function main() {
   console.log("doing the stripe related periodic tasks...");
-  await do_stripe_sync();
-  await do_sync_site_licenses();
-  await upgrade_check();
+  try {
+    await do_stripe_sync();
+  } catch (err) {
+    console.log(`ERROR do_stripe_sync -- ${err}`);
+  }
+  try {
+    await do_sync_site_licenses();
+  } catch (err) {
+    console.log(`ERROR do_sync_site_licenses -- ${err}`);
+  }
+  try {
+    await upgrade_check();
+  } catch (err) {
+    console.log(`ERROR upgrade_check -- ${err}`);
+  }
   console.log("success -- waiting 5 hours before doing them again...");
   setTimeout(main, ms("5 hours"));
 }
