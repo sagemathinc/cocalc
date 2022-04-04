@@ -12,7 +12,11 @@ import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   if (props.type !== "code") {
-    return <div style={INPUT_STYLE} />;
+    return <div style={{ ...INPUT_STYLE, ...props.style }} />;
   }
-  return <div style={INPUT_STYLE}>In [{props.exec_count ?? " "}]:</div>;
+  return (
+    <div style={{ ...INPUT_STYLE, ...props.style }}>
+      In [{props.exec_count ?? " "}]:
+    </div>
+  );
 };

@@ -79,20 +79,21 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
-  winston.debug(
-    `"npx cocalc-project --daemon" from "${join(root, "packages/project")}"`
-  );
+  const cwd = join(root, "packages/project");
+  winston.debug(`"npx cocalc-project --daemon" from "${cwd}" with uid=${uid}`);
   await promisify((cb: Function) => {
     const child = spawn("npx", ["cocalc-project", "--daemon"], {
       env,
-      cwd: join(root, "packages/project"),
+      cwd,
       uid,
       gid: uid,
     });
     child.on("error", (err) => {
+      winston.debug(`project daemon error ${err}`);
       cb(err);
     });
     child.on("exit", (code) => {
+      winston.debug(`project daemon exited with code ${code}`);
       cb(code);
     });
   })();
@@ -157,8 +158,17 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   ]) {
     delete env2[key];
   }
+  // Comment about stripping things starting with /root:
+  // These tend to creep in as npm changes, e.g., 'npm_config_userconfig' is
+  // suddenly /root/.npmrc, and due to permissions this will break starting
+  // projects with a mysterious "exit code 243" and no further info, which
+  // is really hard to track down.
   for (const key in env2) {
-    if (key.startsWith("COCALC_") || env2[key] == null) {
+    if (
+      key.startsWith("COCALC_") ||
+      env2[key]?.startsWith("/root") ||
+      env2[key] == null
+    ) {
       delete env2[key];
     }
   }

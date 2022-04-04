@@ -62,6 +62,7 @@ export interface EditorDescription {
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
   guide_info?: { title?: string; descr?: string; icon?: IconName };
+  placeholder?: string; // placeholder text to use when empty.
 }
 
 export interface EditorSpec {

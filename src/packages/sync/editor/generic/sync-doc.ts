@@ -37,6 +37,11 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 5;
 
+// This parameter determines throttling when broadcasting cursor position
+// updates.   Make this larger to reduce bandwidth at the expense of making
+// cursors less responsive.
+const CURSOR_THROTTLE_MS = 750;
+
 type XPatch = any;
 
 import { EventEmitter } from "events";
@@ -252,7 +257,6 @@ export class SyncDoc extends EventEmitter {
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc",
     ]);
 
     if (this.change_throttle) {
@@ -425,7 +429,10 @@ export class SyncDoc extends EventEmitter {
     if (exit_undo_mode) this.undo_state = undefined;
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
-    this.emit_change();
+
+    // debounced, so don't immediately alert, in case there are many
+    // more sets comming in the same loop:
+    this.emit_change_debounced();
   }
 
   // Convenience function to avoid having to do
@@ -1463,10 +1470,11 @@ export class SyncDoc extends EventEmitter {
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
 
-    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000, {
-      leading: true,
-      trailing: true,
-    });
+    this.set_cursor_locs = throttle(
+      this.set_cursor_locs.bind(this),
+      CURSOR_THROTTLE_MS,
+      { leading: true, trailing: true }
+    );
     dbg("done");
   }
 
@@ -1499,7 +1507,7 @@ export class SyncDoc extends EventEmitter {
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
   */
-  public get_cursors(): Map<string, any> {
+  public get_cursors(oldMinutes: number = 1): Map<string, any> {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
@@ -1514,11 +1522,13 @@ export class SyncDoc extends EventEmitter {
     ) {
       map = map.delete(account_id);
     }
-    // Remove any old cursors, where "old" is more than 1 minute old; this is never useful.
-    const cutoff = server_minutes_ago(1);
-    for (const [a] of map as any) {
-      if (map.getIn([a, "time"]) < cutoff) {
-        map = map.delete(a);
+    if (oldMinutes) {
+      // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
+      const cutoff = server_minutes_ago(oldMinutes);
+      for (const [a] of map as any) {
+        if (map.getIn([a, "time"]) < cutoff) {
+          map = map.delete(a);
+        }
       }
     }
     return map;
@@ -1592,7 +1602,7 @@ export class SyncDoc extends EventEmitter {
         continue;
       }
       dbg("Compute new patch.");
-      await this.sync_remote_and_doc();
+      this.sync_remote_and_doc();
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -1723,7 +1733,7 @@ export class SyncDoc extends EventEmitter {
        take a little while for the project to save it.
        */
       let success: boolean = false;
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 6; i++) {
         const x = await callback2(this.client.query, {
           query: {
             patches: {
@@ -1735,7 +1745,7 @@ export class SyncDoc extends EventEmitter {
         });
         if (this.state != "ready") return;
         if (x.query.patches == null || x.query.patches.snapshot != snapshot) {
-          await delay((i + 1) * 5000);
+          await delay((i + 1) * 3000);
         } else {
           success = true;
           break;
@@ -1745,6 +1755,15 @@ export class SyncDoc extends EventEmitter {
         throw Error(
           "unable to confirm that snapshot was saved to the database"
         );
+
+        /* Should this be non-fatal?
+        // We make this non-fatal, because throwing an exception could break
+        // other things.
+        console.warn(
+          "WARNING: unable to confirm that snapshot was saved to the database"
+        );
+        return;
+        */
       }
     }
 
@@ -2377,10 +2396,21 @@ export class SyncDoc extends EventEmitter {
   // were changes and false otherwise.   This works
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
-  public commit(): boolean {
+  public commit(emitChangeImmediately = false): boolean {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
+
+    if (emitChangeImmediately) {
+      // used for local clients.   NOTE: don't do this without explicit
+      // request, since it could in some cases cause serious trouble.
+      // E.g., for the jupyter backend doing this by default causes
+      // an infinite recurse.  Having this as an option is important, e.g.,
+      // to avoid flicker/delay in the UI.
+      this.emit_change();
+    }
+
+    // Now save to backend as a new patch:
     this.emit("user-change");
     const patch = this.last.make_patch(this.doc); // must be nontrivial
     this.last = this.doc;
@@ -2704,10 +2734,9 @@ export class SyncDoc extends EventEmitter {
         assertDefined(this.patch_list);
         this.patch_list.add(v);
 
-        // NOTE: The below sync_remote_and_doc can sometimes
-        // *cause* new entries to be added to this.patch_update_queue.
         dbg("waiting for remote and doc to sync...");
-        await this.sync_remote_and_doc();
+        this.sync_remote_and_doc();
+        await this.patches_table.save();
         if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
         dbg("remote and doc now synced");
 
@@ -2773,29 +2802,16 @@ export class SyncDoc extends EventEmitter {
   /*
     Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
-
-    Only returns once any newly created patches have
-    been sent out.
   */
-  private async sync_remote_and_doc(): Promise<void> {
+  private sync_remote_and_doc(): void {
     if (this.last == null || this.doc == null || this.sync_is_disabled) {
       return;
     }
 
     if (this.state == "ready") {
       // First save any unsaved changes from our live version.
-      // Repeat this until changes stop, since there is an await
-      // in this loop, and user may make changes *during* that
-      // save_patch call, and we must not miss them.
       this.emit("before-change");
-      while (!this.last.is_equal(this.doc)) {
-        if (this.commit()) {
-          await this.patches_table.save();
-          if (this.state != "ready") {
-            return;
-          }
-        }
-      }
+      this.commit();
     }
 
     // Compute the global current state of the document,
@@ -2818,8 +2834,18 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
+  // Immediately alert all watchers of all changes since
+  // last time.
   private emit_change(): void {
     this.emit("change", this.doc.changes(this.before_change));
     this.before_change = this.doc;
   }
+
+  // Alert to changes soon, but debounced in case there are a large
+  // number of calls in a group.  This is called by default.
+  // The debounce param is 0, since the idea is that this just waits
+  // until the next "render loop" to avoid huge performance issues
+  // with a nested for loop of sets.  Doing it this way, massively
+  // simplifies client code.
+  emit_change_debounced = debounce(this.emit_change.bind(this), 0);
 }

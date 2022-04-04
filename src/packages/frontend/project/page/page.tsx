@@ -14,6 +14,7 @@ import {
   useActions,
   useRedux,
   useTypedRedux,
+  redux,
 } from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
@@ -28,6 +29,10 @@ import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
 import { useProjectStatus } from "./project-status-hook";
+import {
+  defaultFrameContext,
+  FrameContext,
+} from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -286,12 +291,22 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       }
       const tab_name = "editor-" + path;
       return v.push(
-        <Content
+        <FrameContext.Provider
           key={tab_name}
-          is_visible={active_project_tab === tab_name}
-          project_id={project_id}
-          tab_name={tab_name}
-        />
+          value={{
+            ...defaultFrameContext,
+            project_id,
+            path,
+            actions: redux.getEditorActions(project_id, path) as any,
+            isFocused: active_project_tab === tab_name,
+          }}
+        >
+          <Content
+            is_visible={active_project_tab === tab_name}
+            project_id={project_id}
+            tab_name={tab_name}
+          />
+        </FrameContext.Provider>
       );
     });
     return v;

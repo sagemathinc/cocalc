@@ -4,17 +4,16 @@
  */
 
 /*
-The format bar
+The format bar.
 */
 
-import * as CSS_COLORS from "css-color-names";
 import { React, Rendered } from "../../app-framework";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
-import { sortBy } from "lodash";
+import { ColorButton } from "@cocalc/frontend/components/color-picker";
 
 const FONT_SIZES = [
   "xx-small",
@@ -258,34 +257,8 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_colors_dropdown(): Rendered {
-    // sort reversed by "code"
-    const cols = sortBy(Object.keys(CSS_COLORS), (color) => CSS_COLORS[color]);
-    cols.reverse();
-    const items = cols.map((color) => {
-      const code = CSS_COLORS[color];
-      return (
-        <MenuItem key={color} eventKey={code}>
-          <span style={{ background: code }}>
-            <Space />
-            <Space />
-            <Space />
-            <Space />
-          </span>{" "}
-          {color}
-        </MenuItem>
-      );
-    });
-
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"colors"} />}
-        key={"font-color"}
-        id={"font-color"}
-        onClick={(code) => actions.format_action("color", code)}
-      >
-        {items}
-      </DropdownMenu>
+      <ColorButton onChange={(code) => actions.format_action("color", code)} />
     );
   }
 

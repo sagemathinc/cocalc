@@ -69,6 +69,7 @@ function fromSlate({ node, children, info, childInfo }) {
           }
         }
       }
+      children = children.trimEnd();
       return children + " | ";
   }
 }

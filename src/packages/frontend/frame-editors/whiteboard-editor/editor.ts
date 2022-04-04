@@ -12,6 +12,7 @@ import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
 import { set } from "@cocalc/util/misc";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
+import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
 
 import Whiteboard from "./whiteboard";
 
@@ -19,9 +20,12 @@ const whiteboardButtons = set([
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
-  "zoom_page_height",
   "save",
   "time_travel",
+  "undo",
+  "redo",
+  "copy",
+  "paste",
 ]);
 
 export const EDITOR_SPEC = {
@@ -34,6 +38,13 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   terminal,
   time_travel,
+  introspect: {
+    short: "Introspect",
+    name: "Introspection",
+    icon: "info",
+    component: Introspect,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  } as EditorDescription,
 };
 
 export const Editor = createEditor({

@@ -5,6 +5,11 @@
 
 /*
 Components for rendering input and output prompts.
+
+ATTENTION: Be careful about adding other buttons here, since this component is also used by the whiteboard,
+which has different constraints!  See
+
+src/packages/frontend/frame-editors/whiteboard-editor/elements/code/input-prompt.tsx
 */
 
 import React from "react";
@@ -92,22 +97,32 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   const title = (
     <div>
       {props.actions != null ? (
-        <div style={{ float: "right", color: "#666" }}>
-          <Button size="small" onClick={() => move_cell(-1)}>
-            <Icon name="arrow-up" />
-          </Button>
-          <Button size="small" onClick={() => move_cell(1)}>
-            <Icon name="arrow-down" />
-          </Button>{" "}
-          <Button size="small" onClick={run_cell}>
-            <Icon name="step-forward" />
-          </Button>
+        <div style={{ color: "#666" }}>
+          {!props.hideMove && (
+            <Button size="small" onClick={() => move_cell(-1)}>
+              <Icon name="arrow-up" />
+            </Button>
+          )}
+          {!props.hideMove && (
+            <>
+              <Button size="small" onClick={() => move_cell(1)}>
+                <Icon name="arrow-down" />
+              </Button>{" "}
+            </>
+          )}
+          {!props.hideRun && (
+            <Button size="small" onClick={run_cell}>
+              <Icon name="step-forward" />
+            </Button>
+          )}
           <Button size="small" onClick={stop_cell}>
             <Icon name="stop" />
           </Button>
-          <Button size="small" onClick={cut_cell}>
-            <Icon name="cut" />
-          </Button>{" "}
+          {!props.hideCut && (
+            <Button size="small" onClick={cut_cell}>
+              <Icon name="cut" />
+            </Button>
+          )}
         </div>
       ) : (
         "Code Cell"
@@ -116,7 +131,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   );
 
   return (
-    <div style={{ ...INPUT_STYLE, cursor: "pointer" }}>
+    <div style={{ ...INPUT_STYLE, cursor: "pointer", ...props.style }}>
       <Tip title={title} tip={tip} placement="top">
         In [{n}]:
       </Tip>

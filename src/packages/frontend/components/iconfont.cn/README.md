@@ -9,5 +9,5 @@ The steps are:
 3. Download the code of a project (the js).
 4. Upload the js file in that zip download here.
 
-It should work fine to add multiple js files, since each just adds some hidden
-template svg element to the DOM.  Just be sure to update `index.js` to include them.
+It DEOS work fine to add multiple js files, since each just adds some hidden
+template svg element to the DOM. Just be sure to update `index.js` to include them.

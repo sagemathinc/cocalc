@@ -25,8 +25,8 @@ export const CloseX: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <a href="" style={closex_style} onClick={onClick}>
-      <Icon style={style} name="times" />
+    <a href="" style={{ ...closex_style, ...style }} onClick={onClick}>
+      <Icon name="times" />
     </a>
   );
 };

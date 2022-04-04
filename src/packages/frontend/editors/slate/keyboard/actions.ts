@@ -15,7 +15,7 @@ register(
     { key: "s", meta: true },
   ],
   ({ extra }) => {
-    extra?.actions.save(true);
+    extra?.actions.save?.(true);
     return true;
   }
 );
@@ -26,7 +26,7 @@ register(
     { key: ",", meta: true, shift: true },
   ],
   ({ extra }) => {
-    extra?.actions.change_font_size(-1);
+    extra?.actions.change_font_size?.(-1);
     return true;
   }
 );
@@ -37,7 +37,7 @@ register(
     { key: ".", meta: true, shift: true },
   ],
   ({ extra }) => {
-    extra?.actions.change_font_size(+1);
+    extra?.actions.change_font_size?.(+1);
     return true;
   }
 );
@@ -49,8 +49,11 @@ register(
   ],
   ({ editor, extra }) => {
     if (extra == null) return false;
-    extra.actions.undo(extra.id);
-    editor.hasUnsavedChanges = false;
+    if (extra.actions.undo != null) {
+      editor.saveValue(true);
+      extra.actions.undo(extra.id);
+    }
+    editor.resetHasUnsavedChanges();
     //ReactEditor.focus(editor);
     return true;
   }
@@ -63,8 +66,11 @@ register(
   ],
   ({ editor, extra }) => {
     if (extra == null) return false;
-    extra.actions.redo(extra.id);
-    editor.hasUnsavedChanges = false;
+    if (extra.actions.redo != null) {
+      editor.saveValue(true);
+      extra.actions.redo(extra.id);
+    }
+    editor.resetHasUnsavedChanges();
     //ReactEditor.focus(editor);
     return true;
   }

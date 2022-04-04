@@ -5,6 +5,7 @@
 
 // Time travel editor react component.
 
+import { Checkbox, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
 
@@ -34,6 +35,9 @@ import {
 } from "../../jupyter/history-viewer";
 import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
+import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
+
+const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "board"]);
 
 interface Props {
   actions: TimeTravelActions;
@@ -126,6 +130,10 @@ class TimeTravel extends Component<Props> {
     if (version == null) return; // no versions yet, so nothing to render
     const syncdoc = this.props.actions.syncdoc;
     if (syncdoc == null) return; // no syncdoc yet so again nothing to render.
+    if (this.props.desc.get("text_mode")) {
+      return this.render_document_codemirror();
+    }
+    // if you change this, also change HAS_SPECIAL_VIEWER above!
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
@@ -133,6 +141,14 @@ class TimeTravel extends Component<Props> {
         return this.render_document_jupyter_notebook(syncdoc, version);
       case "sagews":
         return this.render_document_sagews();
+      case "board":
+        return (
+          <Whiteboard
+            syncdb={syncdoc}
+            version={version}
+            font_size={this.props.font_size}
+          />
+        );
       default:
         return this.render_document_codemirror();
     }
@@ -378,6 +394,7 @@ class TimeTravel extends Component<Props> {
       />
     );
   }
+
   private render_export(): Rendered {
     return <Export actions={this.props.actions} />;
   }
@@ -392,6 +409,18 @@ class TimeTravel extends Component<Props> {
         }}
       >
         {this.render_changes_mode()}
+        {HAS_SPECIAL_VIEWER.has(this.props.docext ?? "") && (
+          <Tooltip title="Display underlying file as text">
+            <Checkbox
+              defaultChecked={!!this.props.desc.get("text_mode")}
+              onChange={(e) =>
+                this.props.actions.setTextMode(this.props.id, e.target.checked)
+              }
+            >
+              Text
+            </Checkbox>
+          </Tooltip>
+        )}
         {this.render_navigation_buttons()}
         <ButtonGroup style={{ margin: "0 10px" }}>
           {this.render_load_full_history()}

@@ -12,6 +12,8 @@ Also immediately falls back to mathjax if account prefs other settings katex
 is explicitly known and set to false.
 */
 
+import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/math/index";
+
 export const jQuery = $;
 declare var $: any;
 import { tex2jax } from "./tex2jax";
@@ -28,20 +30,21 @@ declare global {
   }
 }
 
-$.fn.katex = function () {
-  this.each(katex_plugin);
+$.fn.katex = function (opts?: { preProcess?: boolean }) {
+  this.each((i) => {
+    katex_plugin($(this[i]), opts?.preProcess);
+  });
   return this;
 };
 
-function katex_plugin(): void {
-  // @ts-ignore
-  const elt = $(this);
-
+function katex_plugin(elt, preProcess): void {
   // Run Mathjax's processor on this DOM node.
   // This puts any math it detects in nice script tags:
   //    <script type="math/tex">x^2</script>
   //    <script type="math/tex; mode=display">x^2</script>
-  tex2jax.PreProcess(elt[0]);
+  if (preProcess) {
+    tex2jax.PreProcess(elt[0]);
+  }
 
   const always_use_mathjax: boolean =
     redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;
@@ -62,6 +65,7 @@ function katex_plugin(): void {
       };
       let text = node.text();
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
+      text = stripMathEnvironment(text);
       if (always_use_mathjax) {
         const node0: any = node;
         if (node0.mathjax !== undefined) {

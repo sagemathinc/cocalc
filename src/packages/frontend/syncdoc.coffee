@@ -3,7 +3,7 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-SAVE_DEBOUNCE_MS = 1500
+{SAVE_DEBOUNCE_MS} = require("@cocalc/frontend/frame-editors/code-editor/const")
 
 $        = window.$
 misc     = require('@cocalc/util/misc')

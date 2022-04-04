@@ -121,7 +121,7 @@ function isMarkActive(editor: Editor, mark: string): boolean {
     return !!Editor.marks(editor)?.[mark];
   } catch (err) {
     // see comment in getMarks...
-    console.log("Editor.marks", err);
+    console.warn("Editor.marks", err);
     return false;
   }
 }
@@ -303,7 +303,6 @@ export function restoreSelectionAndFocus(editor: SlateEditor): void {
 }
 
 export function formatAction(editor: SlateEditor, cmd: string, args): void {
-  // console.log("formatAction", cmd, args);
   restoreSelectionAndFocus(editor);
   try {
     if (
@@ -434,14 +433,14 @@ function transformToEquation(editor: Editor, display: boolean): void {
   let node: Node;
   if (display) {
     node = {
-      type: "display_math",
+      type: "math_block",
       value,
       isVoid: true,
       children: [{ text: "" }],
     };
   } else {
     node = {
-      type: "inline_math",
+      type: "math_inline",
       value,
       isVoid: true,
       isInline: true,

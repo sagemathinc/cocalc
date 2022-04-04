@@ -33,6 +33,7 @@ import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
+import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable";
@@ -87,6 +88,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const [doc, set_doc] = React.useState<PDFDocumentProxy | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  usePinchToZoom({ target: scrollRef });
 
   React.useEffect(() => {
     mouse_draggable();

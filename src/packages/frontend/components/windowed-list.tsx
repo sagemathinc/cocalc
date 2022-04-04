@@ -21,7 +21,7 @@
 //   I did implement everything first using react-virtualized, but react-window
 //   is definitely faster, and the overscan seems to work much better.
 
-import { ReactNode } from "react";
+import { MutableRefObject, ReactNode } from "react";
 import { delay } from "awaiting";
 import ResizeObserver from "resize-observer-polyfill";
 import { VariableSizeList as List, ListOnScrollProps } from "react-window";
@@ -39,6 +39,13 @@ const BIG: number = 9999999;
 export interface ScrollInfo extends ListOnScrollProps {
   maxScrollOffset?: number;
 }
+
+export type ControlRef = MutableRefObject<{
+  renderInfo: RenderInfo;
+  scrollInfo: ScrollInfo;
+  scrollTo: (offset: number) => void;
+  scrollToItem: (index: number, align?) => void;
+}>;
 
 export interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
@@ -61,7 +68,15 @@ export interface Props {
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
   scroll_margin?: number;
   row_style?: CSS;
-  no_shrink_hack?: boolean; // ignore resizes that shrink or barely change size; useful in some cases, but very bad in others.
+
+  // no_shrink_hack: ignore resizes that shrink or barely change size;
+  // useful in some cases, but very bad in others.
+  no_shrink_hack?: boolean;
+
+  // Plan to rewrite all code to use this ref rather than a ref to the whole class.
+  // That way we can switch to a functional component. Add more fields as needed
+  // for clients, but no JSX.Elements, so this remains JSON'able.
+  controlRef?: ControlRef;
 }
 
 interface State {
@@ -111,6 +126,7 @@ export class WindowedList extends Component<Props, State> {
     visibleStopIndex: 0,
   };
   private ensure_visible?: { row: number; align: string };
+  private controlRef?: ControlRef;
 
   constructor(props) {
     super(props);
@@ -132,6 +148,16 @@ export class WindowedList extends Component<Props, State> {
     }
     this.state = { scroll_to_index: props.scroll_to_index, scroll_top };
     this.RowComponent = createRowComponent(this);
+
+    if (props.controlRef != null) {
+      this.controlRef = props.controlRef;
+      props.controlRef.current = {
+        scrollTo: this.scrollTo.bind(this),
+        scrollToItem: this.scrollToItem.bind(this),
+        renderInfo: this.render_info,
+        scrollInfo: this.scroll_info,
+      };
+    }
   }
 
   public componentWillUnmount(): void {
@@ -396,6 +422,9 @@ export class WindowedList extends Component<Props, State> {
           ...info,
           ...{ maxScrollOffset },
         };
+        if (this.controlRef?.current != null) {
+          this.controlRef.current.scrollInfo = this.scroll_info;
+        }
         if (this.props.on_scroll != null) {
           this.props.on_scroll(this.scroll_info);
         }
@@ -411,6 +440,9 @@ export class WindowedList extends Component<Props, State> {
     const save_render_info = this.props.render_info
       ? (info) => {
           this.render_info = info;
+          if (this.controlRef?.current != null) {
+            this.controlRef.current.renderInfo = info;
+          }
         }
       : undefined;
 

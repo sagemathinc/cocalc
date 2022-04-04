@@ -17,6 +17,7 @@ export interface Props {
   value?: string;
   style?: CSS;
   auto_render_math?: boolean; // optional -- used to detect and render math
+  preProcessMath?: boolean; // if true (the default), and auto_render_math, also run tex2jax.PreProcess to find math in $'s, etc., instead of only rendering <script type="math/tex"...
   project_id?: string; // optional -- can be used to improve link handling (e.g., to images)
   file_path?: string; // optional -- ...
   className?: string; // optional class
@@ -89,7 +90,7 @@ export const HTML: React.FC<Props> = (props) => {
     if (!props.auto_render_math) {
       return;
     }
-    jq()?.katex();
+    jq()?.katex({ preProcess: props.preProcessMath ?? true });
   }
 
   function update_highlight(): void {
@@ -175,7 +176,7 @@ export const HTML: React.FC<Props> = (props) => {
       const elt = $("<div>") as any;
       elt.html(props.value);
       if (props.auto_render_math) {
-        elt.katex();
+        elt.katex({ preProcess: props.preProcessMath ?? true });
       }
       elt.find("table").addClass("table");
       if (props.highlight_code) {

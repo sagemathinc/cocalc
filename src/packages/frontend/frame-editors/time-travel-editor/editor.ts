@@ -26,7 +26,13 @@ export const time_travel = {
   name: "TimeTravel",
   icon: "history",
   component: TimeTravel,
-  buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "help",
+    "-file",
+    "copy",
+  ]),
   hide_file_menu: true,
   hide_public: true,
 } as EditorDescription;

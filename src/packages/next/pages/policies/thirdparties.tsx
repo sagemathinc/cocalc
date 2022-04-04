@@ -75,6 +75,24 @@ export default function TermsOfService({ customize }) {
                 </li>
               </ul>
               <li>
+                <A href={"https://www.google.com/recaptcha/about/"}>
+                  reCAPTCHA
+                </A>
+              </li>
+              <ul>
+                <li>usage: fraud and abuse protection</li>
+                <li>
+                  <A href={"https://policies.google.com/terms"}>
+                    Terms of Usage
+                  </A>
+                </li>
+                <li>
+                  <A href={"https://policies.google.com/privacy"}>
+                    Privacy Policy
+                  </A>
+                </li>
+              </ul>
+              <li>
                 <A href="https://www.zendesk.com/">Zendesk</A>
               </li>
               <ul>

@@ -12,7 +12,6 @@ const CODE_STYLE = {
   padding: ".2em .4em",
   margin: 0,
   fontSize: "85%",
-  backgroundColor: "rgba(27,31,35,.05)",
   borderRadius: "6px",
 } as CSSProperties;
 

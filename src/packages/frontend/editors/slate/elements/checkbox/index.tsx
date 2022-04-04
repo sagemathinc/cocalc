@@ -26,6 +26,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
         style={{
           padding: "0 0.2em 0.2em 0.2em",
           verticalAlign: "middle",
+          border: "1px solid transparent",
         }}
         checked={!!element.value}
         disabled={true}

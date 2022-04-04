@@ -19,6 +19,7 @@ import { DoneCheckbox } from "./done";
 import { header_part } from "./desc-rendering";
 import { SelectedHashtags, TaskMap } from "./types";
 import { TaskActions } from "./actions";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 interface Props {
   actions?: TaskActions;
@@ -58,12 +59,11 @@ export const Task: React.FC<Props> = React.memo(
       background: "white",
     };
     if (is_current) {
-      style.border = "1px solid rgb(171, 171, 171)";
-      style.borderLeft = "5px solid rgb(66, 165, 245)";
-      style.background = "rgb(247, 247, 247)";
+      style.border = "1px solid rgb(66, 165, 245)";
+      style.borderLeft = "10px solid rgb(66, 165, 245)";
     } else {
       style.border = "1px solid #ccc";
-      style.borderLeft = "5px solid #ccc";
+      style.borderLeft = "10px solid #ccc";
     }
     if (task.get("deleted")) {
       style.background = "#d9534f";
@@ -85,12 +85,26 @@ export const Task: React.FC<Props> = React.memo(
       min_toggle = header_part(desc) !== desc.trim();
     }
 
+    const color = task.get("color");
+    if (color) {
+      style.background = color;
+      style.color = avatar_fontcolor(color);
+    }
+
     return (
       <Grid
         style={style}
         onClick={() => actions?.set_current_task(task.get("task_id"))}
       >
         <Row>
+          <Col sm={1} style={{ textAlign: "center" }}>
+            <DoneCheckbox
+              actions={actions}
+              read_only={read_only}
+              done={!!task.get("done")}
+              task_id={task.get("task_id")}
+            />
+          </Col>
           <Col sm={1}>
             {actions != null && <DragHandle sortable={sortable} />}
             {actions != null && (
@@ -109,6 +123,7 @@ export const Task: React.FC<Props> = React.memo(
               project_id={project_id}
               task_id={task.get("task_id")}
               desc={task.get("desc") ?? ""}
+              color={color}
               full_desc={full_desc}
               editing={editing_desc}
               is_current={is_current}
@@ -135,14 +150,6 @@ export const Task: React.FC<Props> = React.memo(
             <span style={{ fontSize: "10pt", color: "#666" }}>
               <Changed last_edited={task.get("last_edited")} />
             </span>
-          </Col>
-          <Col sm={1}>
-            <DoneCheckbox
-              actions={actions}
-              read_only={read_only}
-              done={!!task.get("done")}
-              task_id={task.get("task_id")}
-            />
           </Col>
         </Row>
       </Grid>

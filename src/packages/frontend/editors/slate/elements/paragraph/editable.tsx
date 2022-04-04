@@ -62,7 +62,7 @@ register({
     */
   },
 
-  fromSlate: ({ node, children, info }) => {
+  fromSlate: ({ children, info }) => {
     if (children.trim() == "") {
       // We discard empty paragraphs entirely, since that's
       // what markdown does. Also, to make void blocks easier to
@@ -70,13 +70,6 @@ register({
       // above or below them, and it is silly if those result in
       // lots of meaningless blank lines in the md file.
       return "";
-    }
-
-    if (info.cache != null) {
-      const c = info.cache[JSON.stringify(node)];
-      if (c != null) {
-        children = c;
-      }
     }
 
     // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.

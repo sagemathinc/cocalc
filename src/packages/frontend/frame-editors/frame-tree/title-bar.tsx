@@ -7,6 +7,7 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
+import { ReactNode } from "react";
 import { List } from "immutable";
 import {
   React,
@@ -754,18 +755,25 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_page_width_height_group(): Rendered {
+    const v: ReactNode[] = [];
     if (
-      !is_visible("zoom_page_width") ||
-      props.actions.zoom_page_width == null
+      is_visible("zoom_page_height") &&
+      props.actions.zoom_page_height != null
     ) {
-      return;
+      v.push(render_zoom_page_height());
     }
-    return (
-      <ButtonGroup key={"height-width"}>
-        {render_zoom_page_height()}
-        {render_zoom_page_width()}
-      </ButtonGroup>
-    );
+    if (
+      is_visible("zoom_page_width") &&
+      props.actions.zoom_page_width != null
+    ) {
+      v.push(render_zoom_page_width());
+    }
+    if (v.length == 2) {
+      return <ButtonGroup key={"height-width"}>{v}</ButtonGroup>;
+    }
+    if (v.length == 1) {
+      return <span key={"height-width"}>{v}</span>;
+    }
   }
 
   function render_undo(): Rendered {

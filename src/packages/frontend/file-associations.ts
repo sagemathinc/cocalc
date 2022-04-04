@@ -406,6 +406,13 @@ file_associations["course"] = {
   name: "course",
 };
 
+file_associations["board"] = {
+  editor: "board",
+  icon: "layout",
+  opts: {},
+  name: "whiteboard",
+};
+
 file_associations["sage-chat"] = {
   editor: "chat",
   icon: "comment",
