@@ -79,17 +79,17 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
-  winston.debug(
-    `"npx cocalc-project --daemon" from "${join(root, "packages/project")}"`
-  );
+  const cwd = join(root, "packages/project");
+  winston.debug(`"npx cocalc-project --daemon" from "${cwd}"`);
   await promisify((cb: Function) => {
     const child = spawn("npx", ["cocalc-project", "--daemon"], {
       env,
-      cwd: join(root, "packages/project"),
+      cwd,
       uid,
       gid: uid,
     });
     child.on("error", (err) => {
+      winston.debug(`project daemon error ${err}`);
       cb(err);
     });
     child.on("exit", (code) => {
