@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
 import A from "components/misc/A";
 import { join } from "path";
@@ -16,6 +21,7 @@ import Overview from "./overview";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
 import Anonymous from "components/misc/anonymous";
+import Dedicated from "./dedicated";
 
 const { Content } = Layout;
 
@@ -23,7 +29,7 @@ interface Props {
   page: string;
 }
 
-export default function ConfigLayout({ page }: Props) {
+export default function StoreLayout({ page }: Props) {
   const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
@@ -82,6 +88,8 @@ export default function ConfigLayout({ page }: Props) {
         return <SiteLicense />;
       case "boost":
         return <Boost />;
+      case "dedicated":
+        return <Dedicated />;
       case "cart":
         return <Cart />;
       case "checkout":

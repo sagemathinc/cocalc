@@ -60,6 +60,7 @@ export interface PurchaseInfo {
   dedicated_vm?: DedicatedVM;
   title?: string;
   description?: string;
+  boost?: boolean;
 }
 
 // throws an exception if it spots something funny...
@@ -279,6 +280,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     dedicated_disk,
     dedicated_vm,
     custom_uptime,
+    boost = false,
   } = info;
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
@@ -404,9 +406,15 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost *= 12;
   }
 
+  // Just for visual clarity, if no quota boots are selected, user sees $0.00
+  const boostZeroed =
+    boost && custom_cpu === 0 && custom_ram === 0 && custom_disk === 0;
+
+  const min_sale = boostZeroed ? 0 : COSTS.min_sale;
+
   return {
-    cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
-    discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
+    cost: Math.max(min_sale / COSTS.online_discount, cost),
+    discounted_cost: Math.max(min_sale, cost * COSTS.online_discount),
     cost_per_project_per_month,
     cost_sub_month,
     cost_sub_year,

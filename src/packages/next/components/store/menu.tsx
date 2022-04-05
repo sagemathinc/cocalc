@@ -40,6 +40,9 @@ export default function ConfigMenu({ main }) {
       <Menu.Item key={"boost"}>
         <Icon name={"rocket"} style={style} /> Boost{renderNew()}
       </Menu.Item>
+      <Menu.Item key={"dedicated"}>
+        <Icon name={"dedicated"} style={style} /> Dedicated{renderNew()}
+      </Menu.Item>
       <Menu.Item key={"cart"}>
         <Icon name={"shopping-cart"} style={style} /> Cart
       </Menu.Item>

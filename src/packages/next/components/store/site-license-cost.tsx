@@ -34,6 +34,7 @@ export function computeCost({
   always_running,
   member,
   uptime,
+  boost = false, // if true, allow "all zero" values and start at 0 USD
 }: {
   user: "academic" | "business";
   run_limit: number;
@@ -46,6 +47,7 @@ export function computeCost({
   member: boolean;
   input: PurchaseInfo;
   uptime: keyof typeof LicenseIdleTimeouts | "always_running";
+  boost?: boolean;
 }): Cost | undefined {
   if (period == "range" && range?.[1] == null) {
     return undefined;
@@ -69,6 +71,7 @@ export function computeCost({
     custom_always_running: always_running,
     custom_member: member,
     custom_uptime: uptime,
+    boost,
   };
   return {
     ...compute_cost(input),

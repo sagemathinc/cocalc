@@ -7,6 +7,28 @@
 Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
+
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Popconfirm,
+  Radio,
+  Switch,
+  Typography,
+} from "antd";
+import SiteName from "components/share/site-name";
+import A from "components/misc/A";
+import { useEffect, useState } from "react";
+import IntegerSlider from "components/misc/integer-slider";
+import DateRange from "components/misc/date-range";
+import { computeCost, Cost, DisplayCost } from "./site-license-cost";
+import apiPost from "lib/api/post";
+import { useRouter } from "next/router";
+import Loading from "components/share/loading";
+import { money } from "@cocalc/util/licenses/purchase/util";
 import {
   get_local_storage,
   set_local_storage,
@@ -15,31 +37,9 @@ import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
 } from "@cocalc/util/consts/site-license";
-import {
-  Button,
-  Checkbox,
-  Divider,
-  Form,
-  Input,
-  Popconfirm,
-  Radio,
-  Switch,
-  Typography,
-} from "antd";
-import A from "components/misc/A";
-import DateRange from "components/misc/date-range";
-import IntegerSlider from "components/misc/integer-slider";
-import Loading from "components/share/loading";
-import SiteName from "components/share/site-name";
-import apiPost from "lib/api/post";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { AddBox } from "./add-box";
-import { computeCost, Cost } from "./site-license-cost";
-
 const { Text } = Typography;
 
-export default function Create() {
+export default function Dedicated() {
   const router = useRouter();
   return (
     <div>
@@ -47,20 +47,18 @@ export default function Create() {
         <h3>
           <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
           {router.query.id != null
-            ? "Edit Site License in Shopping Cart"
-            : "Buy a Site License"}
+            ? "Edit Dedicated Resources License in Shopping Cart"
+            : "Buy a Dedicated Resources License"}
         </h3>
         {router.query.id == null && (
           <p>
+            A{" "}
             <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> site licenses
+              <SiteName /> dedicated resource license
             </A>{" "}
-            allow you to upgrade any number of projects to run more quickly,
-            have network access, more disk space, memory, or run on a dedicated
-            computer. Site licenses can be for a wide range of sizes, ranging
-            from a single hobbyist project to thousands of simultaneous users
-            across an entire department of school. Create a license using the
-            form below then add it to your{" "}
+            can be used to outfit your project with additional disk storage or
+            moves your project to a much more powerful virtual machine. Create a
+            dedicated resources license below then add it to your{" "}
             <A href="/store/cart">shopping cart</A>.
           </p>
         )}
@@ -117,6 +115,27 @@ function CreateLicense() {
 
   if (loading) {
     return <Loading large center />;
+  }
+
+  async function addToCart() {
+    const description = form.getFieldsValue(true);
+    try {
+      setCartError("");
+      if (router.query.id != null) {
+        await apiPost("/shopping/cart/edit", {
+          id: router.query.id,
+          description,
+        });
+      } else {
+        await apiPost("/shopping/cart/add", {
+          product: "site-license",
+          description,
+        });
+      }
+      router.push("/store/cart");
+    } catch (err) {
+      setCartError(err.message);
+    }
   }
 
   function memberExplanation(): JSX.Element | undefined {
@@ -221,15 +240,48 @@ function CreateLicense() {
     return ret;
   }
 
-  const addBox = (
-    <AddBox
-      cost={cost}
-      router={router}
-      form={form}
-      cartError={cartError}
-      setCartError={setCartError}
-    />
-  );
+  const addBox = cost ? (
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          display: "inline-block",
+          maxWidth: "400px",
+          background: "white",
+          border: "1px solid #ccc",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          margin: "15px 0",
+          fontSize: "12pt",
+        }}
+      >
+        <DisplayCost cost={cost} />
+        <div>
+          {money(cost.discounted_cost / cost.input.quantity)} per project
+        </div>
+        <div style={{ textAlign: "center" }}>
+          {router.query.id != null && (
+            <Button
+              size="large"
+              style={{ marginRight: "5px" }}
+              onClick={() => router.push("/store/cart")}
+            >
+              Cancel
+            </Button>
+          )}
+          <Button
+            size="large"
+            type="primary"
+            htmlType="submit"
+            style={{ marginTop: "5px" }}
+            onClick={() => addToCart()}
+          >
+            {router.query.id != null ? "Save Changes" : "Add to Cart"}
+          </Button>
+          {cartError && <Alert type="error" message={cartError} />}
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div>
@@ -265,11 +317,6 @@ function CreateLicense() {
             Show explanations
           </div>
         </Form.Item>
-        {/* Hidden form item, used to disambiguate between boost and regular licenses */}
-        <Form.Item name="type" initialValue={"regular"} noStyle>
-          <Input type="hidden" />
-        </Form.Item>
-        <Divider plain>Usage and Duration</Divider>
         <Form.Item
           name="user"
           initialValue="academic"
@@ -345,7 +392,6 @@ function CreateLicense() {
             ) : null
           }
         </Form.Item>
-        <Divider plain>Quota upgrades</Divider>
         <Form.Item
           label="GB shared RAM"
           name="ram"
@@ -438,9 +484,6 @@ function CreateLicense() {
             presets={[1, 4, 8, 10, 15]}
           />
         </Form.Item>
-        <Divider plain>
-          Maximum number of simultaneously upgraded projects
-        </Divider>
         <Form.Item
           label="Run Limit"
           name="run_limit"
@@ -474,7 +517,6 @@ function CreateLicense() {
             }}
           />
         </Form.Item>
-        <Divider plain>Hosting quality and Idle timeout</Divider>
         <Form.Item
           initialValue={true}
           label="Member hosting"
@@ -527,7 +569,6 @@ function CreateLicense() {
             {uptimeOptions()}
           </Radio.Group>
         </Form.Item>
-        <Divider plain>Customizable identifications</Divider>
         <Form.Item
           label="Title"
           name="title"
