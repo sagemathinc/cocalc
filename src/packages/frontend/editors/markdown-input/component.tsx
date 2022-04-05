@@ -11,6 +11,7 @@ Markdown editor
 // rather than a directory for each file.
 const AUX_FILE_EXT = "upload";
 
+import { isEqual } from "lodash";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
@@ -31,6 +32,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -90,7 +92,7 @@ interface Props {
   lineWrapping?: boolean;
   lineNumbers?: boolean;
   autoFocus?: boolean;
-  cmOptions?: { [key: string]: any }; // if given, use this for all CodeMirror options and ignore anything derived from other inputs, e.g., lineNumbers, above.
+  cmOptions?: { [key: string]: any }; // if given, use this for CodeMirror options, taking precedence over anything derived from other inputs, e.g., lineNumbers, above and account settings.
   selectionRef?: MutableRefObject<{
     setSelection: Function;
     getSelection: Function;
@@ -132,9 +134,6 @@ export function MarkdownInput({
   extraHelp,
   hideHelp,
   fontSize,
-  styleActiveLine,
-  lineWrapping,
-  lineNumbers,
   autoFocus,
   cmOptions,
   selectionRef,
@@ -154,8 +153,21 @@ export function MarkdownInput({
 }: Props) {
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
-  const theme = useRedux(["account", "editor_settings", "theme"]);
-  const bindings = useRedux(["account", "editor_settings", "bindings"]);
+  const editor_settings = useRedux(["account", "editor_settings"]);
+  const options = useMemo(() => {
+    return {
+      indentUnit: 2,
+      indentWithTabs: false,
+      autoCloseBrackets: editor_settings.get("auto_close_brackets", false),
+      lineWrapping: editor_settings.get("line_wrapping", true),
+      lineNumbers: editor_settings.get("line_numbers", false),
+      matchBrackets: editor_settings.get("match_brackets", false),
+      styleActiveLine: editor_settings.get("style_active_line", true),
+      theme: editor_settings.get("theme", "default"),
+      ...cmOptions,
+    };
+  }, [editor_settings, cmOptions]);
+
   const defaultFontSize = useTypedRedux("account", "font_size");
 
   const dropzone_ref = useRef<Dropzone>(null);
@@ -258,18 +270,14 @@ export function MarkdownInput({
       };
     }
 
-    const options = cmOptions ?? {
-      inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
-      spellcheck: true,
-      styleActiveLine,
-      lineWrapping,
-      lineNumbers,
-    };
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
+      spellcheck: true,
       extraKeys,
       mode: { name: "gfm" },
     });
+
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);
     }
@@ -459,27 +467,25 @@ export function MarkdownInput({
   }, []);
 
   useEffect(() => {
-    cm.current?.setOption("theme", theme == null ? "default" : theme);
-  }, [theme]);
-
-  useEffect(() => {
-    cm.current?.setOption("lineNumbers", cmOptions?.lineNumbers ?? lineNumbers);
-  }, [cmOptions?.lineNumbers ?? lineNumbers]);
-
-  useEffect(() => {
-    cm.current?.setOption(
-      "lineWrapping",
-      cmOptions?.lineWrapping ?? lineWrapping
-    );
-  }, [cmOptions?.lineWrapping ?? lineWrapping]);
-
-  useEffect(() => {
+    const bindings = editor_settings.get("bindings");
     if (bindings == null || bindings == "standard") {
       cm.current?.setOption("keyMap", "default");
     } else {
       cm.current?.setOption("keyMap", bindings);
     }
-  }, [bindings]);
+  }, [editor_settings.get("bindings")]);
+
+  useEffect(() => {
+    if (cm.current == null) return;
+    for (const key in options) {
+      const opt = options[key];
+      if (!isEqual(cm.current.options[key], opt)) {
+        if (opt != null) {
+          cm.current.setOption(key as any, opt);
+        }
+      }
+    }
+  }, [options]);
 
   useEffect(() => {
     if (

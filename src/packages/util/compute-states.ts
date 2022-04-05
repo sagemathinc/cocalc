@@ -106,7 +106,7 @@ export const COMPUTE_STATES: ComputeState = {
 
   closing: {
     desc: "Project is in the process of being closed.",
-    icon: "close",
+    icon: "download",
     display: "Closing",
     to: {},
     timeout: 5 * 60,

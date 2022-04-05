@@ -135,10 +135,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           opt = props.cm_options.get("markdown");
           break;
         case "raw":
-        default:
+        default: // no use with no mode
           opt = props.cm_options.get("options");
           opt = opt.set("mode", {});
-          opt = opt.set("foldGutter", false); // no use with no mode
+          opt = opt.set("foldGutter", false);
           break;
       }
       if (props.is_readonly) {
@@ -160,6 +160,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
       return (
         <CodeMirror
+          getValueRef={getValueRef}
           value={value}
           options={options(type)}
           actions={props.actions}
@@ -237,7 +238,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const getValueRef = useRef<any>(null);
     useEffect(() => {
-      if (props.cell.get("cell_type") != "markdown") return;
       const actions = props.actions;
       if (actions == null) return;
       const beforeChange = () => {

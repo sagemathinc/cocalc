@@ -21,8 +21,10 @@ async function stopIdleProjects(stopProject: (string) => Promise<void>) {
   logger.debug("query database for all running projects");
   const runningProjects = (
     await callback2(db()._query, {
-      query:
-        "SELECT project_id, EXTRACT(EPOCH FROM NOW() - last_edited) as idle_time, settings, run_quota FROM projects WHERE state ->> 'state' = 'running'",
+      // ::float necessary for Postgres 14, see @cocalc/database/pool/util.ts timeInSeconds for more info
+      query: `SELECT project_id, (EXTRACT(EPOCH FROM NOW() - last_edited))::FLOAT as idle_time, settings, run_quota
+         FROM projects
+         WHERE state ->> 'state' = 'running'`,
     })
   ).rows;
   logger.debug("got ", runningProjects);

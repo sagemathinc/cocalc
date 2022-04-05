@@ -50,7 +50,6 @@ export const ChatInput: React.FC<Props> = (props) => {
           : "Double click to edit chats."
       }
       fontSize={font_size}
-      lineWrapping={true}
       hideHelp={props.hideHelp}
       autoFocus
       style={props.style}

@@ -1287,7 +1287,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.html(mesg.html)
             else
                 e.html_noscript(mesg.html)
-            e.katex()
+            e.katex({preProcess:true})
             output.append(e)
             @process_html_output(e)
 

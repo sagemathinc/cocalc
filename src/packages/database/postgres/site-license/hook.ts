@@ -195,7 +195,7 @@ class SiteLicenseHook {
     // first all regular licenses (boost == false), then the boost licenses
     for (const boost of [false, true]) {
       const idsPartition = ids.filter((id) => {
-        const val = validLicenses.get(id);
+        const val = validLicenses.get(id).toJS();
         // one group is every license, while the other are those where quota.boost is true
         const isBoost =
           isSiteLicenseQuotaSetting(val) && (val.quota.boost ?? false);
@@ -203,8 +203,8 @@ class SiteLicenseHook {
       });
       orderedIds.push(
         ...sortBy(idsPartition, (id) => {
-          const val = validLicenses.get(id);
-          const key = licenseToGroupKey(val.toJS());
+          const val = validLicenses.get(id).toJS();
+          const key = licenseToGroupKey(val);
           return ORDERING_GROUP_KEYS.indexOf(key);
         })
       );
