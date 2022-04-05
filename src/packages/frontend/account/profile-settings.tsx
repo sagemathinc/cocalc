@@ -65,7 +65,7 @@ class ProfileSettings extends Component<Props, State> {
         <LabeledRow label="Color">
           <ColorPicker
             color={this.props.profile.get("color")}
-            style={{ maxWidth: "150px" }}
+            justifyContent={"flex-start"}
             onChange={this.onColorChange}
           />
         </LabeledRow>
