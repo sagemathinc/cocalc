@@ -132,5 +132,5 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
     </Button>
   );
 
-  return <div style={{ flex: 1, display: "flex" }}>{v}</div>;
+  return <div style={{ display: "flex" }}>{v}</div>;
 };

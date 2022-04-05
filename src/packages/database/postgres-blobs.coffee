@@ -804,20 +804,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             string_id : required
             cb        : required   # cb(err, array)
         @_query
-            query : "SELECT extract(epoch from time)*1000 as epoch, * FROM patches"
+            query : "SELECT * FROM patches"
             where : {"string_id = $::CHAR(40)" : opts.string_id}
             cb    : all_results (err, patches) =>
                 if err
                     opts.cb(err)
                 else
-                    for p in patches
-                        # TODO why using epoch and then converting to Date, why not just taking time?
-                        # Besides that: @hsy noticed in development that p.epoch could be a string, resulting in an invalid date.
-                        if typeof p.epoch == 'string'
-                            p.time = new Date(parseInt(p.epoch))
-                        else
-                            p.time = new Date(p.epoch)
-                        delete p.epoch
                     opts.cb(undefined, patches)
 
     import_patches: (opts) =>

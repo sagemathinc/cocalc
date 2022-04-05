@@ -14,11 +14,10 @@ import { delay } from "awaiting";
 import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
-import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
-import { CSSProperties, useEffect } from "react";
+import { CSSProperties, MutableRefObject, useEffect } from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -91,6 +90,7 @@ interface CodeMirrorEditorProps {
   onBlur?: () => void;
   contenteditable?: boolean; // make true for whiteboard so works when scaled.
   refresh?: any; // if this changes, then cm.refresh() is called.
+  getValueRef?: MutableRefObject<() => string>;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -115,6 +115,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   onBlur,
   contenteditable,
   refresh,
+  getValueRef,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -161,18 +162,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     cm_refresh();
   }, [font_size, is_scrolling]);
 
-  // In some cases (e.g., tab completion when selecting via keyboard)
-  // nextProps.value and value are the same, but they
-  // do not equal cm.current.getValue().  The complete prop changes
-  // so the component updates, but without checking cm.getValue(),
-  // we would fail to update the cm editor, which would is
-  // a disaster.  May be root cause of
-  //    https://github.com/sagemathinc/cocalc/issues/3978
   useEffect(() => {
-    if (cm.current?.getValue() != value) {
-      cm_merge_remote(value);
+    if (cm.current != null) {
+      cm.current.setValueNoJump(value);
     }
-  }, [value, cm.current?.getValue()]);
+  }, [value]);
 
   useEffect(() => {
     // can't do anything if there is no codemirror editor
@@ -315,29 +309,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       // since some code, e.g., for introspection when doing evaluation,
       // which runs immediately after this, assumes the Store state
       // is set for the editor.
-      actions.set_cell_input(id, value);
+      actions.set_cell_input(id, value, true);
     }
     return value;
-  }
-
-  function cm_merge_remote(remote: string): void {
-    if (cm.current == null) {
-      return;
-    }
-    if (cm_last_remote.current == null) {
-      cm_last_remote.current = "";
-    }
-    if (cm_last_remote.current === remote) {
-      return; // nothing to do
-    }
-    const local = cm.current.getValue();
-    const new_val = three_way_merge({
-      base: cm_last_remote.current,
-      local,
-      remote,
-    });
-    cm_last_remote.current = remote;
-    cm.current.setValueNoJump(new_val);
   }
 
   function cm_undo(): void {
@@ -582,6 +556,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (node.parentNode == null) return;
       node.parentNode.replaceChild(elt, node);
     }, options0);
+
+    if (getValueRef != null) {
+      getValueRef.current = cm.current.getValue.bind(cm.current);
+    }
 
     cm.current.save = () => actions.save();
     if (actions != null && options0.keyMap === "vim") {

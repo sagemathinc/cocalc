@@ -72,7 +72,6 @@ export default function DescriptionEditor({
         enableMentions={true}
         height={"auto"}
         placeholder={"Enter description..."}
-        lineWrapping={true}
         autoFocus
         onSave={() => {
           actions.save();
