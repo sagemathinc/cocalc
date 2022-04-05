@@ -287,6 +287,7 @@ def clean(args) -> None:
 
 
 def delete_package_lock(args) -> None:
+
     def f(path: str) -> None:
         p = os.path.join(path, 'package-lock.json')
         if os.path.exists(p):
