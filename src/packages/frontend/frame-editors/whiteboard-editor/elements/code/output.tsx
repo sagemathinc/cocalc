@@ -38,11 +38,7 @@ export default function Output({ element }) {
   }
 
   return (
-    <div
-      ref={divRef}
-      style={{ maxHeight: "80vh", overflowY: "auto" }}
-      className="nodrag" /* because of ipywidgets, e.g., sliders */
-    >
+    <div className="nodrag" /* because of ipywidgets, e.g., sliders */>
       <CellOutput
         actions={jupyterActions}
         name={jupyterActions?.name}
@@ -53,6 +49,12 @@ export default function Output({ element }) {
         trust={true}
         complete={false}
         hidePrompt
+        divRef={divRef}
+        style={{
+          maxHeight: "80vh",
+          overflow: "auto",
+          display: "block" /* must specify or scroll blocking doesn't work */,
+        }}
       />
     </div>
   );
