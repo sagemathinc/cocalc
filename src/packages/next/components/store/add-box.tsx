@@ -6,6 +6,7 @@
 /*
 Create a new site license.
 */
+import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
@@ -15,18 +16,36 @@ export function AddBox({ cost, router, form, cartError, setCartError }) {
   if (!cost) return null;
 
   async function addToCart() {
-    const configuration = form.getFieldsValue(true);
+    const description: ProductDescription & { type?: string } =
+      form.getFieldsValue(true);
+
+    // unload the type parameter
+    switch (description.type) {
+      case "regular":
+        description.boost = false;
+        break;
+      case "boost":
+        description.boost = true;
+        break;
+      default:
+        setCartError(`Invalid license type: "${description.type}"`);
+        return;
+    }
+
+    // and done
+    delete description.type;
+
     try {
       setCartError("");
       if (router.query.id != null) {
         await apiPost("/shopping/cart/edit", {
           id: router.query.id,
-          description: configuration,
+          description,
         });
       } else {
         await apiPost("/shopping/cart/add", {
           product: "site-license",
-          description: configuration,
+          description,
         });
       }
       router.push("/store/cart");

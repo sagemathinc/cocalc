@@ -78,7 +78,7 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, checked, cost, description }) => {
+      render: ({ id, checked, cost, description, type }) => {
         return (
           <div>
             <CheckboxColumn
@@ -93,6 +93,7 @@ export default function ShoppingCart() {
                 setUpdating,
                 isMounted,
                 reload,
+                type,
               }}
               compact
             />
@@ -128,7 +129,7 @@ export default function ShoppingCart() {
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description }) => (
+      render: (_, { id, cost, description, type }) => (
         <DescriptionColumn
           {...{
             id,
@@ -138,6 +139,7 @@ export default function ShoppingCart() {
             setUpdating,
             isMounted,
             reload,
+            type,
           }}
           compact={false}
         />
@@ -168,7 +170,6 @@ export default function ShoppingCart() {
       )}
       {items.length > 0 && (
         <>
-          {" "}
           <div style={{ float: "right", marginBottom: "15px" }}>
             <span style={{ fontSize: "13pt" }}>
               <TotalCost items={items} />
@@ -336,6 +337,7 @@ function DescriptionColumn({
             idle_timeout,
             member: input.custom_member,
             user: input.user,
+            boost: input.boost,
           })}
           {!editRunLimit && (
             <>
@@ -418,7 +420,10 @@ function DescriptionColumn({
         </div>
         <Button
           style={{ marginRight: "5px" }}
-          onClick={() => router.push(`/store/site-license?id=${id}`)}
+          onClick={() => {
+            const page = input.boost ? "boost" : "site-license";
+            router.push(`/store/${page}?id=${id}`);
+          }}
         >
           <Icon name="pencil" /> Edit
         </Button>
