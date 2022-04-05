@@ -143,7 +143,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // Now that #2253 is fixed, let's try this again.
     try {
       const addon = new WebglAddon();
-      addon.onContextLoss((e) => {
+      addon.onContextLoss(() => {
         addon.dispose();
       });
       this.terminal.loadAddon(addon);
