@@ -323,7 +323,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
+    if (this.store.getIn(["cells", id, "input"]) == input) {
+      // nothing changed.   Note, I tested doing the above check using
+      // both this.syncdb and this.store, and this.store is orders of magnitude faster.
+      return;
+    }
     if (this.check_edit_protection(id, "changing input")) {
+      // note -- we assume above that there was an actual change before checking
+      // for edit protection.  Thus the above check is important.
       return;
     }
     this._set(
