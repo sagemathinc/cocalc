@@ -13,6 +13,8 @@ export function numberRunningQuery(license_id: string): string {
     // critical to check to avoid any possible SQL injection attack.
     throw Error("invalid license_id");
   }
+  // "... - 'status'" in the query, because there is always a status field (which is new)
+  // an applied license not providing upgrades is just an empty object.
   return `
     SELECT COUNT(*)
     FROM projects

@@ -42,13 +42,15 @@ export function describe_quota(
     delete quota.uptime;
   }
 
-  let desc: string = "";
-  if (short) {
-    desc += `${capitalize(quota.user)}, `;
-  } else {
-    desc += `${capitalize(quota.user)} license providing `;
-  }
   const v: string[] = [];
+  let intro: string = "";
+  const isBoost = quota.boost === true;
+  const booster = isBoost ? " booster" : "";
+  if (short) {
+    intro = `${capitalize(quota.user)}${booster},`;
+  } else {
+    intro = `${capitalize(quota.user)} license${booster} providing`;
+  }
 
   if (quota.ram) {
     v.push(`${quota.ram}GB RAM`);
@@ -75,7 +77,7 @@ export function describe_quota(
       `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
     );
   } else {
-    if (quota.member) {
+    if (quota.member && !isBoost) {
       v.push("member" + (short ? "" : " hosting"));
     }
   }
@@ -97,9 +99,10 @@ export function describe_quota(
       }
     }
   }
-  v.push("network"); // always provided, because we trust customers.
-  desc += v.join(", ");
-  return desc;
+  if (!isBoost) {
+    v.push("network"); // always provided, because we trust customers.
+  }
+  return `${intro} ${v.join(", ")}`;
 }
 
 Table({

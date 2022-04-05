@@ -22,10 +22,13 @@ import {
   LicenseStatus,
   siteLicenseSelectionKeys,
   licenseToGroupKey,
+  isSiteLicenseQuotaSetting,
 } from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
 const LOGGER_NAME = "site-license-hook";
+
+const ORDERING_GROUP_KEYS = Array.from(siteLicenseSelectionKeys());
 
 // this will hold a synctable for all valid licenses
 let LICENSES: any = undefined;
@@ -82,7 +85,7 @@ class SiteLicenseHook {
   private db: PostgreSQL;
   private project_id: string;
   private dbg: ReturnType<typeof getLogger>;
-  private currentSiteLicense: SiteLicenses = {};
+  private projectSiteLicenses: SiteLicenses = {};
   private nextSiteLicense: SiteLicenses = {};
   private project: { site_license: any; settings: any; users: any };
 
@@ -97,7 +100,7 @@ class SiteLicenseHook {
    *
    * TODO: filter on expiration...
    */
-  private async getValidLicenses(): Promise<Map<string, LicenseMap>> {
+  private async getAllValidLicenses(): Promise<Map<string, LicenseMap>> {
     if (LICENSES == null) {
       LICENSES = await callback2(this.db.synctable.bind(this.db), {
         table: "site_licenses",
@@ -134,7 +137,7 @@ class SiteLicenseHook {
     }
 
     // just to make sure we don't touch it
-    this.currentSiteLicense = Object.freeze(this.project.site_license);
+    this.projectSiteLicenses = Object.freeze(this.project.site_license);
     this.nextSiteLicense = await this.computeNextSiteLicense();
     await this.setProjectSiteLicense();
     await this.updateLastUsed();
@@ -157,7 +160,7 @@ class SiteLicenseHook {
    */
   private async setProjectSiteLicense() {
     const dbg = this.dbg.extend("setProjectSiteLicense");
-    if (!isEqual(this.currentSiteLicense, this.nextSiteLicense)) {
+    if (!isEqual(this.projectSiteLicenses, this.nextSiteLicense)) {
       // Now set the site license since something changed.
       dbg.info(
         `setup a modified site license=${JSON.stringify(this.nextSiteLicense)}`
@@ -179,16 +182,34 @@ class SiteLicenseHook {
    * license is considered first (and applied), and then a higher priority license is considered next,
    * the quota algorithm will only pick the higher priority license in the second iteration, causing the
    * effective quotas to be different, and hence actually both licenses seem to be applied but they are not.
+   *
+   * additionally (march 2022): start with regular licenses, then boost licenses
    */
   private orderedSiteLicenseIDs(validLicenses): string[] {
-    const ids = Object.keys(this.currentSiteLicense).filter((id) => {
+    const ids = Object.keys(this.projectSiteLicenses).filter((id) => {
       return validLicenses.get(id) != null;
     });
-    const order = Array.from(siteLicenseSelectionKeys());
-    const orderedIds = sortBy(ids, (id) => {
-      const key = licenseToGroupKey(validLicenses.get(id).toJS());
-      return order.indexOf(key);
-    });
+
+    const orderedIds: string[] = [];
+
+    // first all regular licenses (boost == false), then the boost licenses
+    for (const boost of [false, true]) {
+      const idsPartition = ids.filter((id) => {
+        const val = validLicenses.get(id).toJS();
+        // one group is every license, while the other are those where quota.boost is true
+        const isBoost =
+          isSiteLicenseQuotaSetting(val) && (val.quota.boost ?? false);
+        return isBoost === boost;
+      });
+      orderedIds.push(
+        ...sortBy(idsPartition, (id) => {
+          const val = validLicenses.get(id).toJS();
+          const key = licenseToGroupKey(val);
+          return ORDERING_GROUP_KEYS.indexOf(key);
+        })
+      );
+    }
+
     return orderedIds;
   }
 
@@ -200,10 +221,10 @@ class SiteLicenseHook {
     // Next we check the keys of site_license to see what they contribute,
     // and fill that in.
     const nextLicense: SiteLicenses = {};
-    const validLicenses = await this.getValidLicenses();
+    const allValidLicenses = await this.getAllValidLicenses();
 
-    // it's important to start testing with decreasing priority.
-    for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
+    // it's important to start testing with regular licenses by decreasing priority
+    for (const license_id of this.orderedSiteLicenseIDs(allValidLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
@@ -211,7 +232,7 @@ class SiteLicenseHook {
         this.dbg.info(`skipping invalid license ${license_id} -- invalid UUID`);
         continue;
       }
-      const license = validLicenses.get(license_id);
+      const license = allValidLicenses.get(license_id);
       const status = await this.checkLicense({ license, license_id });
 
       if (status === "valid") {

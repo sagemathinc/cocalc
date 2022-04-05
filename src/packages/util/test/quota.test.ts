@@ -6,7 +6,7 @@
 // this tests kucalc's quota function
 //
 // after any change to quota.ts, be a good citizen and run this test or even extend it
-// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts
+// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts  [--watch]
 
 // import * as init from "./init";
 //let db = undefined;
@@ -27,7 +27,7 @@ import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 import { SiteLicenses } from "../types/site-licenses";
 
-describe("default quota", () => {
+describe("main quota functionality", () => {
   it("basics are fine", () => {
     // quota should work without any arguments
     const basic = quota();
@@ -525,189 +525,6 @@ describe("default quota", () => {
     });
   });
 
-  it("site-license upgrades /1", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        member_host: true,
-        network: true,
-        memory: 3210,
-        memory_request: 531,
-        disk_quota: 345,
-        cores: 1.5,
-        mintime: 24 * 3600,
-        cpu_shares: 1024 * 0.5,
-      },
-    };
-
-    const q1 = quota({}, { userX: {} }, site_license);
-
-    expect(q1).toEqual({
-      idle_timeout: 24 * 3600 + 1800,
-      memory_limit: 4210,
-      memory_request: 531,
-      cpu_limit: 2.5,
-      cpu_request: 0.5,
-      disk_quota: 3345, // 3gb free
-      member_host: true,
-      network: true,
-      privileged: false,
-      always_running: false,
-      dedicated_disks: [],
-      dedicated_vm: false,
-    });
-  });
-
-  it("site-license upgrades /2", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        // will be ignored
-        member_host: true,
-        network: true,
-        disk_quota: 222,
-      },
-      "1234-5678-asdf-asdf": {
-        disk_quota: 111,
-        always_running: true,
-      },
-      "333-5678-asdf-asdf": {
-        disk_quota: 333,
-        always_running: true,
-      },
-    };
-
-    const users = {
-      user1: {
-        upgrades: {
-          network: 1,
-          memory: 1234,
-          disk_quota: 321,
-        },
-      },
-      user2: {
-        upgrades: {
-          cores: 0.25,
-        },
-      },
-    };
-
-    const q1 = quota({}, users, site_license);
-
-    expect(q1.memory_limit).toEqual(2234);
-    // not +222, because always_running has higher priority than member hosting
-    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 333);
-    expect(q1.member_host).toBe(false);
-    expect(q1.network).toBe(true);
-    expect(q1.cpu_limit).toBe(1.25);
-    expect(q1.always_running).toBe(true);
-  });
-
-  it("site-license quota upgrades /1", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 2,
-          dedicated_ram: 1,
-          cpu: 1,
-          dedicated_cpu: 0.5,
-          disk: 3,
-          always_running: true,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-    const users = {
-      user1: {
-        upgrades: {
-          memory: 1313, // maxed with "ram"
-        },
-      },
-    };
-    const q1 = quota({}, users, site_license);
-
-    expect(q1).toEqual({
-      network: true,
-      member_host: true,
-      memory_request: 1000,
-      cpu_request: 0.5,
-      privileged: false,
-      disk_quota: 3000,
-      memory_limit: 3000,
-      cpu_limit: 1.5,
-      idle_timeout: 1800,
-      always_running: true,
-      dedicated_disks: [],
-      dedicated_vm: false,
-    });
-  });
-
-  it("site-license quota upgrades /2", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 2,
-          cpu: 1.5,
-          disk: 3,
-          always_running: true,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-    const users = {
-      user1: {
-        upgrades: {
-          memory: 4321, // +1gb base quota, maxed with "ram"
-        },
-      },
-    };
-    const q1 = quota({}, users, site_license);
-
-    expect(q1).toEqual({
-      network: true,
-      member_host: true,
-      memory_request: 300,
-      cpu_request: 0.05,
-      privileged: false,
-      disk_quota: 3000,
-      memory_limit: 5321,
-      cpu_limit: 1.5,
-      idle_timeout: 1800,
-      always_running: true,
-      dedicated_disks: [],
-      dedicated_vm: false,
-    });
-  });
-
-  it("uses different default_quotas", () => {
-    const site_settings = {
-      default_quotas: {
-        internet: true,
-        idle_timeout: 9999,
-        cpu: 1.5,
-        cpu_oc: 10,
-        mem: 2000,
-        mem_oc: 4,
-        disk_quota: 5432,
-      },
-    };
-    const q1 = quota({}, { userX: {} }, undefined, site_settings);
-    expect(q1).toEqual({
-      network: true,
-      member_host: false,
-      memory_request: 500, // OC 1:4 of 2000mb
-      memory_limit: 2000, // default
-      cpu_request: 0.15, // OC 1:10 and cpu 1.5
-      cpu_limit: 1.5, // default
-      privileged: false,
-      idle_timeout: 9999,
-      disk_quota: 5432,
-      always_running: false,
-      dedicated_disks: [],
-      dedicated_vm: false,
-    });
-  });
-
   it("defaults capped by lower max_upgrades", () => {
     const site_settings = {
       max_upgrades: {
@@ -950,7 +767,9 @@ describe("default quota", () => {
     expect(q1.cpu_request).toEqual(0.25);
     expect(q1.cpu_limit).toEqual(2.5);
   });
+});
 
+describe("always running", () => {
   it("handles always_running admin upgrades", () => {
     const admin1 = quota({ member_host: 1, network: 1, always_running: 1 }, {});
     const exp = {
@@ -995,7 +814,9 @@ describe("default quota", () => {
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
   });
+});
 
+describe("site licenses", () => {
   it("site_license basic update as expected", () => {
     const site_license = {
       "1234-5432-3456-7654": {
@@ -1314,6 +1135,191 @@ describe("default quota", () => {
     });
   });
 
+  it("site-license upgrades /1", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        member_host: true,
+        network: true,
+        memory: 3210,
+        memory_request: 531,
+        disk_quota: 345,
+        cores: 1.5,
+        mintime: 24 * 3600,
+        cpu_shares: 1024 * 0.5,
+      },
+    };
+
+    const q1 = quota({}, { userX: {} }, site_license);
+
+    expect(q1).toEqual({
+      idle_timeout: 24 * 3600 + 1800,
+      memory_limit: 4210,
+      memory_request: 531,
+      cpu_limit: 2.5,
+      cpu_request: 0.5,
+      disk_quota: 3345, // 3gb free
+      member_host: true,
+      network: true,
+      privileged: false,
+      always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("site-license upgrades /2", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        // will be ignored
+        member_host: true,
+        network: true,
+        disk_quota: 222,
+      },
+      "1234-5678-asdf-asdf": {
+        disk_quota: 111,
+        always_running: true,
+      },
+      "333-5678-asdf-asdf": {
+        disk_quota: 333,
+        always_running: true,
+      },
+    };
+
+    const users = {
+      user1: {
+        upgrades: {
+          network: 1,
+          memory: 1234,
+          disk_quota: 321,
+        },
+      },
+      user2: {
+        upgrades: {
+          cores: 0.25,
+        },
+      },
+    };
+
+    const q1 = quota({}, users, site_license);
+
+    expect(q1.memory_limit).toEqual(2234);
+    // not +222, because always_running has higher priority than member hosting
+    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 333);
+    expect(q1.member_host).toBe(false);
+    expect(q1.network).toBe(true);
+    expect(q1.cpu_limit).toBe(1.25);
+    expect(q1.always_running).toBe(true);
+  });
+
+  it("site-license quota upgrades /1", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          dedicated_ram: 1,
+          cpu: 1,
+          dedicated_cpu: 0.5,
+          disk: 3,
+          always_running: true,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          memory: 1313, // maxed with "ram"
+        },
+      },
+    };
+    const q1 = quota({}, users, site_license);
+
+    expect(q1).toEqual({
+      network: true,
+      member_host: true,
+      memory_request: 1000,
+      cpu_request: 0.5,
+      privileged: false,
+      disk_quota: 3000,
+      memory_limit: 3000,
+      cpu_limit: 1.5,
+      idle_timeout: 1800,
+      always_running: true,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("site-license quota upgrades /2", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          cpu: 1.5,
+          disk: 3,
+          always_running: true,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          memory: 4321, // +1gb base quota, maxed with "ram"
+        },
+      },
+    };
+    const q1 = quota({}, users, site_license);
+
+    expect(q1).toEqual({
+      network: true,
+      member_host: true,
+      memory_request: 300,
+      cpu_request: 0.05,
+      privileged: false,
+      disk_quota: 3000,
+      memory_limit: 5321,
+      cpu_limit: 1.5,
+      idle_timeout: 1800,
+      always_running: true,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("uses different default_quotas", () => {
+    const site_settings = {
+      default_quotas: {
+        internet: true,
+        idle_timeout: 9999,
+        cpu: 1.5,
+        cpu_oc: 10,
+        mem: 2000,
+        mem_oc: 4,
+        disk_quota: 5432,
+      },
+    };
+    const q1 = quota({}, { userX: {} }, undefined, site_settings);
+    expect(q1).toEqual({
+      network: true,
+      member_host: false,
+      memory_request: 500, // OC 1:4 of 2000mb
+      memory_limit: 2000, // default
+      cpu_request: 0.15, // OC 1:10 and cpu 1.5
+      cpu_limit: 1.5, // default
+      privileged: false,
+      idle_timeout: 9999,
+      disk_quota: 5432,
+      always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+});
+
+describe("dedicated", () => {
   it("dedicated vm do not mix with quotas /1", () => {
     const site_license = {
       a1: {
@@ -1411,7 +1417,9 @@ describe("default quota", () => {
     const q = quota({}, { userX: {} }, site_license);
     expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
   });
+});
 
+describe("idle timeout license", () => {
   it("licensed idle timeout / member + short", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
@@ -1680,6 +1688,304 @@ describe("default quota", () => {
       member_host: true,
       memory_limit: 1500, // 1500 min for members
       memory_request: 300, // oc ratio
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+});
+
+// a boost license has quota.boost === true
+describe("boost", () => {
+  it("add 4 gb ram to a small license", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost: {
+        quota: { ram: 4, member: true, boost: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+
+  it("add 1 core and 3 gb ram to a 1day idle license", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true, idle_timeout: "day" },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost: {
+        quota: { cpu: 1, ram: 3, member: true, boost: true, idle_timeout: "day" },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 2,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 86400,
+      member_host: true,
+      memory_limit: 4000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+
+  it("works with more than one maching boost license", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true, always_running: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost1: {
+        quota: { ram: 5, member: true, boost: true, always_running: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+      boost2: {
+        quota: { cpu: 1, disk: 5, member: true, boost: true, always_running: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: true,
+      cpu_limit: 2,
+      cpu_request: 0.05,
+      disk_quota: 6000, // all 3 licenses
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 6000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+
+  it("selects the matching boost license (always running)", () => {
+    const site_licenses: SiteLicenses = {
+      regular1: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true, idle_timeout: "medium" },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      regular2: {
+        title: "standard",
+        quota: { cpu: 1, ram: 2, disk: 1, member: true, always_running: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost1: {
+        quota: { ram: 5, member: true, boost: true, idle_timeout: "medium" },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+      boost2: {
+        quota: { cpu: 1, disk: 3, member: true, boost: true, always_running: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: true,
+      cpu_limit: 2,
+      cpu_request: 0.05,
+      disk_quota: 4000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 2000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+
+  it("selects the matching boost license (medium timeout)", () => {
+    const site_licenses: SiteLicenses = {
+      regular1: {
+        title: "standard",
+        quota: { cpu: 1, ram: 1, disk: 1, member: true, idle_timeout: "medium" },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      regular2: {
+        title: "standard",
+        quota: { cpu: 1, ram: 2, disk: 1, member: true },
+        run_limit: 1,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost1: {
+        quota: { ram: 5, member: true, boost: true, idle_timeout: "medium" },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+      boost2: {
+        quota: { cpu: 1, disk: 7, member: true, boost: true, always_running: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000, // default
+      idle_timeout: 7200, // both selected licenses are medium
+      member_host: true,
+      memory_limit: 6000, // both medium from above
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("rejects a single boost license", () => {
+    const site_licenses: SiteLicenses = {
+      boost: {
+        quota: { ram: 4, member: true, boost: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.02,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: false,
+      memory_limit: 1000,
+      memory_request: 200,
+      network: false,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("rejects a incompatible boost license (member hosting)", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: { cpu: 2, ram: 1, disk: 1, member: true },
+        run_limit: 3,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost: {
+        quota: { ram: 4, boost: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 2,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 1500,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("rejects a incompatible boost license (idle timeout)", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: {
+          cpu: 1,
+          ram: 2,
+          disk: 1,
+          member: true,
+          idle_timeout: "medium",
+        },
+        run_limit: 3,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      boost: {
+        quota: { ram: 4, member: true, boost: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      disk_quota: 3000,
+      idle_timeout: 7200,
+      member_host: true,
+      memory_limit: 2000,
+      memory_request: 300,
       network: true,
       privileged: false,
       dedicated_disks: [],

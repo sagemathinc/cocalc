@@ -279,7 +279,7 @@ function calcDefaultQuotas(site_settings?: SiteSettingsQuotas): Quota {
   return quota;
 }
 
-function isSiteLicenseQuotaSetting(
+export function isSiteLicenseQuotaSetting(
   slq?: QuotaSetting
 ): slq is SiteLicenseQuotaSetting {
   return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
@@ -419,6 +419,53 @@ export function licenseToGroupKey(val: QuotaSetting): string {
 // Fall 2021: on top of that, "dedicted resources" are treated in a special way
 // * VMs: do not mix with any other upgrades, only one per project
 // * disks: orthogonal to VMs, more than one per project is possible
+function selectMatchingLicenses(
+  site_licenses: SiteLicenses,
+  filterGroup?: string
+):
+  | {
+      groupKey: string;
+      selected: SiteLicenses;
+    }
+  | undefined {
+  // if we filter by a group key, we're looking for matching boost licenses only!
+  const type: "regular" | "boost" = filterGroup == null ? "regular" : "boost";
+
+  // classification: each group is a list of licenses, and only the group
+  // with the higest priority is considered for license upgrades.
+  const groups: { [key: string]: string[] | null } = {};
+  for (const [id, val] of Object.entries(site_licenses)) {
+    if (val == null) continue;
+    // skip boost upgrade licenses (all of them are with quota settings!) unless we're looking for boost upgrades
+    if (
+      isSiteLicenseQuotaSetting(val) &&
+      (val.quota.boost ?? false) === (type === "regular")
+    )
+      continue;
+    const groupKey = licenseToGroupKey(val);
+    // in case we have a key to filter by, we skip those licenses with a different group key
+    if (filterGroup != null && groupKey != filterGroup) continue;
+    const curGrp = groups[groupKey];
+    groups[groupKey] = curGrp == null ? [id] : [...curGrp, id];
+  }
+
+  // selection -- always_running comes first, then member hosting, ...
+  function pickGroup() {
+    for (const groupKey of siteLicenseSelectionKeys()) {
+      const grp = groups[groupKey];
+      if (grp != null && grp.length > 0) {
+        const selected = grp.reduce((acc, cur) => {
+          acc[cur] = site_licenses[cur];
+          return acc;
+        }, {});
+        return { selected, groupKey };
+      }
+    }
+  }
+
+  return pickGroup();
+}
+
 function selectSiteLicenses(site_licenses: SiteLicenses): {
   site_licenses: SiteLicenses;
   dedicated_disks?: DedicatedDisk[];
@@ -426,40 +473,24 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
 } {
   // this "extracts" all dedicated disk upgrades from the site_licenses map
   const dedicated_disks = select_dedicated_disks(site_licenses);
-
+  // and here we extract the dedicated VM quota
   const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
-
   // if there is a dedicated VM, we ignore all site licenses.
   if (dedicated_vm != null) {
     return { site_licenses: {}, dedicated_disks, dedicated_vm };
   }
 
-  // classification: each group is a list of licenses, and only the group
-  // with the higest priority is considered for license upgrades.
-  const groups: { [key: string]: string[] | null } = {};
-  for (const [key, val] of Object.entries(site_licenses)) {
-    if (val == null) continue;
-    const groupKey = licenseToGroupKey(val);
-    const curGrp = groups[groupKey];
-    groups[groupKey] = curGrp == null ? [key] : [...curGrp, key];
-  }
-
-  // selection -- always_running comes first, then member hosting
-  const selected: string[] | undefined = (function () {
-    for (const k of siteLicenseSelectionKeys()) {
-      const grp = groups[k];
-      if (grp != null && grp.length > 0) return grp;
+  // will only return "regular" site licenses
+  const regular = selectMatchingLicenses(site_licenses);
+  const all = regular?.selected ?? {};
+  if (regular != null) {
+    const boosts = selectMatchingLicenses(site_licenses, regular.groupKey);
+    // if boosts is not null, merge them into regular.site_licenses
+    if (boosts != null) {
+      Object.assign(all, boosts.selected);
     }
-  })();
-
-  if (selected == null) return { site_licenses: {}, dedicated_disks };
-
-  const selected_licenses = selected.reduce((acc, cur) => {
-    acc[cur] = site_licenses[cur];
-    return acc;
-  }, {});
-
-  return { site_licenses: selected_licenses, dedicated_disks };
+  }
+  return { site_licenses: all, dedicated_disks };
 }
 
 // idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
