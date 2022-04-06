@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
@@ -12,6 +12,7 @@ import { getMode } from "./actions";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
+import { debounce } from "lodash";
 
 interface Props {
   element: Element;
@@ -57,14 +58,34 @@ export default function Code({
   };
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({ ref: divRef });
-  const resizeIfNecessary = useCallback(() => {
-    if (actions.in_undo_mode()) return;
-    const elt = divRef.current;
-    if (elt == null) return;
-    actions.setElement({
-      obj: { id: element.id, h: elt.offsetHeight + 30 },
-      commit: false,
-    });
+  const resizeIfNecessary = useMemo(() => {
+    if (actions.in_undo_mode()) return () => {};
+    let cancel = false;
+    const shrinkElement = debounce((h) => {
+      if (cancel) {
+        cancel = false;
+        return;
+      }
+      actions.setElement({
+        obj: { id: element.id, h },
+        commit: false,
+      });
+    }, 250);
+    return () => {
+      const elt = divRef.current;
+      if (elt == null) return;
+      const newHeight = elt.offsetHeight + 30;
+      if (newHeight > element.h) {
+        cancel = true;
+        actions.setElement({
+          obj: { id: element.id, h: elt.offsetHeight + 30 },
+          commit: false,
+        });
+      } else if (newHeight < element.h) {
+        cancel = false;
+        shrinkElement(newHeight);
+      }
+    };
   }, [element]);
   useEffect(() => {
     resizeIfNecessary();
