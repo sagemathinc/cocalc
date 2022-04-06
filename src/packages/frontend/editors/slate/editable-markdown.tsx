@@ -48,6 +48,7 @@ import { slatePointToMarkdownPosition } from "./sync";
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { createMention } from "./elements/mention/editable";
+import { Mention } from "./elements/mention/index";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 
 import { useSearch, SearchHook } from "./search";
@@ -334,7 +335,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // No mentions in the document were already sent, so we send them now.
           // We have to find all mentions in the document tree, and submit them.
           const mentions: { account_id: string; description: string }[] = [];
-
+          for (const [node, path] of Editor.nodes(editor, {
+            at: { path: [], offset: 0 },
+            match: (node) => node["type"] == "mention",
+          })) {
+            const [parent] = Editor.parent(editor, path);
+            mentions.push({
+              account_id: (node as Mention).account_id,
+              description: slate_to_markdown([parent]),
+            });
+          }
           submit_mentions(project_id, path, mentions);
           return editor.getMarkdownValue();
         };
