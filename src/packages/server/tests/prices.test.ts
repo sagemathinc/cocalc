@@ -30,7 +30,7 @@ describe("product id", () => {
     end: new Date("2022-04-10 12:00"),
     custom_dedicated_ram: 0,
     custom_dedicated_cpu: 0,
-  };
+  } as const;
 
   it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
     const id = getProductId({ ...info1, quantity });
@@ -47,5 +47,25 @@ describe("product id", () => {
         round2(cost.discounted_cost) - round2(COSTS.online_discount * cexp)
       )
     ).toBeLessThan(0.01);
+  });
+
+  it.each([
+    [1, 1.33],
+    [3, 1.33],
+    [4, 1.33],
+    [6, 1.33],
+    [7, 1.33],
+    [10, 1.49],
+    [15, 2.24],
+  ])("compute price days %p → price %p", (days, price) => {
+    const info2 = {
+      ...info1,
+      quantity: 1,
+      end: new Date(
+        (info1.start as Date).getTime() + days * 24 * 60 * 60 * 1000
+      ),
+    };
+    const cost = compute_cost(info2);
+    expect(round2(cost.cost)).toEqual(price);
   });
 });
