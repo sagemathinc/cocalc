@@ -370,7 +370,10 @@ export default function MultiMarkdownInput({
               set_value: (value) => {
                 onChange?.(value);
               },
-              shiftEnter: onShiftEnter,
+              shiftEnter: (value) => {
+                onChange?.(value);
+                onShiftEnter?.(value);
+              },
               altEnter: (value) => {
                 onChange?.(value);
                 setMode("markdown");

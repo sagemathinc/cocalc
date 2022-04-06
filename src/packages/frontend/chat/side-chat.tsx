@@ -196,6 +196,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
       >
         <div style={{ display: "flex", flex: 1 }}>
           <ChatInput
+            cacheId={`${path}${project_id}-new`}
             input={input}
             on_send={() => {
               send_chat();

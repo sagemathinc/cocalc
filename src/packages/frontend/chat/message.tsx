@@ -362,6 +362,9 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
     return (
       <ChatInput
+        cacheId={`${props.path}${props.project_id}${props.message
+          ?.get("date")
+          ?.valueOf()}`}
         input={edited_message}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}
