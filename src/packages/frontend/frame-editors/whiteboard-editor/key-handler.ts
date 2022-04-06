@@ -95,6 +95,7 @@ export default function getKeyHandler(
         } else if (key == "enter") {
           // not in editFocus mode but hit enter, so switch to editFocus
           actions.setEditFocus(frameId, true);
+          e.preventDefault(); // so enter doesn't go to editor after switching to edit mode.
         }
       }
     }
