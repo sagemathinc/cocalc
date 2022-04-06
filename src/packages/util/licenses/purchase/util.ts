@@ -3,21 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { isEqual } from "lodash";
+import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import {
   DedicatedDisk,
   DedicatedDiskTypeNames,
   DedicatedVM,
 } from "@cocalc/util/types/dedicated";
-import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
-import { dedicatedPrice } from "./dedicated";
+import { isEqual } from "lodash";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
   Uptime,
 } from "../../consts/site-license";
 import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
-import { round2 } from "../../misc";
+import { dedicatedPrice } from "./dedicated";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -411,11 +410,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // and later in charge/stripeCreatePrice, we did divide by the number of projects again.
   // instead: we use the limited cost_per_unit price to create a price in stripe.
   // and hence there is no implicit discount if you purchase several projects at once.
-  // note: we use round2, because the user sees "cost", which is the unit price multiplied
-  //  by the number of projects … which also happens with the actual invoice. this avoids
-  // rounding errors of a few cents.
-  const cost_per_unit = round2(
-    Math.max(COSTS.min_sale / COSTS.online_discount, cost_per_project_per_month)
+  // note: later on you have to use round2, since this is the price with full precision.
+  const cost_per_unit = Math.max(
+    COSTS.min_sale / COSTS.online_discount,
+    cost_per_project_per_month
   );
 
   const cost_total = quantity * cost_per_unit;

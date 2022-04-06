@@ -11,6 +11,7 @@ import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import {
   compute_cost,
   COSTS,
+  money,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/util";
 import { round2 } from "@cocalc/util/misc";
@@ -35,7 +36,7 @@ describe("product id and compute cost", () => {
 
   it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
     const id = getProductId({ ...info1, quantity });
-    expect(id).toEqual(`license_a0b0c1d1m1p9r1_v0`);
+    expect(id).toEqual(`license_a0b0c1d1m1p9r1_v1`);
   });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
@@ -51,29 +52,32 @@ describe("product id and compute cost", () => {
   });
 
   it.each([
-    [1, 133, 1],
-    [2, 133, 5],
-    [3, 133, 10], // the point is, unit price is independent of quantity
-    [4, 133, 50],
-    [5, 133, 100],
-    [6, 133, 5],
-    [7, 133, 1],
-    [8, 133, 5],
-    [9, 134, 10],
-    [10, 149, 1],
-    [15, 224, 1],
+    [1, 13333, 1],
+    [2, 13333, 10],
+    [3, 13333, 10], // the point is, unit price is independent of quantity
+    [4, 13333, 50],
+    [5, 13333, 100],
+    [6, 13333, 5],
+    [7, 13333, 100],
+    [8, 13333, 5],
+    [9, 13430, 10],
+    [10, 14900, 1],
+    [15, 22400, 1],
   ])("compute price days %p → price %p", (days, price, quantity) => {
+    price /= 100;
     const info2 = {
       ...info1,
       quantity,
       end: new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
     };
     info2.cost = compute_cost(info2);
-    expect(unitAmount(info2)).toEqual(price);
-    expect(quantity * unitAmount(info2)).toEqual(price * quantity);
+    //console.log(days, info2.cost);
+    const unit_amount = unitAmount(info2);
+    expect(unit_amount).toEqual(Math.round(price));
+    const total_exp = Math.round(price * quantity)
     // this test checks if the displayed amount matches the invoice amount
     // see notes about using "round2" in compute_cost
-    expect(Math.round(100 * info2.cost.cost)).toEqual(price * quantity);
+    expect(money(info2.cost.cost, true )).toEqual(`$${total_exp/100}`);
   });
 
   it("specific start/end date", () => {

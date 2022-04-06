@@ -139,7 +139,6 @@ function getProductMetadata(info): object {
   };
 }
 
-// note: cost_per_unit already underwent a "round2" treatment in compute_cost()
 export function unitAmount(info: PurchaseInfo): number {
   if (info.cost == null) throw Error("cost must be defined");
   return Math.round(info.cost.cost_per_unit * 100);
@@ -158,7 +157,7 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
     // create the one-time cost
     await conn.prices.create({
       currency: "usd",
-      unit_amount: info.cost.cost_per_unit,
+      unit_amount: unitAmount(info),
       product,
     });
   } else {
