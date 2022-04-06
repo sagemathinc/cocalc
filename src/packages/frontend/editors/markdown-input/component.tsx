@@ -75,7 +75,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  submitMentionsRef?: any;
+  submitMentionsRef?: MutableRefObject<() => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;

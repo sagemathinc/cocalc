@@ -404,6 +404,7 @@ export default function MultiMarkdownInput({
             registerEditor={registerEditor}
             unregisterEditor={unregisterEditor}
             placeholder={placeholder ?? "Type text..."}
+            submitMentionsRef={submitMentionsRef}
           />
         </div>
       )}

@@ -329,7 +329,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               input={input}
               on_send={on_send}
               height={INPUT_HEIGHT}
-              onChange={(value) => actions.set_input(value)}
+              onChange={(value) => {
+                actions.set_input(value);
+              }}
               submitMentionsRef={submitMentionsRef}
             />
           </div>

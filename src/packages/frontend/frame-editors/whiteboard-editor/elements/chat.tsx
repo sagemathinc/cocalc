@@ -13,8 +13,8 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import useWheel from "./scroll-wheel";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -39,10 +39,11 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
+  const submitMentionsRef = useRef<Function>();
 
   const saveChat = useDebouncedCallback((input) => {
     actions.saveChat({ id: element.id, input });
-  }, 1500);
+  }, SAVE_DEBOUNCE_MS);
 
   const [input, setInput] = useState<string>("");
   // we ensure input is set properly to what's in the element
@@ -58,7 +59,6 @@ function Conversation({ element, focused }: Props) {
     }
   }, [element, focused]);
 
-  const isMountedRef = useIsMountedRef();
   const clearInput = () => {
     setInput("");
     saveChat.cancel();
@@ -103,6 +103,7 @@ function Conversation({ element, focused }: Props) {
           }}
         >
           <MultiMarkdownInput
+            submitMentionsRef={submitMentionsRef}
             saveDebounceMs={0}
             onFocus={() => {
               setEditFocus(true);
@@ -131,6 +132,7 @@ function Conversation({ element, focused }: Props) {
             onShiftEnter={(input) => {
               saveChat.cancel();
               actions.sendChat({ id: element.id, input });
+              submitMentionsRef.current?.(); // send all the mentions
               clearInput();
             }}
             onUndo={() => {
@@ -169,6 +171,7 @@ function Conversation({ element, focused }: Props) {
               style={{ height: "100%", marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
+                submitMentionsRef.current?.(); // send all the mentions
                 clearInput();
               }}
             >
