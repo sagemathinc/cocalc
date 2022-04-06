@@ -47,7 +47,6 @@ export default function Code({
             element={element}
             focused={focused}
             canvasScale={canvasScale}
-            onBlur={() => setEditFocus(false)}
             onFocus={() => setEditFocus(true)}
             mode={mode}
           />
@@ -60,12 +59,10 @@ export default function Code({
   const resize = useResizeObserver({ ref: divRef });
   const resizeIfNecessary = useMemo(() => {
     if (actions.in_undo_mode()) return () => {};
-    let cancel = false;
-    const shrinkElement = debounce((h) => {
-      if (cancel) {
-        cancel = false;
-        return;
-      }
+    const shrinkElement = debounce(() => {
+      const elt = divRef.current;
+      if (elt == null) return;
+      const h = elt.offsetHeight + 16;
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
@@ -74,29 +71,31 @@ export default function Code({
     return () => {
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + 30;
+      const newHeight = elt.offsetHeight + 16;
       if (newHeight > element.h) {
-        cancel = true;
+        shrinkElement.cancel();
         actions.setElement({
-          obj: { id: element.id, h: elt.offsetHeight + 30 },
+          obj: { id: element.id, h: newHeight },
           commit: false,
         });
       } else if (newHeight < element.h) {
-        cancel = false;
-        shrinkElement(newHeight);
+        shrinkElement();
       }
     };
-  }, [element]);
+  }, [element.id]);
+
   useEffect(() => {
     resizeIfNecessary();
-  }, [resize]);
+  }, [resize, resizeIfNecessary]);
 
   return (
     <div style={{ ...getStyle(element), height: "100%" }}>
       <div ref={divRef}>
         {!hideInput && <InputPrompt element={element} />}
         {renderInput()}
-        {!hideOutput && element.data?.output && <Output element={element} />}
+        {!hideOutput && element.data?.output && (
+          <Output element={element} onClick={() => setEditFocus(true)} />
+        )}
         {focused && <ControlBar element={element} />}
       </div>
     </div>
