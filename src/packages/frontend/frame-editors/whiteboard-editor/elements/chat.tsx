@@ -14,7 +14,6 @@ import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { delay } from "awaiting";
 import useWheel from "./scroll-wheel";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
@@ -60,15 +59,9 @@ function Conversation({ element, focused }: Props) {
   }, [element, focused]);
 
   const isMountedRef = useIsMountedRef();
-  const clearInput = async () => {
+  const clearInput = () => {
     setInput("");
-    // There's a potential very slight chance that additional input
-    // from slate will get set in the next event loop, so we make
-    // sure to clear that.  This is due to how onChange and slate work.
-    await delay(1);
-    if (isMountedRef.current) {
-      setInput("");
-    }
+    saveChat.cancel();
   };
 
   // When the component goes to be unmounted, we will fetch data if the input has changed.
