@@ -5,6 +5,9 @@ the wheel events still go to the canvas, making scrolling around easier.
 
 If param always is true, captures scrolling no matter what.
 
+TODO: we could make it so that if you attempt to scroll and nothing happens, because
+you're at the edge, then scroll of the whole canvas occurs instead.  That might
+be really good/usable, or really annoying - I'm not sure.
 */
 
 import { useWheel } from "@use-gesture/react";

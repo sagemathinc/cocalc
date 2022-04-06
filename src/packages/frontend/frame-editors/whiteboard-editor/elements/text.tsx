@@ -72,20 +72,21 @@ function EditText({
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
+  const beforeChange = useCallback(() => {
+    if (!getValueRef.current) return;
+    const str = getValueRef.current();
+    actions.setElement({
+      obj: { id: element.id, str },
+    });
+  }, [element.id]);
   const getValueRef = useRef<any>(null);
   useEffect(() => {
     if (actions._syncstring == null) return;
-    const beforeChange = () => {
-      const str = getValueRef.current();
-      actions.setElement({
-        obj: { id: element.id, str },
-      });
-    };
     actions._syncstring.on("before-change", beforeChange);
     return () => {
       actions._syncstring.removeListener("before-change", beforeChange);
     };
-  }, []);
+  }, [element.id]);
 
   const resize = useResizeObserver({ ref: editorDivRef });
   useEffect(() => {

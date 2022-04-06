@@ -11,7 +11,7 @@ import useWheel from "../scroll-wheel";
 // Support for all the output Jupyter MIME types must be explicitly loaded.
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-frontend";
 
-export default function Output({ element }) {
+export default function Output({ element, onClick }) {
   const { project_id, path } = useFrameContext();
   const isMounted = useIsMountedRef();
   const [jupyterActions, setJupyterActions] = useState<
@@ -39,9 +39,8 @@ export default function Output({ element }) {
 
   return (
     <div
-      ref={divRef}
-      style={{ maxHeight: "80vh", overflowY: "auto" }}
       className="nodrag" /* because of ipywidgets, e.g., sliders */
+      onClick={onClick}
     >
       <CellOutput
         actions={jupyterActions}
@@ -53,6 +52,12 @@ export default function Output({ element }) {
         trust={true}
         complete={false}
         hidePrompt
+        divRef={divRef}
+        style={{
+          maxHeight: "80vh",
+          overflow: "auto",
+          display: "block" /* must specify or scroll blocking doesn't work */,
+        }}
       />
     </div>
   );

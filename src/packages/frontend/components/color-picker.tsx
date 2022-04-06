@@ -37,6 +37,7 @@ interface Props {
   style?: CSSProperties;
   defaultPicker?: keyof typeof Pickers;
   toggle?: ReactNode;
+  justifyContent?: "flex-start" | "flex-end" | "center";
 }
 export default function ColorPicker({
   color,
@@ -44,6 +45,7 @@ export default function ColorPicker({
   style,
   defaultPicker,
   toggle,
+  justifyContent = "center",
 }: Props) {
   const [visible, setVisible] = useState<boolean>(!toggle);
   const [picker, setPicker] = useState<keyof typeof Pickers>(
@@ -78,8 +80,8 @@ export default function ColorPicker({
       <div
         style={{
           display: "flex",
-          justifyContent: "center",
-          overflowX: "scroll",
+          justifyContent,
+          overflowX: "auto",
         }}
       >
         <Picker

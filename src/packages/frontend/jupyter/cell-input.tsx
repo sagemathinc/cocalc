@@ -9,7 +9,7 @@ React component that describes the input of a cell
 
 declare const $: any;
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
@@ -237,19 +237,28 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     }
 
     const getValueRef = useRef<any>(null);
+
+    const beforeChange = useCallback(() => {
+      if (getValueRef.current == null || props.actions == null) return;
+      props.actions.set_cell_input(props.id, getValueRef.current(), true);
+    }, [props.id]);
+
     useEffect(() => {
-      const actions = props.actions;
-      if (actions == null) return;
-      const beforeChange = () => {
-        if (getValueRef.current == null) return;
-        const value = getValueRef.current();
-        actions.set_cell_input(props.id, value, true);
-      };
-      actions.syncdb.on("before-change", beforeChange);
+      if (props.actions == null) return;
+      if (props.is_focused) {
+        props.actions.syncdb.on("before-change", beforeChange);
+      } else {
+        // On loss of focus, we call it once just to be sure that any
+        // changes are saved.  Not doing this would definitely result
+        // in lost work, if user made a change, then immediately switched
+        // cells right when upstream changes are coming in.
+        beforeChange();
+        props.actions.syncdb.removeListener("before-change", beforeChange);
+      }
       return () => {
-        actions.syncdb.removeListener("before-change", beforeChange);
+        props.actions?.syncdb.removeListener("before-change", beforeChange);
       };
-    }, [props.cell.get("cell_type")]);
+    }, [props.is_focused]);
 
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();

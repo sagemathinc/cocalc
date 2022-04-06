@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
@@ -12,6 +12,7 @@ import { getMode } from "./actions";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
+import { debounce } from "lodash";
 
 interface Props {
   element: Element;
@@ -46,7 +47,6 @@ export default function Code({
             element={element}
             focused={focused}
             canvasScale={canvasScale}
-            onBlur={() => setEditFocus(false)}
             onFocus={() => setEditFocus(true)}
             mode={mode}
           />
@@ -57,25 +57,45 @@ export default function Code({
   };
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({ ref: divRef });
-  const resizeIfNecessary = useCallback(() => {
-    if (actions.in_undo_mode()) return;
-    const elt = divRef.current;
-    if (elt == null) return;
-    actions.setElement({
-      obj: { id: element.id, h: elt.offsetHeight + 30 },
-      commit: false,
-    });
-  }, [element]);
+  const resizeIfNecessary = useMemo(() => {
+    if (actions.in_undo_mode()) return () => {};
+    const shrinkElement = debounce(() => {
+      const elt = divRef.current;
+      if (elt == null) return;
+      const h = elt.offsetHeight + 16;
+      actions.setElement({
+        obj: { id: element.id, h },
+        commit: false,
+      });
+    }, 250);
+    return () => {
+      const elt = divRef.current;
+      if (elt == null) return;
+      const newHeight = elt.offsetHeight + 16;
+      if (newHeight > element.h) {
+        shrinkElement.cancel();
+        actions.setElement({
+          obj: { id: element.id, h: newHeight },
+          commit: false,
+        });
+      } else if (newHeight < element.h) {
+        shrinkElement();
+      }
+    };
+  }, [element.id]);
+
   useEffect(() => {
     resizeIfNecessary();
-  }, [resize]);
+  }, [resize, resizeIfNecessary]);
 
   return (
     <div style={{ ...getStyle(element), height: "100%" }}>
       <div ref={divRef}>
         {!hideInput && <InputPrompt element={element} />}
         {renderInput()}
-        {!hideOutput && element.data?.output && <Output element={element} />}
+        {!hideOutput && element.data?.output && (
+          <Output element={element} onClick={() => setEditFocus(true)} />
+        )}
         {focused && <ControlBar element={element} />}
       </div>
     </div>

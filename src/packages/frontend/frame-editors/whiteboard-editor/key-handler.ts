@@ -36,7 +36,7 @@ export default function getKeyHandler(
   return (e) => {
     const node = actions._get_frame_node(frameId);
     if (node == null) return;
-    const key = e.key.toLowerCase();
+    const key = e.key?.toLowerCase();
     //console.log(key);
 
     if (key == "s" && (e.metaKey || e.ctrlKey)) {

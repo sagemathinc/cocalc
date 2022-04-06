@@ -4,8 +4,9 @@ import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 export type { JupyterActions };
+import { reuseInFlight } from "async-await-utils/hof";
 
-export async function getJupyterActions({
+async function getJupyterActions0({
   project_id,
   path,
 }: {
@@ -19,6 +20,10 @@ export async function getJupyterActions({
   }
   return jupyter_actions;
 }
+
+// very important to debounce, since we create an event listener (via the once) above.
+type F = (X: { project_id: string; path: string }) => Promise<JupyterActions>;
+export const getJupyterActions: F = reuseInFlight(getJupyterActions0);
 
 export async function getJupyterFrameEditorActions({
   project_id,

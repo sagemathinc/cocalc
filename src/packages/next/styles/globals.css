@@ -23,3 +23,11 @@ a {
   white-space: nowrap;
   width: 1px;
 }
+
+/*
+See https://wordpress.org/support/topic/katex-block-doesnt-break-formulas-into-lines/
+This is also in packages/frontend/index.sass
+*/
+.katex-html {
+  white-space: pre-wrap;
+}

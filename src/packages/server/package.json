@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/server",
-  "version": "0.21.5",
+  "version": "0.21.6",
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
     "./*": "./dist/*.js",
@@ -36,8 +36,8 @@
   ],
   "dependencies": {
     "@cocalc/backend": "^1.12.1",
-    "@cocalc/database": "^0.18.4",
-    "@cocalc/util": "^1.34.6",
+    "@cocalc/database": "^0.18.5",
+    "@cocalc/util": "^1.34.7",
     "@sendgrid/mail": "^7.5.0",
     "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",

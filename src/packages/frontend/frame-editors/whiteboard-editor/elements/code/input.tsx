@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
 import { fromJS, Map } from "immutable";
@@ -43,9 +43,27 @@ export default function Input({
     return new Actions(frame, element.id, setComplete);
   }, [element.id]); // frame can't change meaningfully.
 
+  const beforeChange = useCallback(() => {
+    if (!getValueRef.current) return;
+    const str = getValueRef.current();
+    frame.actions.setElement({
+      obj: { id: element.id, str },
+      commit: true,
+    });
+  }, [element.id]);
+  const getValueRef = useRef<any>(null);
+  useEffect(() => {
+    if (frame.actions._syncstring == null) return;
+    frame.actions._syncstring.on("before-change", beforeChange);
+    return () => {
+      frame.actions._syncstring.removeListener("before-change", beforeChange);
+    };
+  }, [element.id]);
+
   return (
     <div>
       <CodeMirrorEditor
+        getValueRef={getValueRef}
         refresh={canvasScale /* fresh if canvas scale changes */}
         contenteditable={
           true /* we *must* use contenteditable so scaling works */

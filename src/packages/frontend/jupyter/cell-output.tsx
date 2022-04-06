@@ -26,6 +26,8 @@ interface CellOutputProps {
   trust?: boolean;
   complete?: boolean;
   hidePrompt?: boolean;
+  style?: React.CSSProperties;
+  divRef?;
 }
 
 function should_memoize(prev, next) {
@@ -71,6 +73,8 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       trust,
       complete,
       hidePrompt,
+      divRef,
+      style,
     } = props;
 
     function render_output_prompt() {
@@ -181,12 +185,14 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
 
     return (
       <div
+        ref={divRef}
         key="out"
         style={{
           display: "flex",
           flexDirection: "row",
           alignItems: "stretch",
           minHeight,
+          ...style,
         }}
         cocalc-test="cell-output"
       >
