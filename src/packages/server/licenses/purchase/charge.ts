@@ -43,7 +43,7 @@ function getDays(info): number {
 // automatically.
 const VERSION = 0;
 
-function getProductId(info: PurchaseInfo): string {
+export function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
         - custom_uptime (until 2022-02: custom_always_running)
