@@ -5,43 +5,63 @@
 
 /* Purchasing a license */
 
-import {
-  Button,
-  Card,
-  DatePicker,
-  InputNumber,
-  Menu,
-  Dropdown,
-  Row,
-  Col,
-  Input,
-} from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import moment from "moment";
-import { webapp_client } from "../../webapp-client";
-import { CSS, React, redux, useMemo, useState } from "../../app-framework";
-const { RangePicker } = DatePicker;
+import {
+  CSS,
+  React,
+  redux,
+  useMemo,
+  useState
+} from "@cocalc/frontend/app-framework";
+import { DOC_LICENSE_URL } from "@cocalc/frontend/billing/data";
 import {
   A,
   CopyToClipBoard,
   ErrorDisplay,
-  Loading,
   Icon,
-  Space,
-} from "../../components";
+  Loading,
+  Space
+} from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { supportURL } from "@cocalc/frontend/support/url";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
-import { PurchaseMethod } from "./purchase-method";
-import { RadioGroup } from "./radio-group";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import {
+  compute_cost,
+  Cost,
+  COSTS,
+  discount_monthly_pct,
+  discount_pct,
+  discount_yearly_pct,
+  money,
+  percent_discount,
+  PurchaseInfo,
+  Subscription,
+  Upgrade,
+  User
+} from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import {
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Dropdown,
+  Input,
+  InputNumber,
+  Menu,
+  Row
+} from "antd";
+import moment from "moment";
+import { join } from "path";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
+import { PurchaseMethod } from "./purchase-method";
 import { QuotaEditor } from "./quota-editor";
-import { DOC_LICENSE_URL } from "../../billing/data";
-import { COLORS } from "@cocalc/util/theme";
-import { supportURL } from "@cocalc/frontend/support/url";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
+import { RadioGroup } from "./radio-group";
+const { RangePicker } = DatePicker;
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -66,20 +86,6 @@ const radioStyle: CSS = {
   whiteSpace: "normal",
   fontWeight: "inherit", // this is to undo what react-bootstrap does to the labels.
 } as const;
-
-import {
-  User,
-  Upgrade,
-  Subscription,
-  PurchaseInfo,
-  COSTS,
-  compute_cost,
-  money,
-  percent_discount,
-  discount_pct,
-  discount_monthly_pct,
-  discount_yearly_pct,
-} from "@cocalc/util/licenses/purchase/util";
 
 interface Props {
   onClose: () => void;
@@ -151,16 +157,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     undefined
   );
 
-  const cost = useMemo<
-    | {
-        cost: number;
-        cost_per_project_per_month: number;
-        discounted_cost: number;
-        cost_sub_month: number;
-        cost_sub_year: number;
-      }
-    | undefined
-  >(() => {
+  const cost = useMemo<Cost | undefined>(() => {
     if (user == null || quantity == null || subscription == null) {
       return undefined;
     }
