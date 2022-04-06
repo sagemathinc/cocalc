@@ -41,7 +41,9 @@ function getDays(info): number {
 // exist with old prices (often grandfathered) so we may want to
 // instead change the version so new products get created
 // automatically.
-const VERSION = 0;
+// 20220406: version 2 after discovering an unintentional volume discount,
+//           skewing the unit price per "product" in stripe.
+const VERSION = 1;
 
 export function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
@@ -137,6 +139,12 @@ function getProductMetadata(info): object {
   };
 }
 
+// note: cost_per_unit already underwent a "round2" treatment in compute_cost()
+export function unitAmount(info: PurchaseInfo): number {
+  if (info.cost == null) throw Error("cost must be defined");
+  return Math.round(info.cost.cost_per_unit * 100);
+}
+
 async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
   const product = getProductId(info);
   // Add the pricing info:
@@ -150,7 +158,7 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
     // create the one-time cost
     await conn.prices.create({
       currency: "usd",
-      unit_amount: Math.round((info.cost.cost / info.quantity) * 100),
+      unit_amount: info.cost.cost_per_unit,
       product,
     });
   } else {

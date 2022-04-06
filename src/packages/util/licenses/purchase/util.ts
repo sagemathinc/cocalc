@@ -17,6 +17,7 @@ import {
   Uptime,
 } from "../../consts/site-license";
 import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
+import { round2 } from "../../misc";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -32,6 +33,7 @@ export type CustomUpgrades =
 
 export interface Cost {
   cost: number;
+  cost_per_unit: number;
   discounted_cost: number;
   cost_per_project_per_month: number;
   cost_sub_month: number;
@@ -297,6 +299,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     }
     return {
       cost,
+      cost_per_unit: cost,
       discounted_cost: cost,
       cost_per_project_per_month: 0,
       cost_sub_month: 0,
@@ -379,6 +382,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost_per_project_per_month *
     COSTS.user_discount[user] *
     COSTS.sub_discount["monthly"];
+
   const cost_sub_year =
     cost_per_project_per_month *
     12 *
@@ -389,9 +393,6 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
-  // Multiply by the number of projects:
-  let cost = quantity * cost_per_project_per_month;
-
   // Make cost properly account for period of purchase or subscription.
   if (subscription == "no") {
     if (end == null) {
@@ -399,14 +400,33 @@ export function compute_cost(info: PurchaseInfo): Cost {
     }
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    cost *= months;
+    cost_per_project_per_month *= months;
   } else if (subscription == "yearly") {
-    cost *= 12;
+    cost_per_project_per_month *= 12;
   }
 
+  // cost_per_unit is important for purchasing upgrades for specific intervals.
+  // i.e. above the "cost" is calculated for the total number of projects,
+  // then here in "cost" the price is limited by the min_sale amount,
+  // and later in charge/stripeCreatePrice, we did divide by the number of projects again.
+  // instead: we use the limited cost_per_unit price to create a price in stripe.
+  // and hence there is no implicit discount if you purchase several projects at once.
+  // note: we use round2, because the user sees "cost", which is the unit price multiplied
+  //  by the number of projects … which also happens with the actual invoice. this avoids
+  // rounding errors of a few cents.
+  const cost_per_unit = round2(
+    Math.max(COSTS.min_sale / COSTS.online_discount, cost_per_project_per_month)
+  );
+
+  const cost_total = quantity * cost_per_unit;
+
   return {
-    cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
-    discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
+    cost_per_unit,
+    cost: cost_total,
+    discounted_cost: Math.max(
+      COSTS.min_sale,
+      cost_total * COSTS.online_discount
+    ),
     cost_per_project_per_month,
     cost_sub_month,
     cost_sub_year,

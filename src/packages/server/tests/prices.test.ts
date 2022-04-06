@@ -7,6 +7,7 @@
 // run this in the current directory via
 // $ npx jest prices.test.ts  [--watch]
 
+import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import {
   compute_cost,
   COSTS,
@@ -14,9 +15,9 @@ import {
 } from "@cocalc/util/licenses/purchase/util";
 import { round2 } from "@cocalc/util/misc";
 import expect from "expect";
-import { getProductId } from "../licenses/purchase/charge";
+import { getProductId, unitAmount } from "../licenses/purchase/charge";
 
-describe("product id", () => {
+describe("product id and compute cost", () => {
   const info1: Omit<PurchaseInfo, "quantity"> = {
     user: "academic",
     upgrade: "custom",
@@ -26,8 +27,8 @@ describe("product id", () => {
     custom_disk: 1,
     custom_member: true,
     subscription: "no",
-    start: new Date("2022-04-01 12:00"),
-    end: new Date("2022-04-10 12:00"),
+    start: new Date("2022-04-28 12:00"),
+    end: new Date("2022-05-07 12:00"),
     custom_dedicated_ram: 0,
     custom_dedicated_cpu: 0,
   } as const;
@@ -50,22 +51,39 @@ describe("product id", () => {
   });
 
   it.each([
-    [1, 1.33],
-    [3, 1.33],
-    [4, 1.33],
-    [6, 1.33],
-    [7, 1.33],
-    [10, 1.49],
-    [15, 2.24],
-  ])("compute price days %p → price %p", (days, price) => {
+    [1, 133, 1],
+    [2, 133, 5],
+    [3, 133, 10], // the point is, unit price is independent of quantity
+    [4, 133, 50],
+    [5, 133, 100],
+    [6, 133, 5],
+    [7, 133, 1],
+    [8, 133, 5],
+    [9, 134, 10],
+    [10, 149, 1],
+    [15, 224, 1],
+  ])("compute price days %p → price %p", (days, price, quantity) => {
+    const info2 = {
+      ...info1,
+      quantity,
+      end: new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
+    };
+    info2.cost = compute_cost(info2);
+    expect(unitAmount(info2)).toEqual(price);
+    expect(quantity * unitAmount(info2)).toEqual(price * quantity);
+    // this test checks if the displayed amount matches the invoice amount
+    // see notes about using "round2" in compute_cost
+    expect(Math.round(100 * info2.cost.cost)).toEqual(price * quantity);
+  });
+
+  it("specific start/end date", () => {
     const info2 = {
       ...info1,
       quantity: 1,
-      end: new Date(
-        (info1.start as Date).getTime() + days * 24 * 60 * 60 * 1000
-      ),
+      start: new Date("2022-04-28T10:08:10.072Z"),
+      end: new Date("2022-05-05T10:08:10.072Z"),
     };
-    const cost = compute_cost(info2);
-    expect(round2(cost.cost)).toEqual(price);
+    info2.cost = compute_cost(info2);
+    expect(unitAmount(info2)).toEqual(133);
   });
 });
