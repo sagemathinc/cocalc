@@ -19,6 +19,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 export interface EditorFunctions {
   set_cursor?: (pos: { x?: number; y?: number }) => void;
@@ -131,7 +132,7 @@ export default function MultiMarkdownInput({
   onUploadEnd,
   submitMentionsRef,
   extraHelp,
-  saveDebounceMs,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
   hideHelp,
   onBlur,
   onFocus,
