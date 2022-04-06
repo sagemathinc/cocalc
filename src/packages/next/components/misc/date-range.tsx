@@ -9,6 +9,7 @@ interface Props {
   style?: CSSProperties;
   noPast?: boolean; // if true, don't allow dates in the past
   maxDaysInFuture?: number; // don't allow dates this far in the future from now
+  disabled?: boolean;
 }
 
 export default function DateRange({
@@ -16,6 +17,7 @@ export default function DateRange({
   style,
   noPast,
   maxDaysInFuture,
+  disabled = false,
 }: Props) {
   const [dateRange, setDateRange] = useState<[Date0, Date0]>([
     undefined,
@@ -24,6 +26,7 @@ export default function DateRange({
   return (
     <div style={style}>
       <DatePicker.RangePicker
+        disabled={disabled}
         allowEmpty={[true, true]}
         ranges={{
           Week: [moment(), moment().add(1, "week")],

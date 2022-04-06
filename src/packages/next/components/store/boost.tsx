@@ -36,6 +36,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
+import { renderUsageAndDuration } from "./site-license";
 import { computeCost, Cost } from "./site-license-cost";
 
 const { Text, Paragraph } = Typography;
@@ -260,83 +261,7 @@ function CreateBooster() {
         <Form.Item name="type" initialValue={"boost"} noStyle>
           <Input type="hidden" />
         </Form.Item>
-        <Divider plain>Usage and Duration</Divider>
-        <Form.Item
-          name="user"
-          initialValue="academic"
-          label="Type of Usage"
-          extra={
-            showExplanations ? (
-              <>
-                Will this license be used for academic or commercial purposes?
-                Academic users receive a 40% discount off the standard price.
-              </>
-            ) : undefined
-          }
-        >
-          <Radio.Group disabled={!confirmWarning}>
-            <Radio value={"academic"}>
-              Academic - students, teachers, academic researchers, non-profit
-              organizations and hobbyists (40% discount)
-            </Radio>
-            <Radio value={"business"}>
-              Business - for commercial business purposes
-            </Radio>
-          </Radio.Group>
-        </Form.Item>
-        <Form.Item
-          name="period"
-          initialValue={"monthly"}
-          label="Period"
-          extra={
-            showExplanations ? (
-              <>
-                You receive a discount if you pay for the license monthly or
-                yearly via a{" "}
-                <A href="/pricing/subscriptions" external>
-                  recurring subscription
-                </A>
-                . You can also pay once for a specific period of time. Licenses
-                start at midnight in your local timezone on the start date and
-                end at 23:59 your local time zone on the ending date.
-              </>
-            ) : undefined
-          }
-        >
-          <Radio.Group
-            disabled={!confirmWarning}
-            onChange={(e) => {
-              form.setFieldsValue({ period: e.target.value });
-            }}
-          >
-            <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
-            <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
-            <Radio value={"range"}>Specific Start and End Dates</Radio>
-          </Radio.Group>
-        </Form.Item>
-        <Form.Item name="range" hidden={true}>
-          <Input />
-        </Form.Item>
-        <Form.Item
-          noStyle
-          shouldUpdate={(prevValues, currentValues) =>
-            prevValues.period !== currentValues.period
-          }
-        >
-          {({ getFieldValue }) =>
-            getFieldValue("period") == "range" ? (
-              <DateRange
-                noPast
-                maxDaysInFuture={365 * 4}
-                style={{ margin: "5px 0 30px", textAlign: "center" }}
-                onChange={(range) => {
-                  form.setFieldsValue({ range });
-                  onChange();
-                }}
-              />
-            ) : null
-          }
-        </Form.Item>
+        {renderUsageAndDuration({ showExplanations, form, onChange, disabled: !confirmWarning })}
         <Divider plain>Matching Site License Configuration</Divider>
         <Form.Item
           initialValue={true}
