@@ -489,20 +489,20 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     if (cost == null) return;
 
     let desc;
-    if (cost.discounted_cost < cost.cost) {
+    if (cost.discounted_cost_cents < cost.cost_cents) {
       desc = (
         <>
           <span style={{ textDecoration: "line-through" }}>
-            {money(cost.cost)}
+            {money(cost.cost_cents)}
           </span>
           {" or "}
-          {money(cost.discounted_cost)}
+          {money(cost.discounted_cost_cents)}
           {subscription != "no" ? " " + subscription : ""}, if you purchase
           online now ({percent_discount(cost)}% off!)
         </>
       );
     } else {
-      desc = `${money(cost.cost)} ${subscription != "no" ? subscription : ""}`;
+      desc = `${money(cost.cost_cents)} ${subscription != "no" ? subscription : ""}`;
     }
 
     return (
@@ -530,8 +530,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               label: "Purchase online",
               desc:
                 "purchase now with a credit card " +
-                (cost.discounted_cost < cost.cost
-                  ? `and save ${money(cost.cost - cost.discounted_cost)} ${
+                (cost.discounted_cost_cents < cost.cost_cents
+                  ? `and save ${money(cost.cost_cents - cost.discounted_cost_cents)} ${
                       subscription != "no"
                         ? subscription + " for the life of your subscription!"
                         : ""
@@ -543,7 +543,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               label: `Get a quote (${money(COSTS.min_quote)} minimum)`,
               desc: `obtain a quote, invoice, modified terms, a purchase order, use PayPal or wire transfer, etc.`,
               value: true,
-              disabled: cost.cost < COSTS.min_quote,
+              disabled: cost.cost_cents < COSTS.min_quote,
             },
           ]}
           onChange={(e) => set_quote(e.target.value)}
@@ -569,7 +569,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             <Icon name="credit-card" /> Payment
           </h4>
           <PurchaseMethod
-            amount={money(cost.discounted_cost)}
+            amount={money(cost.discounted_cost_cents)}
             description={`${quantity} × ${describe_quota({
               ram: custom_ram,
               cpu: custom_cpu,

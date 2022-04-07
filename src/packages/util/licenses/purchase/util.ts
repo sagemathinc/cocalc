@@ -31,9 +31,9 @@ export type CustomUpgrades =
   | "member";
 
 export interface Cost {
-  cost: number;
-  cost_per_unit: number;
-  discounted_cost: number;
+  cost_cents: number;
+  cost_per_unit_cents: number;
+  discounted_cost_cents: number;
   cost_per_project_per_month: number;
   cost_sub_month: number;
   cost_sub_year: number;
@@ -293,13 +293,15 @@ export function compute_cost(info: PurchaseInfo): Cost {
       dedicated_disk,
       dedicated_vm,
     });
+
     if (cost == null) {
       throw new Error("Problem calculating dedicated price");
     }
+    const cost_cents = Math.round(100 * cost);
     return {
-      cost,
-      cost_per_unit: cost,
-      discounted_cost: cost,
+      cost_cents,
+      cost_per_unit_cents: cost,
+      discounted_cost_cents: cost,
       cost_per_project_per_month: 0,
       cost_sub_month: 0,
       cost_sub_year: 0,
@@ -416,15 +418,19 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost_per_project_per_month
   );
 
-  const cost_total = quantity * cost_per_unit;
+  const cost_per_unit_cents = Math.round(100 * cost_per_unit);
+
+  const cost_total_cents = Math.round(quantity * cost_per_unit_cents);
+
+  const discounted_cost_cents = Math.max(
+    COSTS.min_sale,
+    Math.round(cost_total_cents * COSTS.online_discount)
+  );
 
   return {
-    cost_per_unit,
-    cost: cost_total,
-    discounted_cost: Math.max(
-      COSTS.min_sale,
-      cost_total * COSTS.online_discount
-    ),
+    cost_per_unit_cents,
+    cost_cents: cost_total_cents,
+    discounted_cost_cents,
     cost_per_project_per_month,
     cost_sub_month,
     cost_sub_year,
@@ -432,18 +438,19 @@ export function compute_cost(info: PurchaseInfo): Cost {
 }
 
 export function percent_discount({
-  cost,
-  discounted_cost,
-}: Pick<Cost, "cost" | "discounted_cost">): number {
-  return Math.round(100 * (1 - discounted_cost / cost));
+  cost_cents,
+  discounted_cost_cents,
+}: Pick<Cost, "cost_cents" | "discounted_cost_cents">): number {
+  return Math.round(100 * (1 - discounted_cost_cents / cost_cents));
 }
 
-export function money(n: number, hideCurrency: boolean = false): string {
+export function money(cents: number, hideCurrency: boolean = false): string {
+  const usd = cents / 100;
   let s = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 0,
-  }).format(n);
+  }).format(usd);
   const i = s.indexOf(".");
   if (i == s.length - 2) {
     s += "0";

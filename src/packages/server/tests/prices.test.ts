@@ -40,13 +40,13 @@ describe("product id and compute cost", () => {
   });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
-    const base = compute_cost({ ...info1, quantity: 1 }).cost;
+    const base = compute_cost({ ...info1, quantity: 1 }).cost_cents;
     const cost = compute_cost({ ...info1, quantity });
     const cexp = round2(base * quantity);
-    expect(round2(cost.cost)).toEqual(cexp);
+    expect(round2(cost.cost_cents)).toEqual(cexp);
     expect(
       Math.abs(
-        round2(cost.discounted_cost) - round2(COSTS.online_discount * cexp)
+        round2(cost.discounted_cost_cents) - round2(COSTS.online_discount * cexp)
       )
     ).toBeLessThan(0.01);
   });
@@ -74,10 +74,10 @@ describe("product id and compute cost", () => {
     //console.log(days, info2.cost);
     const unit_amount = unitAmount(info2);
     expect(unit_amount).toEqual(Math.round(price));
-    const total_exp = Math.round(price * quantity)
+    const total_exp = Math.round(price * quantity);
     // this test checks if the displayed amount matches the invoice amount
     // see notes about using "round2" in compute_cost
-    expect(money(info2.cost.cost, true )).toEqual(`$${total_exp/100}`);
+    expect(money(info2.cost.cost_cents, true)).toEqual(`$${total_exp / 100}`);
   });
 
   it("specific start/end date", () => {

@@ -84,14 +84,14 @@ interface Props {
 }
 
 export function DisplayCost({ cost, simple, oneLine }: Props) {
-  if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+  if (isNaN(cost.cost_cents) || isNaN(cost.discounted_cost_cents)) {
     return <>&ndash;</>;
   }
   const discount_pct = percent_discount(cost);
   if (simple) {
     return (
       <>
-        {money(cost.discounted_cost)}
+        {money(cost.discounted_cost_cents)}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -106,22 +106,22 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
     );
   }
   let desc;
-  if (cost.discounted_cost < cost.cost) {
+  if (cost.discounted_cost_cents < cost.cost_cents) {
     desc = (
       <>
         <span style={{ textDecoration: "line-through" }}>
-          {money(cost.cost)}
+          {money(cost.cost_cents)}
         </span>
         {" or "}
         <b>
-          {money(cost.discounted_cost)}
+          {money(cost.discounted_cost_cents)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
         , if you purchase here ({discount_pct}% self-service discount).
       </>
     );
   } else {
-    desc = `${money(cost.cost)} ${cost.period != "range" ? cost.period : ""}`;
+    desc = `${money(cost.cost_cents)} ${cost.period != "range" ? cost.period : ""}`;
   }
 
   return (
@@ -129,6 +129,10 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
       {describeItem(cost.input)}
       <hr />
       <Icon name="money-check" /> Cost: {desc}
+      <br/>
+      <pre style={{textAlign: "left", fontSize: "80%"}}>
+        {JSON.stringify(cost, null, 2)}
+      </pre>
     </span>
   );
 }

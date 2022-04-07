@@ -141,7 +141,7 @@ function getProductMetadata(info): object {
 
 export function unitAmount(info: PurchaseInfo): number {
   if (info.cost == null) throw Error("cost must be defined");
-  return Math.round(info.cost.cost_per_unit * 100);
+  return Math.round(info.cost.cost_per_unit_cents * 100);
 }
 
 async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {

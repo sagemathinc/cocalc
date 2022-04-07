@@ -253,7 +253,7 @@ function CreateLicense() {
       >
         <DisplayCost cost={cost} />
         <div>
-          {money(cost.discounted_cost / cost.input.quantity)} per project
+          {money(cost.discounted_cost_cents / cost.input.quantity)} per project
         </div>
         <div style={{ textAlign: "center" }}>
           {router.query.id != null && (
