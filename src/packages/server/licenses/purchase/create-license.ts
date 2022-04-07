@@ -7,6 +7,7 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
+import { endOfDay, startOfDay } from "./utils";
 const logger = getLogger("createLicense");
 
 export default async function createLicense(
@@ -24,7 +25,7 @@ export default async function createLicense(
     "activates::TIMESTAMP":
       info.subscription != "no"
         ? new Date(new Date().valueOf() - 60000) // one minute in past to avoid any funny confusion.
-        : info.start,
+        : startOfDay(info.start),
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
     "quota::JSONB": {
@@ -43,7 +44,7 @@ export default async function createLicense(
     "run_limit::INTEGER": info.quantity,
   };
   if (info.end != null) {
-    values["expires::TIMESTAMP"] = info.end;
+    values["expires::TIMESTAMP"] = endOfDay(info.end);
   }
 
   await database.async_query({

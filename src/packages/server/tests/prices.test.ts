@@ -17,6 +17,7 @@ import {
 import { round2 } from "@cocalc/util/misc";
 import expect from "expect";
 import { getProductId, unitAmount } from "../licenses/purchase/charge";
+import { endOfDay, getDays, startOfDay } from "../licenses/purchase/utils";
 
 describe("product id and compute cost", () => {
   const info1: Omit<PurchaseInfo, "quantity"> = {
@@ -36,7 +37,7 @@ describe("product id and compute cost", () => {
 
   it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
     const id = getProductId({ ...info1, quantity });
-    expect(id).toEqual(`license_a0b0c1d1m1p9r1_v1`);
+    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v1`);
   });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
@@ -74,10 +75,10 @@ describe("product id and compute cost", () => {
     //console.log(days, info2.cost);
     const unit_amount = unitAmount(info2);
     expect(unit_amount).toEqual(Math.round(price));
-    const total_exp = Math.round(price * quantity)
+    const total_exp = Math.round(price * quantity);
     // this test checks if the displayed amount matches the invoice amount
     // see notes about using "round2" in compute_cost
-    expect(money(info2.cost.cost, true )).toEqual(`$${total_exp/100}`);
+    expect(money(info2.cost.cost, true)).toEqual(`$${total_exp / 100}`);
   });
 
   it("specific start/end date", () => {
@@ -89,5 +90,43 @@ describe("product id and compute cost", () => {
     };
     info2.cost = compute_cost(info2);
     expect(unitAmount(info2)).toEqual(133);
+  });
+});
+
+describe("days interval", () => {
+  it("entire day counts (slightly more)", () => {
+    const info = {
+      start: new Date("2022-04-01 12:23:00"),
+      end: new Date("2022-04-06 12:23:03"),
+    };
+    expect(getDays(info)).toEqual(6);
+  });
+  it("entire day counts (slightly less)", () => {
+    const info = {
+      start: new Date("2022-04-01 12:23:00"),
+      end: new Date("2022-04-06 12:22:58"),
+    };
+    expect(getDays(info)).toEqual(6);
+  });
+});
+
+describe("start/end of day", () => {
+  const d = new Date("2022-04-04 14:31:00");
+  const s = "2022-04-04 14:31:00";
+
+  it("start", () => {
+    expect(startOfDay(d)).toEqual(new Date("2022-04-04 00:00:00.000Z"));
+  });
+
+  it("end", () => {
+    expect(endOfDay(d)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
+  });
+
+  it("start on string", () => {
+    expect(startOfDay(s)).toEqual(new Date("2022-04-04 00:00:00.000Z"));
+  });
+
+  it("end on string", () => {
+    expect(endOfDay(s)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
   });
 });
