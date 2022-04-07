@@ -29,6 +29,7 @@ import { useWheel } from "@use-gesture/react";
 import {
   SELECTED_BORDER_COLOR,
   EDIT_BORDER_COLOR,
+  EDIT_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
   SELECTED_BORDER_TYPE,
 } from "./elements/style";
@@ -322,9 +323,11 @@ export default function Focused({
             position: "relative",
             ...(rotating
               ? {
-                  border: `${
-                    SELECTED_BORDER_WIDTH / canvasScale
-                  }px ${SELECTED_BORDER_TYPE} ${
+                  border: `${SELECTED_BORDER_WIDTH / canvasScale}px ${
+                    frame.desc.get("editFocus")
+                      ? EDIT_BORDER_TYPE
+                      : SELECTED_BORDER_TYPE
+                  } ${
                     frame.desc.get("editFocus")
                       ? EDIT_BORDER_COLOR
                       : SELECTED_BORDER_COLOR

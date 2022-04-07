@@ -67,6 +67,7 @@ import {
   SELECTED_BORDER_COLOR,
   SELECTED_PADDING,
   SELECTED_BORDER_TYPE,
+  EDIT_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
 } from "./elements/style";
 import NotFocused from "./not-focused";
@@ -592,9 +593,11 @@ export default function Canvas({
             ...(selected
               ? {
                   cursor: "text",
-                  border: `${
-                    SELECTED_BORDER_WIDTH / canvasScale
-                  }px ${SELECTED_BORDER_TYPE} ${
+                  border: `${SELECTED_BORDER_WIDTH / canvasScale}px ${
+                    frame.desc.get("editFocus")
+                      ? EDIT_BORDER_TYPE
+                      : SELECTED_BORDER_TYPE
+                  } ${
                     frame.desc.get("editFocus")
                       ? EDIT_BORDER_COLOR
                       : SELECTED_BORDER_COLOR
