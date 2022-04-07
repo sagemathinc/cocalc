@@ -21,11 +21,95 @@ import { Client } from "@cocalc/sync/editor/generic/types";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
 import { jupyter_backend } from "../jupyter/jupyter";
+import { EventEmitter } from "events";
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";
 
-const syncdocs: { [path: string]: SyncDoc } = {};
+class SyncDocs extends EventEmitter {
+  private syncdocs: { [path: string]: SyncDoc } = {};
+  private closing: Set<string> = new Set();
+
+  async close(path: string, log?): Promise<void> {
+    const doc = this.get(path);
+    if (doc == null) {
+      log?.(`close ${path} -- no need, as it is not opened`);
+      return;
+    }
+    try {
+      log?.(`close ${path} -- starting close`);
+      this.closing.add(path);
+      // As soon as this close starts, doc is in an undefined state.
+      // Also, this can take an **unbounded** amount of time to finish,
+      // since it tries to save the patches table (among other things)
+      // to the database, and if there is no connection from the hub
+      // to this project, then it will simply wait however long it takes
+      // until we get a connection (and there is no timeout).  That is
+      // perfectly fine!  E.g., a user closes their browser connected
+      // to a project, then comes back 8 hours later and tries to open
+      // this document when they resume their browser.  During those entire
+      // 8 hours, the project might have been waiting to reconnect, just
+      // so it could send the patches from patches_list to the database.
+      // It does that, then finishes this async doc.close(), releases
+      // the lock, and finally the user gets to open their file. See
+      // https://github.com/sagemathinc/cocalc/issues/5823 for how not being
+      // careful with locking like this resulted in a very difficult to
+      // track down heisenbug. See also
+      // https://github.com/sagemathinc/cocalc/issues/5617
+      await doc.close();
+      log?.(`close ${path} -- successfully closed`);
+    } finally {
+      // No matter what happens above when it finishes, we clear it
+      // and consider it closed.
+      // There is perhaps a chance closing fails above (no idea how),
+      // but we don't want it to be impossible to attempt to open
+      // the path again I.e., we don't want to leave around a lock.
+      log?.(`close ${path} -- recording that close succeeded`);
+      delete this.syncdocs[path];
+      this.closing.delete(path);
+      this.emit(`close-${path}`);
+    }
+  }
+
+  get(path: string): SyncDoc | undefined {
+    return this.syncdocs[path];
+  }
+
+  async create(type, opts, log): Promise<SyncDoc> {
+    const path = opts.path;
+    if (this.closing.has(path)) {
+      log(
+        `create ${path} -- waiting for previous version to completely finish closing...`
+      );
+      await once(this, `close-${path}`);
+      log(`create ${path} -- successfully closed.`);
+    }
+    let doc;
+    switch (type) {
+      case "string":
+        doc = new SyncString(opts);
+        break;
+      case "db":
+        doc = new SyncDB(opts);
+        break;
+      default:
+        throw Error(`unknown syncdoc type ${type}`);
+    }
+    this.syncdocs[path] = doc;
+    log(`create ${path} -- successfully created.`);
+    return doc;
+  }
+
+  async closeAll(filename: string): Promise<void> {
+    for (const path in this.syncdocs) {
+      if (path == filename || path.startsWith(filename + "/")) {
+        await this.close(path);
+      }
+    }
+  }
+}
+
+const syncDocs = new SyncDocs();
 
 export function init_syncdoc(
   client: Client,
@@ -47,14 +131,7 @@ export function init_syncdoc(
 // return it; otherwise, return undefined.  This is useful
 // for getting a reference to a syncdoc, e.g., for prettier.
 export function get_syncdoc(path: string): SyncDoc | undefined {
-  return syncdocs[path];
-}
-
-async function close_syncdoc(path: string): Promise<void> {
-  const doc = get_syncdoc(path);
-  if (doc == null) return;
-  delete syncdocs[path];
-  await doc.close();
+  return syncDocs.get(path);
 }
 
 async function init_syncdoc_async(
@@ -74,11 +151,10 @@ async function init_syncdoc_async(
   log("type = ", type);
   log("opts = ", JSON.stringify(opts));
   opts.client = client;
-  log("now creating syncdoc...");
+  log(`now creating syncdoc ${opts.path}...`);
   let syncdoc;
   try {
-    syncdoc = create_syncdoc(type, opts);
-    syncdocs[opts.path] = syncdoc;
+    syncdoc = await syncDocs.create(type, opts, log);
   } catch (err) {
     log(`ERROR creating syncdoc -- ${err.toString()}`, err.stack);
     // TODO: how to properly inform clients and deal with this?!
@@ -86,12 +162,12 @@ async function init_syncdoc_async(
   }
   synctable.on("closed", function () {
     log("syncstring table closed, so closing syncdoc", opts.path);
-    close_syncdoc(opts.path);
+    syncDocs.close(opts.path, log);
   });
 
   syncdoc.on("error", function (err) {
     log(`syncdoc error -- ${err}`);
-    close_syncdoc(opts.path);
+    syncDocs.close(opts.path, log);
   });
 
   // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
@@ -168,24 +244,13 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
   return { type, opts };
 }
 
-function create_syncdoc(type, opts): SyncDoc {
-  switch (type) {
-    case "string":
-      return new SyncString(opts);
-    case "db":
-      return new SyncDB(opts);
-    default:
-      throw Error(`unknown syncdoc type ${type}`);
-  }
-}
-
 export async function syncdoc_call(
   path: string,
   logger: any,
   mesg: any
 ): Promise<string> {
   logger.debug("syncdoc_call", path, mesg);
-  const doc = get_syncdoc(path);
+  const doc = syncDocs.get(path);
   if (doc == null) {
     logger.debug("syncdoc_call -- not open: ", path);
     return "not open";
@@ -193,7 +258,7 @@ export async function syncdoc_call(
   switch (mesg.cmd) {
     case "close":
       logger.debug("syncdoc_call -- now closing: ", path);
-      await close_syncdoc(path);
+      await syncDocs.close(path, logger.debug);
       logger.debug("syncdoc_call -- closed: ", path);
       return "successfully closed";
     default:
@@ -206,9 +271,5 @@ export async function syncdoc_call(
 export async function close_all_syncdocs_in_tree(
   filename: string
 ): Promise<void> {
-  for (const path in syncdocs) {
-    if (path == filename || path.indexOf(filename + "/") != -1) {
-      await close_syncdoc(path);
-    }
-  }
+  return await syncDocs.closeAll(filename);
 }

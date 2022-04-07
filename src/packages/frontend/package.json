@@ -40,7 +40,7 @@
     "../util"
   ],
   "dependencies": {
-    "@ant-design/icons": "^4.3.0",
+    "@ant-design/icons": "^4.7.0",
     "@cocalc/assets": "^1.6.0",
     "@cocalc/cdn": "^1.10.0",
     "@cocalc/hub": "^1.55.6",
@@ -58,7 +58,7 @@
     "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
-    "antd": "^4.18.2",
+    "antd": "^4.19.5",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
