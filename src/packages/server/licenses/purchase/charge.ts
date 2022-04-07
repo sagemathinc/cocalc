@@ -16,7 +16,7 @@ import {
   LicenseIdleTimeoutsKeysOrdered,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
-import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
+import { getDays } from "./utils";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -33,11 +33,6 @@ export async function chargeUserForLicense(
   } else {
     return await stripeCreateSubscription(stripe, product_id, info);
   }
-}
-
-function getDays(info): number {
-  if (info.start == null || info.end == null) throw Error("bug");
-  return Math.round((info.end.valueOf() - info.start.valueOf()) / ONE_DAY_MS);
 }
 
 // When we change pricing, the products in stripe will already

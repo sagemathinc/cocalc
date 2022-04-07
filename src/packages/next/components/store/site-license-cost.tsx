@@ -15,6 +15,7 @@ import {
   LicenseIdleTimeouts,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
+import { getDays } from "@cocalc/server/licenses/purchase/utils";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -165,10 +166,11 @@ export function describePeriod({
   end?: Date | string;
 }): ReactNode {
   if (subscription == "no") {
+    const days = getDays({ start, end });
     return (
       <>
-        <Timestamp dateOnly datetime={start} absolute /> -{" "}
-        <Timestamp dateOnly datetime={end} absolute />
+        <Timestamp dateOnly datetime={start} absolute /> to{" "}
+        <Timestamp dateOnly datetime={end} absolute />, {days} days
       </>
     );
   } else {
