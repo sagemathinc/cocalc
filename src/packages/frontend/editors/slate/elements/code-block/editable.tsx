@@ -40,7 +40,6 @@ const Element: React.FC<RenderElementProps> = ({
           value={element.value}
           info={element.info}
           onChange={(value) => {
-            //setElement(editor, elementRef.current, { value });
             setElement({ value });
           }}
           onFocus={async () => {
