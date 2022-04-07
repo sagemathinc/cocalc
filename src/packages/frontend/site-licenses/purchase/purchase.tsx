@@ -11,7 +11,7 @@ import {
   React,
   redux,
   useMemo,
-  useState
+  useState,
 } from "@cocalc/frontend/app-framework";
 import { DOC_LICENSE_URL } from "@cocalc/frontend/billing/data";
 import {
@@ -20,7 +20,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Space
+  Space,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { supportURL } from "@cocalc/frontend/support/url";
@@ -39,9 +39,10 @@ import {
   PurchaseInfo,
   Subscription,
   Upgrade,
-  User
+  User,
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
@@ -52,7 +53,7 @@ import {
   Input,
   InputNumber,
   Menu,
-  Row
+  Row,
 } from "antd";
 import moment from "moment";
 import { join } from "path";
@@ -61,6 +62,7 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { PurchaseMethod } from "./purchase-method";
 import { QuotaEditor } from "./quota-editor";
 import { RadioGroup } from "./radio-group";
+
 const { RangePicker } = DatePicker;
 
 const LENGTH_PRESETS = [
@@ -417,9 +419,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       );
     }
     const menu = <Menu>{presets}</Menu>;
-    // +1 since moment rounds down (it's a fraction of a second less than a full day)
-    const n =
-      moment(end).endOf("day").diff(moment(start).startOf("day"), "days") + 1;
+    // this is fine, since getDays rounds the days difference, and start/end is set to the start/end of the day already
+    const n = getDays({ start, end });
     return (
       <div style={{ marginLeft: "60px" }}>
         <br />

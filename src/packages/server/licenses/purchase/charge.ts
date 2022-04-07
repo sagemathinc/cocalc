@@ -16,7 +16,7 @@ import {
   LicenseIdleTimeoutsKeysOrdered,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
-import { getDays } from "./utils";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };

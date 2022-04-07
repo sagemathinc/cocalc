@@ -17,7 +17,7 @@ import {
 import { round2 } from "@cocalc/util/misc";
 import expect from "expect";
 import { getProductId, unitAmount } from "../licenses/purchase/charge";
-import { endOfDay, getDays, startOfDay } from "../licenses/purchase/utils";
+import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 
 describe("product id and compute cost", () => {
   const info1: Omit<PurchaseInfo, "quantity"> = {
@@ -60,10 +60,10 @@ describe("product id and compute cost", () => {
     [5, 13333, 100],
     [6, 13333, 5],
     [7, 13333, 100],
-    [8, 13333, 5],
-    [9, 13430, 10],
-    [10, 14900, 1],
-    [15, 22400, 1],
+    [8, 13430, 5],
+    [9, 14930, 10],
+    [10, 16400, 1],
+    [15, 23900, 1],
   ])("compute price days %p → price %p", (days, price, quantity) => {
     price /= 100;
     const info2 = {

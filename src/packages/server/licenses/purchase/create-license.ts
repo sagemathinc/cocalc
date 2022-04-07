@@ -7,9 +7,10 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
-import { endOfDay, startOfDay } from "./utils";
+import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 const logger = getLogger("createLicense");
 
+// ATTN: activates/expires timestamps only work correctly if server is run on UTC timezone.
 export default async function createLicense(
   database: PostgreSQL,
   account_id: string,

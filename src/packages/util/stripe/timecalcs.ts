@@ -1,6 +1,7 @@
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 
+// this rounds start to the start of the day, and end to the end of the day
 export function getDays({
   start,
   end,
@@ -9,16 +10,10 @@ export function getDays({
     throw Error("bug");
   }
 
-  const t0 = timestamp(start);
-  const t1 = timestamp(end);
+  const t0 = startOfDay(start).valueOf();
+  const t1 = endOfDay(end).valueOf();
 
-  return Math.round(1 + (t1 - t0) / ONE_DAY_MS);
-}
-
-// round date to start of day
-function timestamp(date: Date | string): number {
-  const d = new Date(date);
-  return d.valueOf();
+  return Math.round((t1 - t0) / ONE_DAY_MS);
 }
 
 // round date to start of day

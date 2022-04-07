@@ -15,6 +15,7 @@ import {
   requiresMemberhosting,
   Uptime,
 } from "../../consts/site-license";
+import { endOfDay, startOfDay } from "../../stripe/timecalcs";
 import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
 import { dedicatedPrice } from "./dedicated";
 
@@ -298,8 +299,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
     dedicated_vm,
     custom_uptime,
   } = info;
-  const start = new Date(info.start);
-  const end = info.end ? new Date(info.end) : undefined;
+
+  const start = startOfDay(info.start);
+  const end = info.end ? endOfDay(info.end) : undefined;
 
   // TODO this is just a sketch, improve it
   if (!!dedicated_disk || !!dedicated_vm) {
