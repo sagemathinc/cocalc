@@ -11,7 +11,7 @@ register({
   path: "account/api",
   title: "API Key",
   icon: "key",
-  desc: "View, create, remove or regenerate the API key for accessing your account.",
+  desc: "View, create, remove or regenerate the API key for accessing your account.  If you want API access only to a specific list of projects, create a new CoCalc account, add that account as a collaborator to those projects, and create an API key for that account.",
   Component: () => {
     const [validPassword, setValidPassword] = useState<string>("");
     const [password, setPassword] = useState<string>("");
