@@ -225,6 +225,16 @@ function EditImage({ value, email_address, onChange }) {
               },
               false
             );
+            if (typeof file != "object") {
+              // This is for typescript.
+              // latest version of antd-img-crop has file having
+              // some other potential types, but reader.readAsDataURL
+              // doesn't allow some of those types.
+              console.warn(
+                "WARNING: unable to read, since avatar is assumed to be a Blob"
+              );
+              return;
+            }
             reader.readAsDataURL(file);
           }}
         >

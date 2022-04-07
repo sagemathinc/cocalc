@@ -103,7 +103,7 @@ FROM ext_count
 WHERE ext IN ('sagews', 'ipynb', 'tex', 'rtex', 'rnw', 'x11',
               'rmd', 'txt', 'py', 'md', 'sage', 'term', 'rst', 'lean',
               'png', 'svg', 'jpeg', 'jpg', 'pdf', 'jl', 'm',
-              'tasks', 'course', 'sage-chat', 'chat')
+              'tasks', 'course', 'sage-chat', 'chat', 'board')
 ORDER BY ext
 `;
 
