@@ -249,7 +249,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
           <Cursor
             name={name}
             color={color}
-            top={IS_FIREFOX ? 0 : IS_SAFARI ? "-1ex" : "-1.2em"}
+            top={IS_FIREFOX ? "0px" : IS_SAFARI ? "-1ex" : "-1.2em"}
             time={time}
             showNameRef={showNameRef}
           />,

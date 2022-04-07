@@ -9,6 +9,8 @@ import useEditFocus from "./edit-focus";
 import useMouseClickDrag from "./mouse-click-drag";
 import useResizeObserver from "use-resize-observer";
 
+const MIN_HEIGHT = 78;
+
 interface Props {
   element: Element;
   focused?: boolean;
@@ -48,6 +50,7 @@ function EditText({
     const elt = editorDivRef.current;
     if (elt == null) return;
     const height = (elt.offsetHeight ?? 0) + 2 * PADDING + 2 + 15;
+    if (height < MIN_HEIGHT) return;
     actions.setElement({
       obj: { id: element.id, h: height },
       commit: false,

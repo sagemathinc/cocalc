@@ -15,6 +15,7 @@ import useResizeObserver from "use-resize-observer";
 import { debounce } from "lodash";
 
 const EXTRA_HEIGHT = 30;
+const MIN_HEIGHT = 78;
 
 interface Props {
   element: Element;
@@ -65,6 +66,10 @@ export default function Code({
       const elt = divRef.current;
       if (elt == null) return;
       const h = elt.offsetHeight + EXTRA_HEIGHT;
+      if (h < MIN_HEIGHT) {
+        // too small -- do not change
+        return;
+      }
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
@@ -74,6 +79,10 @@ export default function Code({
       const elt = divRef.current;
       if (elt == null) return;
       const newHeight = elt.offsetHeight + EXTRA_HEIGHT;
+      if (newHeight < MIN_HEIGHT) {
+        // too small -- do not change
+        return;
+      }
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
