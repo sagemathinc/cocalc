@@ -2,10 +2,10 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "es5",
-    "types": ["node"],
+    "types": ["node", "jest"],
     "lib": ["ESNext"],
     "rootDir": "./",
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": ["node_modules", "dist"]
 }
