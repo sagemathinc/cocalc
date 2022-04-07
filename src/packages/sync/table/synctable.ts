@@ -304,7 +304,8 @@ export class SyncTable extends EventEmitter {
       }
       //console.log("SAVE -- has uncommitted changes, so trying again.");
       if (this.state !== "connected") {
-        // wait for state change
+        // wait for state change.
+        // This could take a long time, and that is fine.
         await once(this, "state");
       }
       if (this.state === "connected") {
