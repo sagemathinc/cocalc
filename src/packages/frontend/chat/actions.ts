@@ -15,7 +15,7 @@ import { get_sorted_dates } from "./chat-log";
 import { message_to_markdown } from "./message";
 
 export class ChatActions extends Actions<ChatState> {
-  private syncdb?: SyncDB;
+  public syncdb?: SyncDB;
   private store?: ChatStore;
 
   public set_syncdb(syncdb: SyncDB): void {

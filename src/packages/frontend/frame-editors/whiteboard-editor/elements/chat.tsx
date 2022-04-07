@@ -49,6 +49,11 @@ function Conversation({ element, focused }: Props) {
   // we ensure input is set properly to what's in the element
   // when it is focused.  When NOT focused, we don't bother,
   // to avoid wasting resources.
+  // NOTE: this implementation is highly inefficient and needs to be changed.
+  // The problem is that element.data[account_id] is not a string column, so
+  // every change saves the entire string, rather than just diffs.  The only
+  // good way to fix this is with another record type in the syncdb, I think...
+  // or a separate ephemeral table (which adds its own complexity, of course).
   useEffect(() => {
     if (!focused) return;
     const input1 =

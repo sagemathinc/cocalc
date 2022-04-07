@@ -333,6 +333,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 actions.set_input(value);
               }}
               submitMentionsRef={submitMentionsRef}
+              syncdb={actions.syncdb}
             />
           </div>
           <div

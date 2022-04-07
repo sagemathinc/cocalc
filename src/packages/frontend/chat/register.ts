@@ -27,17 +27,11 @@ export function init(path: string, redux, project_id: string): string {
     redux.getProjectStore(project_id)?.get_listings()?.undelete(path);
   }
 
-  // TODO: Note -- this design with the date as the primary key means that
-  // if two users send a message at the exact same millisecond, then one
-  // user's message is silently lost (except it is still in TimeTravel).  This is
-  // a bug and should be fixed, though the odds of hitting it ever are small.
-  // One possibility would be to adjust the timestamp
-  // to be in a residue class modulo the number of editors of the syncstring,
-  // like we do with patches.
   const syncdb = webapp_client.sync_client.sync_db({
     project_id,
     path,
-    primary_keys: ["date", "type"],
+    primary_keys: ["date", "sender_id", "event"],
+    string_cols: ["input"], // used only for drafts, since store lots of versions as user types
   });
 
   syncdb.once("error", (err) => {

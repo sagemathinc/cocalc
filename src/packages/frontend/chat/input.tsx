@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useState } from "react";
-import { useRedux } from "../app-framework";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { redux, useRedux } from "../app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
 import { useFrameContext } from "../frame-editors/frame-tree/frame-context";
@@ -25,23 +25,55 @@ interface Props {
   cacheId?: string;
   onFocus?: () => void;
   onBlur?: () => void;
+  syncdb?;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
+  const { syncdb } = props;
   const { project_id, path, actions } = useFrameContext();
   const font_size =
     props.font_size ?? useRedux(["font_size"], project_id, path);
+  const sender_id = useMemo(
+    () => redux.getStore("account").get_account_id(),
+    []
+  );
 
   const isMountedRef = useIsMountedRef();
   const saveChat = useDebouncedCallback(
     (input) => {
-      if (isMountedRef.current) {
-        props.onChange(input);
-      }
+      if (!isMountedRef.current || syncdb == null) return;
+      props.onChange(input);
+      // also save to syncdb, so we have undo, etc.
+      syncdb.set({
+        event: "draft",
+        sender_id,
+        input,
+        date: 0,
+        editing: null,
+        history: null,
+      });
+      syncdb.commit();
     },
     SAVE_DEBOUNCE_MS,
     { leading: true }
   );
+  useEffect(() => {
+    if (syncdb == null) return;
+    const onSyncdbChange = (changes) => {
+      console.log("changes = ", changes?.toJS());
+      const sender_id = redux.getStore("account").get_account_id();
+      const x = syncdb.get_one({
+        event: "draft",
+        sender_id,
+      });
+      console.log("x = ", x?.toJS());
+    };
+    syncdb.on("change", onSyncdbChange);
+    return () => {
+      syncdb.removeListener("change", onSyncdbChange);
+    };
+  }, [syncdb]);
+
   const [input, setInput] = useState<string>(props.input ?? "");
   const clearInput = () => {
     saveChat.cancel();
@@ -85,6 +117,14 @@ export const ChatInput: React.FC<Props> = (props) => {
       fontSize={font_size}
       hideHelp={props.hideHelp}
       style={props.style}
+      onUndo={() => {
+        saveChat.cancel();
+        actions.undo("");
+      }}
+      onRedo={() => {
+        saveChat.cancel();
+        actions.redo("");
+      }}
     />
   );
 };
