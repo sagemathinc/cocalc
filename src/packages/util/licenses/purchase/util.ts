@@ -392,6 +392,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
+  let base_cost = cost_per_project_per_month;
+
   // Make cost properly account for period of purchase or subscription.
   if (subscription == "no") {
     if (end == null) {
@@ -399,9 +401,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
     }
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    cost_per_project_per_month *= months;
+    base_cost *= months;
   } else if (subscription == "yearly") {
-    cost_per_project_per_month *= 12;
+    base_cost *= 12;
   }
 
   // cost_per_unit is important for purchasing upgrades for specific intervals.
@@ -413,7 +415,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // note: later on you have to use round2, since this is the price with full precision.
   const cost_per_unit = Math.max(
     COSTS.min_sale / COSTS.online_discount,
-    cost_per_project_per_month
+    base_cost
   );
 
   const cost_total = quantity * cost_per_unit;
