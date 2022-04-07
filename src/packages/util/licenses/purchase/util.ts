@@ -63,6 +63,23 @@ export interface PurchaseInfo {
   description?: string;
 }
 
+// stripe's metadata can only handle string or number values.
+export type ProductMetadata =
+  | Record<
+      | "user"
+      | "ram"
+      | "cpu"
+      | "dedicated_ram"
+      | "dedicated_cpu"
+      | "disk"
+      | "uptime"
+      | "member"
+      | "subscription",
+      string | number | null
+    > & {
+      duration_days?: number;
+    };
+
 // throws an exception if it spots something funny...
 export function sanity_checks(info: PurchaseInfo) {
   if (typeof info != "object") {

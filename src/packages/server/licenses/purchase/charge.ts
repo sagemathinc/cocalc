@@ -3,7 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COSTS, PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
+import {
+  COSTS,
+  ProductMetadata,
+  PurchaseInfo,
+} from "@cocalc/util/licenses/purchase/util";
 import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
@@ -12,6 +16,7 @@ import {
   LicenseIdleTimeoutsKeysOrdered,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
+import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -32,9 +37,7 @@ export async function chargeUserForLicense(
 
 function getDays(info): number {
   if (info.start == null || info.end == null) throw Error("bug");
-  return Math.round(
-    (info.end.valueOf() - info.start.valueOf()) / (24 * 60 * 60 * 1000)
-  );
+  return Math.round((info.end.valueOf() - info.start.valueOf()) / ONE_DAY_MS);
 }
 
 // When we change pricing, the products in stripe will already
@@ -123,8 +126,8 @@ function getProductName(info): string {
   return desc;
 }
 
-function getProductMetadata(info): object {
-  return {
+function getProductMetadata(info: PurchaseInfo): ProductMetadata {
+  const meta: ProductMetadata = {
     user: info.user,
     ram: info.custom_ram,
     cpu: info.custom_cpu,
@@ -132,11 +135,13 @@ function getProductMetadata(info): object {
     dedicated_cpu: info.custom_dedicated_cpu,
     disk: info.custom_disk,
     uptime: info.custom_uptime,
-    member: info.custom_member,
+    member: `${info.custom_member}`, // "true" or "false"
     subscription: info.subscription,
-    start: info.start?.toISOString(),
-    end: info.end?.toISOString(),
   };
+  if (info.start != null && info.end != null) {
+    meta.duration_days = getDays(info);
+  }
+  return meta;
 }
 
 export function unitAmount(info: PurchaseInfo): number {
@@ -188,7 +193,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
   // check to see if the product has already been created; if not, create it.
   if (!(await stripeProductExists(product_id))) {
     // now we have to create the product.
-    const metadata = getProductMetadata(info) as any; // avoid dealing with TS typings for metadata for now.
+    const metadata = getProductMetadata(info);
     const name = getProductName(info);
     let statement_descriptor = "COCALC LIC ";
     if (info.subscription != "no") {
