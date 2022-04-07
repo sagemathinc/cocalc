@@ -76,8 +76,16 @@ export class Actions extends BaseActions<State> {
         const id = key.get("id");
         if (id) {
           const element = this._syncstring.get_one(key);
-          // @ts-ignore
-          elements = elements.set(id, element);
+          if (!element) {
+            // there is a delete.
+            elements = elements.delete(id);
+          } else if (!element.get("type")) {
+            // no valid type field - discard
+            this._syncstring.delete({ id });
+          } else {
+            // @ts-ignore
+            elements = elements.set(id, element);
+          }
         }
       });
       if (elements !== elements0) {
