@@ -140,6 +140,7 @@ export class Actions extends BaseActions<State> {
     const element = this._syncstring.get_one({ id })?.toJS();
     if (element == null) return;
     delete element.z; // so it is placed at the top
+    delete element.locked; // so it isn't locked; copy should never be locked
     if (element.str != null) {
       element.str = "";
     }
@@ -541,6 +542,7 @@ export class Actions extends BaseActions<State> {
   // of the rectangle spanned by all elements is the given
   // center point, or (0,0) if not given.
   // ids of elements are updated to not conflict with existing ids.
+  // Also ensures all are not locked.
   // Also, any groups are remapped to new groups, to avoid "expanding" existing groups.
   // Returns the ids of the inserted elements.
   insertElements(elements: Element[], center?: Point): string[] {
@@ -557,6 +559,7 @@ export class Actions extends BaseActions<State> {
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;
+      delete element.locked;
       if (element.group != null) {
         let newGroupId = groupMap[element.group];
         if (newGroupId == null) {
