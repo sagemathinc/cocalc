@@ -796,7 +796,14 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    // WARNING: that 'closed' is emitted at the beginning of the
+    // close function (before anything async) for the project is
+    // assumed in src/packages/project/sync/sync-doc.ts, because
+    // that ensures that the moment close is called we lock trying
+    // try create the syncdoc again until closing is finished.
+    // (This set_state call emits "closed"):
     this.set_state("closed");
+
     this.emit("close");
 
     // must be after the emits above, so clients know
