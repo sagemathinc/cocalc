@@ -13,7 +13,6 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import useWheel from "./scroll-wheel";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
@@ -58,7 +57,6 @@ function Conversation({ element, focused }: Props) {
     }
   }, [element, focused]);
 
-  const isMountedRef = useIsMountedRef();
   const clearInput = () => {
     setInput("");
     saveChat.cancel();
