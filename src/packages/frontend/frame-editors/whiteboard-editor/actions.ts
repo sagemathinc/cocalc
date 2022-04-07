@@ -47,7 +47,7 @@ import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { cloneDeep } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
-import { lastMessageNumber } from "./elements/chat-static";
+import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
@@ -155,6 +155,9 @@ export class Actions extends BaseActions<State> {
     if (element.data?.output != null) {
       // code cell
       delete element.data.output;
+    }
+    if (element.type == "chat") {
+      clearChat(element);
     }
     moveRectAdjacent(element, placement);
 

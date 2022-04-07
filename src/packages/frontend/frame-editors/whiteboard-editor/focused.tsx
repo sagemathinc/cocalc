@@ -71,6 +71,7 @@ export default function Focused({
   multi,
 }: Props) {
   const frame = useFrameContext();
+  const editFocus = frame.desc.get("editFocus");
   const rectRef = useRef<any>(null);
   const [offset, setOffset] = useState<{
     x: number;
@@ -265,43 +266,47 @@ export default function Focused({
         }}
       >
         <Cursors cursors={cursors} canvasScale={canvasScale} />
-        {RotateControl}
-        <div
-          style={{
-            zIndex: MAX_ELEMENTS + 2,
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            ...(element.rotate
-              ? {
-                  transform: `rotate(${element.rotate}rad)`,
-                  transformOrigin: "center",
-                }
-              : undefined),
-            pointerEvents: "none", // otherwise entire element is blocked by this div
-          }}
-        >
-          {resizeHandles}
-          {edgeCreationPoints}
-        </div>
-        <div
-          className="nodrag"
-          style={{
-            position: "absolute",
-            bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-            left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-            transform: `scale(${1 / canvasScale})`,
-            transformOrigin: "top left",
-            pointerEvents: "all",
-            zIndex: 1,
-          }}
-        >
-          <EditBar
-            readOnly={readOnly}
-            elements={selectedElements}
-            allElements={allElements}
-          />
-        </div>
+        {!editFocus && RotateControl}
+        {!editFocus && (
+          <div
+            style={{
+              zIndex: MAX_ELEMENTS + 2,
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              ...(element.rotate
+                ? {
+                    transform: `rotate(${element.rotate}rad)`,
+                    transformOrigin: "center",
+                  }
+                : undefined),
+              pointerEvents: "none", // otherwise entire element is blocked by this div
+            }}
+          >
+            {resizeHandles}
+            {edgeCreationPoints}
+          </div>
+        )}
+        {!editFocus && (
+          <div
+            className="nodrag"
+            style={{
+              position: "absolute",
+              bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+              left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+              transform: `scale(${1 / canvasScale})`,
+              transformOrigin: "top left",
+              pointerEvents: "all",
+              zIndex: 1,
+            }}
+          >
+            <EditBar
+              readOnly={readOnly}
+              elements={selectedElements}
+              allElements={allElements}
+            />
+          </div>
+        )}
       </div>
       <Draggable
         disabled={locked || readOnly}
@@ -324,14 +329,8 @@ export default function Focused({
             ...(rotating
               ? {
                   border: `${SELECTED_BORDER_WIDTH / canvasScale}px ${
-                    frame.desc.get("editFocus")
-                      ? EDIT_BORDER_TYPE
-                      : SELECTED_BORDER_TYPE
-                  } ${
-                    frame.desc.get("editFocus")
-                      ? EDIT_BORDER_COLOR
-                      : SELECTED_BORDER_COLOR
-                  }`,
+                    editFocus ? EDIT_BORDER_TYPE : SELECTED_BORDER_TYPE
+                  } ${editFocus ? EDIT_BORDER_COLOR : SELECTED_BORDER_COLOR}`,
                   marginLeft: `${
                     -SELECTED_BORDER_WIDTH / canvasScale + offset.x
                   }px`,

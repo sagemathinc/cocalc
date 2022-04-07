@@ -14,6 +14,8 @@ import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
 import { debounce } from "lodash";
 
+const EXTRA_HEIGHT = 30;
+
 interface Props {
   element: Element;
   focused?: boolean;
@@ -62,7 +64,7 @@ export default function Code({
     const shrinkElement = debounce(() => {
       const elt = divRef.current;
       if (elt == null) return;
-      const h = elt.offsetHeight + 16;
+      const h = elt.offsetHeight + EXTRA_HEIGHT;
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
@@ -71,7 +73,7 @@ export default function Code({
     return () => {
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + 16;
+      const newHeight = elt.offsetHeight + EXTRA_HEIGHT;
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
