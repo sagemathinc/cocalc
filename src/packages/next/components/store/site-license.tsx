@@ -433,7 +433,7 @@ function CreateLicense() {
                 charge. Each licensed project receives this amount of extra
                 storage space. We also offer much larger{" "}
                 <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated disks and SSD's
+                  dedicated disks
                 </A>
                 .
               </>
@@ -688,6 +688,7 @@ export function renderUsageAndDuration({
               disabled={disabled}
               noPast
               maxDaysInFuture={365 * 4}
+              initialValues={getFieldValue("range")}
               style={{ margin: "5px 0 30px", textAlign: "center" }}
               onChange={(range) => {
                 form.setFieldsValue({ range });

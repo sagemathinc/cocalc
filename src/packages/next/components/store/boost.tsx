@@ -27,7 +27,6 @@ import {
   Typography,
 } from "antd";
 import A from "components/misc/A";
-import DateRange from "components/misc/date-range";
 import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -261,7 +260,12 @@ function CreateBooster() {
         <Form.Item name="type" initialValue={"boost"} noStyle>
           <Input type="hidden" />
         </Form.Item>
-        {renderUsageAndDuration({ showExplanations, form, onChange, disabled: !confirmWarning })}
+        {renderUsageAndDuration({
+          showExplanations,
+          form,
+          onChange,
+          disabled: !confirmWarning,
+        })}
         <Divider plain>Matching Site License Configuration</Divider>
         <Form.Item
           initialValue={true}
