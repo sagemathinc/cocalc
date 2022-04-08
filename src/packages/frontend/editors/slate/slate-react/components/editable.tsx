@@ -492,7 +492,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           // in case of height:'auto'.
           style.height === "auto"
             ? () => {
-                ref.current?.scrollTop = 0;
+                if (ref.current != null) {
+                  ref.current.scrollTop = 0;
+                }
               }
             : undefined
         }
