@@ -307,38 +307,20 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function use_windowed_list(): boolean {
-    // IMPORTANT: We are not using react-windowed at all
-    // for Jupyter, due to situations like this
+    // We use react-virtuoso, which is an amazing library for
+    // doing windowing on dynamically sized content... like
+    // what comes up with Jupyter notebooks.
+    // We do have to ensure that this can be easily disabled
+    // by users, due to situations like this
     //   https://github.com/sagemathinc/cocalc/issues/4727
-    // I'm going to leave all the code in for now though,
-    // since there is no harm and maybe some surprise
-    // will pop up.  Also, we could have a non-default
-    // option for huge notebooks that people might want to use.
+    // e.g., where maybe they want to use Javascript across all
+    // cells, or they want to preserve state in iframes, which
+    // requires keeping things rendered.
 
-    // That said, you can comment this "return false" out uncomment code below,
-    // and all the windowing code is still here, and seems to "work".
-    // My longterm plan for this is instead to make a slate version of Jupyter,
-    // which will automatically support long docs.
-    return false;
-
-    /*
-    if (
-      editor_settings == null ||
-      cell_list == null ||
-      editor_settings.get("disable_jupyter_windowing")
-    ) {
-      // very obvious reasons to disable windowing...
-      return false;
-    }
-    // OK, we have a big notebook.  Let's window if we're not on Safari/Firefox,
-    // where I don't know what is going on -- maybe some polyfill doesn't really
-    // work... (see #4320).
-    if (is_safari() || is_firefox()) {
-      return false;
-    }
-    // OK, let's do it.
+    // TODO: virtuoso -- make this a switch that is in the View
+    // menu, whose value is stored in metadata.  This could also
+    // have a paramter for "increaseViewportBy".
     return true;
-    */
   }
 
   function render_cells() {

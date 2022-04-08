@@ -7,20 +7,18 @@
 
 declare const $: any;
 
+import { useEffect, useCallback } from "react";
 import { debounce } from "lodash";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
-import { React, useIsMountedRef, useRef } from "../app-framework";
-import { Loading, WindowedList } from "../components";
+import { React, useIsMountedRef, useRef } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode, Scroll } from "./types";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
-const DEFAULT_ROW_SIZE: number = 64;
-const DEFAULT_WINDOWED_SIZE: number = 15;
-const NON_WINDOWED_SIZE = 1000;
+import { Virtuoso } from "react-virtuoso";
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -68,29 +66,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     more_output,
     cell_toolbar,
     trust,
-    /* NOTE: if the value of use_windowed_list *changes* while mounted,
-     we don't re-render everything, which would be a mess and is not
-     really a good idea... since the main use of windowing is to
-     make the initial render fast.  If it is already rendered, why
-     mess it up?
-     (TODO: we are not using windowed list ever anyways...)
-  */
-    use_windowed_list: use_windowed_list_prop,
+    use_windowed_list,
   } = props;
-
   const cell_list_node = useRef<HTMLElement | null>(null);
-  const windowed_list_ref = useRef<WindowedList | null>(null);
   const is_mounted = useIsMountedRef();
   const frameActions = useNotebookFrameActions();
 
-  const use_windowed_list =
-    !!use_windowed_list_prop && actions != null && frameActions.current != null;
-
-  if (use_windowed_list) {
-    frameActions.current?.set_windowed_list_ref(windowed_list_ref.current);
-  }
-
-  React.useEffect(() => {
+  useEffect(() => {
     restore_scroll();
     const frame_actions = frameActions.current;
     if (frame_actions == null) return;
@@ -116,7 +98,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // the focus state changed.
     if (is_focused) {
       frameActions.current?.enable_key_handler();
@@ -125,7 +107,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [is_focused]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // scroll state changed
     if (scroll != null) {
       scroll_cell_list(scroll);
@@ -133,18 +115,18 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [scroll]);
 
-  const cellListRef = React.useCallback((node: any) => {
+  const cellListRef = useCallback((node: any) => {
     cell_list_node.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
 
+  if (cell_list == null) {
+    return render_loading();
+  }
+
   function save_scroll(): void {
     if (use_windowed_list) {
-      if (windowed_list_ref.current == null) return;
-      const info = windowed_list_ref.current.get_scroll();
-      if (info != null) {
-        frameActions.current?.set_scrollTop(info.scrollOffset);
-      }
+      // TODO -- virtuoso
     } else {
       if (cell_list_node.current != null) {
         frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
@@ -163,9 +145,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!is_mounted.current) return;
       if (use_windowed_list) {
-        if (windowed_list_ref.current != null) {
-          windowed_list_ref.current.scrollToPosition(scrollTop);
-        }
+        // TODO -- virtuoso
       } else {
         const elt = cell_list_node.current;
         if (elt != null && elt.scrollHeight !== scrollHeight) {
@@ -247,48 +227,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   async function scroll_cell_list(scroll: Scroll): Promise<void> {
-    let list = windowed_list_ref.current;
-    if (list == null) {
+    if (use_windowed_list) {
+      // TODO -- virtuoso
+    } else {
       // scroll not using windowed list
       scroll_cell_list_not_windowed(scroll);
       return;
-    }
-
-    const info = list.get_scroll();
-
-    if (typeof scroll === "number") {
-      if (info == null) return;
-      list.scrollToPosition(info.scrollOffset + scroll);
-      return;
-    }
-
-    // supported scroll positions are in types.ts
-    if (scroll.startsWith("cell ")) {
-      const align = scroll === "cell top" ? "start" : "top";
-      if (cur_id == null) return;
-      const n = cell_list.indexOf(cur_id);
-      if (n == -1) return;
-      list.ensure_row_is_visible(n, align);
-      await delay(5); // needed due to shift+enter causing output
-      list = windowed_list_ref.current;
-      if (list == null) return;
-      list.ensure_row_is_visible(n, align);
-    }
-    if (info == null) return;
-
-    switch (scroll) {
-      case "list up":
-        // move scroll position of list up one page
-        list.scrollToPosition(
-          info.scrollOffset - list.get_window_height() * 0.9
-        );
-        break;
-      case "list down":
-        // move scroll position of list up one page
-        list.scrollToPosition(
-          info.scrollOffset + list.get_window_height() * 0.9
-        );
-        break;
     }
   }
 
@@ -331,7 +275,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     );
   }
 
-  function render_cell(id: string, isScrolling: boolean, index: number) {
+  function render_cell(
+    id: string,
+    isScrolling: boolean,
+    index: number,
+    delayRendering?: number
+  ) {
     const cell = cells.get(id);
     if (cell == null) return null;
     return (
@@ -357,48 +306,29 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         cell_toolbar={cell_toolbar}
         trust={trust}
         is_scrolling={isScrolling}
+        delayRendering={delayRendering}
       />
     );
   }
 
-  function windowed_list_row_renderer({
-    key,
-    isVisible,
-    isScrolling,
-    index,
-  }): JSX.Element {
-    const is_last: boolean = key === cell_list.get(-1);
+  if (use_windowed_list) {
     return (
-      <div>
-        {render_insert_cell(key, "above")}
-        {render_cell(key, isScrolling || !isVisible, index)}
-        {is_last ? render_insert_cell(key, "below") : undefined}
-      </div>
-    );
-  }
-
-  function render_list_of_cells_using_windowed_list(): JSX.Element {
-    let cache_id: undefined | string = undefined;
-    if (name != null && frameActions.current?.frame_id != null) {
-      cache_id = name + frameActions.current.frame_id;
-    }
-
-    return (
-      <WindowedList
-        ref={windowed_list_ref}
-        overscan_row_count={
-          use_windowed_list ? DEFAULT_WINDOWED_SIZE : NON_WINDOWED_SIZE
-        }
-        estimated_row_size={DEFAULT_ROW_SIZE}
-        row_key={(index) => cell_list.get(index)}
-        row_count={cell_list.size}
-        row_renderer={windowed_list_row_renderer}
-        cache_id={cache_id}
-        use_is_scrolling={true}
-        hide_resize={true}
-        render_info={true}
-        scroll_margin={60}
-        no_shrink_hack={true}
+      <Virtuoso
+        style={{ fontSize: `${font_size}px`, height: "100%" }}
+        totalCount={cell_list.size}
+        increaseViewportBy={3}
+        itemContent={(index) => {
+          const key = cell_list.get(index);
+          if (key == null) return null;
+          const is_last: boolean = key === cell_list.get(-1);
+          return (
+            <div style={{ overflow: "hidden" }}>
+              {render_insert_cell(key, "above")}
+              {render_cell(key, false, index)}
+              {is_last ? render_insert_cell(key, "below") : undefined}
+            </div>
+          );
+        }}
       />
     );
   }
@@ -412,7 +342,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       if (actions != null) {
         v.push(render_insert_cell(id));
       }
-      v.push(render_cell(id, false, index));
+      v.push(render_cell(id, false, index, index));
       index += 1;
     });
     if (actions != null && v.length > 0) {
@@ -425,49 +355,24 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return v;
   }
 
-  function render_list_of_cells(): JSX.Element | (JSX.Element | null)[] {
-    if (actions == null || !use_windowed_list) {
-      return render_list_of_cells_directly();
-    }
-
-    return (
-      <div
-        className="smc-vfill"
-        style={{
-          backgroundColor: "#fff",
-          paddingLeft: "5px",
-          overflowY: "auto",
-        }}
-      >
-        {render_list_of_cells_using_windowed_list()}
-      </div>
-    );
-  }
-
-  if (cell_list == null) {
-    return render_loading();
-  }
-
-  const style: React.CSSProperties = {
-    fontSize: `${font_size}px`,
-    paddingLeft: "5px",
-    height: "100%",
-    overflowY: "auto",
-    overflowX: "hidden",
-  };
-
   return (
     <div
       key="cells"
       className="smc-vfill"
-      style={style}
+      style={{
+        fontSize: `${font_size}px`,
+        paddingLeft: "5px",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
       ref={cellListRef}
       onClick={actions != null && complete != null ? on_click : undefined}
       onScroll={debounce(() => {
         save_scroll();
       }, 3000)}
     >
-      {render_list_of_cells()}
+      {render_list_of_cells_directly()}
     </div>
   );
 };
