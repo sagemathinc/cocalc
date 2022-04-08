@@ -152,7 +152,7 @@ function Conversation({ element, focused }: Props) {
               visibility:
                 !editFocus || mode == "markdown" ? "hidden" : undefined,
               bottom: "-36px",
-              left: "122px",
+              left: "126px",
               position: "absolute",
               boxShadow: "1px 3px 5px #ccc",
               margin: "5px",
@@ -164,7 +164,7 @@ function Conversation({ element, focused }: Props) {
               visibility: !editFocus ? "hidden" : undefined,
               bottom: "-30px",
               left: 0,
-              width: "126px",
+              width: "130px",
               boxShadow: "1px 3px 5px #ccc",
             }}
             onModeChange={setMode}

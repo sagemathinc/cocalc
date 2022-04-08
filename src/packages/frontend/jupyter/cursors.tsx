@@ -20,6 +20,7 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { times_n } from "./util";
 
 import { server_time, trunc_middle, is_different } from "@cocalc/util/misc";
+import { IS_SAFARI, IS_FIREFOX } from "@cocalc/frontend/feature";
 
 const UNKNOWN_USER_PROFILE = {
   color: "rgb(170,170,170)",
@@ -248,7 +249,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
           <Cursor
             name={name}
             color={color}
-            top={"-1.2em"}
+            top={IS_FIREFOX ? "0px" : IS_SAFARI ? "-1ex" : "-1.2em"}
             time={time}
             showNameRef={showNameRef}
           />,
