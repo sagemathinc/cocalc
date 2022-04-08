@@ -11,29 +11,28 @@ TODO: a lot!
  and so much more!
 */
 
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { delay } from "awaiting";
-import { Transforms } from "slate";
-import { ReactEditor } from "../slate-react";
-import {
-  CSS,
-  React,
-  ReactDOM,
-  useCallback,
+import React, {
+  CSSProperties,
   useEffect,
   useRef,
   useState,
-} from "@cocalc/frontend/app-framework";
+  useCallback,
+} from "react";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { Transforms } from "slate";
+import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
 import { FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
-  moveCursorDown,
   moveCursorToBeginningOfBlock,
   moveCursorUp,
+  moveCursorDown,
 } from "../control";
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
+import { delay } from "awaiting";
+import { isEqual } from "lodash";
 
 const STYLE = {
   width: "100%",
@@ -43,7 +42,7 @@ const STYLE = {
   borderRadius: "3px",
   lineHeight: "1.21429em",
   marginBottom: "1em", // consistent with <p> tag.
-} as CSS;
+} as CSSProperties;
 
 interface Props {
   onChange?: (string) => void;
@@ -55,7 +54,7 @@ interface Props {
   onFocus?: () => void;
   options?: { [option: string]: any };
   isInline?: boolean; // impacts how cursor moves out of codemirror.
-  style?: CSS;
+  style?: CSSProperties;
 }
 
 export const SlateCodeMirror: React.FC<Props> = React.memo(
@@ -90,18 +89,20 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       [cmRef]
     );
 
-    const focusEditor = () => {
+    const focusEditor = useCallback(() => {
       const cm = cmRef.current;
       if (cm == null) return;
       if (collapsed) {
+        // collapsed = single cursor, rather than a selection range.
         // Put the cursor at the top or bottom,
-        // depending on where it was recently:
-        // @ts-ignore
+        // depending on where it was recently outside of here in the slate document.
         const last = editor.lastSelection?.focus?.path;
         const path = editor.selection?.focus?.path;
         if (last != null && path != null) {
-          let cur;
-          if (isLessThan(last, path)) {
+          let cur: undefined | { line: number; ch: number } = undefined;
+          if (isEqual(last, path)) {
+            // no-op, e.g., already in there
+          } else if (isLessThan(last, path)) {
             // from above
             cur = { line: 0, ch: 0 };
           } else {
@@ -111,11 +112,20 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
               ch: isInline ? cm.getLine(cm.lastLine()).length : 0,
             };
           }
-          cm.setCursor(cur);
+          if (cur) {
+            cm.setCursor(cur);
+          }
         }
 
-        // focus the editor
+        // focus the CodeMirror editor
+        // It is critical to first blur the Slate editor
+        // itself, since otherwise we get stuck in an infinite
+        // loop since slate is confused about whether or not it is
+        // blurring or getting focused, since codemirror is a contenteditable
+        // inside of the slate DOM tree.  Hence this blur:
+        cm.refresh();
         cm.focus();
+        ReactEditor.blur(editor);
 
         // set the CSS to indicate this
         setCSS({
@@ -128,7 +138,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           color: "white",
         });
       }
-    };
+    }, [collapsed, options?.theme]);
 
     useEffect(() => {
       if (focused && selected) {
@@ -139,7 +149,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           color: "",
         });
       }
-    }, [selected, focused, options]);
+    }, [selected, focused, options?.theme]);
 
     // If the info line changes update the mode.
     useEffect(() => {
@@ -147,17 +157,18 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     }, [info]);
 
     useEffect(() => {
-      const node: HTMLTextAreaElement = ReactDOM.findDOMNode(
-        textareaRef.current
-      );
+      const node: HTMLTextAreaElement = textareaRef.current;
       if (node == null) return;
       if (options == null) options = {};
       options.mode = infoToMode(info);
 
-      // NOTE: Using the inputStyle of "contenteditable" does not
-      // work because copy ends up being handled by slate and being
-      // wrong, which is weird.  In contrast, textarea does work fine.
-      options.inputStyle = "textarea";
+      // NOTE: Using the inputStyle of "contenteditable" is challenging
+      // because we have to take care that copy doesn't end up being handled
+      // by slate and being wrong.  In contrast, textarea does work fine for
+      // copy.  However, textarea does NOT work when any CSS transforms
+      // are involved, and we use such transforms extensively in the whiteboard.
+
+      options.inputStyle = "contenteditable"; // can't change because of whiteboard usage!
 
       if (options.extraKeys == null) {
         options.extraKeys = {};
@@ -280,8 +291,9 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
     const line = cm.getLine(n);
     const line_length = line?.length;
     if (cur_line === n && cur_ch === line_length) {
-      ReactEditor.focus(editor);
+      //Transforms.move(editor, { distance: 1, unit: "line" });
       moveCursorDown(editor, true);
+      ReactEditor.focus(editor);
       return true;
     } else {
       return false;
@@ -291,11 +303,12 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   options.extraKeys["Up"] = (cm) => {
     const cur = cm.getCursor();
     if (cur?.line === cm.firstLine() && cur?.ch == 0) {
-      ReactEditor.focus(editor);
+      // Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
       moveCursorUp(editor, true);
       if (!isInline) {
         moveCursorToBeginningOfBlock(editor);
       }
+      ReactEditor.focus(editor);
     } else {
       commands.goLineUp(cm);
     }

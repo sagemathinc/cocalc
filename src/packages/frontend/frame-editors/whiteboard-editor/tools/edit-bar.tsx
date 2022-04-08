@@ -93,7 +93,7 @@ interface ButtonProps {
 function DeleteButton({ elements }: ButtonProps) {
   const { actions, id } = useFrameContext();
   return (
-    <Tooltip title="Delete selected objects">
+    <Tooltip title="Delete selected">
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
@@ -111,7 +111,7 @@ function DeleteButton({ elements }: ButtonProps) {
 function DuplicateButton({ elements }: ButtonProps) {
   const { actions, id } = useFrameContext();
   return (
-    <Tooltip title="Duplicate selected objects">
+    <Tooltip title="Duplicate selected">
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"

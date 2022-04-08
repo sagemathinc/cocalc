@@ -64,38 +64,42 @@ export default function CodeControlBar({ element }: Props) {
           </Button>
         </Tooltip>
       )}
-      <Tooltip title="Toggle display of input">
-        <Checkbox
-          checked={!element.data?.hideInput}
-          style={{ fontWeight: 250, marginLeft: "10px" }}
-          onChange={(e) => {
-            actions.setElementData({
-              element,
-              obj: { hideInput: !e.target.checked },
-            });
-          }}
-        >
-          Input
-        </Checkbox>
-      </Tooltip>
-      <Tooltip title="Toggle display of output">
-        <Checkbox
-          disabled={
-            element.data?.output == null ||
-            Object.keys(element.data?.output).length == 0
-          }
-          checked={!element.data?.hideOutput}
-          style={{ fontWeight: 250, marginLeft: "10px" }}
-          onChange={(e) => {
-            actions.setElementData({
-              element,
-              obj: { hideOutput: !e.target.checked },
-            });
-          }}
-        >
-          Output
-        </Checkbox>
-      </Tooltip>
+      {!element.locked && (
+        <Tooltip title="Toggle display of input">
+          <Checkbox
+            checked={!element.data?.hideInput}
+            style={{ fontWeight: 250, marginLeft: "10px" }}
+            onChange={(e) => {
+              actions.setElementData({
+                element,
+                obj: { hideInput: !e.target.checked },
+              });
+            }}
+          >
+            Input
+          </Checkbox>
+        </Tooltip>
+      )}
+      {!element.locked && (
+        <Tooltip title="Toggle display of output">
+          <Checkbox
+            disabled={
+              element.data?.output == null ||
+              Object.keys(element.data?.output).length == 0
+            }
+            checked={!element.data?.hideOutput}
+            style={{ fontWeight: 250, marginLeft: "10px" }}
+            onChange={(e) => {
+              actions.setElementData({
+                element,
+                obj: { hideOutput: !e.target.checked },
+              });
+            }}
+          >
+            Output
+          </Checkbox>
+        </Tooltip>
+      )}
     </div>
   );
 }

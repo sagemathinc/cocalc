@@ -47,7 +47,7 @@ import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { cloneDeep } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
-import { lastMessageNumber } from "./elements/chat-static";
+import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
@@ -76,8 +76,16 @@ export class Actions extends BaseActions<State> {
         const id = key.get("id");
         if (id) {
           const element = this._syncstring.get_one(key);
-          // @ts-ignore
-          elements = elements.set(id, element);
+          if (!element) {
+            // there is a delete.
+            elements = elements.delete(id);
+          } else if (!element.get("type")) {
+            // no valid type field - discard
+            this._syncstring.delete({ id });
+          } else {
+            // @ts-ignore
+            elements = elements.set(id, element);
+          }
         }
       });
       if (elements !== elements0) {
@@ -140,12 +148,16 @@ export class Actions extends BaseActions<State> {
     const element = this._syncstring.get_one({ id })?.toJS();
     if (element == null) return;
     delete element.z; // so it is placed at the top
+    delete element.locked; // so it isn't locked; copy should never be locked
     if (element.str != null) {
       element.str = "";
     }
     if (element.data?.output != null) {
       // code cell
       delete element.data.output;
+    }
+    if (element.type == "chat") {
+      clearChat(element);
     }
     moveRectAdjacent(element, placement);
 
@@ -541,6 +553,7 @@ export class Actions extends BaseActions<State> {
   // of the rectangle spanned by all elements is the given
   // center point, or (0,0) if not given.
   // ids of elements are updated to not conflict with existing ids.
+  // Also ensures all are not locked.
   // Also, any groups are remapped to new groups, to avoid "expanding" existing groups.
   // Returns the ids of the inserted elements.
   insertElements(elements: Element[], center?: Point): string[] {
@@ -557,6 +570,7 @@ export class Actions extends BaseActions<State> {
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;
+      delete element.locked;
       if (element.group != null) {
         let newGroupId = groupMap[element.group];
         if (newGroupId == null) {

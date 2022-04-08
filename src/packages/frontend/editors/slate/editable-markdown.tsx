@@ -189,6 +189,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         return ed._hasUnsavedChanges !== ed.children;
       };
 
+      ed.markdownValue = value;
       ed.getMarkdownValue = () => {
         if (ed.markdownValue != null && !ed.hasUnsavedChanges()) {
           return ed.markdownValue;
@@ -556,8 +557,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
       } finally {
         // In all cases, now that we have transformed editor into the new value
-        // let's save the fact that we haven't changed anything yet:
+        // let's save the fact that we haven't changed anything yet and we
+        // know the markdown state with zero changes.  This is important, so
+        // we don't save out a change if we don't explicitly make one.
         editor.resetHasUnsavedChanges();
+        editor.markdownValue = value;
       }
 
       try {

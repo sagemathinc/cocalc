@@ -7,6 +7,7 @@ import { Element } from "../types";
 import { cmp } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import useWheel from "./scroll-wheel";
+import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 
 export default function ChatStatic({ element }: { element: Element }) {
   return (
@@ -83,7 +84,7 @@ export function lastMessageNumber(element: Element): number {
 function messageNumbers(element: Element): number[] {
   const v: number[] = [];
   for (const field in element.data ?? {}) {
-    if (field.length == 36) continue;
+    if (isUUID(field)) continue;
     const k = parseInt(field);
     if (!isNaN(k)) {
       v.push(k);
@@ -91,6 +92,22 @@ function messageNumbers(element: Element): number[] {
   }
   v.sort(cmp);
   return v;
+}
+
+// Mutates element removing all messages and drafts:
+// delete all the chat messages, e.g., everything in element.data
+// with key a number.
+export function clearChat(element: Element): void {
+  if (element.data == null || element.type != "chat") return;
+  for (const field in element.data) {
+    if (isUUID(field)) {
+      delete element.data[field];
+    }
+    const k = parseInt(field);
+    if (!isNaN(k)) {
+      delete element.data[k];
+    }
+  }
 }
 
 export const messageStyle = {

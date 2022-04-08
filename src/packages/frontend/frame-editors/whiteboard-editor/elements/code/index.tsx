@@ -1,3 +1,12 @@
+/* Jupyter cells
+
+
+- Locked: a locked cell can't have the input/output hidden/shown and can't have the input
+  code changed.  However, you *can* run the code and interact with widgets.  This makes
+  a notebook with a bunch of locked cells useful for users to share something without consumers
+  breaking it.   Also, it matches with jupyter notebook.
+*/
+
 import { useMemo, useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
@@ -13,6 +22,9 @@ import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
 import { debounce } from "lodash";
+
+const EXTRA_HEIGHT = 30;
+const MIN_HEIGHT = 78;
 
 interface Props {
   element: Element;
@@ -38,7 +50,7 @@ export default function Code({
 
   const renderInput = () => {
     if (hideInput) return;
-    if (focused || cursors != null) {
+    if (!element.locked && (focused || cursors != null)) {
       return (
         <div className="nodrag">
           <Input
@@ -58,20 +70,29 @@ export default function Code({
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({ ref: divRef });
   const resizeIfNecessary = useMemo(() => {
-    if (actions.in_undo_mode()) return () => {};
     const shrinkElement = debounce(() => {
+      if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const h = elt.offsetHeight + 16;
+      const h = elt.offsetHeight + EXTRA_HEIGHT;
+      if (h < MIN_HEIGHT) {
+        // too small -- do not change
+        return;
+      }
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
       });
     }, 250);
     return () => {
+      if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + 16;
+      const newHeight = elt.offsetHeight + EXTRA_HEIGHT;
+      if (newHeight < MIN_HEIGHT) {
+        // too small -- do not change
+        return;
+      }
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
