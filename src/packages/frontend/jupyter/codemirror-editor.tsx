@@ -17,7 +17,7 @@ import { Map as ImmutableMap } from "immutable";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
-import { CSSProperties, MutableRefObject, useEffect } from "react";
+import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -34,7 +34,7 @@ const cache = new LRU<string, CachedInfo>({ max: 1000 });
 
 const FOCUSED_STYLE: React.CSSProperties = {
   width: "100%",
-  overflowX: "hidden",
+  overflow: "hidden",
   border: "1px solid #cfcfcf",
   borderRadius: "2px",
   background: "#f7f7f7",
@@ -91,6 +91,7 @@ interface CodeMirrorEditorProps {
   contenteditable?: boolean; // make true for whiteboard so works when scaled.
   refresh?: any; // if this changes, then cm.refresh() is called.
   getValueRef?: MutableRefObject<() => string>;
+  canvasScale?: number;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -116,6 +117,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   contenteditable,
   refresh,
   getValueRef,
+  canvasScale,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -191,6 +193,38 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       $(cm.current.getWrapperElement()).css({ paddingBottom: 0 });
     }
   }, [is_focused]);
+
+  const [containerHeight, setContainerHeight] = useState<string | undefined>(
+    undefined
+  );
+  const divRef = useRef<any>();
+  useEffect(() => {
+    if (canvasScale == null || canvasScale <= 1) return;
+    // Used to support embedding cells in a css scaled div, e.g., which
+    // is used in the whiteboard.  This is pretty hacky, because CodeMirror5
+    // does not and will probably never support any CSS transforms:
+    //    https://github.com/codemirror/CodeMirror/issues/2443
+    const doUpdate = () => {
+      if (divRef.current != null) {
+        const sizer = $(divRef.current).find(".CodeMirror-sizer");
+        const height = sizer.height();
+        if (height) {
+          setContainerHeight(`${height / canvasScale + 6}px`);
+          divRef.current.scrollTop = 0;
+        }
+      }
+    };
+    const updateContainerHeight = () => {
+      doUpdate();
+      requestAnimationFrame(doUpdate);
+    };
+    updateContainerHeight();
+    cm.current?.on("change", updateContainerHeight);
+    return () => {
+      setContainerHeight(undefined);
+      cm.current?.off("change", updateContainerHeight);
+    };
+  }, [canvasScale]);
 
   function cm_destroy(): void {
     if (cm.current != null) {
@@ -686,7 +720,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <div style={{ width: "100%", overflow: "auto" }}>
       {render_cursors()}
-      <div style={{ ...FOCUSED_STYLE, ...style }}>
+      <div
+        ref={divRef}
+        style={{ ...FOCUSED_STYLE, height: containerHeight, ...style }}
+      >
         <pre
           ref={cm_ref}
           style={{

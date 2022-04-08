@@ -63,8 +63,9 @@ export default function Input({
   return (
     <div>
       <CodeMirrorEditor
+        canvasScale={canvasScale}
         getValueRef={getValueRef}
-        refresh={canvasScale /* fresh if canvas scale changes */}
+        refresh={canvasScale /* refresh if canvas scale changes */}
         contenteditable={
           true /* we *must* use contenteditable so scaling works */
         }
