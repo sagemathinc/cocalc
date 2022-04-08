@@ -613,6 +613,7 @@ export default function Canvas({
               : undefined),
             width: "100%",
             height: "100%",
+            /* We do not use overflow:'hidden' here since that hides the floating menus for the multimarkdown editor. */
           }}
         >
           {elt}

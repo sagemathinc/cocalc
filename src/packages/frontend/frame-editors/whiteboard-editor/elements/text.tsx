@@ -34,33 +34,19 @@ function EditText({
   canvasScale,
   cursors,
   focused,
+  readOnly,
 }: {
   element: Element;
   canvasScale: number;
   cursors?;
   focused?: boolean;
+  readOnly?: boolean;
 }) {
   const { actions, id: frameId } = useFrameContext();
-  const resizeIfNecessary = useCallback(() => {
-    if (actions.in_undo_mode()) return;
-    // possibly adjust height.  We do this in the next render
-    // loop because sometimes when the change fires the dom
-    // hasn't updated the height of the containing div yet,
-    // so we end up setting the height 1 step behind reality.
-    const elt = editorDivRef.current;
-    if (elt == null) return;
-    const height = (elt.offsetHeight ?? 0) + 2 * PADDING + 2 + 15;
-    if (height < MIN_HEIGHT) return;
-    actions.setElement({
-      obj: { id: element.id, h: height },
-      commit: false,
-    });
-  }, [element]);
+
   const [mode, setMode] = useState<string>("");
 
   const [editFocus, setEditFocus] = useEditFocus(false);
-
-  const editorDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -91,9 +77,41 @@ function EditText({
     };
   }, [element.id]);
 
-  const resize = useResizeObserver({ ref: editorDivRef });
+  // Automatic resizing:
+  const divRef = useRef<HTMLDivElement>(null);
+  const resize = useResizeObserver({
+    // only listen if editable -- otherwise we might create tons of these, which is wasteful
+    ref: readOnly || !editFocus ? undefined : divRef,
+  });
+  const resizeRef = useRef<Function | null>(null);
   useEffect(() => {
-    resizeIfNecessary();
+    if (readOnly || !editFocus) {
+      resizeRef.current = null;
+      return;
+    }
+    resizeRef.current = () => {
+      if (actions.in_undo_mode() || readOnly) return;
+      // possibly adjust height.  We do this in the next render
+      // loop because sometimes when the change fires the dom
+      // hasn't updated the height of the containing div yet,
+      // so we end up setting the height 1 step behind reality.
+      const elt = divRef.current;
+      if (elt == null) return;
+      const height = Math.max(
+        (elt.getBoundingClientRect()?.height ?? 0) / canvasScale +
+          2 * PADDING +
+          2 +
+          15,
+        MIN_HEIGHT
+      );
+      actions.setElement({
+        obj: { id: element.id, h: height },
+        commit: false,
+      });
+    };
+  }, [canvasScale, element.id, editFocus, readOnly]);
+  useEffect(() => {
+    resizeRef.current?.();
   }, [resize]);
 
   return (
@@ -105,6 +123,7 @@ function EditText({
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}
+      ref={divRef}
     >
       <MultiMarkdownInput
         getValueRef={getValueRef}
@@ -115,11 +134,9 @@ function EditText({
         minimal
         hideHelp
         placeholder={PLACEHOLDER}
-        editorDivRef={editorDivRef}
         isFocused={editFocus && focused}
         onFocus={() => {
           setEditFocus(true);
-          resizeIfNecessary();
           // NOTE: we do not do "setEditFocus(false)" with onBlur, because
           // there are many ways to "blur" the slate editor technically, but
           // still want to consider it focused, e.g., editing math and code
@@ -133,7 +150,6 @@ function EditText({
         fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
         onChange={(value) => {
           actions.setElement({ obj: { id: element.id, str: value } });
-          setTimeout(resizeIfNecessary, 0);
         }}
         onModeChange={setMode}
         editBarStyle={{

@@ -7,7 +7,7 @@
   breaking it.   Also, it matches with jupyter notebook.
 */
 
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
@@ -31,6 +31,7 @@ interface Props {
   focused?: boolean;
   canvasScale: number;
   cursors?: { [account_id: string]: any[] };
+  readOnly?: boolean;
 }
 
 export default function Code({
@@ -38,6 +39,7 @@ export default function Code({
   focused,
   canvasScale,
   cursors,
+  readOnly,
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
   const [editFocus, setEditFocus] = useEditFocus(false);
@@ -68,31 +70,37 @@ export default function Code({
     return <InputStatic element={element} mode={mode} />;
   };
   const divRef = useRef<any>(null);
-  const resize = useResizeObserver({ ref: divRef });
-  const resizeIfNecessary = useMemo(() => {
+  const resize = useResizeObserver({
+    ref: readOnly || !editFocus ? undefined : divRef, // only listen if necessary!
+  });
+  const resizeRef = useRef<Function | null>(null);
+  useEffect(() => {
+    if (readOnly || !editFocus) {
+      resizeRef.current = null;
+      return;
+    }
     const shrinkElement = debounce(() => {
       if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const h = elt.offsetHeight + EXTRA_HEIGHT;
-      if (h < MIN_HEIGHT) {
-        // too small -- do not change
-        return;
-      }
+      const h = Math.max(
+        MIN_HEIGHT,
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+      );
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
       });
     }, 250);
-    return () => {
+
+    resizeRef.current = () => {
       if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + EXTRA_HEIGHT;
-      if (newHeight < MIN_HEIGHT) {
-        // too small -- do not change
-        return;
-      }
+      const newHeight = Math.max(
+        MIN_HEIGHT,
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+      );
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
@@ -103,11 +111,15 @@ export default function Code({
         shrinkElement();
       }
     };
-  }, [element.id]);
+
+    return () => {
+      shrinkElement.cancel();
+    };
+  }, [element.id, canvasScale, editFocus, readOnly]);
 
   useEffect(() => {
-    resizeIfNecessary();
-  }, [resize, resizeIfNecessary]);
+    resizeRef.current?.();
+  }, [resize]);
 
   return (
     <div style={{ ...getStyle(element), height: "100%" }}>
