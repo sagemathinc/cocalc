@@ -7,7 +7,7 @@
   breaking it.   Also, it matches with jupyter notebook.
 */
 
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
