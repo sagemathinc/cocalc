@@ -1,3 +1,4 @@
+import moment from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 
@@ -16,22 +17,12 @@ export function getDays({
   return Math.round((t1 - t0) / ONE_DAY_MS);
 }
 
-// round date to start of day
+// round date to start of day (local user time)
 export function startOfDay(date: Date | string): Date {
-  const d = new Date(date);
-  d.setUTCHours(0);
-  d.setMinutes(0);
-  d.setSeconds(0);
-  d.setMilliseconds(0);
-  return d;
+  return moment(date).startOf("day").toDate();
 }
 
-// round date to the end of the day
+// round date to the end of the day (local user time)
 export function endOfDay(date: Date | string): Date {
-  const d = new Date(date);
-  d.setUTCHours(23);
-  d.setMinutes(59);
-  d.setSeconds(59);
-  d.setMilliseconds(999);
-  return d;
+  return moment(date).endOf("day").toDate();
 }

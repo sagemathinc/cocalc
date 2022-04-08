@@ -42,7 +42,7 @@ import {
   User,
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
-import { getDays } from "@cocalc/util/stripe/timecalcs";
+import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
@@ -120,18 +120,20 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
   const [subscription, set_subscription] = useState<Subscription>("monthly");
 
   const [start, set_start_state] = useState<Date>(new Date());
+
   function set_start(date: Date) {
     date = date < start ? new Date() : date;
     // start at midnight (local user time) on that day
-    date = moment(date).startOf("day").toDate();
+    date = startOfDay(date);
     set_start_state(date);
   }
 
   const [end, set_end_state] = useState<Date>(
     moment().add(1, "month").toDate()
   );
+
   function set_end(date: Date) {
-    const today = moment(start).endOf("day").toDate();
+    const today = endOfDay(date);
     const two_years = moment(start).add(2, "year").toDate();
     if (date <= today) {
       date = today;
@@ -139,7 +141,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       date = two_years;
     }
     // ends at the last moment (local user time) for the user on that day
-    date = moment(date).endOf("day").toDate();
+    date = endOfDay(date);
     set_end_state(date);
   }
 

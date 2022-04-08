@@ -15,7 +15,7 @@ import {
   LicenseIdleTimeouts,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
-import { getDays } from "@cocalc/server/licenses/purchase/utils";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 export type Period = "range" | "monthly" | "yearly";
 
