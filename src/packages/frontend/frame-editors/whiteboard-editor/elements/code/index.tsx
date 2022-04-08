@@ -1,3 +1,12 @@
+/* Jupyter cells
+
+
+- Locked: a locked cell can't have the input/output hidden/shown and can't have the input
+  code changed.  However, you *can* run the code and interact with widgets.  This makes
+  a notebook with a bunch of locked cells useful for users to share something without consumers
+  breaking it.   Also, it matches with jupyter notebook.
+*/
+
 import { useMemo, useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
@@ -41,7 +50,7 @@ export default function Code({
 
   const renderInput = () => {
     if (hideInput) return;
-    if (focused || cursors != null) {
+    if (!element.locked && (focused || cursors != null)) {
       return (
         <div className="nodrag">
           <Input
