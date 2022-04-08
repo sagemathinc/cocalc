@@ -7,10 +7,11 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
-import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 const logger = getLogger("createLicense");
 
-// ATTN: activates/expires timestamps only work correctly if server is run on UTC timezone.
+// ATTN: activates/expires timestamps only work correctly if server set to UTC timezone.
+// for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
+// this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
 export default async function createLicense(
   database: PostgreSQL,
   account_id: string,
@@ -26,7 +27,7 @@ export default async function createLicense(
     "activates::TIMESTAMP":
       info.subscription != "no"
         ? new Date(new Date().valueOf() - 60000) // one minute in past to avoid any funny confusion.
-        : startOfDay(info.start),
+        : info.start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
     "quota::JSONB": {
@@ -45,7 +46,7 @@ export default async function createLicense(
     "run_limit::INTEGER": info.quantity,
   };
   if (info.end != null) {
-    values["expires::TIMESTAMP"] = endOfDay(info.end);
+    values["expires::TIMESTAMP"] = info.end;
   }
 
   await database.async_query({
