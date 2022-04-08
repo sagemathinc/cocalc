@@ -74,11 +74,7 @@ export default function Code({
       if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const h = elt.offsetHeight + EXTRA_HEIGHT;
-      if (h < MIN_HEIGHT) {
-        // too small -- do not change
-        return;
-      }
+      const h = Math.max(MIN_HEIGHT, elt.offsetHeight + EXTRA_HEIGHT);
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
@@ -88,11 +84,7 @@ export default function Code({
       if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + EXTRA_HEIGHT;
-      if (newHeight < MIN_HEIGHT) {
-        // too small -- do not change
-        return;
-      }
+      const newHeight = Math.max(MIN_HEIGHT, elt.offsetHeight + EXTRA_HEIGHT);
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({

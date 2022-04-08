@@ -49,13 +49,16 @@ function EditText({
     // so we end up setting the height 1 step behind reality.
     const elt = editorDivRef.current;
     if (elt == null) return;
-    const height = (elt.offsetHeight ?? 0) + 2 * PADDING + 2 + 15;
-    if (height < MIN_HEIGHT) return;
+    const height = Math.max(
+      (elt.offsetHeight ?? 0) + 2 * PADDING + 2 + 15,
+      MIN_HEIGHT
+    );
     actions.setElement({
       obj: { id: element.id, h: height },
       commit: false,
     });
   }, [element]);
+
   const [mode, setMode] = useState<string>("");
 
   const [editFocus, setEditFocus] = useEditFocus(false);
