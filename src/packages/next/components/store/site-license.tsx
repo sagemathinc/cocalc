@@ -7,27 +7,9 @@
 Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  get_local_storage,
-  set_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import {
-  LicenseIdleTimeouts,
-  requiresMemberhosting,
-} from "@cocalc/util/consts/site-license";
+import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
-import {
-  Button,
-  Checkbox,
-  Divider,
-  Form,
-  Input,
-  Popconfirm,
-  Radio,
-  Space,
-  Switch,
-  Typography,
-} from "antd";
+import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
 import IntegerSlider from "components/misc/integer-slider";
@@ -37,9 +19,12 @@ import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
+import { MemberHostingAndIdleTimeout } from "./member-idletime";
+import { Reset } from "./reset";
+import { RunLimit } from "./run-limit";
 import { computeCost, Cost } from "./site-license-cost";
-
-const { Text } = Typography;
+import { TitleDescription } from "./title-description";
+import { ToggleExplanations } from "./toggle-explanations";
 
 export default function Create() {
   const router = useRouter();
@@ -120,108 +105,6 @@ function CreateLicense() {
     return <Loading large center />;
   }
 
-  function memberExplanation(): JSX.Element | undefined {
-    if (!showExplanations) return;
-    return (
-      <>
-        Member hosting significanlty reduces competition for resources, and we
-        prioritize{" "}
-        <A href="support/new" external>
-          support requests
-        </A>{" "}
-        much higher. All licensed projects, with or without member hosting, have
-        network access, so they can connect to the network to clone Git
-        repositories, download data files and install software.
-        {requiresMemberhosting(form.getFieldValue("uptime")) && (
-          <>
-            <br />
-            <Text italic type="secondary">
-              Note: this level of idle timeout requires member hosting.
-            </Text>
-          </>
-        )}
-        <br />
-        <Text italic type="secondary">
-          Please be aware: licenses of different member hosting service levels
-          cannot be combined!
-        </Text>
-      </>
-    );
-  }
-
-  function idleTimeoutExplanation(): JSX.Element | undefined {
-    if (!showExplanations) return;
-    const uptime = form.getFieldValue("uptime");
-    const bottom = (
-      <>
-        <br />
-        <Text italic type="secondary">
-          Please be aware: licenses with different idle timeouts cannot be
-          combined!
-        </Text>
-      </>
-    );
-    const main = (function () {
-      if (uptime === "always_running") {
-        return (
-          <>
-            <Text strong type="secondary">
-              Keep projects running:
-            </Text>{" "}
-            Once started your project stays running, so you can run very long
-            computations and also never have to wait for your project to start.
-            This effectively disables{" "}
-            <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
-              idle timeout
-            </A>
-            , since your project will restart automatically if it stops. See{" "}
-            <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts
-            </A>
-            . (Note: this is NOT guaranteed 100% uptime, since projects may
-            sometimes restart for security and maintenance reasons.)
-          </>
-        );
-      } else {
-        return (
-          <>
-            Projects stop automatically if they are not actively used.
-            Increasing{" "}
-            <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
-              idle timeout
-            </A>{" "}
-            will allow you to run longer calculations without you having to be
-            active while they run. However, this is not 100% guaranteed, because
-            projects may still restart due to maintenance or security reasons.
-          </>
-        );
-      }
-    })();
-    return (
-      <>
-        {main}
-        {bottom}
-      </>
-    );
-  }
-
-  function uptimeOptions(): JSX.Element[] {
-    const ret: JSX.Element[] = [];
-    for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
-      ret.push(
-        <Radio.Button key={key} value={key}>
-          {it.label}
-        </Radio.Button>
-      );
-    }
-    ret.push(
-      <Radio.Button key={"always_running"} value={"always_running"}>
-        Always running
-      </Radio.Button>
-    );
-    return ret;
-  }
-
   const addBox = (
     <AddBox
       cost={cost}
@@ -250,22 +133,10 @@ function CreateLicense() {
         onChange={onChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
-        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-          <div style={{ float: "right" }}>
-            <Switch
-              checked={showExplanations}
-              onChange={(show) => {
-                setShowExplanations(show);
-                // ugly and ignores basePath -- change later:
-                set_local_storage(
-                  "store_site_license_show_explanations",
-                  show ? "t" : ""
-                );
-              }}
-            />{" "}
-            Show explanations
-          </div>
-        </Form.Item>
+        <ToggleExplanations
+          showExplanations={showExplanations}
+          setShowExplanations={setShowExplanations}
+        />
         {/* Hidden form item, used to disambiguate between boost and regular licenses */}
         <Form.Item name="type" initialValue={"regular"} noStyle>
           <Input type="hidden" />
@@ -364,157 +235,27 @@ function CreateLicense() {
             presets={[1, 4, 8, 10, 15]}
           />
         </Form.Item>
-        <Divider plain>
-          Maximum number of simultaneously upgraded projects
-        </Divider>
-        <Form.Item
-          label="Run Limit"
-          name="run_limit"
-          initialValue={1}
-          extra={
-            showExplanations ? (
-              <div style={{ marginTop: "5px" }}>
-                Simultaneously run this many projects using this license. You,
-                and anyone you share the license code with, can apply the
-                license to an unlimited number of projects, but it will only be
-                used up to the run limit. When{" "}
-                <A href="https://doc.cocalc.com/teaching-instructors.html">
-                  teaching a course
-                </A>
-                ,{" "}
-                <b>
-                  <i>
-                    the run limit is typically 2 more than the number of
-                    students
-                  </i>
-                </b>
-                .
-              </div>
-            ) : undefined
-          }
-        >
-          <EditRunLimit
-            onChange={(run_limit) => {
-              form.setFieldsValue({ run_limit });
-              onChange();
-            }}
-          />
-        </Form.Item>
-        <Divider plain>Hosting quality and Idle timeout</Divider>
-        <Form.Item
-          initialValue={true}
-          label="Member hosting"
-          name="member"
-          valuePropName="checked"
-          dependencies={["uptime"]}
-          rules={[
-            ({ getFieldValue, setFieldsValue }) => ({
-              validator: (_, value) => {
-                // we force member true if the uptime is higher than medium
-                const uptime = getFieldValue("uptime");
-                if (requiresMemberhosting(uptime)) {
-                  if (value !== true) {
-                    setShadowMember(value);
-                    setFieldsValue({ member: true });
-                  }
-                } else {
-                  // if the user toggles back to a lower idle timeout,
-                  // we use shadowMember to restore the previous member value.
-                  if (shadowMember != null) {
-                    setFieldsValue({ member: shadowMember });
-                    setShadowMember(null);
-                  }
-                }
-              },
-            }),
-          ]}
-          extra={memberExplanation()}
-        >
-          <Checkbox
-            disabled={requiresMemberhosting(form.getFieldValue("uptime"))}
-          >
-            Run project on a much better host with network access
-          </Checkbox>
-        </Form.Item>
-        <Form.Item
-          initialValue="short"
-          name="uptime"
-          label="Idle timeout"
-          extra={idleTimeoutExplanation()}
-        >
-          <Radio.Group
-            onChange={(e) => {
-              form.setFieldsValue({ uptime: e.target.value });
-              onChange();
-            }}
-          >
-            {uptimeOptions()}
-          </Radio.Group>
-        </Form.Item>
-        <Divider plain>Customizable identifications</Divider>
-        <Form.Item
-          label="Title"
-          name="title"
-          style={{ width: "100%" }}
-          extra={
-            showExplanations ? (
-              <>
-                Given your license a title makes it easier to keep track of. You
-                can change it at any time.
-              </>
-            ) : undefined
-          }
-        >
-          <Input placeholder="Enter the title of your license (optional)" />
-        </Form.Item>
-        <Form.Item
-          label="Description"
-          name="description"
-          extra={
-            showExplanations ? (
-              <>
-                Given your license a longer description to record extra
-                information that isn't always shown with the license. You can
-                change this at any time.
-              </>
-            ) : undefined
-          }
-        >
-          <Input.TextArea
-            placeholder="Describe your license (optional)"
-            rows={2}
-          />
-        </Form.Item>{" "}
-        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-          {addBox}
-          {router.query.id == null && (
-            <Popconfirm
-              title="Reset all values to their default?"
-              onConfirm={() => {
-                form.resetFields();
-                onChange();
-              }}
-            >
-              <Button style={{ float: "right" }}>Reset Form</Button>
-            </Popconfirm>
-          )}
-        </Form.Item>
+        <RunLimit
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+        />
+        <MemberHostingAndIdleTimeout
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+          shadowMember={shadowMember}
+          setShadowMember={setShadowMember}
+        />
+        <TitleDescription showExplanations={showExplanations} />
+        <Reset
+          addBox={addBox}
+          form={form}
+          onChange={onChange}
+          router={router}
+        />
       </Form>
     </div>
-  );
-}
-
-export function EditRunLimit({ value, onChange }: { value?; onChange? }) {
-  return (
-    <IntegerSlider
-      value={value}
-      min={1}
-      max={300}
-      maxText={10000}
-      onChange={onChange}
-      units={"projects"}
-      presets={[1, 2, 10, 50, 100, 250, 500]}
-    />
   );
 }
 

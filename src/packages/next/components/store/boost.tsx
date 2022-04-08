@@ -7,25 +7,8 @@
 Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  get_local_storage,
-  set_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import {
-  LicenseIdleTimeouts,
-  requiresMemberhosting,
-} from "@cocalc/util/consts/site-license";
-import {
-  Button,
-  Checkbox,
-  Divider,
-  Form,
-  Input,
-  Popconfirm,
-  Radio,
-  Switch,
-  Typography,
-} from "antd";
+import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
+import { Form, Input, Switch, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
@@ -35,8 +18,14 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
+import { MemberHostingAndIdleTimeout } from "./member-idletime";
+import { QuotaConfig } from "./quota-config";
+import { Reset } from "./reset";
+import { RunLimit } from "./run-limit";
 import { renderUsageAndDuration } from "./site-license";
 import { computeCost, Cost } from "./site-license-cost";
+import { TitleDescription } from "./title-description";
+import { ToggleExplanations } from "./toggle-explanations";
 
 const { Text, Paragraph } = Typography;
 
@@ -118,43 +107,6 @@ function CreateBooster() {
 
   if (loading) {
     return <Loading large center />;
-  }
-
-  function memberExplanation(): JSX.Element | undefined {
-    if (!showExplanations) return;
-    return (
-      <>
-        The state of Member Hosting must match the corresponding Site License
-        you want to boost.
-      </>
-    );
-  }
-
-  function idleTimeoutExplanation(): JSX.Element | undefined {
-    if (!showExplanations) return;
-    return (
-      <>
-        The Idle timeout of this Boost license must match the corresponding Site
-        License you want to boost.
-      </>
-    );
-  }
-
-  function uptimeOptions(): JSX.Element[] {
-    const ret: JSX.Element[] = [];
-    for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
-      ret.push(
-        <Radio.Button key={key} value={key}>
-          {it.label}
-        </Radio.Button>
-      );
-    }
-    ret.push(
-      <Radio.Button key={"always_running"} value={"always_running"}>
-        Always running
-      </Radio.Button>
-    );
-    return ret;
   }
 
   function renderConfirmation() {
@@ -240,22 +192,10 @@ function CreateBooster() {
         onChange={onChange}
       >
         {renderConfirmation()}
-        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-          <div style={{ float: "right" }}>
-            <Switch
-              checked={showExplanations}
-              onChange={(show) => {
-                setShowExplanations(show);
-                // ugly and ignores basePath -- change later:
-                set_local_storage(
-                  "store_site_license_show_explanations",
-                  show ? "t" : ""
-                );
-              }}
-            />{" "}
-            Show explanations
-          </div>
-        </Form.Item>
+        <ToggleExplanations
+          showExplanations={showExplanations}
+          setShowExplanations={setShowExplanations}
+        />
         {/* Hidden form item, used to disambiguate between boost and regular licenses */}
         <Form.Item name="type" initialValue={"boost"} noStyle>
           <Input type="hidden" />
@@ -266,250 +206,44 @@ function CreateBooster() {
           onChange,
           disabled: !confirmWarning,
         })}
-        <Divider plain>Matching Site License Configuration</Divider>
-        <Form.Item
-          initialValue={true}
-          label="Member hosting"
-          name="member"
-          valuePropName="checked"
-          dependencies={["uptime"]}
-          rules={[
-            ({ getFieldValue, setFieldsValue }) => ({
-              validator: (_, value) => {
-                // we force member true if the uptime is higher than medium
-                const uptime = getFieldValue("uptime");
-                if (requiresMemberhosting(uptime)) {
-                  if (value !== true) {
-                    setShadowMember(value);
-                    setFieldsValue({ member: true });
-                  }
-                } else {
-                  // if the user toggles back to a lower idle timeout,
-                  // we use shadowMember to restore the previous member value.
-                  if (shadowMember != null) {
-                    setFieldsValue({ member: shadowMember });
-                    setShadowMember(null);
-                  }
-                }
-              },
-            }),
-          ]}
-          extra={memberExplanation()}
-        >
-          <Checkbox
-            disabled={
-              !confirmWarning ||
-              requiresMemberhosting(form.getFieldValue("uptime"))
-            }
-          >
-            Run project on a much better host with network access
-          </Checkbox>
-        </Form.Item>
-        <Form.Item
-          initialValue="short"
-          name="uptime"
-          label="Idle timeout"
-          valuePropName="uptime"
-          extra={idleTimeoutExplanation()}
-        >
-          <Radio.Group
-            disabled={!confirmWarning}
-            defaultValue={"short"}
-            onChange={(e) => {
-              form.setFieldsValue({ uptime: e.target.value });
-              onChange();
-            }}
-          >
-            {uptimeOptions()}
-          </Radio.Group>
-        </Form.Item>
-        <Divider plain>Boost</Divider>
-        <Form.Item
-          label="GB shared RAM"
-          name="ram"
-          initialValue={0}
-          extra={
-            showExplanations ? (
-              <>
-                Each project using this license can use up to this many GB's of
-                RAM. Note that RAM may be limited if many other users are using
-                the same host, though member hosting significantly reduces
-                competition for RAM. We also offer{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated virtual machines
-                </A>{" "}
-                with larger memory options.
-              </>
-            ) : undefined
+        <MemberHostingAndIdleTimeout
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+          shadowMember={shadowMember}
+          setShadowMember={setShadowMember}
+          boost={true}
+          disabled={!confirmWarning}
+        />
+        <QuotaConfig
+          boost={true}
+          form={form}
+          onChange={onChange}
+          disabled={!confirmWarning}
+          showExplanations={showExplanations}
+        />
+        <RunLimit
+          showExplanations={showExplanations}
+          form={form}
+          disabled={!confirmWarning}
+          onChange={onChange}
+          boost={true}
+        />
+        <TitleDescription showExplanations={showExplanations} />
+        <Reset
+          addBox={
+            <AddBox
+              cost={cost}
+              form={form}
+              cartError={cartError}
+              setCartError={setCartError}
+              router={router}
+            />
           }
-        >
-          <IntegerSlider
-            disabled={!confirmWarning}
-            min={0}
-            max={16}
-            onChange={(ram) => {
-              form.setFieldsValue({ ram });
-              onChange();
-            }}
-            units={"GB RAM"}
-            presets={[0, 2, 4, 8, 12, 16]}
-          />
-        </Form.Item>{" "}
-        <Form.Item
-          label="Shared CPUs"
-          name="cpu"
-          initialValue={0}
-          extra={
-            showExplanations ? (
-              <>
-                <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                  Google cloud vCPU's.
-                </A>{" "}
-                To keep prices low, these vCPU's may be shared with other
-                projects, though member hosting very significantly reduces
-                competition for CPUs. We also offer{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated virtual machines
-                </A>{" "}
-                with more CPU options.
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            disabled={!confirmWarning}
-            min={0}
-            max={3}
-            onChange={(cpu) => {
-              form.setFieldsValue({ cpu });
-              onChange();
-            }}
-            units={"vCPU"}
-            presets={[0, 1, 2, 3]}
-          />
-        </Form.Item>
-        <Form.Item
-          label="GB disk space"
-          name="disk"
-          initialValue={0}
-          extra={
-            showExplanations ? (
-              <>
-                Extra disk space lets you store a larger number of files.
-                Snapshots and file edit history is included at no additional
-                charge. Each licensed project receives this amount of extra
-                storage space. We also offer much larger{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated disks and SSD's
-                </A>
-                .
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            disabled={!confirmWarning}
-            min={0}
-            max={15}
-            onChange={(disk) => {
-              form.setFieldsValue({ disk });
-              onChange();
-            }}
-            units={"GB Disk"}
-            presets={[0, 4, 8, 10, 15]}
-          />
-        </Form.Item>
-        <Divider plain>
-          Maximum number of simultaneously boosted projects
-        </Divider>
-        <Form.Item
-          label="Run Limit"
-          name="run_limit"
-          initialValue={1}
-          extra={
-            showExplanations ? (
-              <div style={{ marginTop: "5px" }}>
-                Simultaneously run this many projects using this license. You,
-                and anyone you share the license code with, can apply the
-                license to an unlimited number of projects, but it will only be
-                used up to the run limit. When{" "}
-                <A href="https://doc.cocalc.com/teaching-instructors.html">
-                  teaching a course
-                </A>
-                ,{" "}
-                <b>
-                  <i>
-                    the run limit is typically 2 more than the number of
-                    students
-                  </i>
-                </b>
-                .
-              </div>
-            ) : undefined
-          }
-        >
-          <EditRunLimit
-            disabled={!confirmWarning}
-            onChange={(run_limit) => {
-              form.setFieldsValue({ run_limit });
-              onChange();
-            }}
-          />
-        </Form.Item>
-        <Divider plain>Customizable Identifications</Divider>
-        <Form.Item
-          label="Title"
-          name="title"
-          style={{ width: "100%" }}
-          extra={
-            showExplanations ? (
-              <>
-                Given your license a title makes it easier to keep track of. You
-                can change it at any time.
-              </>
-            ) : undefined
-          }
-        >
-          <Input placeholder="Enter the title of your license (optional)" />
-        </Form.Item>
-        <Form.Item
-          label="Description"
-          name="description"
-          extra={
-            showExplanations ? (
-              <>
-                Given your license a longer description to record extra
-                information that isn't always shown with the license. You can
-                change this at any time.
-              </>
-            ) : undefined
-          }
-        >
-          <Input.TextArea
-            placeholder="Describe your license (optional)"
-            rows={2}
-          />
-        </Form.Item>
-        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-          <AddBox
-            cost={cost}
-            router={router}
-            form={form}
-            cartError={cartError}
-            setCartError={setCartError}
-          />
-          {router.query.id == null && (
-            <Popconfirm
-              title="Reset all values to their default?"
-              onConfirm={() => {
-                form.resetFields();
-                onChange();
-              }}
-            >
-              <Button style={{ float: "right" }}>Reset Form</Button>
-            </Popconfirm>
-          )}
-        </Form.Item>
+          form={form}
+          onChange={onChange}
+          router={router}
+        />
       </Form>
     </div>
   );
