@@ -52,7 +52,7 @@ export default function Code({
 
   const renderInput = () => {
     if (hideInput) return;
-    if (!element.locked && (focused || cursors != null)) {
+    if (!element.locked && (focused || cursors != null) && !readOnly) {
       return (
         <div className="nodrag">
           <Input
@@ -71,11 +71,11 @@ export default function Code({
   };
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({
-    ref: readOnly || !editFocus ? undefined : divRef, // only listen if necessary!
+    ref: readOnly || !focused ? undefined : divRef, // only listen if necessary!
   });
   const resizeRef = useRef<Function | null>(null);
   useEffect(() => {
-    if (readOnly || !editFocus) {
+    if (readOnly || !focused) {
       resizeRef.current = null;
       return;
     }
@@ -112,6 +112,8 @@ export default function Code({
       }
     };
 
+    resizeRef.current?.();
+
     return () => {
       shrinkElement.cancel();
     };
@@ -129,7 +131,7 @@ export default function Code({
         {!hideOutput && element.data?.output && (
           <Output element={element} onClick={() => setEditFocus(true)} />
         )}
-        {focused && <ControlBar element={element} />}
+        {focused && !readOnly && <ControlBar element={element} />}
       </div>
     </div>
   );
