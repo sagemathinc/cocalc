@@ -2,7 +2,7 @@ import moment from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 
-// this rounds start to the start of the day, and end to the end of the day
+// this does NOT rounds start/end of the day. it assumes this is done by the frontend form (using the user's time zone!)
 export function getDays({
   start,
   end,
@@ -11,8 +11,8 @@ export function getDays({
     throw Error("bug");
   }
 
-  const t0 = startOfDay(start).valueOf();
-  const t1 = endOfDay(end).valueOf();
+  const t0 = new Date(start).valueOf();
+  const t1 = new Date(end).valueOf();
 
   return Math.round((t1 - t0) / ONE_DAY_MS);
 }

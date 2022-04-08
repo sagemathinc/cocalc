@@ -98,17 +98,26 @@ describe("product id and compute cost", () => {
 describe("days interval", () => {
   it("entire day counts (slightly more)", () => {
     const info = {
-      start: new Date("2022-04-01 12:23:00"),
-      end: new Date("2022-04-06 12:23:03"),
+      start: startOfDay(new Date("2022-04-01 12:23:00")),
+      end: endOfDay(new Date("2022-04-06 12:23:03")),
     };
     expect(getDays(info)).toEqual(6);
   });
   it("entire day counts (slightly less)", () => {
     const info = {
-      start: new Date("2022-04-01 12:23:00"),
-      end: new Date("2022-04-06 12:22:58"),
+      start: startOfDay(new Date("2022-04-01 12:23:00")),
+      end: endOfDay(new Date("2022-04-06 12:22:58")),
     };
     expect(getDays(info)).toEqual(6);
+  });
+
+  it("works with a user's timezone in utc", () => {
+    const info = {
+      start: new Date("2022-04-30T22:00:00Z"),
+      end: new Date("2022-05-28T21:59:59.999Z"),
+    };
+    // this is 1 to 28th in may, full days.
+    expect(getDays(info)).toEqual(28);
   });
 });
 
