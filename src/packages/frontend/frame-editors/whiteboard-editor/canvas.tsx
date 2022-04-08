@@ -612,7 +612,7 @@ export default function Canvas({
                 }
               : undefined),
             width: "100%",
-            height: "100%",
+            height: TOOLS[selectedTool]?.dynamicHeight ? undefined : "100%",
           }}
         >
           {elt}
