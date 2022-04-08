@@ -266,47 +266,43 @@ export default function Focused({
         }}
       >
         <Cursors cursors={cursors} canvasScale={canvasScale} />
-        {!editFocus && RotateControl}
-        {!editFocus && (
-          <div
-            style={{
-              zIndex: MAX_ELEMENTS + 2,
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              ...(element.rotate
-                ? {
-                    transform: `rotate(${element.rotate}rad)`,
-                    transformOrigin: "center",
-                  }
-                : undefined),
-              pointerEvents: "none", // otherwise entire element is blocked by this div
-            }}
-          >
-            {resizeHandles}
-            {edgeCreationPoints}
-          </div>
-        )}
-        {!editFocus && (
-          <div
-            className="nodrag"
-            style={{
-              position: "absolute",
-              bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-              left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-              transform: `scale(${1 / canvasScale})`,
-              transformOrigin: "top left",
-              pointerEvents: "all",
-              zIndex: 1,
-            }}
-          >
-            <EditBar
-              readOnly={readOnly}
-              elements={selectedElements}
-              allElements={allElements}
-            />
-          </div>
-        )}
+        {RotateControl}
+        <div
+          style={{
+            zIndex: MAX_ELEMENTS + 2,
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            ...(element.rotate
+              ? {
+                  transform: `rotate(${element.rotate}rad)`,
+                  transformOrigin: "center",
+                }
+              : undefined),
+            pointerEvents: "none", // otherwise entire element is blocked by this div
+          }}
+        >
+          {resizeHandles}
+          {edgeCreationPoints}
+        </div>
+        <div
+          className="nodrag"
+          style={{
+            position: "absolute",
+            bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+            left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+            transform: `scale(${1 / canvasScale})`,
+            transformOrigin: "top left",
+            pointerEvents: "all",
+            zIndex: 1,
+          }}
+        >
+          <EditBar
+            readOnly={readOnly}
+            elements={selectedElements}
+            allElements={allElements}
+          />
+        </div>
       </div>
       <Draggable
         disabled={locked || readOnly}
