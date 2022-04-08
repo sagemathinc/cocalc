@@ -599,9 +599,15 @@ export function renderUsageAndDuration({
               disabled={disabled}
               noPast
               maxDaysInFuture={365 * 4}
-              initialValues={getFieldValue("range")}
               style={{ margin: "5px 0 30px", textAlign: "center" }}
+              initialValues={getFieldValue("range")}
               onChange={(range) => {
+                // fixes the range to the start/end of day in the timezone of the user
+                const [start, end] = range;
+                range = [
+                  start != null ? startOfDay(start) : undefined,
+                  end != null ? endOfDay(end) : undefined,
+                ];
                 form.setFieldsValue({ range });
                 onChange();
               }}
