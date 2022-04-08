@@ -29,8 +29,8 @@ describe("product id and compute cost", () => {
     custom_disk: 1,
     custom_member: true,
     subscription: "no",
-    start: new Date("2022-04-28 12:00"),
-    end: new Date("2022-05-07 12:00"),
+    start: startOfDay(new Date("2022-04-28 12:00")),
+    end: endOfDay(new Date("2022-05-07 12:00")),
     custom_dedicated_ram: 0,
     custom_dedicated_cpu: 0,
   } as const;
@@ -69,7 +69,9 @@ describe("product id and compute cost", () => {
     const info2 = {
       ...info1,
       quantity,
-      end: new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
+      end: endOfDay(
+        new Date((info1.start as Date).getTime() + days * ONE_DAY_MS)
+      ),
     };
     info2.cost = compute_cost(info2);
     //console.log(days, info2.cost);

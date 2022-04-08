@@ -15,7 +15,6 @@ import {
   requiresMemberhosting,
   Uptime,
 } from "../../consts/site-license";
-import { endOfDay, startOfDay } from "../../stripe/timecalcs";
 import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
 import { dedicatedPrice } from "./dedicated";
 
@@ -300,8 +299,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_uptime,
   } = info;
 
-  const start = startOfDay(info.start);
-  const end = info.end ? endOfDay(info.end) : undefined;
+  // at this point, we assume the start/end dates are already
+  // set to the start/end time of a day in the user's timezone.
+  const start = new Date(info.start);
+  const end = info.end ? new Date(info.end) : undefined;
 
   // TODO this is just a sketch, improve it
   if (!!dedicated_disk || !!dedicated_vm) {
