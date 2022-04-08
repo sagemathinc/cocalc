@@ -154,6 +154,7 @@ export default function getKeyHandler(
           id,
         }))
       );
+      actions.clearSelection(frameId);
       return;
     }
     if (!(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) {

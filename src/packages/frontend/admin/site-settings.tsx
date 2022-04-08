@@ -55,6 +55,21 @@ import {
 
 import { version } from "@cocalc/util/smc-version";
 
+// We use this for now since antd's rewriting their components
+// in such a way that ReactDOM.findDOMNode no longer applies,
+// and we use Input from there...
+// This whole admin settings pages desparately needs a rewrite!
+function findDOMNode(x: any) {
+  try {
+    return ReactDOM.findDOMNode(x);
+  } catch (err) {
+    if (x.input != null) {
+      return x.input;
+    }
+    throw err;
+  }
+}
+
 type State = "view" | "load" | "edit" | "save" | "error";
 
 interface SiteSettingsProps {
@@ -238,7 +253,7 @@ class SiteSettingsComponent extends Component<
   private on_json_entry_change(name) {
     const e = copy(this.state.edited);
     try {
-      const new_val = ReactDOM.findDOMNode(this.refs[name])?.value;
+      const new_val = findDOMNode(this.refs[name])?.value;
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
       e[name] = new_val;
@@ -321,7 +336,7 @@ class SiteSettingsComponent extends Component<
 
   private on_change_entry(name, val?) {
     const e = copy(this.state.edited);
-    e[name] = val ?? ReactDOM.findDOMNode(this.refs[name])?.value;
+    e[name] = val ?? findDOMNode(this.refs[name])?.value;
     return this.setState({ edited: e });
   }
 

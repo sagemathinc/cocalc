@@ -17,7 +17,10 @@ export default async function run({
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
   if (cell == null) {
-    jupyter_actions.insert_cell_at(0, false, id);
+    // make new cell at the bottom of the notebook.
+    const pos =
+      store.getIn(["cells", store.get_cell_list().last()])?.get("pos", 0) + 1;
+    jupyter_actions.insert_cell_at(pos, false, id);
   }
   jupyter_actions.clear_outputs([id], false);
   jupyter_actions.set_cell_input(id, input, false);

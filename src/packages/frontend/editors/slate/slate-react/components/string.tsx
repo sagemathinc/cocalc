@@ -71,7 +71,21 @@ const TextString = (props: { text: string; isTrailing?: boolean }) => {
 };
 
 /**
- * Leaf strings without text, render as zero-width strings.
+
+Leaf strings without text, render as zero-width strings... or do they?  See below:
+
+The style below is a hack to workaround a bug when using Chrome, which doesn't happen on Firefox or Safari.
+The solution below is inspired by https://stackoverflow.com/questions/25897883/edit-cursor-not-displayed-on-chrome-in-contenteditable
+Here's how to reproduce the bug in cocalc and the style below removed.
+
+   1. Open a new blank doc with markdown source on the left and slate on the right.
+   2. You can click either side and it focuses and shows a cursor.
+   3. Click in the right slate side, then click the x to close the *left hand* markdown source.
+   4. Broken -- no matter where you click, you can't get the slate editor to show a cursor (except on firefox and safari it works).
+
+The workaround of rendering a ZeroWidthString as actually 1px in width and display inline block,
+evidently gives the cursor somewhere to be in the case of an empty document. It seems harmless to
+leave this 1px width even for nonempty documents.
  */
 
 const ZeroWidthString = (props: { length?: number; isLineBreak?: boolean }) => {
@@ -80,6 +94,13 @@ const ZeroWidthString = (props: { length?: number; isLineBreak?: boolean }) => {
     <span
       data-slate-zero-width={isLineBreak ? "n" : "z"}
       data-slate-length={length}
+      style={
+        /* see note above! */
+        {
+          display: "inline-block",
+          width: "1px",
+        }
+      }
     >
       {"\uFEFF"}
       {isLineBreak ? <br /> : null}
