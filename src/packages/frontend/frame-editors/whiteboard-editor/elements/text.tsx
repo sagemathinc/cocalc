@@ -123,65 +123,66 @@ function EditText({
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}
-      ref={divRef}
     >
-      <MultiMarkdownInput
-        getValueRef={getValueRef}
-        fixedMode={element.rotate || !focused ? "editor" : undefined}
-        cacheId={element.id}
-        refresh={canvasScale}
-        noVfill
-        minimal
-        hideHelp
-        placeholder={PLACEHOLDER}
-        isFocused={editFocus && focused}
-        onFocus={() => {
-          setEditFocus(true);
-          // NOTE: we do not do "setEditFocus(false)" with onBlur, because
-          // there are many ways to "blur" the slate editor technically, but
-          // still want to consider it focused, e.g., editing math and code
-          // cells, and clicking a checkbox.
-        }}
-        onShiftEnter={() => {
-          setEditFocus(false);
-          actions.clearSelection(frameId);
-        }}
-        value={element.str}
-        fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-        onChange={(value) => {
-          actions.setElement({ obj: { id: element.id, str: value } });
-        }}
-        onModeChange={setMode}
-        editBarStyle={{
-          visibility: !focused || mode == "markdown" ? "hidden" : undefined,
-          top: `${-55 - 5}px`,
-          left: "-24px",
-          position: "absolute",
-          boxShadow: "1px 3px 5px #ccc",
-          margin: "5px",
-          minWidth: "500px",
-          background: "white",
-          fontFamily: "sans-serif",
-        }}
-        modeSwitchStyle={{
-          top: "-82px",
-          left: "-18px",
-        }}
-        onCursors={(cursors) => {
-          actions.setCursors(element.id, cursors);
-        }}
-        cursors={cursors}
-        onSave={() => {
-          actions.save(true);
-        }}
-        onUndo={() => {
-          actions.undo();
-        }}
-        onRedo={() => {
-          actions.redo();
-        }}
-        compact
-      />
+      <div ref={divRef}>
+        <MultiMarkdownInput
+          getValueRef={getValueRef}
+          fixedMode={element.rotate || !focused ? "editor" : undefined}
+          cacheId={element.id}
+          refresh={canvasScale}
+          noVfill
+          minimal
+          hideHelp
+          placeholder={PLACEHOLDER}
+          isFocused={editFocus && focused}
+          onFocus={() => {
+            setEditFocus(true);
+            // NOTE: we do not do "setEditFocus(false)" with onBlur, because
+            // there are many ways to "blur" the slate editor technically, but
+            // still want to consider it focused, e.g., editing math and code
+            // cells, and clicking a checkbox.
+          }}
+          onShiftEnter={() => {
+            setEditFocus(false);
+            actions.clearSelection(frameId);
+          }}
+          value={element.str}
+          fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
+          onChange={(value) => {
+            actions.setElement({ obj: { id: element.id, str: value } });
+          }}
+          onModeChange={setMode}
+          editBarStyle={{
+            visibility: !focused || mode == "markdown" ? "hidden" : undefined,
+            top: `${-55 - 5}px`,
+            left: "-24px",
+            position: "absolute",
+            boxShadow: "1px 3px 5px #ccc",
+            margin: "5px",
+            minWidth: "500px",
+            background: "white",
+            fontFamily: "sans-serif",
+          }}
+          modeSwitchStyle={{
+            top: "-82px",
+            left: "-18px",
+          }}
+          onCursors={(cursors) => {
+            actions.setCursors(element.id, cursors);
+          }}
+          cursors={cursors}
+          onSave={() => {
+            actions.save(true);
+          }}
+          onUndo={() => {
+            actions.undo();
+          }}
+          onRedo={() => {
+            actions.redo();
+          }}
+          compact
+        />
+      </div>
     </div>
   );
 }
