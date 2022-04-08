@@ -18,20 +18,17 @@ export default function LockButton({ elements }: Props) {
       actions.lockElements(elements);
     }
   };
-  const btn = (
-    <Tooltip
-      placement="bottom"
-      title={
-        locked
-          ? "Unlock objects so you can edit them"
-          : "Lock objects to prevent editing"
-      }
-    >
-      <Button style={BUTTON_STYLE} onClick={!locked ? click : undefined}>
-        <Icon name={`lock${!locked ? "-open" : ""}`} />
-      </Button>
-    </Tooltip>
+  let btn = (
+    <Button style={BUTTON_STYLE} onClick={!locked ? click : undefined}>
+      <Icon name={`lock${!locked ? "-open" : ""}`} />
+    </Button>
   );
+  if (!locked) {
+    // We only show the tooltip if NOT locked, since unlocking shows a Popconfirm
+    // that is blocked by the tooltip when object is near bottom of the screen even
+    // with placement='bottom'.
+    btn = <Tooltip title={"Lock objects to prevent editing"}>{btn}</Tooltip>;
+  }
   if (locked) {
     return (
       <Popconfirm

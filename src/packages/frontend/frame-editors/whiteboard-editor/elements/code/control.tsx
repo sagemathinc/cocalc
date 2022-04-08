@@ -51,19 +51,17 @@ export default function CodeControlBar({ element }: Props) {
           </Button>
         </Tooltip>
       )}
-      {!element.data?.hideInput && (
-        <Tooltip title="Evaluate code (Shift+Enter)">
-          <Button
-            disabled={element.data?.runState == "busy"}
-            size="small"
-            onClick={() => {
-              actions.runCodeElement({ id: element.id });
-            }}
-          >
-            <Icon name="play" /> Run
-          </Button>
-        </Tooltip>
-      )}
+      <Tooltip title="Evaluate code (Shift+Enter)">
+        <Button
+          disabled={element.data?.runState == "busy"}
+          size="small"
+          onClick={() => {
+            actions.runCodeElement({ id: element.id });
+          }}
+        >
+          <Icon name="play" /> Run
+        </Button>
+      </Tooltip>
       {!element.locked && (
         <Tooltip title="Toggle display of input">
           <Checkbox
