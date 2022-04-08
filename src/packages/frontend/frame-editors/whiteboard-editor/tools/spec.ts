@@ -25,6 +25,7 @@ interface ToolDescription {
   type?: ElementType;
   size?: (Element) => { w: number; h: number };
   select?: boolean; // if true, select and set to edit on create
+  dynamicHeight?: boolean; // if true don't set height:100% for selected, which helps a lot with editable objects (e.g., code, notes)
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -57,6 +58,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "t",
     type: "text",
     select: true,
+    dynamicHeight: true,
   },
   note: {
     icon: "note",
@@ -66,6 +68,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "n",
     type: "note",
     select: true,
+    dynamicHeight: true,
   },
   pen: {
     icon: "pen",
@@ -83,6 +86,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Jupyter Code Cell",
     config: new Set(["fontSize", "color", "radius"]),
     resizable: true,
+    dynamicHeight: true,
     key: "j",
     type: "code",
     size: (element) => {
