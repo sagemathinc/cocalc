@@ -70,8 +70,8 @@ export default function Code({
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({ ref: divRef });
   const resizeIfNecessary = useMemo(() => {
-    if (actions.in_undo_mode()) return () => {};
     const shrinkElement = debounce(() => {
+      if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
       const h = elt.offsetHeight + EXTRA_HEIGHT;
@@ -85,6 +85,7 @@ export default function Code({
       });
     }, 250);
     return () => {
+      if (actions.in_undo_mode()) return () => {};
       const elt = divRef.current;
       if (elt == null) return;
       const newHeight = elt.offsetHeight + EXTRA_HEIGHT;

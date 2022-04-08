@@ -483,6 +483,21 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           // Allow for passed-in styles to override anything.
           ...style,
         }}
+        onScroll={
+          // When height is auto it's critical to keep the div from
+          // scrolling at all.  Otherwise, especially when moving the
+          // cursor above and back down from a fenced code block, things
+          // will get scrolled off the screen and not be visible.
+          // The following code ensures that scrollTop is always 0
+          // in case of height:'auto'.
+          style.height === "auto"
+            ? () => {
+                if (ref.current != null) {
+                  ref.current.scrollTop = 0;
+                }
+              }
+            : undefined
+        }
         onBeforeInput={useCallback(
           (event: React.FormEvent<HTMLDivElement>) => {
             // COMPAT: Certain browsers don't support the `beforeinput` event, so we
