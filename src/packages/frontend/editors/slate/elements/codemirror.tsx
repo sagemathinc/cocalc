@@ -24,7 +24,11 @@ import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
 import { FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
-import { moveCursorToBeginningOfBlock } from "../control";
+import {
+  moveCursorToBeginningOfBlock,
+  moveCursorUp,
+  moveCursorDown,
+} from "../control";
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
 import { delay } from "awaiting";
@@ -287,7 +291,8 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
     const line = cm.getLine(n);
     const line_length = line?.length;
     if (cur_line === n && cur_ch === line_length) {
-      Transforms.move(editor, { distance: 1, unit: "line" });
+      //Transforms.move(editor, { distance: 1, unit: "line" });
+      moveCursorDown(editor, true);
       ReactEditor.focus(editor);
       return true;
     } else {
@@ -298,11 +303,12 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   options.extraKeys["Up"] = (cm) => {
     const cur = cm.getCursor();
     if (cur?.line === cm.firstLine() && cur?.ch == 0) {
-      Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
-      ReactEditor.focus(editor);
+      // Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+      moveCursorUp(editor, true);
       if (!isInline) {
         moveCursorToBeginningOfBlock(editor);
       }
+      ReactEditor.focus(editor);
     } else {
       commands.goLineUp(cm);
     }
