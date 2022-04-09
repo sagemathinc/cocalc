@@ -4,7 +4,7 @@
  */
 
 import copy_to_clipboard from "copy-to-clipboard";
-import { CSS, React, ReactDOM, useRef, useState } from "../app-framework";
+import { CSS, React, useRef, useState } from "../app-framework";
 import {
   Button,
   FormControl,
@@ -42,22 +42,21 @@ export const CopyToClipBoard: React.FC<Props> = ({
   }
 
   function close_tool_tip() {
-    if (!show_tooltip) {
-      return;
-    }
     set_show_tooltip(false);
   }
 
   function render_button_after() {
     return (
       <InputGroup.Button>
-        <Overlay
-          show={show_tooltip}
-          target={() => ReactDOM.findDOMNode(clipboard_button_ref.current)}
-          placement="bottom"
-        >
-          <Tooltip id="copied">Copied!</Tooltip>
-        </Overlay>
+        {show_tooltip && clipboard_button_ref.current && (
+          <Overlay
+            show
+            target={clipboard_button_ref.current}
+            placement="bottom"
+          >
+            <Tooltip id="copied">Copied!</Tooltip>
+          </Overlay>
+        )}
         <Button ref={clipboard_button_ref} onClick={on_button_click}>
           <Icon name="clipboard" />
         </Button>
