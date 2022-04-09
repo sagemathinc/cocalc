@@ -1,3 +1,14 @@
+/*
+
+EXAMPLE:
+
+~$ curl   -u `cat .smc/secret_token`: -d path=a.md http://localhost:`cat .smc/api-server.port`/api/v1/get-syncdoc-history -d patches | python -m json.tool
+
+If you get an error about no hubs connected, then edit a file in the project
+in a browser to cause a connection to happen.   Also, a.md need to be a file that
+you have edited.
+*/
+
 import { meta_file } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/db-schema";
 import { client } from "./server";

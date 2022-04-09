@@ -30,6 +30,7 @@ let client: any = undefined;
 export { client };
 
 import getSyncdocHistory from "./get-syncdoc-history";
+import writeTextFile from "./write-text-file";
 
 export default async function init(): Promise<void> {
   client = theClient.client;
@@ -63,7 +64,7 @@ function configure(server: express.Application, dbg: Function): void {
     dbg(`handling ${req.path}`);
     try {
       handleAuth(req);
-      await handleEndpoint(req, res);
+      res.send(await handleEndpoint(req));
     } catch (err) {
       dbg(`failed handling ${req.path} -- ${err}`);
       res.status(400).send({ error: `${err}` });
@@ -110,18 +111,15 @@ function handleAuth(req): void {
   }
 }
 
-async function handleEndpoint(req, res): Promise<void> {
+async function handleEndpoint(req): Promise<any> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
-  try {
-    switch (endpoint) {
-      case "get-syncdoc-history":
-        res.send(await getSyncdocHistory(getParams(req, ["path", "patches"])));
-        return;
-      default:
-        throw Error("unknown endpoint");
-    }
-  } catch (err) {
-    throw Error(`handling api endpoint ${endpoint} -- ${err}`);
+  switch (endpoint) {
+    case "get-syncdoc-history":
+      return await getSyncdocHistory(getParams(req, ["path", "patches"]));
+    case "write-text-file":
+      return await writeTextFile(getParams(req, ["path", "content"]));
+    default:
+      throw Error(`unknown endpoint - "${endpoint}"`);
   }
 }
 
