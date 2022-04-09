@@ -3,20 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { isEqual } from "lodash";
+import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import {
   DedicatedDisk,
   DedicatedDiskTypeNames,
   DedicatedVM,
 } from "@cocalc/util/types/dedicated";
-import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
-import { dedicatedPrice } from "./dedicated";
+import { isEqual } from "lodash";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
   Uptime,
 } from "../../consts/site-license";
 import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
+import { dedicatedPrice } from "./dedicated";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -32,6 +32,7 @@ export type CustomUpgrades =
 
 export interface Cost {
   cost: number;
+  cost_per_unit: number;
   discounted_cost: number;
   cost_per_project_per_month: number;
   cost_sub_month: number;
@@ -61,6 +62,23 @@ export interface PurchaseInfo {
   title?: string;
   description?: string;
 }
+
+// stripe's metadata can only handle string or number values.
+export type ProductMetadata =
+  | Record<
+      | "user"
+      | "ram"
+      | "cpu"
+      | "dedicated_ram"
+      | "dedicated_cpu"
+      | "disk"
+      | "uptime"
+      | "member"
+      | "subscription",
+      string | number | null
+    > & {
+      duration_days?: number;
+    };
 
 // throws an exception if it spots something funny...
 export function sanity_checks(info: PurchaseInfo) {
@@ -280,6 +298,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
     dedicated_vm,
     custom_uptime,
   } = info;
+
+  // at this point, we assume the start/end dates are already
+  // set to the start/end time of a day in the user's timezone.
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
 
@@ -297,6 +318,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     }
     return {
       cost,
+      cost_per_unit: cost,
       discounted_cost: cost,
       cost_per_project_per_month: 0,
       cost_sub_month: 0,
@@ -379,6 +401,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost_per_project_per_month *
     COSTS.user_discount[user] *
     COSTS.sub_discount["monthly"];
+
   const cost_sub_year =
     cost_per_project_per_month *
     12 *
@@ -389,8 +412,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   cost_per_project_per_month *=
     COSTS.user_discount[user] * COSTS.sub_discount[subscription];
 
-  // Multiply by the number of projects:
-  let cost = quantity * cost_per_project_per_month;
+  let base_cost = cost_per_project_per_month;
 
   // Make cost properly account for period of purchase or subscription.
   if (subscription == "no") {
@@ -399,14 +421,32 @@ export function compute_cost(info: PurchaseInfo): Cost {
     }
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
-    cost *= months;
+    base_cost *= months;
   } else if (subscription == "yearly") {
-    cost *= 12;
+    base_cost *= 12;
   }
 
+  // cost_per_unit is important for purchasing upgrades for specific intervals.
+  // i.e. above the "cost" is calculated for the total number of projects,
+  // then here in "cost" the price is limited by the min_sale amount,
+  // and later in charge/stripeCreatePrice, we did divide by the number of projects again.
+  // instead: we use the limited cost_per_unit price to create a price in stripe.
+  // and hence there is no implicit discount if you purchase several projects at once.
+  // note: later on you have to use round2, since this is the price with full precision.
+  const cost_per_unit = Math.max(
+    COSTS.min_sale / COSTS.online_discount,
+    base_cost
+  );
+
+  const cost_total = quantity * cost_per_unit;
+
   return {
-    cost: Math.max(COSTS.min_sale / COSTS.online_discount, cost),
-    discounted_cost: Math.max(COSTS.min_sale, cost * COSTS.online_discount),
+    cost_per_unit,
+    cost: cost_total,
+    discounted_cost: Math.max(
+      COSTS.min_sale,
+      cost_total * COSTS.online_discount
+    ),
     cost_per_project_per_month,
     cost_sub_month,
     cost_sub_year,
