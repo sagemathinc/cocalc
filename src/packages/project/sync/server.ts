@@ -21,7 +21,10 @@ silently swallowed in persistent mode...
 // and https://github.com/sagemathinc/cocalc/issues/5823
 // and https://github.com/sagemathinc/cocalc/issues/5617
 
-const CLOSE_DELAY_MS = 15 * 1000; // 15 seconds  -- longer enough to refresh your browser without it closing.
+// Setting this to 0 to optimize resource usage and because opening files
+// is fast, and also on the current tab gets opened on refresh anyways.
+
+const CLOSE_DELAY_MS = 0;
 
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
