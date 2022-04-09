@@ -9,6 +9,9 @@ import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
 const logger = getLogger("createLicense");
 
+// ATTN: activates/expires timestamps only work correctly if server set to UTC timezone.
+// for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
+// this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
 export default async function createLicense(
   database: PostgreSQL,
   account_id: string,

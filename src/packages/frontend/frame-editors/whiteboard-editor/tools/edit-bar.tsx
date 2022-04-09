@@ -68,7 +68,11 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
             <GroupButton {...props} />
           </>
         )}
-        {!(readOnly || hidden) && <DuplicateButton {...props} />}
+        {
+          !(readOnly || hidden) && !locked && (
+            <DuplicateButton {...props} />
+          ) /* don't show when locked just to make lock state much clearer - there is duplicate in menu, and it isn't that likely that you need to use this on something locked */
+        }
         {!readOnly && !hidden && <LockButton elements={elements} />}
         {!readOnly && !locked && <HideButton elements={elements} />}
         {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
@@ -428,49 +432,47 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
         }
       }}
     >
-      {!readOnly && (
+      {!readOnly && !locked && (
         <Menu.Item key="bring-to-front">
           <Icon name={"arrow-circle-up"} /> Bring to front
         </Menu.Item>
       )}
-      {!readOnly && (
+      {!readOnly && !locked && (
         <Menu.Item key="send-to-back">
           <Icon name={"arrow-circle-down"} /> Send to back
         </Menu.Item>
       )}
-      {!readOnly && (
+      {!readOnly && !locked && (
         <Menu.Item key="cut">
-          {" "}
           <Icon name="cut" /> Cut
         </Menu.Item>
       )}
       <Menu.Item key="copy">
-        {" "}
         <Icon name="copy" /> Copy
       </Menu.Item>
-      {!readOnly && (
+      {/*!readOnly && (
         <Menu.Item key="paste">
           {" "}
           <Icon name="paste" /> Paste
         </Menu.Item>
-      )}
+      )*/}
       {!readOnly && (
         <Menu.Item key="duplicate">
           <Icon name="clone" /> Duplicate
         </Menu.Item>
       )}
-      {!readOnly && (
+      {!readOnly && !locked && (
         <Menu.Item key="delete">
           {" "}
           <Icon name="trash" /> Delete
         </Menu.Item>
       )}
-      {!readOnly && !hidden && (
+      {!readOnly && !hidden && !locked && (
         <Menu.Item key="hide">
           <Icon name={"eye-slash"} /> Hide
         </Menu.Item>
       )}
-      {!readOnly && hidden && (
+      {!readOnly && hidden && !locked && (
         <Menu.Item key="unhide">
           <Icon name={"eye"} /> Unhide
         </Menu.Item>
@@ -478,11 +480,6 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
       {!readOnly && !locked && (
         <Menu.Item key="lock">
           <Icon name={"lock"} /> Lock
-        </Menu.Item>
-      )}
-      {!readOnly && locked && (
-        <Menu.Item key="unlock">
-          <Icon name={"lock-open"} /> Unlock
         </Menu.Item>
       )}
     </Menu>

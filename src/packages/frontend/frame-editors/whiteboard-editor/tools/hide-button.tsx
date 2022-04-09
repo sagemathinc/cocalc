@@ -13,7 +13,6 @@ export default function HideButton({ elements }: Props) {
   let hidden = isHidden(elements);
   return (
     <Tooltip
-      placement="bottom"
       title={`${hidden ? "Show" : "Hide"} selected objects`}
     >
       <Button
