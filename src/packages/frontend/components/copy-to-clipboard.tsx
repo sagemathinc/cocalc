@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import copy_to_clipboard from "copy-to-clipboard";
-import { CSS, React, ReactDOM, useRef, useState } from "../app-framework";
+import copyToClipboard from "copy-to-clipboard";
+import { CSS, React, useRef, useState } from "../app-framework";
 import {
   Button,
   FormControl,
@@ -21,56 +21,26 @@ import { Icon } from "./icon";
 
 interface Props {
   value: string;
-  button_before?: JSX.Element; // Button to place before the copy text
-  hide_after?: boolean; // Hide the default after button
+  buttonBefore?: JSX.Element; // Button to place before the copy text
+  hideAfter?: boolean; // Hide the default after button
   style?: CSS;
 }
 
 export const CopyToClipBoard: React.FC<Props> = ({
   value,
-  button_before,
-  hide_after,
+  buttonBefore,
+  hideAfter,
   style,
 }) => {
-  const [show_tooltip, set_show_tooltip] = useState<boolean>(false);
-  const clipboard_button_ref = useRef(null);
-
-  function on_button_click(_e): void {
-    set_show_tooltip(true);
-    setTimeout(close_tool_tip, 2000);
-    copy_to_clipboard(value);
-  }
-
-  function close_tool_tip() {
-    if (!show_tooltip) {
-      return;
-    }
-    set_show_tooltip(false);
-  }
-
-  function render_button_after() {
-    return (
-      <InputGroup.Button>
-        <Overlay
-          show={show_tooltip}
-          target={() => ReactDOM.findDOMNode(clipboard_button_ref.current)}
-          placement="bottom"
-        >
-          <Tooltip id="copied">Copied!</Tooltip>
-        </Overlay>
-        <Button ref={clipboard_button_ref} onClick={on_button_click}>
-          <Icon name="clipboard" />
-        </Button>
-      </InputGroup.Button>
-    );
-  }
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const clipboardButtonRef = useRef(null);
 
   return (
     <FormGroup style={style}>
       <InputGroup>
-        {button_before != null ? (
-          <InputGroup.Button>{button_before}</InputGroup.Button>
-        ) : undefined}
+        {buttonBefore != null && (
+          <InputGroup.Button>{buttonBefore}</InputGroup.Button>
+        )}
         <FormControl
           type="text"
           readOnly={true}
@@ -78,7 +48,29 @@ export const CopyToClipBoard: React.FC<Props> = ({
           onClick={(e) => (e.target as any).select?.()}
           value={value}
         />
-        {!hide_after ? render_button_after() : undefined}
+        {!hideAfter && (
+          <InputGroup.Button>
+            {showTooltip && clipboardButtonRef.current && (
+              <Overlay
+                show
+                target={clipboardButtonRef.current}
+                placement="bottom"
+              >
+                <Tooltip id="copied">Copied!</Tooltip>
+              </Overlay>
+            )}
+            <Button
+              ref={clipboardButtonRef}
+              onClick={() => {
+                setShowTooltip(true);
+                setTimeout(() => setShowTooltip(false), 2000);
+                copyToClipboard(value);
+              }}
+            >
+              <Icon name="clipboard" />
+            </Button>
+          </InputGroup.Button>
+        )}
       </InputGroup>
     </FormGroup>
   );

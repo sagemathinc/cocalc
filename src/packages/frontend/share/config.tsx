@@ -376,8 +376,8 @@ class Configure extends Component<Props, State> {
         <div style={{ paddingBottom: "5px" }}>Your share will appear here.</div>
         <CopyToClipBoard
           value={url}
-          button_before={button_before}
-          hide_after={true}
+          buttonBefore={button_before}
+          hideAfter={true}
         />
       </>
     );
