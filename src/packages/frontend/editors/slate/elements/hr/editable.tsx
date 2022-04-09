@@ -23,7 +23,7 @@ register({
           contentEditable={false}
           style={{
             border: `2px solid ${
-              focused && selected ? FOCUSED_COLOR : "white"
+              focused && selected ? FOCUSED_COLOR : "transparent"
             }`,
           }}
         >

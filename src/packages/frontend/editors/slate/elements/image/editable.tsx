@@ -79,7 +79,7 @@ register({
 
     const focused = useFocused();
     const selected = useSelected();
-    const border = `2px solid ${focused && selected ? FOCUSED_COLOR : "white"}`;
+    const border = `2px solid ${focused && selected ? FOCUSED_COLOR : "transparent"}`;
 
     const ref = useProcessLinks([src]);
     const imageRef = useRef<any>(null);
@@ -93,7 +93,6 @@ register({
           <Resizable
             style={{
               display: "inline-block",
-              background: "#f0f0f0",
               border,
               maxWidth: "100%",
             }}
