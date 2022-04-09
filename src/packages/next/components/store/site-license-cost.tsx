@@ -15,6 +15,7 @@ import {
   LicenseIdleTimeouts,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -87,6 +88,7 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
+  const discount_pct = percent_discount(cost);
   if (simple) {
     return (
       <>
@@ -99,7 +101,8 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
         ) : (
           ""
         )}
-        {oneLine ? null : <br />} (includes 25% self-service discount)
+        {oneLine ? null : <br />} (includes {discount_pct}% self-service
+        discount)
       </>
     );
   }
@@ -115,8 +118,7 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
           {money(cost.discounted_cost)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
-        , if you purchase here ({percent_discount(cost)}% self-service
-        discount).
+        , if you purchase here ({discount_pct}% self-service discount).
       </>
     );
   } else {
@@ -164,10 +166,11 @@ export function describePeriod({
   end?: Date | string;
 }): ReactNode {
   if (subscription == "no") {
+    const days = getDays({ start, end });
     return (
       <>
-        <Timestamp dateOnly datetime={start} absolute /> -{" "}
-        <Timestamp dateOnly datetime={end} absolute />
+        <Timestamp dateOnly datetime={start} absolute /> to{" "}
+        <Timestamp dateOnly datetime={end} absolute />, {days} days
       </>
     );
   } else {
