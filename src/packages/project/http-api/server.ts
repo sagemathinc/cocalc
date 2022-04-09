@@ -31,6 +31,7 @@ export { client };
 
 import getSyncdocHistory from "./get-syncdoc-history";
 import writeTextFile from "./write-text-file";
+import readTextFile from "./read-text-file";
 
 export default async function init(): Promise<void> {
   client = theClient.client;
@@ -118,6 +119,8 @@ async function handleEndpoint(req): Promise<any> {
       return await getSyncdocHistory(getParams(req, ["path", "patches"]));
     case "write-text-file":
       return await writeTextFile(getParams(req, ["path", "content"]));
+    case "read-text-file":
+      return await readTextFile(getParams(req, ["path"]));
     default:
       throw Error(`unknown endpoint - "${endpoint}"`);
   }

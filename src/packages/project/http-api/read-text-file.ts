@@ -7,20 +7,15 @@ curl -u `cat .smc/secret_token`: -d path=a.txt -d content="bar" http://localhost
 */
 
 import { promisify } from "util";
-import { writeFile } from "fs";
+import { readFile } from "fs";
 import { client } from "./server";
 
-export default async function writeTextFile({ path, content }): Promise<void> {
-  const dbg = client.dbg("write-text-file");
+export default async function readTextFile({ path }): Promise<string> {
+  const dbg = client.dbg("read-text-file");
   dbg(`path="${path}"`);
   if (typeof path != "string") {
     throw Error(`provide the path as a string -- got path="${path}"`);
   }
-  if (typeof content != "string") {
-    throw Error(
-      `provide the content as a string -- got content of type ${typeof content}`
-    );
-  }
 
-  return await promisify(writeFile)(path, content);
+  return (await promisify(readFile)(path)).toString();
 }

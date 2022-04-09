@@ -41,8 +41,9 @@ export default function handleMessage(socket, mesg: Message) {
       return;
 
     case "project_exec":
-      // this is no longer used by web browser clients; however it *is* used by the HTTP api,
-      // so do NOT remove it!
+      // this is no longer used by web browser clients; however it *is* used by the v1 HTTP api served
+      // by the hub to api key users, so do NOT remove it without rewriting that.
+      // The web browser clients use the websocket api,
       exec_shell_code(socket, mesg);
       return;
 
