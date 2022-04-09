@@ -46,7 +46,7 @@
     "execa": "^5.0.0",
     "expect": "^26.6.2",
     "express": "^4.17.1",
-    "express-rate-limit": "^3.4.0",
+    "express-rate-limit": "^6.3.0",
     "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
