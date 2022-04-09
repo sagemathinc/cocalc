@@ -25,6 +25,7 @@ const { client_db } = require("@cocalc/util/db-schema");
 const RateLimit = require("express-rate-limit");
 import { apiServerPortFile } from "@cocalc/project/data";
 const theClient = require("@cocalc/project/client");
+import { secretToken } from "@cocalc/project/servers/secret-token";
 
 export default async function init(): Promise<void> {
   const client = theClient.client;
@@ -59,7 +60,7 @@ function configure(client, server: express.Application, dbg: Function): void {
   server.post("/api/v1/*", async (req, res) => {
     dbg(`POST to ${req.path}`);
     try {
-      handleAuth(req, client.secret_token);
+      handleAuth(req);
       await handlePost(req, res, client);
     } catch (err) {
       dbg(`failed handling POST ${err}`);
@@ -84,28 +85,28 @@ function handleGet(_req, res): void {
   res.send({ status: "ok", mesg: "use a POST request" });
 }
 
-function handleAuth(req, secret_token: string): void {
+function handleAuth(req): void {
   const h = req.header("Authorization");
   if (h == null) {
-    throw Error("you MUST authenticate all requests via secret_token");
+    throw Error("you MUST authenticate all requests");
   }
 
-  let provided_token: string;
+  let providedToken: string;
   const [type, user] = split(h);
   switch (type) {
     case "Bearer":
-      provided_token = user;
+      providedToken = user;
       break;
     case "Basic":
       const x = Buffer.from(user, "base64");
-      provided_token = x.toString().split(":")[0];
+      providedToken = x.toString().split(":")[0];
       break;
     default:
       throw Error(`unknown authorization type '${type}'`);
   }
   // now check auth
-  if (secret_token != provided_token) {
-    throw Error("incorrect secret_token");
+  if (secretToken != providedToken) {
+    throw Error(`incorrect secret token "${secretToken}", "${providedToken}"`);
   }
 }
 
@@ -113,8 +114,8 @@ async function handlePost(req, res, client): Promise<void> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
   try {
     switch (endpoint) {
-      case "get_syncdoc_history":
-        res.send(await get_syncdoc_history(req.body, client));
+      case "get-syncdoc-history":
+        res.send(await getSyncdocHistory(req.body, client));
         return;
       default:
         throw Error("unknown endpoint");
@@ -124,8 +125,8 @@ async function handlePost(req, res, client): Promise<void> {
   }
 }
 
-async function get_syncdoc_history(body, client): Promise<any> {
-  const dbg = client.dbg("get_syncdoc_history");
+async function getSyncdocHistory(body, client): Promise<any> {
+  const dbg = client.dbg("get-syncdoc-history");
   let path = body.path;
   dbg(`path="${path}"`);
   if (typeof path != "string") {
