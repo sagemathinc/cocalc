@@ -2,7 +2,16 @@
 Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
-
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import {
+  LicenseIdleTimeouts,
+  requiresMemberhosting,
+} from "@cocalc/util/consts/site-license";
+import { money } from "@cocalc/util/licenses/purchase/util";
+import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import {
   Alert,
   Button,
@@ -14,24 +23,16 @@ import {
   Switch,
   Typography,
 } from "antd";
-import SiteName from "components/share/site-name";
 import A from "components/misc/A";
-import { useEffect, useState } from "react";
-import IntegerSlider from "components/misc/integer-slider";
 import DateRange from "components/misc/date-range";
-import { computeCost, Cost, DisplayCost } from "./site-license-cost";
+import IntegerSlider from "components/misc/integer-slider";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
-import Loading from "components/share/loading";
-import { money } from "@cocalc/util/licenses/purchase/util";
-import {
-  get_local_storage,
-  set_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import {
-  LicenseIdleTimeouts,
-  requiresMemberhosting,
-} from "@cocalc/util/consts/site-license";
+import { useEffect, useState } from "react";
+import { computeCost, Cost, DisplayCost } from "./site-license-cost";
+
 const { Text } = Typography;
 
 export default function Create() {
@@ -381,7 +382,14 @@ function CreateLicense() {
                 noPast
                 maxDaysInFuture={365 * 4}
                 style={{ margin: "5px 0 30px", textAlign: "center" }}
+                initialValues={getFieldValue("range")}
                 onChange={(range) => {
+                  // fix this to the start/end of day in the timezone of the user
+                  const [start, end] = range;
+                  range = [
+                    start != null ? startOfDay(start) : undefined,
+                    end != null ? endOfDay(end) : undefined,
+                  ];
                   form.setFieldsValue({ range });
                   onChange();
                 }}
