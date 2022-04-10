@@ -19,6 +19,7 @@ interface Options {
   project_id: string;
   uuid: string;
   blob: Buffer;
+  ttlSeconds?: number;
 }
 
 export default async function handleBlob({
@@ -26,11 +27,12 @@ export default async function handleBlob({
   project_id,
   uuid,
   blob,
+  ttlSeconds,
 }: Options): Promise<void> {
   let resp;
   try {
     await saveBlob({ project_id, uuid, blob });
-    resp = save_blob({ sha1: uuid, ttl:TTL });
+    resp = save_blob({ sha1: uuid, ttl: ttlSeconds ?? TTL });
   } catch (err) {
     resp = save_blob({ sha1: uuid, error: `${err}` });
   }
