@@ -8,6 +8,8 @@ import handleSyncdoc from "./handle-syncdoc";
 import { error, pong } from "@cocalc/util/message";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:handle-message");
+import { v4 } from "uuid";
+import { promisify } from "util";
 
 interface Options {
   socket;
@@ -71,4 +73,34 @@ export default async function handleMessage({
   } catch (err) {
     sendResponse(error({ error: `${err}` }));
   }
+}
+
+export async function callProjectMessage({
+  socket,
+  mesg,
+  timeoutSeconds = 60,
+}): Promise<any> {
+  logger.debug("callProjectMessage", mesg.event, mesg.id);
+  while (mesg.id == null || callCallbacks[mesg.id] != null) {
+    mesg.id = v4();
+  }
+
+  const getResponse = promisify((cb: (err: any, resp?: any) => void) => {
+    callCallbacks[mesg.id] = (resp) => {
+      logger.debug("callProjectMessage -- got response", resp.id);
+      cb(undefined, resp);
+    };
+    setTimeout(() => {
+      cb("timeout");
+      callCallbacks[mesg.id] = () => {
+        logger.debug(
+          mesg.id,
+          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`
+        );
+      };
+    }, timeoutSeconds * 1000);
+  });
+
+  socket.write_mesg("json", mesg);
+  return await getResponse();
 }

@@ -4,7 +4,7 @@
  */
 
 /*
-Express HTTP API server
+Express HTTP API server.
 
 This is meant to be used from within the project via localhost, both
 to get info from the project, and to cause the project to do things.

@@ -1,5 +1,5 @@
 /*
-Write a text file.
+Read a text file.
 
 EXAMPLE:
 

@@ -36,13 +36,18 @@ export default function handleMessage(socket, mesg: Message) {
       socket.heartbeat = new Date();
       return;
 
+    case "ping":
+      // ping message is used only for debugging purposes.
+      socket.write_mesg("json", message.pong({ id: mesg.id }));
+      return;
+
     case "named_server_port":
       handleNamedServer(socket, mesg);
       return;
 
     case "project_exec":
-      // this is no longer used by web browser clients; however it *is* used by the v1 HTTP api served
-      // by the hub to api key users, so do NOT remove it without rewriting that.
+      // this is no longer used by web browser clients; however it *is* used by the HTTP api served
+      // by the hub to api key users, so do NOT remove it!
       // The web browser clients use the websocket api,
       exec_shell_code(socket, mesg);
       return;
