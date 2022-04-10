@@ -149,6 +149,7 @@ function EditText({
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
           onChange={(value) => {
+            console.log("onChange");
             actions.setElement({ obj: { id: element.id, str: value } });
           }}
           onModeChange={setMode}
