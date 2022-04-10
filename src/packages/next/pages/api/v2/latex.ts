@@ -55,6 +55,9 @@ export default async function handle(req, res) {
     "leave",
   ]);
   try {
+    if (!account_id) {
+      throw Error("must be authenticated");
+    }
     if (!params.path || !params.path.endsWith(".tex")) {
       throw Error("path must be specified and end in .tex");
     }
@@ -69,6 +72,7 @@ export default async function handle(req, res) {
       // don't need to check collaborator in this case:
       project_id = (await getOneProject(account_id)).project_id;
     }
+
     let result: any = undefined;
     try {
       // ensure the project is running.
