@@ -36,10 +36,12 @@ to clean up temp file.  We do NOT do this unless the path starts with /tmp.
 
 import getAccountId from "lib/account/get-account";
 import { getOneProject } from "./projects/get-one";
+import { getProject } from "@cocalc/server/projects/control";
 import { callProject } from "./projects/call";
 import getParams from "lib/api/get-params";
 import { path_split } from "@cocalc/util/misc";
 import getCustomize from "@cocalc/server/settings/customize";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
@@ -57,10 +59,22 @@ export default async function handle(req, res) {
       throw Error("path must be specified and end in .tex");
     }
     const { head: dir, tail: filename } = path_split(params.path);
-    const project_id =
-      params.project_id ?? (await getOneProject(account_id)).project_id;
+    let project_id;
+    if (params.project_id != null) {
+      project_id = params.project_id;
+      if (!(await isCollaborator({ project_id, account_id }))) {
+        throw Error("must be signed in as a collaborator on the project");
+      }
+    } else {
+      // don't need to check collaborator in this case:
+      project_id = (await getOneProject(account_id)).project_id;
+    }
     let result: any = undefined;
     try {
+      // ensure the project is running.
+      const project = getProject(project_id);
+      await project.start();
+
       if (params.content != null) {
         // write content to the project as the file path
         await callProject({
