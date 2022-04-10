@@ -11,28 +11,28 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
-import { useMemo, useState } from "react";
-import useAPI from "lib/hooks/api";
-import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Loading from "components/share/loading";
-import A from "components/misc/A";
-import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
-import { EditRunLimit } from "./site-license";
-import {
-  computeCost,
-  DisplayCost,
-  describeItem,
-  describePeriod,
-} from "./site-license-cost";
+import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/util/licenses/purchase/util";
-import SiteName from "components/share/site-name";
-import useIsMounted from "lib/hooks/mounted";
 import { capitalize, plural } from "@cocalc/util/misc";
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
+import { useMemo, useState } from "react";
 import OtherItems from "./other-items";
-import { untangleUptime } from "@cocalc/util/consts/site-license";
+import { EditRunLimit } from "./run-limit";
+import {
+  computeCost,
+  describeItem,
+  describePeriod,
+  DisplayCost,
+} from "./site-license-cost";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
