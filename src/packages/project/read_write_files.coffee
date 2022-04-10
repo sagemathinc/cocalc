@@ -88,7 +88,7 @@ exports.read_file_from_project = (socket, mesg) ->
         (cb) ->
             #dbg("send the file as a blob back to the hub.")
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
-            socket.write_mesg 'blob', {uuid:id, blob:data}
+            socket.write_mesg 'blob', {uuid:id, blob:data, ttlSeconds:mesg.ttlSeconds}
             cb()
     ], (err) ->
         if err and err != 'file already known'

@@ -16,7 +16,8 @@ and they include:
 - named_server_port: finding out the port used by jupyter, jupyterlab, etc.
 - project_exec: run shell command
 - read_file_from_project: reads file and stores it as a blob in the database. blob expires in 24 hours.
-- write_file_to_project: write text file to disk in project
+- write_file_to_project: write abitrary file to disk in project (goes via a blob)
+- write_text_file_to_project: write a text file, whose contents is in the message, to the project.
 - print_to_pdf: tells sage worksheet to print
 - send_signal: send a signal to a process
 */

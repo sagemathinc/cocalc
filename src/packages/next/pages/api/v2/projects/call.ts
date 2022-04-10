@@ -16,17 +16,18 @@ export default async function handle(req, res) {
   const account_id = await getAccountId(req);
   try {
     const { project_id, mesg } = getParams(req, ["project_id", "mesg"]);
-    res.json(await callProject(account_id, project_id, mesg));
+    res.json(await callProject({ account_id, project_id, mesg }));
   } catch (err) {
     res.json({ error: err.message });
   }
 }
 
-async function callProject(
+// also used by the latex api call
+export async function callProject({
   account_id,
   project_id,
-  mesg
-): Promise<{ resp: any }> {
+  mesg,
+}): Promise<any> {
   if (!isValidUUID(account_id)) {
     throw Error("user must be authenticated");
   }
@@ -37,6 +38,5 @@ async function callProject(
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("authenticated user must be a collaborator on the project");
   }
-  const resp = await call({ project_id, mesg });
-  return { resp };
+  return await call({ project_id, mesg });
 }

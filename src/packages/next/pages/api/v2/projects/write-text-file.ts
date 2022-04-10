@@ -3,7 +3,6 @@
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { isValidUUID } from "@cocalc/util/misc";
-//import writeTextFileToProject from "@cocalc/server/projects/write-text-file";
 
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
