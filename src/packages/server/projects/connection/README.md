@@ -15,3 +15,4 @@ There is a long random token associated to each project, which is stored in the 
 For security reasons, the TCP connection is _**always**_ initiated from a hub to the project, and there can be several distinct hubs connected to the same project at once.  
 
 The project often wants to send information to the hub.  If no hubs are connected to it, then that project must sit and wait for a connection.  This is for security reasons, since in some contexts we do not allow the project to create any outgoing network connections at all.  Or, even if we do, the outgoing network connections are only to the external Internet, and not to anything within our cluster (except the internal ssh gateway "ssh" and http server "cocalc", which have clear security constraints).  This is just a basic firewall security requirement for "defense in depth".
+

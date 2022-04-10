@@ -48,6 +48,7 @@ async function connect(project_id: string): Promise<Connection> {
   initialize(project_id, socket);
 
   function free() {
+    logger.info("disconnect from ", project_id);
     // don't want free to be triggered more than once.
     for (const evt of EndEvents) {
       socket.removeListener(evt, free);
