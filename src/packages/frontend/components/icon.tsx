@@ -312,6 +312,7 @@ const IconSpec = {
   emacs: { IconFont: "gnuemacs" },
   google: GoogleOutlined,
   "graduation-cap": { IconFont: "graduation" },
+  graph: { IconFont: "graph" },
   grass: { IconFont: "grass" },
   group: { IconFont: "group" },
   hand: { IconFont: "hand" },
