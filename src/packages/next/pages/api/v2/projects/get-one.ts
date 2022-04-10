@@ -6,6 +6,7 @@
 import getAccountId from "lib/account/get-account";
 import create from "@cocalc/server/projects/create";
 import getProjects from "@cocalc/server/projects/get";
+import { isValidUUID } from "@cocalc/util/misc";
 
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
@@ -16,10 +17,11 @@ export default async function handle(req, res) {
   }
 }
 
-async function getOneProject(
+// This is also used by the latex api endpoint.
+export async function getOneProject(
   account_id
 ): Promise<{ project_id: string; title?: string }> {
-  if (!account_id) {
+  if (!isValidUUID(account_id)) {
     throw Error("user must be authenticated");
   }
   const projects = await getProjects({ account_id, limit: 1 });

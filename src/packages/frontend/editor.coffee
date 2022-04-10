@@ -379,7 +379,7 @@ class CodeMirrorEditor extends FileEditor
 
         @show_exec_warning = redux.getStore('account').getIn(['editor_settings', 'show_exec_warning']) ? true
         if @show_exec_warning and @ext in ['py', 'r', 'sage', 'f90']
-            msg = "<strong>INFO:</strong> you can only run <code>*.#{@ext}</code> files in a terminal or create a worksheet/notebook. <a href='#'>Dismiss</a>"
+            msg = "<strong>INFO:</strong> you can only run <code>*.#{@ext}</code> files in a terminal or create a worksheet/notebook. <a href='#'>Close</a>"
             msg_el = @element.find('.webapp-editor-codemirror-message')
             msg_el.html(msg)
             msg_el.find('a').click ->

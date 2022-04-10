@@ -125,7 +125,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
             onClick={() => click(cur_start_ts, cur_oom_kills)}
             style={{ float: "right" }}
           >
-            Dismiss
+            Close
           </Button>
         </div>
       </div>

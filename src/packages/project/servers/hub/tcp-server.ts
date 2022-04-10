@@ -44,7 +44,7 @@ async function handleConnection(socket) {
     winston.error(`socket '${socket.remoteAddress}' error - ${err}`);
   });
   socket.on("close", () => {
-    winston.info(`*closed* a conection from ${socket.remoteAddress}`);
+    winston.info(`*closed* connection from ${socket.remoteAddress}`);
   });
 
   try {

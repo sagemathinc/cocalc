@@ -1056,6 +1056,7 @@ message({
   project_id: required,
   path: required,
   archive: "tar.bz2",
+  ttlSeconds: undefined, // if given, time to live in seconds for blob; default is "1 day".
 });
 
 // The file_read_from_project message is sent by the project_server
