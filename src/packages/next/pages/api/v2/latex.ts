@@ -57,7 +57,8 @@ export default async function handle(req, res) {
       throw Error("path must be specified and end in .tex");
     }
     const { head: dir, tail: filename } = path_split(params.path);
-    const project_id = params.project_id ?? (await getOneProject(account_id));
+    const project_id =
+      params.project_id ?? (await getOneProject(account_id)).project_id;
     let result: any = undefined;
     try {
       if (params.content != null) {
