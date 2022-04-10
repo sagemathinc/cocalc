@@ -18,7 +18,7 @@ import express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
-import { endswith, split, meta_file } from "@cocalc/util/misc";
+import { split, meta_file } from "@cocalc/util/misc";
 import { json, urlencoded } from "body-parser";
 
 const { client_db } = require("@cocalc/util/db-schema");
@@ -52,15 +52,15 @@ function configure(client, server: express.Application, dbg: Function): void {
   server.use(json({ limit: "3mb" }));
   server.use(urlencoded({ extended: true, limit: "3mb" }));
 
-  rate_limit(server);
+  rateLimit(server);
 
-  server.get("/", handle_get);
+  server.get("/", handleGet);
 
   server.post("/api/v1/*", async (req, res) => {
     dbg(`POST to ${req.path}`);
     try {
-      handle_auth(req, client.secret_token);
-      await handle_post(req, res, client);
+      handleAuth(req, client.secret_token);
+      await handlePost(req, res, client);
     } catch (err) {
       dbg(`failed handling POST ${err}`);
       res.status(400).send({ error: `${err}` });
@@ -68,7 +68,7 @@ function configure(client, server: express.Application, dbg: Function): void {
   });
 }
 
-function rate_limit(server: express.Application): void {
+function rateLimit(server: express.Application): void {
   // (suggested by LGTM):
   // set up rate limiter -- maximum of 50 requests per minute
   const limiter = new RateLimit({
@@ -79,12 +79,12 @@ function rate_limit(server: express.Application): void {
   server.use(limiter);
 }
 
-function handle_get(_req, res): void {
+function handleGet(_req, res): void {
   // Don't do anything useful, since user is not authenticated!
-  res.send({ status: "ok", mesg: "use a POST requesty" });
+  res.send({ status: "ok", mesg: "use a POST request" });
 }
 
-function handle_auth(req, secret_token: string): void {
+function handleAuth(req, secret_token: string): void {
   const h = req.header("Authorization");
   if (h == null) {
     throw Error("you MUST authenticate all requests via secret_token");
@@ -109,7 +109,7 @@ function handle_auth(req, secret_token: string): void {
   }
 }
 
-async function handle_post(req, res, client): Promise<void> {
+async function handlePost(req, res, client): Promise<void> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
   try {
     switch (endpoint) {
@@ -134,7 +134,7 @@ async function get_syncdoc_history(body, client): Promise<any> {
 
   // transform jupyter path -- TODO: this should
   // be more centralized... since this is brittle.
-  if (endswith(path, ".ipynb")) {
+  if (path.endsWith(".ipynb")) {
     path = meta_file(path, "jupyter2");
   }
 
