@@ -153,6 +153,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         is_visible={is_visible}
         tab_is_visible={tab_is_visible}
         placeholder={placeholder}
+        onFocus={() => actions.set_active_id(desc.get("id"), true)}
       />
     );
   }
