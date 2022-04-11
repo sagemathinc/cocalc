@@ -5,7 +5,7 @@
 
 import { Divider, Form, Input } from "antd";
 
-export function TitleDescription({ showExplanations }) {
+export function TitleDescription({ showExplanations, disabled = false }) {
   return (
     <>
       <Divider plain>Customizable Identifications</Divider>
@@ -22,7 +22,10 @@ export function TitleDescription({ showExplanations }) {
           ) : undefined
         }
       >
-        <Input placeholder="Enter the title of your license (optional)" />
+        <Input
+          disabled={disabled}
+          placeholder="Enter the title of your license (optional)"
+        />
       </Form.Item>
       <Form.Item
         label="Description"
@@ -38,6 +41,7 @@ export function TitleDescription({ showExplanations }) {
         }
       >
         <Input.TextArea
+          disabled={disabled}
           placeholder="Describe your license (optional)"
           rows={2}
         />

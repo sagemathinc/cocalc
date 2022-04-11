@@ -8,10 +8,8 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
-import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
-import { Divider, Form, Input, Radio, Space } from "antd";
+import { Divider, Form, Input } from "antd";
 import A from "components/misc/A";
-import DateRange from "components/misc/date-range";
 import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -25,6 +23,7 @@ import { RunLimit } from "./run-limit";
 import { computeCost, Cost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
+import { UsageAndDuration } from "./usage-and-duration";
 
 export default function Create() {
   const router = useRouter();
@@ -141,7 +140,11 @@ function CreateLicense() {
         <Form.Item name="type" initialValue={"regular"} noStyle>
           <Input type="hidden" />
         </Form.Item>
-        {renderUsageAndDuration({ showExplanations, form, onChange })}
+        <UsageAndDuration
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+        />
         <Divider plain>Quota upgrades</Divider>
         <Form.Item
           label="GB shared RAM"
@@ -256,106 +259,5 @@ function CreateLicense() {
         />
       </Form>
     </div>
-  );
-}
-
-export function renderUsageAndDuration({
-  showExplanations,
-  form,
-  onChange,
-  disabled = false,
-}) {
-  return (
-    <>
-      <Divider plain>Usage and Duration</Divider>
-      <Form.Item
-        name="user"
-        initialValue="academic"
-        label={"Type of Usage"}
-        extra={
-          showExplanations ? (
-            <>
-              Will this license be used for academic or commercial purposes?
-              Academic users receive a 40% discount off the standard price.
-            </>
-          ) : undefined
-        }
-      >
-        <Radio.Group disabled={disabled}>
-          <Space direction="vertical" style={{ margin: "5px 0" }}>
-            <Radio value={"academic"}>
-              Academic - students, teachers, academic researchers, non-profit
-              organizations and hobbyists (40% discount)
-            </Radio>
-            <Radio value={"business"}>
-              Business - for commercial business purposes
-            </Radio>
-          </Space>{" "}
-        </Radio.Group>
-      </Form.Item>
-      <Form.Item
-        name="period"
-        initialValue={"monthly"}
-        label="Period"
-        extra={
-          showExplanations ? (
-            <>
-              You receive a discount if you pay for the license monthly or
-              yearly via a{" "}
-              <A href="/pricing/subscriptions" external>
-                recurring subscription
-              </A>
-              . You can also pay once for a specific period of time. Licenses
-              start at midnight in your local timezone on the start date and end
-              at 23:59 your local time zone on the ending date.
-            </>
-          ) : undefined
-        }
-      >
-        <Radio.Group
-          disabled={disabled}
-          onChange={(e) => {
-            form.setFieldsValue({ period: e.target.value });
-          }}
-        >
-          <Space direction="vertical" style={{ margin: "5px 0" }}>
-            <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
-            <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
-            <Radio value={"range"}>Specific Start and End Dates</Radio>
-          </Space>
-        </Radio.Group>
-      </Form.Item>
-      <Form.Item name="range" hidden={true}>
-        <Input />
-      </Form.Item>
-      <Form.Item
-        noStyle
-        shouldUpdate={(prevValues, currentValues) =>
-          prevValues.period !== currentValues.period
-        }
-      >
-        {({ getFieldValue }) =>
-          getFieldValue("period") == "range" ? (
-            <DateRange
-              disabled={disabled}
-              noPast
-              maxDaysInFuture={365 * 4}
-              style={{ margin: "5px 0 30px", textAlign: "center" }}
-              initialValues={getFieldValue("range")}
-              onChange={(range) => {
-                // fixes the range to the start/end of day in the timezone of the user
-                const [start, end] = range;
-                range = [
-                  start != null ? startOfDay(start) : undefined,
-                  end != null ? endOfDay(end) : undefined,
-                ];
-                form.setFieldsValue({ range });
-                onChange();
-              }}
-            />
-          ) : null
-        }
-      </Form.Item>
-    </>
   );
 }

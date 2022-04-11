@@ -22,10 +22,10 @@ import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { renderUsageAndDuration } from "./site-license";
 import { computeCost, Cost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
+import { UsageAndDuration } from "./usage-and-duration";
 
 const { Text, Paragraph } = Typography;
 
@@ -127,27 +127,28 @@ function CreateBooster() {
           >
             Boost licenses only work in combination with regular Site Licenses.
             The intention of a Boost License is to increase how much resources
-            your project can use, without having to purchase a new license. For
-            example, it's perfectly fine if you need such a boost only for a
-            couple of days, while otherwise you are happy with a smaller license
-            as part of an ongoing subscription. The following conditions must be
-            met in order to benefit from an activated boost license:
+            your project can use, without having to purchase a new regular
+            license. For example, it's perfectly fine if you need such a boost
+            only for a couple of days, while otherwise you are happy with a
+            smaller license as part of an ongoing subscription. The following
+            conditions must be met in order to benefit from an activated boost
+            license:
             <ul>
               <li>
-                <Text strong>Activated Site License</Text>: the regular Site
-                Licenses must be applied to the project and actively providing
+                <Text strong>Active Site License</Text>: the regular Site
+                License(s) must be applied to the project and actively providing
                 upgrades. This is evalulated each time a project starts. Boosts
-                are added on top of this!
+                are only adding more resources on top of what they provide!
               </li>
               <li>
-                <Text strong>Matching Configuration</Text>: there are different
-                hosting qualities ("Member Hosting") and "Idle Timeout"
-                durations. A booster only works for a site license with a
+                <Text strong>Matching Configuration</Text>: the type of hosting
+                quality ("Member Hosting") and "Idle Timeout" duration must be
+                the same. A booster only works for a site license with a
                 matching upgrade quality.
               </li>
             </ul>
-            Besides that – just like with regular licenses – you can't exceed
-            the run limit, the boost license must be valid, and combining all
+            Besides that – just like a regular license – you can't exceed the
+            run limit, the boost license must be valid, and combining all
             upgrades and boosts together, you cannot exceed the overall upgrade
             limits. If you need vastly more resources, consider purchasing a{" "}
             <Link href={"./dedicated"} scroll={false}>
@@ -200,12 +201,12 @@ function CreateBooster() {
         <Form.Item name="type" initialValue={"boost"} noStyle>
           <Input type="hidden" />
         </Form.Item>
-        {renderUsageAndDuration({
-          showExplanations,
-          form,
-          onChange,
-          disabled: !confirmWarning,
-        })}
+        <UsageAndDuration
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+          disabled={!confirmWarning}
+        />
         <MemberHostingAndIdleTimeout
           showExplanations={showExplanations}
           form={form}
@@ -225,11 +226,14 @@ function CreateBooster() {
         <RunLimit
           showExplanations={showExplanations}
           form={form}
-          disabled={!confirmWarning}
           onChange={onChange}
           boost={true}
+          disabled={!confirmWarning}
         />
-        <TitleDescription showExplanations={showExplanations} />
+        <TitleDescription
+          showExplanations={showExplanations}
+          disabled={!confirmWarning}
+        />
         <Reset
           addBox={
             <AddBox
