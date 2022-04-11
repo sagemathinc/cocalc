@@ -13,6 +13,7 @@ interface Props {
   units?: string;
   presets?: number[];
   disabled?: boolean;
+  step?: number;
 }
 
 export default function IntegerSlider({
@@ -26,6 +27,7 @@ export default function IntegerSlider({
   units,
   presets,
   disabled = false,
+  step = 1,
 }: Props) {
   function toNumber(x) {
     return typeof x === "number" ? x : min;
@@ -49,6 +51,7 @@ export default function IntegerSlider({
             }}
             value={value != null ? toNumber(value) : val}
             defaultValue={initialValue}
+            step={step}
           />
         </Col>
         <Col span={12}>

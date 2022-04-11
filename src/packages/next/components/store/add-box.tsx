@@ -12,11 +12,17 @@ import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
 import { DisplayCost } from "./site-license-cost";
 
+export type LicenseType =
+  | "regular"
+  | "boost"
+  | "dedicated-vm"
+  | "dedicated-disk";
+
 export function AddBox({ cost, router, form, cartError, setCartError }) {
   if (!cost) return null;
 
   async function addToCart() {
-    const description: ProductDescription & { type?: string } =
+    const description: ProductDescription & { type?: LicenseType } =
       form.getFieldsValue(true);
 
     // unload the type parameter
@@ -26,6 +32,19 @@ export function AddBox({ cost, router, form, cartError, setCartError }) {
         break;
       case "boost":
         description.boost = true;
+        break;
+      case "dedicated-vm":
+        description.dedicated_vm = {
+          name: "foo",
+          machine: "n2-standard-4",
+        };
+        break;
+      case "dedicated-disk":
+        description.dedicated_disk = {
+          size_gb: 10,
+          type: "standard",
+          name: "foo",
+        };
         break;
       default:
         setCartError(`Invalid license type: "${description.type}"`);

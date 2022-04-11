@@ -21,7 +21,7 @@ import Overview from "./overview";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
 import Anonymous from "components/misc/anonymous";
-import Dedicated from "./dedicated";
+import DedicatedResource from "./dedicated";
 
 const { Content } = Layout;
 
@@ -89,7 +89,7 @@ export default function StoreLayout({ page }: Props) {
       case "boost":
         return <Boost />;
       case "dedicated":
-        return <Dedicated />;
+        return <DedicatedResource />;
       case "cart":
         return <Cart />;
       case "checkout":

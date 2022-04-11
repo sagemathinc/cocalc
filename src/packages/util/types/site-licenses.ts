@@ -10,7 +10,7 @@ export interface SiteLicenseQuota {
   always_running?: boolean;
   member?: boolean;
   user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | boolean;
+  dedicated_vm?: DedicatedVM | false;
   dedicated_disk?: DedicatedDisk;
   // idle_timeouts came later:
   // 1. they don't mix, just like member/free and always_running does not mix

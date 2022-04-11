@@ -10,7 +10,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { Form, Input, Switch, Typography } from "antd";
 import A from "components/misc/A";
-import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
@@ -250,28 +249,5 @@ function CreateBooster() {
         />
       </Form>
     </div>
-  );
-}
-
-export function EditRunLimit({
-  value,
-  onChange,
-  disabled = false,
-}: {
-  value?;
-  onChange?;
-  disabled?;
-}) {
-  return (
-    <IntegerSlider
-      disabled={disabled}
-      value={value}
-      min={1}
-      max={300}
-      maxText={10000}
-      onChange={onChange}
-      units={"projects"}
-      presets={[1, 2, 10, 50, 100, 250, 500]}
-    />
   );
 }

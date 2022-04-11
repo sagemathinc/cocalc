@@ -280,6 +280,12 @@ export function is_valid_uuid_string(uuid?: any): boolean {
 }
 export const isValidUUID = is_valid_uuid_string;
 
+export function assertValidAccountID(account_id?: any) {
+  if (!isValidUUID(account_id)) {
+    throw Error("account_id is invalid");
+  }
+}
+
 export function assert_uuid(uuid: string): void {
   if (!is_valid_uuid_string(uuid)) {
     throw Error(`invalid uuid='${uuid}'`);

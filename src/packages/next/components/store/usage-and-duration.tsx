@@ -8,15 +8,28 @@ import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
 
-export function UsageAndDuration({
-  showExplanations,
-  form,
-  onChange,
-  disabled = false,
-}) {
-  return (
-    <>
-      <Divider plain>Usage and Duration</Divider>
+interface Props {
+  showExplanations: boolean;
+  form: any;
+  onChange: () => void;
+  disabled?: boolean;
+  showUsage?: boolean;
+  duration?: "all" | "subscriptions" | "range";
+}
+
+export function UsageAndDuration(props: Props) {
+  const {
+    showExplanations,
+    form,
+    onChange,
+    disabled = false,
+    showUsage = true,
+    duration = "all",
+  } = props;
+
+  function renderUsage() {
+    if (!showUsage) return;
+    return (
       <Form.Item
         name="user"
         initialValue="academic"
@@ -42,41 +55,11 @@ export function UsageAndDuration({
           </Space>{" "}
         </Radio.Group>
       </Form.Item>
-      <Form.Item
-        name="period"
-        initialValue={"monthly"}
-        label="Period"
-        extra={
-          showExplanations ? (
-            <>
-              You receive a discount if you pay for the license monthly or
-              yearly via a{" "}
-              <A href="/pricing/subscriptions" external>
-                recurring subscription
-              </A>
-              . You can also pay once for a specific period of time. Licenses
-              start at midnight in your local timezone on the start date and end
-              at 23:59 your local time zone on the ending date.
-            </>
-          ) : undefined
-        }
-      >
-        <Radio.Group
-          disabled={disabled}
-          onChange={(e) => {
-            form.setFieldsValue({ period: e.target.value });
-          }}
-        >
-          <Space direction="vertical" style={{ margin: "5px 0" }}>
-            <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
-            <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
-            <Radio value={"range"}>Specific Start and End Dates</Radio>
-          </Space>
-        </Radio.Group>
-      </Form.Item>
-      <Form.Item name="range" hidden={true}>
-        <Input />
-      </Form.Item>
+    );
+  }
+
+  function renderRange() {
+    return (
       <Form.Item
         noStyle
         shouldUpdate={(prevValues, currentValues) =>
@@ -105,6 +88,75 @@ export function UsageAndDuration({
           ) : null
         }
       </Form.Item>
+    );
+  }
+
+  function renderSubsOptions() {
+    if (duration === "all" || duration === "subscriptions") {
+      return (
+        <>
+          <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
+          <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
+        </>
+      );
+    }
+  }
+
+  function renderRangeOption() {
+    if (duration === "all" || duration === "range") {
+      return <Radio value={"range"}>Specific Start and End Dates</Radio>;
+    }
+  }
+
+  function renderDuration() {
+    const init = duration === "range" ? "range" : "monthly";
+    return (
+      <>
+        <Form.Item name="range" hidden={true}>
+          <Input />
+        </Form.Item>
+        <Form.Item
+          name="period"
+          initialValue={init}
+          label="Period"
+          extra={
+            showExplanations ? (
+              <>
+                You receive a discount if you pay for the license monthly or
+                yearly via a{" "}
+                <A href="/pricing/subscriptions" external>
+                  recurring subscription
+                </A>
+                . You can also pay once for a specific period of time. Licenses
+                start at midnight in your local timezone on the start date and
+                end at 23:59 your local time zone on the ending date.
+              </>
+            ) : undefined
+          }
+        >
+          <Radio.Group
+            disabled={disabled}
+            onChange={(e) => {
+              form.setFieldsValue({ period: e.target.value });
+            }}
+          >
+            <Space direction="vertical" style={{ margin: "5px 0" }}>
+              {renderSubsOptions()}
+              {renderRangeOption()}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+
+        {renderRange()}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Divider plain>{showUsage ? "Usage and " : ""}Duration</Divider>
+      {renderUsage()}
+      {renderDuration()}
     </>
   );
 }

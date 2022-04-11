@@ -25,7 +25,7 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 
-export default function Create() {
+export default function SiteLicense() {
   const router = useRouter();
   return (
     <div>
@@ -50,7 +50,7 @@ export default function Create() {
             <A href="/store/cart">shopping cart</A>.
           </p>
         )}
-        <CreateLicense />
+        <CreateSiteLicense />
       </div>
     </div>
   );
@@ -59,7 +59,7 @@ export default function Create() {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateLicense() {
+function CreateSiteLicense() {
   const [cost, setCost] = useState<Cost | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");

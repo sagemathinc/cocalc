@@ -28,8 +28,7 @@ export interface DiskType {
   };
 }
 
-
-export const DedicatedDiskTypeNames = ["ssd", "standard", "balanced"] as const;
+export const DedicatedDiskTypeNames = ["standard", "balanced", "ssd"] as const;
 
 export type DedicatedDiskTypes = typeof DedicatedDiskTypeNames[number];
 

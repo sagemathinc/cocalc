@@ -23,11 +23,15 @@ export default function useAPI(
   async function call(
     endpoint1: string | undefined = endpoint,
     params1: object | undefined = params,
-    cache_s?: number
+    cache_s1: number | undefined = cache_s
   ): Promise<any> {
     if (endpoint1 == undefined) return;
     if (calling) {
-      queue.current.push({ endpoint: endpoint1, params: params1, cache_s });
+      queue.current.push({
+        endpoint: endpoint1,
+        params: params1,
+        cache_s: cache_s1,
+      });
       return;
     }
     setCalling(true);
