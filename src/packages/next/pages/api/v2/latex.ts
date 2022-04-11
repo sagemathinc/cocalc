@@ -32,6 +32,10 @@ error if the PDF doesn't exist.
 Finally, if the path starts with /tmp, e.g., /tmp/foo/bar.tex, then we do always do "rm /tmp/foo/bar.*"
 to clean up temp file.  We do NOT do this unless the path starts with /tmp.
 
+
+TODO/WARNING: For some reason on kucalc (so cocalc.com), if the project isn't running you'll
+get an error while it is starting.  If you retry in a few seconds then it works.  On cocalc-docker
+and dev mode it all seems to work fine in terms of starting the project, then using.
 */
 
 import getAccountId from "lib/account/get-account";
