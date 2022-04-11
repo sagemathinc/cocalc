@@ -19,6 +19,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 export interface EditorFunctions {
   set_cursor?: (pos: { x?: number; y?: number }) => void;
@@ -33,7 +34,7 @@ interface MultimodeState {
 const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
-// editor uses slate.
+// editor uses slate.  TODO: this should be "text", not "editor".  Oops.
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
@@ -66,7 +67,7 @@ interface Props {
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  saveDebounceMs?: number;
+  saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
   onBlur?: () => void;
   onFocus?: () => void;
   minimal?: boolean;
@@ -131,7 +132,7 @@ export default function MultiMarkdownInput({
   onUploadEnd,
   submitMentionsRef,
   extraHelp,
-  saveDebounceMs,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
   hideHelp,
   onBlur,
   onFocus,
@@ -205,6 +206,7 @@ export default function MultiMarkdownInput({
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
+        console.warn(_err);
         // expected that sometimes this will fail, since after all the selection from last
         // use might be invalid now due to another user changing the document, etc.
       }

@@ -24,7 +24,7 @@ exports.exec_shell_code = (socket, mesg) ->
     misc_node.execute_code
         command     : mesg.command
         args        : mesg.args
-        path        : misc_node.abspath(mesg.path)
+        path        : misc_node.abspath(mesg.path ? "")
         timeout     : mesg.timeout
         err_on_exit : mesg.err_on_exit
         max_output  : mesg.max_output

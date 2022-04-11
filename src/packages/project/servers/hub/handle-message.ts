@@ -19,6 +19,7 @@ const { process_kill } = require("@cocalc/backend/misc_node");
 const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
+import writeTextFileToProject from "./write-text-file-to-project";
 
 const winston = getLogger("handle-message-from-hub");
 
@@ -36,13 +37,19 @@ export default function handleMessage(socket, mesg: Message) {
       socket.heartbeat = new Date();
       return;
 
+    case "ping":
+      // ping message is used only for debugging purposes.
+      socket.write_mesg("json", message.pong({ id: mesg.id }));
+      return;
+
     case "named_server_port":
       handleNamedServer(socket, mesg);
       return;
 
     case "project_exec":
-      // this is no longer used by web browser clients; however it *is* used by the HTTP api,
-      // so do NOT remove it!
+      // this is no longer used by web browser clients; however it *is* used by the HTTP api served
+      // by the hub to api key users, so do NOT remove it!
+      // The web browser clients use the websocket api,
       exec_shell_code(socket, mesg);
       return;
 
@@ -52,6 +59,10 @@ export default function handleMessage(socket, mesg: Message) {
 
     case "write_file_to_project":
       write_file_to_project(socket, mesg);
+      return;
+
+    case "write_text_file_to_project":
+      writeTextFileToProject(socket, mesg);
       return;
 
     case "print_to_pdf":

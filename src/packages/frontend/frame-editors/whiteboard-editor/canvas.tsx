@@ -1422,12 +1422,15 @@ export default function Canvas({
                   : TOOLS[selectedTool]?.cursor
                 : undefined,
             position: "relative",
+            overflow: "hidden",
+            width: `${transformsRef.current.width}px`,
+            height: `${transformsRef.current.height}px`,
           }}
         >
+          {v}
           {!isNavigator && (
             <Grid transforms={transformsRef.current} divRef={gridDivRef} />
           )}
-          {v}
         </div>
       </div>
     </div>
