@@ -233,6 +233,15 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         setIsFocused(true);
       });
 
+      cm.on("copy", (_, event) => {
+        // We tell slate to ignore this event.
+        // I couldn't find any way to get codemirror to allow the copy to happen,
+        // but at the same time to not let the event propogate.  It seems like
+        // codemirror also would ignore the event, which isn't useful.
+        // @ts-ignore
+        event.slateIgnore = true;
+      });
+
       (cm as any).undo = () => {
         actions.undo(id);
       };
