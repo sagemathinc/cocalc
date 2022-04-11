@@ -34,7 +34,7 @@ interface MultimodeState {
 const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
-// editor uses slate.
+// editor uses slate.  TODO: this should be "text", not "editor".  Oops.
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
@@ -206,6 +206,7 @@ export default function MultiMarkdownInput({
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
+        console.warn(_err);
         // expected that sometimes this will fail, since after all the selection from last
         // use might be invalid now due to another user changing the document, etc.
       }

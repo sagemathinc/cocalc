@@ -125,10 +125,20 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <div ref={divRef}>
+        {/* Important: do NOT set cacheId; for some reason restoring selection in markdown (=codemirror) mode
+            breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
+            whereas it makes a lot of sense, e.g., in a Jupyter notebook.
+            Reproduce the weird behavior in a whiteod with cacheId.
+            1. Open new whiteboard and create a note.
+            2. Edit it in Markdown mode
+            3. Close whiteboard, then open it again.
+            4. Gone!
+            The problem is that opening it immediately restores selection, and that breaks something about
+            CSS/layout/etc.  Not sure why, but I'm ok with not having this feature.
+            */}
         <MultiMarkdownInput
           getValueRef={getValueRef}
           fixedMode={element.rotate || !focused ? "editor" : undefined}
-          cacheId={element.id}
           refresh={canvasScale}
           noVfill
           minimal
@@ -149,8 +159,10 @@ function EditText({
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
           onChange={(value) => {
-            console.log("onChange");
             actions.setElement({ obj: { id: element.id, str: value } });
+          }}
+          cmOptions={{
+            lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
           }}
           onModeChange={setMode}
           editBarStyle={{
