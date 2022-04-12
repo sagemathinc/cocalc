@@ -9,7 +9,16 @@ Create a new site license.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { capitalize } from "@cocalc/util/misc";
-import { DedicatedDiskTypeNames } from "@cocalc/util/types/dedicated";
+import {
+  DedicatedDiskTypeNames,
+  DedicatedDiskTypes,
+} from "@cocalc/util/types/dedicated";
+import {
+  DEDICATED_DISK_SIZE_INCREMENT,
+  MAX_DEDICATED_DISK_SIZE,
+  MIN_DEDICATED_DISK_SIZE,
+  PRICES,
+} from "@cocalc/util/upgrades/dedicated";
 import { Divider, Form, Input, Radio } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
@@ -23,6 +32,9 @@ import { computeCost, Cost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+
+const GCP_DISK_URL =
+  "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
 
 export default function DedicatedResource() {
   const router = useRouter();
@@ -132,9 +144,10 @@ function CreateDedicatedResource() {
   function renderTypeSelection() {
     return (
       <Form.Item
-        initialValue="dedicated-disk"
+        initialValue=""
         name="type"
         label="Dedicated"
+        rules={[{ required: true }]}
         extra={
           showExplanations && (
             <>Select if you want to get a Dedicate Disk or a Virtual Machine.</>
@@ -170,31 +183,78 @@ function CreateDedicatedResource() {
     );
   }
 
+  /**
+   * The disk name will get a prefix like "kucalc-[cluster id]-pd-[namespace]-dedicated-..."
+   * It's impossible to know what exactly, since the properties of the cluster can change.
+   * The total length of the disk name is 63, according to the GCE documentation.
+   * https://cloud.google.com/compute/docs/naming-resources#resource-name-format
+   * I hope a max length of 20 is sufficiently restrictive.
+   */
   function validateDedicatedDiskName() {
+    const minLength = 6;
+    const maxLength = 20;
     return {
       validator: async (_, value) => {
-        if (value.length < 5)
-          return Promise.reject("name must be at least 5 characters");
-        if (value.length > 20)
-          return Promise.reject("name must be at most 20 characters");
+        if (value.length < minLength)
+          return Promise.reject(
+            `Name must have at least ${minLength} characters.`
+          );
+        if (value.length > maxLength)
+          return Promise.reject(
+            `Name must have at most ${maxLength} characters.`
+          );
         if (!/^[a-z0-9-]+$/.test(value))
           return Promise.reject(
-            "name must consist of lowercase letters, numbers, and hyphens only"
+            "Name must consist of lowercase letters, numbers, and hyphens only."
           );
+        // if the above passes, then we can check if the name is available.
         const serverCheck = await apiPost(
           "licenses/check-disk-name",
           { name: value },
           60
         );
         console.log("serverCheck", serverCheck);
-        if (serverCheck) {
-          return Promise.reject(serverCheck);
+        if (serverCheck?.available === true) {
+          return Promise.resolve();
         }
-        return Promise.resolve();
+        return Promise.reject("Please choose a different disk name.");
       },
     };
   }
 
+  function renderDedicatedDiskInfo() {
+    if (!showExplanations) return;
+    return (
+      <>
+        More information about Dedicated Disks can be found at{" "}
+        <A href={GCP_DISK_URL}>GCP: Performance by disk size</A>.
+      </>
+    );
+  }
+
+  function renderDiskPerformance() {
+    const size_gb = form.getFieldValue("disk-size_gb");
+    const speed = form.getFieldValue("disk-speed");
+    const diskID = `${size_gb}-${speed}`;
+    const di = PRICES.disks[diskID];
+    if (di == null) {
+      return (
+        <>
+          Unknown disk with ID <code>{diskID}</code>.
+        </>
+      );
+    }
+    return (
+      <>
+        Estimated speed: {di.mbps} MB/s sustained throughput and {di.iops} IOPS
+        read/write. For more detailed information:{" "}
+        <A href={GCP_DISK_URL}>GCP disk performance</A> information.
+      </>
+    );
+  }
+
+  // ATTN: the IntegerSlider must be kept in sync with DEDICATED_DISK_SIZES in
+  // src/packages/util/upgrades/dedicated.ts
   function renderDedicatedDisk() {
     return (
       <>
@@ -202,16 +262,40 @@ function CreateDedicatedResource() {
           name="disk-name"
           label="Name"
           hasFeedback
-          extra={showExplanations && <>Name of disk</>}
+          extra={
+            showExplanations && (
+              <>This must be a unique identifier for the name of the disk.</>
+            )
+          }
           rules={[{ required: true }, validateDedicatedDiskName]}
         >
           <Input style={{ width: "15em" }} />
         </Form.Item>
+
         <Form.Item
-          name="disk-type"
-          label="Type"
-          initialValue={"standard"}
-          extra={showExplanations && <>more info ...</>}
+          label="Size"
+          name="disk-size_gb"
+          initialValue={MIN_DEDICATED_DISK_SIZE + DEDICATED_DISK_SIZE_INCREMENT}
+          extra={showExplanations && <>TODO</>}
+        >
+          <IntegerSlider
+            min={MIN_DEDICATED_DISK_SIZE}
+            max={MAX_DEDICATED_DISK_SIZE}
+            step={DEDICATED_DISK_SIZE_INCREMENT}
+            onChange={(val) => {
+              form.setFieldsValue({ "disk-size_gb": val });
+              onChange();
+            }}
+            units={"GB"}
+            presets={[32, 64, 128, 256, 512, 1024]}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="disk-speed"
+          label="Speed"
+          initialValue={"standard" as DedicatedDiskTypes}
+          extra={renderDedicatedDiskInfo()}
         >
           <Radio.Group
             onChange={(e) => {
@@ -226,29 +310,55 @@ function CreateDedicatedResource() {
             ))}
           </Radio.Group>
         </Form.Item>
-        <Form.Item
-          label="Size"
-          name="disk-size_gb"
-          initialValue={64}
-          extra={showExplanations && <>TODO</>}
-        >
-          <IntegerSlider
-            min={32}
-            max={1024}
-            step={32}
-            onChange={(val) => {
-              form.setFieldsValue({ "disk-size_gb": val });
-              onChange();
-            }}
-            units={"GB"}
-            presets={[32, 64, 128, 256, 512, 1024]}
-          />
-        </Form.Item>
+
+        <Form.Item label="Performance">{renderDiskPerformance()}</Form.Item>
       </>
     );
   }
 
-  function renderDedicatedVM() {}
+  function renderDedicatedVmInfo() {
+    if (!showExplanations) return;
+    return (
+      <>
+        More information about Dedicated VMs can be found at{" "}
+        <A
+          href={
+            "https://cloud.google.com/compute/docs/instances/creating-instance#dedicated-instances"
+          }
+        >
+          GCP: Creating Dedicated Instances
+        </A>
+        .
+      </>
+    );
+  }
+
+  function renderDedicatedVM() {
+    return (
+      <>
+        <Form.Item
+          name="vm-name"
+          label="Name"
+          hasFeedback
+          extra={
+            showExplanations && (
+              <>This is a unique identifyer for the name of the VM.</>
+            )
+          }
+          rules={[{ required: true }]}
+        >
+          <Input style={{ width: "15em" }} />
+        </Form.Item>
+
+        <Form.Item
+          label="Type"
+          name="vm-type"
+          initialValue={"n1-standard-1"}
+          extra={renderDedicatedVmInfo()}
+        ></Form.Item>
+      </>
+    );
+  }
 
   function renderConfiguration() {
     switch (form.getFieldValue("type")) {
@@ -282,20 +392,26 @@ function CreateDedicatedResource() {
         />
 
         {renderTypeSelection()}
-        {renderUsageAndDuration()}
-        <Divider plain>Confguration</Divider>
-        {renderConfiguration()}
 
-        <TitleDescription showExplanations={showExplanations} />
-        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-          <AddBox
-            cost={cost}
-            form={form}
-            cartError={cartError}
-            setCartError={setCartError}
-            router={router}
-          />
-        </Form.Item>
+        {/* User has to select the type once to get started */}
+        {form.getFieldValue("type") !== "" && (
+          <>
+            {renderUsageAndDuration()}
+            <Divider plain>Confguration</Divider>
+            {renderConfiguration()}
+
+            <TitleDescription showExplanations={showExplanations} />
+            <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
+              <AddBox
+                cost={cost}
+                form={form}
+                cartError={cartError}
+                setCartError={setCartError}
+                router={router}
+              />
+            </Form.Item>
+          </>
+        )}
       </Form>
     </div>
   );

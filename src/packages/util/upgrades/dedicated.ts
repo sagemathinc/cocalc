@@ -131,9 +131,25 @@ const MBPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
   ssd: { read: 0.48, write: 0.48 },
 };
 
-export const MAX_DEDICATED_DISK_SIZE = 256;
+export const MIN_DEDICATED_DISK_SIZE = 32;
+export const MAX_DEDICATED_DISK_SIZE = 1024;
+export const DEDICATED_DISK_SIZE_INCREMENT = 32;
 
-for (const size_gb of [64, 128, MAX_DEDICATED_DISK_SIZE]) {
+// this must be kept in sync with the numerical slider in next/stre/dedicated
+// we also make it readonly to avoid accidental changes
+const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
+  const v: number[] = [];
+  for (
+    let i = MIN_DEDICATED_DISK_SIZE;
+    i <= MAX_DEDICATED_DISK_SIZE;
+    i += DEDICATED_DISK_SIZE_INCREMENT
+  ) {
+    v.push(i);
+  }
+  return v;
+})();
+
+for (const size_gb of DEDICATED_DISK_SIZES) {
   for (const type of ["standard", "balanced", "ssd"] as DedicatedDiskTypes[]) {
     const quota = {
       dedicated_disk: { size_gb, type },

@@ -16,6 +16,7 @@ import {
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -24,19 +25,7 @@ export interface Cost extends Cost0 {
   period: Period;
 }
 
-export function computeCost({
-  user,
-  run_limit,
-  period,
-  range,
-  ram,
-  cpu,
-  disk,
-  always_running,
-  member,
-  uptime,
-  boost = false, // if true, allow "all zero" values and start at 0 USD
-}: {
+interface ComputeCostProps {
   user: "academic" | "business";
   run_limit: number;
   period: Period;
@@ -49,7 +38,27 @@ export function computeCost({
   input: PurchaseInfo;
   uptime: keyof typeof LicenseIdleTimeouts | "always_running";
   boost?: boolean;
-}): Cost | undefined {
+  dedicated_disk?: DedicatedDisk;
+  dedicated_vm?: DedicatedVM;
+}
+
+export function computeCost(props: ComputeCostProps): Cost | undefined {
+  const {
+    user,
+    run_limit,
+    period,
+    range,
+    ram,
+    cpu,
+    disk,
+    always_running,
+    member,
+    uptime,
+    boost = false, // if true, allow "all zero" values and start at 0 USD
+    dedicated_disk,
+    dedicated_vm,
+  } = props;
+
   if (period == "range" && range?.[1] == null) {
     return undefined;
   }
@@ -73,6 +82,8 @@ export function computeCost({
     custom_member: member,
     custom_uptime: uptime,
     boost,
+    dedicated_disk,
+    dedicated_vm,
   };
   return {
     ...compute_cost(input),

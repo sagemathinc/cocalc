@@ -20,6 +20,10 @@ export type LicenseType =
 
 export function AddBox({ cost, router, form, cartError, setCartError }) {
   if (!cost) return null;
+  // if any of the fields in cost that start with the string "cost" are NaN, return null
+  if (Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))) {
+    return null;
+  }
 
   async function addToCart() {
     const description: ProductDescription & { type?: LicenseType } =

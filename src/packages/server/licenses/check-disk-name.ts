@@ -1,23 +1,24 @@
 import getPool from "@cocalc/database/pool";
 
-const DEDI_DISK_NAMES = `
-SELECT quota -> 'dedicated_disk' ->> 'name' as name
-FROM site_licenses
-WHERE quota -> 'dedicated_disk' IS NOT NULL`;
+const Q_EXISTS_DISK = `
+SELECT EXISTS(
+    SELECT 1
+    FROM site_licenses
+    WHERE quota -> 'dedicated_disk' IS NOT NULL
+      AND quota -> 'dedicated_disk' ->> 'name' = $1
+)`;
 
 export default async function checkDedicateDiskName(
   name?: string
-): Promise<void> {
+): Promise<{ available: boolean }> {
+  if (typeof name !== "string") {
+    throw new Error(`name must be a string`);
+  }
   const pool = getPool();
-  const { rows } = await pool.query(DEDI_DISK_NAMES);
-  for (const row of rows) {
-    if (row.name === name) {
-      throw new Error(`Disk name ${name} is already taken`);
-    }
+  const { rows } = await pool.query(Q_EXISTS_DISK, [name]);
+  if (rows[0].exists) {
+    throw new Error(`Disk name ${name} is already taken`);
   }
 
-  if (name?.length == 8) {
-    throw Error("disk name is not valid");
-  }
-  return; // all good
+  return { available: true };
 }
