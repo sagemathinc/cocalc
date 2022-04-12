@@ -24,7 +24,6 @@ interface Props {
   visible: List<string>;
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
-  full_desc?: Set<string>; // id's of tasks for which show full description (all shown if actions is null)
   scrollTop?: number; // scroll position -- only used when initially mounted
   scroll_into_view?: boolean;
   font_size: number;
@@ -43,7 +42,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     visible,
     current_task_id,
     local_task_state,
-    full_desc,
     scrollTop,
     scroll_into_view,
     font_size,
@@ -100,18 +98,13 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       } else {
         T = Task;
       }
-      let show_full_desc: boolean;
       let editing_due_date: boolean;
       let editing_desc: boolean;
       if (actions != null) {
         const state = local_task_state?.get(task_id);
-        show_full_desc = !!full_desc?.has(task_id);
         editing_due_date = !!state?.get("editing_due_date");
         editing_desc = !!state?.get("editing_desc");
       } else {
-        // full_desc = true since always expand, e.g., in (stateless) history viewer
-        // -- until we implement some state for it (?)
-        show_full_desc = true;
         editing_due_date = editing_desc = false;
       }
       return (
@@ -125,7 +118,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
           is_current={current_task_id === task_id}
           editing_due_date={editing_due_date}
           editing_desc={editing_desc}
-          full_desc={show_full_desc}
           font_size={font_size}
           sortable={sortable}
           read_only={read_only}

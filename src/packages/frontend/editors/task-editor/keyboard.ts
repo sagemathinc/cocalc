@@ -63,7 +63,7 @@ export function create_key_handler(actions): (any) => void {
 
     if (mod && evt.which === 32) {
       // space - need mod so user can space to scroll down.
-      actions.toggle_full_desc();
+      actions.toggleHideBody();
       return false;
     }
     if (!mod && (evt.which === 13 || evt.which === 73)) {

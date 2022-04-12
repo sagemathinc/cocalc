@@ -160,10 +160,6 @@ export class TaskActions extends Actions<TaskState> {
       });
       local_view_state = local_view_state.set("sort", sort);
     }
-    local_view_state = local_view_state.set(
-      "full_desc",
-      local_view_state.get("full_desc")?.toSet() ?? Set()
-    );
 
     return local_view_state;
   }
@@ -348,7 +344,6 @@ export class TaskActions extends Actions<TaskState> {
         key == "show_max" ||
         key == "font_size" ||
         key == "sort" ||
-        key == "full_desc" ||
         key == "selected_hashtags" ||
         key == "search" ||
         key == "scrollTop"
@@ -694,30 +689,15 @@ export class TaskActions extends Actions<TaskState> {
     this.set_task(task_id, { color }, false, save);
   }
 
-  public toggle_full_desc(task_id: string | undefined): void {
+  public toggleHideBody(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
     if (task_id == null) {
       return;
     }
-    let local_view_state = this.store.get("local_view_state");
-    if (local_view_state == null) return;
-    const full_desc = local_view_state.get("full_desc") ?? Set<string>();
-    if (full_desc.has(task_id)) {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.remove(task_id)
-      );
-    } else {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.add(task_id)
-      );
-    }
-    this.setState({ local_view_state });
-    this._update_visible();
-    this._save_local_view_state();
+    const hideBody = !this.store.getIn(["tasks", task_id, "hideBody"]);
+    this.set_task(task_id, { hideBody });
   }
 
   public show_deleted(): void {

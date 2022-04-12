@@ -26,12 +26,12 @@ interface Props {
   desc: string;
   color?: string;
   editing: boolean;
-  full_desc: boolean;
   is_current: boolean;
   font_size: number;
   read_only: boolean;
   selected_hashtags: Map<string, any>;
   search_terms: Set<string>;
+  hideBody?: boolean;
 }
 
 export const Description: React.FC<Props> = React.memo(
@@ -43,12 +43,12 @@ export const Description: React.FC<Props> = React.memo(
     desc,
     color,
     editing,
-    full_desc,
     is_current,
     font_size,
     read_only,
     selected_hashtags,
     search_terms,
+    hideBody,
   }) => {
     function edit() {
       actions?.edit_desc(task_id);
@@ -83,11 +83,11 @@ export const Description: React.FC<Props> = React.memo(
             path={path}
             project_id={project_id}
             desc={desc}
-            full_desc={full_desc}
             read_only={read_only}
             selected_hashtags={selected_hashtags}
             search_terms={search_terms}
             is_current={is_current}
+            hideBody={hideBody}
           />
         </div>
       );

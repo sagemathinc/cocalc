@@ -127,7 +127,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
             visible={visible}
             current_task_id={current_task_id}
             local_task_state={local_task_state}
-            full_desc={local_view_state.get("full_desc")}
             scrollTop={local_view_state.get("scrollTop")}
             scroll_into_view={scroll_into_view}
             font_size={local_view_state.get("font_size")}

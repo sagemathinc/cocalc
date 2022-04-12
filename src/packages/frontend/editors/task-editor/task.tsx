@@ -29,7 +29,6 @@ interface Props {
   is_current: boolean;
   editing_due_date: boolean;
   editing_desc: boolean;
-  full_desc: boolean;
   font_size: number;
   sortable: boolean;
   read_only: boolean;
@@ -46,7 +45,6 @@ export const Task: React.FC<Props> = React.memo(
     is_current,
     editing_due_date,
     editing_desc,
-    full_desc,
     font_size,
     sortable,
     read_only,
@@ -111,7 +109,7 @@ export const Task: React.FC<Props> = React.memo(
               <MinToggle
                 actions={actions}
                 task_id={task.get("task_id")}
-                full_desc={full_desc}
+                hideBody={task.get("hideBody")}
                 has_body={min_toggle}
               />
             )}
@@ -124,13 +122,13 @@ export const Task: React.FC<Props> = React.memo(
               task_id={task.get("task_id")}
               desc={task.get("desc") ?? ""}
               color={color}
-              full_desc={full_desc}
               editing={editing_desc}
               is_current={is_current}
               font_size={font_size}
               read_only={read_only}
               selected_hashtags={selected_hashtags}
               search_terms={search_terms}
+              hideBody={task.get("hideBody")}
             />
           </Col>
           <Col sm={1}>
