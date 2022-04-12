@@ -43,7 +43,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "v", // "v" = what figma and miro use.
   },
   edge: {
-    icon: "arrow-right",
+    icon: "graph",
     tip: "Edge",
     config: new Set(["color", "radius", "opacity"]),
     key: "e",

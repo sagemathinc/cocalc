@@ -1,30 +1,12 @@
 /*
 Static Markdown
 
-This is a react component that renders markdown text using React. Unlike the
-component defined in editable-markdown.tsx, this component is *static* -- you
-can't edit it. Moreover, it can be fully rendered on node.js for use in Next.js,
-i.e., it doesn't depend on running in a browser.
+This is a react component that renders markdown text using React.  See the
+comments in mostly-static-markdown.tsx for more details, since that's a very
+similar, but more complicated component.
 
-What does this have to do with editors/slate?  There's a lot of excellent code
-in here for:
-
-- Parsing markdown that is enhanced with math, checkboxes, and any other
-enhancements we use in CoCalc to a JSON format.
-
-- Converting that parsed markdown to React components.
-
-What Slate does is provide an interactive framework to manipulate that parsed
-JSON object on which we build a WYSIWYG editor. However, the inputs above also
-lead to a powerful and extensible way of rendering markdown text using React,
-where we can use React components for rendering, rather than HTML. This is more
-robust, secure, etc. Also, it's **possible** to use react-window to do windowing
-and hence render very large documents, which isn't possible using straight HTML,
-and we can do other things like section folding and table of contents in a natural
-way with good code use!
-
-Worries:
-
+A constraint of this component is that it should easily render in the next.js
+application.
 */
 
 import React from "react";

@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { SlateElement, register, RenderElementProps } from "../register";
 import { Checkbox as AntdCheckbox } from "antd";
 
@@ -12,11 +11,11 @@ export interface Checkbox extends SlateElement {
   value?: boolean; // important: using the field value results in more efficient diffs
 }
 
-const StaticElement: React.FC<RenderElementProps> = ({
-  attributes,
-  children,
-  element,
-}) => {
+interface Props extends RenderElementProps {
+  setElement?: (SlateElement) => void;
+}
+
+function StaticElement({ attributes, children, element, setElement }: Props) {
   if (element.type != "checkbox") {
     throw Error("bug");
   }
@@ -29,12 +28,22 @@ const StaticElement: React.FC<RenderElementProps> = ({
           border: "1px solid transparent",
         }}
         checked={!!element.value}
-        disabled={true}
+        disabled={setElement == null}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onChange={
+          setElement == null
+            ? undefined
+            : () => {
+                setElement({ value: !element.value });
+              }
+        }
       />
       {children}
     </span>
   );
-};
+}
 
 register({
   slateType: "checkbox",

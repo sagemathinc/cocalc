@@ -106,6 +106,10 @@ register({
   slateType: "code_block",
   fromSlate,
   Element,
+  rules: {
+    autoFocus: true,
+    autoAdvance: true,
+  },
 });
 
 // The info editor.

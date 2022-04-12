@@ -166,7 +166,7 @@ const Children: React.FC<Props> = React.memo(
         editor.windowedListRef.current = {};
       }
       editor.windowedListRef.current.virtuosoRef = virtuosoRef;
-      editor.windowedListRef.current.scrollerRef = scrollerRef;
+      editor.windowedListRef.current.getScrollerRef = () => scrollerRef.current; // we do this so windowListRef is JSON-able!
 
       // NOTE: the code for preserving scroll position when editing assumes
       // the visibleRange really is *visible*.  Thus if you mess with overscan

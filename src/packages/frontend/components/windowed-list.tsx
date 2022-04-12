@@ -3,6 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+////////
+// **DEPRECATION WARNING**
+// IMPORTANT (April 2022) -- I'm rewriting everything that uses this
+// to instead use https://virtuoso.dev/, which is a vastly superior
+// and well maintained library, as compared to what I did with WindowedList.
+// Don't bother rewriting this -- instead, just delete this as soon
+// as it isn't used anymore.
+////////
+
 /* WARNING/TODO:
 
    scroll_to_index does basically NOTHING right now.

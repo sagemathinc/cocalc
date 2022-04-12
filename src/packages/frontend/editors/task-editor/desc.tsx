@@ -10,7 +10,7 @@ Task description:
  - allows for changing it
 */
 
-import { Map, Set } from "immutable";
+import { Tooltip } from "antd";
 import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
@@ -26,12 +26,12 @@ interface Props {
   desc: string;
   color?: string;
   editing: boolean;
-  full_desc: boolean;
   is_current: boolean;
   font_size: number;
   read_only: boolean;
-  selected_hashtags: Map<string, any>;
-  search_terms: Set<string>;
+  selectedHashtags: Set<string>;
+  searchWords?: string[];
+  hideBody?: boolean;
 }
 
 export const Description: React.FC<Props> = React.memo(
@@ -43,12 +43,12 @@ export const Description: React.FC<Props> = React.memo(
     desc,
     color,
     editing,
-    full_desc,
     is_current,
     font_size,
     read_only,
-    selected_hashtags,
-    search_terms,
+    selectedHashtags,
+    searchWords,
+    hideBody,
   }) => {
     function edit() {
       actions?.edit_desc(task_id);
@@ -80,14 +80,12 @@ export const Description: React.FC<Props> = React.memo(
           <DescriptionRendered
             actions={actions}
             task_id={task_id}
-            path={path}
-            project_id={project_id}
             desc={desc}
-            full_desc={full_desc}
             read_only={read_only}
-            selected_hashtags={selected_hashtags}
-            search_terms={search_terms}
+            selectedHashtags={selectedHashtags}
+            searchWords={searchWords}
             is_current={is_current}
+            hideBody={hideBody}
           />
         </div>
       );
@@ -98,13 +96,11 @@ export const Description: React.FC<Props> = React.memo(
         return;
       }
       return (
-        <Button
-          onClick={edit}
-          style={{ margin: "5px 0" }}
-          title={"Edit this task (double click or enter key)"}
-        >
-          <Icon name={"edit"} /> Edit
-        </Button>
+        <Tooltip title="Edit this task (double click or enter key)">
+          <Button onClick={edit} style={{ float: "right" }}>
+            <Icon name={"edit"} /> Edit
+          </Button>
+        </Tooltip>
       );
     }
 
@@ -114,8 +110,8 @@ export const Description: React.FC<Props> = React.memo(
     return (
       <div>
         {render_editor()}
-        {render_desc()}
         {render_edit_button()}
+        {render_desc()}
       </div>
     );
   }
