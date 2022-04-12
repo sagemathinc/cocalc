@@ -7,7 +7,7 @@
 A single task
 */
 
-import { Set } from "immutable";
+import { Set as immutableSet } from "immutable";
 import { React, CSS } from "../../app-framework";
 import { Grid, Row, Col } from "../../antd-bootstrap";
 import { MinToggle } from "./min-toggle";
@@ -17,7 +17,7 @@ import { DueDate } from "./due";
 import { DragHandle } from "./drag";
 import { DoneCheckbox } from "./done";
 import { header_part } from "./desc-rendering";
-import { SelectedHashtags, TaskMap } from "./types";
+import { TaskMap } from "./types";
 import { TaskActions } from "./actions";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
@@ -32,8 +32,8 @@ interface Props {
   font_size: number;
   sortable: boolean;
   read_only: boolean;
-  selected_hashtags: SelectedHashtags;
-  search_terms: Set<string>;
+  selectedHashtags: Set<string>;
+  search_terms: immutableSet<string>;
 }
 
 export const Task: React.FC<Props> = React.memo(
@@ -48,7 +48,7 @@ export const Task: React.FC<Props> = React.memo(
     font_size,
     sortable,
     read_only,
-    selected_hashtags,
+    selectedHashtags,
     search_terms,
   }) => {
     const style: CSS = {
@@ -126,7 +126,7 @@ export const Task: React.FC<Props> = React.memo(
               is_current={is_current}
               font_size={font_size}
               read_only={read_only}
-              selected_hashtags={selected_hashtags}
+              selectedHashtags={selectedHashtags}
               search_terms={search_terms}
               hideBody={task.get("hideBody")}
             />

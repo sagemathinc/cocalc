@@ -10,7 +10,7 @@ Task description:
  - allows for changing it
 */
 
-import { Map, Set } from "immutable";
+import { Set as immutableSet } from "immutable";
 import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
@@ -29,8 +29,8 @@ interface Props {
   is_current: boolean;
   font_size: number;
   read_only: boolean;
-  selected_hashtags: Map<string, any>;
-  search_terms: Set<string>;
+  selectedHashtags: Set<string>;
+  search_terms: immutableSet<string>;
   hideBody?: boolean;
 }
 
@@ -46,7 +46,7 @@ export const Description: React.FC<Props> = React.memo(
     is_current,
     font_size,
     read_only,
-    selected_hashtags,
+    selectedHashtags,
     search_terms,
     hideBody,
   }) => {
@@ -80,11 +80,9 @@ export const Description: React.FC<Props> = React.memo(
           <DescriptionRendered
             actions={actions}
             task_id={task_id}
-            path={path}
-            project_id={project_id}
             desc={desc}
             read_only={read_only}
-            selected_hashtags={selected_hashtags}
+            selectedHashtags={selectedHashtags}
             search_terms={search_terms}
             is_current={is_current}
             hideBody={hideBody}

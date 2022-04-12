@@ -36,17 +36,22 @@ import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import { slate_to_markdown as slateToMarkdown } from "./slate-to-markdown";
 import Leaf from "./leaf";
+import Hashtag from "./elements/hashtag/component";
 
 interface Props {
   value: string;
   style?: CSSProperties;
   onChange?: (string) => void; // if given support some very minimal amount of editing, e.g., checkboxes; onChange is called with modified markdown.
+  selectedHashtags?: Set<string>;
+  toggleHashtag?: (string) => void;
 }
 
 export default function MostlyStaticMarkdown({
   value,
   style,
   onChange,
+  selectedHashtags,
+  toggleHashtag,
 }: Props) {
   // Convert markdown to our slate JSON object representation.
   const syncCacheRef = useRef<any>({});
@@ -77,25 +82,59 @@ export default function MostlyStaticMarkdown({
   let n = 0;
   for (const element of slate) {
     v.push(
-      <RenderElement key={n} element={element} handleChange={handleChange} />
+      <RenderElement
+        key={n}
+        element={element}
+        handleChange={handleChange}
+        selectedHashtags={selectedHashtags}
+        toggleHashtag={toggleHashtag}
+      />
     );
     n += 1;
   }
   return <div style={{ width: "100%", ...style }}>{v}</div>;
 }
 
-function RenderElement({ element, handleChange }) {
+function RenderElement({
+  element,
+  handleChange,
+  selectedHashtags,
+  toggleHashtag,
+}) {
   let children: JSX.Element[] = [];
   if (element["children"]) {
     let n = 0;
     for (const child of element["children"]) {
       children.push(
-        <RenderElement key={n} element={child} handleChange={handleChange} />
+        <RenderElement
+          key={n}
+          element={child}
+          handleChange={handleChange}
+          selectedHashtags={selectedHashtags}
+          toggleHashtag={toggleHashtag}
+        />
       );
       n += 1;
     }
   }
-  if (element["type"]) {
+  const type = element["type"];
+  if (type) {
+    if (selectedHashtags != null && type == "hashtag") {
+      return (
+        <Hashtag
+          value={element.content}
+          selected={selectedHashtags.has(element.content)}
+          onClick={
+            toggleHashtag != null
+              ? () => {
+                  toggleHashtag(element.content);
+                }
+              : undefined
+          }
+        />
+      );
+    }
+
     const C = getStaticRender(element.type);
     return (
       <C

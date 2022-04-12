@@ -9,26 +9,17 @@ Rendered view of the description of a single task
 
 import { React } from "../../app-framework";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import { Set } from "immutable";
-import {
-  process_hashtags,
-  process_checkboxes,
-  header_part,
-} from "./desc-rendering";
-import { path_split } from "@cocalc/util/misc";
-import { apply_without_math } from "@cocalc/util/mathjax-utils-2";
+import { Set as immutableSet } from "immutable";
+import { header_part } from "./desc-rendering";
 import { TaskActions } from "./actions";
-import { SelectedHashtags } from "./types";
 
 interface Props {
   actions?: TaskActions;
   task_id: string;
   desc: string;
-  path?: string;
-  project_id?: string;
   read_only: boolean;
-  selected_hashtags?: SelectedHashtags;
-  search_terms?: Set<string>;
+  selectedHashtags?: Set<string>;
+  search_terms?: immutableSet<string>;
   is_current?: boolean;
   hideBody?: boolean;
 }
@@ -38,10 +29,8 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     actions,
     task_id,
     desc,
-    path,
-    project_id,
     read_only,
-    selected_hashtags,
+    selectedHashtags,
     search_terms,
     is_current,
     hideBody,
@@ -62,7 +51,27 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       }
       return (
         <>
-          <MostlyStaticMarkdown value={value} highlight={search_terms} />
+          <MostlyStaticMarkdown
+            value={value}
+            highlight={search_terms}
+            onChange={
+              actions != null
+                ? (value) => {
+                    actions.set_desc(task_id, value, true);
+                  }
+                : undefined
+            }
+            selectedHashtags={selectedHashtags}
+            toggleHashtag={
+              selectedHashtags != null && actions != null
+                ? (tag) =>
+                    actions.set_hashtag_state(
+                      tag,
+                      selectedHashtags.has(tag) ? undefined : 1
+                    )
+                : undefined
+            }
+          />
           {show_more_link && (
             <a onClick={() => actions?.toggleHideBody(task_id)}>Show more...</a>
           )}

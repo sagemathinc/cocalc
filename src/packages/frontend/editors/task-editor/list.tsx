@@ -7,9 +7,9 @@
 Windowed List of Tasks -- we use windowing so that even task lists with 500 tasks are fully usable!
 */
 
-import { List, Set } from "immutable";
+import { List, Set as immutableSet } from "immutable";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
-import { React, useEffect, useRef } from "../../app-framework";
+import { React, useEffect, useMemo, useRef } from "../../app-framework";
 import { WindowedList } from "../../components/windowed-list";
 import { Task } from "./task";
 import { TaskActions } from "./actions";
@@ -30,7 +30,7 @@ interface Props {
   sortable?: boolean;
   read_only?: boolean;
   selected_hashtags?: SelectedHashtags;
-  search_terms?: Set<string>;
+  search_terms?: immutableSet<string>;
 }
 
 const TaskListNonsort: React.FC<Props> = React.memo(
@@ -52,6 +52,19 @@ const TaskListNonsort: React.FC<Props> = React.memo(
   }) => {
     const windowed_list_ref = useRef<WindowedList>(null);
     const main_div_ref = useRef(null);
+
+    const selectedHashtags: Set<string> = useMemo(() => {
+      const X = new Set<string>([]);
+      if (selected_hashtags == null) return X;
+      for (const [key] of selected_hashtags) {
+        if (selected_hashtags.get(key) == 1) {
+          // Note -- we don't have to worry at all about v == -1, since such tasks won't be visible!
+          X.add(key);
+        }
+      }
+      console.log(selected_hashtags?.toJS(), X);
+      return X;
+    }, [selected_hashtags]);
 
     useEffect(() => {
       windowed_list_ref.current?.refresh();
@@ -121,7 +134,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
           font_size={font_size}
           sortable={sortable}
           read_only={read_only}
-          selected_hashtags={selected_hashtags}
+          selectedHashtags={selectedHashtags}
           search_terms={search_terms}
         />
       );

@@ -10,7 +10,7 @@ Task Actions
 const LAST_EDITED_THRESH_S = 30;
 const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
 
-import { fromJS, Map, Set } from "immutable";
+import { fromJS, Map } from "immutable";
 import { debounce, throttle } from "lodash";
 import { delay } from "awaiting";
 import {
