@@ -4,17 +4,20 @@
  */
 
 /*
-Windowed List of Tasks -- we use windowing so that even task lists with 500 tasks are fully usable!
+List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500+ tasks are fully usable!
 */
 
 import { List, Set as immutableSet } from "immutable";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { React, useEffect, useMemo, useRef } from "../../app-framework";
-import { WindowedList } from "../../components/windowed-list";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { Task } from "./task";
 import { TaskActions } from "./actions";
 import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 const SortableTask = SortableElement(Task);
+import { useDebouncedCallback } from "use-debounce";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 interface Props {
   actions?: TaskActions;
@@ -24,7 +27,7 @@ interface Props {
   visible: List<string>;
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
-  scrollTop?: number; // scroll position -- only used when initially mounted
+  scrollState?: any;
   scroll_into_view?: boolean;
   font_size: number;
   sortable?: boolean;
@@ -42,7 +45,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     visible,
     current_task_id,
     local_task_state,
-    scrollTop,
+    scrollState,
     scroll_into_view,
     font_size,
     sortable,
@@ -50,8 +53,19 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     selected_hashtags,
     search_terms,
   }) => {
-    const windowed_list_ref = useRef<WindowedList>(null);
     const main_div_ref = useRef(null);
+    const isMountedRef = useIsMountedRef();
+    const saveScroll = useDebouncedCallback((scrollState) => {
+      if (isMountedRef.current && actions != null) {
+        actions.set_local_view_state({ scrollState });
+      }
+    }, 250);
+    const virtuosoScroll = useVirtuosoScrollHook({
+      cacheId: actions?.name,
+      initialState: scrollState,
+      onScroll: saveScroll,
+    });
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
 
     const selectedHashtags: Set<string> = useMemo(() => {
       const X = new Set<string>([]);
@@ -70,14 +84,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     }, [search_terms]);
 
     useEffect(() => {
-      windowed_list_ref.current?.refresh();
-    }, [visible]);
-
-    useEffect(() => {
-      return save_scroll_position;
-    }, []);
-
-    useEffect(() => {
       if (actions && scroll_into_view) {
         _scroll_into_view();
         actions.scroll_into_view_done();
@@ -93,7 +99,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       if (index === -1) {
         return;
       }
-      windowed_list_ref?.current?.scrollToRow(index, "top");
+      virtuosoRef.current?.scrollIntoView({ index });
     }
 
     function render_task(index, task_id) {
@@ -143,16 +149,6 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       );
     }
 
-    function save_scroll_position() {
-      if (actions == null) {
-        return;
-      }
-      const scrollTop = windowed_list_ref?.current?.get_scroll();
-      if (scrollTop != null) {
-        actions.set_local_view_state({ scrollTop });
-      }
-    }
-
     function on_click(e) {
       if (e.target === main_div_ref.current) {
         actions?.enable_key_handler();
@@ -166,16 +162,13 @@ const TaskListNonsort: React.FC<Props> = React.memo(
         onClick={on_click}
         style={{ overflow: "hidden" }}
       >
-        <WindowedList
-          ref={windowed_list_ref}
-          overscan_row_count={10}
-          estimated_row_size={44}
-          row_count={visible.size + 1}
-          row_renderer={(obj) => render_task(obj.index, obj.key)}
-          row_key={(index) => visible.get(index) ?? "filler"}
-          cache_id={actions?.name}
-          scroll_top={scrollTop}
-          hide_resize={false} // hide_resize is false so drag and drop works.
+        <Virtuoso
+          ref={virtuosoRef}
+          totalCount={visible.size + 1}
+          itemContent={(index) =>
+            render_task(index, visible.get(index) ?? `${index}filler`)
+          }
+          {...virtuosoScroll}
         />
       </div>
     );

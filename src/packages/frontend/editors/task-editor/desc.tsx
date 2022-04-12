@@ -10,6 +10,7 @@ Task description:
  - allows for changing it
 */
 
+import { Tooltip } from "antd";
 import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
@@ -95,13 +96,11 @@ export const Description: React.FC<Props> = React.memo(
         return;
       }
       return (
-        <Button
-          onClick={edit}
-          style={{ margin: "5px 0" }}
-          title={"Edit this task (double click or enter key)"}
-        >
-          <Icon name={"edit"} /> Edit
-        </Button>
+        <Tooltip title="Edit this task (double click or enter key)">
+          <Button onClick={edit} style={{ float: "right" }}>
+            <Icon name={"edit"} /> Edit
+          </Button>
+        </Tooltip>
       );
     }
 
@@ -111,8 +110,8 @@ export const Description: React.FC<Props> = React.memo(
     return (
       <div>
         {render_editor()}
-        {render_desc()}
         {render_edit_button()}
+        {render_desc()}
       </div>
     );
   }

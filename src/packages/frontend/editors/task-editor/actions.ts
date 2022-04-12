@@ -218,6 +218,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   private __update_visible(): void {
+    if (this.store == null) return;
     const tasks = this.store.get("tasks");
     if (tasks == null) return;
     const view = this.store.get("local_view_state");
@@ -346,7 +347,7 @@ export class TaskActions extends Actions<TaskState> {
         key == "sort" ||
         key == "selected_hashtags" ||
         key == "search" ||
-        key == "scrollTop"
+        key == "scrollState"
       ) {
         local = local.set(key as any, fromJS(value));
       } else {

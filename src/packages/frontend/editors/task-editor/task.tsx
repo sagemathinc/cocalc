@@ -56,11 +56,12 @@ export const Task: React.FC<Props> = React.memo(
       background: "white",
     };
     if (is_current) {
-      style.border = "1px solid rgb(66, 165, 245)";
+      style.border = "2px solid rgb(66, 165, 245)";
       style.borderLeft = "10px solid rgb(66, 165, 245)";
     } else {
-      style.border = "1px solid #ccc";
+      style.border = "2px solid transparent";
       style.borderLeft = "10px solid #ccc";
+      style.borderTop = "2px solid #eeejj";
     }
     if (task.get("deleted")) {
       style.background = "#d9534f";
