@@ -133,7 +133,7 @@ so maybe that should be implemented...?
 
 function pageWindowed(sign) {
   return ({ editor }) => {
-    const scroller = editor.windowedListRef.current?.scrollerRef.current;
+    const scroller = editor.windowedListRef.current?.getScrollerRef();
     if (scroller == null) return false;
     const { scrollTop } = scroller;
 
@@ -154,13 +154,13 @@ const pageDown = pageWindowed(1);
 register({ key: "PageDown" }, pageDown);
 
 function beginningOfDoc({ editor }) {
-  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  const scroller = editor.windowedListRef.current?.getScrollerRef();
   if (scroller == null) return false;
   scroller.scrollTop = 0;
   return true;
 }
 function endOfDoc({ editor }) {
-  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  const scroller = editor.windowedListRef.current?.getScrollerRef();
   if (scroller == null) return false;
   scroller.scrollTop = 1e20; // basically infinity
   // might have to do it again do to measuring size of rows...

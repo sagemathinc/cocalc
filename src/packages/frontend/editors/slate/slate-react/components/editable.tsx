@@ -119,18 +119,25 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
   // Return true if the given event should be handled
   // by the event handler code defined below.
+  // Regarding slateIgnore below, we use this with codemirror
+  // editor for fenced code blocks and math.
+  // I couldn't find any way to get codemirror to allow the copy to happen,
+  // but at the same time to not let the event propogate.
   const shouldHandle = useCallback(
-    ({
-      event, // the event itself
-      name, // name of the event, e.g., "onClick"
-      notReadOnly, // require doc to not be readOnly (ignored if not specified)
-      editableTarget, // require event target to be editable (defaults to true if not specified!)
-    }: {
-      event;
-      name: string;
-      notReadOnly?: boolean;
-      editableTarget?: boolean;
-    }) =>
+    (
+      {
+        event, // the event itself
+        name, // name of the event, e.g., "onClick"
+        notReadOnly, // require doc to not be readOnly (ignored if not specified)
+        editableTarget, // require event target to be editable (defaults to true if not specified!)
+      }: {
+        event;
+        name: string;
+        notReadOnly?: boolean;
+        editableTarget?: boolean;
+      } // @ts-ignore
+    ) =>
+      !event.nativeEvent?.slateIgnore &&
       (notReadOnly == null || notReadOnly == !readOnly) &&
       ((editableTarget ?? true) == true
         ? hasEditableTarget(editor, event.target)

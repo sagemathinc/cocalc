@@ -5,6 +5,15 @@ Hook to better track clicks versus drags to assist in:
   - drag selected object to move
 */
 
+// temporarily disabled, since it causes a serious bug, where you click
+// on codemirror editor in a slate editor, and it gets focused after
+// the drag, but not in edit mode.  That is very bad, since hitting
+// delete key then deletes everything, etc.
+export default function useMouseClickDrag(_: any) {
+  return undefined;
+}
+
+/*
 import { useRef } from "react";
 
 export default function useMouseClickDrag({
@@ -44,3 +53,5 @@ export default function useMouseClickDrag({
     onTouchEnd: onMouseUp,
   };
 }
+
+*/
