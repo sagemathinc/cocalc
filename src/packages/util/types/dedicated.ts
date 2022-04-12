@@ -36,7 +36,7 @@ export type DedicatedDisk =
   | {
       size_gb: number;
       type: DedicatedDiskTypes;
-      name?: string; // the ID of the disk, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
+      name?: string; // the ID of the disk, globally unique, manually set by user
     }
   | false;
 

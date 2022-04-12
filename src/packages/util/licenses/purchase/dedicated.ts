@@ -13,6 +13,15 @@ import {
   AVG_YEAR_DAYS,
 } from "@cocalc/util/consts/billing";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { DedicatedDisk, DedicatedVM } from "../../types/dedicated";
+
+interface Props {
+  dedicated_vm?: DedicatedVM;
+  dedicated_disk?: DedicatedDisk;
+  start?: Date;
+  end?: Date;
+  subscription: "monthly" | "yearly";
+}
 
 export function dedicatedPrice({
   dedicated_vm,
@@ -20,7 +29,7 @@ export function dedicatedPrice({
   start,
   end,
   subscription,
-}): number | null {
+}: Props): number | null {
   const duration =
     start != null && end != null
       ? (end.getTime() - start.getTime()) / ONE_DAY_MS
@@ -28,19 +37,19 @@ export function dedicatedPrice({
       ? AVG_YEAR_DAYS
       : AVG_MONTH_DAYS;
   if (!!dedicated_vm) {
-    const info = PRICES.vms[dedicated_vm];
+    const info = PRICES.vms[dedicated_vm.machine];
     if (info == null) {
       throw new Error(`Dedicated VM "${dedicated_vm}" is not defined.`);
-      return info.price_day * duration;
     }
+    return info.price_day * duration;
   } else if (!!dedicated_disk) {
-    const info = PRICES.disks[dedicated_disk];
+    const diskID = `${dedicated_disk.size_gb}-${dedicated_disk.type}`;
+    const info = PRICES.disks[diskID];
     if (info == null) {
       throw new Error(`Dedicated Disk "${dedicated_disk}" is not defined.`);
-      return info.price_day * duration;
     }
+    return info.price_day * duration;
   } else {
     throw new Error("Neither VM nor Disk specified!");
   }
-  return null;
 }

@@ -3,28 +3,34 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { COSTS, Subscription } from "@cocalc/util/licenses/purchase/util";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
+import { ReactNode } from "react";
 
 interface Props {
-  showExplanations: boolean;
+  showExplanations?: boolean;
   form: any;
   onChange: () => void;
   disabled?: boolean;
   showUsage?: boolean;
-  duration?: "all" | "subscriptions" | "range";
+  duration?: "all" | "subscriptions" | "monthly" | "yearly" | "range";
+  discount?: boolean;
+  extraDuration?: ReactNode;
 }
 
 export function UsageAndDuration(props: Props) {
   const {
-    showExplanations,
+    showExplanations = false,
     form,
     onChange,
     disabled = false,
     showUsage = true,
     duration = "all",
+    discount = true,
+    extraDuration,
   } = props;
 
   function renderUsage() {
@@ -91,12 +97,26 @@ export function UsageAndDuration(props: Props) {
     );
   }
 
+  function renderSubsDiscount(duration: Subscription) {
+    if (!discount) return;
+    const pct = Math.round(100 * (1 - COSTS.sub_discount[duration]));
+    return ` (discount ${pct}%)`;
+  }
+
   function renderSubsOptions() {
-    if (duration === "all" || duration === "subscriptions") {
+    if (duration === "all" || duration !== "range") {
       return (
         <>
-          <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
-          <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
+          {duration !== "yearly" && (
+            <Radio value={"monthly"}>
+              Monthly Subscription {renderSubsDiscount("monthly")}
+            </Radio>
+          )}
+          {duration !== "monthly" && (
+            <Radio value={"yearly"}>
+              Yearly Subscription {renderSubsDiscount("yearly")}
+            </Radio>
+          )}
         </>
       );
     }
@@ -106,6 +126,25 @@ export function UsageAndDuration(props: Props) {
     if (duration === "all" || duration === "range") {
       return <Radio value={"range"}>Specific Start and End Dates</Radio>;
     }
+  }
+
+  function renderDurationExplanation() {
+    if (extraDuration) {
+      return extraDuration;
+    }
+    if (!showExplanations || !discount) return;
+    return (
+      <>
+        You receive a discount if you pay for the license monthly or yearly via
+        a{" "}
+        <A href="/pricing/subscriptions" external>
+          recurring subscription
+        </A>
+        . You can also pay once for a specific period of time. Licenses start at
+        midnight in your local timezone on the start date and end at 23:59 your
+        local time zone on the ending date.
+      </>
+    );
   }
 
   function renderDuration() {
@@ -119,20 +158,7 @@ export function UsageAndDuration(props: Props) {
           name="period"
           initialValue={init}
           label="Period"
-          extra={
-            showExplanations ? (
-              <>
-                You receive a discount if you pay for the license monthly or
-                yearly via a{" "}
-                <A href="/pricing/subscriptions" external>
-                  recurring subscription
-                </A>
-                . You can also pay once for a specific period of time. Licenses
-                start at midnight in your local timezone on the start date and
-                end at 23:59 your local time zone on the ending date.
-              </>
-            ) : undefined
-          }
+          extra={renderDurationExplanation()}
         >
           <Radio.Group
             disabled={disabled}

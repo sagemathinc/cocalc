@@ -10,7 +10,7 @@ import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
-import { DisplayCost } from "./site-license-cost";
+import { Cost, DisplayCost } from "./site-license-cost";
 
 export type LicenseType =
   | "regular"
@@ -18,7 +18,25 @@ export type LicenseType =
   | "dedicated-vm"
   | "dedicated-disk";
 
-export function AddBox({ cost, router, form, cartError, setCartError }) {
+interface Props {
+  cost: Cost;
+  router: any;
+  form: any;
+  cartError: string | undefined;
+  setCartError: (error) => void;
+  dedicatedItem: boolean;
+}
+
+export function AddBox(props: Props) {
+  const {
+    cost,
+    router,
+    form,
+    cartError,
+    setCartError,
+    dedicatedItem = false,
+  } = props;
+
   if (!cost) return null;
   // if any of the fields in cost that start with the string "cost" are NaN, return null
   if (Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))) {
@@ -38,17 +56,8 @@ export function AddBox({ cost, router, form, cartError, setCartError }) {
         description.boost = true;
         break;
       case "dedicated-vm":
-        description.dedicated_vm = {
-          name: "foo",
-          machine: "n2-standard-4",
-        };
         break;
       case "dedicated-disk":
-        description.dedicated_disk = {
-          size_gb: 10,
-          type: "standard",
-          name: "foo",
-        };
         break;
       default:
         setCartError(`Invalid license type: "${description.type}"`);
@@ -77,6 +86,13 @@ export function AddBox({ cost, router, form, cartError, setCartError }) {
     }
   }
 
+  function costPerProject() {
+    if (dedicatedItem || cost.input.quantity == null) return;
+    return (
+      <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>
+    );
+  }
+
   return (
     <div style={{ textAlign: "center" }}>
       <div
@@ -92,9 +108,7 @@ export function AddBox({ cost, router, form, cartError, setCartError }) {
         }}
       >
         <DisplayCost cost={cost} />
-        <div>
-          {money(cost.discounted_cost / cost.input.quantity)} per project
-        </div>
+        {costPerProject()}
         <div style={{ textAlign: "center" }}>
           {router.query.id != null && (
             <Button

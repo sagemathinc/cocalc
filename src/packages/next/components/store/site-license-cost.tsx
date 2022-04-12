@@ -1,95 +1,136 @@
-import {
-  compute_cost,
-  percent_discount,
-  money,
-  Cost as Cost0,
-  Subscription,
-  PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/util";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { plural } from "@cocalc/util/misc";
-import { ReactNode } from "react";
-import Timestamp from "components/misc/timestamp";
 import {
   LicenseIdleTimeouts,
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { dedicatedPrice } from "@cocalc/util/licenses/purchase/dedicated";
+import {
+  compute_cost,
+  Cost as Cost0,
+  money,
+  percent_discount,
+  PurchaseInfo,
+  Subscription,
+} from "@cocalc/util/licenses/purchase/util";
+import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import Timestamp from "components/misc/timestamp";
+import { ReactNode } from "react";
 
 export type Period = "range" | "monthly" | "yearly";
 
 export interface Cost extends Cost0 {
-  input: any;
+  input: Partial<PurchaseInfo>;
   period: Period;
 }
 
-interface ComputeCostProps {
-  user: "academic" | "business";
-  run_limit: number;
-  period: Period;
-  range: [Date | undefined, Date | undefined];
-  ram: number;
-  cpu: number;
-  disk: number;
-  always_running: boolean;
-  member: boolean;
-  input: PurchaseInfo;
-  uptime: keyof typeof LicenseIdleTimeouts | "always_running";
-  boost?: boolean;
-  dedicated_disk?: DedicatedDisk;
-  dedicated_vm?: DedicatedVM;
-}
+type ComputeCostProps =
+  | {
+      type: "quota";
+      user: "academic" | "business";
+      run_limit: number;
+      period: Period;
+      range: [Date | undefined, Date | undefined];
+      ram: number;
+      cpu: number;
+      disk: number;
+      always_running: boolean;
+      member: boolean;
+      uptime: keyof typeof LicenseIdleTimeouts | "always_running";
+      boost?: boolean;
+    }
+  | {
+      type: "dedicated_vm";
+      dedicated_vm?: DedicatedVM;
+    }
+  | { type: "dedicated_disk"; dedicated_disk?: DedicatedDisk; period: Period };
 
 export function computeCost(props: ComputeCostProps): Cost | undefined {
-  const {
-    user,
-    run_limit,
-    period,
-    range,
-    ram,
-    cpu,
-    disk,
-    always_running,
-    member,
-    uptime,
-    boost = false, // if true, allow "all zero" values and start at 0 USD
-    dedicated_disk,
-    dedicated_vm,
-  } = props;
+  switch (props.type) {
+    case "dedicated_disk":
+      const { dedicated_disk } = props;
+      if (props.period != "monthly") throw new Error("period must be monthly");
+      if (dedicated_disk === false) throw new Error(`should not happen`);
+      const price = dedicatedPrice({
+        dedicated_disk,
+        subscription: "monthly",
+      });
+      if (price == null) return;
+      return {
+        cost: price,
+        cost_per_unit: price,
+        discounted_cost: price,
+        cost_per_project_per_month: price,
+        cost_sub_month: price,
+        cost_sub_year: 12 * price,
+        input: {
+          subscription: props.period,
+          ...props,
+        },
+        period: "monthly",
+      };
 
-  if (period == "range" && range?.[1] == null) {
-    return undefined;
+    case "dedicated_vm":
+      const { dedicated_vm } = props;
+      return {
+        cost: 2.23,
+        cost_per_unit: 2.23,
+        discounted_cost: 2.23,
+        cost_per_project_per_month: 2.23,
+        cost_sub_month: 2.23,
+        cost_sub_year: 2.23,
+        input: { dedicated_vm, subscription: "no" },
+        period: "range",
+      };
+
+    case "quota":
+    default:
+      const {
+        user,
+        run_limit,
+        period,
+        range,
+        ram,
+        cpu,
+        disk,
+        always_running,
+        member,
+        uptime,
+        boost = false, // if true, allow "all zero" values and start at 0 USD
+      } = props;
+
+      if (period == "range" && range?.[1] == null) {
+        return undefined;
+      }
+
+      const input: PurchaseInfo = {
+        user,
+        upgrade: "custom" as "custom",
+        quantity: run_limit,
+        subscription: (period == "range" ? "no" : period) as
+          | "no"
+          | "monthly"
+          | "yearly",
+        start: range?.[0] ?? new Date(),
+        end: range?.[1],
+        custom_ram: ram,
+        custom_dedicated_ram: 0,
+        custom_cpu: cpu,
+        custom_dedicated_cpu: 0,
+        custom_disk: disk,
+        custom_always_running: always_running,
+        custom_member: member,
+        custom_uptime: uptime,
+        boost,
+      };
+      return {
+        ...compute_cost(input),
+        input,
+        period,
+      };
   }
-
-  const input = {
-    user,
-    upgrade: "custom" as "custom",
-    quantity: run_limit,
-    subscription: (period == "range" ? "no" : period) as
-      | "no"
-      | "monthly"
-      | "yearly",
-    start: range?.[0] ?? new Date(),
-    end: range?.[1],
-    custom_ram: ram,
-    custom_dedicated_ram: 0,
-    custom_cpu: cpu,
-    custom_dedicated_cpu: 0,
-    custom_disk: disk,
-    custom_always_running: always_running,
-    custom_member: member,
-    custom_uptime: uptime,
-    boost,
-    dedicated_disk,
-    dedicated_vm,
-  };
-  return {
-    ...compute_cost(input),
-    input,
-    period,
-  };
 }
 
 interface Props {
@@ -148,7 +189,17 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
   );
 }
 
-export function describeItem(info: PurchaseInfo): ReactNode {
+export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
+  if (info.dedicated_disk != null) {
+    return <>Dedicated Disk, ({describePeriod(info)})</>;
+  }
+
+  if (info.dedicated_vm != null) {
+    return "Dedicated VM";
+  }
+
+  if (info.custom_uptime == null || info.quantity == null)
+    throw new Error("should not happen");
   const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
   return (
     <>
@@ -175,8 +226,8 @@ export function describePeriod({
   start,
   end,
 }: {
-  subscription: Subscription;
-  start: Date | string;
+  subscription?: Subscription;
+  start?: Date | string;
   end?: Date | string;
 }): ReactNode {
   if (subscription == "no") {

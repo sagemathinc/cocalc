@@ -58,6 +58,7 @@ export default function IntegerSlider({
           <InputNumber
             min={min}
             max={maxText ?? max}
+            step={step}
             disabled={disabled}
             style={{
               marginLeft: "16px",
@@ -68,8 +69,13 @@ export default function IntegerSlider({
             defaultValue={initialValue}
             value={value ?? val}
             onChange={(value) => {
-              onChange(toNumber(value));
-              setVal(toNumber(value));
+              let val = toNumber(value);
+              if (step !== 1) {
+                // quantize val to a multiple of step
+                val = Math.round(val / step) * step;
+              }
+              onChange(val);
+              setVal(val);
             }}
             addonAfter={units}
           />

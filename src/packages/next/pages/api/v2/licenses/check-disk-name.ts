@@ -15,7 +15,7 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<{available: boolean}> {
+async function get(req): Promise<{ available: boolean }> {
   const account_id = await getAccountId(req);
   if (account_id == null) throw new Error(`user not logged in`);
   return await checkDedicateDiskName(req.body.name);

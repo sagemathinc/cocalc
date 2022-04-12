@@ -8,10 +8,9 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
-import { capitalize } from "@cocalc/util/misc";
 import {
   DedicatedDiskTypeNames,
-  DedicatedDiskTypes,
+  DISK_NAMES,
 } from "@cocalc/util/types/dedicated";
 import {
   DEDICATED_DISK_SIZE_INCREMENT,
@@ -27,11 +26,12 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { AddBox, LicenseType } from "./add-box";
+import { AddBox } from "./add-box";
 import { computeCost, Cost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+import { getType } from "./util";
 
 const GCP_DISK_URL =
   "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
@@ -66,46 +66,70 @@ export default function DedicatedResource() {
 }
 
 function CreateDedicatedResource() {
+  // somehow this state is necessary to render the form properly
+  const [formType, setFormType] = useState<"disk" | "vm" | null>(null);
   const [cost, setCost] = useState<Cost | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
-  const [durationTypes, setDdurationTypes] = useState<
-    "subscriptions" | "range"
-  >("subscriptions");
+  const [durationTypes, setDdurationTypes] = useState<"monthly" | "range">(
+    "monthly"
+  );
   const [form] = Form.useForm();
   const router = useRouter();
 
-  function validateVM() {}
-
-  function onChange() {
+  function fixupDuration() {
     switch (form.getFieldValue("type")) {
-      case "dedicated-disk":
-        setDdurationTypes("subscriptions");
+      case "disk":
+        setDdurationTypes("monthly");
         if (form.getFieldValue("period") === "range") {
           form.setFieldsValue({ period: "monthly" });
         }
         break;
-      case "dedicated-vm":
+      case "vm":
         setDdurationTypes("range");
         if (form.getFieldValue("period") !== "range") {
           form.setFieldsValue({ period: "range" });
         }
-        validateVM();
         break;
     }
-    setCost(computeCost(form.getFieldsValue(true)));
   }
 
-  function getType(item): LicenseType {
-    const descr = item.description;
-    if (descr.dedicated_disk != null && descr.dedicated_disk !== false) {
-      return "dedicated-disk";
+  function calcCost() {
+    const data = form.getFieldsValue(true);
+
+    try {
+      switch (data.type) {
+        case "disk":
+          const size_gb = data["disk-size_gb"];
+          const speed = data["disk-speed"];
+          if (size_gb == null || speed == null) {
+            return; // no data to compute price
+          }
+          setCost(
+            computeCost({
+              type: "dedicated_disk",
+              period: "monthly",
+              dedicated_disk: {
+                type: speed,
+                size_gb,
+                name: data["disk-name"],
+              },
+            })
+          );
+          break;
+        case "vm":
+          break;
+      }
+    } catch (err) {
+      console.log(`error computing cost: ${err}`);
+      setCost(undefined);
     }
-    if (descr.dedicated_vm != null && descr.dedicated_vm !== false) {
-      return "dedicated-vm";
-    }
-    throw new Error(`Unable to load license type of ${JSON.stringify(descr)}`);
+  }
+
+  function onChange() {
+    fixupDuration();
+    calcCost();
   }
 
   useEffect(() => {
@@ -137,6 +161,10 @@ function CreateDedicatedResource() {
     onChange();
   }, []);
 
+  useEffect(() => {
+    form.validateFields();
+  }, [form.getFieldValue("type")]);
+
   if (loading) {
     return <Loading large center />;
   }
@@ -144,10 +172,9 @@ function CreateDedicatedResource() {
   function renderTypeSelection() {
     return (
       <Form.Item
-        initialValue=""
         name="type"
         label="Dedicated"
-        rules={[{ required: true }]}
+        rules={[{ required: true, message: "Please select a type" }]}
         extra={
           showExplanations && (
             <>Select if you want to get a Dedicate Disk or a Virtual Machine.</>
@@ -157,13 +184,14 @@ function CreateDedicatedResource() {
         <Radio.Group
           onChange={(e) => {
             form.setFieldsValue({ type: e.target.value });
+            setFormType(e.target.value);
             onChange();
           }}
         >
-          <Radio.Button key={"disk"} value={"dedicated-disk"}>
+          <Radio.Button key={"disk"} value={"disk"}>
             Disk
           </Radio.Button>
-          <Radio.Button key={"vm"} value={"dedicated-vm"}>
+          <Radio.Button key={"vm"} value={"vm"}>
             Virtual Machine
           </Radio.Button>
         </Radio.Group>
@@ -171,21 +199,45 @@ function CreateDedicatedResource() {
     );
   }
 
+  function renderDurationExplanation() {
+    switch (durationTypes) {
+      case "monthly":
+        return (
+          <>
+            Currently, disk can be rented on a monthly basis only. Note: you can
+            cancel the subscription any time and at the end of the billing
+            period the disk – and the data it holds – will be destroyed.
+          </>
+        );
+      case "range":
+        return (
+          <>
+            Dedicated VMs can only be rented for a specific period of time. At
+            its end, the node will be stopped and removed, and your project
+            moves back to the usual upgrade schema.
+          </>
+        );
+    }
+  }
+
   function renderUsageAndDuration() {
     return (
-      <UsageAndDuration
-        showExplanations={showExplanations}
-        form={form}
-        onChange={onChange}
-        showUsage={false}
-        duration={durationTypes}
-      />
+      <>
+        <UsageAndDuration
+          extraDuration={renderDurationExplanation()}
+          form={form}
+          onChange={onChange}
+          showUsage={false}
+          duration={durationTypes}
+          discount={false}
+        />
+      </>
     );
   }
 
   /**
    * The disk name will get a prefix like "kucalc-[cluster id]-pd-[namespace]-dedicated-..."
-   * It's impossible to know what exactly, since the properties of the cluster can change.
+   * It's impossible to the prefix, since the properties of the cluster can change.
    * The total length of the disk name is 63, according to the GCE documentation.
    * https://cloud.google.com/compute/docs/naming-resources#resource-name-format
    * I hope a max length of 20 is sufficiently restrictive.
@@ -195,6 +247,7 @@ function CreateDedicatedResource() {
     const maxLength = 20;
     return {
       validator: async (_, value) => {
+        if (value == null) return Promise.reject("Please enter a name.");
         if (value.length < minLength)
           return Promise.reject(
             `Name must have at least ${minLength} characters.`
@@ -213,7 +266,6 @@ function CreateDedicatedResource() {
           { name: value },
           60
         );
-        console.log("serverCheck", serverCheck);
         if (serverCheck?.available === true) {
           return Promise.resolve();
         }
@@ -235,6 +287,7 @@ function CreateDedicatedResource() {
   function renderDiskPerformance() {
     const size_gb = form.getFieldValue("disk-size_gb");
     const speed = form.getFieldValue("disk-speed");
+    if (size_gb == null || speed == null) return;
     const diskID = `${size_gb}-${speed}`;
     const di = PRICES.disks[diskID];
     if (di == null) {
@@ -253,6 +306,11 @@ function CreateDedicatedResource() {
     );
   }
 
+  function renderDiskExtra() {
+    if (!showExplanations) return;
+    return <>Name your disk, it must be a unique.</>;
+  }
+
   // ATTN: the IntegerSlider must be kept in sync with DEDICATED_DISK_SIZES in
   // src/packages/util/upgrades/dedicated.ts
   function renderDedicatedDisk() {
@@ -262,12 +320,8 @@ function CreateDedicatedResource() {
           name="disk-name"
           label="Name"
           hasFeedback
-          extra={
-            showExplanations && (
-              <>This must be a unique identifier for the name of the disk.</>
-            )
-          }
-          rules={[{ required: true }, validateDedicatedDiskName]}
+          extra={renderDiskExtra()}
+          rules={[validateDedicatedDiskName]}
         >
           <Input style={{ width: "15em" }} />
         </Form.Item>
@@ -276,7 +330,9 @@ function CreateDedicatedResource() {
           label="Size"
           name="disk-size_gb"
           initialValue={MIN_DEDICATED_DISK_SIZE + DEDICATED_DISK_SIZE_INCREMENT}
-          extra={showExplanations && <>TODO</>}
+          extra={
+            showExplanations && <>Select the size of the dedicated disk.</>
+          }
         >
           <IntegerSlider
             min={MIN_DEDICATED_DISK_SIZE}
@@ -294,7 +350,7 @@ function CreateDedicatedResource() {
         <Form.Item
           name="disk-speed"
           label="Speed"
-          initialValue={"standard" as DedicatedDiskTypes}
+          initialValue={"standard"}
           extra={renderDedicatedDiskInfo()}
         >
           <Radio.Group
@@ -305,7 +361,7 @@ function CreateDedicatedResource() {
           >
             {DedicatedDiskTypeNames.map((type) => (
               <Radio.Button key={type} value={type}>
-                {type === "ssd" ? "SSD" : capitalize(type)}
+                {DISK_NAMES[type]}
               </Radio.Button>
             ))}
           </Radio.Group>
@@ -355,18 +411,37 @@ function CreateDedicatedResource() {
           name="vm-type"
           initialValue={"n1-standard-1"}
           extra={renderDedicatedVmInfo()}
-        ></Form.Item>
+        >
+          <Input style={{ width: "15em" }} />
+        </Form.Item>
       </>
     );
   }
 
   function renderConfiguration() {
-    switch (form.getFieldValue("type")) {
-      case "dedicated-disk":
+    switch (formType) {
+      case "disk":
         return renderDedicatedDisk();
-      case "dedicated-vm":
+      case "vm":
         return renderDedicatedVM();
     }
+  }
+
+  function renderCost() {
+    if (cost == null) return;
+
+    return (
+      <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
+        <AddBox
+          cost={cost}
+          form={form}
+          cartError={cartError}
+          setCartError={setCartError}
+          router={router}
+          dedicatedItem={true}
+        />
+      </Form.Item>
+    );
   }
 
   return (
@@ -393,23 +468,15 @@ function CreateDedicatedResource() {
 
         {renderTypeSelection()}
 
-        {/* User has to select the type once to get started */}
-        {form.getFieldValue("type") !== "" && (
+        {formType != null && (
           <>
             {renderUsageAndDuration()}
+
             <Divider plain>Confguration</Divider>
             {renderConfiguration()}
 
             <TitleDescription showExplanations={showExplanations} />
-            <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-              <AddBox
-                cost={cost}
-                form={form}
-                cartError={cartError}
-                setCartError={setCartError}
-                router={router}
-              />
-            </Form.Item>
+            {renderCost()}
           </>
         )}
       </Form>

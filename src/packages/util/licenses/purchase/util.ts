@@ -12,6 +12,7 @@ import {
 import {
   DedicatedDisk,
   DedicatedDiskTypeNames,
+  DedicatedDiskTypes,
   DedicatedVM,
 } from "@cocalc/util/types/dedicated";
 import {
@@ -60,8 +61,9 @@ export interface PurchaseInfo {
   custom_disk: number;
   custom_member: boolean;
   custom_uptime: Uptime;
-  dedicated_disk?: DedicatedDisk;
+  custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   dedicated_vm?: DedicatedVM;
+  dedicated_disk?: DedicatedDisk;
   title?: string;
   description?: string;
   boost?: boolean;
@@ -119,32 +121,7 @@ export function sanity_checks(info: PurchaseInfo) {
     }
   }
 
-  if (info.dedicated_vm != null) {
-    const vmName = info.dedicated_vm;
-    if (typeof vmName !== "string")
-      throw new Error(`field dedicated_vm must be string`);
-    if (PRICES.vms[vmName] == null)
-      throw new Error(`field dedicated_vm ${vmName} not found`);
-  }
-
-  if (info.dedicated_disk != null) {
-    const dd = info.dedicated_disk;
-    if (typeof dd === "object") {
-      const { size_gb, type } = dd;
-      if (typeof size_gb !== "number") {
-        throw new Error(`field dedicated_disk.size must be number`);
-      }
-      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
-        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
-      }
-      if (typeof type !== "string" || !DedicatedDiskTypeNames.includes(type))
-        throw new Error(
-          `field dedicated_disk.type must be string and one of ${DedicatedDiskTypeNames.join(
-            ", "
-          )}`
-        );
-    }
-  }
+  sanity_check_dedicated(info);
 
   if (info.custom_uptime == null || typeof info.custom_uptime !== "string") {
     throw new Error(`field "custom_uptime" must be set`);
@@ -169,6 +146,38 @@ export function sanity_checks(info: PurchaseInfo) {
 
   if (!isEqual(info.cost, compute_cost(info))) {
     throw Error("cost does not match");
+  }
+}
+
+function sanity_check_dedicated(info) {
+  if (info.dedicated_vm != null) {
+    const vmName = info.dedicated_vm;
+    if (typeof vmName !== "string")
+      throw new Error(`field dedicated_vm must be string`);
+    if (PRICES.vms[vmName] == null)
+      throw new Error(`field dedicated_vm ${vmName} not found`);
+  }
+
+  if (info.dedicated_disk != null) {
+    const dd = info.dedicated_disk;
+    if (typeof dd === "object") {
+      const { size_gb, type } = dd;
+      if (typeof size_gb !== "number") {
+        throw new Error(`field dedicated_disk.size must be number`);
+      }
+      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
+        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
+      }
+      if (
+        typeof type !== "string" ||
+        !DedicatedDiskTypeNames.includes(type as DedicatedDiskTypes)
+      )
+        throw new Error(
+          `field dedicated_disk.type must be string and one of ${DedicatedDiskTypeNames.join(
+            ", "
+          )}`
+        );
+    }
   }
 }
 
@@ -298,9 +307,9 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_dedicated_cpu,
     custom_disk,
     custom_member,
-    dedicated_disk,
-    dedicated_vm,
     custom_uptime,
+    dedicated_vm,
+    dedicated_disk,
     boost = false,
   } = info;
 
@@ -309,26 +318,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
 
-  // TODO this is just a sketch, improve it
-  if (!!dedicated_disk || !!dedicated_vm) {
-    const cost = dedicatedPrice({
-      start,
-      end,
-      subscription,
-      dedicated_disk,
-      dedicated_vm,
-    });
-    if (cost == null) {
-      throw new Error("Problem calculating dedicated price");
-    }
-    return {
-      cost,
-      cost_per_unit: cost,
-      discounted_cost: cost,
-      cost_per_project_per_month: 0,
-      cost_sub_month: 0,
-      cost_sub_year: 0,
-    };
+  if (dedicated_vm != null || dedicated_disk != null) {
+    return compute_cost_dedicated(info);
   }
 
   // this is set in the next if/else block
@@ -489,3 +480,18 @@ export const discount_monthly_pct = Math.round(
 export const discount_yearly_pct = Math.round(
   (1 - COSTS.sub_discount["yearly"]) * 100
 );
+
+export function compute_cost_dedicated(info) {
+  const cost = dedicatedPrice(info);
+  if (cost == null) {
+    throw new Error("Problem calculating dedicated price");
+  }
+  return {
+    cost,
+    cost_per_unit: cost,
+    discounted_cost: cost,
+    cost_per_project_per_month: 0,
+    cost_sub_month: 0,
+    cost_sub_year: 0,
+  };
+}
