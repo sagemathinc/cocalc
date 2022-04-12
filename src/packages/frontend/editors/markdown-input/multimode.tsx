@@ -206,9 +206,10 @@ export default function MultiMarkdownInput({
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
-        console.warn(_err);
-        // expected that sometimes this will fail, since after all the selection from last
-        // use might be invalid now due to another user changing the document, etc.
+        // console.warn(_err);  // definitely don't need this.
+        // This is expected to fail, since the selection from last
+        // use will be invalid now if another user changed the
+        // document, etc., or you did in a different mode, possibly.
       }
     }
     return () => {

@@ -9,7 +9,6 @@ Rendered view of the description of a single task
 
 import { React } from "../../app-framework";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import { Set as immutableSet } from "immutable";
 import { header_part } from "./desc-rendering";
 import { TaskActions } from "./actions";
 
@@ -19,7 +18,7 @@ interface Props {
   desc: string;
   read_only: boolean;
   selectedHashtags?: Set<string>;
-  search_terms?: immutableSet<string>;
+  searchWords?: string[];
   is_current?: boolean;
   hideBody?: boolean;
 }
@@ -31,7 +30,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     desc,
     read_only,
     selectedHashtags,
-    search_terms,
+    searchWords,
     is_current,
     hideBody,
   }) => {
@@ -53,7 +52,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
         <>
           <MostlyStaticMarkdown
             value={value}
-            highlight={search_terms}
+            searchWords={searchWords}
             onChange={
               actions != null
                 ? (value) => {

@@ -7,7 +7,6 @@
 A single task
 */
 
-import { Set as immutableSet } from "immutable";
 import { React, CSS } from "../../app-framework";
 import { Grid, Row, Col } from "../../antd-bootstrap";
 import { MinToggle } from "./min-toggle";
@@ -33,7 +32,7 @@ interface Props {
   sortable: boolean;
   read_only: boolean;
   selectedHashtags: Set<string>;
-  search_terms: immutableSet<string>;
+  searchWords?: string[];
 }
 
 export const Task: React.FC<Props> = React.memo(
@@ -49,7 +48,7 @@ export const Task: React.FC<Props> = React.memo(
     sortable,
     read_only,
     selectedHashtags,
-    search_terms,
+    searchWords,
   }) => {
     const style: CSS = {
       margin: "2px 5px",
@@ -127,7 +126,7 @@ export const Task: React.FC<Props> = React.memo(
               font_size={font_size}
               read_only={read_only}
               selectedHashtags={selectedHashtags}
-              search_terms={search_terms}
+              searchWords={searchWords}
               hideBody={task.get("hideBody")}
             />
           </Col>

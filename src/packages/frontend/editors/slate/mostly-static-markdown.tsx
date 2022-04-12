@@ -37,6 +37,7 @@ import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import { slate_to_markdown as slateToMarkdown } from "./slate-to-markdown";
 import Leaf from "./leaf";
 import Hashtag from "./elements/hashtag/component";
+import Highlighter from "react-highlight-words";
 
 interface Props {
   value: string;
@@ -44,6 +45,7 @@ interface Props {
   onChange?: (string) => void; // if given support some very minimal amount of editing, e.g., checkboxes; onChange is called with modified markdown.
   selectedHashtags?: Set<string>;
   toggleHashtag?: (string) => void;
+  searchWords?: Set<string> | string[]; // higlight text that matches anything in here
 }
 
 export default function MostlyStaticMarkdown({
@@ -52,6 +54,7 @@ export default function MostlyStaticMarkdown({
   onChange,
   selectedHashtags,
   toggleHashtag,
+  searchWords,
 }: Props) {
   // Convert markdown to our slate JSON object representation.
   const syncCacheRef = useRef<any>({});
@@ -80,6 +83,10 @@ export default function MostlyStaticMarkdown({
 
   const v: JSX.Element[] = [];
   let n = 0;
+  if (searchWords != null && searchWords["filter"] == null) {
+    // convert from Set<string> to string[], as required by the Highlighter component.
+    searchWords = Array.from(searchWords);
+  }
   for (const element of slate) {
     v.push(
       <RenderElement
@@ -88,6 +95,7 @@ export default function MostlyStaticMarkdown({
         handleChange={handleChange}
         selectedHashtags={selectedHashtags}
         toggleHashtag={toggleHashtag}
+        searchWords={searchWords}
       />
     );
     n += 1;
@@ -100,6 +108,7 @@ function RenderElement({
   handleChange,
   selectedHashtags,
   toggleHashtag,
+  searchWords,
 }) {
   let children: JSX.Element[] = [];
   if (element["children"]) {
@@ -112,6 +121,7 @@ function RenderElement({
           handleChange={handleChange}
           selectedHashtags={selectedHashtags}
           toggleHashtag={toggleHashtag}
+          searchWords={searchWords}
         />
       );
       n += 1;
@@ -152,7 +162,21 @@ function RenderElement({
   // It's text
   return (
     <Leaf leaf={element} text={{} as any} attributes={{} as any}>
-      {element["text"]}
+      {searchWords != null ? (
+        <Highlighter
+          highlightStyle={
+            {
+              padding: 0,
+                backgroundColor:"#feff03" // to match what chrome browser users.
+            } /* since otherwise partial matches in parts of words add weird spaces in the word itself.*/
+          }
+          searchWords={searchWords}
+          autoEscape={true}
+          textToHighlight={element["text"]}
+        />
+      ) : (
+        element["text"]
+      )}
     </Leaf>
   );
 }

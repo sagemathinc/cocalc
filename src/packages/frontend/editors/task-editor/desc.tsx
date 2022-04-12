@@ -10,7 +10,6 @@ Task description:
  - allows for changing it
 */
 
-import { Set as immutableSet } from "immutable";
 import { Button } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
@@ -30,7 +29,7 @@ interface Props {
   font_size: number;
   read_only: boolean;
   selectedHashtags: Set<string>;
-  search_terms: immutableSet<string>;
+  searchWords?: string[];
   hideBody?: boolean;
 }
 
@@ -47,7 +46,7 @@ export const Description: React.FC<Props> = React.memo(
     font_size,
     read_only,
     selectedHashtags,
-    search_terms,
+    searchWords,
     hideBody,
   }) => {
     function edit() {
@@ -83,7 +82,7 @@ export const Description: React.FC<Props> = React.memo(
             desc={desc}
             read_only={read_only}
             selectedHashtags={selectedHashtags}
-            search_terms={search_terms}
+            searchWords={searchWords}
             is_current={is_current}
             hideBody={hideBody}
           />

@@ -62,9 +62,12 @@ const TaskListNonsort: React.FC<Props> = React.memo(
           X.add(key);
         }
       }
-      console.log(selected_hashtags?.toJS(), X);
       return X;
     }, [selected_hashtags]);
+
+    const searchWords: string[] | undefined = useMemo(() => {
+      return search_terms?.toJS();
+    }, [search_terms]);
 
     useEffect(() => {
       windowed_list_ref.current?.refresh();
@@ -135,7 +138,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
           sortable={sortable}
           read_only={read_only}
           selectedHashtags={selectedHashtags}
-          search_terms={search_terms}
+          searchWords={searchWords}
         />
       );
     }
