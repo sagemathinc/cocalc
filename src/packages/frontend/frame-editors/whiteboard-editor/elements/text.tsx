@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
-import TextStatic, { getStyle, PADDING, PLACEHOLDER } from "./text-static";
+import TextStatic from "./text-mostly-static";
+import { getStyle, PADDING, PLACEHOLDER } from "./text-static";
 export { getStyle };
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import useEditFocus from "./edit-focus";
@@ -24,7 +25,9 @@ export default function Text(props: Props) {
     (props.readOnly || !props.focused || props.element.locked) &&
     props.cursors == null
   ) {
-    return <TextStatic element={props.element} />;
+    // NOTE: not using static whenever possible (e.g., when not focused) results
+    // in massive performance problems when there are many notes.
+    return <TextStatic element={props.element}  />;
   }
   return <EditText {...props} />;
 }

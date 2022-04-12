@@ -149,9 +149,13 @@ export function getRender(slateType: string): React.FC<RenderElementProps> {
   return renderer[slateType];
 }
 
+interface StaticRenderElementProps extends RenderElementProps {
+  setElement?: (obj: any) => void;
+}
+
 export function getStaticRender(
   slateType: string
-): React.FC<RenderElementProps> {
+): React.FC<StaticRenderElementProps> {
   //console.log("getStaticRender", slateType);
   if (staticRenderer[slateType] == null) {
     console.log(
