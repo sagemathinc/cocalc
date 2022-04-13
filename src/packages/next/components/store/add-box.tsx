@@ -6,17 +6,15 @@
 /*
 Create a new site license.
 */
+import { desc } from "@cocalc/frontend/account/keyboard-shortcuts";
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/util";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
 import { Cost, DisplayCost } from "./site-license-cost";
 
-export type LicenseType =
-  | "regular"
-  | "boost"
-  | "dedicated-vm"
-  | "dedicated-disk";
+export type LicenseType = "regular" | "boost" | "vm" | "disk";
 
 interface Props {
   cost?: Cost;
@@ -25,6 +23,7 @@ interface Props {
   cartError: string | undefined;
   setCartError: (error) => void;
   dedicatedItem?: boolean;
+  disabled?: boolean;
 }
 
 export function AddBox(props: Props) {
@@ -35,6 +34,7 @@ export function AddBox(props: Props) {
     cartError,
     setCartError,
     dedicatedItem = false,
+    disabled = false,
   } = props;
 
   if (!cost) return null;
@@ -55,9 +55,28 @@ export function AddBox(props: Props) {
       case "boost":
         description.boost = true;
         break;
-      case "dedicated-vm":
+      case "vm":
+        for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
+          delete description[k];
+        }
         break;
-      case "dedicated-disk":
+      case "disk":
+        console.log(description);
+        delete description["vm-machine"];
+
+        const diskID = `${description["disk-size_gb"]}-${description["disk-speed"]}`;
+        const disk = PRICES.disks[diskID];
+        if (disk == null) {
+          setCartError(`Disk ${diskID} not found`);
+          return;
+        }
+        description.dedicated_disk = {
+          ...disk.quota.dedicated_disk,
+          name: description["disk-name"],
+        };
+        for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
+          delete description[k];
+        }
         break;
       default:
         setCartError(`Invalid license type: "${description.type}"`);
@@ -116,6 +135,7 @@ export function AddBox(props: Props) {
               size="large"
               style={{ marginRight: "5px" }}
               onClick={() => router.push("/store/cart")}
+              disabled={disabled}
             >
               Cancel
             </Button>
@@ -126,7 +146,7 @@ export function AddBox(props: Props) {
             htmlType="submit"
             style={{ marginTop: "5px" }}
             onClick={() => addToCart()}
-            disabled={cost.cost === 0}
+            disabled={!!cartError || cost.cost === 0 || disabled}
           >
             {router.query.id != null ? "Save Changes" : "Add to Cart"}
           </Button>

@@ -94,7 +94,12 @@ function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
     cost_per_project_per_month: AVG_MONTH_DAYS * price_day,
     cost_sub_month: AVG_MONTH_DAYS * price_day,
     cost_sub_year: 12 * AVG_MONTH_DAYS * price_day,
-    input: { ...props, subscription: "no" },
+    input: {
+      ...props,
+      subscription: "no",
+      start: range?.[0] ?? new Date(),
+      end: range?.[1],
+    },
     period: "range",
   };
 }
@@ -213,11 +218,11 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
 
 export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   if (info.dedicated_disk != null) {
-    return <>Dedicated Disk, ({describePeriod(info)})</>;
+    return <>Dedicated Disk, {describePeriod(info)}</>;
   }
 
   if (info.dedicated_vm != null) {
-    return "Dedicated VM";
+    return <>Dedicated VM, {describePeriod(info)}</>;
   }
 
   if (info.custom_uptime == null || info.quantity == null)

@@ -78,30 +78,42 @@ function getDedicatedVMPrice({ mem, cpu, family }): number {
   }
 }
 
+// ATTN: chagnes here have implications for the stripe product ID
+// only append values, do not insert them in the middle or the beginning!
+const VM_MEM_SIZES = ["standard", "highmem"] as const;
+
 // this is used below to avoid wrong values and easier adjustments
-function getSpecAndQuota(spec: string): NonNullable<VMsType[string]> {
+function getSpecAndQuota({
+  family,
+  memSize,
+  cpus,
+}): NonNullable<VMsType[string]> {
+  const spec = `${family}-${memSize}-${cpus}`;
+  const midx = VM_MEM_SIZES.indexOf(memSize);
   const data = deriveVMSpecs(spec);
   const quotas = deriveQuotas(data);
   return {
+    title: `${quotas.cpu} CPU cores, ${quotas.mem} GiB RAM`,
     price_day: getDedicatedVMPrice(data),
     spec: quotas, // the spec for actually setting up the container and communicated publicly
     quota: { dedicated_vm: spec },
+    // "d"edicated "VM", family n2, "m"emory [index] and "c"pu cores number
+    stripeID: `dVM${family}m${midx}c${cpus}`, // partial stripe product id
   };
 }
 
 // generate all dedicated VM specs we want to offer
 function* getVMData() {
   const family = "n2";
-  for (const size of ["standard", "highmem"]) {
+  for (const memSize of VM_MEM_SIZES) {
     for (const cpus of [2, 4, 8, 16]) {
-      yield getSpecAndQuota(`${family}-${size}-${cpus}`);
+      yield getSpecAndQuota({ family, memSize, cpus });
     }
   }
 }
 
 export const VMS: VMsType = {};
 for (const vmtype of getVMData()) {
-  vmtype.title = `${vmtype.spec.cpu} CPU cores, ${vmtype.spec.mem} GiB RAM`;
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }
 
@@ -149,18 +161,31 @@ const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
   return v;
 })();
 
+// ATTN: do not modify/insert/prepend to this list -- only append
+// otherwise you distort the stripe ID!
+const DEDICATED_DISK_TYPES: Readonly<DedicatedDiskTypes[]> = [
+  "standard",
+  "balanced",
+  "ssd",
+] as const;
+
 for (const size_gb of DEDICATED_DISK_SIZES) {
-  for (const type of ["standard", "balanced", "ssd"] as DedicatedDiskTypes[]) {
+  for (const type of DEDICATED_DISK_TYPES) {
     const quota = {
       dedicated_disk: { size_gb, type },
     };
-    const title = dedicated_disk_display(quota.dedicated_disk);
-    const price_day = rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb);
-    const iops = `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`;
-    const mbps =
-      `${Math.round(size_gb * MBPS[type].read)}/` +
-      `${Math.round(size_gb * MBPS[type].write)}`;
-    DISKS[`${size_gb}-${type}`] = { title, price_day, quota, iops, mbps };
+    const tIdx = DEDICATED_DISK_TYPES.indexOf(type);
+    DISKS[`${size_gb}-${type}`] = {
+      quota,
+      title: dedicated_disk_display(quota.dedicated_disk),
+      price_day: rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb),
+      iops: `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`,
+      mbps:
+        `${Math.round(size_gb * MBPS[type].read)}/` +
+        `${Math.round(size_gb * MBPS[type].write)}`,
+      // dedicated "D"isk, "t"ype [number] and "s"ize [number]
+      stripeID: `dDt${tIdx}s${size_gb}`,
+    };
   }
 }
 

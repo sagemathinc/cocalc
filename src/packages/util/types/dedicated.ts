@@ -6,28 +6,32 @@
 export interface VMsType {
   [id: string]:
     | {
-        title?: string;
+        title: string;
         price_day: number;
         spec: { mem: number; cpu: number };
         quota: { dedicated_vm: string }; // only those defined in VMS below
+        stripeID: string; // partial code for the stripe product id
       }
     | undefined;
 }
 
 export interface DiskType {
-  [id: string]: {
-    title: string;
-    price_day: number;
-    iops?: string;
-    mbps?: string;
-    quota: {
-      dedicated_disk: {
-        size_gb: number;
-        type: DedicatedDiskTypes;
-        name?: string;
-      };
-    };
-  };
+  [id: string]:
+    | {
+        title: string;
+        price_day: number;
+        iops: string;
+        mbps: string;
+        stripeID: string; // partial code for the stripe product id
+        quota: {
+          dedicated_disk: {
+            size_gb: number;
+            type: DedicatedDiskTypes;
+            name?: string;
+          };
+        };
+      }
+    | undefined;
 }
 
 export const DedicatedDiskTypeNames = ["standard", "balanced", "ssd"] as const;

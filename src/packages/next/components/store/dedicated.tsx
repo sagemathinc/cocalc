@@ -81,6 +81,7 @@ function CreateDedicatedResource() {
     "monthly"
   );
   const [vmMachine, setVmMachine] = useState<keyof VMsType | null>(null);
+  const [diskNameValid, setDiskNameValid] = useState<boolean>(false);
   const [form] = Form.useForm();
   const router = useRouter();
 
@@ -199,8 +200,11 @@ function CreateDedicatedResource() {
       >
         <Radio.Group
           onChange={(e) => {
+            form.resetFields();
             form.setFieldsValue({ type: e.target.value });
             setFormType(e.target.value);
+            setCost(undefined);
+            setCartError("");
             onChange();
           }}
         >
@@ -251,6 +255,30 @@ function CreateDedicatedResource() {
     );
   }
 
+  async function testDedicatedDiskName(name): Promise<void> {
+    const minLength = 6;
+    const maxLength = 20;
+
+    if (name == null) {
+      throw new Error("Please enter a name.");
+    } else if (name.length < minLength) {
+      throw new Error(`Name must have at least ${minLength} characters.`);
+    } else if (name.length > maxLength) {
+      throw new Error(`Name must have at most ${maxLength} characters.`);
+    } else if (!/^[a-z0-9-]+$/.test(name)) {
+      throw new Error(
+        "Name must consist of lowercase letters, numbers, and hyphens only."
+      );
+    }
+    // if the above passes, then we can check if the name is available.
+    const serverCheck = await apiPost("licenses/check-disk-name", { name }, 60);
+    if (serverCheck?.available === true) {
+      return;
+    } else {
+      throw new Error("Please choose a different disk name.");
+    }
+  }
+
   /**
    * The disk name will get a prefix like "kucalc-[cluster id]-pd-[namespace]-dedicated-..."
    * It's impossible to the prefix, since the properties of the cluster can change.
@@ -259,33 +287,16 @@ function CreateDedicatedResource() {
    * I hope a max length of 20 is sufficiently restrictive.
    */
   function validateDedicatedDiskName() {
-    const minLength = 6;
-    const maxLength = 20;
     return {
-      validator: async (_, value) => {
-        if (value == null) return Promise.reject("Please enter a name.");
-        if (value.length < minLength)
-          return Promise.reject(
-            `Name must have at least ${minLength} characters.`
-          );
-        if (value.length > maxLength)
-          return Promise.reject(
-            `Name must have at most ${maxLength} characters.`
-          );
-        if (!/^[a-z0-9-]+$/.test(value))
-          return Promise.reject(
-            "Name must consist of lowercase letters, numbers, and hyphens only."
-          );
-        // if the above passes, then we can check if the name is available.
-        const serverCheck = await apiPost(
-          "licenses/check-disk-name",
-          { name: value },
-          60
-        );
-        if (serverCheck?.available === true) {
+      validator: async (_, name) => {
+        try {
+          await testDedicatedDiskName(name);
+          setDiskNameValid(true);
           return Promise.resolve();
+        } catch (err) {
+          setDiskNameValid(false);
+          return Promise.reject(err.message);
         }
-        return Promise.reject("Please choose a different disk name.");
       },
     };
   }
@@ -475,6 +486,13 @@ function CreateDedicatedResource() {
 
   function renderCost() {
     if (cost == null) return;
+    const { input } = cost;
+    if (input == null) return;
+
+    const disabled =
+      (input.dedicated_vm != null &&
+        (input.start == null || input.end == null)) ||
+      (input.dedicated_disk != null && !diskNameValid);
 
     return (
       <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
@@ -485,6 +503,7 @@ function CreateDedicatedResource() {
           setCartError={setCartError}
           router={router}
           dedicatedItem={true}
+          disabled={disabled}
         />
       </Form.Item>
     );
