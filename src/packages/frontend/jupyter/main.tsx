@@ -317,7 +317,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     // cells, or they want to preserve state in iframes, which
     // requires keeping things rendered.
 
-    // TODO: virtuoso -- make this a switch that is in the View
+    // TODO -- virtuoso -- make this a switch that is in the View
     // menu, whose value is stored in metadata.  This could also
     // have a paramter for "increaseViewportBy".
     return true;
@@ -517,6 +517,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         overflowY: "hidden",
       }}
     >
+      <div>
+        {use_windowed_list() ? "Using windowing" : "NOT using windowing"}
+      </div>
       {render_kernel_error()}
       {render_error()}
       {render_modals()}

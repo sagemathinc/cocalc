@@ -10,7 +10,7 @@ nonsense at all!  It's much more robust than other approaches.
 (This isn't long but took a lot of work to write, with many rewrites!)
 */
 import LRU from "lru-cache";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 export interface ScrollState {
   index: number;
@@ -23,10 +23,12 @@ export default function useVirtuosoScrollHook({
   cacheId,
   onScroll,
   initialState,
+  disabled,
 }: {
   cacheId?: string;
   onScroll?: (state: ScrollState) => void;
   initialState?: ScrollState;
+  disabled?: boolean; // if true, assume not going to be used.
 }) {
   const itemRef = useRef<{ index: number; offset: number }>({
     index: 0,
@@ -36,9 +38,29 @@ export default function useVirtuosoScrollHook({
   const handleScrollerRef = useCallback((ref) => {
     scrollerRef.current = ref;
   }, []);
+  if (disabled) return {};
+  const lastScrollRef = useRef<ScrollState>(
+    initialState ?? { index: 0, offset: 0 }
+  );
+  const recordScrollState = useMemo(() => {
+    if (onScroll == null) return () => {};
+    return (state: ScrollState) => {
+      if (
+        lastScrollRef.current.index != state.index ||
+        lastScrollRef.current.offset != state.offset
+      ) {
+        if (cacheId) {
+          cache.set(cacheId, state);
+        }
+        lastScrollRef.current = state;
+        onScroll(state);
+      }
+    };
+  }, [onScroll, cacheId]);
 
   return {
-    initialTopMostItemIndex: (cacheId ? cache.get(cacheId) : initialState) ?? 0,
+    initialTopMostItemIndex:
+      (cacheId ? cache.get(cacheId) ?? initialState : initialState) ?? 0,
     scrollerRef: handleScrollerRef,
     onScroll: () => {
       const scrollTop = scrollerRef.current?.scrollTop;
@@ -47,10 +69,7 @@ export default function useVirtuosoScrollHook({
         offset: scrollTop - itemRef.current.offset,
         index: itemRef.current.index,
       };
-      if (cacheId) {
-        cache.set(cacheId, state);
-      }
-      onScroll?.(state);
+      recordScrollState(state);
     },
     itemsRendered: (items) => {
       if (items.length == 0) return;
@@ -61,10 +80,7 @@ export default function useVirtuosoScrollHook({
         offset: scrollTop - items[0].offset,
         index: items[0].index,
       };
-      if (cacheId) {
-        cache.set(cacheId, state);
-      }
-      onScroll?.(state);
+      recordScrollState(state);
     },
   };
 }

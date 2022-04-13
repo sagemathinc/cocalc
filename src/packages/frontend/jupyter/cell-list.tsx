@@ -19,6 +19,7 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookMode, Scroll } from "./types";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { Virtuoso } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -35,7 +36,7 @@ interface CellListProps {
   cm_options: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
-  scrollTop?: number;
+  scrollTop?: any;
   complete?: immutable.Map<string, any>; // status of tab completion
   is_focused?: boolean;
   more_output?: immutable.Map<string, any>;
@@ -311,12 +312,28 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     );
   }
 
+  const virtuosoScroll = useVirtuosoScrollHook(
+    use_windowed_list
+      ? {
+          initialState: scrollTop?.toJS?.(),
+          cacheId:
+            name != null && frameActions.current != null
+              ? `${name}${frameActions.current?.frame_id}`
+              : undefined,
+          onScroll: (scrollState) => {
+            setTimeout(() => {
+              frameActions.current?.set_scrollTop(scrollState);
+            }, 0);
+          },
+        }
+      : { disabled: true }
+  );
+
   if (use_windowed_list) {
     return (
       <Virtuoso
         style={{ fontSize: `${font_size}px`, height: "100%" }}
         totalCount={cell_list.size}
-        increaseViewportBy={3}
         itemContent={(index) => {
           const key = cell_list.get(index);
           if (key == null) return null;
@@ -329,6 +346,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             </div>
           );
         }}
+        {...virtuosoScroll}
       />
     );
   }

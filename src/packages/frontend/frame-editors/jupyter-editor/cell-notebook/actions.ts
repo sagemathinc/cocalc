@@ -376,7 +376,7 @@ export class NotebookFrameActions {
     }
   }
 
-  public set_scrollTop(scrollTop: number): void {
+  public set_scrollTop(scrollTop: any): void {
     this.setState({ scrollTop });
   }
 
