@@ -4,12 +4,14 @@
  */
 
 export interface VMsType {
-  [id: string]: {
-    title?: string;
-    price_day: number;
-    spec: { mem: number; cpu: number };
-    quota: { dedicated_vm: string }; // only those defined in VMS below
-  };
+  [id: string]:
+    | {
+        title?: string;
+        price_day: number;
+        spec: { mem: number; cpu: number };
+        quota: { dedicated_vm: string }; // only those defined in VMS below
+      }
+    | undefined;
 }
 
 export interface DiskType {

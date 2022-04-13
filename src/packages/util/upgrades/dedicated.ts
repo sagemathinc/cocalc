@@ -79,7 +79,7 @@ function getDedicatedVMPrice({ mem, cpu, family }): number {
 }
 
 // this is used below to avoid wrong values and easier adjustments
-function getSpecAndQuota(spec: string): VMsType[string] {
+function getSpecAndQuota(spec: string): NonNullable<VMsType[string]> {
   const data = deriveVMSpecs(spec);
   const quotas = deriveQuotas(data);
   return {

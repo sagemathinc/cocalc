@@ -33,6 +33,8 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
+import { VMsType } from "@cocalc/util/types/dedicated";
+import { money } from "@cocalc/util/licenses/purchase/util";
 
 const { Text } = Typography;
 
@@ -78,6 +80,7 @@ function CreateDedicatedResource() {
   const [durationTypes, setDdurationTypes] = useState<"monthly" | "range">(
     "monthly"
   );
+  const [vmMachine, setVmMachine] = useState<keyof VMsType | null>(null);
   const [form] = Form.useForm();
   const router = useRouter();
 
@@ -399,19 +402,36 @@ function CreateDedicatedResource() {
   }
 
   function renderVmPerformance() {
-    const vmType = form.getFieldValue("vm-machine");
-    if (vmType == null) return;
-    return <>performance of {vmType}</>;
+    if (vmMachine == null) return;
+    const { spec } = PRICES.vms?.[vmMachine] ?? {};
+    if (spec == null) {
+      return (
+        <>
+          Problem: the specifications of <code>{vmMachine}</code> are not known
+        </>
+      );
+    }
+    return (
+      <>
+        Restarting your project while this license is active, will move your
+        project on a virtual machine in <SiteName />
+        's cluster. This machine will allow you to use up to {spec.cpu} CPU
+        cores and {spec.mem} GB memory.
+      </>
+    );
   }
 
   function dedicatedVmOptions() {
     return sortBy(
       Object.entries(PRICES.vms),
       ([_, vm]) => `${1000 + vm.spec.cpu}:${1000 + vm.spec.mem}`
-    ).map(([id, vm]) => {
+    ).map(([id, vm]: [string, NonNullable<VMsType[string]>]) => {
       return (
         <Select.Option key={id} value={id}>
-          {vm.title ?? vm.spec} <Text type="secondary">({id})</Text>
+          <Text>{vm.title ?? vm.spec}</Text>
+          <Text style={{ paddingLeft: "1em" }} type="secondary">
+            ({money(vm.price_day)} per day)
+          </Text>
         </Select.Option>
       );
     });
@@ -423,20 +443,23 @@ function CreateDedicatedResource() {
         <Form.Item
           label="Type"
           name="vm-machine"
-          initialValue={"n2-highmem-2"}
+          initialValue={null}
           extra={renderDedicatedVmInfo()}
           rules={[{ required: true, message: "Please select a VM type." }]}
         >
           <Select
             onChange={(val) => {
               form.setFieldsValue({ "vm-machine": val });
+              setVmMachine(val);
               onChange();
             }}
           >
             {dedicatedVmOptions()}
           </Select>
         </Form.Item>
-        <Form.Item label="Performance">{renderVmPerformance()}</Form.Item>
+        <Form.Item label="Performance">
+          <div style={{ paddingTop: "5px" }}>{renderVmPerformance()}</div>
+        </Form.Item>
       </>
     );
   }

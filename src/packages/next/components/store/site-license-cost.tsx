@@ -83,7 +83,8 @@ function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
   const { range, dedicated_vm } = props;
   const machine = dedicated_vm.machine;
   if (range == null || range[0] == null || range[1] == null) return;
-  const price_day = PRICES.vms[machine].price_day;
+  const price_day = PRICES.vms[machine]?.price_day;
+  if (price_day == null) return;
   const days = getDays({ start: range[0], end: range[1] });
   const price = days * price_day;
   return {
