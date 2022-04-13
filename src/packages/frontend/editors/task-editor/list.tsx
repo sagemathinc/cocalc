@@ -4,17 +4,20 @@
  */
 
 /*
-Windowed List of Tasks -- we use windowing so that even task lists with 500 tasks are fully usable!
+List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500+ tasks are fully usable!
 */
 
-import { List, Set } from "immutable";
+import { List, Set as immutableSet } from "immutable";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
-import { React, useEffect, useRef } from "../../app-framework";
-import { WindowedList } from "../../components/windowed-list";
+import { React, useEffect, useMemo, useRef } from "../../app-framework";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { Task } from "./task";
 import { TaskActions } from "./actions";
 import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 const SortableTask = SortableElement(Task);
+import { useDebouncedCallback } from "use-debounce";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 interface Props {
   actions?: TaskActions;
@@ -24,14 +27,13 @@ interface Props {
   visible: List<string>;
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
-  full_desc?: Set<string>; // id's of tasks for which show full description (all shown if actions is null)
-  scrollTop?: number; // scroll position -- only used when initially mounted
+  scrollState?: any;
   scroll_into_view?: boolean;
   font_size: number;
   sortable?: boolean;
   read_only?: boolean;
   selected_hashtags?: SelectedHashtags;
-  search_terms?: Set<string>;
+  search_terms?: immutableSet<string>;
 }
 
 const TaskListNonsort: React.FC<Props> = React.memo(
@@ -43,8 +45,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     visible,
     current_task_id,
     local_task_state,
-    full_desc,
-    scrollTop,
+    scrollState,
     scroll_into_view,
     font_size,
     sortable,
@@ -52,16 +53,35 @@ const TaskListNonsort: React.FC<Props> = React.memo(
     selected_hashtags,
     search_terms,
   }) => {
-    const windowed_list_ref = useRef<WindowedList>(null);
     const main_div_ref = useRef(null);
+    const isMountedRef = useIsMountedRef();
+    const saveScroll = useDebouncedCallback((scrollState) => {
+      if (isMountedRef.current && actions != null) {
+        actions.set_local_view_state({ scrollState });
+      }
+    }, 250);
+    const virtuosoScroll = useVirtuosoScrollHook({
+      cacheId: actions?.name,
+      initialState: scrollState,
+      onScroll: saveScroll,
+    });
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-    useEffect(() => {
-      windowed_list_ref.current?.refresh();
-    }, [visible]);
+    const selectedHashtags: Set<string> = useMemo(() => {
+      const X = new Set<string>([]);
+      if (selected_hashtags == null) return X;
+      for (const [key] of selected_hashtags) {
+        if (selected_hashtags.get(key) == 1) {
+          // Note -- we don't have to worry at all about v == -1, since such tasks won't be visible!
+          X.add(key);
+        }
+      }
+      return X;
+    }, [selected_hashtags]);
 
-    useEffect(() => {
-      return save_scroll_position;
-    }, []);
+    const searchWords: string[] | undefined = useMemo(() => {
+      return search_terms?.toJS();
+    }, [search_terms]);
 
     useEffect(() => {
       if (actions && scroll_into_view) {
@@ -79,7 +99,7 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       if (index === -1) {
         return;
       }
-      windowed_list_ref?.current?.scrollToRow(index, "top");
+      virtuosoRef.current?.scrollIntoView({ index });
     }
 
     function render_task(index, task_id) {
@@ -100,18 +120,13 @@ const TaskListNonsort: React.FC<Props> = React.memo(
       } else {
         T = Task;
       }
-      let show_full_desc: boolean;
       let editing_due_date: boolean;
       let editing_desc: boolean;
       if (actions != null) {
         const state = local_task_state?.get(task_id);
-        show_full_desc = !!full_desc?.has(task_id);
         editing_due_date = !!state?.get("editing_due_date");
         editing_desc = !!state?.get("editing_desc");
       } else {
-        // full_desc = true since always expand, e.g., in (stateless) history viewer
-        // -- until we implement some state for it (?)
-        show_full_desc = true;
         editing_due_date = editing_desc = false;
       }
       return (
@@ -125,24 +140,13 @@ const TaskListNonsort: React.FC<Props> = React.memo(
           is_current={current_task_id === task_id}
           editing_due_date={editing_due_date}
           editing_desc={editing_desc}
-          full_desc={show_full_desc}
           font_size={font_size}
           sortable={sortable}
           read_only={read_only}
-          selected_hashtags={selected_hashtags}
-          search_terms={search_terms}
+          selectedHashtags={selectedHashtags}
+          searchWords={searchWords}
         />
       );
-    }
-
-    function save_scroll_position() {
-      if (actions == null) {
-        return;
-      }
-      const scrollTop = windowed_list_ref?.current?.get_scroll();
-      if (scrollTop != null) {
-        actions.set_local_view_state({ scrollTop });
-      }
     }
 
     function on_click(e) {
@@ -158,16 +162,13 @@ const TaskListNonsort: React.FC<Props> = React.memo(
         onClick={on_click}
         style={{ overflow: "hidden" }}
       >
-        <WindowedList
-          ref={windowed_list_ref}
-          overscan_row_count={10}
-          estimated_row_size={44}
-          row_count={visible.size + 1}
-          row_renderer={(obj) => render_task(obj.index, obj.key)}
-          row_key={(index) => visible.get(index) ?? "filler"}
-          cache_id={actions?.name}
-          scroll_top={scrollTop}
-          hide_resize={false} // hide_resize is false so drag and drop works.
+        <Virtuoso
+          ref={virtuosoRef}
+          totalCount={visible.size + 1}
+          itemContent={(index) =>
+            render_task(index, visible.get(index) ?? `${index}filler`)
+          }
+          {...virtuosoScroll}
         />
       </div>
     );

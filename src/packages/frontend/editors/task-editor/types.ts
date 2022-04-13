@@ -33,7 +33,6 @@ export interface LocalViewState {
   show_max: number;
   font_size: number;
   sort: Sort;
-  full_desc: Set<string>;
   selected_hashtags?: SelectedHashtags;
   search?: string;
   scroll?: number;
