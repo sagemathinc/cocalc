@@ -44,15 +44,17 @@ type ComputeCostProps =
       boost?: boolean;
     }
   | {
-      type: "dedicated_vm";
+      type: "vm";
       period: "range";
       range: [Date | undefined, Date | undefined];
       dedicated_vm?: DedicatedVM;
     }
-  | { type: "dedicated_disk"; dedicated_disk?: DedicatedDisk; period: Period };
+  | { type: "disk"; dedicated_disk?: DedicatedDisk; period: Period };
+
+export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
 function computeDedicatedDiskCost(props: ComputeCostProps): Cost | undefined {
-  if (props.type !== "dedicated_disk" || props.dedicated_disk == null)
+  if (props.type !== "disk" || props.dedicated_disk == null)
     throw new Error("missing props.dedicated_disk");
   const { dedicated_disk } = props;
   if (props.period != "monthly") throw new Error("period must be monthly");
@@ -78,7 +80,7 @@ function computeDedicatedDiskCost(props: ComputeCostProps): Cost | undefined {
 }
 
 function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
-  if (props.type !== "dedicated_vm" || props.dedicated_vm == null)
+  if (props.type !== "vm" || props.dedicated_vm == null)
     throw new Error("missing props.dedicated_vm");
   const { range, dedicated_vm } = props;
   const machine = dedicated_vm.machine;
@@ -105,11 +107,12 @@ function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
 }
 
 export function computeCost(props: ComputeCostProps): Cost | undefined {
+  console.log("computeCost props", props);
   switch (props.type) {
-    case "dedicated_disk":
+    case "disk":
       return computeDedicatedDiskCost(props);
 
-    case "dedicated_vm":
+    case "vm":
       return computeDedicatedVMCost(props);
 
     case "quota":

@@ -39,6 +39,7 @@ export default function ShoppingCart() {
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
   const cart = useAPI("/shopping/cart/get");
+
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     // TODO deal with errors returned by useAPI
@@ -56,9 +57,12 @@ export default function ShoppingCart() {
     return x;
   }, [cart.result]);
 
+  console.log("items", items);
+
   if (cart.error) {
     return <Alert type="error" message={cart.error} />;
   }
+
   if (!items) {
     return <Loading center />;
   }
@@ -324,6 +328,8 @@ function DescriptionColumn({
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(description.run_limit);
   const { idle_timeout, always_running } = untangleUptime(input.custom_uptime);
+  const showRunLimitEditor =
+    description.type !== "disk" && description.type !== "vm";
 
   function editableQuota() {
     return (
@@ -338,8 +344,10 @@ function DescriptionColumn({
             member: input.custom_member,
             user: input.user,
             boost: input.boost,
+            dedicated_disk: input.dedicated_disk,
+            dedicated_vm: input.dedicated_vm,
           })}
-          {!editRunLimit && (
+          {showRunLimitEditor && !editRunLimit && (
             <>
               <br />
               <Button
@@ -391,6 +399,15 @@ function DescriptionColumn({
     );
   }
 
+  function editPage(): "site-license" | "boost" | "dedicated" {
+    if (input.dedicated_disk != null || input.dedicated_vm != null) {
+      return "dedicated";
+    } else if (input.boost) {
+      return "boost";
+    }
+    return "site-license";
+  }
+
   return (
     <>
       <div style={{ fontSize: "12pt" }}>
@@ -421,7 +438,7 @@ function DescriptionColumn({
         <Button
           style={{ marginRight: "5px" }}
           onClick={() => {
-            const page = input.boost ? "boost" : "site-license";
+            const page = editPage();
             router.push(`/store/${page}?id=${id}`);
           }}
         >

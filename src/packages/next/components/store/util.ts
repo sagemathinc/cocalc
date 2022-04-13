@@ -4,10 +4,12 @@ import { LicenseType } from "./add-box";
 export function getType(item): LicenseType {
   const descr = item.description;
   if (descr.dedicated_disk != null && descr.dedicated_disk !== false) {
-    return "dedicated-disk";
+    return "disk";
+  } else if (descr.dedicated_vm != null && descr.dedicated_vm !== false) {
+    return "vm";
+  } else if (descr.boost === true) {
+    return "boost";
+  } else {
+    return "regular";
   }
-  if (descr.dedicated_vm != null && descr.dedicated_vm !== false) {
-    return "dedicated-vm";
-  }
-  throw new Error(`Unable to load license type of ${JSON.stringify(descr)}`);
 }

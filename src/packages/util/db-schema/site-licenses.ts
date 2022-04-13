@@ -44,6 +44,7 @@ export function describe_quota(
 
   const v: string[] = [];
   let intro: string = "";
+  let hideNetwork = false;
   const isBoost = quota.boost === true;
   const booster = isBoost ? " booster" : "";
   if (short) {
@@ -69,10 +70,12 @@ export function describe_quota(
       `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
     );
   }
+
   if (
     typeof quota.dedicated_vm !== "boolean" &&
     typeof quota.dedicated_vm?.machine === "string"
   ) {
+    hideNetwork = true;
     v.push(
       `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
     );
@@ -81,14 +84,17 @@ export function describe_quota(
       v.push("member" + (short ? "" : " hosting"));
     }
   }
+
   if (
     quota.dedicated_disk != null &&
     typeof quota.dedicated_disk !== "boolean"
   ) {
+    hideNetwork = true;
     v.push(
       `a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`
     );
   }
+
   if (quota.always_running) {
     v.push("always running");
   } else {
@@ -99,7 +105,7 @@ export function describe_quota(
       }
     }
   }
-  if (!isBoost) {
+  if (!hideNetwork && !isBoost) {
     v.push("network"); // always provided, because we trust customers.
   }
   return `${intro} ${v.join(", ")}`;

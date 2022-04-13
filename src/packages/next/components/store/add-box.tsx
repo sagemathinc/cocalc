@@ -6,7 +6,6 @@
 /*
 Create a new site license.
 */
-import { desc } from "@cocalc/frontend/account/keyboard-shortcuts";
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
@@ -49,9 +48,6 @@ export function AddBox(props: Props) {
 
     // unload the type parameter
     switch (description.type) {
-      case "regular":
-        description.boost = false;
-        break;
       case "boost":
         description.boost = true;
         break;
@@ -59,6 +55,7 @@ export function AddBox(props: Props) {
         for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
           delete description[k];
         }
+        description.type = "vm";
         break;
       case "disk":
         console.log(description);
@@ -78,13 +75,11 @@ export function AddBox(props: Props) {
           delete description[k];
         }
         break;
+      case "regular":
       default:
-        setCartError(`Invalid license type: "${description.type}"`);
-        return;
+        description.boost = false;
+        description.type = "regular";
     }
-
-    // and done
-    delete description.type;
 
     try {
       setCartError("");

@@ -115,7 +115,7 @@ function CreateDedicatedResource() {
           }
           setCost(
             computeCost({
-              type: "dedicated_disk",
+              type: "disk",
               period: "monthly",
               dedicated_disk: {
                 type: speed,
@@ -128,7 +128,7 @@ function CreateDedicatedResource() {
         case "vm":
           setCost(
             computeCost({
-              type: "dedicated_vm",
+              type: "vm",
               period: "range",
               range: data.range,
               dedicated_vm: {
@@ -149,6 +149,39 @@ function CreateDedicatedResource() {
     calcCost();
   }
 
+  function loadItem(item: {
+    id: number;
+    product: string;
+    description: { dedicated_disk?: any; dedicated_vm?: any };
+  }) {
+    if (item.product !== "site-license") {
+      throw new Error("not a site license");
+    }
+    const type = getType(item);
+    if (type !== "disk" && type !== "vm") {
+      throw new Error(`cannot deal with type ${type}`);
+    }
+    const conf = item.description;
+    switch (type) {
+      case "disk":
+        const d = conf.dedicated_disk;
+        console.log("disk", d);
+        form.setFieldsValue({
+          type,
+          "disk-size_gb": d.size_gb,
+          "disk-speed": d.type,
+          "disk-name": d.name,
+        });
+        break;
+      case "vm":
+        const vm = conf.dedicated_vm;
+        console.log("vm", vm);
+        break;
+    }
+    // unpacking and configuring the form worked, now we do the type selection to show it
+    setFormType(type);
+  }
+
   useEffect(() => {
     const store_site_license_show_explanations = get_local_storage(
       "store_site_license_show_explanations"
@@ -164,13 +197,11 @@ function CreateDedicatedResource() {
         try {
           setLoading(true);
           item = await apiPost("/shopping/cart/get", { id });
+          loadItem(item);
         } catch (err) {
           setCartError(err.message);
         } finally {
           setLoading(false);
-        }
-        if (item.product == "site-license") {
-          form.setFieldsValue({ ...item.description, type: getType(item) });
         }
         onChange();
       })();
@@ -382,7 +413,7 @@ function CreateDedicatedResource() {
         >
           <Radio.Group
             onChange={(e) => {
-              form.setFieldsValue({ "disk-type": e.target.value });
+              form.setFieldsValue({ "disk-speed": e.target.value });
               onChange();
             }}
           >
