@@ -149,6 +149,7 @@ function Conversation({ element, focused }: Props) {
               minWidth: "500px",
               background: "white",
               fontFamily: "sans-serif",
+              paddingRight: 0, // undoing a temporary hack
             }}
             modeSwitchStyle={{
               visibility: !editFocus ? "hidden" : undefined,
