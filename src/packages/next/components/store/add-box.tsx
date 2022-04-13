@@ -19,12 +19,12 @@ export type LicenseType =
   | "dedicated-disk";
 
 interface Props {
-  cost: Cost;
+  cost?: Cost;
   router: any;
   form: any;
   cartError: string | undefined;
   setCartError: (error) => void;
-  dedicatedItem: boolean;
+  dedicatedItem?: boolean;
 }
 
 export function AddBox(props: Props) {
@@ -87,6 +87,7 @@ export function AddBox(props: Props) {
   }
 
   function costPerProject() {
+    if (!cost) throw new Error(`cost is undefined, should not happen.`);
     if (dedicatedItem || cost.input.quantity == null) return;
     return (
       <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>

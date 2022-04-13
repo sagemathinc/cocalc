@@ -41,7 +41,7 @@ export type DedicatedDisk =
   | false;
 
 export type DedicatedVM = {
-  name: string; // the ID of the VM, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
+  name?: string; // the ID of the VM, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
   machine: string;
 };
 

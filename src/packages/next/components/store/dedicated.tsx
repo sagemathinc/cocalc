@@ -18,12 +18,13 @@ import {
   MIN_DEDICATED_DISK_SIZE,
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
-import { Divider, Form, Input, Radio } from "antd";
+import { Divider, Form, Input, Radio, Select, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
+import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
@@ -32,6 +33,8 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
+
+const { Text } = Typography;
 
 const GCP_DISK_URL =
   "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
@@ -119,6 +122,16 @@ function CreateDedicatedResource() {
           );
           break;
         case "vm":
+          setCost(
+            computeCost({
+              type: "dedicated_vm",
+              period: "range",
+              range: data.range,
+              dedicated_vm: {
+                machine: data["vm-machine"],
+              },
+            })
+          );
           break;
       }
     } catch (err) {
@@ -376,44 +389,54 @@ function CreateDedicatedResource() {
     if (!showExplanations) return;
     return (
       <>
-        More information about Dedicated VMs can be found at{" "}
-        <A
-          href={
-            "https://cloud.google.com/compute/docs/instances/creating-instance#dedicated-instances"
-          }
-        >
-          GCP: Creating Dedicated Instances
+        More information about VM types can be found at{" "}
+        <A href={"https://cloud.google.com/compute/docs/machine-types"}>
+          GCP: machine families
         </A>
         .
       </>
     );
   }
 
+  function renderVmPerformance() {
+    const vmType = form.getFieldValue("vm-machine");
+    if (vmType == null) return;
+    return <>performance of {vmType}</>;
+  }
+
+  function dedicatedVmOptions() {
+    return sortBy(
+      Object.entries(PRICES.vms),
+      ([_, vm]) => `${1000 + vm.spec.cpu}:${1000 + vm.spec.mem}`
+    ).map(([id, vm]) => {
+      return (
+        <Select.Option key={id} value={id}>
+          {vm.title ?? vm.spec} <Text type="secondary">({id})</Text>
+        </Select.Option>
+      );
+    });
+  }
+
   function renderDedicatedVM() {
     return (
       <>
         <Form.Item
-          name="vm-name"
-          label="Name"
-          hasFeedback
-          extra={
-            showExplanations && (
-              <>This is a unique identifyer for the name of the VM.</>
-            )
-          }
-          rules={[{ required: true }]}
-        >
-          <Input style={{ width: "15em" }} />
-        </Form.Item>
-
-        <Form.Item
           label="Type"
-          name="vm-type"
-          initialValue={"n1-standard-1"}
+          name="vm-machine"
+          initialValue={"n2-highmem-2"}
           extra={renderDedicatedVmInfo()}
+          rules={[{ required: true, message: "Please select a VM type." }]}
         >
-          <Input style={{ width: "15em" }} />
+          <Select
+            onChange={(val) => {
+              form.setFieldsValue({ "vm-machine": val });
+              onChange();
+            }}
+          >
+            {dedicatedVmOptions()}
+          </Select>
         </Form.Item>
+        <Form.Item label="Performance">{renderVmPerformance()}</Form.Item>
       </>
     );
   }

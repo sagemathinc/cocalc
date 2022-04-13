@@ -1,4 +1,5 @@
 import { Icon } from "@cocalc/frontend/components/icon";
+import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import {
   LicenseIdleTimeouts,
   untangleUptime,
@@ -16,6 +17,7 @@ import {
 import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import Timestamp from "components/misc/timestamp";
 import { ReactNode } from "react";
 
@@ -43,47 +45,66 @@ type ComputeCostProps =
     }
   | {
       type: "dedicated_vm";
+      period: "range";
+      range: [Date | undefined, Date | undefined];
       dedicated_vm?: DedicatedVM;
     }
   | { type: "dedicated_disk"; dedicated_disk?: DedicatedDisk; period: Period };
 
+function computeDedicatedDiskCost(props: ComputeCostProps): Cost | undefined {
+  if (props.type !== "dedicated_disk" || props.dedicated_disk == null)
+    throw new Error("missing props.dedicated_disk");
+  const { dedicated_disk } = props;
+  if (props.period != "monthly") throw new Error("period must be monthly");
+  if (dedicated_disk === false) throw new Error(`should not happen`);
+  const price = dedicatedPrice({
+    dedicated_disk,
+    subscription: "monthly",
+  });
+  if (price == null) return;
+  return {
+    cost: price,
+    cost_per_unit: price,
+    discounted_cost: price,
+    cost_per_project_per_month: price,
+    cost_sub_month: price,
+    cost_sub_year: 12 * price,
+    input: {
+      subscription: props.period,
+      ...props,
+    },
+    period: "monthly",
+  };
+}
+
+function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
+  if (props.type !== "dedicated_vm" || props.dedicated_vm == null)
+    throw new Error("missing props.dedicated_vm");
+  const { range, dedicated_vm } = props;
+  const machine = dedicated_vm.machine;
+  if (range == null || range[0] == null || range[1] == null) return;
+  const price_day = PRICES.vms[machine].price_day;
+  const days = getDays({ start: range[0], end: range[1] });
+  const price = days * price_day;
+  return {
+    cost: price,
+    cost_per_unit: price,
+    discounted_cost: price,
+    cost_per_project_per_month: AVG_MONTH_DAYS * price_day,
+    cost_sub_month: AVG_MONTH_DAYS * price_day,
+    cost_sub_year: 12 * AVG_MONTH_DAYS * price_day,
+    input: { ...props, subscription: "no" },
+    period: "range",
+  };
+}
+
 export function computeCost(props: ComputeCostProps): Cost | undefined {
   switch (props.type) {
     case "dedicated_disk":
-      const { dedicated_disk } = props;
-      if (props.period != "monthly") throw new Error("period must be monthly");
-      if (dedicated_disk === false) throw new Error(`should not happen`);
-      const price = dedicatedPrice({
-        dedicated_disk,
-        subscription: "monthly",
-      });
-      if (price == null) return;
-      return {
-        cost: price,
-        cost_per_unit: price,
-        discounted_cost: price,
-        cost_per_project_per_month: price,
-        cost_sub_month: price,
-        cost_sub_year: 12 * price,
-        input: {
-          subscription: props.period,
-          ...props,
-        },
-        period: "monthly",
-      };
+      return computeDedicatedDiskCost(props);
 
     case "dedicated_vm":
-      const { dedicated_vm } = props;
-      return {
-        cost: 2.23,
-        cost_per_unit: 2.23,
-        discounted_cost: 2.23,
-        cost_per_project_per_month: 2.23,
-        cost_sub_month: 2.23,
-        cost_sub_year: 2.23,
-        input: { dedicated_vm, subscription: "no" },
-        period: "range",
-      };
+      return computeDedicatedVMCost(props);
 
     case "quota":
     default:
@@ -217,7 +238,7 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   );
 }
 
-function describeQuantity({ quantity }: { quantity: number }): ReactNode {
+function describeQuantity({ quantity = 1 }: { quantity?: number }): ReactNode {
   return `for ${quantity} running ${plural(quantity, "project")}`;
 }
 
@@ -231,6 +252,7 @@ export function describePeriod({
   end?: Date | string;
 }): ReactNode {
   if (subscription == "no") {
+    if (start == null) throw new Error(`start date not set!`);
     const days = getDays({ start, end });
     return (
       <>
