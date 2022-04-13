@@ -27,7 +27,7 @@ export default function Text(props: Props) {
   ) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
     // in massive performance problems when there are many notes.
-    return <TextStatic element={props.element}  />;
+    return <TextStatic element={props.element} />;
   }
   return <EditText {...props} />;
 }
@@ -178,6 +178,7 @@ function EditText({
             minWidth: "500px",
             background: "white",
             fontFamily: "sans-serif",
+            paddingRight: 0, // undoing a temporary hack
           }}
           modeSwitchStyle={{
             top: "-82px",

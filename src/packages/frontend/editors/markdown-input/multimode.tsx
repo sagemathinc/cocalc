@@ -366,7 +366,12 @@ export default function MultiMarkdownInput({
                 : { padding: "5px 15px" }
             }
             height={height}
-            editBarStyle={editBarStyle}
+            editBarStyle={
+              {
+                paddingRight: "127px",
+                ...editBarStyle,
+              } /* this paddingRight is of course just a stupid temporary hack, since by default the mode switch is on top of it, which matters when cursor in a list or URL */
+            }
             saveDebounceMs={saveDebounceMs}
             getValueRef={getValueRef}
             actions={{
