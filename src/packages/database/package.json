@@ -25,7 +25,7 @@
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
-    "async": "^1.5.2",
+    "async": "^3.2.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
