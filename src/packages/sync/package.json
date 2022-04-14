@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/sync",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
     "./*": "./dist/*.js",
