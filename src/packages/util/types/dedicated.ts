@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { to_human_list } from "../misc";
-
 export interface VMsType {
   [id: string]:
     | {
@@ -65,17 +63,4 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
     typeof d.size_gb === "number" &&
     ["ssd", "standard", "balanced"].includes(d.type)
   );
-}
-
-export function dedicatedDiskDisplayConfig(disk: DedicatedDisk): string {
-  if (typeof disk === "boolean") return "";
-  return to_human_list([
-    `${disk.size_gb} GB`,
-    `${DISK_NAMES[disk.type] ?? disk.type} speed`,
-    `named "${disk.name ?? "<unknown>"}"`,
-  ]);
-}
-
-export function DedicatedVMDisplayconfig(v: DedicatedVM): string {
-  return `Machine type "${v.machine}"`;
 }

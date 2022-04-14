@@ -23,12 +23,9 @@ import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import {
-  DedicatedDisk,
-  DedicatedVM,
-  dedicated_disk_display,
-} from "@cocalc/util/types/dedicated";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import { Button, Card, Typography } from "antd";
 import { QuotaConsole } from "./quota-console";
 import { RunQuota } from "./run-quota";
@@ -261,7 +258,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
       if (typeof disk === "boolean") continue;
       entries.push(
         <li key={disk.name}>
-          {dedicated_disk_display(disk)}
+          {dedicatedDiskDisplay(disk)}
           {disk.name && (
             <>
               , <code>id={disk.name}</code>

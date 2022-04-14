@@ -20,7 +20,6 @@ for students).
 import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
-import { dedicatedDiskDisplayConfig } from "@cocalc/util/types/dedicated";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import {
   LicenseIdleTimeouts,
@@ -28,6 +27,7 @@ import {
   Uptime,
 } from "../consts/site-license";
 import { capitalize } from "lodash";
+import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
 
 export function describe_quota(
   quota: SiteLicenseQuota & { uptime?: Uptime },
@@ -47,10 +47,15 @@ export function describe_quota(
   let hideNetwork = false;
   const isBoost = quota.boost === true;
   const booster = isBoost ? " booster" : "";
-  if (short) {
-    intro = `${capitalize(quota.user)}${booster},`;
+  if (quota.user) {
+    if (short) {
+      intro = `${capitalize(quota.user)}${booster},`;
+    } else {
+      intro = `${capitalize(quota.user)} license${booster} providing`;
+    }
   } else {
-    intro = `${capitalize(quota.user)} license${booster} providing`;
+    // dedicated resources do not have a specific user
+    intro = short ? "License" : "License providing";
   }
 
   if (quota.ram) {
@@ -77,7 +82,9 @@ export function describe_quota(
   ) {
     hideNetwork = true;
     v.push(
-      `hosting on a Dedicated VM of type "${quota.dedicated_vm?.machine}"`
+      `hosting on a Dedicated VM providing ${dedicatedVmDisplay(
+        quota.dedicated_vm
+      )}`
     );
   } else {
     if (quota.member && !isBoost) {
@@ -90,9 +97,7 @@ export function describe_quota(
     typeof quota.dedicated_disk !== "boolean"
   ) {
     hideNetwork = true;
-    v.push(
-      `a Dedicated Disk (${dedicatedDiskDisplayConfig(quota.dedicated_disk)})`
-    );
+    v.push(`a Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk)})`);
   }
 
   if (quota.always_running) {

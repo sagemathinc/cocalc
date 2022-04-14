@@ -19,10 +19,9 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   DedicatedDisk,
   DedicatedVM,
-  dedicatedDiskDisplayConfig,
-  DedicatedVMDisplayconfig,
 } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { dedicatedDiskDisplay, dedicatedVmDisplay } from "@cocalc/util/upgrades/utils";
 import Timestamp from "components/misc/timestamp";
 import { ReactNode } from "react";
 
@@ -233,7 +232,7 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   if (info.dedicated_disk != null) {
     return (
       <>
-        Dedicated Disk ({dedicatedDiskDisplayConfig(info.dedicated_disk)}){" "}
+        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk)}){" "}
         {describePeriod(info)}
       </>
     );
@@ -242,7 +241,7 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   if (info.dedicated_vm != null) {
     return (
       <>
-        Dedicated VM ({DedicatedVMDisplayconfig(info.dedicated_vm)}){" "}
+        Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
         {describePeriod(info)}
       </>
     );
