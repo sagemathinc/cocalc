@@ -2452,6 +2452,11 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
+    // Make sure to include changes to the live document.
+    // A side effect of save if we didn't do this is potentially
+    // discarding them, which is obviously not good.
+    this.commit();
+
     dbg("initiating the save");
     if (!this.has_unsaved_changes()) {
       dbg("no unsaved changes, so don't save");
