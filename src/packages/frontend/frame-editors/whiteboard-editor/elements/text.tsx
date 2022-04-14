@@ -46,42 +46,48 @@ function EditText({
   readOnly?: boolean;
 }) {
   const { actions, id: frameId } = useFrameContext();
-
   const [mode, setMode] = useState<string>("");
-
   const [editFocus, setEditFocus] = useEditFocus(false);
-
-  useEffect(() => {
-    return () => {
-      actions.setElement({
-        obj: { id: element.id, str: getValueRef.current() },
-      });
-    };
-  }, []);
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
-  const saveEditorValue = useCallback(() => {
-    if (!getValueRef.current) return;
-    const str = getValueRef.current();
-    if (actions.in_undo_mode()) {
-      return;
-    }
-    actions.setElement({
-      obj: { id: element.id, str },
-    });
-  }, [element.id]);
+  const saveEditorValue = useCallback(
+    (str?) => {
+      if (str == null) {
+        if (!getValueRef.current) return;
+        str = getValueRef.current();
+      }
+      if (str == (element.str ?? "") || actions.in_undo_mode()) {
+        // No change so do NOT save -- see comment about similar code in code/input.tsx.
+        return;
+      }
+      actions.setElement({
+        obj: { id: element.id, str },
+      });
+    },
+    [element.id]
+  );
+
+  // On component unmount, save any unsaved changes.
+  useEffect(() => {
+    return () => {
+      // has to happen in different exec loop, since it updates store,
+      // which updates component right as unmounted, which is a warning in react.
+      setTimeout(saveEditorValue, 0);
+    };
+  }, []);
 
   const getValueRef = useRef<any>(null);
 
   useEffect(() => {
     if (actions._syncstring == null) return;
-    actions._syncstring.on("before-change",  saveEditorValue);
+    actions._syncstring.on("before-change", saveEditorValue);
     return () => {
       actions._syncstring.removeListener("before-change", saveEditorValue);
+      saveEditorValue();
     };
   }, [element.id]);
 
@@ -166,9 +172,9 @@ function EditText({
           }}
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-          onChange={(value) => {
-            actions.setElement({ obj: { id: element.id, str: value } });
-          }}
+          onChange={
+            saveEditorValue /* MultiMarkdownInput's onChange is debounced by default */
+          }
           cmOptions={{
             lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
           }}

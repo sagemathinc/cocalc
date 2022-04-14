@@ -46,7 +46,7 @@ export default function Input({
   const saveEditorValue = useCallback(() => {
     if (!getValueRef.current) return;
     const str = getValueRef.current();
-    if (str == (element.str ?? "")) {
+    if (str == (element.str ?? "") || frame.actions.in_undo_mode()) {
       // No change so do NOT save, which wastes resources and
       // causes subtle bugs.  As an example, if str is undefined
       // (right after creating element), then commit sets string
@@ -59,6 +59,7 @@ export default function Input({
       commit: true,
     });
   }, [element.id]);
+
   const getValueRef = useRef<any>(null);
   useEffect(() => {
     if (frame.actions._syncstring == null) return;
