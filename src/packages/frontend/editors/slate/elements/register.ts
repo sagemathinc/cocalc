@@ -52,10 +52,13 @@ type childInfoHookFunction = (opts: {
   childInfo: ChildInfo;
 }) => void;
 
-// Rules of behavior for slate specific slate types.
+// Rules of behavior for slate specific slate types.  This is used for
+// autoformat, e.g., type ```[space] and get a codemirror fenced code block editor.
 interface Rules {
   // autoFocus: if true, block element gets focused on creation in some cases.
   autoFocus?: boolean;
+  // autoAdvance: in next render loop, move cursor forward
+  autoAdvance?: boolean;
 }
 
 interface Handler {
@@ -146,9 +149,13 @@ export function getRender(slateType: string): React.FC<RenderElementProps> {
   return renderer[slateType];
 }
 
+interface StaticRenderElementProps extends RenderElementProps {
+  setElement?: (obj: any) => void;
+}
+
 export function getStaticRender(
   slateType: string
-): React.FC<RenderElementProps> {
+): React.FC<StaticRenderElementProps> {
   //console.log("getStaticRender", slateType);
   if (staticRenderer[slateType] == null) {
     console.log(

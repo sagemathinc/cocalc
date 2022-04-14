@@ -285,9 +285,6 @@ function markdownAutoformatAt(
     // **much** better than selecting the corresponding text
     // and letting insertNodes take care of it.
     Transforms.removeNodes(editor, { at: path });
-    // We put an empty paragraph after, so that formatting
-    // is preserved (otherwise it gets stripped); also some documents
-    // ending in void block elements are difficult to use.
     Transforms.insertNodes(editor, doc);
 
     // Normally just move the cursor beyond what was just
@@ -298,6 +295,15 @@ function markdownAutoformatAt(
     if (!rules?.autoFocus) {
       // move cursor out of the newly created block element.
       Transforms.move(editor, { distance: 1 });
+    }
+    if (rules?.autoAdvance) {
+      setSelectionAndFocus(editor, {
+        focus: { path, offset: 0 },
+        anchor: { path, offset: 0 },
+      });
+      setTimeout(() => {
+        Transforms.move(editor, { distance: 1, unit: "line" });
+      }, 0);
     }
   }
   return true;

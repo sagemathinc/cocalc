@@ -31,7 +31,6 @@ import {
 } from "../control";
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
-import { delay } from "awaiting";
 import { isEqual } from "lodash";
 
 const STYLE = {
@@ -118,8 +117,9 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         }
 
         // focus the CodeMirror editor
-        // It is critical to first blur the Slate editor
-        // itself, since otherwise we get stuck in an infinite
+        // It is critical to blur the Slate editor
+        // itself after focusing codemirror, since otherwise we
+        // get stuck in an infinite
         // loop since slate is confused about whether or not it is
         // blurring or getting focused, since codemirror is a contenteditable
         // inside of the slate DOM tree.  Hence this blur:
@@ -225,12 +225,21 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cm.on("focus", onFocus);
       }
 
-      cm.on("blur", () => setIsFocused(false));
+      cm.on("blur", () => {
+        setIsFocused(false);
+      });
 
-      cm.on("focus", async () => {
+      cm.on("focus", () => {
         setIsFocused(true);
-        await delay(1);
-        cm.focus();
+      });
+
+      cm.on("copy", (_, event) => {
+        // We tell slate to ignore this event.
+        // I couldn't find any way to get codemirror to allow the copy to happen,
+        // but at the same time to not let the event propogate.  It seems like
+        // codemirror also would ignore the event, which isn't useful.
+        // @ts-ignore
+        event.slateIgnore = true;
       });
 
       (cm as any).undo = () => {

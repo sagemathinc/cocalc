@@ -34,7 +34,7 @@ interface MultimodeState {
 const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
-// editor uses slate.
+// editor uses slate.  TODO: this should be "text", not "editor".  Oops.
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
@@ -67,7 +67,7 @@ interface Props {
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  saveDebounceMs?: number;
+  saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
   onBlur?: () => void;
   onFocus?: () => void;
   minimal?: boolean;
@@ -206,8 +206,10 @@ export default function MultiMarkdownInput({
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
-        // expected that sometimes this will fail, since after all the selection from last
-        // use might be invalid now due to another user changing the document, etc.
+        // console.warn(_err);  // definitely don't need this.
+        // This is expected to fail, since the selection from last
+        // use will be invalid now if another user changed the
+        // document, etc., or you did in a different mode, possibly.
       }
     }
     return () => {
@@ -364,7 +366,12 @@ export default function MultiMarkdownInput({
                 : { padding: "5px 15px" }
             }
             height={height}
-            editBarStyle={editBarStyle}
+            editBarStyle={
+              {
+                paddingRight: "127px",
+                ...editBarStyle,
+              } /* this paddingRight is of course just a stupid temporary hack, since by default the mode switch is on top of it, which matters when cursor in a list or URL */
+            }
             saveDebounceMs={saveDebounceMs}
             getValueRef={getValueRef}
             actions={{

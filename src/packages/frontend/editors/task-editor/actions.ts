@@ -10,7 +10,7 @@ Task Actions
 const LAST_EDITED_THRESH_S = 30;
 const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
 
-import { fromJS, Map, Set } from "immutable";
+import { fromJS, Map } from "immutable";
 import { debounce, throttle } from "lodash";
 import { delay } from "awaiting";
 import {
@@ -160,10 +160,6 @@ export class TaskActions extends Actions<TaskState> {
       });
       local_view_state = local_view_state.set("sort", sort);
     }
-    local_view_state = local_view_state.set(
-      "full_desc",
-      local_view_state.get("full_desc")?.toSet() ?? Set()
-    );
 
     return local_view_state;
   }
@@ -222,6 +218,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   private __update_visible(): void {
+    if (this.store == null) return;
     const tasks = this.store.get("tasks");
     if (tasks == null) return;
     const view = this.store.get("local_view_state");
@@ -348,10 +345,9 @@ export class TaskActions extends Actions<TaskState> {
         key == "show_max" ||
         key == "font_size" ||
         key == "sort" ||
-        key == "full_desc" ||
         key == "selected_hashtags" ||
         key == "search" ||
-        key == "scrollTop"
+        key == "scrollState"
       ) {
         local = local.set(key as any, fromJS(value));
       } else {
@@ -694,30 +690,15 @@ export class TaskActions extends Actions<TaskState> {
     this.set_task(task_id, { color }, false, save);
   }
 
-  public toggle_full_desc(task_id: string | undefined): void {
+  public toggleHideBody(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
     if (task_id == null) {
       return;
     }
-    let local_view_state = this.store.get("local_view_state");
-    if (local_view_state == null) return;
-    const full_desc = local_view_state.get("full_desc") ?? Set<string>();
-    if (full_desc.has(task_id)) {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.remove(task_id)
-      );
-    } else {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.add(task_id)
-      );
-    }
-    this.setState({ local_view_state });
-    this._update_visible();
-    this._save_local_view_state();
+    const hideBody = !this.store.getIn(["tasks", task_id, "hideBody"]);
+    this.set_task(task_id, { hideBody });
   }
 
   public show_deleted(): void {

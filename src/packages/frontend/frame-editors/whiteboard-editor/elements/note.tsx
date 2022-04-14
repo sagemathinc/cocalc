@@ -1,12 +1,15 @@
 import Text from "./text";
-import NoteStatic, { STYLE } from "./note-static";
+import NoteStatic, { STYLE } from "./note-mostly-static";
 import { DEFAULT_NOTE } from "../tools/defaults";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { Props } from "./render";
 
 export default function Note(props: Props) {
-  const { element, focused } = props;
-  if (!focused && props.cursors == null) {
+  const { element } = props;
+  if (
+    (props.readOnly || !props.focused || props.element.locked) &&
+    props.cursors == null
+  ) {
     return <NoteStatic element={element} />;
   }
   const data = {

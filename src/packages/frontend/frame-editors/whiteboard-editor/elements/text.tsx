@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
-import TextStatic, { getStyle, PADDING, PLACEHOLDER } from "./text-static";
+import TextStatic from "./text-mostly-static";
+import { getStyle, PADDING, PLACEHOLDER } from "./text-static";
 export { getStyle };
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import useEditFocus from "./edit-focus";
@@ -24,6 +25,8 @@ export default function Text(props: Props) {
     (props.readOnly || !props.focused || props.element.locked) &&
     props.cursors == null
   ) {
+    // NOTE: not using static whenever possible (e.g., when not focused) results
+    // in massive performance problems when there are many notes.
     return <TextStatic element={props.element} />;
   }
   return <EditText {...props} />;
@@ -43,37 +46,48 @@ function EditText({
   readOnly?: boolean;
 }) {
   const { actions, id: frameId } = useFrameContext();
-
   const [mode, setMode] = useState<string>("");
-
   const [editFocus, setEditFocus] = useEditFocus(false);
-
-  useEffect(() => {
-    return () => {
-      actions.setElement({
-        obj: { id: element.id, str: getValueRef.current() },
-      });
-    };
-  }, []);
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
-  const beforeChange = useCallback(() => {
-    if (!getValueRef.current) return;
-    const str = getValueRef.current();
-    actions.setElement({
-      obj: { id: element.id, str },
-    });
-  }, [element.id]);
+  const saveEditorValue = useCallback(
+    (str?) => {
+      if (str == null) {
+        if (!getValueRef.current) return;
+        str = getValueRef.current();
+      }
+      if (str == (element.str ?? "") || actions.in_undo_mode()) {
+        // No change so do NOT save -- see comment about similar code in code/input.tsx.
+        return;
+      }
+      actions.setElement({
+        obj: { id: element.id, str },
+      });
+    },
+    [element.id]
+  );
+
+  // On component unmount, save any unsaved changes.
+  useEffect(() => {
+    return () => {
+      // has to happen in different exec loop, since it updates store,
+      // which updates component right as unmounted, which is a warning in react.
+      setTimeout(saveEditorValue, 0);
+    };
+  }, []);
+
   const getValueRef = useRef<any>(null);
+
   useEffect(() => {
     if (actions._syncstring == null) return;
-    actions._syncstring.on("before-change", beforeChange);
+    actions._syncstring.on("before-change", saveEditorValue);
     return () => {
-      actions._syncstring.removeListener("before-change", beforeChange);
+      actions._syncstring.removeListener("before-change", saveEditorValue);
+      saveEditorValue();
     };
   }, [element.id]);
 
@@ -125,10 +139,20 @@ function EditText({
       className={editFocus ? "nodrag" : undefined}
     >
       <div ref={divRef}>
+        {/* Important: do NOT set cacheId; for some reason restoring selection in markdown (=codemirror) mode
+            breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
+            whereas it makes a lot of sense, e.g., in a Jupyter notebook.
+            Reproduce the weird behavior in a whiteod with cacheId.
+            1. Open new whiteboard and create a note.
+            2. Edit it in Markdown mode
+            3. Close whiteboard, then open it again.
+            4. Gone!
+            The problem is that opening it immediately restores selection, and that breaks something about
+            CSS/layout/etc.  Not sure why, but I'm ok with not having this feature.
+            */}
         <MultiMarkdownInput
           getValueRef={getValueRef}
           fixedMode={element.rotate || !focused ? "editor" : undefined}
-          cacheId={element.id}
           refresh={canvasScale}
           noVfill
           minimal
@@ -148,8 +172,11 @@ function EditText({
           }}
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-          onChange={(value) => {
-            actions.setElement({ obj: { id: element.id, str: value } });
+          onChange={
+            saveEditorValue /* MultiMarkdownInput's onChange is debounced by default */
+          }
+          cmOptions={{
+            lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
           }}
           onModeChange={setMode}
           editBarStyle={{
@@ -162,6 +189,7 @@ function EditText({
             minWidth: "500px",
             background: "white",
             fontFamily: "sans-serif",
+            paddingRight: 0, // undoing a temporary hack
           }}
           modeSwitchStyle={{
             top: "-82px",

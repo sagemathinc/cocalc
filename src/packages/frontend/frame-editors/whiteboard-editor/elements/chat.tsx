@@ -117,7 +117,6 @@ function Conversation({ element, focused }: Props) {
               setEditFocus(false);
             }}
             isFocused={focused && editFocus}
-            cacheId={element.id}
             hideHelp
             noVfill
             minimal
@@ -159,6 +158,7 @@ function Conversation({ element, focused }: Props) {
               minWidth: "500px",
               background: "white",
               fontFamily: "sans-serif",
+              paddingRight: 0, // undoing a temporary hack
             }}
             modeSwitchStyle={{
               visibility: !editFocus ? "hidden" : undefined,
@@ -168,6 +168,9 @@ function Conversation({ element, focused }: Props) {
               boxShadow: "1px 3px 5px #ccc",
             }}
             onModeChange={setMode}
+            cmOptions={{
+              lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling
+            }}
           />
           <Tooltip title="Send message (shift+enter)">
             <Button

@@ -12,6 +12,11 @@ undo, save to disk, etc.
 
 This code is run *both* in browser clients and under node.js
 in projects, and behaves slightly differently in each case.
+
+EVENTS:
+
+- before-change: fired before merging in changes from upstream
+- ... TODO
 */
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
@@ -1353,7 +1358,6 @@ export class SyncDoc extends EventEmitter {
     const doc = patch_list.value();
     this.last = this.doc = doc;
     this.patches_table.on("change", this.handle_patch_update.bind(this));
-    this.patches_table.on("before-change", () => this.emit("before-change"));
     this.patches_table.on("saved", this.handle_offline.bind(this));
     this.patch_list = patch_list;
     dbg("done");
@@ -1609,7 +1613,7 @@ export class SyncDoc extends EventEmitter {
         continue;
       }
       dbg("Compute new patch.");
-      this.sync_remote_and_doc();
+      this.sync_remote_and_doc(false);
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -2742,7 +2746,7 @@ export class SyncDoc extends EventEmitter {
         this.patch_list.add(v);
 
         dbg("waiting for remote and doc to sync...");
-        this.sync_remote_and_doc();
+        this.sync_remote_and_doc(v.length > 0);
         await this.patches_table.save();
         if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
         dbg("remote and doc now synced");
@@ -2787,6 +2791,9 @@ export class SyncDoc extends EventEmitter {
      for the given number of ms.  Calling it regularly while
      user is actively editing to avoid them being bothered
      by upstream patches getting merged in.
+
+     IMPORTANT: I implemented this, but it is NOT used anywhere
+     else in the codebase, so don't trust that it works.
   */
 
   public disable_sync(): void {
@@ -2795,7 +2802,7 @@ export class SyncDoc extends EventEmitter {
 
   public enable_sync(): void {
     this.sync_is_disabled = false;
-    this.sync_remote_and_doc();
+    this.sync_remote_and_doc(true);
   }
 
   public delay_sync(timeout_ms = 2000): void {
@@ -2810,14 +2817,18 @@ export class SyncDoc extends EventEmitter {
     Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
   */
-  private sync_remote_and_doc(): void {
+  private sync_remote_and_doc(upstreamPatches: boolean): void {
     if (this.last == null || this.doc == null || this.sync_is_disabled) {
       return;
     }
 
-    if (this.state == "ready") {
+    if (upstreamPatches && this.state == "ready") {
       // First save any unsaved changes from our live version.
       this.emit("before-change");
+      // As a result of the emit in the previous line, all kinds of
+      // nontrivial listener code probably just ran, and it should
+      // have updated this.doc.  We commit this.doc, so that the
+      // upstream patches get applied against the correct live this.doc.
       this.commit();
     }
 

@@ -43,20 +43,32 @@ export default function Input({
     return new Actions(frame, element.id, setComplete);
   }, [element.id]); // frame can't change meaningfully.
 
-  const beforeChange = useCallback(() => {
+  const saveEditorValue = useCallback(() => {
     if (!getValueRef.current) return;
     const str = getValueRef.current();
+    if (str == (element.str ?? "") || frame.actions.in_undo_mode()) {
+      // No change so do NOT save, which wastes resources and
+      // causes subtle bugs.  As an example, if str is undefined
+      // (right after creating element), then commit sets string
+      // atomically to '', rather than being a no-op, which undoes
+      // another users first entry... which is obviously very bad.
+      return;
+    }
     frame.actions.setElement({
       obj: { id: element.id, str },
       commit: true,
     });
   }, [element.id]);
+
   const getValueRef = useRef<any>(null);
   useEffect(() => {
     if (frame.actions._syncstring == null) return;
-    frame.actions._syncstring.on("before-change", beforeChange);
+    frame.actions._syncstring.on("before-change", saveEditorValue);
     return () => {
-      frame.actions._syncstring.removeListener("before-change", beforeChange);
+      frame.actions._syncstring.removeListener(
+        "before-change",
+        saveEditorValue
+      );
     };
   }, [element.id]);
 

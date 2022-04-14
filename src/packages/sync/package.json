@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "tsc": "npx tsc --watch",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
     "test": "npx jest ./dist"
   },
   "author": "SageMath, Inc.",
