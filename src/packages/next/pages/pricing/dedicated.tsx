@@ -44,6 +44,7 @@ const VMS = [
 
 const VM_CONFIGS: Item[] = ICONS.map((battery, idx) => {
   const vm = VMS[idx];
+  if (vm == null) throw new Error("this should never happen");
   return {
     title: `Example ${idx + 1}`,
     icon: battery,
@@ -61,6 +62,7 @@ const disk_configs = [
 
 const DISK_CONFIGS: Item[] = ICONS.slice(1).map((battery, idx) => {
   const dc = disk_configs[idx];
+  if (dc == null) throw new Error("this should never happen");
   return {
     title: dc.title,
     icon: battery,

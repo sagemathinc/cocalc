@@ -8,7 +8,7 @@ import {
   DedicatedDiskTypes,
   VMsType,
   DiskType,
-  dedicated_disk_display,
+  dedicatedDiskDisplayConfig,
 } from "@cocalc/util/types/dedicated";
 
 type VMFamily = "n2";
@@ -177,7 +177,7 @@ for (const size_gb of DEDICATED_DISK_SIZES) {
     const tIdx = DEDICATED_DISK_TYPES.indexOf(type);
     DISKS[`${size_gb}-${type}`] = {
       quota,
-      title: dedicated_disk_display(quota.dedicated_disk),
+      title: dedicatedDiskDisplayConfig(quota.dedicated_disk),
       price_day: rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb),
       iops: `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`,
       mbps:

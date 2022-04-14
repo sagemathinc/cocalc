@@ -16,7 +16,12 @@ import {
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import {
+  DedicatedDisk,
+  DedicatedVM,
+  dedicatedDiskDisplayConfig,
+  DedicatedVMDisplayconfig,
+} from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import Timestamp from "components/misc/timestamp";
 import { ReactNode } from "react";
@@ -28,13 +33,15 @@ export interface Cost extends Cost0 {
   period: Period;
 }
 
+export type DateRange = [Date | undefined, Date | undefined];
+
 type ComputeCostProps =
   | {
       type: "quota";
       user: "academic" | "business";
       run_limit: number;
       period: Period;
-      range: [Date | undefined, Date | undefined];
+      range: DateRange;
       ram: number;
       cpu: number;
       disk: number;
@@ -46,7 +53,7 @@ type ComputeCostProps =
   | {
       type: "vm";
       period: "range";
-      range: [Date | undefined, Date | undefined];
+      range: DateRange;
       dedicated_vm?: DedicatedVM;
     }
   | { type: "disk"; dedicated_disk?: DedicatedDisk; period: Period };
@@ -80,8 +87,10 @@ function computeDedicatedDiskCost(props: ComputeCostProps): Cost | undefined {
 }
 
 function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
-  if (props.type !== "vm" || props.dedicated_vm == null)
+  console.log(props);
+  if (props.type !== "vm" || props.dedicated_vm == null) {
     throw new Error("missing props.dedicated_vm");
+  }
   const { range, dedicated_vm } = props;
   const machine = dedicated_vm.machine;
   if (range == null || range[0] == null || range[1] == null) return;
@@ -107,7 +116,6 @@ function computeDedicatedVMCost(props: ComputeCostProps): Cost | undefined {
 }
 
 export function computeCost(props: ComputeCostProps): Cost | undefined {
-  console.log("computeCost props", props);
   switch (props.type) {
     case "disk":
       return computeDedicatedDiskCost(props);
@@ -221,11 +229,21 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
 
 export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   if (info.dedicated_disk != null) {
-    return <>Dedicated Disk, {describePeriod(info)}</>;
+    return (
+      <>
+        Dedicated Disk ({dedicatedDiskDisplayConfig(info.dedicated_disk)}){" "}
+        {describePeriod(info)}
+      </>
+    );
   }
 
   if (info.dedicated_vm != null) {
-    return <>Dedicated VM, {describePeriod(info)}</>;
+    return (
+      <>
+        Dedicated VM ({DedicatedVMDisplayconfig(info.dedicated_vm)}){" "}
+        {describePeriod(info)}
+      </>
+    );
   }
 
   if (info.custom_uptime == null || info.quantity == null)

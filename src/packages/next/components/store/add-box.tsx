@@ -43,20 +43,32 @@ export function AddBox(props: Props) {
   }
 
   async function addToCart() {
-    const description: ProductDescription & { type?: LicenseType } =
-      form.getFieldsValue(true);
+    // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
+    const description: ProductDescription & { type?: LicenseType } = {
+      ...form.getFieldsValue(true),
+    };
 
     // unload the type parameter
     switch (description.type) {
       case "boost":
         description.boost = true;
         break;
+
       case "vm":
         for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
           delete description[k];
         }
-        description.type = "vm";
+        const machine = description["vm-machine"];
+        if (PRICES.vms[machine] == null) {
+          setCartError(`Unknown machine type ${machine}`);
+          return;
+        }
+        description.dedicated_vm = {
+          machine,
+        };
+        delete description["vm-machine"];
         break;
+
       case "disk":
         console.log(description);
         delete description["vm-machine"];
@@ -75,6 +87,7 @@ export function AddBox(props: Props) {
           delete description[k];
         }
         break;
+
       case "regular":
       default:
         description.boost = false;

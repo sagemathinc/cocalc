@@ -20,7 +20,7 @@ for students).
 import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
-import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
+import { dedicatedDiskDisplayConfig } from "@cocalc/util/types/dedicated";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import {
   LicenseIdleTimeouts,
@@ -77,7 +77,7 @@ export function describe_quota(
   ) {
     hideNetwork = true;
     v.push(
-      `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
+      `hosting on a Dedicated VM of type "${quota.dedicated_vm?.machine}"`
     );
   } else {
     if (quota.member && !isBoost) {
@@ -91,7 +91,7 @@ export function describe_quota(
   ) {
     hideNetwork = true;
     v.push(
-      `a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`
+      `a Dedicated Disk (${dedicatedDiskDisplayConfig(quota.dedicated_disk)})`
     );
   }
 

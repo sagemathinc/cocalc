@@ -57,8 +57,6 @@ export default function ShoppingCart() {
     return x;
   }, [cart.result]);
 
-  console.log("items", items);
-
   if (cart.error) {
     return <Alert type="error" message={cart.error} />;
   }

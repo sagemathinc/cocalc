@@ -28,11 +28,11 @@ import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
-import { computeCost, Cost } from "./site-license-cost";
+import { computeCost, Cost, DateRange } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
-import { getType } from "./util";
+import { getType, loadDateRange } from "./util";
 import { VMsType } from "@cocalc/util/types/dedicated";
 import { money } from "@cocalc/util/licenses/purchase/util";
 
@@ -149,10 +149,14 @@ function CreateDedicatedResource() {
     calcCost();
   }
 
-  function loadItem(item: {
+  async function loadItem(item: {
     id: number;
     product: string;
-    description: { dedicated_disk?: any; dedicated_vm?: any };
+    description: {
+      dedicated_disk?: any;
+      dedicated_vm?: any;
+      range?: DateRange;
+    };
   }) {
     if (item.product !== "site-license") {
       throw new Error("not a site license");
@@ -172,10 +176,30 @@ function CreateDedicatedResource() {
           "disk-speed": d.type,
           "disk-name": d.name,
         });
+        // we have to re-validate the disk name, b/c name could be taken in the meantime
+        // just calling the form to revalidate does not work.
+        try {
+          await testDedicatedDiskName(d.name);
+          setDiskNameValid(true);
+        } catch (err) {
+          setDiskNameValid(false);
+        }
         break;
+
       case "vm":
-        const vm = conf.dedicated_vm;
-        console.log("vm", vm);
+        console.log("conf", conf);
+        const vm = conf.dedicated_vm?.machine;
+        if (PRICES.vms[vm] == null) {
+          console.warn(`VM type ${vm} not found`);
+        } else {
+          form.setFieldsValue({
+            "vm-machine": vm,
+          });
+        }
+        form.setFieldsValue({
+          type,
+          range: loadDateRange(conf.range),
+        });
         break;
     }
     // unpacking and configuring the form worked, now we do the type selection to show it
@@ -197,7 +221,7 @@ function CreateDedicatedResource() {
         try {
           setLoading(true);
           item = await apiPost("/shopping/cart/get", { id });
-          loadItem(item);
+          await loadItem(item);
         } catch (err) {
           setCartError(err.message);
         } finally {
