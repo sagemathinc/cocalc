@@ -194,8 +194,10 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
         ) : (
           ""
         )}
-        {oneLine ? null : <br />} (includes {discount_pct}% self-service
-        discount)
+        {oneLine ? null : <br />}{" "}
+        {discount_pct > 0 && (
+          <>(includes {discount_pct}% self-service discount)</>
+        )}
       </>
     );
   }

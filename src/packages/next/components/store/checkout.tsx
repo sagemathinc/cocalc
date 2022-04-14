@@ -326,10 +326,12 @@ function OrderSummary({ items, taxRate }) {
         Items ({items.length}):{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
-      <div>
-        Self-service discount (25%):{" "}
-        <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
-      </div>
+      {full - cost > 0 && (
+        <div>
+          Self-service discount (25%):{" "}
+          <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
+        </div>
+      )}
       <div>
         Estimated tax:{" "}
         <span style={{ float: "right" }}>{money(tax, true)}</span>
