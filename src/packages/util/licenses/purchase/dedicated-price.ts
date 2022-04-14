@@ -23,13 +23,14 @@ interface Props {
   subscription: "monthly" | "yearly";
 }
 
-export function dedicatedPrice({
-  dedicated_vm,
-  dedicated_disk,
-  start,
-  end,
-  subscription,
-}: Props): number | null {
+export function dedicatedPrice(info: Props): number | null {
+  const { dedicated_vm, dedicated_disk, subscription } = info;
+
+  // at this point, we assume the start/end dates are already
+  // set to the start/end time of a day in the user's timezone.
+  const start = info.start ? new Date(info.start) : undefined;
+  const end = info.end ? new Date(info.end) : undefined;
+
   const duration =
     start != null && end != null
       ? (end.getTime() - start.getTime()) / ONE_DAY_MS

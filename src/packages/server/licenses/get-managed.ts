@@ -4,6 +4,7 @@ Returns array of licenses that a given user manages.
 
 import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
+import { User } from "@cocalc/util/licenses/purchase/util";
 import { isValidUUID } from "@cocalc/util/misc";
 
 export interface License {
@@ -30,7 +31,7 @@ export interface License {
     disk: number;
     always_running: boolean;
     member: boolean;
-    user: "academic" | "business";
+    user: User;
   };
   run_limit: number;
 }

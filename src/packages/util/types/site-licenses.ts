@@ -1,3 +1,4 @@
+import { User } from "../licenses/purchase/util";
 import { Upgrades } from "../upgrades/types";
 import { DedicatedDisk, DedicatedVM } from "./dedicated";
 
@@ -9,7 +10,7 @@ export interface SiteLicenseQuota {
   disk?: number;
   always_running?: boolean;
   member?: boolean;
-  user?: "academic" | "business";
+  user?: User;
   dedicated_vm?: DedicatedVM | false;
   dedicated_disk?: DedicatedDisk;
   // idle_timeouts came later:

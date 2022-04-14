@@ -57,6 +57,8 @@ export function getProductId(info: PurchaseInfo): string {
       We encode these in a string which serves to identify the product.
   */
   function period(): string {
+    if (info.type === "disk") throw new Error("disk do not have a period");
+
     if (info.subscription == "no") {
       return getDays(info).toString();
     } else {
@@ -66,6 +68,7 @@ export function getProductId(info: PurchaseInfo): string {
 
   // this is backwards compatible: short: 0, always_running: 1, ...
   function idleTimeout(): number {
+    if (info.type !== "quota") throw new Error("idle_timeout only for quota");
     switch (info.custom_uptime) {
       case "short":
         return 0;
@@ -76,21 +79,29 @@ export function getProductId(info: PurchaseInfo): string {
     }
   }
 
-  const pid = [
-    `license_`,
-    `a${idleTimeout()}`,
-    `b${info.user == "business" ? 1 : 0}`,
-    `c${info.custom_cpu}`,
-    `d${info.custom_disk}`,
-    `m${info.custom_member ? 1 : 0}`,
-    `p${period()}`,
-    `r${info.custom_ram}`,
-  ];
-  if (info.custom_dedicated_ram) pid.push(`y${info.custom_dedicated_ram}`);
-  if (info.custom_dedicated_cpu)
-    pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
-  pid.push(`_v${VERSION}`);
-  return pid.join("");
+  const type = info.type;
+  switch (type) {
+    case "quota":
+      const pid = [
+        `license_`,
+        `a${idleTimeout()}`,
+        `b${info.user == "business" ? 1 : 0}`,
+        `c${info.custom_cpu}`,
+        `d${info.custom_disk}`,
+        `m${info.custom_member ? 1 : 0}`,
+        `p${period()}`,
+        `r${info.custom_ram}`,
+      ];
+      if (info.custom_dedicated_ram) pid.push(`y${info.custom_dedicated_ram}`);
+      if (info.custom_dedicated_cpu)
+        pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
+      pid.push(`_v${VERSION}`);
+      return pid.join("");
+    case "disk":
+      throw new Error("NYI");
+    case "vm":
+      throw new Error("NYI");
+  }
 }
 
 function getProductName(info): string {
@@ -122,6 +133,7 @@ function getProductName(info): string {
 }
 
 function getProductMetadata(info: PurchaseInfo): ProductMetadata {
+  if (info.type !== "quota") throw new Error("not a quota");
   const meta: ProductMetadata = {
     user: info.user,
     ram: info.custom_ram,
@@ -194,6 +206,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     if (info.subscription != "no") {
       statement_descriptor += "SUB";
     } else {
+      if (info.type === "disk") throw new Error("disk do not have a period");
       const n = getDays(info);
       statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
     }
@@ -230,6 +243,10 @@ async function stripePurchaseProduct(
 ): Promise<Purchase> {
   const { quantity } = info;
   logger.debug("stripePurchaseProduct", product_id, quantity);
+
+  if (info.type === "disk")
+    throw new Error("can only deal with VMs and quota licenses");
+
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();
 

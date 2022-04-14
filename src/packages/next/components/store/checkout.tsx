@@ -7,7 +7,7 @@
 Checkout -- finalize purchase and pay.
 */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -45,7 +45,14 @@ function Checkout() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+
+  // most likely, user will do the purchase and then see the congratulations page
+  useEffect(() => {
+    router.prefetch("/store/congrats");
+  }, []);
+
   const cart = useAPI("/shopping/cart/get");
+
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     const x: any[] = [];
@@ -143,6 +150,24 @@ function Checkout() {
     },
   ];
 
+  function placeOrderButton() {
+    return (
+      <Button
+        disabled={subTotal == 0 || placingOrder}
+        style={{ marginTop: "7px", marginBottom: "15px" }}
+        size="large"
+        type="primary"
+        onClick={placeOrder}
+      >
+        {placingOrder ? (
+          <Loading delay={0}>Placing Order...</Loading>
+        ) : (
+          "Place Your Order"
+        )}
+      </Button>
+    );
+  }
+
   return (
     <div style={{ maxWidth: "900px", margin: "auto" }}>
       {items.length == 0 && (
@@ -207,19 +232,7 @@ function Checkout() {
                       minWidth: "300px",
                     }}
                   >
-                    <Button
-                      disabled={subTotal == 0 || placingOrder}
-                      style={{ margin: "15px 0" }}
-                      size="large"
-                      type="primary"
-                      onClick={placeOrder}
-                    >
-                      {placingOrder ? (
-                        <Loading delay={0}>Placing Order...</Loading>
-                      ) : (
-                        "Place Your Order"
-                      )}
-                    </Button>
+                    {placeOrderButton()}
 
                     <Terms />
                     <OrderSummary items={items} taxRate={taxRate} />
@@ -249,21 +262,7 @@ function Checkout() {
             </h4>
             <div style={{ fontSize: "12pt" }}>
               <Row>
-                <Col sm={12}>
-                  <Button
-                    disabled={subTotal == 0 || placingOrder}
-                    style={{ marginTop: "7px", marginBottom: "15px" }}
-                    size="large"
-                    type="primary"
-                    onClick={placeOrder}
-                  >
-                    {placingOrder ? (
-                      <Loading delay={0}>Placing Order...</Loading>
-                    ) : (
-                      "Place Your Order"
-                    )}
-                  </Button>
-                </Col>
+                <Col sm={12}>{placeOrderButton()}</Col>
                 <Col sm={12}>
                   <div style={{ fontSize: "15pt" }}>
                     <TotalCost items={cart.result} taxRate={taxRate} />

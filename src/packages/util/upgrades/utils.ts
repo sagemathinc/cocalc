@@ -7,7 +7,8 @@ import { to_human_list } from "../misc";
 import { DedicatedDisk, DedicatedVM, DISK_NAMES } from "../types/dedicated";
 import { PRICES } from "./dedicated";
 
-export function dedicatedDiskDisplay(disk: DedicatedDisk): string {
+export function dedicatedDiskDisplay(disk?: DedicatedDisk): string {
+  if (disk == null) throw new Error("dedicated_disk must be defined");
   if (typeof disk === "boolean") return "";
   return to_human_list([
     `${disk.size_gb} GB`,
@@ -16,7 +17,8 @@ export function dedicatedDiskDisplay(disk: DedicatedDisk): string {
   ]);
 }
 
-export function dedicatedVmDisplay(v: DedicatedVM): string {
+export function dedicatedVmDisplay(v?: DedicatedVM): string {
+  if (v == null) throw Error("dedicated_vm must be defined");
   const vm = PRICES.vms[v.machine];
   if (vm == null) {
     return `machine '${v.machine}'`;

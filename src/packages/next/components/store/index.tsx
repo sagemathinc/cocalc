@@ -22,6 +22,7 @@ import Checkout from "./checkout";
 import Congrats from "./congrats";
 import Anonymous from "components/misc/anonymous";
 import DedicatedResource from "./dedicated";
+import { useEffect } from "react";
 
 const { Content } = Layout;
 
@@ -33,6 +34,10 @@ export default function StoreLayout({ page }: Props) {
   const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
+
+  useEffect(() => {
+    router.prefetch("/store/site-license");
+  }, []);
 
   if (!isCommercial) {
     return (

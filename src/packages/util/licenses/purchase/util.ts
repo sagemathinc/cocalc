@@ -20,7 +20,8 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import { isEqual } from "lodash";
-import { dedicatedPrice } from "./dedicated";
+import { CustomDescription } from "../../upgrades/shopping";
+import { dedicatedPrice } from "./dedicated-price";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -43,13 +44,22 @@ export interface Cost {
   cost_sub_year: number;
 }
 
-export interface PurchaseInfo {
+export interface StartEndDates {
+  start?: Date;
+  end?: Date;
+}
+
+export interface StartEndDatesWithStrings {
+  start?: Date | string;
+  end?: Date | string;
+}
+
+export type PurchaseInfoQuota = {
+  type: "quota";
   user: User;
   upgrade: Upgrade;
   quantity: number;
   subscription: Subscription;
-  start: Date | string;
-  end?: Date | string;
   quote?: boolean;
   quote_info?: string;
   payment_method?: string;
@@ -62,12 +72,29 @@ export interface PurchaseInfo {
   custom_member: boolean;
   custom_uptime: Uptime;
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
-  dedicated_vm?: DedicatedVM;
-  dedicated_disk?: DedicatedDisk;
-  title?: string;
-  description?: string;
   boost?: boolean;
-}
+} & StartEndDates &
+  CustomDescription;
+
+export type PurchaseInfo =
+  | PurchaseInfoQuota
+  | ({
+      type: "vm";
+      quantity: 1;
+      dedicated_vm: DedicatedVM;
+      subscription: "no";
+      cost?: Cost;
+      payment_method?: string;
+    } & StartEndDates &
+      CustomDescription)
+  | ({
+      type: "disk";
+      quantity: 1;
+      subscription: Omit<Subscription, "no">;
+      dedicated_disk: DedicatedDisk;
+      cost?: Cost;
+      payment_method?: string;
+    } & CustomDescription);
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadata =
@@ -90,6 +117,9 @@ export type ProductMetadata =
 export function sanity_checks(info: PurchaseInfo) {
   if (typeof info != "object") {
     throw Error("must be an object");
+  }
+  if (info.type !== "quota") {
+    throw new Error("this sanity check is only for type=quota");
   }
   if (info.start == null) {
     throw Error("must have start date set");
@@ -296,6 +326,12 @@ export const COSTS: {
 } as const;
 
 export function compute_cost(info: PurchaseInfo): Cost {
+  if (info.type === "disk" || info.type === "vm") {
+    return compute_cost_dedicated(info);
+  }
+
+  if (info.type !== "quota")
+    throw new Error(`can only compute cost for type=quota`);
   let {
     quantity,
     user,
@@ -308,18 +344,17 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk,
     custom_member,
     custom_uptime,
-    dedicated_vm,
-    dedicated_disk,
     boost = false,
   } = info;
 
   // at this point, we assume the start/end dates are already
   // set to the start/end time of a day in the user's timezone.
-  const start = new Date(info.start);
+  const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
-  if (dedicated_vm != null || dedicated_disk != null) {
-    return compute_cost_dedicated(info);
+  // dedicaged cases above should elimited an unknown user
+  if (user !== "academic" && user !== "business") {
+    throw new Error(`unknown user ${user}`);
   }
 
   // this is set in the next if/else block
@@ -412,8 +447,11 @@ export function compute_cost(info: PurchaseInfo): Cost {
 
   // Make cost properly account for period of purchase or subscription.
   if (subscription == "no") {
+    if (start == null) {
+      throw new Error("start must be set if subscription=no");
+    }
     if (end == null) {
-      throw Error("end must be set if subscription is no");
+      throw Error("end must be set if subscription=no");
     }
     // scale by factor of a month
     const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;

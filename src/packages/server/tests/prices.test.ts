@@ -12,7 +12,7 @@ import {
   compute_cost,
   COSTS,
   money,
-  PurchaseInfo,
+  PurchaseInfoQuota,
 } from "@cocalc/util/licenses/purchase/util";
 import { round2 } from "@cocalc/util/misc";
 import expect from "expect";
@@ -20,7 +20,8 @@ import { getProductId, unitAmount } from "../licenses/purchase/charge";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 
 describe("product id and compute cost", () => {
-  const info1: Omit<PurchaseInfo, "quantity"> = {
+  const info1: Omit<PurchaseInfoQuota, "quantity"> = {
+    type: "quota",
     user: "academic",
     upgrade: "custom",
     custom_uptime: "short",

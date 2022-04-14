@@ -9,14 +9,18 @@ Create a new site license.
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { CostInputPeriod, LicenseType } from "@cocalc/util/upgrades/shopping";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
-import { Cost, DisplayCost } from "./site-license-cost";
+import { DisplayCost } from "./site-license-cost";
 
-export type LicenseType = "regular" | "boost" | "vm" | "disk";
+// these are the hidden type fields of the forms
+// regular and boost end up as "quota" types
+// where the description.boost flag is true or false
+type LicenseTypeInForms = "regular" | "boost" | "vm" | "disk";
 
 interface Props {
-  cost?: Cost;
+  cost?: CostInputPeriod;
   router: any;
   form: any;
   cartError: string | undefined;
@@ -44,7 +48,9 @@ export function AddBox(props: Props) {
 
   async function addToCart() {
     // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
-    const description: ProductDescription & { type?: LicenseType } = {
+    const description: ProductDescription & {
+      type?: LicenseTypeInForms | LicenseType;
+    } = {
       ...form.getFieldsValue(true),
     };
 
@@ -52,6 +58,7 @@ export function AddBox(props: Props) {
     switch (description.type) {
       case "boost":
         description.boost = true;
+        description.type = "quota";
         break;
 
       case "vm":
@@ -67,6 +74,7 @@ export function AddBox(props: Props) {
           machine,
         };
         delete description["vm-machine"];
+        description.type = "vm";
         break;
 
       case "disk":
@@ -86,12 +94,14 @@ export function AddBox(props: Props) {
         for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
           delete description[k];
         }
+
+        description.type = "disk";
         break;
 
       case "regular":
       default:
+        description.type = "quota";
         description.boost = false;
-        description.type = "regular";
     }
 
     try {
@@ -115,6 +125,9 @@ export function AddBox(props: Props) {
 
   function costPerProject() {
     if (!cost) throw new Error(`cost is undefined, should not happen.`);
+    if (!["quota", "regular", "boost"].includes(cost.input.type as string)) {
+      return;
+    }
     if (dedicatedItem || cost.input.quantity == null) return;
     return (
       <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>

@@ -19,6 +19,10 @@ export default async function createLicense(
 ): Promise<string> {
   const license_id = uuid();
   logger.debug("creating a license...", license_id, info);
+
+  if (info.type !== "quota")
+    throw new Error(`unexpected license type: ${info.type}`);
+
   const values: { [key: string]: any } = {
     "id::UUID": license_id,
     "info::JSONB": {

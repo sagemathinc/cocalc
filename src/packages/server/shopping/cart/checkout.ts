@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Purchase everything that is checked and in the shopping cart.
 
 This API endpoint gets called when user has confirmed their payment
@@ -18,7 +23,9 @@ import getPool from "@cocalc/database/pool";
 import {
   compute_cost,
   PurchaseInfo,
+  Subscription,
 } from "@cocalc/util/licenses/purchase/util";
+import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 export default async function checkout(account_id: string): Promise<void> {
   // Get the list of items in the cart that haven't been purchased
@@ -30,6 +37,10 @@ export default async function checkout(account_id: string): Promise<void> {
   // Purchase each item.
   // TODO: obviously, we should make one purchase that includes all the items
   // at once.  However, we haven't implemented that yet!  **We will soon.**
+  // ATTN: with the introduction of dedicated resources (as priced right now), there are
+  // products with an online discount (previously all of them) and without (dedicated).
+  // Hence it's not possible to add up all prices and then add the discount for all
+  // in a single invoice.
   const pool = getPool();
   for (const item of cart) {
     const license_id = await purchaseItem(item);
@@ -50,40 +61,75 @@ async function purchaseItem(item): Promise<string> {
   return await purchaseSiteLicense(item);
 }
 
-async function purchaseSiteLicense(item): Promise<string> {
-  const {
-    title,
-    description,
-    user,
-    run_limit,
-    period,
-    range,
-    ram,
-    cpu,
-    disk,
-    member,
-    uptime,
-  } = item.description;
-  const info: PurchaseInfo = {
-    user,
-    upgrade: "custom" as "custom",
-    quantity: run_limit,
-    subscription: (period == "range" ? "no" : period) as
-      | "no"
-      | "monthly"
-      | "yearly",
-    start: range?.[0] ? new Date(range?.[0]) : new Date(),
-    end: range?.[1] ? new Date(range?.[1]) : undefined,
-    custom_ram: ram,
-    custom_dedicated_ram: 0,
-    custom_cpu: cpu,
-    custom_dedicated_cpu: 0,
-    custom_disk: disk,
-    custom_member: member,
-    custom_uptime: uptime,
-    title,
-    description,
-  };
+async function purchaseSiteLicense(item: {
+  account_id: string;
+  description: SiteLicenseDescriptionDB;
+}): Promise<string> {
+  const info = getPurchseInfo(item.description);
   info.cost = compute_cost(info);
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
+}
+
+function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
+  const conf = description; // name clash with "desription.description"
+  conf.type = conf.type ?? "quota"; // backwards compatibility
+  switch (conf.type) {
+    case "quota":
+      const {
+        type,
+        title,
+        description,
+        user,
+        run_limit,
+        period,
+        range,
+        ram,
+        cpu,
+        disk,
+        member,
+        uptime,
+      } = conf;
+
+      return {
+        type, // "quota"
+        user,
+        upgrade: "custom" as "custom",
+        quantity: run_limit,
+        subscription: (period == "range" ? "no" : period) as Subscription,
+        start: range?.[0] ? new Date(range?.[0]) : new Date(),
+        end: range?.[1] ? new Date(range?.[1]) : undefined,
+        custom_ram: ram,
+        custom_dedicated_ram: 0,
+        custom_cpu: cpu,
+        custom_dedicated_cpu: 0,
+        custom_disk: disk,
+        custom_member: member,
+        custom_uptime: uptime,
+        title,
+        description,
+      };
+
+    case "vm":
+      if (conf.range[0] == null || conf.range[1] == null) {
+        throw new Error(
+          `range must be defined -- range=${JSON.stringify(conf.range)}`
+        );
+      }
+      return {
+        type: "vm",
+        quantity: 1,
+        dedicated_vm: conf.dedicated_vm,
+        subscription: "no",
+        start: new Date(conf.range[0]),
+        end: new Date(conf.range[1]),
+      };
+
+    case "disk":
+      return {
+        type: "disk",
+        quantity: 1,
+        dedicated_disk: conf.dedicated_disk,
+        subscription: conf.period,
+      };
+  }
 }

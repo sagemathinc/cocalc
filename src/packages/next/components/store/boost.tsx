@@ -8,6 +8,7 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
+import { CostInputPeriod } from "@cocalc/util/upgrades/shopping";
 import { Form, Input, Switch, Typography } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -21,7 +22,7 @@ import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost, Cost } from "./site-license-cost";
+import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -58,7 +59,7 @@ export default function Boost() {
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
 function CreateBooster() {
-  const [cost, setCost] = useState<Cost | undefined>(undefined);
+  const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
@@ -70,8 +71,14 @@ function CreateBooster() {
     router.query.id != null
   );
 
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
+
   function onChange() {
     const conf = { ...form.getFieldsValue(true), boost: true };
+    conf.type = "quota";
     setCost(computeCost(conf));
   }
 

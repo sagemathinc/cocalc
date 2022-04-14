@@ -28,13 +28,14 @@ import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
-import { computeCost, Cost, DateRange } from "./site-license-cost";
+import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType, loadDateRange } from "./util";
 import { VMsType } from "@cocalc/util/types/dedicated";
-import { money } from "@cocalc/util/licenses/purchase/util";
+import { Cost, money } from "@cocalc/util/licenses/purchase/util";
+import { CostInputPeriod, DateRange } from "@cocalc/util/upgrades/shopping";
 
 const { Text } = Typography;
 
@@ -73,7 +74,7 @@ export default function DedicatedResource() {
 function CreateDedicatedResource() {
   // somehow this state is necessary to render the form properly
   const [formType, setFormType] = useState<"disk" | "vm" | null>(null);
-  const [cost, setCost] = useState<Cost | undefined>(undefined);
+  const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
@@ -84,6 +85,11 @@ function CreateDedicatedResource() {
   const [diskNameValid, setDiskNameValid] = useState<boolean>(false);
   const [form] = Form.useForm();
   const router = useRouter();
+
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
 
   function fixupDuration() {
     switch (form.getFieldValue("type")) {

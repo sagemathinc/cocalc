@@ -16,7 +16,7 @@ Editing a quota
 import { Button, Checkbox, InputNumber, Row, Col, Select } from "antd";
 import { Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { COSTS, GCE_COSTS, money } from "@cocalc/util/licenses/purchase/util";
+import { COSTS, GCE_COSTS, money, User } from "@cocalc/util/licenses/purchase/util";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -71,7 +71,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     ? { control: 18, max: 6 }
     : { control: 8, max: 3, desc: 16 };
 
-  function user(): "academic" | "business" {
+  function user(): User {
     if (quota.user == null) {
       throw Error("quota.user must be set");
     }

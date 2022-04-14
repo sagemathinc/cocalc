@@ -1,12 +1,9 @@
 import moment from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
+import { StartEndDatesWithStrings } from "../licenses/purchase/util";
 
 // this does NOT rounds start/end of the day. it assumes this is done by the frontend form (using the user's time zone!)
-export function getDays({
-  start,
-  end,
-}: Pick<PurchaseInfo, "start" | "end">): number {
+export function getDays({ start, end }: StartEndDatesWithStrings): number {
   if (start == null || end == null) {
     throw Error("bug");
   }

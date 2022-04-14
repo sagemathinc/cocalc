@@ -24,7 +24,7 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import {
@@ -38,6 +38,13 @@ export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
+  const router = useRouter();
+
+  // most likely, user will checkout next
+  useEffect(() => {
+    router.prefetch("/store/checkout");
+  }, []);
+
   const cart = useAPI("/shopping/cart/get");
 
   const items = useMemo(() => {
@@ -311,16 +318,17 @@ function CheckboxColumn({
   );
 }
 
-function DescriptionColumn({
-  id,
-  cost,
-  description,
-  updating,
-  setUpdating,
-  isMounted,
-  reload,
-  compact,
-}) {
+function DescriptionColumn(props) {
+  const {
+    id,
+    cost,
+    description,
+    updating,
+    setUpdating,
+    isMounted,
+    reload,
+    compact,
+  } = props;
   const router = useRouter();
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);

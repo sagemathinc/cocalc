@@ -68,6 +68,11 @@ function CreateSiteLicense() {
   const [form] = Form.useForm();
   const router = useRouter();
 
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
+
   function onChange() {
     setCost(computeCost(form.getFieldsValue(true)));
   }

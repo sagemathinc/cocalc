@@ -36,7 +36,7 @@ import {
   discount_yearly_pct,
   money,
   percent_discount,
-  PurchaseInfo,
+  PurchaseInfoQuota,
   Subscription,
   Upgrade,
   User,
@@ -166,6 +166,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return undefined;
     }
     return compute_cost({
+      type: "quota",
       quantity,
       user,
       upgrade,
@@ -603,7 +604,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       quote == null
     )
       return;
-    const info: PurchaseInfo = {
+    const info: PurchaseInfoQuota = {
+      type: "quota",
       quantity,
       user,
       upgrade,
