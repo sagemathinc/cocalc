@@ -3,23 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
-import { Example, LicenseExamples } from "./license-examples";
+import { Uptime } from "@cocalc/util/consts/site-license";
 import {
   compute_cost,
   discount_pct,
-  User,
-  Upgrade,
+  PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
-import { Uptime } from "@cocalc/util/consts/site-license";
+import { React } from "../app-framework";
+import { Example, LicenseExamples } from "./license-examples";
 
-const p1data = {
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+const p1data: PurchaseInfo = {
+  type: "quota",
+  user: "academic",
+  upgrade: "custom",
   quantity: 2,
-  subscription: "monthly" as Subscription,
+  subscription: "monthly",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-02-01T11:59:59.999Z"),
   custom_ram: 1,
@@ -36,11 +36,12 @@ const Price1y = compute_cost({
   ...{ subscription: "yearly" as Subscription },
 });
 
-const p2data = {
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+const p2data: PurchaseInfo = {
+  type: "quota",
+  user: "academic",
+  upgrade: "custom",
   quantity: 7,
-  subscription: "monthly" as Subscription,
+  subscription: "monthly",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2021-02-01T11:59:59.999Z"),
   custom_ram: 5,
@@ -57,11 +58,12 @@ const Price2y = compute_cost({
   ...{ subscription: "yearly" as Subscription },
 });
 
-const p3data = {
-  user: "business" as User,
-  upgrade: "custom" as Upgrade,
+const p3data: PurchaseInfo = {
+  type: "quota",
+  user: "business",
+  upgrade: "custom",
   quantity: 3,
-  subscription: "monthly" as Subscription,
+  subscription: "monthly",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-02-01T11:59:59.999Z"),
   custom_ram: 3,

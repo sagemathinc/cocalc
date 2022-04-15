@@ -1,10 +1,12 @@
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
-import { LicenseType } from "./add-box";
-import { DateRange } from "./site-license-cost";
+import { DateRange } from "@cocalc/util/upgrades/shopping";
+import { LicenseTypeInForms } from "./add-box";
 
-// site license type
-export function getType(item): LicenseType {
+// site license type in a form, we have 4 forms hence 4 types
+// later, this will be mapped to just "LicenseType", where boost and regular
+// are "quota" and item.boost = true|false.
+export function getType(item): LicenseTypeInForms {
   const descr = item.description;
   if (descr.dedicated_disk != null && descr.dedicated_disk !== false) {
     return "disk";

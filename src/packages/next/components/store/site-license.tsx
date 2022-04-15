@@ -8,6 +8,7 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
+import { CostInputPeriod } from "@cocalc/util/upgrades/shopping";
 import { Divider, Form, Input } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
@@ -20,7 +21,7 @@ import { AddBox } from "./add-box";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost, Cost } from "./site-license-cost";
+import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -60,7 +61,7 @@ export default function SiteLicense() {
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
 function CreateSiteLicense() {
-  const [cost, setCost] = useState<Cost | undefined>(undefined);
+  const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);

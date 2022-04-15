@@ -17,7 +17,7 @@ import { DisplayCost } from "./site-license-cost";
 // these are the hidden type fields of the forms
 // regular and boost end up as "quota" types
 // where the description.boost flag is true or false
-type LicenseTypeInForms = "regular" | "boost" | "vm" | "disk";
+export type LicenseTypeInForms = "regular" | "boost" | "vm" | "disk";
 
 interface Props {
   cost?: CostInputPeriod;

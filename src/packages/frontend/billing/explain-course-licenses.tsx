@@ -20,13 +20,15 @@ import {
   User,
   Upgrade,
   Subscription,
+  PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/util";
 import { LicenseExamples } from "./license-examples";
 import { Uptime } from "@cocalc/util/consts/site-license";
 
 export const TITLE = "Course licenses";
 
-const p1data = {
+const p1data: PurchaseInfo = {
+  type: "quota",
   user: "academic" as User,
   upgrade: "custom" as Upgrade,
   quantity: 20 + 2,
@@ -43,7 +45,8 @@ const p1data = {
 };
 const Price1 = compute_cost(p1data);
 
-const p2data = {
+const p2data: PurchaseInfo = {
+  type: "quota",
   user: "business" as User,
   upgrade: "custom" as Upgrade,
   quantity: 5 + 1,
@@ -60,7 +63,8 @@ const p2data = {
 };
 const Price2 = compute_cost(p2data);
 
-const p3data = {
+const p3data: PurchaseInfo = {
+  type: "quota",
   user: "academic" as User,
   upgrade: "custom" as Upgrade,
   quantity: 120 + 2,

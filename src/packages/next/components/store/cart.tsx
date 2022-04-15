@@ -405,6 +405,7 @@ function DescriptionColumn(props) {
     );
   }
 
+  // this could rely an the "type" field, but we rather check the data directly
   function editPage(): "site-license" | "boost" | "dedicated" {
     if (input.dedicated_disk != null || input.dedicated_vm != null) {
       return "dedicated";

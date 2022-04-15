@@ -8,9 +8,11 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
+import { money } from "@cocalc/util/licenses/purchase/util";
 import {
   DedicatedDiskTypeNames,
   DISK_NAMES,
+  VMsType,
 } from "@cocalc/util/types/dedicated";
 import {
   DEDICATED_DISK_SIZE_INCREMENT,
@@ -18,6 +20,7 @@ import {
   MIN_DEDICATED_DISK_SIZE,
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
+import { CostInputPeriod, DateRange } from "@cocalc/util/upgrades/shopping";
 import { Divider, Form, Input, Radio, Select, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
@@ -33,9 +36,6 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType, loadDateRange } from "./util";
-import { VMsType } from "@cocalc/util/types/dedicated";
-import { Cost, money } from "@cocalc/util/licenses/purchase/util";
-import { CostInputPeriod, DateRange } from "@cocalc/util/upgrades/shopping";
 
 const { Text } = Typography;
 
@@ -551,9 +551,8 @@ function CreateDedicatedResource() {
     if (input == null) return;
 
     const disabled =
-      (input.dedicated_vm != null &&
-        (input.start == null || input.end == null)) ||
-      (input.dedicated_disk != null && !diskNameValid);
+      (input.type === "vm" && (input.start == null || input.end == null)) ||
+      (input.type === "disk" && !diskNameValid);
 
     return (
       <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
