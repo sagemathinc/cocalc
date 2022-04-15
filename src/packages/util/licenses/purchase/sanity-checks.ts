@@ -3,23 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
 import {
-    LicenseIdleTimeouts, Uptime
-} from "@cocalc/util/consts/site-license";
-import {
-    DedicatedDiskTypeNames,
-    DedicatedDiskTypes
+  DedicatedDiskSpeedNames,
+  DedicatedDiskSpeeds,
 } from "@cocalc/util/types/dedicated";
 import {
-    MAX_DEDICATED_DISK_SIZE,
-    PRICES
+  getDedicatedDiskKey,
+  MAX_DEDICATED_DISK_SIZE,
+  PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import { isEqual } from "lodash";
-import { MAX } from "./consts";
-import {
-    PurchaseInfo
-} from "./types";
 import { compute_cost } from "./compute-cost";
+import { MAX } from "./consts";
+import { PurchaseInfo } from "./types";
 
 // throws an exception if it spots something funny...
 export function sanity_checks(info: PurchaseInfo) {
@@ -31,6 +28,18 @@ export function sanity_checks(info: PurchaseInfo) {
   if (!["quota", "vm", "disk"].includes(type)) {
     throw new Error(`type must be one of quota, vm, disk – but got "${type}"`);
   }
+
+  sanity_check_start_end(info);
+  sanity_check_quota(info);
+  sanity_check_dedicated(info);
+
+  if (!isEqual(info.cost, compute_cost(info))) {
+    throw Error("cost does not match");
+  }
+}
+
+function sanity_check_start_end(info: PurchaseInfo) {
+  const { type } = info;
 
   if ((type === "quota" && info.subscription === "no") || type === "vm") {
     if (info.start == null) {
@@ -57,7 +66,11 @@ export function sanity_checks(info: PurchaseInfo) {
       }
     }
   }
+}
 
+function sanity_check_quota(info: PurchaseInfo) {
+  const { type } = info;
+  if (type !== "quota") return;
   for (const x of ["ram", "cpu", "disk", "dedicated_ram", "dedicated_cpu"]) {
     const field = "custom_" + x;
     if (typeof info[field] !== "number") {
@@ -67,65 +80,66 @@ export function sanity_checks(info: PurchaseInfo) {
       throw Error(`field "${field}" too small or too big`);
     }
   }
-
-  sanity_check_dedicated(info);
-
-  if (type === "quota") {
-    if (info.custom_uptime == null || typeof info.custom_uptime !== "string") {
-      throw new Error(`field "custom_uptime" must be set`);
-    }
-
-    if (
-      LicenseIdleTimeouts[info.custom_uptime] == null &&
-      info.custom_uptime != ("always_running" as Uptime)
-    ) {
-      const tos = Object.keys(LicenseIdleTimeouts).join(", ");
-      throw new Error(
-        `field "custom_uptime" must be one of ${tos} or "always_running"`
-      );
-    }
-
-    for (const x of ["member"]) {
-      const field = "custom_" + x;
-      if (typeof info[field] !== "boolean") {
-        throw Error(`field "${field}" must be boolean`);
-      }
-    }
+  if (info.custom_uptime == null || typeof info.custom_uptime !== "string") {
+    throw new Error(`field "custom_uptime" must be set`);
   }
 
-  if (!isEqual(info.cost, compute_cost(info))) {
-    throw Error("cost does not match");
+  if (
+    LicenseIdleTimeouts[info.custom_uptime] == null &&
+    info.custom_uptime != ("always_running" as Uptime)
+  ) {
+    const tos = Object.keys(LicenseIdleTimeouts).join(", ");
+    throw new Error(
+      `field "custom_uptime" must be one of ${tos} or "always_running"`
+    );
+  }
+
+  for (const x of ["member"]) {
+    const field = "custom_" + x;
+    if (typeof info[field] !== "boolean") {
+      throw Error(`field "${field}" must be boolean`);
+    }
   }
 }
 
-function sanity_check_dedicated(info) {
-  if (info.dedicated_vm != null) {
-    const vmName = info.dedicated_vm;
-    if (typeof vmName !== "string")
-      throw new Error(`field dedicated_vm must be string`);
-    if (PRICES.vms[vmName] == null)
-      throw new Error(`field dedicated_vm ${vmName} not found`);
+function sanity_check_dedicated(info: PurchaseInfo) {
+  const { type } = info;
+  if (type === "vm") {
+    if (info.dedicated_vm != null) {
+      const machine = info.dedicated_vm.machine;
+      if (typeof machine !== "string")
+        throw new Error(`field dedicated_vm must be string`);
+      if (PRICES.vms[machine] == null)
+        throw new Error(`field dedicated_vm ${machine} not found`);
+    }
   }
 
-  if (info.dedicated_disk != null) {
-    const dd = info.dedicated_disk;
-    if (typeof dd === "object") {
-      const { size_gb, type } = dd;
-      if (typeof size_gb !== "number") {
-        throw new Error(`field dedicated_disk.size must be number`);
+  if (type === "disk") {
+    if (info.dedicated_disk != null) {
+      const dd = info.dedicated_disk;
+      if (typeof dd === "object") {
+        const { size_gb, speed } = dd;
+        if (typeof size_gb !== "number") {
+          throw new Error(`field dedicated_disk.size must be number`);
+        }
+        if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
+          throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
+        }
+        if (
+          typeof speed !== "string" ||
+          !DedicatedDiskSpeedNames.includes(speed as DedicatedDiskSpeeds)
+        )
+          throw new Error(
+            `field dedicated_disk.speed must be string and one of ${DedicatedDiskSpeedNames.join(
+              ", "
+            )}`
+          );
+
+        const key = getDedicatedDiskKey({ speed, size_gb });
+        if (PRICES.disks[key] == null) {
+          throw new Error(`field dedicated_disk "${key}" not found`);
+        }
       }
-      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
-        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
-      }
-      if (
-        typeof type !== "string" ||
-        !DedicatedDiskTypeNames.includes(type as DedicatedDiskTypes)
-      )
-        throw new Error(
-          `field dedicated_disk.type must be string and one of ${DedicatedDiskTypeNames.join(
-            ", "
-          )}`
-        );
     }
   }
 }

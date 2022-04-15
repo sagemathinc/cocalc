@@ -12,7 +12,7 @@ export function dedicatedDiskDisplay(disk?: DedicatedDisk): string {
   if (typeof disk === "boolean") return "";
   return to_human_list([
     `${disk.size_gb} GB`,
-    `${DISK_NAMES[disk.type] ?? disk.type} speed`,
+    `${DISK_NAMES[disk.speed] ?? disk.speed} speed`,
     `named "${disk.name ?? "<unknown>"}"`,
   ]);
 }

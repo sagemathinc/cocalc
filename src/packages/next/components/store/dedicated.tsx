@@ -11,12 +11,13 @@ import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import {
-  DedicatedDiskTypeNames,
+  DedicatedDiskSpeedNames,
   DISK_NAMES,
   VMsType,
 } from "@cocalc/util/types/dedicated";
 import {
   DEDICATED_DISK_SIZE_INCREMENT,
+  getDedicatedDiskKey,
   MAX_DEDICATED_DISK_SIZE,
   MIN_DEDICATED_DISK_SIZE,
   PRICES,
@@ -125,7 +126,7 @@ function CreateDedicatedResource() {
               type: "disk",
               period: "monthly",
               dedicated_disk: {
-                type: speed,
+                speed,
                 size_gb,
                 name: data["disk-name"],
               },
@@ -383,7 +384,7 @@ function CreateDedicatedResource() {
     const size_gb = form.getFieldValue("disk-size_gb");
     const speed = form.getFieldValue("disk-speed");
     if (size_gb == null || speed == null) return;
-    const diskID = `${size_gb}-${speed}`;
+    const diskID = getDedicatedDiskKey({ size_gb, speed });
     const di = PRICES.disks[diskID];
     if (di == null) {
       return (
@@ -454,7 +455,7 @@ function CreateDedicatedResource() {
               onChange();
             }}
           >
-            {DedicatedDiskTypeNames.map((type) => (
+            {DedicatedDiskSpeedNames.map((type) => (
               <Radio.Button key={type} value={type}>
                 {DISK_NAMES[type]}
               </Radio.Button>

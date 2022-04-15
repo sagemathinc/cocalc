@@ -4,14 +4,15 @@
  */
 
 import { Uptime } from "@cocalc/util/consts/site-license";
-import { PurchaseInfo, Subscription } from "@cocalc/util/licenses/purchase/types";
 import {
-  compute_cost,
-  discount_pct,
-} from "@cocalc/util/licenses/purchase/util";
+  PurchaseInfo,
+  Subscription,
+} from "@cocalc/util/licenses/purchase/types";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { plural } from "@cocalc/util/misc";
 import { React } from "../app-framework";
 import { Example, LicenseExamples } from "./license-examples";
+import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
 
 const p1data: PurchaseInfo = {
   type: "quota",

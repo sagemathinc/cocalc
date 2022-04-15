@@ -112,7 +112,9 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
     case "vm":
       if (conf.range[0] == null || conf.range[1] == null) {
         throw new Error(
-          `range must be defined -- range=${JSON.stringify(conf.range)}`
+          `start/end range must be defined -- range=${JSON.stringify(
+            conf.range
+          )}`
         );
       }
       return {

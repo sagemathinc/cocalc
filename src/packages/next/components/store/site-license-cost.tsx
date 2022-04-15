@@ -1,20 +1,24 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { dedicatedPrice } from "@cocalc/util/licenses/purchase/dedicated-price";
-import { CostInputPeriod, PurchaseInfo, Subscription } from "@cocalc/util/licenses/purchase/types";
 import {
-  compute_cost,
-  money,
-  percent_discount,
-} from "@cocalc/util/licenses/purchase/util";
+  CostInputPeriod,
+  PurchaseInfo,
+  Subscription,
+} from "@cocalc/util/licenses/purchase/types";
+import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import {
-  ComputeCostProps,
-} from "@cocalc/util/upgrades/shopping";
+import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import {
   dedicatedDiskDisplay,
   dedicatedVmDisplay,

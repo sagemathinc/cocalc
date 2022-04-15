@@ -3,20 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COSTS } from "@cocalc/util/licenses/purchase/consts";
-import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
-import getConn from "@cocalc/server/stripe/connection";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { getLogger } from "@cocalc/backend/logger";
-import {
-  LicenseIdleTimeoutsKeysOrdered,
-  untangleUptime,
-} from "@cocalc/util/consts/site-license";
+import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
+import getConn from "@cocalc/server/stripe/connection";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
-import {
-  ProductMetadata,
-  PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/types";
+import { getProductId } from "./product-id";
+import { getProductMetadata } from "./product-metadata";
+import { getProductName } from "./product-name";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -28,127 +23,13 @@ export async function chargeUserForLicense(
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
   logger.debug("got product_id", product_id);
+  if (1 == 1) process.exit();
+
   if (info.subscription == "no") {
     return await stripePurchaseProduct(stripe, product_id, info);
   } else {
     return await stripeCreateSubscription(stripe, product_id, info);
   }
-}
-
-// When we change pricing, the products in stripe will already
-// exist with old prices (often grandfathered) so we may want to
-// instead change the version so new products get created
-// automatically.
-// 20220406: version 2 after discovering an unintentional volume discount,
-//           skewing the unit price per "product" in stripe.
-const VERSION = 1;
-
-export function getProductId(info: PurchaseInfo): string {
-  /* We generate a unique identifier that represents the parameters of the purchase.
-     The following parameters determine what "product" they are purchasing:
-        - custom_uptime (until 2022-02: custom_always_running)
-        - custom_cpu
-        - custom_dedicated_cpu
-        - custom_disk
-        - custom_member
-        - custom_ram
-        - custom_dedicated_ram
-        - period: subscription or set number of days
-      We encode these in a string which serves to identify the product.
-  */
-  function period(): string {
-    if (info.type === "disk") throw new Error("disk do not have a period");
-
-    if (info.subscription == "no") {
-      return getDays(info).toString();
-    } else {
-      return "0"; // 0 means "subscription" -- same product for all types of subscription billing;
-    }
-  }
-
-  // this is backwards compatible: short: 0, always_running: 1, ...
-  function idleTimeout(): number {
-    if (info.type !== "quota") throw new Error("idle_timeout only for quota");
-    switch (info.custom_uptime) {
-      case "short":
-        return 0;
-      case "always_running":
-        return 1;
-      default:
-        return 1 + LicenseIdleTimeoutsKeysOrdered.indexOf(info.custom_uptime);
-    }
-  }
-
-  const type = info.type;
-  switch (type) {
-    case "quota":
-      const pid = [
-        `license_`,
-        `a${idleTimeout()}`,
-        `b${info.user == "business" ? 1 : 0}`,
-        `c${info.custom_cpu}`,
-        `d${info.custom_disk}`,
-        `m${info.custom_member ? 1 : 0}`,
-        `p${period()}`,
-        `r${info.custom_ram}`,
-      ];
-      if (info.custom_dedicated_ram) pid.push(`y${info.custom_dedicated_ram}`);
-      if (info.custom_dedicated_cpu)
-        pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
-      pid.push(`_v${VERSION}`);
-      return pid.join("");
-    case "disk":
-      throw new Error("NYI");
-    case "vm":
-      throw new Error("NYI");
-  }
-}
-
-function getProductName(info): string {
-  /* Similar to getProductId above, but meant to be human readable.  This name is what
-     customers see on invoices, so it's very valuable as it reflects what they bought clearly.
-  */
-  let period: string;
-  if (info.subscription == "no") {
-    period = `${getDays(info)} days`;
-  } else {
-    period = "subscription";
-  }
-
-  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
-
-  let desc = describe_quota({
-    user: info.user,
-    ram: info.custom_ram,
-    cpu: info.custom_cpu,
-    dedicated_ram: info.custom_dedicated_ram,
-    dedicated_cpu: info.custom_dedicated_cpu,
-    disk: info.custom_disk,
-    member: info.custom_member,
-    always_running,
-    idle_timeout,
-  });
-  desc += " - " + period;
-  return desc;
-}
-
-function getProductMetadata(info: PurchaseInfo): ProductMetadata {
-  if (info.type !== "quota") throw new Error("not a quota");
-  const meta: ProductMetadata = {
-    user: info.user,
-    ram: info.custom_ram,
-    cpu: info.custom_cpu,
-    dedicated_ram: info.custom_dedicated_ram,
-    dedicated_cpu: info.custom_dedicated_cpu,
-    disk: info.custom_disk,
-    uptime: info.custom_uptime,
-    member: `${info.custom_member}`, // "true" or "false"
-    subscription: info.subscription,
-  };
-  if (info.start != null && info.end != null) {
-    meta.duration_days = getDays(info);
-  }
-  return meta;
 }
 
 export function unitAmount(info: PurchaseInfo): number {

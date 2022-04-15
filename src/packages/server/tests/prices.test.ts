@@ -14,7 +14,8 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import expect from "expect";
-import { getProductId, unitAmount } from "../licenses/purchase/charge";
+import { unitAmount } from "../licenses/purchase/charge";
+import { getProductId } from "../licenses/purchase/product-id";
 import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 
 describe("product id and compute cost", () => {

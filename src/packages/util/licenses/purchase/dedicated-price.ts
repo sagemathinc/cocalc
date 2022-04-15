@@ -44,7 +44,7 @@ export function dedicatedPrice(info: Props): number | null {
     }
     return info.price_day * duration;
   } else if (!!dedicated_disk) {
-    const diskID = `${dedicated_disk.size_gb}-${dedicated_disk.type}`;
+    const diskID = `${dedicated_disk.size_gb}-${dedicated_disk.speed}`;
     const info = PRICES.disks[diskID];
     if (info == null) {
       throw new Error(`Dedicated Disk "${dedicated_disk}" is not defined.`);

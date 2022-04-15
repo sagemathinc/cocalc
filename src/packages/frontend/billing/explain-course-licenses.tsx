@@ -4,11 +4,9 @@
  */
 
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import {
-  compute_cost,
-  discount_pct,
-} from "@cocalc/util/licenses/purchase/util";
 import { React } from "../app-framework";
 import { A, IconName, Space } from "../components";
 import {

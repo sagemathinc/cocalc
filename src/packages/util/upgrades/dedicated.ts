@@ -5,7 +5,7 @@
 
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import {
-  DedicatedDiskTypes,
+  DedicatedDiskSpeeds,
   VMsType,
   DiskType,
 } from "@cocalc/util/types/dedicated";
@@ -122,21 +122,21 @@ const DISKS: DiskType = {};
 const SNAPSHOT_FACTOR = 1.25;
 
 // price numbers are for 1 month and 1024 gb (more significant digits) and zonal storage
-const DISK_MONTHLY_1GB: { [id in DedicatedDiskTypes]: number } = {
+const DISK_MONTHLY_1GB: { [id in DedicatedDiskSpeeds]: number } = {
   standard: (SNAPSHOT_FACTOR * 40.96) / 1024,
   balanced: (SNAPSHOT_FACTOR * 102.4) / 1024,
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
 };
 
 // https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size
-const IOPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
+const IOPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   standard: { read: 0.75, write: 1.5 },
   balanced: { read: 6, write: 6 },
   ssd: { read: 30, write: 30 },
 };
 
 // sustained throughput
-const MBPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
+const MBPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   standard: { read: 0.12, write: 0.12 },
   balanced: { read: 0.28, write: 0.28 },
   ssd: { read: 0.48, write: 0.48 },
@@ -162,27 +162,38 @@ const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
 
 // ATTN: do not modify/insert/prepend to this list -- only append
 // otherwise you distort the stripe ID!
-const DEDICATED_DISK_TYPES: Readonly<DedicatedDiskTypes[]> = [
+const DEDICATED_DISK_SPEEDS: Readonly<DedicatedDiskSpeeds[]> = [
   "standard",
   "balanced",
   "ssd",
 ] as const;
 
+export function getDedicatedDiskKey({
+  size_gb,
+  speed,
+}: {
+  size_gb: number;
+  speed: DedicatedDiskSpeeds;
+}): string {
+  return `${size_gb}-${speed}`;
+}
+
 for (const size_gb of DEDICATED_DISK_SIZES) {
-  for (const type of DEDICATED_DISK_TYPES) {
+  for (const speed of DEDICATED_DISK_SPEEDS) {
     const quota = {
-      dedicated_disk: { size_gb, type },
+      dedicated_disk: { size_gb, speed },
     };
-    const tIdx = DEDICATED_DISK_TYPES.indexOf(type);
-    const title = `${size_gb} GiB ${DEDICATED_DISK_TYPES[type]}`;
-    DISKS[`${size_gb}-${type}`] = {
+    const tIdx = DEDICATED_DISK_SPEEDS.indexOf(speed);
+    const title = `${size_gb} GiB ${DEDICATED_DISK_SPEEDS[speed]}`;
+    const key = getDedicatedDiskKey({ size_gb, speed });
+    DISKS[key] = {
       quota,
       title,
-      price_day: rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb),
-      iops: `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`,
+      price_day: rawPrice2Retail(DISK_MONTHLY_1GB[speed] * size_gb),
+      iops: `${size_gb * IOPS[speed].read}/${size_gb * IOPS[speed].write}`,
       mbps:
-        `${Math.round(size_gb * MBPS[type].read)}/` +
-        `${Math.round(size_gb * MBPS[type].write)}`,
+        `${Math.round(size_gb * MBPS[speed].read)}/` +
+        `${Math.round(size_gb * MBPS[speed].write)}`,
       // dedicated "D"isk, "t"ype [number] and "s"ize [number]
       stripeID: `dDt${tIdx}s${size_gb}`,
     };

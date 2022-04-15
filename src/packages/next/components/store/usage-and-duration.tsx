@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { Subscription } from "@cocalc/util/licenses/purchase/types";
-import { COSTS } from "@cocalc/util/licenses/purchase/util";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";

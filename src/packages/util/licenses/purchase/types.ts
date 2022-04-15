@@ -19,11 +19,10 @@ export interface Cost {
   cost_sub_year: number;
 }
 
-
 export interface CostInputPeriod extends Cost {
-    input: Partial<PurchaseInfo>;
-    period: Period;
-  }
+  input: Partial<PurchaseInfo>;
+  period: Period;
+}
 
 export interface StartEndDates {
   start: Date;
@@ -40,12 +39,8 @@ export interface StartEndDatesWithStrings {
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-    Uptime
-} from "@cocalc/util/consts/site-license";
-import {
-    DedicatedDisk, DedicatedVM
-} from "@cocalc/util/types/dedicated";
+import { Uptime } from "@cocalc/util/consts/site-license";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { CustomDescription, Period } from "../../upgrades/shopping";
 
 export type PurchaseInfoQuota = {
@@ -91,7 +86,7 @@ export type PurchaseInfo =
     } & CustomDescription);
 
 // stripe's metadata can only handle string or number values.
-export type ProductMetadata =
+export type ProductMetadataQuota =
   | Record<
       | "user"
       | "ram"
@@ -106,3 +101,17 @@ export type ProductMetadata =
     > & {
       duration_days?: number;
     };
+export type ProductMetadataVM =
+  | Record<"machine", string | number | null> & {
+      duration_days?: number;
+    };
+
+export type ProductMetadataDisk =
+  | Record<"size_gb" | "speed", string | number | null> & {
+      duration_days?: number;
+    };
+
+export type ProductMetadata =
+  | ProductMetadataDisk
+  | ProductMetadataQuota
+  | ProductMetadataVM;
