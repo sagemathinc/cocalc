@@ -18,7 +18,7 @@ import { InsertCell } from "./insert-cell";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode, Scroll } from "./types";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
 interface CellListProps {
@@ -227,9 +227,28 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
+  function scrollCellListVirtuoso(scroll: Scroll) {
+    console.log("scrollCellListVirtuoso", JSON.stringify({ scroll }));
+    if (scroll.startsWith("cell")) {
+      // find index of cur_id cell.
+      const cellList = actions?.store.get("cell_list");
+      const index = cellList?.indexOf(cur_id);
+      if (index == null) return;
+      if (scroll == "cell visible") {
+        virtuosoRef.current?.scrollIntoView({ index });
+      } else if (scroll == "cell top") {
+        virtuosoRef.current?.scrollToIndex({ index });
+      }
+    } else if (scroll.startsWith("list")) {
+      if (scroll == "list up") {
+      } else if (scroll == "list down") {
+      }
+    }
+  }
+
   async function scroll_cell_list(scroll: Scroll): Promise<void> {
     if (use_windowed_list) {
-      // TODO -- virtuoso
+      scrollCellListVirtuoso(scroll);
     } else {
       // scroll not using windowed list
       scroll_cell_list_not_windowed(scroll);
@@ -312,6 +331,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     );
   }
 
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const virtuosoScroll = useVirtuosoScrollHook(
     use_windowed_list
       ? {
@@ -332,6 +352,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   if (use_windowed_list) {
     return (
       <Virtuoso
+        ref={virtuosoRef}
         style={{ fontSize: `${font_size}px`, height: "100%" }}
         totalCount={cell_list.size}
         itemContent={(index) => {

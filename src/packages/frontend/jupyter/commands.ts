@@ -675,7 +675,7 @@ export function commands(
 
     "scroll notebook down": {
       k: [{ mode: "escape", which: 32 }],
-      f: () => frame_actions.scroll("list down"),
+        f: () => frame_actions.scroll("list down"),
     },
 
     "scroll notebook up": {
