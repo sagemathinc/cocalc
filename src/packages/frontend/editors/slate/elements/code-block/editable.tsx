@@ -12,9 +12,9 @@ import {
 import { register, RenderElementProps } from "../register";
 import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
-//import { indent } from "../../util";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
+import Mermaid from "./mermaid";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -32,45 +32,59 @@ const Element: React.FC<RenderElementProps> = ({
 
   const setElement = useSetElement(editor, element);
 
-  return (
-    <div {...attributes}>
-      <div contentEditable={false}>
-        <SlateCodeMirror
-          options={{ lineWrapping: true }}
-          value={element.value}
-          info={element.info}
-          onChange={(value) => {
-            setElement({ value });
+  let body = (
+    <>
+      <SlateCodeMirror
+        options={{ lineWrapping: true, autofocus: element.info == "mermaid" }}
+        value={element.value}
+        info={element.info}
+        onChange={(value) => {
+          setElement({ value });
+        }}
+        onFocus={async () => {
+          await delay(1); // must be a little longer than the onBlur below.
+          if (!isMountedRef.current) return;
+          setShowInfo(true);
+        }}
+        onBlur={async () => {
+          await delay(0);
+          if (!isMountedRef.current) return;
+          if (!focusInfo) {
+            setShowInfo(false);
+          }
+        }}
+      />
+      {element.fence && (showInfo || focusInfo) && (
+        <InfoEditor
+          value={element.info}
+          onFocus={() => {
+            setFocusInfo(true);
           }}
-          onFocus={async () => {
-            await delay(1); // must be a little longer than the onBlur below.
-            if (!isMountedRef.current) return;
-            setShowInfo(true);
+          onBlur={() => {
+            setShowInfo(false);
+            setFocusInfo(false);
           }}
-          onBlur={async () => {
-            await delay(0);
-            if (!isMountedRef.current) return;
-            if (!focusInfo) {
-              setShowInfo(false);
-            }
+          onChange={(info) => {
+            setElement({ info });
           }}
         />
-        {element.fence && (showInfo || focusInfo) && (
-          <InfoEditor
-            value={element.info}
-            onFocus={() => {
-              setFocusInfo(true);
-            }}
-            onBlur={() => {
-              setShowInfo(false);
-              setFocusInfo(false);
-            }}
-            onChange={(info) => {
-              setElement({ info });
-            }}
-          />
-        )}
+      )}
+    </>
+  );
+  if (element.info == "mermaid") {
+    body = (
+      <div style={{ display: "flex" }}>
+        <div style={{ flex: 1 }}>{body}</div>
+        <div style={{ flex: 1 }}>
+          <Mermaid element={element} />
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div {...attributes}>
+      <div contentEditable={false}>{body}</div>
       {children}
     </div>
   );
