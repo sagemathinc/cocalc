@@ -17,7 +17,7 @@ import { useFrameContext } from "./hooks";
 import { getParams } from "./tools/tool-panel";
 
 const BORDER = SELECTED_PADDING + SELECTED_BORDER_WIDTH;
-const SIZE = SELECTED_BORDER_WIDTH * 3;
+const SIZE = SELECTED_BORDER_WIDTH * 4;
 const OFFSET = -SIZE / 2;
 
 export type Position = "top" | "bottom" | "left" | "right";

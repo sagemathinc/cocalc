@@ -61,7 +61,7 @@ interface Props {
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
-  enableUpload?: boolean;
+  enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   submitMentionsRef?: any;
@@ -127,7 +127,7 @@ export default function MultiMarkdownInput({
   style,
   autoFocus,
   enableMentions,
-  enableUpload,
+  enableUpload = true,
   onUploadStart,
   onUploadEnd,
   submitMentionsRef,
