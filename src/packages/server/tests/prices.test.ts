@@ -8,16 +8,14 @@
 // $ npx jest prices.test.ts  [--watch]
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import {
-  compute_cost,
-  COSTS,
-  money,
-  PurchaseInfoQuota,
-} from "@cocalc/util/licenses/purchase/util";
+import { PurchaseInfoQuota } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
+import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import expect from "expect";
 import { getProductId, unitAmount } from "../licenses/purchase/charge";
-import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 
 describe("product id and compute cost", () => {
   const info1: Omit<PurchaseInfoQuota, "quantity"> = {

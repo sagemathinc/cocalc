@@ -28,19 +28,20 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import {
-  compute_cost,
-  Cost,
   COSTS,
   discount_monthly_pct,
   discount_pct,
   discount_yearly_pct,
-  money,
-  percent_discount,
+} from "@cocalc/util/licenses/purchase/consts";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import {
+  Cost,
   PurchaseInfoQuota,
   Subscription,
   Upgrade,
   User,
-} from "@cocalc/util/licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/types";
+import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { COLORS } from "@cocalc/util/theme";

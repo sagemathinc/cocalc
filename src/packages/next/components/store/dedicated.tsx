@@ -8,7 +8,8 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
-import { money } from "@cocalc/util/licenses/purchase/util";
+import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import {
   DedicatedDiskTypeNames,
   DISK_NAMES,
@@ -20,7 +21,7 @@ import {
   MIN_DEDICATED_DISK_SIZE,
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
-import { CostInputPeriod, DateRange } from "@cocalc/util/upgrades/shopping";
+import { DateRange } from "@cocalc/util/upgrades/shopping";
 import { Divider, Form, Input, Radio, Select, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";

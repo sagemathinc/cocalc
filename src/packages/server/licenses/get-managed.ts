@@ -4,7 +4,7 @@ Returns array of licenses that a given user manages.
 
 import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
-import { User } from "@cocalc/util/licenses/purchase/util";
+import { User } from "@cocalc/util/licenses/purchase/types";
 import { isValidUUID } from "@cocalc/util/misc";
 
 export interface License {

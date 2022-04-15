@@ -4,7 +4,7 @@
  */
 
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
 const logger = getLogger("createLicense");

@@ -3,19 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Cost as Cost0 } from "@cocalc/util/licenses/purchase/util";
 import { LicenseIdleTimeouts } from "../consts/site-license";
-import { PurchaseInfo, User } from "../licenses/purchase/util";
+import { User } from "../licenses/purchase/types";
 import { DedicatedDisk, DedicatedVM } from "../types/dedicated";
 
 export type LicenseType = "quota" | "vm" | "disk";
 
 export type Period = "range" | "monthly" | "yearly";
-
-export interface CostInputPeriod extends Cost0 {
-  input: Partial<PurchaseInfo>;
-  period: Period;
-}
 
 export type DateRange = [Date | undefined, Date | undefined];
 

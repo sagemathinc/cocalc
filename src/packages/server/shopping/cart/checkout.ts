@@ -20,12 +20,12 @@ cart are changed in the database so that the purchased field is set.
 import getCart from "./get";
 import purchaseLicense from "@cocalc/server/licenses/purchase";
 import getPool from "@cocalc/database/pool";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 import {
-  compute_cost,
   PurchaseInfo,
   Subscription,
-} from "@cocalc/util/licenses/purchase/util";
-import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
+} from "@cocalc/util/licenses/purchase/types";
 
 export default async function checkout(account_id: string): Promise<void> {
   // Get the list of items in the cart that haven't been purchased

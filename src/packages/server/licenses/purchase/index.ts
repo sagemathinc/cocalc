@@ -16,15 +16,15 @@ What this does:
 
 import { db } from "@cocalc/database";
 import {
-  PurchaseInfo,
   sanity_checks,
-} from "@cocalc/util/licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/sanity-checks";
 import { chargeUserForLicense, setPurchaseMetadata } from "./charge";
 import createLicense from "./create-license";
 import { StripeClient } from "@cocalc/server/stripe/client";
 import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/backend/logger";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 const logger = getLogger("purchase-license");
 
 // Does what should be done, and returns the license_id of the license that was created

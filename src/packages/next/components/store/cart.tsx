@@ -14,7 +14,7 @@ to use.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { money } from "@cocalc/util/licenses/purchase/util";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import A from "components/misc/A";

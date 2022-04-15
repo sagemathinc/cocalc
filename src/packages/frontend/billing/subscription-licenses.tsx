@@ -4,11 +4,10 @@
  */
 
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { PurchaseInfo, Subscription } from "@cocalc/util/licenses/purchase/types";
 import {
   compute_cost,
   discount_pct,
-  PurchaseInfo,
-  Subscription,
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
 import { React } from "../app-framework";

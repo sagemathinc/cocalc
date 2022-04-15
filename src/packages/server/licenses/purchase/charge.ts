@@ -3,11 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  COSTS,
-  ProductMetadata,
-  PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/util";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
@@ -17,6 +13,10 @@ import {
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
+import {
+  ProductMetadata,
+  PurchaseInfo,
+} from "@cocalc/util/licenses/purchase/types";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };

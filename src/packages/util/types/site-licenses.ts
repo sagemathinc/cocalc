@@ -1,4 +1,4 @@
-import { User } from "../licenses/purchase/util";
+import { User } from "../licenses/purchase/types";
 import { Upgrades } from "../upgrades/types";
 import { DedicatedDisk, DedicatedVM } from "./dedicated";
 

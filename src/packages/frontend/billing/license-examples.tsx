@@ -9,12 +9,11 @@ import { Col, Row, Table } from "react-bootstrap";
 import { Space, Icon, IconName } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 import {
-  Cost,
-  User,
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
 } from "@cocalc/util/licenses/purchase/util";
+import { Cost, User } from "@cocalc/util/licenses/purchase/types";
 
 // This component renders 3 price examples for licensed upgrades in a row
 

@@ -14,7 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import { Alert, Button, Row, Col, Table } from "antd";
 import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
-import { money } from "@cocalc/util/licenses/purchase/util";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";

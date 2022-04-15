@@ -16,7 +16,8 @@ Editing a quota
 import { Button, Checkbox, InputNumber, Row, Col, Select } from "antd";
 import { Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { COSTS, GCE_COSTS, money, User } from "@cocalc/util/licenses/purchase/util";
+import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -25,6 +26,7 @@ import {
   untangleUptime,
   Uptime,
 } from "@cocalc/util/consts/site-license";
+import { User } from "@cocalc/util/licenses/purchase/types";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",

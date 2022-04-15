@@ -3,36 +3,33 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
-const { HelpEmailLink, SiteName } = require("../customize");
-import { A, IconName, Space } from "../components";
-import {
-  STUDENT_COURSE_PRICE,
-  TEACHER_PAYS,
-  STUDENT_PAYS,
-  INSTRUCTOR_GUIDE,
-  DOC_LICENSE_URL,
-  DOC_ACCOUNT_LICENSES,
-} from "./data";
+import { Uptime } from "@cocalc/util/consts/site-license";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   compute_cost,
   discount_pct,
-  User,
-  Upgrade,
-  Subscription,
-  PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/util";
+import { React } from "../app-framework";
+import { A, IconName, Space } from "../components";
+import {
+  DOC_ACCOUNT_LICENSES,
+  DOC_LICENSE_URL,
+  INSTRUCTOR_GUIDE,
+  STUDENT_COURSE_PRICE,
+  STUDENT_PAYS,
+  TEACHER_PAYS,
+} from "./data";
 import { LicenseExamples } from "./license-examples";
-import { Uptime } from "@cocalc/util/consts/site-license";
+const { HelpEmailLink, SiteName } = require("../customize");
 
 export const TITLE = "Course licenses";
 
 const p1data: PurchaseInfo = {
   type: "quota",
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+  user: "academic",
+  upgrade: "custom",
   quantity: 20 + 2,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-02-01T11:59:59.999Z"),
   custom_ram: 2,
@@ -47,10 +44,10 @@ const Price1 = compute_cost(p1data);
 
 const p2data: PurchaseInfo = {
   type: "quota",
-  user: "business" as User,
-  upgrade: "custom" as Upgrade,
+  user: "business",
+  upgrade: "custom",
   quantity: 5 + 1,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-01-06T11:59:59.999Z"),
   custom_ram: 2,
@@ -65,10 +62,10 @@ const Price2 = compute_cost(p2data);
 
 const p3data: PurchaseInfo = {
   type: "quota",
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+  user: "academic",
+  upgrade: "custom",
   quantity: 120 + 2,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-05-01T11:59:59.999Z"),
   custom_ram: 1,

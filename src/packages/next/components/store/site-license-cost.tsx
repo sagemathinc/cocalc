@@ -3,19 +3,17 @@ import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { dedicatedPrice } from "@cocalc/util/licenses/purchase/dedicated-price";
+import { CostInputPeriod, PurchaseInfo, Subscription } from "@cocalc/util/licenses/purchase/types";
 import {
   compute_cost,
   money,
   percent_discount,
-  PurchaseInfo,
-  Subscription,
 } from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import {
   ComputeCostProps,
-  CostInputPeriod,
 } from "@cocalc/util/upgrades/shopping";
 import {
   dedicatedDiskDisplay,
