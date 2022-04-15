@@ -93,7 +93,7 @@ function CreateSiteLicense() {
           setLoading(true);
           const item = await apiPost("/shopping/cart/get", { id });
           if (item.product == "site-license") {
-            form.setFieldsValue(item.description);
+            form.setFieldsValue({ ...item.description, type: "regular" });
           }
         } catch (err) {
           setCartError(err.message);

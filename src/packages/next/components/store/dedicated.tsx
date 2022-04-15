@@ -162,6 +162,8 @@ function CreateDedicatedResource() {
       dedicated_disk?: any;
       dedicated_vm?: any;
       range?: DateRange;
+      title?: string;
+      description?: string;
     };
   }) {
     if (item.product !== "site-license") {
@@ -172,6 +174,13 @@ function CreateDedicatedResource() {
       throw new Error(`cannot deal with type ${type}`);
     }
     const conf = item.description;
+
+    // restoring name/description
+    form.setFieldsValue({
+      title: conf.title,
+      description: conf.description,
+    });
+
     switch (type) {
       case "disk":
         const d = conf.dedicated_disk;

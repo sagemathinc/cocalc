@@ -90,7 +90,7 @@ function CreateBooster() {
       throw new Error(`cannot deal with type ${type}`);
     }
     if (item.product == "site-license") {
-      form.setFieldsValue({ type, ...item.description });
+      form.setFieldsValue({ ...item.description, type });
     }
   }
 
