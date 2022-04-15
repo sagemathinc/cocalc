@@ -175,7 +175,6 @@ function CreateDedicatedResource() {
     switch (type) {
       case "disk":
         const d = conf.dedicated_disk;
-        console.log("disk", d);
         form.setFieldsValue({
           type,
           "disk-size_gb": d.size_gb,
@@ -193,7 +192,6 @@ function CreateDedicatedResource() {
         break;
 
       case "vm":
-        console.log("conf", conf);
         const vm = conf.dedicated_vm?.machine;
         if (PRICES.vms[vm] == null) {
           console.warn(`VM type ${vm} not found`);
@@ -223,10 +221,9 @@ function CreateDedicatedResource() {
     if (id != null) {
       // editing something in the shopping cart
       (async () => {
-        let item;
         try {
           setLoading(true);
-          item = await apiPost("/shopping/cart/get", { id });
+          const item = await apiPost("/shopping/cart/get", { id });
           await loadItem(item);
         } catch (err) {
           setCartError(err.message);

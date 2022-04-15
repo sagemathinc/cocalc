@@ -13,6 +13,7 @@ import { CostInputPeriod, LicenseType } from "@cocalc/util/upgrades/shopping";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
 import { DisplayCost } from "./site-license-cost";
+import { getType } from "./util";
 
 // these are the hidden type fields of the forms
 // regular and boost end up as "quota" types
@@ -53,6 +54,8 @@ export function AddBox(props: Props) {
     } = {
       ...form.getFieldsValue(true),
     };
+
+    console.log("addToCart: description:", description);
 
     // unload the type parameter
     switch (description.type) {

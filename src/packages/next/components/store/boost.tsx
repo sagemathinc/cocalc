@@ -26,6 +26,7 @@ import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+import { getType } from "./util";
 
 const { Text, Paragraph } = Typography;
 
@@ -77,9 +78,20 @@ function CreateBooster() {
   }, []);
 
   function onChange() {
-    const conf = { ...form.getFieldsValue(true), boost: true };
-    conf.type = "quota";
+    const conf = { ...form.getFieldsValue(true) };
+    conf.type = "boost";
     setCost(computeCost(conf));
+  }
+
+  async function loadItem(item) {
+    const type = getType(item);
+    console.log("loaditem boost", type, item);
+    if (type !== "boost") {
+      throw new Error(`cannot deal with type ${type}`);
+    }
+    if (item.product == "site-license") {
+      form.setFieldsValue({ type, ...item.description });
+    }
   }
 
   useEffect(() => {
@@ -93,17 +105,14 @@ function CreateBooster() {
     if (id != null) {
       // editing something in the shopping cart
       (async () => {
-        let item;
         try {
           setLoading(true);
-          item = await apiPost("/shopping/cart/get", { id });
+          const item = await apiPost("/shopping/cart/get", { id });
+          await loadItem(item);
         } catch (err) {
           setCartError(err.message);
         } finally {
           setLoading(false);
-        }
-        if (item.product == "site-license") {
-          form.setFieldsValue(item.description);
         }
         onChange();
       })();
@@ -127,8 +136,13 @@ function CreateBooster() {
           }}
         >
           <Paragraph
+            ellipsis={
+              confirmWarning
+                ? { rows: 2, expandable: true, symbol: "more…" }
+                : false
+            }
             style={{
-              opacity: confirmWarning ? 0.5 : 1,
+              opacity: confirmWarning ? 0.75 : 1,
             }}
           >
             Boost licenses only work in combination with regular Site Licenses.
