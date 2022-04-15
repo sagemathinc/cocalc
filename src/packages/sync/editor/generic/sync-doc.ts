@@ -1599,6 +1599,7 @@ export class SyncDoc extends EventEmitter {
       dbg(`state=${this.state} not ready so not saving`);
       return;
     }
+    // Compute any patches.
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       this.emit("user-change");
@@ -2827,8 +2828,15 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
+    // Critical to save what we have now so it doesn't get overwritten during
+    // before-change or setting this.doc below.  This caused
+    //    https://github.com/sagemathinc/cocalc/issues/5871
+    this.commit();
+
     if (upstreamPatches && this.state == "ready") {
-      // First save any unsaved changes from our live version.
+      // First save any unsaved changes from the live document, which this
+      // sync-doc doesn't acutally know the state of.  E.g., this is some
+      // rapidly changing live editor with changes not yet saved here.
       this.emit("before-change");
       // As a result of the emit in the previous line, all kinds of
       // nontrivial listener code probably just ran, and it should
