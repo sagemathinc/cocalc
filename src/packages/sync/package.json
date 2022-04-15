@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "@cocalc/util": "^1.36.5",
-    "async": "^1.5.2",
+    "async": "^2.6.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "immutable": "^3.8.2",
