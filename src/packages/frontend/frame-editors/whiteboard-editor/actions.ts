@@ -13,7 +13,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { Tool } from "./tools/spec";
+import { setDefaultSize, Tool } from "./tools/spec";
 import {
   Data,
   Element,
@@ -26,8 +26,6 @@ import {
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
   getPageSpan,
   centerRectsAt,
   centerOfRect,
@@ -149,14 +147,18 @@ export class Actions extends BaseActions<State> {
     if (element == null) return;
     delete element.z; // so it is placed at the top
     delete element.locked; // so it isn't locked; copy should never be locked
+    let clearedContent = false;
     if (element.str != null) {
+      clearedContent = true;
       element.str = "";
     }
     if (element.data?.output != null) {
+      clearedContent = true;
       // code cell
       delete element.data.output;
     }
     if (element.type == "chat") {
+      clearedContent = true;
       clearChat(element);
     }
     moveRectAdjacent(element, placement);
@@ -180,6 +182,12 @@ export class Actions extends BaseActions<State> {
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
     moveUntilNotIntersectingAnything(element, elements, axis);
 
+    // only after moving, do this, so size will be the default, since we
+    // emptied the object content:
+    if (clearedContent) {
+      delete element.w;
+      delete element.h;
+    }
     return this.createElement(element, commit).id;
   }
 
@@ -292,11 +300,8 @@ export class Actions extends BaseActions<State> {
       // most calls to createElement should NOT resort to having to do this.
       obj.z = this.getPageSpan().zMax + 1;
     }
-    if (obj.w == null) {
-      obj.w = DEFAULT_WIDTH;
-    }
-    if (obj.h == null) {
-      obj.h = DEFAULT_HEIGHT;
+    if ((obj.w == null || obj.h == null) && obj.type) {
+      setDefaultSize(obj);
     }
     this.setElement({ create: true, obj, commit, cursors: [{}] });
     return obj as Element;
