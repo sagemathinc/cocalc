@@ -1444,6 +1444,7 @@ export class Actions<
     }
     // Now actually set the value.
     this._syncstring.from_str(value);
+    this._syncstring.commit();
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
