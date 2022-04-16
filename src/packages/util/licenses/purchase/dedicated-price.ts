@@ -12,7 +12,7 @@ import {
   AVG_MONTH_DAYS,
   AVG_YEAR_DAYS,
 } from "@cocalc/util/consts/billing";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { DedicatedDisk, DedicatedVM } from "../../types/dedicated";
 
 interface Props {
@@ -44,7 +44,8 @@ export function dedicatedPrice(info: Props): number | null {
     }
     return info.price_day * duration;
   } else if (!!dedicated_disk) {
-    const diskID = `${dedicated_disk.size_gb}-${dedicated_disk.speed}`;
+    console.log(dedicated_disk)
+    const diskID = getDedicatedDiskKey(dedicated_disk);
     const info = PRICES.disks[diskID];
     if (info == null) {
       throw new Error(`Dedicated Disk "${dedicated_disk}" is not defined.`);

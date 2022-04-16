@@ -22,9 +22,6 @@ export async function chargeUserForLicense(
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
-  logger.debug("got product_id", product_id);
-  if (1 == 1) process.exit();
-
   if (info.subscription == "no") {
     return await stripePurchaseProduct(stripe, product_id, info);
   } else {

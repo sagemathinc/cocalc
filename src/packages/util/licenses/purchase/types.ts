@@ -101,15 +101,20 @@ export type ProductMetadataQuota =
     > & {
       duration_days?: number;
     };
+
 export type ProductMetadataVM =
   | Record<"machine", string | number | null> & {
       duration_days?: number;
+      type: "vm";
     };
 
-export type ProductMetadataDisk =
-  | Record<"size_gb" | "speed", string | number | null> & {
-      duration_days?: number;
-    };
+export type ProductMetadataDisk = Record<
+  "size_gb" | "speed",
+  string | number | null
+> & {
+  duration_days?: number;
+  type: "disk";
+};
 
 export type ProductMetadata =
   | ProductMetadataDisk

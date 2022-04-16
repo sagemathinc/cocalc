@@ -11,16 +11,17 @@ export function getProductName(info): string {
   /* Similar to getProductId above, but meant to be human readable.  This name is what
        customers see on invoices, so it's very valuable as it reflects what they bought clearly.
     */
-  let period: string;
-  if (info.subscription == "no") {
-    period = `${getDays(info)} days`;
-  } else {
-    period = "subscription";
-  }
+  const period = (() => {
+    if (info.subscription == "no") {
+      return `${getDays(info)} days`;
+    } else {
+      return "subscription";
+    }
+  })();
 
   const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
 
-  let desc = describe_quota({
+  const desc = describe_quota({
     user: info.user,
     ram: info.custom_ram,
     cpu: info.custom_cpu,
@@ -30,7 +31,10 @@ export function getProductName(info): string {
     member: info.custom_member,
     always_running,
     idle_timeout,
+    boost: info.boost,
+    dedicated_disk: info.dedicated_disk,
+    dedicated_vm: info.dedicated_vm,
   });
-  desc += " - " + period;
-  return desc;
+
+  return `${desc} - ${period}`;
 }

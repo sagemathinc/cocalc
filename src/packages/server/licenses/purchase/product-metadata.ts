@@ -38,6 +38,7 @@ export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
   } else if (type === "vm") {
     // always has a specific start and end date
     const meta: ProductMetadataVM = {
+      type: "vm",
       machine: info.dedicated_vm.machine,
     };
     duration(meta, info);
@@ -46,6 +47,7 @@ export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
     if (typeof info.dedicated_disk === "boolean")
       throw new Error(`dedicated_disk is not an object`);
     const meta: ProductMetadataDisk = {
+      type: "disk",
       size_gb: info.dedicated_disk.size_gb,
       speed: info.dedicated_disk.speed,
     };
