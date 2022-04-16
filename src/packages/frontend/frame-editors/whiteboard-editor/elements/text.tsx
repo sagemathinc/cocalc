@@ -45,7 +45,7 @@ function EditText({
   focused?: boolean;
   readOnly?: boolean;
 }) {
-  const { actions, id: frameId } = useFrameContext();
+  const { actions } = useFrameContext();
   const [mode, setMode] = useState<string>("");
   const [editFocus, setEditFocus] = useEditFocus(false);
 
@@ -165,10 +165,6 @@ function EditText({
             // there are many ways to "blur" the slate editor technically, but
             // still want to consider it focused, e.g., editing math and code
             // cells, and clicking a checkbox.
-          }}
-          onShiftEnter={() => {
-            setEditFocus(false);
-            actions.clearSelection(frameId);
           }}
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}

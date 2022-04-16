@@ -13,7 +13,7 @@ import {
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
-import { IS_FIREFOX, IS_SAFARI, IS_CHROME_LEGACY } from "../utils/environment";
+import { IS_FIREFOX, IS_SAFARI, HAS_BEFORE_INPUT_SUPPORT } from "../utils/environment";
 import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";
@@ -38,14 +38,6 @@ import { debounce } from "lodash";
 import getDirection from "direction";
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 import { hasEditableTarget, hasTarget } from "./dom-utils";
-
-// COMPAT: Edge Legacy don't support the `beforeinput` event
-// Chrome Legacy doesn't support `beforeinput` correctly
-const HAS_BEFORE_INPUT_SUPPORT =
-  !IS_CHROME_LEGACY &&
-  globalThis.InputEvent &&
-  // @ts-ignore The `getTargetRanges` property isn't recognized.
-  typeof globalThis.InputEvent.prototype.getTargetRanges === "function";
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
@@ -430,7 +422,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       // @ts-ignore The `beforeinput` event isn't recognized.
       ref.current.addEventListener("beforeinput", onDOMBeforeInput);
     }
-
     return () => {
       if (ref.current && HAS_BEFORE_INPUT_SUPPORT) {
         // @ts-ignore The `beforeinput` event isn't recognized.
