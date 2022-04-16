@@ -5,6 +5,7 @@
 
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { plural } from "@cocalc/util/misc";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 export function getProductName(info): string {
@@ -13,7 +14,8 @@ export function getProductName(info): string {
     */
   const period = (() => {
     if (info.subscription == "no") {
-      return `${getDays(info)} days`;
+      const n = getDays(info);
+      return `${n} ${plural(n, "day")}`;
     } else {
       return "subscription";
     }
