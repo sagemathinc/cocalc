@@ -193,7 +193,7 @@ export class Actions extends BaseActions<State> {
 
   setElement({
     obj,
-    commit,
+    commit=true,
     cursors,
     create,
   }: {
@@ -203,7 +203,6 @@ export class Actions extends BaseActions<State> {
     create?: boolean;
   }): void {
     if (this._syncstring == null) return;
-    if (commit == null) commit = true;
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
     }

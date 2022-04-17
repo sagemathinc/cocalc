@@ -60,7 +60,7 @@ function EditText({
         if (!getValueRef.current) return;
         str = getValueRef.current();
       }
-      if (str == (element.str ?? "") || actions.in_undo_mode()) {
+      if (str == (element.str ?? "")) {
         // No change so do NOT save -- see comment about similar code in code/input.tsx.
         return;
       }
@@ -105,10 +105,6 @@ function EditText({
     }
     resizeRef.current = () => {
       if (actions.in_undo_mode() || readOnly) return;
-      // possibly adjust height.  We do this in the next render
-      // loop because sometimes when the change fires the dom
-      // hasn't updated the height of the containing div yet,
-      // so we end up setting the height 1 step behind reality.
       const elt = divRef.current;
       if (elt == null) return;
       const height = Math.max(
