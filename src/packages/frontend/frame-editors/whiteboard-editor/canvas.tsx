@@ -665,7 +665,7 @@ export default function Canvas({
         >
           <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
           <NotFocused
-            id={id}
+            element={element}
             selectable={selectedTool == "select"}
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
