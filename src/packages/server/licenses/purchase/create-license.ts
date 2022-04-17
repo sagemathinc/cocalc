@@ -21,6 +21,7 @@ export default async function createLicense(
   logger.debug("creating a license...", license_id, info);
 
   if (info.type !== "quota") {
+    logger.info(info);
     throw new Error(`unexpected license type: ${info.type}`);
   }
 
@@ -35,17 +36,7 @@ export default async function createLicense(
         : info.start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
-    "quota::JSONB": {
-      user: info.user,
-      ram: info.custom_ram,
-      cpu: info.custom_cpu,
-      dedicated_ram: info.custom_dedicated_ram,
-      dedicated_cpu: info.custom_dedicated_cpu,
-      disk: info.custom_disk,
-      always_running: info.custom_uptime === "always_running",
-      idle_timeout: info.custom_uptime,
-      member: info.custom_member,
-    },
+    "quota::JSONB": getQuota(info),
     "title::TEXT": info.title,
     "description::TEXT": info.description,
     "run_limit::INTEGER": info.quantity,
@@ -60,4 +51,29 @@ export default async function createLicense(
   });
 
   return license_id;
+}
+
+function getQuota(info: PurchaseInfo) {
+  switch (info.type) {
+    case "quota":
+      return {
+        user: info.user,
+        ram: info.custom_ram,
+        cpu: info.custom_cpu,
+        dedicated_ram: info.custom_dedicated_ram,
+        dedicated_cpu: info.custom_dedicated_cpu,
+        disk: info.custom_disk,
+        always_running: info.custom_uptime === "always_running",
+        idle_timeout: info.custom_uptime,
+        member: info.custom_member,
+      };
+    case "vm":
+      return {
+        dedicated_vm: info.dedicated_vm,
+      };
+    case "disk":
+      return {
+        dedicated_disk: info.dedicated_disk,
+      };
+  }
 }

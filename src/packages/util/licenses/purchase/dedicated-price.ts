@@ -23,6 +23,16 @@ interface Props {
   subscription: "monthly" | "yearly";
 }
 
+function getDuration({ start, end, subscription }) {
+  if (start != null && end != null) {
+    return (end.getTime() - start.getTime()) / ONE_DAY_MS;
+  } else if (subscription === "yearly") {
+    return AVG_YEAR_DAYS;
+  } else {
+    return AVG_MONTH_DAYS;
+  }
+}
+
 export function dedicatedPrice(info: Props): number | null {
   const { dedicated_vm, dedicated_disk, subscription } = info;
 
@@ -31,12 +41,8 @@ export function dedicatedPrice(info: Props): number | null {
   const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
-  const duration =
-    start != null && end != null
-      ? (end.getTime() - start.getTime()) / ONE_DAY_MS
-      : subscription === "yearly"
-      ? AVG_YEAR_DAYS
-      : AVG_MONTH_DAYS;
+  const duration = getDuration({ start, end, subscription });
+
   if (!!dedicated_vm) {
     const info = PRICES.vms[dedicated_vm.machine];
     if (info == null) {
@@ -44,7 +50,7 @@ export function dedicatedPrice(info: Props): number | null {
     }
     return info.price_day * duration;
   } else if (!!dedicated_disk) {
-    console.log(dedicated_disk)
+    console.log(dedicated_disk);
     const diskID = getDedicatedDiskKey(dedicated_disk);
     const info = PRICES.disks[diskID];
     if (info == null) {
