@@ -29,7 +29,7 @@
     "@cocalc/util": "^1.29.0",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
-    "async": "^1.5.2",
+    "async": "^2.6.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
