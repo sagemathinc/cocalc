@@ -104,7 +104,16 @@ function EditText({
       return;
     }
     resizeRef.current = () => {
-      if (actions.in_undo_mode() || readOnly) return;
+      // NOTE: we test that element.str == getValueRef.current?.() in order to tell
+      // if you were just in undo mode, but then typed something new in the editor, which
+      // hasn't yet triggered onChange.  E.g., if you type, then undo, then type something
+      // to change the height, resize wouldn't bet triggered without this clause.
+      if (
+        readOnly ||
+        (actions.in_undo_mode() && element.str == getValueRef.current?.())
+      ) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
       const height = Math.max(
