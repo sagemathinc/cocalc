@@ -43,7 +43,6 @@ export default function Code({
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
   const [editFocus, setEditFocus] = useEditFocus(false);
-
   const { actions, project_id, path } = useFrameContext();
   const [mode, setMode] = useState<any>(codemirrorMode("py"));
   useAsyncEffect(async () => {
@@ -63,6 +62,7 @@ export default function Code({
             canvasScale={canvasScale}
             onFocus={() => setEditFocus(true)}
             mode={mode}
+            getValueRef={getValueRef}
           />
         </div>
       );
@@ -70,6 +70,7 @@ export default function Code({
     return <InputStatic element={element} mode={mode} />;
   };
   const divRef = useRef<any>(null);
+  const getValueRef = useRef<any>(null);
   const resize = useResizeObserver({
     ref: readOnly || !focused ? undefined : divRef, // only listen if necessary!
   });
@@ -80,7 +81,10 @@ export default function Code({
       return;
     }
     const shrinkElement = debounce(() => {
-      if (actions.in_undo_mode()) return () => {};
+      // for why "element.str == getValueRef.current?.()" see comment in ../text.tsx
+      if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
       const h = Math.max(
@@ -94,7 +98,9 @@ export default function Code({
     }, 250);
 
     resizeRef.current = () => {
-      if (actions.in_undo_mode()) return () => {};
+      if (actions.in_undo_mode() && element.str == getValueRef?.current?.()) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
       const newHeight = Math.max(

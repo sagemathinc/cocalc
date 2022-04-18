@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
 import { fromJS, Map } from "immutable";
@@ -24,6 +30,7 @@ interface Props {
   isFocused?: boolean;
   cursors?: { [account_id: string]: any[] };
   mode?;
+  getValueRef: MutableRefObject<() => string>;
 }
 
 export default function Input({
@@ -34,6 +41,7 @@ export default function Input({
   isFocused,
   cursors,
   mode,
+  getValueRef,
 }: Props) {
   const frame = useFrameContext();
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
@@ -60,7 +68,6 @@ export default function Input({
     });
   }, [element.id]);
 
-  const getValueRef = useRef<any>(null);
   useEffect(() => {
     if (frame.actions._syncstring == null) return;
     frame.actions._syncstring.on("before-change", saveEditorValue);
