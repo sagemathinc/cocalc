@@ -52,9 +52,13 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
       style={{
         ...PANEL_STYLE,
         margin: 0,
+        top: "15px",
         display: "flex",
         flexDirection: "column",
         height: "42px",
+        ...(elements.length == 1 && elements[0].type == "code" /* this is basically a hack for now so tab completion in code cells doesn't get obscured by edit bar */
+          ? { right: "10px" }
+          : undefined),
       }}
     >
       <div style={{ display: "flex" }}>
