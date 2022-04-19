@@ -19,7 +19,9 @@ export default function Upload({ children, evtToDataRef, readOnly }: Props) {
     return <>{children}</>;
   }
 
-  const dest_path = aux_file(path, AUX_FILE_EXT);
+  const destPath = aux_file(path, AUX_FILE_EXT);
+  const i = destPath.lastIndexOf("/");
+  const relativePath = i == -1 ? destPath : destPath.slice(i + 1);
 
   const updloadEventHandlers = {
     sending: ({ name }) => {
@@ -32,7 +34,7 @@ export default function Upload({ children, evtToDataRef, readOnly }: Props) {
       // and don't involve Dropzone at all.
       const location = evtToDataRef.current?.(mouse) ?? { x: 0, y: 0 };
       let str: string;
-      const filename = join(dest_path, file.name);
+      const filename = join(relativePath, file.name);
       if (file.type.indexOf("image") == -1) {
         // not an image
         str = `<a href="${filename}">${filename}</a>`;
@@ -52,7 +54,7 @@ export default function Upload({ children, evtToDataRef, readOnly }: Props) {
     <FileUploadWrapper
       className="smc-vfill"
       project_id={project_id}
-      dest_path={dest_path}
+      dest_path={destPath}
       event_handlers={updloadEventHandlers}
       style={{ height: "100%", width: "100%" }}
       dropzone_ref={dropzoneRef}
