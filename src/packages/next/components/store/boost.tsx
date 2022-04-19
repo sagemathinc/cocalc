@@ -85,7 +85,6 @@ function CreateBooster() {
 
   async function loadItem(item) {
     const type = getType(item);
-    console.log("loaditem boost", type, item);
     if (type !== "boost") {
       throw new Error(`cannot deal with type ${type}`);
     }

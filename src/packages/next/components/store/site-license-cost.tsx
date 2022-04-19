@@ -6,7 +6,7 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import {
   compute_cost,
   compute_cost_dedicated,

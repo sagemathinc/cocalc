@@ -12,9 +12,8 @@ to use.
 */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { untangleUptime } from "@cocalc/util/consts/site-license";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { Cost, CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
@@ -349,38 +348,11 @@ function DescriptionColumn(props: DCProps) {
   const showRunLimitEditor =
     description.type !== "disk" && description.type !== "vm";
 
-  function renderDescribeQuota() {
-    const { type } = input;
-    if (type === "quota") {
-      const { idle_timeout, always_running } = untangleUptime(
-        input.custom_uptime
-      );
-      return describe_quota({
-        ram: input.custom_ram,
-        cpu: input.custom_cpu,
-        disk: input.custom_disk,
-        always_running,
-        idle_timeout,
-        member: input.custom_member,
-        user: input.user,
-        boost: input.boost,
-      });
-    } else if (type === "vm") {
-      return describe_quota({
-        dedicated_vm: input.dedicated_vm,
-      });
-    } else if (type === "disk") {
-      return describe_quota({ dedicated_disk: input.dedicated_disk });
-    } else {
-      throw new Error(`unkonwn type ${type}`);
-    }
-  }
-
   function editableQuota() {
     return (
       <div>
         <div>
-          {renderDescribeQuota()}
+          {describeQuotaFromInfo(input)}
           {showRunLimitEditor && !editRunLimit && (
             <>
               <br />

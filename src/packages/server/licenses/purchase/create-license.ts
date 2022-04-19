@@ -11,8 +11,7 @@ import checkDedicateDiskName from "../check-disk-name";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 const logger = getLogger("createLicense");
 
-// ATTN: activates/expires timestamps only work correctly if server set to UTC timezone.
-// for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
+// ATTN: for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
 // this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
 export default async function createLicense(
   database: PostgreSQL,
@@ -66,7 +65,9 @@ async function getQuota(info: PurchaseInfo, license_id: string) {
         always_running: info.custom_uptime === "always_running",
         idle_timeout: info.custom_uptime,
         member: info.custom_member,
+        boost: info.boost ?? false,
       };
+
     case "vm":
       const { machine } = info.dedicated_vm;
       if (PRICES.vms[machine] == null) {
@@ -78,6 +79,7 @@ async function getQuota(info: PurchaseInfo, license_id: string) {
           name: uuid2name(license_id),
         },
       };
+
     case "disk":
       if (info.dedicated_disk === false) {
         throw new Error(`info.dedicated_disk cannot be false`);

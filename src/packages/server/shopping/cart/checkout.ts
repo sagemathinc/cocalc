@@ -88,6 +88,7 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         disk,
         member,
         uptime,
+        boost = false,
       } = conf;
 
       return {
@@ -105,6 +106,7 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         custom_disk: disk,
         custom_member: member,
         custom_uptime: uptime,
+        boost,
         title,
         description,
       };

@@ -23,7 +23,7 @@ import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left, trunc, unreachable } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import {
   LicenseStatus,
   isLicenseStatus,

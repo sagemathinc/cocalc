@@ -55,8 +55,6 @@ export function AddBox(props: Props) {
       ...form.getFieldsValue(true),
     };
 
-    console.log("addToCart: description:", description);
-
     // unload the type parameter
     switch (description.type) {
       case "boost":

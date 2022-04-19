@@ -1,13 +1,13 @@
-import useAPI from "lib/hooks/api";
-import { Alert, Popover, Progress } from "antd";
-import { CSSProperties } from "react";
-import Loading from "components/share/loading";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { capitalize } from "@cocalc/util/misc";
-import { EditableDescription, EditableTitle } from "./editable-license";
-import Timestamp from "components/misc/timestamp";
-import Copyable from "components/misc/copyable";
+import { Alert, Popover, Progress } from "antd";
 import A from "components/misc/A";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import Copyable from "components/misc/copyable";
+import Timestamp from "components/misc/timestamp";
+import Loading from "components/share/loading";
+import useAPI from "lib/hooks/api";
+import { CSSProperties } from "react";
+import { EditableDescription, EditableTitle } from "./editable-license";
 
 interface Props {
   license_id: string;

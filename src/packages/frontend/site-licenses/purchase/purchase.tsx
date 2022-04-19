@@ -26,7 +26,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { supportURL } from "@cocalc/frontend/support/url";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import {
   COSTS,
   discount_monthly_pct,
