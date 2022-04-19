@@ -37,7 +37,6 @@ export const Markdown: React.FC<Props> = (props) => {
       className={props.className}
       href_transform={props.href_transform}
       post_hook={props.post_hook}
-      highlight={props.highlight}
       safeHTML={props.safeHTML}
       reload_images={props.reload_images}
       smc_image_scaling={props.smc_image_scaling}

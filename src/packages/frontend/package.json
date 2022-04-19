@@ -88,7 +88,6 @@
     "install": "^0.13.0",
     "is-hotkey": "^0.2.0",
     "jquery": "^3.6.0",
-    "jquery-highlight": "^3.3",
     "jquery-tooltip": "^0.2.1",
     "jquery-ui": "^1.13.1",
     "jquery-ui-touch-punch": "^0.2",
