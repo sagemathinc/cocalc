@@ -185,6 +185,8 @@ Table({
     pg_indexes: [
       "((quota -> 'dedicated_disk' IS NOT NULL))",
       "((quota -> 'dedicated_vm' IS NOT NULL))",
+      "((quota -> 'dedicated_disk' ->> 'name'))",
+      "((quota -> 'dedicated_vm' ->> 'name'))",
     ],
     user_query: {
       get: {

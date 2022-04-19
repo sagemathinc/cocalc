@@ -14,6 +14,7 @@ to use.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { Cost, CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
@@ -318,7 +319,18 @@ function CheckboxColumn({
   );
 }
 
-function DescriptionColumn(props) {
+interface DCProps {
+  id: string;
+  cost: CostInputPeriod;
+  description;
+  updating: boolean;
+  setUpdating: (u: boolean) => void;
+  isMounted: { current: boolean };
+  reload: () => void;
+  compact: boolean;
+}
+
+function DescriptionColumn(props: DCProps) {
   const {
     id,
     cost,
@@ -333,26 +345,42 @@ function DescriptionColumn(props) {
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(description.run_limit);
-  const { idle_timeout, always_running } = untangleUptime(input.custom_uptime);
+
   const showRunLimitEditor =
     description.type !== "disk" && description.type !== "vm";
+
+  function renderDescribeQuota() {
+    const { type } = input;
+    if (type === "quota") {
+      const { idle_timeout, always_running } = untangleUptime(
+        input.custom_uptime
+      );
+      return describe_quota({
+        ram: input.custom_ram,
+        cpu: input.custom_cpu,
+        disk: input.custom_disk,
+        always_running,
+        idle_timeout,
+        member: input.custom_member,
+        user: input.user,
+        boost: input.boost,
+      });
+    } else if (type === "vm") {
+      return describe_quota({
+        dedicated_vm: input.dedicated_vm,
+      });
+    } else if (type === "disk") {
+      return describe_quota({ dedicated_disk: input.dedicated_disk });
+    } else {
+      throw new Error(`unkonwn type ${type}`);
+    }
+  }
 
   function editableQuota() {
     return (
       <div>
         <div>
-          {describe_quota({
-            ram: input.custom_ram,
-            cpu: input.custom_cpu,
-            disk: input.custom_disk,
-            always_running,
-            idle_timeout,
-            member: input.custom_member,
-            user: input.user,
-            boost: input.boost,
-            dedicated_disk: input.dedicated_disk,
-            dedicated_vm: input.dedicated_vm,
-          })}
+          {renderDescribeQuota()}
           {showRunLimitEditor && !editRunLimit && (
             <>
               <br />
@@ -407,7 +435,7 @@ function DescriptionColumn(props) {
 
   // this could rely an the "type" field, but we rather check the data directly
   function editPage(): "site-license" | "boost" | "dedicated" {
-    if (input.dedicated_disk != null || input.dedicated_vm != null) {
+    if (input.type === "disk" || input.type === "vm") {
       return "dedicated";
     } else if (input.boost) {
       return "boost";

@@ -20,7 +20,11 @@ export interface Cost {
 }
 
 export interface CostInputPeriod extends Cost {
-  input: Partial<PurchaseInfo>;
+  // enforce setting the subcription field
+  input: Partial<PurchaseInfo> & {
+    type: "vm" | "disk" | "quota";
+    subscription: Subscription;
+  };
   period: Period;
 }
 
@@ -78,6 +82,7 @@ export type PurchaseInfo =
       CustomDescription)
   | ({
       type: "disk";
+      start: Date; // set automatically when actually purchasing
       quantity: 1;
       subscription: Omit<Subscription, "no">;
       dedicated_disk: DedicatedDisk;

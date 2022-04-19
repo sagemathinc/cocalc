@@ -132,6 +132,7 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         quantity: 1,
         dedicated_disk: conf.dedicated_disk,
         subscription: conf.period,
+        start: new Date(),
       };
   }
 }

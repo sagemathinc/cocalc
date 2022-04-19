@@ -7,8 +7,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import { dedicatedPrice } from "@cocalc/util/licenses/purchase/dedicated-price";
+import {
+  compute_cost,
+  compute_cost_dedicated,
+} from "@cocalc/util/licenses/purchase/compute-cost";
 import {
   CostInputPeriod,
   PurchaseInfo,
@@ -37,24 +39,18 @@ function computeDedicatedDiskCost(
   const { dedicated_disk } = props;
   if (props.period != "monthly") throw new Error("period must be monthly");
   if (dedicated_disk === false) throw new Error(`should not happen`);
-  const price = dedicatedPrice({
-    dedicated_disk,
-    subscription: "monthly",
-  });
-  if (price == null) return;
-  return {
-    cost: price,
-    cost_per_unit: price,
-    discounted_cost: price,
-    cost_per_project_per_month: price,
-    cost_sub_month: price,
-    cost_sub_year: 12 * price,
-    input: {
-      subscription: props.period,
-      ...props,
-    },
-    period: "monthly",
-  };
+
+  try {
+    return {
+      input: { ...props, subscription: props.period },
+      ...compute_cost_dedicated({
+        dedicated_disk,
+        subscription: props.period,
+      }),
+    };
+  } catch (err) {
+    console.log(`problem calculating dedicated price: ${err}`);
+  }
 }
 
 function computeDedicatedVMCost(
@@ -103,8 +99,9 @@ export function computeCost(
 
     case "quota":
     default:
-      if (props.type === "disk" || props.type === "vm")
+      if (props.type === "disk" || props.type === "vm") {
         throw Error("must be a quota upgrade license");
+      }
       const {
         user,
         run_limit,
@@ -229,8 +226,10 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
     );
   }
 
-  if (info.type !== "quota")
+  if (info.type !== "quota") {
     throw Error("at this point, we only deal with type=quota");
+  }
+
   if (info.custom_uptime == null || info.quantity == null)
     throw new Error("should not happen");
   const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);

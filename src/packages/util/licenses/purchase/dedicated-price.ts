@@ -33,7 +33,10 @@ function getDuration({ start, end, subscription }) {
   }
 }
 
-export function dedicatedPrice(info: Props): number | null {
+export function dedicatedPrice(info: Props): {
+  price: number;
+  monthly: number;
+} {
   const { dedicated_vm, dedicated_disk, subscription } = info;
 
   // at this point, we assume the start/end dates are already
@@ -48,15 +51,21 @@ export function dedicatedPrice(info: Props): number | null {
     if (info == null) {
       throw new Error(`Dedicated VM "${dedicated_vm}" is not defined.`);
     }
-    return info.price_day * duration;
+    return {
+      price: info.price_day * duration,
+      monthly: info.price_day * AVG_MONTH_DAYS,
+    };
   } else if (!!dedicated_disk) {
-    console.log(dedicated_disk);
+    //console.log(dedicated_disk);
     const diskID = getDedicatedDiskKey(dedicated_disk);
     const info = PRICES.disks[diskID];
     if (info == null) {
       throw new Error(`Dedicated Disk "${dedicated_disk}" is not defined.`);
     }
-    return info.price_day * duration;
+    return {
+      price: info.price_day * duration,
+      monthly: info.price_day * AVG_MONTH_DAYS,
+    };
   } else {
     throw new Error("Neither VM nor Disk specified!");
   }

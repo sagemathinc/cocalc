@@ -174,17 +174,16 @@ export function compute_cost(info: PurchaseInfo): Cost {
   };
 }
 
+// cost-object for dedicated resource – there are no discounts whatsoever
 export function compute_cost_dedicated(info) {
-  const cost = dedicatedPrice(info);
-  if (cost == null) {
-    throw new Error("Problem calculating dedicated price");
-  }
+  const { price, monthly } = dedicatedPrice(info);
   return {
-    cost,
-    cost_per_unit: cost,
-    discounted_cost: cost,
-    cost_per_project_per_month: 0,
-    cost_sub_month: 0,
-    cost_sub_year: 0,
+    cost: price,
+    cost_per_unit: price,
+    discounted_cost: price,
+    cost_per_project_per_month: monthly, // dedicated is always only 1 project
+    cost_sub_month: monthly,
+    cost_sub_year: 12 * monthly,
+    period: info.subscription,
   };
 }
