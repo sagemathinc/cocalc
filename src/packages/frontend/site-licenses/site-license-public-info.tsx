@@ -278,28 +278,18 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return <>{rec.status}</>;
   }
 
-  function renderInfo(rec: TableRow): JSX.Element {
-    return (
-      <>
-        {renderStatusText(rec)}
-        <br />
-        {activatesExpires(rec)}
-      </>
-    );
-  }
-
-  function renderTitle(rec: TableRow): JSX.Element {
+  function renderLicense(rec: TableRow): JSX.Element {
     // as a fallback, we show the truncated license id
     const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
     return (
       <>
         <strong>{title}</strong>
-        {rec.description && (
-          <>
-            <br />
-            <p>{trunc(rec.description, 30)}</p>
-          </>
-        )}
+        {rec.description && <p>{trunc(rec.description, 30)}</p>}
+        <p>
+          {renderStatusText(rec)}
+          <br />
+          {activatesExpires(rec)}
+        </p>
       </>
     );
   }
@@ -431,13 +421,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
           key="title"
           title="License"
           dataIndex="title"
-          render={(_, rec) => renderTitle(rec)}
-        />
-        <Table.Column<TableRow>
-          key="expires"
-          title="Information"
-          dataIndex="expires"
-          render={(_, rec) => renderInfo(rec)}
+          render={(_, rec) => renderLicense(rec)}
         />
         <Table.Column<TableRow>
           key="actions"
