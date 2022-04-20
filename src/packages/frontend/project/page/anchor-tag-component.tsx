@@ -1,6 +1,8 @@
 import { A } from "@cocalc/frontend/components";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { redux } from "@cocalc/frontend/app-framework";
+import { join } from "path";
+import { splitFirst, path_split } from "@cocalc/util/misc";
 
 function loadTarget(
   project_id: string,
@@ -45,21 +47,23 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
           href={href}
           target={"_blank"}
           rel={"noopener" /* only used in case of fallback */}
-          onClick={(e: any) => {
+          onClick={(e) => {
             const { project_id, page, target, anchor } = parseCoCalcURL(href);
             if (project_id != null && target != null) {
               loadTarget(
                 project_id,
                 decodeURI(target),
-                !(e.which === 2 || e.ctrlKey || e.metaKey),
+                !((e as any).which === 2 || e.ctrlKey || e.metaKey),
                 anchor ?? ""
               );
               e.preventDefault();
+              e.stopPropagation();
               return;
             } else if (page) {
               // opening a different top level page, e.g., all projects or account settings or something.
               redux.getActions("page").set_active_tab(page);
               e.preventDefault();
+              e.stopPropagation();
               return;
             }
             // this will fall back to default.
@@ -69,20 +73,47 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
         </a>
       );
     }
-    if (href.includes("://")) {
-      // external non-cocalc URL
+    if (href?.includes("://")) {
+      // external non-cocalc URL. We open in a new tab.  Also stop prop so doesn't focus element that is clicked on.
       return (
-        <A href={href} title={title}>
+        <A
+          href={href}
+          title={title}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
           {children}
         </A>
       );
-    } else {
-      // Internal link -- this one is interesting of course.
+    }
+    if (href) {
+      // Internal relative link in the same project
       return (
-        <a href={"foo/bar" + href} title={title}>
-          {children}/{project_id}/{path}
+        <a
+          onClick={(e) => {
+            const [hrefPlain, anchor] = splitFirst(href, "#");
+            loadTarget(
+              project_id,
+              join(
+                "files",
+                path ? path_split(path).head : "",
+                decodeURI(hrefPlain)
+              ),
+              !((e as any).which === 2 || e.ctrlKey || e.metaKey),
+              anchor ?? ""
+            );
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }}
+          title={title}
+        >
+          {children}
         </a>
       );
     }
+    // Fallback: no href target at all, so no special handling needed...
+    return <a title={title}>{children}</a>;
   };
 }

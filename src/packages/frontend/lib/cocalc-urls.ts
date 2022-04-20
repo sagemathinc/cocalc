@@ -16,15 +16,16 @@ function getOrigin(): string {
 // NOTE: we used to also handle cloud.sagemath.com URL's, but I have
 // deprecated that functionality.  The user just gets a new tab, which
 // isn't that bad.
-export function isCoCalcURL(href: string): boolean {
+export function isCoCalcURL(href?: string): boolean {
   const origin = getOrigin();
   return (
+    href != null &&
     href.startsWith(origin) &&
     !isUUID(href.slice(origin.length + 1, origin.length + 37))
   );
 }
 
-export function parseCoCalcURL(href: string): {
+export function parseCoCalcURL(href?: string): {
   page?: string;
   project_id?: string;
   path?: string;
@@ -34,7 +35,7 @@ export function parseCoCalcURL(href: string): {
   projectPage?: string; // the page inside a project, if not a file, e.g., "new" or "settings"
 } {
   const origin = getOrigin();
-  if (!href.startsWith(origin)) {
+  if (!href?.startsWith(origin)) {
     return {};
   }
   href = href.slice(origin.length + 1);
