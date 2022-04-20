@@ -18,7 +18,7 @@ export function zoomToFontSize(zoom?: number): number {
   return zoom ? zoom * DEFAULT_FONT_SIZE : DEFAULT_FONT_SIZE;
 }
 
-export const DEFAULT_WIDTH = 250;
+export const DEFAULT_WIDTH = 350;
 export const DEFAULT_HEIGHT = 100;
 export const DEFAULT_GAP = 30;
 export const DEFAULT_EDGE_LENGTH = 100;
@@ -490,7 +490,7 @@ export function moveUntilNotIntersectingAnything(
     return;
   }
   let cnt = 0;
-  while (cnt < 1000) { // no matter what, we aren't going to infinite loop! 
+  while (cnt < 1000) { // no matter what, we aren't going to infinite loop!
     cnt += 1;
     const before = { x: rect.x, y: rect.y };
     for (const r of rects) {
