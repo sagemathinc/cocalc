@@ -227,8 +227,8 @@ file_associations["lean"] = {
 file_associations["md"] = file_associations["markdown"] = {
   icon: "markdown",
   opts: {
-    indent_unit: 4,
-    tab_size: 4,
+    indent_unit: 2,
+    tab_size: 2,
     mode: codemirror_associations["md"],
     spellcheck: true,
   },
@@ -454,7 +454,7 @@ const archive_association = {
 file_associations[""] = {
   editor: "unknown",
   icon: "question-circle",
-  opts: {},
+  opts: { indent_unit: 4, tab_size: 4 },
   name: "",
 };
 

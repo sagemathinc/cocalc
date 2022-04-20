@@ -246,7 +246,7 @@ function Map({
       <Canvas
         isNavigator
         previewMode={navMap == "preview"}
-        margin={10 / scale}
+        margin={20 + 10 / scale}
         elements={elements}
         elementsMap={elementsMap}
         scale={scale}

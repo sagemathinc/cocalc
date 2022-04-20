@@ -4,11 +4,9 @@
  */
 
 /*
-TODO: a lot!
-- syntax highlight in users theme
+TODO:
+- syntax highlight in user's theme
 - keyboard with user settings
-- when info changes update editor
- and so much more!
 */
 
 import React, {
@@ -32,6 +30,7 @@ import {
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
 import { isEqual } from "lodash";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
 const STYLE = {
   width: "100%",
@@ -153,14 +152,24 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
     // If the info line changes update the mode.
     useEffect(() => {
-      cmRef.current?.setOption("mode", infoToMode(info));
+      const cm = cmRef.current;
+      if (cm == null) return;
+      cm.setOption("mode", infoToMode(info));
+      const indentUnit = file_associations[info ?? ""]?.opts.indent_unit ?? 4;
+      cm.setOption("indentUnit", indentUnit);
     }, [info]);
 
     useEffect(() => {
       const node: HTMLTextAreaElement = textareaRef.current;
       if (node == null) return;
       if (options == null) options = {};
-      options.mode = infoToMode(info);
+
+      // The two lines below MUST match with the useEffect above that reacts to changing info.
+      options.mode = options.mode ?? infoToMode(info);
+      options.indentUnit =
+        options.indentUnit ??
+        file_associations[info ?? ""]?.opts.indent_unit ??
+        4;
 
       // NOTE: Using the inputStyle of "contenteditable" is challenging
       // because we have to take care that copy doesn't end up being handled
