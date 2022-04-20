@@ -42,7 +42,7 @@ import {
   MAX_FONT_SIZE,
 } from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { cloneDeep } from "lodash";
+import { cloneDeep, size } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
 import { clearChat, lastMessageNumber } from "./elements/chat-static";
@@ -193,7 +193,7 @@ export class Actions extends BaseActions<State> {
 
   setElement({
     obj,
-    commit,
+    commit=true,
     cursors,
     create,
   }: {
@@ -203,7 +203,6 @@ export class Actions extends BaseActions<State> {
     create?: boolean;
   }): void {
     if (this._syncstring == null) return;
-    if (commit == null) commit = true;
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
     }
@@ -359,7 +358,6 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" | "toggle" = "only",
     expandGroups: boolean = true // for internal use when we recurse
   ): void {
-    this.setEditFocus(frameId, false);
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
@@ -398,6 +396,7 @@ export class Actions extends BaseActions<State> {
     } else if (type == "only") {
       selection = [id];
     }
+    this.setEditFocus(frameId, size(selection) == 1);
     this.set_frame_tree({ id: frameId, selection });
   }
 

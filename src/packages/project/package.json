@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.21.3",
+  "version": "1.22.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
@@ -26,9 +26,9 @@
   ],
   "dependencies": {
     "@cocalc/backend": "^1.12.1",
-    "@cocalc/frontend": "^1.43.11",
+    "@cocalc/frontend": "^1.45.0",
     "@cocalc/sync": "^0.4.5",
-    "@cocalc/util": "^1.36.5",
+    "@cocalc/util": "^1.36.9",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -63,7 +63,7 @@
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
-    "prettier": "^2.3.2",
+    "prettier": "^2.6.2",
     "primus": "^8.0.3",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",

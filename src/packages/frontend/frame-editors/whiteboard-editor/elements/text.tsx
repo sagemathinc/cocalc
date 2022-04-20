@@ -45,7 +45,7 @@ function EditText({
   focused?: boolean;
   readOnly?: boolean;
 }) {
-  const { actions, id: frameId } = useFrameContext();
+  const { actions } = useFrameContext();
   const [mode, setMode] = useState<string>("");
   const [editFocus, setEditFocus] = useEditFocus(false);
 
@@ -60,7 +60,7 @@ function EditText({
         if (!getValueRef.current) return;
         str = getValueRef.current();
       }
-      if (str == (element.str ?? "") || actions.in_undo_mode()) {
+      if (str == (element.str ?? "")) {
         // No change so do NOT save -- see comment about similar code in code/input.tsx.
         return;
       }
@@ -104,11 +104,16 @@ function EditText({
       return;
     }
     resizeRef.current = () => {
-      if (actions.in_undo_mode() || readOnly) return;
-      // possibly adjust height.  We do this in the next render
-      // loop because sometimes when the change fires the dom
-      // hasn't updated the height of the containing div yet,
-      // so we end up setting the height 1 step behind reality.
+      // NOTE: we test that element.str == getValueRef.current?.() in order to tell
+      // if you were just in undo mode, but then typed something new in the editor, which
+      // hasn't yet triggered onChange.  E.g., if you type, then undo, then type something
+      // to change the height, resize wouldn't bet triggered without this clause.
+      if (
+        readOnly ||
+        (actions.in_undo_mode() && element.str == getValueRef.current?.())
+      ) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
       const height = Math.max(
@@ -165,10 +170,6 @@ function EditText({
             // there are many ways to "blur" the slate editor technically, but
             // still want to consider it focused, e.g., editing math and code
             // cells, and clicking a checkbox.
-          }}
-          onShiftEnter={() => {
-            setEditFocus(false);
-            actions.clearSelection(frameId);
           }}
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
