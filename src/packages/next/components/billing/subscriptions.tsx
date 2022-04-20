@@ -75,10 +75,21 @@ function Cost({ plan }) {
   );
 }
 
-function Cancel({ cancel_at_period_end, id, onChange }) {
+function Cancel({
+  cancel_at_period_end,
+  cancel_at,
+  id,
+  onChange,
+}: {
+  cancel_at_period_end: boolean;
+  cancel_at: number | null;
+  id: string;
+  onChange: () => void;
+}) {
   const [error, setError] = useState<string>("");
   const [cancelling, setCancelling] = useState<boolean>(false);
   const isMounted = useIsMounted();
+  const isCancelled = cancel_at_period_end || cancel_at != null;
   return (
     <div>
       <Popconfirm
@@ -110,11 +121,11 @@ function Cancel({ cancel_at_period_end, id, onChange }) {
         okText="Yes, cancel at period end (do not auto-renew)"
         cancelText="Make no change"
       >
-        <Button disabled={cancel_at_period_end || cancelling} type="dashed">
+        <Button disabled={isCancelled || cancelling} type="dashed">
           {cancelling ? (
             <Loading delay={0}>Cancelling...</Loading>
           ) : (
-            `Cancel${cancel_at_period_end ? "led" : ""}`
+            `Cancel${isCancelled ? "led" : ""}`
           )}
         </Button>
         {error && (
@@ -217,7 +228,7 @@ export default function Subscriptions() {
         dataSource={subscriptions.result?.data ?? []}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
-        style={{ overflowX: "scroll" }}
+        style={{ overflowX: "auto" }}
       />
       {subscriptions.result?.has_more && (
         <Alert
