@@ -1427,10 +1427,10 @@ export default function Canvas({
             height: `${transformsRef.current.height}px`,
           }}
         >
-          {v}
           {!isNavigator && (
             <Grid transforms={transformsRef.current} divRef={gridDivRef} />
           )}
+          {v}
         </div>
       </div>
     </div>
