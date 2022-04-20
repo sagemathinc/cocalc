@@ -33,7 +33,7 @@ export const COLORS = [
 ];
 */
 
-const RADS = [1, 4];
+const RADS = [2, 5];
 
 const HIGHLIGHTER = -1;
 const ERASER = -2;

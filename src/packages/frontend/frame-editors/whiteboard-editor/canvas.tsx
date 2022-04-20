@@ -665,7 +665,7 @@ export default function Canvas({
         >
           <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
           <NotFocused
-            id={id}
+            element={element}
             selectable={selectedTool == "select"}
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
@@ -1427,10 +1427,10 @@ export default function Canvas({
             height: `${transformsRef.current.height}px`,
           }}
         >
-          {v}
           {!isNavigator && (
             <Grid transforms={transformsRef.current} divRef={gridDivRef} />
           )}
+          {v}
         </div>
       </div>
     </div>

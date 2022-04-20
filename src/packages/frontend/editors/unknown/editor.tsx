@@ -28,14 +28,12 @@ interface Props {
 async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
   try {
     let mime = "";
-    const {
-      stdout: mime_raw,
-      exit_code: exit_code1,
-    } = await webapp_client.project_client.exec({
-      project_id,
-      command: "file",
-      args: ["-b", "--mime-type", path],
-    });
+    const { stdout: mime_raw, exit_code: exit_code1 } =
+      await webapp_client.project_client.exec({
+        project_id,
+        command: "file",
+        args: ["-b", "--mime-type", path],
+      });
     if (exit_code1 != 0) {
       set_err(`Error: exit_code1 = ${exit_code1}`);
     } else {
@@ -58,10 +56,8 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
           args: ["-c", "2000", path],
         };
 
-    const {
-      stdout: raw,
-      exit_code: exit_code2,
-    } = await webapp_client.project_client.exec({ project_id, ...content_cmd });
+    const { stdout: raw, exit_code: exit_code2 } =
+      await webapp_client.project_client.exec({ project_id, ...content_cmd });
     if (exit_code2 != 0) {
       set_err(`Error: exit_code2 = ${exit_code2}`);
     } else {
@@ -272,19 +268,15 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  if (err) {
-    return (
-      <div>
-        Problem: <pre>{err}</pre>
+  return (
+    <div style={{ overflow: "auto" }}>
+      <div style={STYLE}>
+        {err ? (
+          <Alert type="error" message="Error" showIcon description={err} />
+        ) : (
+          <Row gutter={[24, 24]}>{render()}</Row>
+        )}
       </div>
-    );
-  } else {
-    return (
-      <div style={{ overflow: "auto" }}>
-        <Row style={STYLE} gutter={[24, 24]}>
-          {render()}
-        </Row>
-      </div>
-    );
-  }
+    </div>
+  );
 };
