@@ -3,46 +3,48 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { UserMap } from "@cocalc/frontend/todo-types";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
-import React from "react";
+import { round1 } from "@cocalc/util/misc";
 import * as lodash from "lodash";
-const TRUNC = 90;
-import { Rendered, redux } from "../../app-framework";
-import { Grid, Col, Row } from "react-bootstrap";
+import React from "react";
+import { Col, Grid, Row } from "react-bootstrap";
+import { redux, Rendered } from "../../app-framework";
 import {
   Icon,
   IconName,
-  TimeAgo,
   PathLink,
   r_join,
   Space,
+  TimeAgo,
   Tip,
 } from "../../components";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { User } = require("../../users");
+import { file_associations } from "../../file-associations";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { ProjectTitle } from "../../projects/project-title";
-import { file_associations } from "../../file-associations";
+import { FILE_ACTIONS } from "../../project_actions";
 import { SystemProcess } from "./system-process";
-import { UserMap } from "@cocalc/frontend/todo-types";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { round1 } from "@cocalc/util/misc";
 import {
-  ProjectEvent,
+  AssistantEvent,
+  CollaboratorEvent,
+  FileActionEvent,
+  LibraryEvent,
+  LicenseEvent,
+  MiniTermEvent,
   OpenFile,
   ProjectControlEvent,
-  MiniTermEvent,
-  FileActionEvent,
-  X11Event,
-  LibraryEvent,
-  AssistantEvent,
-  UpgradeEvent,
-  LicenseEvent,
-  CollaboratorEvent,
-  SystemEvent,
+  ProjectEvent,
   PublicPathEvent,
+  SystemEvent,
+  UpgradeEvent,
+  X11Event,
 } from "./types";
-import { FILE_ACTIONS } from "../../project_actions";
+
+const TRUNC = 90;
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { User } = require("../../users");
 
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
