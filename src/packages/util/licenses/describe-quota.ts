@@ -13,28 +13,50 @@ import { SiteLicenseQuota } from "../types/site-licenses";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
 import { PurchaseInfo } from "./purchase/types";
 
-export function describeQuotaFromInfo(info: Partial<PurchaseInfo>): string {
+export function describeQuotaFromInfo(
+  info: Partial<PurchaseInfo>,
+  withName = true
+): string {
   const { type } = info;
-  if (type === "quota") {
-    const { idle_timeout, always_running } = untangleUptime(info.custom_uptime);
-    return describe_quota({
-      ram: info.custom_ram,
-      cpu: info.custom_cpu,
-      disk: info.custom_disk,
-      always_running,
-      idle_timeout,
-      member: info.custom_member,
-      user: info.user,
-      boost: info.boost,
-    });
-  } else if (type === "vm") {
-    return describe_quota({
-      dedicated_vm: info.dedicated_vm,
-    });
-  } else if (type === "disk") {
-    return describe_quota({ dedicated_disk: info.dedicated_disk });
-  } else {
-    throw new Error(`unkonwn type ${type}`);
+  switch (type) {
+    case "quota":
+      const { idle_timeout, always_running } = untangleUptime(
+        info.custom_uptime
+      );
+      return describe_quota({
+        ram: info.custom_ram,
+        cpu: info.custom_cpu,
+        disk: info.custom_disk,
+        always_running,
+        idle_timeout,
+        member: info.custom_member,
+        user: info.user,
+        boost: info.boost,
+      });
+
+    case "vm":
+      if (info.dedicated_vm == null) {
+        throw new Error(`dedicated_vm must be defined`);
+      }
+      // we make a copy, because we eventually delete a field
+      const dedicated_vm = { ...info.dedicated_vm };
+      if (!withName) delete dedicated_vm?.name;
+      return describe_quota({ dedicated_vm });
+
+    case "disk":
+      if (
+        info.dedicated_disk == null ||
+        typeof info.dedicated_disk === "boolean"
+      ) {
+        throw new Error(`dedicated_disk must be defined and not a boolean`);
+      }
+      // we make a copy, because we eventually delete a field
+      const dedicated_disk = { ...info.dedicated_disk };
+      if (!withName) delete dedicated_disk?.name;
+      return describe_quota({ dedicated_disk });
+
+    default:
+      throw new Error(`unkonwn type ${type}`);
   }
 }
 

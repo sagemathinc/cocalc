@@ -10,11 +10,14 @@ import { PRICES } from "./dedicated";
 export function dedicatedDiskDisplay(disk?: DedicatedDisk): string {
   if (disk == null) throw new Error("dedicated_disk must be defined");
   if (typeof disk === "boolean") return "";
-  return to_human_list([
+  const tokens = [
     `${disk.size_gb} GB`,
     `${DISK_NAMES[disk.speed] ?? disk.speed} speed`,
-    `named "${disk.name ?? "<unknown>"}"`,
-  ]);
+  ];
+  if (disk.name != null) {
+    tokens.push(`named "${disk.name}"`);
+  }
+  return to_human_list(tokens);
 }
 
 export function dedicatedVmDisplay(v?: DedicatedVM): string {

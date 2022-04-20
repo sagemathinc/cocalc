@@ -32,7 +32,10 @@ export function sanity_checks(info: PurchaseInfo) {
   sanity_check_start_end(info);
   sanity_check_quota(info);
   sanity_check_dedicated(info);
+  sanity_check_cost(info);
+}
 
+function sanity_check_cost(info: PurchaseInfo) {
   if (!isEqual(info.cost, compute_cost(info))) {
     throw Error("cost does not match");
   }
@@ -104,41 +107,48 @@ function sanity_check_quota(info: PurchaseInfo) {
 
 function sanity_check_dedicated(info: PurchaseInfo) {
   const { type } = info;
+
   if (type === "vm") {
-    if (info.dedicated_vm != null) {
-      const machine = info.dedicated_vm.machine;
-      if (typeof machine !== "string")
-        throw new Error(`field dedicated_vm must be string`);
-      if (PRICES.vms[machine] == null)
-        throw new Error(`field dedicated_vm ${machine} not found`);
+    if (info.dedicated_vm == null) {
+      throw new Error(
+        `license type "vm", but there is no data about a dedicated VM`
+      );
     }
+    const machine = info.dedicated_vm.machine;
+    if (typeof machine !== "string")
+      throw new Error(`field dedicated_vm must be string`);
+    if (PRICES.vms[machine] == null)
+      throw new Error(`field dedicated_vm ${machine} not found`);
   }
 
   if (type === "disk") {
-    if (info.dedicated_disk != null) {
-      const dd = info.dedicated_disk;
-      if (typeof dd === "object") {
-        const { size_gb, speed } = dd;
-        if (typeof size_gb !== "number") {
-          throw new Error(`field dedicated_disk.size must be number`);
-        }
-        if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
-          throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
-        }
-        if (
-          typeof speed !== "string" ||
-          !DedicatedDiskSpeedNames.includes(speed as DedicatedDiskSpeeds)
-        )
-          throw new Error(
-            `field dedicated_disk.speed must be string and one of ${DedicatedDiskSpeedNames.join(
-              ", "
-            )}`
-          );
+    if (info.dedicated_disk == null) {
+      throw new Error(
+        `license type "disk", but there is no data about a dedicated disk`
+      );
+    }
+    const dd = info.dedicated_disk;
+    if (typeof dd === "object") {
+      const { size_gb, speed } = dd;
+      if (typeof size_gb !== "number") {
+        throw new Error(`field dedicated_disk.size must be number`);
+      }
+      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
+        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
+      }
+      if (
+        typeof speed !== "string" ||
+        !DedicatedDiskSpeedNames.includes(speed as DedicatedDiskSpeeds)
+      )
+        throw new Error(
+          `field dedicated_disk.speed must be string and one of ${DedicatedDiskSpeedNames.join(
+            ", "
+          )}`
+        );
 
-        const key = getDedicatedDiskKey({ speed, size_gb });
-        if (PRICES.disks[key] == null) {
-          throw new Error(`field dedicated_disk "${key}" not found`);
-        }
+      const key = getDedicatedDiskKey({ speed, size_gb });
+      if (PRICES.disks[key] == null) {
+        throw new Error(`field dedicated_disk "${key}" not found`);
       }
     }
   }

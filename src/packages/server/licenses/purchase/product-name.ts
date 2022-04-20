@@ -10,10 +10,12 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 export function getProductName(info: PurchaseInfo): string {
   // Similar to getProductId, but meant to be human readable.
-  //  This name is what customers see on invoices,
+  // This name is what customers see on invoices,
   // so it's very valuable as it reflects what they bought clearly.
   const period = getPeriod(info);
-  const desc = describeQuotaFromInfo(info);
+  // ATTN: this is the name for an SKU, not the individual product the user buys.
+  // Hence this must not include the name of the VM or disk.
+  const desc = describeQuotaFromInfo(info, false);
   return `${desc} - ${period}`;
 }
 
