@@ -15,10 +15,10 @@ export function TitleDescription({ showExplanations, disabled = false }) {
         style={{ width: "100%" }}
         extra={
           showExplanations ? (
-            <>
+            <p>
               Given your license a title makes it easier to keep track of. You
               can change it at any time.
-            </>
+            </p>
           ) : undefined
         }
       >
@@ -32,11 +32,11 @@ export function TitleDescription({ showExplanations, disabled = false }) {
         name="description"
         extra={
           showExplanations ? (
-            <>
+            <p>
               Given your license a longer description to record extra
               information that isn't always shown with the license. You can
               change this at any time.
-            </>
+            </p>
           ) : undefined
         }
       >

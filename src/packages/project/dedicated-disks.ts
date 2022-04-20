@@ -7,19 +7,21 @@
 This makes dedicated disks conveniently available from the $HOME directory – a kucalc-only functionality.
 */
 
-import { promises as fs, constants as fs_constants } from "fs";
-const { F_OK, W_OK, R_OK } = fs_constants;
-import { join } from "path";
-import { homedir } from "os";
+import { ROOT, HOME_PREFIX } from "@cocalc/util/consts/dedicated";
+import { constants as fs_constants, promises as fs } from "fs";
 import { isArray } from "lodash";
+import { homedir } from "os";
+import { join } from "path";
 import { getLogger } from "./logger";
-const { info, warn } = getLogger("dedicated-disks");
 import { getProjectConfig } from "./project-setup";
 
+const { F_OK, W_OK, R_OK } = fs_constants;
+
+const { info, warn } = getLogger("dedicated-disks");
+
 async function ensureSymlink(name: string): Promise<boolean> {
-  const local = join("/", "local");
-  const disk = join(local, name);
-  const link = join(homedir(), "disks");
+  const disk = join(ROOT, name);
+  const link = join(homedir(), HOME_PREFIX);
   try {
     await fs.access(disk, F_OK | R_OK | W_OK);
   } catch {
@@ -34,7 +36,7 @@ async function ensureSymlink(name: string): Promise<boolean> {
   } catch {
     // link does not exist, hence we create it
     try {
-      await fs.symlink(local, link);
+      await fs.symlink(ROOT, link);
       info(`successfully symlinked ${link} → ${disk}`);
     } catch (err) {
       warn(`problem symlinking ${link} → ${disk} -- ${err}`);

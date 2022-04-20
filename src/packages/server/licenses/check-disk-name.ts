@@ -5,6 +5,10 @@
 
 import getPool from "@cocalc/database/pool";
 
+// NOTE: you might wonder, why to check for unique names? wouldn't something random be fine?
+// well, there is a case where more than one disk is mounted in a project.
+// By tying the name to the license, it is always clear which disk is which.
+
 const Q_EXISTS_DISK = `
 SELECT EXISTS(
     SELECT 1

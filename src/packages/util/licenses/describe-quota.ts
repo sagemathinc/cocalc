@@ -66,6 +66,7 @@ export function describe_quota(
 ): string {
   // regarding quota.uptime: it is assumed that all calls already query using the schema defined
   // in SiteLicenseQuota, but if not, we untangle the uptime field.
+  console.log(quota);
   if (quota.uptime != null) {
     const { always_running, idle_timeout } = untangleUptime(quota.uptime);
     quota.always_running = always_running;
@@ -118,7 +119,7 @@ export function describe_quota(
       )}`
     );
   } else {
-    if (quota.member && !isBoost) {
+    if (quota.member) {
       v.push("member" + (short ? "" : " hosting"));
     }
   }

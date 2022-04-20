@@ -8,6 +8,8 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
+import { HOME_PREFIX, ROOT } from "@cocalc/util/consts/dedicated";
+import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import {
@@ -288,6 +290,64 @@ function CreateDedicatedResource() {
     );
   }
 
+  function renderAdditionalInfoContent() {
+    switch (formType) {
+      case "disk":
+        return (
+          <>
+            <p>
+              When the license is valid and activated by adding to a project, a
+              disk will be created. This disk will be formatted and mounted into
+              your project. In particular, you'll be able to access it via a
+              symlink in your project's home directory – i.e.{" "}
+              <code>~/{HOME_PREFIX}/&lt;name&gt;</code> will be pointing to{" "}
+              <code>{ROOT}/&lt;name&gt;</code> . When you cancel the
+              subscription, it will end at the last billing period. Then,{" "}
+              <strong>after being expired</strong>, the disk and all the data it
+              contains <strong>will be deleted</strong>!
+            </p>
+            <p>
+              Note: it is also possible to mount external data storage to a
+              project:{" "}
+              <A href={DOC_CLOUD_STORAGE_URL}>
+                cloud storage & remote file systems
+              </A>
+            </p>
+          </>
+        );
+      case "vm":
+        return (
+          <>
+            <p>
+              For the specified period of time, a virtual machine is provisioned
+              and started inside of <SiteName />
+              's cluster. You just have to add the license to one of your
+              projects in order to tell it to move to this virtual machine when
+              it starts up the next time. Once your project moved over, the
+              usual quota upgrades will be ineffective – instead, your project
+              runs with the quota limits implied by the performance of that
+              virtual machine. The files in your project will be exactly the
+              same as usual.
+            </p>
+            <p>
+              Once the period is over, the virtual machine will be shut down. At
+              that point your project will be stopped as well. The next time it
+              starts, it will run under the usual quota regime on a common node
+              in the cluster.
+            </p>
+          </>
+        );
+    }
+  }
+
+  function renderAdditionalInfo() {
+    return (
+      <Form.Item label="How does it work?">
+        <div style={{ paddingTop: "5px" }}>{renderAdditionalInfoContent()}</div>
+      </Form.Item>
+    );
+  }
+
   function renderDurationExplanation() {
     switch (durationTypes) {
       case "monthly":
@@ -311,16 +371,14 @@ function CreateDedicatedResource() {
 
   function renderUsageAndDuration() {
     return (
-      <>
-        <UsageAndDuration
-          extraDuration={renderDurationExplanation()}
-          form={form}
-          onChange={onChange}
-          showUsage={false}
-          duration={durationTypes}
-          discount={false}
-        />
-      </>
+      <UsageAndDuration
+        extraDuration={renderDurationExplanation()}
+        form={form}
+        onChange={onChange}
+        showUsage={false}
+        duration={durationTypes}
+        discount={false}
+      />
     );
   }
 
@@ -350,8 +408,8 @@ function CreateDedicatedResource() {
 
   /**
    * The disk name will get a prefix like "kucalc-[cluster id]-pd-[namespace]-dedicated-..."
-   * It's impossible to the prefix, since the properties of the cluster can change.
-   * The total length of the disk name is 63, according to the GCE documentation.
+   * It's impossible to know the prefix, since the properties of the cluster can change.
+   * The maximum total length of the disk name is 63, according to the GCE documentation.
    * https://cloud.google.com/compute/docs/naming-resources#resource-name-format
    * I hope a max length of 20 is sufficiently restrictive.
    */
@@ -373,10 +431,10 @@ function CreateDedicatedResource() {
   function renderDedicatedDiskInfo() {
     if (!showExplanations) return;
     return (
-      <>
+      <p>
         More information about Dedicated Disks can be found at{" "}
         <A href={GCP_DISK_URL}>GCP: Performance by disk size</A>.
-      </>
+      </p>
     );
   }
 
@@ -388,23 +446,39 @@ function CreateDedicatedResource() {
     const di = PRICES.disks[diskID];
     if (di == null) {
       return (
-        <>
+        <p>
           Unknown disk with ID <code>{diskID}</code>.
-        </>
+        </p>
       );
     }
     return (
-      <>
+      <p>
         Estimated speed: {di.mbps} MB/s sustained throughput and {di.iops} IOPS
         read/write. For more detailed information:{" "}
         <A href={GCP_DISK_URL}>GCP disk performance</A> information.
-      </>
+      </p>
     );
   }
 
   function renderDiskExtra() {
     if (!showExplanations) return;
-    return <>Name your disk, it must be a unique.</>;
+    const formName = form.getFieldValue("disk-name");
+    const name = formName ? formName : <>&lt;name&gt;</>;
+    return (
+      <p>
+        Give your disk a name. It must be unique and will be used as part of the
+        directory name. The mountpoint will be{" "}
+        <code>
+          {ROOT}/{name}
+        </code>{" "}
+        and if the name isn't already taken. For your convencience, if possible
+        there will be a symlink named{" "}
+        <code>
+          ~/{HOME_PREFIX}/{name}
+        </code>{" "}
+        pointing from your home directory to your disk for your convenience.
+      </p>
+    );
   }
 
   // ATTN: the IntegerSlider must be kept in sync with DEDICATED_DISK_SIZES in
@@ -486,18 +560,18 @@ function CreateDedicatedResource() {
     const { spec } = PRICES.vms?.[vmMachine] ?? {};
     if (spec == null) {
       return (
-        <>
+        <p>
           Problem: the specifications of <code>{vmMachine}</code> are not known
-        </>
+        </p>
       );
     }
     return (
-      <>
+      <p>
         Restarting your project while this license is active, will move your
         project on a virtual machine in <SiteName />
         's cluster. This machine will allow you to use up to {spec.cpu} CPU
         cores and {spec.mem} GB memory.
-      </>
+      </p>
     );
   }
 
@@ -603,6 +677,7 @@ function CreateDedicatedResource() {
 
         {formType != null && (
           <>
+            {renderAdditionalInfo()}
             {renderUsageAndDuration()}
 
             <Divider plain>Confguration</Divider>

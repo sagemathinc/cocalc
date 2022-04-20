@@ -16,6 +16,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
+import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 
 interface Item {
   title: string;
@@ -185,7 +186,7 @@ export default function Products({ customize }) {
             <p>
               <Icon name="info-circle" /> To ease data transfer, make sure to
               check out how to mount{" "}
-              <A href="https://doc.cocalc.com/project-settings.html#cloud-storage-remote-file-systems">
+              <A href={DOC_CLOUD_STORAGE_URL}>
                 cloud storage or remote file-systems
               </A>{" "}
               into your project as well.

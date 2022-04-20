@@ -6,6 +6,7 @@
 import { PoweroffOutlined } from "@ant-design/icons";
 import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
+import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { upgrade2quota_key, Upgrades } from "@cocalc/util/upgrades/quota";
@@ -114,10 +115,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         It is possible to rent a{" "}
         <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated Disk</A> for
         much more storage, or attach{" "}
-        <A href="https://doc.cocalc.com/project-settings.html#cloud-storage-remote-file-systems">
-          files hosted online
-        </A>
-        .
+        <A href={DOC_CLOUD_STORAGE_URL}>files hosted online</A>.
       </>
     );
 
