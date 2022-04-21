@@ -27,7 +27,7 @@ export default function NotFocused({
   const ignoreNextClickRef = useRef<boolean>(false);
 
   const onClick = useCallback(
-    (e) => {
+    (e?) => {
       if (ignoreNextClickRef.current) {
         ignoreNextClickRef.current = false;
         return;
@@ -50,6 +50,10 @@ export default function NotFocused({
         if (data.x || data.y) {
           frame.actions.moveElements([element], data);
           ignoreNextClickRef.current = true;
+        } else {
+          // Didn't move, so select it for edit. This is particular important on tablets, where
+          // without this it would be really hard to select and edit anything.
+          onClick();
         }
       }}
     >
@@ -65,7 +69,6 @@ export default function NotFocused({
           cursor: selectable ? "pointer" : undefined,
         }}
         onClick={onClick}
-        onTouchEnd={onClick}
       >
         {children}
         {edgeStart && <div style={HINT}>Select target of edge</div>}
@@ -87,12 +90,12 @@ const HINT = {
 } as CSSProperties;
 
 function select(id, e, frame) {
-  e.stopPropagation();
+  e?.stopPropagation();
   // select
   frame.actions.setSelection(
     frame.id,
     id,
-    e.altKey || e.metaKey || e.ctrlKey || e.shiftKey ? "toggle" : "only"
+    e && (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) ? "toggle" : "only"
   );
 }
 
