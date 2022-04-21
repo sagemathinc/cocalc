@@ -80,6 +80,7 @@ function CreateBooster() {
   function onChange() {
     const conf = { ...form.getFieldsValue(true) };
     conf.type = "boost";
+    conf.boost = true;
     setCost(computeCost(conf));
   }
 
