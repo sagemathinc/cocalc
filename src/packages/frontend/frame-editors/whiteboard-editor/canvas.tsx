@@ -670,6 +670,7 @@ export default function Canvas({
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
             frame={frame}
+            canvasScale={canvasScale}
           >
             {elt}
           </NotFocused>

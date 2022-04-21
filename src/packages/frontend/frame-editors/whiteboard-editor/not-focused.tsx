@@ -9,6 +9,7 @@ interface Props {
   edgeCreate?: boolean;
   edgeStart?: boolean;
   frame;
+  canvasScale: number;
 }
 
 export default function NotFocused({
@@ -18,6 +19,7 @@ export default function NotFocused({
   edgeCreate,
   edgeStart,
   frame,
+  canvasScale,
 }: Props) {
   const { id } = element;
 
@@ -42,6 +44,7 @@ export default function NotFocused({
     <Draggable
       position={{ x: 0, y: 0 }}
       cancel={".nodrag"}
+      scale={canvasScale}
       disabled={!(selectable && !element.locked)}
       onStop={(_, data) => {
         if (data.x || data.y) {
