@@ -8,7 +8,10 @@
 // $ npx jest prices.test.ts  [--watch]
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import { PurchaseInfoQuota } from "@cocalc/util/licenses/purchase/types";
+import {
+  PurchaseInfo,
+  PurchaseInfoQuota,
+} from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
@@ -139,5 +142,32 @@ describe("start/end of day", () => {
 
   it("end on string", () => {
     expect(endOfDay(s)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
+  });
+});
+
+describe("dedicated disk", () => {
+  it("calculates subscription price of one disk", () => {
+    const pi: PurchaseInfo = {
+      type: "disk",
+      start: startOfDay(new Date()),
+      quantity: 1,
+      subscription: "monthly",
+      dedicated_disk: {
+        name: "mydisk123",
+        speed: "balanced",
+        size_gb: 32,
+      },
+    };
+
+    const cost = compute_cost(pi);
+    expect(cost).toEqual({
+      cost: 8,
+      cost_per_project_per_month: 8,
+      cost_per_unit: 8,
+      cost_sub_month: 8,
+      cost_sub_year: 96,
+      discounted_cost: 8,
+      period: "monthly",
+    });
   });
 });
