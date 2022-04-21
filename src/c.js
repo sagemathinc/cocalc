@@ -14,11 +14,12 @@ The functions below in some cases return things, and in some cases set global va
 
 COPYRIGHT : (c) 2021 SageMath, Inc.
 LICENSE   : AGPLv3
-*/;
-process.env.COCALC_ROOT = require('path').resolve(__dirname);
+*/ process.env.COCALC_ROOT = require("path").resolve(__dirname);
 console.log(process.env.COCALC_ROOT);
+console.log(`Logging debug info to the file "${process.env.LOGS}/log"`);
 process.env.PGUSER = process.env.PGUSER ?? "smc";
-process.env.PGHOST = process.env.PGHOST ?? require("./packages/backend/dist/data").pghost;
+process.env.PGHOST =
+  process.env.PGHOST ?? require("./packages/backend/dist/data").pghost;
 global.misc = require("./packages/util/dist/misc");
 global.done = misc.done;
 global.done1 = misc.done1;
