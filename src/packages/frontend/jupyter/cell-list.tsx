@@ -228,7 +228,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function scrollCellListVirtuoso(scroll: Scroll) {
-    console.log("scrollCellListVirtuoso", JSON.stringify({ scroll }));
+    if (typeof scroll == "number") {
+      // scroll to a number is not meaningful for virtuoso; it might
+      // be requested maybe (?) due to scroll restore and switching
+      // between windowed and non-windowed mode.
+      return;
+    }
     if (scroll.startsWith("cell")) {
       // find index of cur_id cell.
       const cellList = actions?.store.get("cell_list");
@@ -241,7 +246,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       }
     } else if (scroll.startsWith("list")) {
       if (scroll == "list up") {
+        const index = virtuosoRangeRef.current.startIndex;
+        virtuosoRef.current?.scrollToIndex({ index, align: "end" });
       } else if (scroll == "list down") {
+        const index = virtuosoRangeRef.current.endIndex;
+        virtuosoRef.current?.scrollToIndex({ index, align: "start" });
       }
     }
   }
@@ -332,6 +341,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoRangeRef = useRef<{ startIndex: number; endIndex: number }>({
+    startIndex: 0,
+    endIndex: 0,
+  });
   const virtuosoScroll = useVirtuosoScrollHook(
     use_windowed_list
       ? {
@@ -366,6 +379,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               {is_last ? render_insert_cell(key, "below") : undefined}
             </div>
           );
+        }}
+        rangeChanged={(visibleRange) => {
+          virtuosoRangeRef.current = visibleRange;
         }}
         {...virtuosoScroll}
       />
