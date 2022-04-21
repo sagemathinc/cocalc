@@ -64,9 +64,10 @@ export function describe_quota(
   quota: SiteLicenseQuota & { uptime?: Uptime },
   short?: boolean
 ): string {
+  //console.log(`describe_quota (short=${short})`, quota);
+
   // regarding quota.uptime: it is assumed that all calls already query using the schema defined
   // in SiteLicenseQuota, but if not, we untangle the uptime field.
-  console.log(quota);
   if (quota.uptime != null) {
     const { always_running, idle_timeout } = untangleUptime(quota.uptime);
     quota.always_running = always_running;
