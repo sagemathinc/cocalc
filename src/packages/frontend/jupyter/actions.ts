@@ -1961,8 +1961,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: string): Promise<void> => {
-    const time = this._client.server_time() - 0;
+  async fetch_more_output(id: string): Promise<void> {
+    const time = this._client.server_time().valueOf();
     try {
       const more_output = await this.api_call("more_output", { id: id }, 60000);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
@@ -1973,7 +1973,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } catch (err) {
       this.set_error(err);
     }
-  };
+  }
 
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {

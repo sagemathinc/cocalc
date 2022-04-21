@@ -34,6 +34,10 @@ export const MoreOutput: React.FC<MoreOutputProps> = React.memo(
           <Icon name="eye-slash" /> Additional output not available
         </Button>
       );
+    } else if (actions.fetch_more_output == null) {
+      // e.g., on the share server, at least until we implement fetching additional output
+      // there, which does make sense to do.
+      return <div style={{margin:'15px', fontSize:'12pt'}}>Large output truncated: edit to see additional output</div>;
     } else {
       return (
         <Button onClick={show_more_output} bsStyle="info">
