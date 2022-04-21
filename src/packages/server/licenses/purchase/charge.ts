@@ -51,23 +51,60 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
       product,
     });
   } else {
+    await stripeCreatePriceSubscriptions({ product, conn, info });
+  }
+}
+
+/** subscription prices:
+ * - for "quota" licenses, the online discount is baked into the price.
+ *   i.e. see in compute_cost(...) the discounted_cost is the total price with discounts,
+ *   while all other costs don't have the online discount.
+ * - dedicated resources do not have an online discount.
+ */
+async function stripeCreatePriceSubscriptions({
+  conn,
+  info,
+  product,
+}: {
+  conn: any;
+  info: PurchaseInfo;
+  product: string;
+}): Promise<void> {
+  if (info.cost == null) throw Error("cost must be defined");
+  const { type } = info;
+  const common = {
+    currency: "usd",
+    product,
+  } as const;
+  if (type === "quota") {
     // create the two recurring subscription costs. Build
     // in the self-service discount, which is:
     //    COSTS.online_discount
     await conn.prices.create({
-      currency: "usd",
+      ...common,
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_month * 100
       ),
-      product,
       recurring: { interval: "month" },
     });
     await conn.prices.create({
-      currency: "usd",
+      ...common,
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_year * 100
       ),
-      product,
+      recurring: { interval: "year" },
+    });
+  } else if (type === "disk" || type === "vm") {
+    // there are no vm subscriptions – at this point in time – but if there are some,
+    // we would handle them just like the dedicated disks
+    await conn.prices.create({
+      ...common,
+      unit_amount: Math.round(100 * info.cost.cost_sub_month),
+      recurring: { interval: "month" },
+    });
+    await conn.prices.create({
+      ...common,
+      unit_amount: Math.round(100 * info.cost.cost_sub_year),
       recurring: { interval: "year" },
     });
   }
@@ -114,6 +151,18 @@ async function stripeProductExists(product_id: string): Promise<boolean> {
   }
 }
 
+/**
+ * rough outline, of what I think this does/should do:
+ * - a product is a single purchase, e.g. license for a specific interval --
+ *   there is also a subscription function, see below.
+ * - A "price" is created, which is also parametrized by the number of days,
+ *   but not the number of projects.
+ * - This product price is without an online discount (no idea why), but instead
+ *   briefly a coupon is created and added to the user's account at stripe.
+ * - The invoice is created, with the desired price, quantity, etc.
+ * - When issuing the invoice to be paid, stripe calculates the discount
+ *   (which introduces rounding errors between what we show the user and what happens at stripe)
+ */
 async function stripePurchaseProduct(
   stripe: StripeClient,
   product_id: string,
@@ -203,6 +252,13 @@ async function stripePurchaseProduct(
   return { type: "invoice", id: invoice_id };
 }
 
+/**
+ * similar to the function above, this creates a subscription.
+ * - *two* prices are created, the monthly and yearly price.
+ * - there is a price for each possible configuration, but not the quantity.
+ * - most importantly, the online discount is baked into the price directly.
+ *   i.e. no coupons.
+ */
 async function stripeCreateSubscription(
   stripe: StripeClient,
   product_id: string,
@@ -224,6 +280,7 @@ async function stripeCreateSubscription(
       break;
     }
   }
+
   if (price == null) {
     await stripeCreatePrice(info);
     const prices = await conn.prices.list({
@@ -267,6 +324,7 @@ async function stripeCreateSubscription(
 
   const { id } = await conn.subscriptions.create(options);
   await stripe.update_database();
+
   return { type: "subscription", id };
 }
 
