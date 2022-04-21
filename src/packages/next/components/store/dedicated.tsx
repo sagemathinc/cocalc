@@ -312,6 +312,7 @@ function CreateDedicatedResource() {
               <A href={DOC_CLOUD_STORAGE_URL}>
                 cloud storage & remote file systems
               </A>
+              .
             </p>
           </>
         );
@@ -323,7 +324,7 @@ function CreateDedicatedResource() {
               and started inside of <SiteName />
               's cluster. You just have to add the license to one of your
               projects in order to tell it to move to this virtual machine when
-              it starts up the next time. Once your project moved over, the
+              it starts up the next time. Once your project has moved over, the
               usual quota upgrades will be ineffective – instead, your project
               runs with the quota limits implied by the performance of that
               virtual machine. The files in your project will be exactly the
@@ -446,13 +447,13 @@ function CreateDedicatedResource() {
     const di = PRICES.disks[diskID];
     if (di == null) {
       return (
-        <p>
+        <p style={{ marginTop: "5px" }}>
           Unknown disk with ID <code>{diskID}</code>.
         </p>
       );
     }
     return (
-      <p>
+      <p style={{ marginTop: "5px" }}>
         Estimated speed: {di.mbps} MB/s sustained throughput and {di.iops} IOPS
         read/write. For more detailed information:{" "}
         <A href={GCP_DISK_URL}>GCP disk performance</A> information.
@@ -467,11 +468,11 @@ function CreateDedicatedResource() {
     return (
       <p>
         Give your disk a name. It must be unique and will be used as part of the
-        directory name. The mountpoint will be{" "}
+        directory name. The mount point will be{" "}
         <code>
           {ROOT}/{name}
         </code>{" "}
-        and if the name isn't already taken. For your convencience, if possible
+        and if the name isn't already taken. For your convenience, if possible
         there will be a symlink named{" "}
         <code>
           ~/{HOME_PREFIX}/{name}

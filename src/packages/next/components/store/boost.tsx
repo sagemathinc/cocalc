@@ -156,7 +156,7 @@ function CreateBooster() {
               <li>
                 <Text strong>Active Site License</Text>: the regular Site
                 License(s) must be applied to the project and actively providing
-                upgrades. This is evalulated each time a project starts. Boosts
+                upgrades. This is evaluated each time a project starts. Boosts
                 are only adding more resources on top of what they provide!
               </li>
               <li>
