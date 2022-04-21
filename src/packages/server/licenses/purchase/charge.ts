@@ -159,6 +159,7 @@ async function stripeProductExists(product_id: string): Promise<boolean> {
  *   but not the number of projects.
  * - This product price is without an online discount (no idea why), but instead
  *   briefly a coupon is created and added to the user's account at stripe.
+ * - the above is only for type==quota licenses, not VMs!
  * - The invoice is created, with the desired price, quantity, etc.
  * - When issuing the invoice to be paid, stripe calculates the discount
  *   (which introduces rounding errors between what we show the user and what happens at stripe)
@@ -176,8 +177,6 @@ async function stripePurchaseProduct(
 
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();
-
-  const coupon = await getSelfServiceDiscountCoupon(conn);
 
   logger.debug("stripePurchaseProduct: get price");
   const prices = await conn.prices.list({
@@ -229,7 +228,13 @@ async function stripePurchaseProduct(
   } as Stripe.InvoiceCreateParams;
 
   logger.debug("stripePurchaseProduct options=", JSON.stringify(options));
-  await conn.customers.update(customer, { coupon });
+
+  // coupons are only for quota license upgrades, not dedicated VMs
+  if (info.type === "quota") {
+    const coupon = await getSelfServiceDiscountCoupon(conn);
+    await conn.customers.update(customer, { coupon });
+  }
+
   const invoice_id = (await conn.invoices.create(options)).id;
   await conn.invoices.finalizeInvoice(invoice_id, {
     auto_advance: true,
@@ -237,8 +242,10 @@ async function stripePurchaseProduct(
   const invoice = await conn.invoices.pay(invoice_id, {
     payment_method: info.payment_method,
   });
-  // remove coupon so it isn't automatically applied
-  await conn.customers.deleteDiscount(customer);
+  if (info.type === "quota") {
+    // remove coupon so it isn't automatically applied
+    await conn.customers.deleteDiscount(customer);
+  }
   await stripe.update_database();
   if (!invoice.paid) {
     // We void it so user doesn't get charged later.  Of course,
