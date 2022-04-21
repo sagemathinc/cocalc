@@ -14,7 +14,7 @@ import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 // automatically.
 // 20220406: version 2 after discovering an unintentional volume discount,
 //           skewing the unit price per "product" in stripe.
-const VERSION = 1;
+const VERSION = 2;
 
 export function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.

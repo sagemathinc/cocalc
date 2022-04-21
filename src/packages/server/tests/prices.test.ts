@@ -40,7 +40,7 @@ describe("product id and compute cost", () => {
 
   it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
     const id = getProductId({ ...info1, quantity });
-    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v1`);
+    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v2`);
   });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
