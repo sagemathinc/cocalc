@@ -43,7 +43,6 @@ export default function useVirtuosoScrollHook({
     initialState ?? { index: 0, offset: 0 }
   );
   const recordScrollState = useMemo(() => {
-    if (onScroll == null) return () => {};
     return (state: ScrollState) => {
       if (
         lastScrollRef.current.index != state.index ||
@@ -53,7 +52,7 @@ export default function useVirtuosoScrollHook({
           cache.set(cacheId, state);
         }
         lastScrollRef.current = state;
-        onScroll(state);
+        onScroll?.(state);
       }
     };
   }, [onScroll, cacheId]);
