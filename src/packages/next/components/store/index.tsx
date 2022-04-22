@@ -3,26 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
-import A from "components/misc/A";
-import { join } from "path";
-import basePath from "lib/base-path";
-import Menu from "./menu";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import useProfile from "lib/hooks/profile";
+import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
-import { useRouter } from "next/router";
 import SiteName from "components/share/site-name";
+import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
-import Cart from "./cart";
-import SiteLicense from "./site-license";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 import Boost from "./boost";
-import Overview from "./overview";
+import Cart from "./cart";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
-import Anonymous from "components/misc/anonymous";
 import DedicatedResource from "./dedicated";
-import { useEffect } from "react";
+import Menu from "./menu";
+import Overview from "./overview";
+import SiteLicense from "./site-license";
 
 const { Content } = Layout;
 
@@ -110,7 +108,7 @@ export default function StoreLayout({ page }: Props) {
       style={{
         padding: "0 24px 24px",
         backgroundColor: "white",
-        color: "#555",
+        color: COLORS.GRAY_D,
       }}
     >
       <Menu main={main} />
@@ -121,23 +119,7 @@ export default function StoreLayout({ page }: Props) {
           minHeight: "60vh",
         }}
       >
-        {main == "overview" && (
-          <div style={{ float: "right", margin: "0 0 15px 15px" }}>
-            <Alert
-              type="warning"
-              message={
-                <>
-                  This is the new <SiteName /> store (
-                  <A href={join(basePath, "settings", "licenses")} external>
-                    the old page
-                  </A>
-                  ).
-                </>
-              }
-            />
-          </div>
-        )}
-        {body()}
+        <div style={{ maxWidth: "900px", margin: "auto" }}>{body()}</div>
       </Content>
     </Layout>
   );

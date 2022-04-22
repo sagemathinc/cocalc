@@ -168,125 +168,124 @@ function Checkout() {
     );
   }
 
-  return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
-      {items.length == 0 && (
-        <>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-            {cart.result?.length > 0 && (
-              <>
-                Nothing in Your <SiteName />{" "}
-                <A href="/store/cart">Shopping Cart</A> is Selected
-              </>
-            )}
-            {(cart.result?.length ?? 0) == 0 && (
-              <>
-                Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is
-                Empty
-              </>
-            )}
-          </h3>
-          <A href="/store/site-license">Buy a License</A>
-        </>
-      )}
-      {items.length > 0 && (
-        <div>
-          <div style={{ maxWidth: "900px", margin: "auto" }}>
-            {orderError && (
-              <Alert
-                type="error"
-                message={
-                  <>
-                    <b>Error placing order:</b> {orderError}
-                  </>
-                }
-                style={{ margin: "30px 0" }}
-              />
-            )}
-            <Row>
-              <Col md={14} sm={24}>
-                <div>
-                  <h3 style={{ fontSize: "16pt" }}>
-                    <Icon name={"list"} style={{ marginRight: "5px" }} />
-                    Checkout (<A href="/store/cart">{items.length} items</A>)
-                  </h3>
-                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                    1. Payment Method
-                  </h4>
-                  <p>
-                    The default payment method shown below will be used for this
-                    purchase.
-                  </p>
-                  <PaymentMethods startMinimized setTaxRate={setTaxRate} />
-                </div>
-              </Col>
-              <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
-                <div>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      border: "1px solid #ddd",
-                      padding: "15px",
-                      borderRadius: "5px",
-                      minWidth: "300px",
-                    }}
-                  >
-                    {placeOrderButton()}
+  function renderOrderError() {
+    if (!orderError) return;
+    return (
+      <Alert
+        type="error"
+        message={
+          <>
+            <b>Error placing order:</b> {orderError}
+          </>
+        }
+        style={{ margin: "30px 0" }}
+      />
+    );
+  }
 
-                    <Terms />
-                    <OrderSummary items={items} taxRate={taxRate} />
-                    <span style={{ fontSize: "13pt" }}>
-                      <TotalCost items={items} taxRate={taxRate} />
-                    </span>
-                  </div>
-                  <GetAQuote items={items} />
-                </div>
-              </Col>
-            </Row>
-
-            <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-              2. Review Items ({items.length})
-            </h4>
-            <div style={{ border: "1px solid #eee" }}>
-              <Table
-                showHeader={false}
-                columns={columns}
-                dataSource={items}
-                rowKey={"id"}
-                pagination={{ hideOnSinglePage: true }}
-              />
-            </div>
-            <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-              3. Place Your Order
-            </h4>
-            <div style={{ fontSize: "12pt" }}>
-              <Row>
-                <Col sm={12}>{placeOrderButton()}</Col>
-                <Col sm={12}>
-                  <div style={{ fontSize: "15pt" }}>
-                    <TotalCost items={cart.result} taxRate={taxRate} />
-                    <br />
-                    <Terms />
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-        </div>
-      )}
-      {orderError && (
-        <Alert
-          type="error"
-          message={
+  function emptyCart() {
+    return (
+      <>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
+          {cart.result?.length > 0 && (
             <>
-              <b>Error placing order:</b> {orderError}
+              Nothing in Your <SiteName />{" "}
+              <A href="/store/cart">Shopping Cart</A> is Selected
             </>
-          }
-          style={{ margin: "30px 0" }}
-        />
-      )}
-    </div>
+          )}
+          {(cart.result?.length ?? 0) == 0 && (
+            <>
+              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
+            </>
+          )}
+        </h3>
+        <A href="/store/site-license">Buy a License</A>
+      </>
+    );
+  }
+
+  function nonemptyCart(items) {
+    return (
+      <>
+        {renderOrderError()}
+        <Row>
+          <Col md={14} sm={24}>
+            <div>
+              <h3 style={{ fontSize: "16pt" }}>
+                <Icon name={"list"} style={{ marginRight: "5px" }} />
+                Checkout (<A href="/store/cart">{items.length} items</A>)
+              </h3>
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                1. Payment Method
+              </h4>
+              <p>
+                The default payment method shown below will be used for this
+                purchase.
+              </p>
+              <PaymentMethods startMinimized setTaxRate={setTaxRate} />
+            </div>
+          </Col>
+          <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
+            <div>
+              <div
+                style={{
+                  textAlign: "center",
+                  border: "1px solid #ddd",
+                  padding: "15px",
+                  borderRadius: "5px",
+                  minWidth: "300px",
+                }}
+              >
+                {placeOrderButton()}
+                <Terms />
+                <OrderSummary items={items} taxRate={taxRate} />
+                <span style={{ fontSize: "13pt" }}>
+                  <TotalCost items={items} taxRate={taxRate} />
+                </span>
+              </div>
+              <GetAQuote items={items} />
+            </div>
+          </Col>
+        </Row>
+
+        <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
+          2. Review Items ({items.length})
+        </h4>
+        <div style={{ border: "1px solid #eee" }}>
+          <Table
+            showHeader={false}
+            columns={columns}
+            dataSource={items}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+        </div>
+        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
+          3. Place Your Order
+        </h4>
+        <div style={{ fontSize: "12pt" }}>
+          <Row>
+            <Col sm={12}>{placeOrderButton()}</Col>
+            <Col sm={12}>
+              <div style={{ fontSize: "15pt" }}>
+                <TotalCost items={cart.result} taxRate={taxRate} />
+                <br />
+                <Terms />
+              </div>
+            </Col>
+          </Row>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {items.length == 0 && emptyCart()}
+      {items.length > 0 && nonemptyCart(items)}
+      {renderOrderError()}
+    </>
   );
 }
 

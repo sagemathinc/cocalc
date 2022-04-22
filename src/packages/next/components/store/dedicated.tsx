@@ -49,29 +49,27 @@ const GCP_DISK_URL =
 export default function DedicatedResource() {
   const router = useRouter();
   return (
-    <div>
-      <div style={{ maxWidth: "900px", margin: "auto" }}>
-        <h3>
-          <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
-          {router.query.id != null
-            ? "Edit Dedicated Resources License in Shopping Cart"
-            : "Buy a Dedicated Resources License"}
-        </h3>
-        {router.query.id == null && (
-          <p>
-            A{" "}
-            <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> dedicated resource license
-            </A>{" "}
-            can be used to outfit your project either with additional disk
-            storage or moves your project to a much more powerful virtual
-            machine. Create a dedicated resources license below then add it to
-            your <A href="/store/cart">shopping cart</A>.
-          </p>
-        )}
-        <CreateDedicatedResource />
-      </div>
-    </div>
+    <>
+      <h3>
+        <Icon name={"dedicated"} style={{ marginRight: "5px" }} />{" "}
+        {router.query.id != null
+          ? "Edit Dedicated Resources License in Shopping Cart"
+          : "Buy a Dedicated Resources License"}
+      </h3>
+      {router.query.id == null && (
+        <p>
+          A{" "}
+          <A href="https://doc.cocalc.com/licenses.html">
+            <SiteName /> dedicated resource license
+          </A>{" "}
+          can be used to outfit your project either with additional disk storage
+          or moves your project to a much more powerful virtual machine. Create
+          a dedicated resources license below then add it to your{" "}
+          <A href="/store/cart">shopping cart</A>.
+        </p>
+      )}
+      <CreateDedicatedResource />
+    </>
   );
 }
 
@@ -250,11 +248,31 @@ function CreateDedicatedResource() {
   }, []);
 
   useEffect(() => {
+    const { type } = router.query;
+    if (typeof type === "string") {
+      setType(type);
+    }
+  }, []);
+
+  useEffect(() => {
     form.validateFields();
   }, [form.getFieldValue("type")]);
 
   if (loading) {
     return <Loading large center />;
+  }
+
+  function setType(type: string) {
+    if (type === "vm" || type === "disk") {
+      form.resetFields();
+      form.setFieldsValue({ type });
+      setFormType(type);
+      setCost(undefined);
+      setCartError("");
+      onChange();
+    } else {
+      console.log(`unable to setType to ${type}`);
+    }
   }
 
   function renderTypeSelection() {
@@ -271,12 +289,7 @@ function CreateDedicatedResource() {
       >
         <Radio.Group
           onChange={(e) => {
-            form.resetFields();
-            form.setFieldsValue({ type: e.target.value });
-            setFormType(e.target.value);
-            setCost(undefined);
-            setCartError("");
-            onChange();
+            setType(e.target.value);
           }}
         >
           <Radio.Button key={"disk"} value={"disk"}>
@@ -312,7 +325,7 @@ function CreateDedicatedResource() {
               <A href={DOC_CLOUD_STORAGE_URL}>
                 cloud storage & remote file systems
               </A>
-              .
+              . This could help transferring data in and out of <SiteName />.
             </p>
           </>
         );
@@ -658,7 +671,6 @@ function CreateDedicatedResource() {
         form={form}
         style={{
           marginTop: "15px",
-          maxWidth: "900px",
           margin: "auto",
           border: "1px solid #ddd",
           padding: "15px",

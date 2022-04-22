@@ -29,31 +29,28 @@ import { UsageAndDuration } from "./usage-and-duration";
 export default function SiteLicense() {
   const router = useRouter();
   return (
-    <div>
-      <div style={{ maxWidth: "900px", margin: "auto" }}>
-        <h3>
-          <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
-          {router.query.id != null
-            ? "Edit Site License in Shopping Cart"
-            : "Buy a Site License"}
-        </h3>
-        {router.query.id == null && (
-          <p>
-            <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> site licenses
-            </A>{" "}
-            allow you to upgrade any number of projects to run more quickly,
-            have network access, more disk space, memory, or run on a dedicated
-            computer. Site licenses can be for a wide range of sizes, ranging
-            from a single hobbyist project to thousands of simultaneous users
-            across an entire department of school. Create a license using the
-            form below then add it to your{" "}
-            <A href="/store/cart">shopping cart</A>.
-          </p>
-        )}
-        <CreateSiteLicense />
-      </div>
-    </div>
+    <>
+      <h3>
+        <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
+        {router.query.id != null
+          ? "Edit Site License in Shopping Cart"
+          : "Buy a Quota Upgrades License"}
+      </h3>
+      {router.query.id == null && (
+        <p>
+          <A href="https://doc.cocalc.com/licenses.html">
+            <SiteName /> site licenses
+          </A>{" "}
+          allow you to upgrade any number of projects to run more quickly, have
+          network access, more disk space, memory, or run on a dedicated
+          computer. Site licenses can be for a wide range of sizes, ranging from
+          a single hobbyist project to thousands of simultaneous users across an
+          entire department of school. Create a license using the form below
+          then add it to your <A href="/store/cart">shopping cart</A>.
+        </p>
+      )}
+      <CreateSiteLicense />
+    </>
   );
 }
 

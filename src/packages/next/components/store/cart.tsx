@@ -166,64 +166,72 @@ export default function ShoppingCart() {
     },
   ];
 
+  function noItems() {
+    return (
+      <>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
+          <SiteName /> Shopping Cart is Empty
+        </h3>
+        <A href="/store/site-license">Buy a License</A>
+      </>
+    );
+  }
+
+  function renderItems() {
+    return (
+      <>
+        <div style={{ float: "right", marginBottom: "15px" }}>
+          <span style={{ fontSize: "13pt" }}>
+            <TotalCost items={items} />
+          </span>
+          <A href="/store/checkout">
+            <Button
+              disabled={subTotal == 0 || updating}
+              style={{ marginLeft: "15px" }}
+              size="large"
+              type="primary"
+            >
+              Proceed to Checkout
+            </Button>
+          </A>
+        </div>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
+          Shopping Cart
+        </h3>
+        <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
+          <SelectAllItems items={items} onChange={reload} />
+        </div>
+        <div style={{ border: "1px solid #eee" }}>
+          <Table
+            showHeader={false}
+            columns={columns}
+            dataSource={items}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+        </div>
+        <div
+          style={{
+            float: "right",
+            fontSize: "12pt",
+            margin: "15px 15px 0 0",
+          }}
+        >
+          <div style={{ float: "right" }}>
+            <TotalCost items={cart.result} />
+          </div>
+          <br />
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
-      {items.length == 0 && (
-        <>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
-            <SiteName /> Shopping Cart is Empty
-          </h3>
-          <A href="/store/site-license">Buy a License</A>
-        </>
-      )}
-      {items.length > 0 && (
-        <>
-          <div style={{ float: "right", marginBottom: "15px" }}>
-            <span style={{ fontSize: "13pt" }}>
-              <TotalCost items={items} />
-            </span>
-            <A href="/store/checkout">
-              <Button
-                disabled={subTotal == 0 || updating}
-                style={{ marginLeft: "15px" }}
-                size="large"
-                type="primary"
-              >
-                Proceed to Checkout
-              </Button>
-            </A>
-          </div>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
-            Shopping Cart
-          </h3>
-          <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
-            <SelectAllItems items={items} onChange={reload} />
-          </div>
-          <div style={{ border: "1px solid #eee" }}>
-            <Table
-              showHeader={false}
-              columns={columns}
-              dataSource={items}
-              rowKey={"id"}
-              pagination={{ hideOnSinglePage: true }}
-            />
-          </div>
-          <div
-            style={{
-              float: "right",
-              fontSize: "12pt",
-              margin: "15px 15px 0 0",
-            }}
-          >
-            <div style={{ float: "right" }}>
-              <TotalCost items={cart.result} />
-            </div>
-            <br />
-          </div>
-        </>
-      )}
+    <>
+      {items.length == 0 && noItems()}
+      {items.length > 0 && renderItems()}
 
       <div
         style={{
@@ -233,7 +241,7 @@ export default function ShoppingCart() {
       >
         <OtherItems onChange={reload} cart={cart} />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -416,79 +424,77 @@ function DescriptionColumn(props: DCProps) {
   }
 
   return (
-    <>
-      <div style={{ fontSize: "12pt" }}>
-        {description.title && (
-          <div>
-            <b>{description.title}</b>
-          </div>
-        )}
-        {description.description && <div>{description.description}</div>}
+    <div style={{ fontSize: "12pt" }}>
+      {description.title && (
         <div>
-          <b>
-            {input.subscription == "no"
-              ? describePeriod(input)
-              : capitalize(input.subscription) + " subscription"}
-          </b>
+          <b>{description.title}</b>
         </div>
-        <div
-          style={{
-            border: "1px solid lightblue",
-            background: "white",
-            padding: "15px 15px 5px 15px",
-            margin: "5px 0 10px 0",
-            borderRadius: "5px",
-          }}
-        >
-          {compact ? describeItem(input) : editableQuota()}{" "}
-        </div>
-        <Button
-          style={{ marginRight: "5px" }}
-          onClick={() => {
-            const page = editPage();
-            router.push(`/store/${page}?id=${id}`);
-          }}
-        >
-          <Icon name="pencil" /> Edit
-        </Button>
-        <Button
-          style={{ margin: "0 5px 5px 0" }}
-          disabled={updating}
-          onClick={async () => {
-            setUpdating(true);
-            try {
-              await apiPost("/shopping/cart/remove", { id });
-              if (!isMounted.current) return;
-              await reload();
-            } finally {
-              if (!isMounted.current) return;
-              setUpdating(false);
-            }
-          }}
-        >
-          <Icon name="save" /> Save for later
-        </Button>
-        <Popconfirm
-          title={"Are you sure you want to delete this item?"}
-          onConfirm={async () => {
-            setUpdating(true);
-            try {
-              await apiPost("/shopping/cart/delete", { id });
-              if (!isMounted.current) return;
-              await reload();
-            } finally {
-              if (!isMounted.current) return;
-              setUpdating(false);
-            }
-          }}
-          okText={"Yes, delete this item"}
-          cancelText={"Cancel"}
-        >
-          <Button disabled={updating} type="dashed">
-            <Icon name="trash" /> Delete
-          </Button>
-        </Popconfirm>
+      )}
+      {description.description && <div>{description.description}</div>}
+      <div>
+        <b>
+          {input.subscription == "no"
+            ? describePeriod(input)
+            : capitalize(input.subscription) + " subscription"}
+        </b>
       </div>
-    </>
+      <div
+        style={{
+          border: "1px solid lightblue",
+          background: "white",
+          padding: "15px 15px 5px 15px",
+          margin: "5px 0 10px 0",
+          borderRadius: "5px",
+        }}
+      >
+        {compact ? describeItem(input) : editableQuota()}{" "}
+      </div>
+      <Button
+        style={{ marginRight: "5px" }}
+        onClick={() => {
+          const page = editPage();
+          router.push(`/store/${page}?id=${id}`);
+        }}
+      >
+        <Icon name="pencil" /> Edit
+      </Button>
+      <Button
+        style={{ margin: "0 5px 5px 0" }}
+        disabled={updating}
+        onClick={async () => {
+          setUpdating(true);
+          try {
+            await apiPost("/shopping/cart/remove", { id });
+            if (!isMounted.current) return;
+            await reload();
+          } finally {
+            if (!isMounted.current) return;
+            setUpdating(false);
+          }
+        }}
+      >
+        <Icon name="save" /> Save for later
+      </Button>
+      <Popconfirm
+        title={"Are you sure you want to delete this item?"}
+        onConfirm={async () => {
+          setUpdating(true);
+          try {
+            await apiPost("/shopping/cart/delete", { id });
+            if (!isMounted.current) return;
+            await reload();
+          } finally {
+            if (!isMounted.current) return;
+            setUpdating(false);
+          }
+        }}
+        okText={"Yes, delete this item"}
+        cancelText={"Cancel"}
+      >
+        <Button disabled={updating} type="dashed">
+          <Icon name="trash" /> Delete
+        </Button>
+      </Popconfirm>
+    </div>
   );
 }

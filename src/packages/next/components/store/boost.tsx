@@ -12,7 +12,6 @@ import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { Form, Input, Switch, Typography } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
-import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -33,26 +32,24 @@ const { Text, Paragraph } = Typography;
 export default function Boost() {
   const router = useRouter();
   return (
-    <div>
-      <div style={{ maxWidth: "900px", margin: "auto" }}>
-        <h3>
-          <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
-          {router.query.id != null
-            ? "Edit Boost License in Shopping Cart"
-            : "Buy a Boost License"}
-        </h3>
-        {router.query.id == null && (
-          <p>
-            <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> boost
-            </A>{" "}
-            is an addiiton to a Site License. Create a boost using the form
-            below then add it to your <A href="/store/cart">shopping cart</A>.
-          </p>
-        )}
-        <CreateBooster />
-      </div>
-    </div>
+    <>
+      <h3>
+        <Icon name={"rocket"} style={{ marginRight: "5px" }} />{" "}
+        {router.query.id != null
+          ? "Edit Boost License in Shopping Cart"
+          : "Buy a Boost License"}
+      </h3>
+      {router.query.id == null && (
+        <p>
+          A Boost License adds additional quotas to an already existing, valid
+          and currently active regular Site License. A common use case is to
+          increase the memory limit after you already bought a Site License.
+          Create a boost using the form below then add it to your{" "}
+          <A href="/store/cart">shopping cart</A>.
+        </p>
+      )}
+      <CreateBooster />
+    </>
   );
 }
 
@@ -124,6 +121,51 @@ function CreateBooster() {
     return <Loading large center />;
   }
 
+  function renderConfirmationText() {
+    return (
+      <Paragraph
+        ellipsis={
+          confirmWarning
+            ? { rows: 2, expandable: true, symbol: "more…" }
+            : false
+        }
+        style={{
+          opacity: confirmWarning ? 0.75 : 1,
+        }}
+      >
+        Boost licenses only work in combination with regular Site Licenses. The
+        intention of a Boost License is to increase how much resources your
+        project can use, without having to purchase yet another regular license.
+        For example, it's perfectly fine if you need such a boost only for a
+        couple of days, while otherwise you are happy with a smaller license as
+        part of an ongoing subscription. The following conditions must be met in
+        order to benefit from an activated boost license:
+        <ul>
+          <li>
+            <Text strong>Active Site License</Text>: the regular Site License(s)
+            must be applied to the project and actively providing upgrades. This
+            is evaluated each time a project starts. Boosts are only adding more
+            resources on top of what a regular license already provides!
+          </li>
+          <li>
+            <Text strong>Matching Configuration</Text>: the type of hosting
+            quality ("Member Hosting") and "Idle Timeout" duration must be the
+            same. A booster only works for a site license with a matching
+            upgrade quality.
+          </li>
+        </ul>
+        Besides that – just like a regular license – you can't exceed the run
+        limit, the boost license must be valid as well, and combining all
+        upgrades and boosts together, you cannot exceed the overall upgrade
+        limits. If you need vastly more resources, consider purchasing a{" "}
+        <Link href={"./dedicated?type=vm"} scroll={false}>
+          Dedicated VM
+        </Link>
+        .
+      </Paragraph>
+    );
+  }
+
   function renderConfirmation() {
     return (
       <Form.Item wrapperCol={{ offset: 4, span: 16 }}>
@@ -135,47 +177,7 @@ function CreateBooster() {
             margin: confirmWarning ? "2px" : 0, // compensate border with from above
           }}
         >
-          <Paragraph
-            ellipsis={
-              confirmWarning
-                ? { rows: 2, expandable: true, symbol: "more…" }
-                : false
-            }
-            style={{
-              opacity: confirmWarning ? 0.75 : 1,
-            }}
-          >
-            Boost licenses only work in combination with regular Site Licenses.
-            The intention of a Boost License is to increase how much resources
-            your project can use, without having to purchase a new regular
-            license. For example, it's perfectly fine if you need such a boost
-            only for a couple of days, while otherwise you are happy with a
-            smaller license as part of an ongoing subscription. The following
-            conditions must be met in order to benefit from an activated boost
-            license:
-            <ul>
-              <li>
-                <Text strong>Active Site License</Text>: the regular Site
-                License(s) must be applied to the project and actively providing
-                upgrades. This is evaluated each time a project starts. Boosts
-                are only adding more resources on top of what they provide!
-              </li>
-              <li>
-                <Text strong>Matching Configuration</Text>: the type of hosting
-                quality ("Member Hosting") and "Idle Timeout" duration must be
-                the same. A booster only works for a site license with a
-                matching upgrade quality.
-              </li>
-            </ul>
-            Besides that – just like a regular license – you can't exceed the
-            run limit, the boost license must be valid, and combining all
-            upgrades and boosts together, you cannot exceed the overall upgrade
-            limits. If you need vastly more resources, consider purchasing a{" "}
-            <Link href={"./dedicated"} scroll={false}>
-              Dedicated VM
-            </Link>
-            .
-          </Paragraph>
+          {renderConfirmationText()}
           <div>
             <Paragraph
               style={{
