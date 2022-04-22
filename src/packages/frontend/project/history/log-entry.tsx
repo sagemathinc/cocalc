@@ -5,7 +5,6 @@
 
 import * as misc from "@cocalc/util/misc";
 import React from "react";
-import * as lodash from "lodash";
 const TRUNC = 90;
 import { Rendered, redux } from "../../app-framework";
 import { Grid, Col, Row } from "react-bootstrap";
@@ -590,9 +589,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   const style = props.cursor ? selected_item : props.backgroundStyle;
   return (
     <Grid fluid={true} style={{ width: "100%" }}>
-      <Row
-        style={lodash.extend({ borderBottom: "1px solid lightgrey" }, style)}
-      >
+      <Row style={style}>
         <Col sm={1} style={{ textAlign: "center" }}>
           <Icon name={icon()} style={style} />
         </Col>
