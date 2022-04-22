@@ -4,16 +4,13 @@
  */
 
 // Show a file listing.
-//
-// NOTES:
-//
-//  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
 import React, { useEffect, useRef } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import * as immutable from "immutable";
 import { useInterval } from "react-interval-hook";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
-import { WindowedList } from "@cocalc/frontend/components/windowed-list";
 import { VisibleMDLG } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import {
@@ -77,7 +74,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     file_search = "",
   } = props;
 
-  const list_ref = useRef<WindowedList>(null);
   const prev_current_path = usePrevious(current_path);
 
   // once after mounting, when changing paths, and in regular intervals call watch()
@@ -125,8 +121,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     } else {
       color = "white";
     }
-    const apply_border =
-      index === selected_file_index && file_search[0] !== TERM_MODE_CHAR;
     return (
       <FileRow
         isdir={isdir}
@@ -136,7 +130,9 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         size={size}
         issymlink={issymlink}
         color={color}
-        bordered={apply_border}
+        selected={
+          index == selected_file_index && file_search[0] != TERM_MODE_CHAR
+        }
         mask={mask}
         public_data={public_data}
         is_public={is_public}
@@ -151,40 +147,42 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function windowed_list_render_row({ index }): Rendered {
-    const a = listing[index];
-    if (a == null) return;
-    return render_row(
-      a.name,
-      a.size,
-      a.mtime,
-      a.mask,
-      a.isdir,
-      a.display_name,
-      a.public,
-      a.issymlink,
-      index,
-      a.link_target
-    );
-  }
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: name + current_path,
+  });
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  function windowed_list_row_key(index: number): string | undefined {
-    const a = listing[index];
-    if (a == null) return;
-    return a.name;
-  }
+  useEffect(() => {
+    if (selected_file_index == null) return;
+    virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+  }, [selected_file_index]);
 
   function render_rows(): Rendered {
     return (
-      <WindowedList
-        ref={list_ref}
-        overscan_row_count={20}
-        estimated_row_size={30}
-        row_count={listing.length}
-        row_renderer={windowed_list_render_row}
-        row_key={windowed_list_row_key}
-        scroll_to_index={selected_file_index}
-        cache_id={name + current_path}
+      <Virtuoso
+        ref={virtuosoRef}
+        increaseViewportBy={10}
+        totalCount={listing.length}
+        itemContent={(index) => {
+          const a = listing[index];
+          if (a == null) {
+            // shouldn't happen
+            return <div key={index} style={{ height: "1px" }}></div>;
+          }
+          return render_row(
+            a.name,
+            a.size,
+            a.mtime,
+            a.mask,
+            a.isdir,
+            a.display_name,
+            a.public,
+            a.issymlink,
+            index,
+            a.link_target
+          );
+        }}
+        {...virtuosoScroll}
       />
     );
   }

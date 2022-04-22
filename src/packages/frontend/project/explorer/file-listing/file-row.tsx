@@ -35,7 +35,7 @@ interface Props {
   time: number;
   issymlink: boolean;
   checked: boolean;
-  bordered: boolean;
+  selected: boolean;
   color: string;
   mask: boolean;
   public_data: object;
@@ -309,7 +309,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     borderRadius: "4px",
     backgroundColor: props.color,
     borderStyle: "solid",
-    borderColor: props.bordered ? COLORS.BLUE_BG : props.color,
+    borderColor: props.selected ? "#08c" : "transparent",
     margin: "1px 1px 1px 1px",
   };
 
