@@ -657,9 +657,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function render_student_table_header(num_deleted: number): Rendered {
       // HACK: that marginRight is to get things to line up with students.
-      // This is done all wrong due to using react-window...  We need
-      // to make an extension to our WindowedList that supports explicit
-      // headers (and uses css grid).
       return (
         <div>
           <Row style={{ marginRight: 0 }}>
@@ -732,7 +729,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
             students[index] != null ? students[index].student_id : undefined
           }
           cacheId={`course-student-${name}-${frame_id}`}
-          windowing={util.windowing(37)}
         />
       );
     }
