@@ -8,7 +8,7 @@ import { Divider, Form, Input } from "antd";
 export function TitleDescription({ showExplanations, disabled = false }) {
   return (
     <>
-      <Divider plain>Customizable Identifications</Divider>
+      <Divider plain>Customizable Descriptors</Divider>
       <Form.Item
         label="Title"
         name="title"

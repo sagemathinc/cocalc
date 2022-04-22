@@ -144,7 +144,9 @@ export function MemberHostingAndIdleTimeout({
 
   return (
     <>
-      <Divider plain>Hosting quality and Idle timeout</Divider>
+      <Divider plain>
+        {boost ? "Matching" : ""} Hosting quality and Idle timeout
+      </Divider>
       <Form.Item
         initialValue={true}
         label="Member hosting"

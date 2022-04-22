@@ -363,9 +363,14 @@ export async function setPurchaseMetadata(
   metadata
 ): Promise<void> {
   const conn = await getConn();
-  if (purchase.type == "subscription") {
-    await conn.subscriptions.update(purchase.id, { metadata });
-  } else if (purchase.type == "invoice") {
-    await conn.invoices.update(purchase.id, { metadata });
+  switch (purchase.type) {
+    case "subscription":
+      await conn.subscriptions.update(purchase.id, { metadata });
+      break;
+    case "invoice":
+      await conn.invoices.update(purchase.id, { metadata });
+      break;
+    default:
+      throw new Error(`unexpected purchase type ${purchase.type}`);
   }
 }

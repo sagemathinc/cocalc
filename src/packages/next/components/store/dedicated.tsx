@@ -314,10 +314,19 @@ function CreateDedicatedResource() {
               your project. In particular, you'll be able to access it via a
               symlink in your project's home directory – i.e.{" "}
               <code>~/{HOME_PREFIX}/&lt;name&gt;</code> will be pointing to{" "}
-              <code>{ROOT}/&lt;name&gt;</code> . When you cancel the
-              subscription, it will end at the last billing period. Then,{" "}
-              <strong>after being expired</strong>, the disk and all the data it
-              contains <strong>will be deleted</strong>!
+              <code>{ROOT}/&lt;name&gt;</code> .
+            </p>
+            <p>
+              When you cancel the subscription, it will end with the last
+              billing period. Then, <strong>after being expired</strong>, the
+              disk and all the data it contains <strong>will be deleted</strong>
+              !
+            </p>
+            <p>
+              It's also possible to move a disk from one project to another one.
+              First, remove the license from the project, restart the project to
+              unmount the disk. Then, add the license to another project and
+              restart that project as well.
             </p>
             <p>
               Note: it is also possible to mount external data storage to a
@@ -340,13 +349,13 @@ function CreateDedicatedResource() {
               it starts up the next time. Once your project has moved over, the
               usual quota upgrades will be ineffective – instead, your project
               runs with the quota limits implied by the performance of that
-              virtual machine. The files in your project will be exactly the
-              same as usual.
+              virtual machine. The files/data in your project will be exactly
+              the same as before.
             </p>
             <p>
               Once the period is over, the virtual machine will be shut down. At
               that point your project will be stopped as well. The next time it
-              starts, it will run under the usual quota regime on a common node
+              starts, it will run under the usual quota regime on a shared node
               in the cluster.
             </p>
           </>
@@ -363,13 +372,14 @@ function CreateDedicatedResource() {
   }
 
   function renderDurationExplanation() {
+    if (!showExplanations) return;
     switch (durationTypes) {
       case "monthly":
         return (
           <>
-            Currently, disk can be rented on a monthly basis only. Note: you can
-            cancel the subscription any time and at the end of the billing
-            period the disk – and the data it holds – will be destroyed.
+            Currently, disk can be only be rented on a monthly basis only. Note:
+            you can cancel the subscription any time and at the end of the
+            billing period the disk – and the data it holds – will be destroyed.
           </>
         );
       case "range":

@@ -79,7 +79,6 @@ export function AddBox(props: Props) {
         break;
 
       case "disk":
-        console.log(description);
         delete description["vm-machine"];
 
         const diskID = `${description["disk-size_gb"]}-${description["disk-speed"]}`;
