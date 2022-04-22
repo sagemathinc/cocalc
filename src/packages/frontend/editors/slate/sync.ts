@@ -39,7 +39,7 @@ export function slatePointToMarkdown(
   try {
     [node] = Editor.node(editor, point);
   } catch (err) {
-    console.warn(`slate -- invalid point ${point} -- ${err}`);
+    console.warn(`slate -- invalid point ${JSON.stringify(point)} -- ${err}`);
     // There is no guarantee that point is valid when this is called.
     return { index: -1, markdown: "" };
   }
