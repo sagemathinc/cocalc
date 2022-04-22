@@ -149,20 +149,6 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
   }
 );
 
-/*
-
-        <WindowedList
-          ref={windowed_list_ref}
-          overscan_row_count={15}
-          estimated_row_size={62}
-          row_count={sorted_dates.length}
-          row_renderer={row_renderer}
-          row_key={row_key}
-          cache_id={`${project_id}${path}`}
-          on_scroll={on_scroll}
-        />
-        */
-
 function is_next_message_sender(
   index: number,
   dates: string[],
