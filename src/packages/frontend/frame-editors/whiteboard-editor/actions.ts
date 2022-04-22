@@ -193,7 +193,7 @@ export class Actions extends BaseActions<State> {
 
   setElement({
     obj,
-    commit=true,
+    commit = true,
     cursors,
     create,
   }: {
@@ -406,7 +406,6 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" = "only",
     expandGroups: boolean = true
   ): void {
-    this.setEditFocus(frameId, false);
     const X = new Set(ids);
     if (expandGroups) {
       // extend id list to contain any groups it intersects.
@@ -430,6 +429,10 @@ export class Actions extends BaseActions<State> {
     for (const id of X) {
       this.setSelection(frameId, id, type, false);
     }
+    // do not set in edit mode when selecting 1 or more things; in particular,
+    // don't for selecting just one, undoing what setSelection does, which is
+    // to set edit focus for one.
+    this.setEditFocus(frameId, false);
   }
 
   // Groups
