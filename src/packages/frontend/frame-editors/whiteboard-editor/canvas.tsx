@@ -99,6 +99,7 @@ import {
   DEFAULT_FONT_SIZE,
   MIN_FONT_SIZE,
   MAX_FONT_SIZE,
+  ERASE_SIZE,
 } from "./tools/defaults";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
@@ -354,6 +355,8 @@ export default function Canvas({
     clientY: number;
   } | null>(null);
   const ignoreNextClick = useRef<boolean>(false);
+  const wacomEraseRef = useRef<boolean>(false);
+
   // position of mouse right now not transformed in any way,
   // just in case we need it. This is clientX, clientY off
   // of the canvas div.
@@ -670,6 +673,7 @@ export default function Canvas({
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
             frame={frame}
+            canvasScale={canvasScale}
           >
             {elt}
           </NotFocused>
@@ -878,6 +882,7 @@ export default function Canvas({
   }
 
   function handleClick(e) {
+    if (wacomEraseRef.current) return;
     if (!frame.isFocused) return;
     if (ignoreNextClick.current) {
       ignoreNextClick.current = false;
@@ -942,6 +947,10 @@ export default function Canvas({
       }, []);
 
   const onMouseDown = (e) => {
+    if (wacomEraseRef.current) {
+      // WACOM tablet erase.
+      return;
+    }
     if (selectedTool == "hand" || e.button == MIDDLE_MOUSE_BUTTON) {
       const c = canvasRef.current;
       if (c == null) return;
@@ -980,6 +989,12 @@ export default function Canvas({
   };
 
   const onMouseUp = (e) => {
+    if (wacomEraseRef.current) {
+      wacomEraseRef.current = false;
+      mousePath.current = null; // also clear path so don't end up drawing a point.
+      // WACOM tablet erase.
+      return;
+    }
     if (handRef.current != null) {
       handRef.current = null;
       return;
@@ -1139,6 +1154,10 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
+    if (wacomEraseRef.current) {
+      // WACOM tablet erase.
+      return;
+    }
     // this us used for zooming, etc.
     mousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
 
@@ -1233,6 +1252,30 @@ export default function Canvas({
     }
   };
 
+  const onPointerMove = (e) => {
+    if (e.buttons == 32) {
+      wacomEraseRef.current = true;
+      // WACOM tablet erase object.  This was requested in
+      // https://github.com/sagemathinc/cocalc/issues/5874
+      // and I "reverse engineered" that the only way to detect
+      // erase is via pointermove where it reports 32 buttons.
+      const point = getMousePos(e);
+      if (point == null) return;
+      const { x, y } = transformsRef.current.windowToDataNoScale(
+        point.x,
+        point.y
+      );
+      const size = Math.max(2, ERASE_SIZE / scaleRef.current);
+      const rect = {
+        x: x - size / 2,
+        y: y - size / 2,
+        w: size,
+        h: size,
+      };
+      frame.actions.deleteElements(getOverlappingElements(elements, rect));
+    }
+  };
+
   //   if (!isNavigator) {
   //     window.x = {
   //       scaleDivRef,
@@ -1282,6 +1325,7 @@ export default function Canvas({
       onTouchMove={!isNavigator ? onTouchMove : undefined}
       onTouchEnd={!isNavigator ? onTouchEnd : undefined}
       onTouchCancel={!isNavigator ? onTouchCancel : undefined}
+      onPointerMove={!isNavigator ? onPointerMove : undefined}
       onCopy={
         isNavigator
           ? undefined

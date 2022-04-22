@@ -9,6 +9,7 @@ interface Props {
   edgeCreate?: boolean;
   edgeStart?: boolean;
   frame;
+  canvasScale: number;
 }
 
 export default function NotFocused({
@@ -18,6 +19,7 @@ export default function NotFocused({
   edgeCreate,
   edgeStart,
   frame,
+  canvasScale,
 }: Props) {
   const { id } = element;
 
@@ -25,7 +27,7 @@ export default function NotFocused({
   const ignoreNextClickRef = useRef<boolean>(false);
 
   const onClick = useCallback(
-    (e) => {
+    (e?) => {
       if (ignoreNextClickRef.current) {
         ignoreNextClickRef.current = false;
         return;
@@ -42,11 +44,16 @@ export default function NotFocused({
     <Draggable
       position={{ x: 0, y: 0 }}
       cancel={".nodrag"}
+      scale={canvasScale}
       disabled={!(selectable && !element.locked)}
       onStop={(_, data) => {
         if (data.x || data.y) {
           frame.actions.moveElements([element], data);
           ignoreNextClickRef.current = true;
+        } else {
+          // Didn't move, so select it for edit. This is particular important on tablets, where
+          // without this it would be really hard to select and edit anything.
+          onClick();
         }
       }}
     >
@@ -62,7 +69,6 @@ export default function NotFocused({
           cursor: selectable ? "pointer" : undefined,
         }}
         onClick={onClick}
-        onTouchEnd={onClick}
       >
         {children}
         {edgeStart && <div style={HINT}>Select target of edge</div>}
@@ -84,12 +90,12 @@ const HINT = {
 } as CSSProperties;
 
 function select(id, e, frame) {
-  e.stopPropagation();
+  e?.stopPropagation();
   // select
   frame.actions.setSelection(
     frame.id,
     id,
-    e.altKey || e.metaKey || e.ctrlKey || e.shiftKey ? "toggle" : "only"
+    e && (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) ? "toggle" : "only"
   );
 }
 
