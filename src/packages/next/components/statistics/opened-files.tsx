@@ -88,7 +88,8 @@ const extensionToInfo: { [ext: string]: { desc: string; link?: string } } = {
     link: "https://doc.cocalc.com/sagews.html",
   },
   "sage-chat": { desc: "Chatroom" },
-};
+  board: { desc: "Whiteboard", link: "/features/whiteboard" },
+} as const;
 
 function processFilesOpened(
   filesOpened,

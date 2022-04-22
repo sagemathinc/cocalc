@@ -32,11 +32,12 @@ export function markdownEscape(
   isFirstChild: boolean = false
 ): string {
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\*\(\)\[\]\+\-\\_`#<>]/g, (m) => MAP[m]);
+  s = s.replace(/[\*\(\)\[\]\$\+\-\\_`#<>]/g, (m) => MAP[m]);
   // Version of the above, but with some keys from the map purposely missing here,
   // since overescaping makes the generated markdown ugly.  However, sadly we HAVE
   // to escape everything (as above), since otherwise collaborative editing gets
-  // broken.  E.g., User a types a single - at the beginning of the line, and user
+  // broken, and tons of trouble with slate.  E.g., User a types a single - at the
+  // beginning of the line, and user
   // B types something somewhere else in the document.  The dash then automatically
   // turns into a list without user A doing anything.  NOT good.
   // Fortunately, caching makes this less painful.

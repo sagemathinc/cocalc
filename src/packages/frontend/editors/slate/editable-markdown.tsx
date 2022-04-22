@@ -165,8 +165,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
 
     const editor = useMemo(() => {
-      const cur = actions.getSlateEditor?.(id);
-      if (cur != null) return cur;
       const ed = withNonfatalRange(
         withInsertBreakHack(
           withNormalize(

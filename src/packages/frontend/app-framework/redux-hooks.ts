@@ -31,6 +31,11 @@ With a specific project:
 Or with an editor in a project:
 
  useRedux(['path', 'in', 'project store'], 'project-id', 'path')
+
+If you don't know the name of the store initially, you can use a name of '',
+and you'll always get back undefined.
+
+ useRedux(['', 'other', 'stuff']) === undefined
 */
 
 import { is_valid_uuid_string } from "@cocalc/util/misc";
@@ -45,6 +50,11 @@ export function useReduxNamedStore(path: string[]) {
   });
 
   React.useEffect(() => {
+    if (path[0] == "") {
+      // Special case -- we allow passing "" for the name of the store and get out undefined.
+      // This is useful when using the useRedux hook but when the name of the store isn't known initially.
+      return undefined;
+    }
     const store = redux.getStore(path[0]);
     if (store == null) {
       // TODO: I could make it return undefined until the store is created.
