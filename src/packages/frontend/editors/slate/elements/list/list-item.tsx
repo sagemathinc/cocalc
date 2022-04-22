@@ -23,7 +23,7 @@ register({
       return (
         <li
           {...attributes}
-          style={{ listStyleType: "none", marginLeft: "-28px" }}
+          style={{ listStyleType: "none", textIndent: "-28px" }}
         >
           {children}
         </li>
