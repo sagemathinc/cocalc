@@ -375,28 +375,43 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       : { disabled: true }
   );
 
-  const iframeDivRef = useRef<any>(null);
   const iframeOnScrolls = useMemo(() => {
     return {};
   }, []);
+  useEffect(() => {
+    if (!use_windowed_list) return;
+    for (const key in iframeOnScrolls) {
+      iframeOnScrolls[key]();
+    }
+  }, [cells]);
+
+  const iframeDivRef = useRef<any>(null);
   if (use_windowed_list) {
     return (
       <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
         <Virtuoso
           ref={virtuosoRef}
           topItemCount={1}
-          style={{ fontSize: `${font_size}px`, height: "100%" }}
-          totalCount={cell_list.size}
+          style={{
+            fontSize: `${font_size}px`,
+            height: "100%",
+            overflowX: "hidden",
+          }}
+          totalCount={
+            cell_list.size + 1 /* +1 due to the iframe cell at the top */
+          }
           itemContent={(index) => {
             if (index == 0) {
               return (
                 <div
                   ref={iframeDivRef}
                   style={{
-                    height: "1px",
+                    height: "5px",
                     overflow: "hidden",
                   }}
-                ></div>
+                >
+                  iframes here
+                </div>
               );
             }
             const key = cell_list.get(index - 1);

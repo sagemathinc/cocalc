@@ -4,17 +4,9 @@ It is completely impossible in modern times to move an iframe in the DOM without
 as explained here:
    https://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
 
-Thus, obviously, we need to hide/show the iframe at a particular place, and move it to
-match a placeholder div.  That's the only possible way to make this work generically.
-
-
-TODO:
-
-- [ ] tracking vertical position
-- [ ] measure and resize to match content size.
-- [ ] garbage collect; if you keep changing and evaluating a cell (say), then the iframes just pile up.
-      Need to go through and get rid of any that are no longer valid.  Hard to know how to do that from
-      here, since unmounting isn't relevant.
+An annoying issue is that if you do shift+tab to get docs or hit the TimeTravel button or anything to
+split the Jupyter frame, then the iframes of course get reset.  That was a problem before this though,
+i.e., it's not special to using windowing.
 */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -23,7 +15,7 @@ import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
 import { delay } from "awaiting";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
-const HEIGHT = "400px";
+const HEIGHT = "600px";
 
 interface Props {
   sha1: string;
@@ -42,7 +34,9 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
 
   const position = useCallback(() => {
     // make it so eltRef.current is exactly positioned on top of divRef.current using CSS
-    if (eltRef.current == null || divRef.current == null) return;
+    if (eltRef.current == null || divRef.current == null) {
+      return;
+    }
     const eltRect = eltRef.current.getBoundingClientRect();
     const divRect = divRef.current.getBoundingClientRect();
     let deltaTop = divRect.top - eltRect.top;
@@ -71,7 +65,10 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
         if (!isMountedRef.current) return;
         holder = $(iframeContext.iframeDivRef?.current);
       }
-      if (holder.length == 0) return;
+      if (holder.length == 0) {
+        console.log(`WARNING: iframe sha1=${sha1} failed to get holder!`);
+        return;
+      }
       let elt = holder.find(`#${key}`);
       if (elt.length == 0) {
         elt = $(
@@ -85,7 +82,15 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
       }
       eltRef.current = elt[0];
       if (iframeContext.iframeOnScrolls != null) {
-        iframeContext.iframeOnScrolls[key] = position;
+        let count = 0;
+        iframeContext.iframeOnScrolls[key] = async () => {
+          count = Math.min(200, count + 200);
+          while (count > 0) {
+            position();
+            await new Promise(requestAnimationFrame);
+            count -= 1;
+          }
+        };
       }
       elt.show();
       position();
