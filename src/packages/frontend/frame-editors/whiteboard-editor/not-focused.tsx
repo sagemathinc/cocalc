@@ -1,6 +1,7 @@
 import { CSSProperties, ReactNode, useCallback, useRef } from "react";
 import { getElement } from "./tools/tool-panel";
 import Draggable from "react-draggable";
+import { delay } from "awaiting";
 
 interface Props {
   children: ReactNode;
@@ -89,9 +90,13 @@ const HINT = {
   boxShadow: "3px 3px 3px #ccc",
 } as CSSProperties;
 
-function select(id, e, frame) {
-  e?.stopPropagation();
+async function select(id, e, frame) {
   // select
+  e?.stopPropagation();
+  // The below must happen in next render loop, or react complains
+  // about state change on unmounted component, since the action
+  // causees an unmount.
+  await delay(0);
   frame.actions.setSelection(
     frame.id,
     id,
