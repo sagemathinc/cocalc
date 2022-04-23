@@ -116,9 +116,13 @@ function Conversation({ element, focused }: Props) {
             height={"123px"}
             value={input}
             style={{
-              flex: 1,
+              width: `${element.w - 152}px`, /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */
               ...(mode == "editor"
-                ? { border: "1px solid #ccc", padding: "10px" }
+                ? {
+                    border: "1px solid #ccc",
+
+                    paddingLeft: "5px",
+                  }
                 : undefined),
             }}
             onChange={(input) => {
