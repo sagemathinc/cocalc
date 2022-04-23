@@ -17,6 +17,8 @@ import useWheel from "./scroll-wheel";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
+const INPUT_HEIGHT = "123px";
+
 interface Props {
   element: Element;
   focused?: boolean;
@@ -62,7 +64,7 @@ function Conversation({ element, focused }: Props) {
     saveChat.cancel();
   };
 
-  // When the component goes to be unmounted, we will fetch data if the input has changed.
+  // When the component is unmounted, we will fetch data if the input has changed.
   useEffect(
     () => () => {
       saveChat.flush();
@@ -113,12 +115,16 @@ function Conversation({ element, focused }: Props) {
             noVfill
             minimal
             placeholder="Type a message..."
-            height={"123px"}
+            height={INPUT_HEIGHT}
             value={input}
             style={{
-              flex: 1,
+              width: `${element.w - 152}px`, /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */
               ...(mode == "editor"
-                ? { border: "1px solid #ccc", padding: "10px" }
+                ? {
+                    border: "1px solid #ccc",
+
+                    paddingLeft: "5px",
+                  }
                 : undefined),
             }}
             onChange={(input) => {
@@ -167,7 +173,7 @@ function Conversation({ element, focused }: Props) {
             <Button
               disabled={!input.trim()}
               type="primary"
-              style={{ height: "100%", marginLeft: "5px" }}
+              style={{ height: INPUT_HEIGHT, marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
                 clearInput();
