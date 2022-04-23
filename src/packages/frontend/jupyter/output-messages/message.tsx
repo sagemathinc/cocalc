@@ -52,7 +52,7 @@ interface CellOutputMessageProps {
   directory?: string;
   actions?: JupyterActions; // optional  - not needed by most messages
   name?: string;
-  id?: string; // optional, and not usually needed either
+  id?: string; // optional, and not usually needed either; this is the id of the cell.  It is needed for iframe + windowing.
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
 

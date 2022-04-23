@@ -7,7 +7,7 @@
 
 declare const $: any;
 
-import { useEffect, useCallback } from "react";
+import { MutableRefObject, useEffect, useCallback, useMemo } from "react";
 import { debounce } from "lodash";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
@@ -20,6 +20,16 @@ import { NotebookMode, Scroll } from "./types";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+
+import { createContext, useContext } from "react";
+interface IFrameContextType {
+  iframeDivRef?: MutableRefObject<any>;
+  iframeOnScrolls?: { [key: string]: () => void };
+}
+const IFrameContext = createContext<IFrameContextType>({});
+export const useIFrameContext: () => IFrameContextType = () => {
+  return useContext(IFrameContext);
+};
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -357,34 +367,55 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             setTimeout(() => {
               frameActions.current?.set_scrollTop(scrollState);
             }, 0);
+            for (const key in iframeOnScrolls) {
+              iframeOnScrolls[key]();
+            }
           },
         }
       : { disabled: true }
   );
 
+  const iframeDivRef = useRef<any>(null);
+  const iframeOnScrolls = useMemo(() => {
+    return {};
+  }, []);
   if (use_windowed_list) {
     return (
-      <Virtuoso
-        ref={virtuosoRef}
-        style={{ fontSize: `${font_size}px`, height: "100%" }}
-        totalCount={cell_list.size}
-        itemContent={(index) => {
-          const key = cell_list.get(index);
-          if (key == null) return null;
-          const is_last: boolean = key === cell_list.get(-1);
-          return (
-            <div style={{ overflow: "hidden" }}>
-              {render_insert_cell(key, "above")}
-              {render_cell(key, false, index)}
-              {is_last ? render_insert_cell(key, "below") : undefined}
-            </div>
-          );
-        }}
-        rangeChanged={(visibleRange) => {
-          virtuosoRangeRef.current = visibleRange;
-        }}
-        {...virtuosoScroll}
-      />
+      <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
+        <Virtuoso
+          ref={virtuosoRef}
+          topItemCount={1}
+          style={{ fontSize: `${font_size}px`, height: "100%" }}
+          totalCount={cell_list.size}
+          itemContent={(index) => {
+            if (index == 0) {
+              return (
+                <div
+                  ref={iframeDivRef}
+                  style={{
+                    height: "1px",
+                    overflow: "hidden",
+                  }}
+                ></div>
+              );
+            }
+            const key = cell_list.get(index - 1);
+            if (key == null) return null;
+            const is_last: boolean = key === cell_list.get(-1);
+            return (
+              <div style={{ overflow: "hidden" }}>
+                {render_insert_cell(key, "above")}
+                {render_cell(key, false, index - 1)}
+                {is_last ? render_insert_cell(key, "below") : undefined}
+              </div>
+            );
+          }}
+          rangeChanged={(visibleRange) => {
+            virtuosoRangeRef.current = visibleRange;
+          }}
+          {...virtuosoScroll}
+        />
+      </IFrameContext.Provider>
     );
   }
 

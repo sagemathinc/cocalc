@@ -4,7 +4,7 @@
  */
 
 /*
-Efficient backend processing of iframe srcdoc's.
+Efficient backend processing of iframe srcdoc and general text/html messages.
 
 MOTIVATION: Sage jmol.
 */
@@ -19,7 +19,7 @@ export function is_likely_iframe(content: string): boolean {
   }
   content = content.slice(0, 100).trim().toLowerCase();
   return (
-    misc.startswith(content, '<iframe srcdoc="') ||
+    misc.startswith(content, "<iframe") ||
     content.indexOf("<!doctype html>") >= 0 ||
     (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0) ||
     // special case "altair" inline html -- https://github.com/sagemathinc/cocalc/issues/4468

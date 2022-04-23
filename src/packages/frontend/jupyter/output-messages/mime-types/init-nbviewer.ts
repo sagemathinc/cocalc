@@ -7,5 +7,4 @@ import "./text-plain";
 import "./simple-markdown";
 import "./iframe-html";   // we use this instead of html-ssr to safely support things like plotly or anything else that loads dangerous html.
 import "./image";
-import "./iframe";
 import "./pdf";
