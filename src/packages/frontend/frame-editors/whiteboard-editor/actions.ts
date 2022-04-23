@@ -302,6 +302,16 @@ export class Actions extends BaseActions<State> {
     if ((obj.w == null || obj.h == null) && obj.type) {
       setDefaultSize(obj);
     }
+
+    // Remove certain fields that never ever make no sense for a new element
+    // E.g., this runState and start would come up pasting or creating an
+    // adjacent code cell, but obviously the code isn't also running in the
+    // new cell, which has a different id.
+    if (obj.data != null) {
+      delete obj.data.runState;
+      delete obj.data.start;
+    }
+
     this.setElement({ create: true, obj, commit, cursors: [{}] });
     return obj as Element;
   }
