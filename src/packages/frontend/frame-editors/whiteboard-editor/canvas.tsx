@@ -1016,8 +1016,7 @@ export default function Canvas({
           transformsRef.current.windowToDataNoScale(p1.x, p1.y)
         );
         if (selectedTool == "frame") {
-          // make a frame at the selection.  Note that we put
-          // it UNDER everything.
+          // make a frame at the selection.
           const elt = getToolElement("frame");
           if (elt.data?.aspectRatio) {
             const ar = aspectRatioToNumber(elt.data.aspectRatio);
@@ -1026,6 +1025,7 @@ export default function Canvas({
             }
           }
 
+          // The zMin - 1 is to put it UNDER everything so far.
           const { id } = frame.actions.createElement(
             { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
