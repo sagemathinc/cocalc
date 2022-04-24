@@ -14,6 +14,7 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { get_blob_url } from "../server-urls";
 import CachedIFrame from "./cached-iframe";
+import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
 
 // This impact loading the iframe data from the backend project (via the sha1 hash).
 // Doing retries is useful, e.g., since the project might not be running.
@@ -28,9 +29,11 @@ interface Props {
 }
 
 export default function IFrame(props: Props) {
-  return props.cacheId == null ? (
+  const iframeContext = useIFrameContext(); // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
+  return iframeContext.iframeDivRef == null || props.cacheId == null ? (
     <NonCachedIFrame {...props} />
-  ) : ( // @ts-ignore
+  ) : (
+    // @ts-ignore
     <CachedIFrame {...props} />
   );
 }
