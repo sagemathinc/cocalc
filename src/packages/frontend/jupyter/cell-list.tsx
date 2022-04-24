@@ -126,7 +126,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [scroll]);
 
-  const cellListRef = useCallback((node: any) => {
+  const handleCellListRef = useCallback((node: any) => {
+    console.log("handleCellListRef", node);
     cell_list_node.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
@@ -170,17 +171,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function window_click(event: any): void {
-    if ($(".in.modal").length) {
-      // A bootstrap modal is currently opened, e.g., support page, etc.
-      // so do not focus no matter what -- in fact, blur for sure.
-      frameActions.current?.blur();
-      return;
-    }
     // if click in the cell list, focus the cell list; otherwise, blur it.
     const elt = $(cell_list_node.current);
     // list no longer exists, nothing left to do
     // Maybe elt can be null? https://github.com/sagemathinc/cocalc/issues/3580
-    if (elt == null) return;
+    if (elt.length == 0) return;
 
     const offset = elt.offset();
     if (offset == null) {
@@ -371,6 +366,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               iframeOnScrolls[key]();
             }
           },
+          scrollerRef: handleCellListRef,
         }
       : { disabled: true }
   );
@@ -391,6 +387,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
         <Virtuoso
           ref={virtuosoRef}
+          onClick={actions != null && complete != null ? on_click : undefined}
           topItemCount={1}
           style={{
             fontSize: `${font_size}px`,
@@ -467,7 +464,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         overflowY: "auto",
         overflowX: "hidden",
       }}
-      ref={cellListRef}
+      ref={handleCellListRef}
       onClick={actions != null && complete != null ? on_click : undefined}
       onScroll={debounce(() => {
         save_scroll();

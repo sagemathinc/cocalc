@@ -24,11 +24,13 @@ export default function useVirtuosoScrollHook({
   onScroll,
   initialState,
   disabled,
+  scrollerRef: scrollerRef0,
 }: {
   cacheId?: string;
   onScroll?: (state: ScrollState) => void;
   initialState?: ScrollState;
   disabled?: boolean; // if true, assume not going to be used.
+  scrollerRef?;
 }) {
   const itemRef = useRef<{ index: number; offset: number }>({
     index: 0,
@@ -37,6 +39,7 @@ export default function useVirtuosoScrollHook({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const handleScrollerRef = useCallback((ref) => {
     scrollerRef.current = ref;
+    scrollerRef0?.(ref);
   }, []);
   if (disabled) return {};
   const lastScrollRef = useRef<ScrollState>(
