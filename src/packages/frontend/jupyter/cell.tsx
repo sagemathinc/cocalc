@@ -273,7 +273,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
   const style: React.CSSProperties = {
     border: `1px solid ${color1}`,
-    borderLeft: `5px solid ${color2}`,
+    borderLeft: `10px solid ${color2}`,
     padding: "2px 5px",
     position: "relative",
   };

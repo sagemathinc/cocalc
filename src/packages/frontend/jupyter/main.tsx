@@ -186,6 +186,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
 
+  const editor_settings = useRedux(["account", "editor_settings"]);
+
   const { usage, expected_cell_runtime } = useKernelUsage(name);
 
   function render_kernel_error() {
@@ -320,7 +322,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     // TODO -- virtuoso -- make this a switch that is in the View
     // menu, whose value is stored in metadata.  This could also
     // have a parameter for "increaseViewportBy".
-    return true;
+    return !editor_settings?.get("disable_jupyter_virtualization");
   }
 
   function render_cells() {

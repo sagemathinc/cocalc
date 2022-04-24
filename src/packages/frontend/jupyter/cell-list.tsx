@@ -233,6 +233,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function scrollCellListVirtuoso(scroll: Scroll) {
+    // NOTE: below we add one to the index to compensate
+    // for the first fixed hidden cell that contains all
+    // of the output iframes!
     if (typeof scroll == "number") {
       // scroll to a number is not meaningful for virtuoso; it might
       // be requested maybe (?) due to scroll restore and switching
@@ -245,17 +248,20 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;
       if (scroll == "cell visible") {
-        virtuosoRef.current?.scrollIntoView({ index });
+        virtuosoRef.current?.scrollIntoView({ index: index + 1 });
       } else if (scroll == "cell top") {
-        virtuosoRef.current?.scrollToIndex({ index });
+        virtuosoRef.current?.scrollToIndex({ index: index + 1 });
       }
     } else if (scroll.startsWith("list")) {
       if (scroll == "list up") {
         const index = virtuosoRangeRef.current.startIndex;
-        virtuosoRef.current?.scrollToIndex({ index, align: "end" });
+        virtuosoRef.current?.scrollToIndex({ index: index + 1, align: "end" });
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current.endIndex;
-        virtuosoRef.current?.scrollToIndex({ index, align: "start" });
+        virtuosoRef.current?.scrollToIndex({
+          index: index + 1,
+          align: "start",
+        });
       }
     }
   }
@@ -403,7 +409,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
                 <div
                   ref={iframeDivRef}
                   style={{
-                    height: "5px",
+                    height: "1px",
                     overflow: "hidden",
                   }}
                 >
