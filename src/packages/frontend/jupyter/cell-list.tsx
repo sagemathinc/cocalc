@@ -127,7 +127,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }, [scroll]);
 
   const handleCellListRef = useCallback((node: any) => {
-    console.log("handleCellListRef", node);
     cell_list_node.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
