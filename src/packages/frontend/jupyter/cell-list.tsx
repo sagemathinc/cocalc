@@ -155,9 +155,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let scrollHeight: number = 0;
     for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!is_mounted.current) return;
-      if (use_windowed_list) {
-        // TODO -- virtuoso
-      } else {
+      if (!use_windowed_list) {
         const elt = cell_list_node.current;
         if (elt != null && elt.scrollHeight !== scrollHeight) {
           // dynamically rendering actually changed something
@@ -253,10 +251,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       }
     } else if (scroll.startsWith("list")) {
       if (scroll == "list up") {
-        const index = virtuosoRangeRef.current.startIndex;
+        const index = virtuosoRangeRef.current?.startIndex;
         virtuosoRef.current?.scrollToIndex({ index: index + 1, align: "end" });
       } else if (scroll == "list down") {
-        const index = virtuosoRangeRef.current.endIndex;
+        const index = virtuosoRangeRef.current?.endIndex;
         virtuosoRef.current?.scrollToIndex({
           index: index + 1,
           align: "start",
@@ -355,6 +353,17 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     startIndex: 0,
     endIndex: 0,
   });
+  const lastScrollStateRef = useRef<{
+    id?: string;
+    index: number;
+    offset: number;
+  }>({
+    index: 0,
+    offset: 0,
+    id: "",
+  });
+  const cellListRef = useRef<any>(cell_list);
+  cellListRef.current = cell_list;
   const virtuosoScroll = useVirtuosoScrollHook(
     use_windowed_list
       ? {
@@ -364,6 +373,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               ? `${name}${frameActions.current?.frame_id}`
               : undefined,
           onScroll: (scrollState) => {
+            lastScrollStateRef.current = {
+              ...scrollState,
+              id: cellListRef.current?.get(scrollState.index - 1),
+            };
             setTimeout(() => {
               frameActions.current?.set_scrollTop(scrollState);
             }, 0);
@@ -375,6 +388,33 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }
       : { disabled: true }
   );
+
+  useEffect(() => {
+    if (!use_windowed_list) return;
+    if (lastScrollStateRef.current == null) {
+      return;
+    }
+    const { offset, id } = lastScrollStateRef.current;
+    if (!id) {
+      return;
+    }
+    const index = cellListRef.current?.indexOf(id);
+    if (index == null) {
+      return;
+    }
+    // index + 1 because of iframe
+    // the offset+1 is I think compensating for a bug maybe in virtuoso or our use of it.
+    virtuosoRef.current?.scrollToIndex({
+      index: index + 1,
+      offset: offset + 1,
+    });
+    requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({
+        index: index + 1,
+        offset: offset + 1,
+      });
+    });
+  }, [cell_list]);
 
   const iframeOnScrolls = useMemo(() => {
     return {};

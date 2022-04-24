@@ -7,7 +7,7 @@
 Top-level react component, which ties everything together
 */
 
-import { CSS, React, useRedux, Rendered } from "../app-framework";
+import { redux, CSS, React, useRedux, useRef, Rendered } from "../app-framework";
 import * as immutable from "immutable";
 
 import { A, ErrorDisplay } from "../components";
@@ -186,7 +186,23 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
 
-  const editor_settings = useRedux(["account", "editor_settings"]);
+  // We use react-virtuoso, which is an amazing library for
+  // doing windowing on dynamically sized content... like
+  // what comes up with Jupyter notebooks.
+  // We do have to ensure that this can be easily disabled
+  // by users, due to situations like this
+  //   https://github.com/sagemathinc/cocalc/issues/4727
+  // e.g., where maybe they want to use Javascript across all
+  // cells, or they want to preserve state in iframes, which
+  // requires keeping things rendered.
+  // NOTE: we get this once from the account store and do NOT
+  // load it again, since we didn't implement switching between
+  // rendering modes on the fly and such a switch will crash for sure.
+  const useWindowedListRef = useRef<boolean>(
+    !redux
+      .getStore("account")
+      .getIn(["editor_settings", "disable_jupyter_virtualization"])
+  );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
 
@@ -308,23 +324,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function use_windowed_list(): boolean {
-    // We use react-virtuoso, which is an amazing library for
-    // doing windowing on dynamically sized content... like
-    // what comes up with Jupyter notebooks.
-    // We do have to ensure that this can be easily disabled
-    // by users, due to situations like this
-    //   https://github.com/sagemathinc/cocalc/issues/4727
-    // e.g., where maybe they want to use Javascript across all
-    // cells, or they want to preserve state in iframes, which
-    // requires keeping things rendered.
-
-    // TODO -- virtuoso -- make this a switch that is in the View
-    // menu, whose value is stored in metadata.  This could also
-    // have a parameter for "increaseViewportBy".
-    return !editor_settings?.get("disable_jupyter_virtualization");
-  }
-
   function render_cells() {
     if (
       cell_list == null ||
@@ -367,7 +366,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         scroll={scroll}
         cell_toolbar={cell_toolbar}
         trust={trust}
-        use_windowed_list={use_windowed_list()}
+        use_windowed_list={useWindowedListRef.current}
       />
     );
   }
