@@ -2,7 +2,7 @@
 Syncing the selection between slate and the DOM.
 
 This started by factoring out the relevant code from editable.tsx.
-We then rewrote it to work with react-window, which of course discards
+We then rewrote it to work with windowing, which of course discards
 the DOM outside the visible window, hence full sync no longer makes
 sense -- instead the slate selection is the sole source of truth, and
 the DOM just partly reflects that, and user manipulation of the DOM

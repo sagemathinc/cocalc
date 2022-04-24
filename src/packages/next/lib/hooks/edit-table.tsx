@@ -110,7 +110,7 @@ export default function useEditTable<T>(query: object, options?: Options) {
     path: string;
     title?: string;
     desc?: ReactNode;
-    label?: string;
+    label?: ReactNode;
     icon?: IconName;
   }) {
     return (
@@ -229,6 +229,6 @@ function getTitle(path?: string, title?: string): string {
   return v[v.length - 1].split("_").map(capitalize).join(" ");
 }
 
-function getLabel(path: string, title?: string, label?: string): string {
+function getLabel(path: string, title?: string, label?: ReactNode): ReactNode {
   return label ?? capitalize(getTitle(path, title).toLowerCase());
 }

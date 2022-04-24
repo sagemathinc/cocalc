@@ -11,10 +11,11 @@ import {
   useEffect,
   redux,
 } from "../../app-framework";
-import { Loading, TimeAgo, WindowedList } from "../../components";
+import { Loading, TimeAgo } from "../../components";
 import { projects_with_licenses } from "./util";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
+import { Virtuoso } from "react-virtuoso";
 
 function open_project(project_id: string): void {
   redux.getActions("projects").open_project({ project_id });
@@ -27,9 +28,10 @@ export const ProjectsWithLicenses: React.FC = () => {
     "projects",
     "all_projects_have_been_loaded"
   );
-  const projects = useMemo(() => projects_with_licenses(project_map), [
-    project_map,
-  ]);
+  const projects = useMemo(
+    () => projects_with_licenses(project_map),
+    [project_map]
+  );
 
   useEffect(() => {
     if (!all_projects_have_been_loaded) {
@@ -42,6 +44,7 @@ export const ProjectsWithLicenses: React.FC = () => {
     const { project_id, last_edited, num_licenses } = projects[index];
     return (
       <Row
+        key={projects[index]?.project_id}
         style={{ borderBottom: "1px solid lightgrey", cursor: "pointer" }}
         onClick={() => {
           open_project(project_id);
@@ -74,13 +77,9 @@ export const ProjectsWithLicenses: React.FC = () => {
         style={{ ...LICENSES_STYLE, height: "50vh" }}
         className={"smc-vfill"}
       >
-        <WindowedList
-          row_count={projects.length}
-          row_renderer={row_renderer}
-          cache_id={"projects-with-license"}
-          overscan_row_count={5}
-          estimated_row_size={22}
-          row_key={(index) => projects[index]?.project_id}
+        <Virtuoso
+          totalCount={projects.length}
+          itemContent={(index) => row_renderer({ index })}
         />
         {!all_projects_have_been_loaded && <Loading theme={"medium"} />}
       </div>

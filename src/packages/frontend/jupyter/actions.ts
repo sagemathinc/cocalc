@@ -290,6 +290,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = async () => {
+    if (this.store == null) return;
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
@@ -2619,6 +2620,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   update_select_kernel_data = (): void => {
+    if (this.store == null) return;
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);

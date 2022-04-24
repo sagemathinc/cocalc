@@ -52,7 +52,7 @@ interface CellOutputMessageProps {
   directory?: string;
   actions?: JupyterActions; // optional  - not needed by most messages
   name?: string;
-  id?: string; // optional, and not usually needed either
+  id?: string; // optional, and not usually needed either; this is the id of the cell.  It is needed for iframe + windowing.
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
 
@@ -111,9 +111,17 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     );
 
     const v: JSX.Element[] = [];
+    // NOTE: hasIframes -- we do not switch the output mode to "scrolled" if there are iframes in the output,
+    // due to it being too difficult to handle them combined with windowing/virtualization.
+    // It's likely that if there are iframes, the output is just one big iframe and scrolled mode is
+    // very unlikely to be what you want.
+    let hasIframes: boolean = false;
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
+        if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
+          hasIframes = true;
+        }
         v.push(
           <CellOutputMessage
             key={n}
@@ -130,7 +138,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     }
     return (
       <div
-        style={scrolled ? OUTPUT_STYLE_SCROLLED : OUTPUT_STYLE}
+        style={scrolled && !hasIframes ? OUTPUT_STYLE_SCROLLED : OUTPUT_STYLE}
         className="cocalc-jupyter-rendered"
       >
         {v}

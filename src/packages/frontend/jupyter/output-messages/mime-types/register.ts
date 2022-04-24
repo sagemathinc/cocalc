@@ -7,7 +7,7 @@ export interface DataProps {
   message: Map<string, any>;
   project_id?: string;
   directory?: string;
-  // id?: string;
+  id?: string;
   actions?: JupyterActions;
   name?: string; // name of redux store...
   trust?: boolean;
@@ -23,6 +23,7 @@ export interface HandlerProps {
   actions?: JupyterActions;
   name?: string;
   trust?: boolean;
+  id?: string;
 }
 
 type Handler = React.FC<HandlerProps>;

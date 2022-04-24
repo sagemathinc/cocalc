@@ -25,6 +25,10 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+
+// TODO: plan to switch to this soon!
+// import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 function href_transform(
@@ -230,6 +234,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           />
         </div>
       );
+      // <MostlyStaticMarkdown value={value} />
     }
 
     function render_unsupported(type: string): Rendered {

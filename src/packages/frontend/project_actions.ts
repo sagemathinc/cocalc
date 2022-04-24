@@ -1080,6 +1080,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (store.get("current_path") != path) {
       this.clear_file_listing_scroll();
+      this.clear_selected_file_index();
     }
     this.setState({
       current_path: path,

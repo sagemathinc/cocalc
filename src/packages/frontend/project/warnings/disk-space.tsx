@@ -56,7 +56,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
     <Alert bsStyle="danger" style={ALERT_STYLE}>
       <Icon name="exclamation-triangle" /> WARNING: This project is running out
       of disk space: only {disk_free} MB out of {quotas.disk_quota} MB
-      available.
+      available.{" "}
       <a onClick={() => actions?.set_active_tab("settings")}>
         Increase the "Disk Space" quota
       </a>

@@ -340,10 +340,10 @@ export default function MultiMarkdownInput({
       {mode == "editor" && (
         <div
           style={{
-            ...style,
             height: height ?? "100%",
             width: "100%",
             fontSize: "14px" /* otherwise button bar can be skewed */,
+            ...style, // make it possible to override width, height, etc.  This of course allows for problems but is essential. E.g., we override width for chat input in a whiteboard.
           }}
           className={height != "auto" ? "smc-vfill" : undefined}
         >
