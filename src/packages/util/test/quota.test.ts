@@ -1358,7 +1358,7 @@ describe("dedicated", () => {
       cpu_limit: 8, // according to VM specs
       privileged: false,
       idle_timeout: 1800, // default, just > 0, always_running is true anyways
-      disk_quota: 3000,
+      disk_quota: 20000, // we give the max by default
       dedicated_disks: [{ type: "standard", size_gb: 128, name: "bar" }],
       dedicated_vm: { machine: "n2-highmem-8", name: "foo" },
     });
@@ -1369,11 +1369,17 @@ describe("dedicated", () => {
       a1: {
         quota: {
           dedicated_vm: { machine: "n2-standard-4" },
+        },
+      },
+      a2: {
+        quota: {
           dedicated_disk: { type: "standard", size_gb: 128 },
         },
       },
     };
-    const spec = PRICES.vms["n2-standard-4"].spec;
+    const vm = PRICES.vms["n2-standard-4"];
+    if (vm === null) throw new Error(`no vm for n2-standard-4`);
+    const spec = vm!.spec;
     const q = quota({}, { userX: {} }, site_license);
     expect(q.dedicated_vm.machine).toBe("n2-standard-4");
     expect(q.always_running).toBe(true);
@@ -1731,7 +1737,6 @@ describe("boost", () => {
     });
   });
 
-
   it("add 1 core and 3 gb ram to a 1day idle license", () => {
     const site_licenses: SiteLicenses = {
       regular: {
@@ -1741,7 +1746,13 @@ describe("boost", () => {
         id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
       },
       boost: {
-        quota: { cpu: 1, ram: 3, member: true, boost: true, idle_timeout: "day" },
+        quota: {
+          cpu: 1,
+          ram: 3,
+          member: true,
+          boost: true,
+          idle_timeout: "day",
+        },
         run_limit: 3,
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
       },
@@ -1765,7 +1776,6 @@ describe("boost", () => {
     });
   });
 
-
   it("works with more than one maching boost license", () => {
     const site_licenses: SiteLicenses = {
       regular: {
@@ -1780,7 +1790,13 @@ describe("boost", () => {
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
       },
       boost2: {
-        quota: { cpu: 1, disk: 5, member: true, boost: true, always_running: true },
+        quota: {
+          cpu: 1,
+          disk: 5,
+          member: true,
+          boost: true,
+          always_running: true,
+        },
         run_limit: 3,
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
       },
@@ -1804,12 +1820,17 @@ describe("boost", () => {
     });
   });
 
-
   it("selects the matching boost license (always running)", () => {
     const site_licenses: SiteLicenses = {
       regular1: {
         title: "standard",
-        quota: { cpu: 1, ram: 1, disk: 1, member: true, idle_timeout: "medium" },
+        quota: {
+          cpu: 1,
+          ram: 1,
+          disk: 1,
+          member: true,
+          idle_timeout: "medium",
+        },
         run_limit: 1,
         id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
       },
@@ -1825,7 +1846,13 @@ describe("boost", () => {
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
       },
       boost2: {
-        quota: { cpu: 1, disk: 3, member: true, boost: true, always_running: true },
+        quota: {
+          cpu: 1,
+          disk: 3,
+          member: true,
+          boost: true,
+          always_running: true,
+        },
         run_limit: 3,
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
       },
@@ -1849,12 +1876,17 @@ describe("boost", () => {
     });
   });
 
-
   it("selects the matching boost license (medium timeout)", () => {
     const site_licenses: SiteLicenses = {
       regular1: {
         title: "standard",
-        quota: { cpu: 1, ram: 1, disk: 1, member: true, idle_timeout: "medium" },
+        quota: {
+          cpu: 1,
+          ram: 1,
+          disk: 1,
+          member: true,
+          idle_timeout: "medium",
+        },
         run_limit: 1,
         id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
       },
@@ -1870,7 +1902,13 @@ describe("boost", () => {
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
       },
       boost2: {
-        quota: { cpu: 1, disk: 7, member: true, boost: true, always_running: true },
+        quota: {
+          cpu: 1,
+          disk: 7,
+          member: true,
+          boost: true,
+          always_running: true,
+        },
         run_limit: 3,
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b15",
       },
