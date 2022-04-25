@@ -32,6 +32,7 @@ export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
       uptime: info.custom_uptime,
       member: `${info.custom_member}`, // "true" or "false"
       subscription: info.subscription,
+      boost: `${!!info.boost}`, // "true" or "false"
     };
     duration(meta, info);
     return meta;

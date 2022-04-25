@@ -75,6 +75,10 @@ export function getProductId(info: PurchaseInfo): string {
       if (info.custom_dedicated_cpu) {
         pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
       }
+      // boost licenses have the same price as corresponding regular licenses, but their user visible title/description is different!
+      if (info.boost === true) {
+        pid.push("B");
+      }
       break;
 
     // this makes also sure to only purchase a known disk (nothing made up)

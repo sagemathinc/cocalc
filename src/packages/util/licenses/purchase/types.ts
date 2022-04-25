@@ -101,7 +101,8 @@ export type ProductMetadataQuota =
       | "disk"
       | "uptime"
       | "member"
-      | "subscription",
+      | "subscription"
+      | "boost",
       string | number | null
     > & {
       duration_days?: number;
