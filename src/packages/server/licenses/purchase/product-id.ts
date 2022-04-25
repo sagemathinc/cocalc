@@ -12,9 +12,12 @@ import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 // exist with old prices (often grandfathered) so we may want to
 // instead change the version so new products get created
 // automatically.
-// 20220406: version 2 after discovering an unintentional volume discount,
+// 20220406: version "1" after discovering an unintentional volume discount,
 //           skewing the unit price per "product" in stripe.
-const VERSION = 2;
+// 20220425: keeping version "1" when introducing "boost" (appending an uppercase "B")
+//           and dedicated resources (they are explicitly listed and define their own "stripeID")
+//           i.e. starting with "dVW" or "dD", which is distinct from starting with "a[idle]"
+const VERSION = 1;
 
 export function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
