@@ -22,7 +22,7 @@ import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";
 const { Panel } = require("react-bootstrap");
-import { InvoiceHistory } from "./invoice-history";
+import InvoiceHistory from "./invoice-history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import { Alert } from "antd";

@@ -26,26 +26,6 @@ import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ButtonSize } from "@cocalc/frontend//antd-bootstrap";
 import { SizeType } from "antd/lib/config-provider/SizeContext";
 
-// See https://github.com/sagemathinc/cocalc/issues/5660 for why windowing is
-// disabled.  Basically, what happens is that active input fields get unmounted
-// and remounted, which severly messes up DOM-only state, e.g., cursor location
-// and focus.  That's a nightmare for users.  Using a larger overscan count strangely
-// doesn't help at all.  That said, you can set this to true to try out the
-// windowed version.
-// I don't know if we will hit scalability issues that are a serious problem with
-// windowing turned off.  Web browsers may have simply got better in terms of
-// rendering by now.
-export const USE_WINDOWING = false;
-export const OVERSCAN_ROW_COUNT = 3;
-export function windowing(estimated_row_size) {
-  return USE_WINDOWING
-    ? {
-        overscan_row_count: OVERSCAN_ROW_COUNT,
-        estimated_row_size,
-      }
-    : undefined;
-}
-
 // Pure functions used in the course manager
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
   if (peer) {

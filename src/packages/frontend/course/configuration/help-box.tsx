@@ -4,9 +4,8 @@
  */
 
 import { Card } from "antd";
-
-import { Icon } from "../../components";
 import { SITE_NAME, LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
+import { Icon, A } from "@cocalc/frontend/components";
 
 export function HelpBox() {
   return (
@@ -20,49 +19,22 @@ export function HelpBox() {
       <span style={{ color: "#666", fontSize: "11pt" }}>
         <ul>
           <li>
-            <a href={LIVE_DEMO_REQUEST} target={"_blank"} rel={"noopener"}>
+            <A href={LIVE_DEMO_REQUEST}>
               Request a live demo <Icon name="external-link" />
-            </a>{" "}
+            </A>{" "}
             (with a {SITE_NAME} specialist)
           </li>
           <li>
-            <a
-              href={"https://doc.cocalc.com/teaching-instructors.html"}
-              target={"_blank"}
-              rel={"noopener"}
-            >
+            <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
               Instructor Guide for using CoCalc for teaching{" "}
               <Icon name="external-link" />
-            </a>
+            </A>
           </li>
           <li>
-            <a
-              href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/"
-              target="_blank"
-              rel={"noopener"}
-            >
-              Grading courses <Icon name="external-link" />
-            </a>
-          </li>
-          <li>
-            <a
-              href="http://www.beezers.org/blog/bb/2016/01/pennies-a-day-for-sagemathcloud/"
-              target="_blank"
-              rel={"noopener"}
-            >
-              Course plans and teaching experiences{" "}
-              <Icon name="external-link" />
-            </a>
-          </li>
-          <li>
-            <a
-              href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/"
-              target="_blank"
-              rel={"noopener"}
-            >
+            <A href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/">
               Course management and collaborative Jupyter Notebooks{" "}
-              <Icon name="external-link" />
-            </a>
+              (2015, but still relevant) <Icon name="external-link" /> 
+            </A>
           </li>
         </ul>
       </span>

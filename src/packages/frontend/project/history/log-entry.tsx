@@ -3,14 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { UserMap } from "@cocalc/frontend/todo-types";
-import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import * as misc from "@cocalc/util/misc";
-import { round1 } from "@cocalc/util/misc";
-import * as lodash from "lodash";
-import React from "react";
-import { Col, Grid, Row } from "react-bootstrap";
-import { redux, Rendered } from "../../app-framework";
+import { CSS, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -19,11 +12,17 @@ import {
   Space,
   TimeAgo,
   Tip,
-} from "../../components";
-import { file_associations } from "../../file-associations";
+} from "@cocalc/frontend/components";
+import { file_associations } from "@cocalc/frontend/file-associations";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import { ProjectTitle } from "../../projects/project-title";
-import { FILE_ACTIONS } from "../../project_actions";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
+import { UserMap } from "@cocalc/frontend/todo-types";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
+import * as misc from "@cocalc/util/misc";
+import { round1 } from "@cocalc/util/misc";
+import React from "react";
+import { Col, Grid, Row } from "react-bootstrap";
 import { SystemProcess } from "./system-process";
 import {
   AssistantEvent,
@@ -46,7 +45,7 @@ const TRUNC = 90;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
 
-const selected_item: React.CSSProperties = {
+const selected_item: CSS = {
   backgroundColor: "#08c",
   color: "white",
 };
@@ -72,7 +71,7 @@ interface Props {
   account_id: string;
   user_map?: UserMap;
   cursor: boolean;
-  backgroundStyle?: React.CSSProperties;
+  backgroundStyle?: CSS;
   project_id: string;
 }
 
@@ -592,9 +591,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   const style = props.cursor ? selected_item : props.backgroundStyle;
   return (
     <Grid fluid={true} style={{ width: "100%" }}>
-      <Row
-        style={lodash.extend({ borderBottom: "1px solid lightgrey" }, style)}
-      >
+      <Row style={style}>
         <Col sm={1} style={{ textAlign: "center" }}>
           <Icon name={icon()} style={style} />
         </Col>

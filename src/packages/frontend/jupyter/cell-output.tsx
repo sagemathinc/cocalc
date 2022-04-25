@@ -120,43 +120,42 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
     function render_output_value(): JSX.Element | undefined {
       if (cell.get("collapsed")) {
         return render_collapsed();
-      } else {
-        let output = cell.get("output");
-        if (output == null) {
-          return;
-        }
-        if (more_output != null) {
-          // There's more output; remove the button to get more output, and
-          // include all the new more output messages.
-          let n = output.size - 1;
-          const more = output.get(`${n}`);
-          more_output.get("mesg_list").forEach((mesg) => {
-            output = output.set(`${n}`, mesg);
-            n += 1;
-          });
-          if (
-            cell.get("end") == null ||
-            more_output.get("time") < cell.get("end")
-          ) {
-            // There may be more output since either the end time isn't set
-            // or the time when we got the output is before the calculation ended.
-            // We thus put the "more output" button back, so the user can click it again.
-            output = output.set(`${n}`, more);
-          }
-        }
-        return (
-          <CellOutputMessages
-            scrolled={cell.get("scrolled")}
-            output={output}
-            project_id={project_id}
-            directory={directory}
-            actions={actions}
-            name={name}
-            trust={trust}
-            id={id}
-          />
-        );
       }
+      let output = cell.get("output");
+      if (output == null) {
+        return;
+      }
+      if (more_output != null) {
+        // There's more output; remove the button to get more output, and
+        // include all the new more output messages.
+        let n = output.size - 1;
+        const more = output.get(`${n}`);
+        more_output.get("mesg_list").forEach((mesg) => {
+          output = output.set(`${n}`, mesg);
+          n += 1;
+        });
+        if (
+          cell.get("end") == null ||
+          more_output.get("time") < cell.get("end")
+        ) {
+          // There may be more output since either the end time isn't set
+          // or the time when we got the output is before the calculation ended.
+          // We thus put the "more output" button back, so the user can click it again.
+          output = output.set(`${n}`, more);
+        }
+      }
+      return (
+        <CellOutputMessages
+          scrolled={cell.get("scrolled")}
+          output={output}
+          project_id={project_id}
+          directory={directory}
+          actions={actions}
+          name={name}
+          trust={trust}
+          id={id}
+        />
+      );
     }
 
     function render_hidden(): JSX.Element {
@@ -203,3 +202,4 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
   },
   should_memoize
 );
+

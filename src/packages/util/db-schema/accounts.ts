@@ -224,6 +224,7 @@ Table({
             physical_keyboard: "default",
             keyboard_variant: "",
             ask_jupyter_kernel: true,
+            disable_jupyter_virtualization: false,
           },
           other_settings: {
             katex: true,

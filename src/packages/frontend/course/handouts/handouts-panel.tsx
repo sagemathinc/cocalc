@@ -172,7 +172,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
       }
       return (
         <ScrollableList
-          windowing={util.windowing(50)}
           rowCount={handouts.length}
           rowRenderer={({ key, index }) => render_handout(key, index)}
           rowKey={(index) => handouts[index]?.handout_id ?? ""}

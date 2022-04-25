@@ -19,10 +19,10 @@ import {
 } from "../../app-framework";
 import { Button } from "../../antd-bootstrap";
 import { Icon, Loading } from "../../components";
-import { WindowedList } from "../../components/windowed-list";
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
 import { EventRecord, to_search_string } from "./types";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 interface Props {
   project_id: string;
@@ -34,7 +34,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
   const search = useTypedRedux({ project_id }, "search") ?? "";
   const user_map = useTypedRedux("users", "user_map");
   const actions = useActions({ project_id });
-  const windowed_list = useRef<WindowedList>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const state = useRef<{
     log?: List<TypedMap<EventRecord>>;
     search_cache: { [key: string]: string };
@@ -108,7 +108,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
       return;
     }
     set_cursor_index(cursor_index);
-    windowed_list.current?.scrollToRow(cursor_index);
+    virtuosoRef.current?.scrollIntoView({ index: cursor_index });
   }
 
   function increment_cursor(): void {
@@ -134,13 +134,15 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
       return;
     }
     return (
-      <Button
-        bsStyle={"info"}
-        onClick={load_all}
-        disabled={project_log_all != undefined}
-      >
-        Load older log entries
-      </Button>
+      <div style={{ textAlign: "center", padding:'15px' }}>
+        <Button
+          bsStyle={"info"}
+          onClick={load_all}
+          disabled={project_log_all != undefined}
+        >
+          Load older log entries
+        </Button>
+      </div>
     );
   }
 
@@ -169,25 +171,15 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     );
   }
 
-  function row_key(index: number): string {
-    return `${index}`;
-  }
-
   function render_log_entries(): JSX.Element {
-    const next_cursor_pos = state.current.next_cursor_pos;
     if (state.current.next_cursor_pos) {
       delete state.current.next_cursor_pos;
     }
     return (
-      <WindowedList
-        ref={windowed_list}
-        overscan_row_count={20}
-        estimated_row_size={22}
-        row_count={get_log().size + 1}
-        row_renderer={(x) => row_renderer(x.index)}
-        row_key={row_key}
-        scroll_to_index={next_cursor_pos}
-        cache_id={"project_log" + project_id}
+      <Virtuoso
+        ref={virtuosoRef}
+        totalCount={get_log().size + 1}
+        itemContent={row_renderer}
       />
     );
   }

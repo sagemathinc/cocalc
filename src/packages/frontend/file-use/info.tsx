@@ -20,9 +20,9 @@ const MAX_USERS = 5;
 const TRUNCATE_LENGTH = 50;
 
 const file_use_style: CSS = {
-  border: "1px solid #aaa",
   cursor: "pointer",
   width: "100%",
+  color: "#666",
 };
 
 interface Props {

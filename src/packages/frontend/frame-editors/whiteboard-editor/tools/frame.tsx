@@ -16,18 +16,18 @@ export type AspectRatio = "custom" | "a4" | "letter" | "16:9" | "4:3" | "1:1";
 export const DEFAULT_ASPECT_RATIO = "custom";
 
 interface Params {
-  aspectRatio?: AspectRatio;
+  aspectRatio: AspectRatio;
+  radius: number;
   color?: string;
-  radius?: number;
 }
 
 const DEFAULTS: Params[] = [
-  { aspectRatio: "custom" },
-  { aspectRatio: "a4" },
-  { aspectRatio: "letter" },
-  { aspectRatio: "16:9" },
-  { aspectRatio: "4:3" },
-  { aspectRatio: "1:1" },
+  { aspectRatio: "custom", radius: 0.5 },
+  { aspectRatio: "a4", radius: 0.5 },
+  { aspectRatio: "letter", radius: 0.5 },
+  { aspectRatio: "16:9", radius: 0.5 },
+  { aspectRatio: "4:3", radius: 0.5 },
+  { aspectRatio: "1:1", radius: 0.5 },
 ];
 
 export function aspectRatioToNumber(ar: AspectRatio): number {
@@ -93,8 +93,15 @@ function Preview({ color, radius, aspectRatio, width }) {
   );
 }
 
-function ButtonPreview({ color, aspectRatio }: Params) {
+function ButtonPreview({ color, radius, aspectRatio }: Params) {
+  //  bigger than 5 and it is just filled in or overflows the entire preview
+  radius = Math.min(5, radius);
   return (
-    <Preview color={color} aspectRatio={aspectRatio} radius={0.5} width={30} />
+    <Preview
+      color={color}
+      aspectRatio={aspectRatio}
+      radius={radius}
+      width={30}
+    />
   );
 }

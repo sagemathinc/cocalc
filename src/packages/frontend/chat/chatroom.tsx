@@ -17,11 +17,7 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 
 import { ChatInput } from "./input";
-import {
-  mark_chat_as_read_if_unseen,
-  scroll_to_bottom,
-  INPUT_HEIGHT,
-} from "./utils";
+import { mark_chat_as_read_if_unseen, INPUT_HEIGHT } from "./utils";
 
 import {
   React,
@@ -34,7 +30,6 @@ import {
 import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../components";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
-import { WindowedList } from "../components/windowed-list";
 
 import { VideoChatButton } from "./video/launch-button";
 import { Markdown } from "./markdown";
@@ -93,11 +88,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const messages = useRedux(["messages"], project_id, path);
 
   const submitMentionsRef = useRef<Function>();
-
-  const log_container_ref = useRef<WindowedList>(null);
+  const scrollToBottomRef = useRef<any>(null);
 
   useEffect(() => {
-    scroll_to_bottom(log_container_ref);
+    scrollToBottomRef.current?.();
   }, [messages]);
 
   // The act of opening/displaying the chat marks it as seen...
@@ -115,7 +109,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function button_scroll_to_bottom(): void {
-    scroll_to_bottom(log_container_ref, true);
+    scrollToBottomRef.current?.(true);
   }
 
   function show_timetravel(): void {
@@ -300,7 +294,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   function on_send(): void {
     const value = submitMentionsRef.current?.();
-    scroll_to_bottom(log_container_ref, true);
+    scrollToBottomRef.current?.(true);
     actions.send_chat(value);
   }
 
@@ -312,7 +306,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           <ChatLog
             project_id={project_id}
             path={path}
-            windowed_list_ref={log_container_ref}
+            scrollToBottomRef={scrollToBottomRef}
             show_heads={true}
           />
           {is_preview && render_preview_message()}

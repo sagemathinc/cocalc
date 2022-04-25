@@ -43,6 +43,7 @@ interface Props {
   hook_offset?: number;
   is_scrolling?: boolean;
   height?: number; // optional fixed height
+  delayRendering?: number;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -71,8 +72,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
 export const Cell: React.FC<Props> = React.memo((props) => {
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
-  // only delay rendering if actions are set (otherwise we break share server)
-  const render = useDelayedRender(props.actions == null ? 0 : props.index ?? 0);
+  const render = useDelayedRender(props.delayRendering ?? 0);
   if (!render) {
     return <></>;
   }
@@ -273,7 +273,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
   const style: React.CSSProperties = {
     border: `1px solid ${color1}`,
-    borderLeft: `5px solid ${color2}`,
+    borderLeft: `10px solid ${color2}`,
     padding: "2px 5px",
     position: "relative",
   };
