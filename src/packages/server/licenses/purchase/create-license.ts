@@ -7,7 +7,6 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
-import checkDedicateDiskName from "../check-disk-name";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 const logger = getLogger("createLicense");
 
@@ -88,8 +87,6 @@ async function getQuota(info: PurchaseInfo, license_id: string) {
       if (PRICES.disks[diskID] == null) {
         throw new Error(`Disk type ${diskID} does not exist`);
       }
-      // might throw an error, which is shown to the user
-      await checkDedicateDiskName(info.dedicated_disk.name);
       return {
         dedicated_disk: info.dedicated_disk,
       };
@@ -122,6 +119,7 @@ async function getUUID(database: PostgreSQL, info: PurchaseInfo) {
   throw new Error(`Unable to generate a unique name for VM`);
 }
 
+// last part of the UUID, we show this to users even if they're not license managers. hence no leak of information.
 function uuid2name(id: string) {
   return id.split("-").pop();
 }

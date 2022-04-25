@@ -142,11 +142,12 @@ const MBPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   ssd: { read: 0.48, write: 0.48 },
 };
 
+// below, we define all valid dedicated disk configurations
 export const MIN_DEDICATED_DISK_SIZE = 32;
 export const MAX_DEDICATED_DISK_SIZE = 1024;
 export const DEDICATED_DISK_SIZE_INCREMENT = 32;
 
-// this must be kept in sync with the numerical slider in next/stre/dedicated
+// this must be kept in sync with the numerical slider in next/store/dedicated
 // we also make it readonly to avoid accidental changes
 const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
   const v: number[] = [];

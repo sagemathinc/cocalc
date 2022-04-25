@@ -14,12 +14,13 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import { isEqual } from "lodash";
+import checkDedicateDiskName from "../check-disk-name";
 import { compute_cost } from "./compute-cost";
 import { MAX } from "./consts";
 import { PurchaseInfo } from "./types";
 
 // throws an exception if it spots something funny...
-export function sanity_checks(info: PurchaseInfo) {
+export async function sanity_checks(pool, info: PurchaseInfo) {
   const { type } = info;
   if (typeof info != "object") {
     throw Error("must be an object");
@@ -31,7 +32,7 @@ export function sanity_checks(info: PurchaseInfo) {
 
   sanity_check_start_end(info);
   sanity_check_quota(info);
-  sanity_check_dedicated(info);
+  await sanity_check_dedicated(pool, info);
   sanity_check_cost(info);
 }
 
@@ -105,7 +106,7 @@ function sanity_check_quota(info: PurchaseInfo) {
   }
 }
 
-function sanity_check_dedicated(info: PurchaseInfo) {
+async function sanity_check_dedicated(pool, info: PurchaseInfo) {
   const { type } = info;
 
   if (type === "vm") {
@@ -150,6 +151,9 @@ function sanity_check_dedicated(info: PurchaseInfo) {
       if (PRICES.disks[key] == null) {
         throw new Error(`field dedicated_disk "${key}" not found`);
       }
+
+      // finally we check again to make sure the disk name is unique
+      await checkDedicateDiskName(pool,  dd.name);
     }
   }
 }
