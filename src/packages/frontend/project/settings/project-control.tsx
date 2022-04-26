@@ -5,43 +5,41 @@
 
 import {
   React,
-  useTypedRedux,
   redux,
   Rendered,
   useEffect,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
   A,
   CopyToClipBoard,
+  Icon,
+  LabeledRow,
   Loading,
   ProjectState,
-  TimeAgo,
-  LabeledRow,
-  TimeElapsed,
-  Icon,
   SettingBox,
+  TimeAgo,
+  TimeElapsed,
 } from "@cocalc/frontend/components";
+import {
+  CUSTOM_IMG_PREFIX,
+  CUSTOM_SOFTWARE_HELP_URL,
+} from "@cocalc/frontend/custom-software/util";
+import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "@cocalc/util/compute-images";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
-import {
-  CUSTOM_SOFTWARE_HELP_URL,
-  compute_image2name,
-  compute_image2basename,
-  CUSTOM_IMG_PREFIX,
-} from "@cocalc/frontend/custom-software/util";
-import { ButtonToolbar, Button, Alert } from "react-bootstrap";
-import { alert_message } from "../../alerts";
-import { Project } from "./types";
 import { fromJS } from "immutable";
-import { RestartProject } from "./restart-project";
-import { StopProject } from "./stop-project";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { Alert, Button, ButtonToolbar } from "react-bootstrap";
+import { alert_message } from "../../alerts";
 import { ComputeImageSelector } from "./compute-image-selector";
-import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "@cocalc/util/compute-images";
+import { RestartProject } from "./restart-project";
+import { SoftwareImageDisplay } from "./software-image-display";
+import { StopProject } from "./stop-project";
+import { Project } from "./types";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
-
-import * as misc from "@cocalc/util/misc";
 
 interface ReactProps {
   project: Project;
@@ -67,7 +65,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       set_compute_image(new_image);
       set_compute_image_changing(false);
     }
-  }, [compute_image_focused, project]);
+  }, [compute_image_focused, project.get("compute_image")]);
 
   function render_state() {
     return (
@@ -99,8 +97,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function restart_project() {
-    redux.getActions("projects").restart_project(project.get("project_id"));
+  async function restart_project() {
+    await redux
+      .getActions("projects")
+      .restart_project(project.get("project_id"));
   }
 
   function render_stop_button(commands): Rendered {
@@ -206,23 +206,23 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function cancel_compute_image(current_image) {
-    set_compute_image: current_image;
-    set_compute_image_changing: false;
-    set_compute_image_focused: false;
+    set_compute_image(current_image);
+    set_compute_image_changing(false);
+    set_compute_image_focused(false);
   }
 
   async function save_compute_image(current_image) {
-    // image is reset to the previous name and componentWillReceiveProps will set it when new
-    set_compute_image: current_image;
-    set_compute_image_changing: true;
-    set_compute_image_focused: false;
+    set_compute_image(current_image);
+    set_compute_image_focused(false);
+    set_compute_image_changing(true);
     const new_image = compute_image;
     const actions = redux.getProjectActions(project.get("project_id"));
     try {
       await actions.set_compute_image(new_image);
-      restart_project();
+      await restart_project();
     } catch (err) {
       alert_message({ type: "error", message: err });
+    } finally {
       set_compute_image_changing(false);
     }
   }
@@ -282,9 +282,17 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
+  function onBlur() {
+    // don't unfocus when we selected a different compute image
+    // this will be set to false after either selecting "save&restart" or "cancel"
+    if (project.get("compute_image") === compute_image) {
+      set_compute_image_focused(false);
+    }
+  }
+
   function render_select_compute_image() {
     const current_image = project.get("compute_image");
-    if (current_image == undefined) {
+    if (current_image == null) {
       return;
     }
 
@@ -292,7 +300,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return render_custom_compute_image();
     }
 
-    const no_value = compute_image == undefined;
+    const no_value = compute_image == null;
     if (no_value || compute_image_changing) {
       return <Loading />;
     }
@@ -310,7 +318,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           selected_image={selected_image}
           layout={"vertical"}
           onFocus={() => set_compute_image_focused(true)}
-          onBlur={() => set_compute_image_focused(false)}
+          onBlur={onBlur}
           onSelect={(img) => set_compute_image(img)}
         />
 
@@ -361,45 +369,4 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       {render_select_compute_image_row()}
     </SettingBox>
   );
-};
-
-interface DisplayProps {
-  image?: string;
-}
-
-// this is also used for standard images !!!
-// in course/configuration/custom-software-environment
-export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
-  const images = useTypedRedux("compute_images", "images");
-  if (images == null) {
-    return <Loading />;
-  }
-  if (!image) {
-    return <>Default</>;
-  }
-  if (!image.startsWith(CUSTOM_IMG_PREFIX)) {
-    const img = COMPUTE_IMAGES.get(image);
-    if (img == null) {
-      return <>{image}</>;
-    } else {
-      return <>{img.get("title")}</>;
-    }
-  } else {
-    const name = compute_image2name(image);
-    const img_id = compute_image2basename(image);
-    const img_data = images.get(img_id);
-    if (img_data == undefined) {
-      // this is quite unlikely, use ID as fallback
-      return <>{img_id}</>;
-    } else {
-      return (
-        <>
-          {img_data.get("display")}{" "}
-          <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
-            ({name})
-          </span>
-        </>
-      );
-    }
-  }
 };
