@@ -40,13 +40,6 @@ const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how a
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";
 
-const RADIO_STYLE: CSS = {
-  display: "block",
-  height: "30px",
-  lineHeight: "30px",
-  fontWeight: "normal",
-};
-
 interface Props {
   actions: ConfigurationActions;
   course_project_id: string;
@@ -205,19 +198,20 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   }
 
   function render_inherit(): Rendered {
+    // We use fontWeight: "normal" below because otherwise the default
+    // of bold for the entire label is a bit much for such a large label.
     return (
       <Radio.Group
         onChange={(e) => on_inherit_change(e.target.value)}
         value={inherit}
-        style={{ display: "block" }}
       >
-        <Radio style={RADIO_STYLE} value={true}>
+        <Radio style={{ fontWeight: "normal" }} value={true}>
           <strong>Inherit</strong> student projects software environments from
-          this teacher project.
+          this teacher project
         </Radio>
-        <Radio style={RADIO_STYLE} value={false}>
+        <Radio style={{ fontWeight: "normal" }} value={false}>
           <strong>Explicitly</strong> specify student project software
-          environments.
+          environments
         </Radio>
       </Radio.Group>
     );
