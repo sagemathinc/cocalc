@@ -4,15 +4,12 @@
  */
 
 // This is a renderer using pdf.js.
-// We render pages within a window of this many pixels around
-// the top of the visible page.  Making this bigger makes it
-// less likely the user will see a blank page for a moment, but
-// also potentially makes things feel slightly slower and heavier.
-const WINDOW_SIZE: number = 2000;
+
 const HIGHLIGHT_TIME_S: number = 6;
 
 import "./pdfjs-worker";
 
+import { useRef, useState } from "react";
 import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";
 import { delay } from "awaiting";
@@ -36,6 +33,7 @@ import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { Virtuoso } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable";
@@ -78,15 +76,16 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const derived_file_types: Set<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
 
-  const [loaded, set_loaded] = React.useState<boolean>(false);
-  const [pages, set_pages] = React.useState<PDFPageProxy[]>([]);
-  const scroll_init = editor_state?.getIn(["scroll", "top"]) ?? 0;
-  const [scrollTop, set_scrollTop] = React.useState<number>(scroll_init);
-  const [missing, set_missing] = React.useState<boolean>(false);
-  const [restored_scroll, set_restored_scroll] = React.useState<boolean>(false);
-  const [doc, set_doc] = React.useState<PDFDocumentProxy | null>(null);
+  const [loaded, set_loaded] = useState<boolean>(false);
+  const [pages, set_pages] = useState<PDFPageProxy[]>([]);
+  const [missing, set_missing] = useState<boolean>(false);
+  const [doc, set_doc] = useState<PDFDocumentProxy | null>(null);
+  // documents often don't have pageLabels, but when they do, they are
+  // good to show (e.g., in a book the content at the beginning might
+  // be in roman numerals).
+  const [pageLabels, setPageLabels] = useState<null | string[]>(null);
 
-  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: scrollRef });
 
   useEffect(() => {
@@ -148,33 +147,6 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     return <Loading theme="medium" />;
   }
 
-  function on_scroll(): void {
-    if (!restored_scroll) return;
-    const elt = $(ReactDOM.findDOMNode(scrollRef.current));
-    const scroll = { top: elt.scrollTop(), left: elt.scrollLeft() };
-    actions.save_editor_state(id, { scroll });
-    if (scroll.top !== undefined) {
-      set_scrollTop(scroll.top);
-    }
-  }
-
-  async function restore_scroll(): Promise<void> {
-    await _restore_scroll(0);
-    set_restored_scroll(true);
-  }
-
-  async function _restore_scroll(wait?: number): Promise<void> {
-    if (wait !== undefined) {
-      await delay(wait);
-    }
-    if (!isMounted.current || !editor_state) return;
-    const scroll: Map<string, number> = editor_state.get("scroll");
-    if (!scroll) return;
-    const elt = $(ReactDOM.findDOMNode(scrollRef.current));
-    elt.scrollTop(scroll.get("top", 0));
-    elt.scrollLeft(scroll.get("left", 0));
-  }
-
   async function load_doc(reload: number): Promise<void> {
     try {
       const doc: PDFDocumentProxy = await getDocument(
@@ -194,6 +166,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
       set_loaded(true);
       set_pages(pages);
       set_missing(false);
+      setPageLabels(await doc.getPageLabels());
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
@@ -376,14 +349,22 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     }
   }
 
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: name + id,
+    onScroll: (scrollState) => {
+      actions.save_editor_state(id, { scrollState });
+    },
+    initialState: editor_state.get("scrollState")?.toJS(),
+  });
+
   function renderPagesUsingVirtuoso() {
     if (pages == null || pages.length == 0) return [];
     const scale = get_scale();
     const viewport = pages[0]?.getViewport({ scale });
-    const height = viewport?.height;
+    const height = (viewport?.height ?? 500) + PAGE_GAP;
+    window.doc = doc;
     return (
       <Virtuoso
-        increaseViewportBy={WINDOW_SIZE}
         defaultItemHeight={height}
         totalCount={doc.numPages}
         itemContent={(index) => {
@@ -403,9 +384,11 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
               key={n}
               scale={scale}
               sync_highlight={sync_highlight({ n, id })}
+              pageLabels={pageLabels}
             />
           );
         }}
+        {...virtuosoScroll}
       />
     );
   }

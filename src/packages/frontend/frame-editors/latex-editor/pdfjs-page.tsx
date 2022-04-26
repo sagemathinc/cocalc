@@ -17,7 +17,7 @@ import type {
 } from "pdfjs-dist/webpack";
 import { SyncHighlight } from "./pdfjs-annotation";
 
-export const PAGE_GAP: number = 20;
+export const PAGE_GAP: number = 42;
 export const BG_COL = "#525659";
 
 interface PageProps {
@@ -28,21 +28,19 @@ interface PageProps {
   scale: number;
   page: PDFPageProxy;
   sync_highlight?: SyncHighlight;
+  pageLabels?: string[];
 }
 
 function should_memoize(prev, next) {
   return (
-    !is_different(prev, next, [
-      "n",
-      "scale",
-      "page",
-      "sync_highlight",
-    ]) && prev.doc.fingerprint === next.doc.fingerprint
+    !is_different(prev, next, ["n", "scale", "page", "sync_highlight"]) &&
+    prev.doc.fingerprints[0] === next.doc.fingerprints[0] // [1] is used for editing -- "A (not guaranteed to be) unique ID to identify the PDF document. NOTE: The first element will always be defined for all PDF documents, whereas the second element is only defined for *modified* PDF documents." -- https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFDocumentProxy.html
   );
 }
 
 export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
-  const { actions, id, n, doc, scale, page, sync_highlight } = props;
+  const { actions, id, n, doc, scale, page, sync_highlight, pageLabels } =
+    props;
 
   function render_content() {
     if (!page) return;
@@ -59,7 +57,7 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
     );
   }
 
-  function render_page_number(): JSX.Element {
+  function renderPageNumber(): JSX.Element {
     return (
       <div
         style={{
@@ -67,9 +65,17 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
           color: "white",
           backgroundColor: BG_COL,
           height: `${PAGE_GAP}px`,
+          paddingTop: "15px",
         }}
       >
-        Page {n}
+        Page{" "}
+        {pageLabels != null ? (
+          <>
+            {pageLabels[n - 1]} ({n} / {pageLabels.length})
+          </>
+        ) : (
+          n
+        )}
       </div>
     );
   }
@@ -117,10 +123,22 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
     console.warn("Unknown annotation link", annotation);
   }
 
+  const viewport = page.getViewport({ scale });
+
   return (
-    <div>
-      {render_page_number()}
-      <div style={{ background: BG_COL }} onDoubleClick={(e) => click(e)}>
+    <div
+      style={{ height: `${PAGE_GAP + viewport.height}px`, background: BG_COL }}
+    >
+      {renderPageNumber()}
+      <div
+        style={{
+          height: `${viewport.height}px`,
+          width: `${viewport.width}px`,
+          background: "white",
+          margin: "auto",
+        }}
+        onDoubleClick={(e) => click(e)}
+      >
         {render_content()}
       </div>
     </div>
