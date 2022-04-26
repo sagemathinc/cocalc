@@ -49,22 +49,22 @@ export { Markdown };
 mathPlugin.rules["cocalc"] = {
   inline: [
     {
-      // We modify this from what's included in markdown-it-texmath to allow for
-      // multiple line inline formulas, e.g., "$2+\n3$" should work, but doesn't in upstream.
-      name: "math_inline",
-      rex: /\$((?:[^\s\\])|(?:[\S\s]*?[^\\]))\$/gmy,
-      tmpl: "<eq>$1</eq>",
-      tag: "$",
-      outerSpace: false,
-      pre: mathPlugin.$_pre,
-      post: mathPlugin.$_post,
-    },
-    {
       name: "math_inline_double",
       rex: /\${2}([^$]*?[^\\])\${2}/gy,
       tmpl: "<section><eqn>$1</eqn></section>",
       tag: "$$",
       displayMode: true,
+      pre: mathPlugin.$_pre,
+      post: mathPlugin.$_post,
+    },
+    {
+      // We modify this from what's included in markdown-it-texmath to allow for
+      // multiple line inline formulas, e.g., "$2+\n3$" should work, but doesn't in upstream.
+      name: "math_inline",
+      rex: /\$((?:[^\$\s\\])|(?:[\S\s]*?[^\\]))\$/gmy,
+      tmpl: "<eq>$1</eq>",
+      tag: "$",
+      outerSpace: false,
       pre: mathPlugin.$_pre,
       post: mathPlugin.$_post,
     },
