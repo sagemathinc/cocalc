@@ -14,7 +14,8 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import { isEqual } from "lodash";
-import checkDedicateDiskName from "../check-disk-name";
+import { testDedicatedDiskNameBasic } from "../check-disk-name-basics";
+import { checkDedicateDiskNameUniqueness } from "../check-disk-name-uniqueness";
 import { compute_cost } from "./compute-cost";
 import { MAX } from "./consts";
 import { PurchaseInfo } from "./types";
@@ -152,8 +153,10 @@ async function sanity_check_dedicated(pool, info: PurchaseInfo) {
         throw new Error(`field dedicated_disk "${key}" not found`);
       }
 
+      // check lenght/charaters of disk name
+      testDedicatedDiskNameBasic(dd.name);
       // finally we check again to make sure the disk name is unique
-      await checkDedicateDiskName(pool,  dd.name);
+      await checkDedicateDiskNameUniqueness(pool, dd.name);
     }
   }
 }

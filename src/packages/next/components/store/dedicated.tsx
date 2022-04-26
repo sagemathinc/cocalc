@@ -10,6 +10,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { HOME_PREFIX, ROOT } from "@cocalc/util/consts/dedicated";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
+import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import {
@@ -407,20 +408,7 @@ function CreateDedicatedResource() {
   }
 
   async function testDedicatedDiskName(name): Promise<void> {
-    const minLength = 6;
-    const maxLength = 20;
-
-    if (name == null) {
-      throw new Error("Please enter a name.");
-    } else if (name.length < minLength) {
-      throw new Error(`Name must have at least ${minLength} characters.`);
-    } else if (name.length > maxLength) {
-      throw new Error(`Name must have at most ${maxLength} characters.`);
-    } else if (!/^[a-z0-9-]+$/.test(name)) {
-      throw new Error(
-        "Name must consist of lowercase letters, numbers, and hyphens only."
-      );
-    }
+    testDedicatedDiskNameBasic(name);
     // if the above passes, then we can check if the name is available.
     const serverCheck = await apiPost("licenses/check-disk-name", { name }, 60);
     if (serverCheck?.available === true) {

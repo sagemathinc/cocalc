@@ -15,7 +15,7 @@ SELECT EXISTS(
       AND quota -> 'dedicated_disk' ->> 'name' = $1
 )`;
 
-export default async function checkDedicateDiskName(
+export async function checkDedicateDiskNameUniqueness(
   pool,
   name?: string
 ): Promise<{ available: boolean }> {

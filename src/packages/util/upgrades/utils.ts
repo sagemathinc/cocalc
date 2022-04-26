@@ -11,7 +11,7 @@ export function dedicatedDiskDisplay(disk?: DedicatedDisk): string {
   if (disk == null) throw new Error("dedicated_disk must be defined");
   if (typeof disk === "boolean") return "";
   const tokens = [
-    `${disk.size_gb} G size`,
+    `${disk.size_gb}G size`,
     `${DISK_NAMES[disk.speed] ?? disk.speed} speed`,
   ];
   if (disk.name != null) {

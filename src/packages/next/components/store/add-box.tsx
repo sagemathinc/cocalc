@@ -8,7 +8,7 @@ Create a new site license.
 */
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseType } from "@cocalc/util/upgrades/shopping";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { Alert, Button } from "antd";
@@ -81,7 +81,10 @@ export function AddBox(props: Props) {
       case "disk":
         delete description["vm-machine"];
 
-        const diskID = `${description["disk-size_gb"]}-${description["disk-speed"]}`;
+        const diskID = getDedicatedDiskKey({
+          size_gb: description["disk-size_gb"],
+          speed: description["disk-speed"],
+        });
         const disk = PRICES.disks[diskID];
         if (disk == null) {
           setCartError(`Disk ${diskID} not found`);
