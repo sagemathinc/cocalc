@@ -51,7 +51,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
-    "@types/jest": "^26.0.24",
+    "@types/jest": "^27.4.1",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.176",
     "@types/node": "^14.18.10",
