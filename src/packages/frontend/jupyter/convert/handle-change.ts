@@ -28,6 +28,10 @@ import { is_array, trunc } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("handle-nbconvert-change");
 
+// nbconvert can output arbitrarily large errors, so we truncate.
+// But don't truncate too small!  https://github.com/sagemathinc/cocalc/issues/5878
+const MAX_ERROR_LENGTH = 100000;
+
 interface Value {
   state: string;
   args: string[];
@@ -88,8 +92,7 @@ export default async function handleChange(
     await actions.jupyter_kernel.nbconvert(args);
     log.debug("success");
   } catch (err) {
-    // nbconvert itself can result in arbitrarily large errors, so we truncate.
-    error = trunc(`${err}`, 1000);
+    error = trunc(`${err}`, MAX_ERROR_LENGTH);
     log.debug("error", error);
   }
   actions.syncdb.set({
