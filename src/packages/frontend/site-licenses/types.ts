@@ -4,6 +4,7 @@
  */
 
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { Map } from "immutable";
 
 export interface SiteLicensePublicInfo {
   id: string;
@@ -19,3 +20,7 @@ export interface SiteLicensePublicInfo {
   applied?: number;
   quota?: SiteLicenseQuota;
 }
+
+export type SiteLicenses = {
+  [license_id: string]: Map<string, number> | null;
+};

@@ -6,17 +6,15 @@
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
-import { Card } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
-import {
-  SiteLicensePublicInfoTable,
-  SiteLicenses,
-} from "@cocalc/frontend/site-licenses/site-license-public-info";
+import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
+import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import { Card } from "antd";
 import { Map } from "immutable";
 
 interface Props {
