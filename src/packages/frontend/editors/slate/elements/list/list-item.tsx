@@ -29,7 +29,13 @@ register({
         </li>
       );
     }
-    return <li {...attributes}>{children}</li>;
+    // NOTE: It is very important to set textIndent back to 0 just in case
+    // this list item is a child of a task list item.
+    return (
+      <li {...attributes} style={{ textIndent: 0 }}>
+        {children}
+      </li>
+    );
   },
 });
 
