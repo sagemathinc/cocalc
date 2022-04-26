@@ -52,7 +52,7 @@ mathPlugin.rules["cocalc"] = {
       // We modify this from what's included in markdown-it-texmath to allow for
       // multiple line inline formulas, e.g., "$2+\n3$" should work, but doesn't in upstream.
       name: "math_inline",
-      rex: /\$((?:[^\s\\])|(?:\S[\S\s]*?[^\s\\]))\$/gmy,
+      rex: /\$((?:[^\s\\])|(?:[\S\s]*?[^\\]))\$/gmy,
       tmpl: "<eq>$1</eq>",
       tag: "$",
       outerSpace: false,
