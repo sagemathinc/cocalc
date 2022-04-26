@@ -101,7 +101,7 @@
     "npm-check-updates": "^11.5.13",
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
-    "pdfjs-dist": "^2.9.359",
+    "pdfjs-dist": "^2.13.216",
     "prettier": "^2.6.2",
     "raw-loader": "^4.0.2",
     "react-helmet": "^6.1.0",
