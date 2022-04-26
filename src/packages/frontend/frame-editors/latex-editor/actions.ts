@@ -11,7 +11,6 @@ const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS: ReadonlyArray<string> = [
   "pdfjs_canvas",
-  "pdfjs_svg",
   "pdf_embed",
   "build",
 ];

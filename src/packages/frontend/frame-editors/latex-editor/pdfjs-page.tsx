@@ -9,7 +9,6 @@ Manages rendering a single page using either SVG or Canvas
 
 import { React } from "../../app-framework";
 import { is_different } from "@cocalc/util/misc";
-import { NonloadedPage } from "./pdfjs-nonloaded-page";
 import { CanvasPage } from "./pdfjs-canvas-page";
 import type {
   PDFAnnotationData,
@@ -26,7 +25,6 @@ interface PageProps {
   id: string;
   n: number;
   doc: PDFDocumentProxy;
-  renderer: string;
   scale: number;
   page: PDFPageProxy;
   sync_highlight?: SyncHighlight;
@@ -36,7 +34,6 @@ function should_memoize(prev, next) {
   return (
     !is_different(prev, next, [
       "n",
-      "renderer",
       "scale",
       "page",
       "sync_highlight",
@@ -45,25 +42,21 @@ function should_memoize(prev, next) {
 }
 
 export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
-  const { actions, id, n, doc, renderer, scale, page, sync_highlight } = props;
+  const { actions, id, n, doc, scale, page, sync_highlight } = props;
 
   function render_content() {
     if (!page) return;
     const f = (annotation) => {
       click_annotation(annotation);
     };
-    if (renderer == "none") {
-      return <NonloadedPage page={page} scale={scale} />;
-    } else {
-      return (
-        <CanvasPage
-          page={page}
-          scale={scale}
-          click_annotation={f}
-          sync_highlight={sync_highlight}
-        />
-      );
-    }
+    return (
+      <CanvasPage
+        page={page}
+        scale={scale}
+        click_annotation={f}
+        sync_highlight={sync_highlight}
+      />
+    );
   }
 
   function render_page_number(): JSX.Element {

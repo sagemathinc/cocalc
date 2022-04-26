@@ -8,7 +8,7 @@
 // the top of the visible page.  Making this bigger makes it
 // less likely the user will see a blank page for a moment, but
 // also potentially makes things feel slightly slower and heavier.
-const WINDOW_SIZE: number = 3000;
+const WINDOW_SIZE: number = 2000;
 const HIGHLIGHT_TIME_S: number = 6;
 
 import "./pdfjs-worker";
@@ -50,7 +50,6 @@ interface PDFJSProps {
   path: string;
   reload: number;
   font_size: number;
-  renderer: string /* "canvas" or "svg" */;
   is_current: boolean;
   status: string;
 }
@@ -61,12 +60,10 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     name,
     actions,
     editor_state,
-    //is_fullscreen,
     project_id,
     path,
     reload,
     font_size,
-    renderer,
     is_current,
     status,
   } = props;
@@ -386,7 +383,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     const height = viewport?.height;
     return (
       <Virtuoso
-        increaseViewportBy={2000}
+        increaseViewportBy={WINDOW_SIZE}
         defaultItemHeight={height}
         totalCount={doc.numPages}
         itemContent={(index) => {
@@ -404,7 +401,6 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
               page={page}
               n={n}
               key={n}
-              renderer={renderer}
               scale={scale}
               sync_highlight={sync_highlight({ n, id })}
             />

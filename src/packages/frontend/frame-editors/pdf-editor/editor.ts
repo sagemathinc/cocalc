@@ -27,22 +27,12 @@ const pdfjs_buttons = set([
 export const EDITOR_SPEC = {
   pdfjs_canvas: {
     short: "PDF.js",
-    name: "PDF.js - Canvas",
+    name: "PDF.js",
     icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
     renderer: "canvas",
-  } as EditorDescription,
-
-  pdfjs_svg: {
-    short: "PDF.js (svg)",
-    name: "PDF.js - SVG",
-    icon: "file-pdf",
-    component: PDFJS,
-    buttons: pdfjs_buttons,
-    style: { background: "#525659" },
-    renderer: "svg",
   } as EditorDescription,
 };
 
