@@ -68,7 +68,7 @@
     "cat-names": "^2.0.0",
     "chai": "^4.2.0",
     "cheerio": "^1.0.0-rc.10",
-    "codemirror": "^5.63.3",
+    "codemirror": "^5.65.3",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.7.0",
     "css-color-names": "0.0.4",
