@@ -524,7 +524,7 @@ function CreateDedicatedResource() {
               form.setFieldsValue({ "disk-size_gb": val });
               onChange();
             }}
-            units={"GB"}
+            units={"G"}
             presets={[32, 64, 128, 256, 512, 1024]}
           />
         </Form.Item>

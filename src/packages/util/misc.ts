@@ -405,7 +405,7 @@ export const to_json = JSON.stringify;
 
 // gives the plural form of the word if the number should be plural
 export function plural(number, singular, plural = `${singular}s`) {
-  if (["GB", "MB"].includes(singular)) {
+  if (["GB", "G", "MB"].includes(singular)) {
     return singular;
   }
   if (number === 1) {

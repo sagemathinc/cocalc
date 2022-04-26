@@ -45,7 +45,7 @@ export function Line({
 
   let unit = "";
   if (desc?.includes("RAM") || desc?.includes("Disk")) {
-    unit = "GB";
+    unit = "G";
   } else if (desc?.includes("CPU")) {
     unit = amount == 1 ? "core" : "cores";
   } else if (desc?.includes("Projects")) {
