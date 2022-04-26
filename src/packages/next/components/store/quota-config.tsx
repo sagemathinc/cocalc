@@ -31,7 +31,7 @@ export function QuotaConfig({
     <>
       <Divider plain>{title()}</Divider>
       <Form.Item
-        label="GB shared RAM"
+        label="Shared RAM"
         name="ram"
         initialValue={boost ? 0 : 2}
         extra={
@@ -57,7 +57,7 @@ export function QuotaConfig({
             form.setFieldsValue({ ram });
             onChange();
           }}
-          units={"GB RAM"}
+          units={"G RAM"}
           presets={boost ? [0, 2, 4, 8, 10] : [1, 2, 3, 4, 8, 16]}
         />
       </Form.Item>{" "}
@@ -95,7 +95,7 @@ export function QuotaConfig({
         />
       </Form.Item>
       <Form.Item
-        label="GB disk space"
+        label="Disk space"
         name="disk"
         initialValue={min}
         extra={
@@ -121,7 +121,7 @@ export function QuotaConfig({
             form.setFieldsValue({ disk });
             onChange();
           }}
-          units={"GB Disk"}
+          units={"G Disk"}
           presets={boost ? [0, 5, 10] : [1, 4, 8, 10, 15]}
         />
       </Form.Item>

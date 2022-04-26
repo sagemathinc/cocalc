@@ -150,7 +150,7 @@ function CreateSiteLicense() {
         />
         <Divider plain>Quota upgrades</Divider>
         <Form.Item
-          label="GB shared RAM"
+          label="Shared RAM"
           name="ram"
           initialValue={2}
           extra={
@@ -175,7 +175,7 @@ function CreateSiteLicense() {
               form.setFieldsValue({ ram });
               onChange();
             }}
-            units={"GB RAM"}
+            units={"G RAM"}
             presets={[1, 2, 3, 4, 8, 16]}
           />
         </Form.Item>{" "}
@@ -212,7 +212,7 @@ function CreateSiteLicense() {
           />
         </Form.Item>
         <Form.Item
-          label="GB disk space"
+          label="Disk space"
           name="disk"
           initialValue={1}
           extra={
@@ -237,7 +237,7 @@ function CreateSiteLicense() {
               form.setFieldsValue({ disk });
               onChange();
             }}
-            units={"GB Disk"}
+            units={"G Disk"}
             presets={[1, 4, 8, 10, 15]}
           />
         </Form.Item>

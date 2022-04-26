@@ -92,7 +92,7 @@ function getSpecAndQuota({
   const data = deriveVMSpecs(spec);
   const quotas = deriveQuotas(data);
   return {
-    title: `${quotas.cpu} CPU cores, ${quotas.mem} GiB RAM`,
+    title: `${quotas.cpu} CPU cores, ${quotas.mem}G RAM`,
     price_day: getDedicatedVMPrice(data),
     spec: quotas, // the spec for actually setting up the container and communicated publicly
     quota: { dedicated_vm: spec },
@@ -185,7 +185,7 @@ for (const size_gb of DEDICATED_DISK_SIZES) {
       dedicated_disk: { size_gb, speed },
     };
     const tIdx = DEDICATED_DISK_SPEEDS.indexOf(speed);
-    const title = `${size_gb} GiB ${DEDICATED_DISK_SPEEDS[speed]}`;
+    const title = `${size_gb}G ${DEDICATED_DISK_SPEEDS[speed]}`;
     const key = getDedicatedDiskKey({ size_gb, speed });
     DISKS[key] = {
       quota,

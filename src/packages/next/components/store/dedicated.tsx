@@ -594,7 +594,7 @@ function CreateDedicatedResource() {
         Restarting your project while this license is active, will move your
         project on a virtual machine in <SiteName />
         's cluster. This machine will allow you to use up to {spec.cpu} CPU
-        cores and {spec.mem} GB memory.
+        cores and {spec.mem} G memory.
       </p>
     );
   }
