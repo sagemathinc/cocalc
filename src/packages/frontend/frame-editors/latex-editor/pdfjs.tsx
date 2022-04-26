@@ -22,6 +22,7 @@ import $ from "jquery";
 import { seconds_ago, list_alternatives } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { dblclick } from "./mouse-click";
+import { useEffect } from "react";
 import {
   React,
   ReactDOM,
@@ -29,11 +30,12 @@ import {
   useIsMountedRef,
 } from "../../app-framework";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { Page, PAGE_GAP } from "./pdfjs-page";
+import { BG_COL, Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import { Virtuoso } from "react-virtuoso";
 
 // Ensure this jQuery plugin is defined:
 import "./mouse-draggable";
@@ -90,29 +92,29 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: scrollRef });
 
-  React.useEffect(() => {
+  useEffect(() => {
     mouse_draggable();
     focus_on_click();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     load_doc(reload);
   }, [reload]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (zoom_page_height == id) do_zoom_page_height();
     if (zoom_page_width == id) do_zoom_page_width();
     if (sync == id) do_sync();
   }, [zoom_page_height, zoom_page_width, sync]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (scroll_pdf_into_view) {
       const { page, y, id } = scroll_pdf_into_view;
       do_scroll_pdf_into_view(page, y, id);
     }
   }, [scroll_pdf_into_view]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (is_current) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
       ($ as any)(document.activeElement).blur();
@@ -377,41 +379,39 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     }
   }
 
-  function render_pages(): JSX.Element[] {
+  function renderPagesUsingVirtuoso() {
     if (pages == null || pages.length == 0) return [];
-    const ret: JSX.Element[] = [];
-    let top: number = 0;
     const scale = get_scale();
-    if (doc == null) return [];
-    for (let n = 1; n <= doc.numPages; n++) {
-      const page = pages[n - 1];
-      if (page == null) continue;
-      const page_renderer =
-        top >= scrollTop - WINDOW_SIZE * scale &&
-        top <= scrollTop + WINDOW_SIZE * scale
-          ? renderer
-          : "none";
-      ret.push(
-        <Page
-          id={id}
-          actions={actions}
-          doc={doc}
-          page={page}
-          n={n}
-          key={n}
-          renderer={page_renderer}
-          scale={scale}
-          sync_highlight={sync_highlight({ n, id })}
-        />
-      );
-      top += scale * page.view[3] + PAGE_GAP;
-    }
-    if (!restored_scroll) {
-      // Restore the scroll position after the pages get
-      // rendered into the DOM.
-      restore_scroll();
-    }
-    return ret;
+    const viewport = pages[0]?.getViewport({ scale });
+    const height = viewport?.height;
+    return (
+      <Virtuoso
+        increaseViewportBy={2000}
+        defaultItemHeight={height}
+        totalCount={doc.numPages}
+        itemContent={(index) => {
+          const page = pages[index];
+          if (page == null) {
+            // should not happen
+            return <div style={{ height: "1px" }}></div>;
+          }
+          const n = index + 1;
+          return (
+            <Page
+              id={id}
+              actions={actions}
+              doc={doc}
+              page={page}
+              n={n}
+              key={n}
+              renderer={renderer}
+              scale={scale}
+              sync_highlight={sync_highlight({ n, id })}
+            />
+          );
+        }}
+      />
+    );
   }
 
   function render_content(): JSX.Element | JSX.Element[] {
@@ -422,15 +422,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
         return render_loading();
       }
     } else {
-      return (
-        <div
-          style={{
-            visibility: restored_scroll ? "visible" : "hidden",
-          }}
-        >
-          {render_pages()}
-        </div>
-      );
+      return <div className="smc-vfill">{renderPagesUsingVirtuoso()}</div>;
     }
   }
 
@@ -488,12 +480,13 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
 
   return (
     <div
+      className="smc-vfill"
       style={{
         overflow: "auto",
         width: "100%",
         cursor: "default",
         textAlign: "center",
-        backgroundColor: !loaded ? "white" : undefined,
+        backgroundColor: !loaded ? "white" : BG_COL,
       }}
       onScroll={throttle(() => on_scroll(), 150)}
       ref={scrollRef}
@@ -501,7 +494,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
         1 /* Need so keyboard navigation works; also see mouse-draggable click event. */
       }
     >
-      <div>{render_content()}</div>
+      {render_content()}
     </div>
   );
 });

@@ -19,7 +19,7 @@ import type {
 import { SyncHighlight } from "./pdfjs-annotation";
 
 export const PAGE_GAP: number = 20;
-const BG_COL = "#525659";
+export const BG_COL = "#525659";
 
 interface PageProps {
   actions: any;
