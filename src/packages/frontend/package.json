@@ -58,7 +58,7 @@
     "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
-    "antd": "^4.19.5",
+    "antd": "^4.20.1",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
