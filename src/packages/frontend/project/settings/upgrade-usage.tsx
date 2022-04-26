@@ -8,6 +8,7 @@ import {
   React,
   redux,
   Rendered,
+  useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -19,6 +20,7 @@ import {
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
+import { ROOT } from "@cocalc/util/consts/dedicated";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -27,6 +29,7 @@ import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import { Button, Card, Typography } from "antd";
+import { join } from "path";
 import { QuotaConsole } from "./quota-console";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
@@ -73,6 +76,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     //site_license_ids,
     dedicated_resources,
   } = props;
+  const project_actions = useActions({ project_id });
 
   const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
   const kucalc: string = useTypedRedux("customize", "kucalc");
@@ -232,40 +236,52 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     if (dedicated_resources.vm === false) throw new Error("AssertionError");
     const vm = dedicated_resources.vm;
     const human_readable = PRICES.vms[vm.machine]?.title;
-    const name = vm.name;
 
     return (
-      <div>
-        <p>This project is configured to run on a dedicated virtual machine.</p>
+      <Card
+        title={
+          <>
+            <Icon name="dedicated" /> Dedicated virtual machine
+          </>
+        }
+        type="inner"
+        style={{ marginTop: "15px" }}
+      >
         <p>
+          This project is configured to run on a Dedicated VM. The machine type
+          is{" "}
           <strong>
             <code>{vm.machine}</code>
           </strong>
-          {human_readable && <span>&nbsp;providing {human_readable}</span>}
-          {name && (
-            <>
-              , <code>id={name}</code>
-            </>
-          )}
+          {human_readable && <span>&nbsp;providing {human_readable}</span>}.
         </p>
-      </div>
+      </Card>
     );
   }
 
-  function render_dedicated_disks_list(disks): Rendered {
+  function renderOpenDisk(disk: DedicatedDisk): Rendered {
+    if (typeof disk === "boolean" || disk.name == null) return; // should never happen
+    return (
+      <Button
+        type="link"
+        onClick={() =>
+          // NOTE: there is usually symlink disks/x → /local/... but we can't rely on it,
+          // because the project only creates that symlink if there isn't a file/dir already with that name
+          project_actions?.open_directory(
+            join(".smc/root/", ROOT, `/${disk.name}/`)
+          )
+        }
+      >
+        {dedicatedDiskDisplay(disk)} <Icon name="external-link" />
+      </Button>
+    );
+  }
+
+  function render_dedicated_disks_list(disks: DedicatedDisk[]): Rendered {
     const entries: Rendered[] = [];
     for (const disk of disks) {
       if (typeof disk === "boolean") continue;
-      entries.push(
-        <li key={disk.name}>
-          {dedicatedDiskDisplay(disk)}
-          {disk.name && (
-            <>
-              , <code>id={disk.name}</code>
-            </>
-          )}
-        </li>
-      );
+      entries.push(<li key={disk.name}>{renderOpenDisk(disk)}</li>);
     }
     return <>{entries}</>;
   }
@@ -277,13 +293,18 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     const num = disks.length;
     if (num === 0) return;
     return (
-      <>
-        <hr />
-        <div>
-          <p>Configured dedicated {plural(num, "disk")}:</p>
-          <ul>{render_dedicated_disks_list(disks)}</ul>
-        </div>
-      </>
+      <Card
+        title={
+          <>
+            <Icon name="save" /> Attached dedicated {plural(num, "disk")}
+          </>
+        }
+        type="inner"
+        style={{ marginTop: "15px" }}
+        bodyStyle={{ padding: "10px 0 0 0" }}
+      >
+        <ul>{render_dedicated_disks_list(disks)}</ul>
+      </Card>
     );
   }
 
