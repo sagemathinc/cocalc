@@ -20,7 +20,7 @@ export default function Overview() {
             style={{ fontSize: "50px", fontWeight: "bold", display: "block" }}
             name={icon}
           />
-          <p style={{ fontSize: "25px" }}>{title}</p>
+          <p style={{ fontSize: "25px", marginBottom: "15px" }}>{title}</p>
         </A>
         {children}
       </Col>
@@ -38,18 +38,18 @@ export default function Overview() {
           border: `15px solid ${COLORS.COCALC_BLUE}`,
           padding: "15px 15px 10px 10px",
           display: "inline-block",
-          margin: "15px 0px 50px 0px",
+          margin: "30px 0px 40px 0px",
           boxShadow: "0px 2px 10px 2px",
         }}
         name="shopping-cart"
       />
 
-      <h2>
+      <h2 style={{ marginBottom: "30px" }}>
         Welcome to the <SiteName /> Store!
       </h2>
 
       <p>
-        <Row gutter={[24, 48]} style={{ margin: "48px 0 72px 0" }}>
+        <Row gutter={[25, 50]} style={{ margin: "48px 0 60px 0" }}>
           <Product
             icon="key"
             title="Site License Upgrade"
@@ -77,7 +77,7 @@ export default function Overview() {
           </Product>
         </Row>
       </p>
-      <p>
+      <p style={{ marginTop: "4em" }}>
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
