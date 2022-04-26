@@ -4,7 +4,6 @@
  */
 
 import {
-  CSS,
   React,
   redux,
   Rendered,
