@@ -68,7 +68,7 @@
     "@cocalc/util": "^1.37.0",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.33",
-    "antd": "^4.19.5",
+    "antd": "^4.20.1",
     "antd-img-crop": "^4.2.0",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
