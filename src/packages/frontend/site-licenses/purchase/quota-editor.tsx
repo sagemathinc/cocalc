@@ -518,5 +518,4 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && !hideExtra && render_dedicated()}
     </div>
   );
-  //
 };
