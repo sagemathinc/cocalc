@@ -24,7 +24,9 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 # async and immutable are a little bit more modern in packages/frontend,
 # while they are behind elsewhere (but at the same vesion)
 # we don't want to introduce any other inconsistencies...
-whitelist: Final[List[str]] = ['async', 'immutable']
+
+# whitelisting typescript is temporary really just for @cocalc/util -- see https://github.com/sagemathinc/cocalc/issues/5888
+whitelist: Final[List[str]] = ['async', 'immutable', 'typescript']
 
 
 # NOTE: test/puppeteer is long dead...
