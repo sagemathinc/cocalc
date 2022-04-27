@@ -23,7 +23,7 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/util": "^1.39.0",
+    "@cocalc/util": "^1.39.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
