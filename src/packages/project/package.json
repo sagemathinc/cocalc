@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.23.0",
+  "version": "1.24.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
@@ -25,10 +25,10 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/backend": "^1.13.0",
-    "@cocalc/frontend": "^1.48.0",
-    "@cocalc/sync": "^0.5.0",
-    "@cocalc/util": "^1.39.0",
+    "@cocalc/backend": "^1.14.0",
+    "@cocalc/frontend": "^1.49.0",
+    "@cocalc/sync": "^0.6.0",
+    "@cocalc/util": "^1.40.0",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
