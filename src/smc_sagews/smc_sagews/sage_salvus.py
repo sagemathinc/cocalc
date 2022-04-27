@@ -4193,7 +4193,9 @@ def modes():
     for s in open(os.path.realpath(__file__), 'r'):
         s = s.strip()
         if s.startswith('%'):
-            mode_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
+            sm = (re.findall(r'%[a-zA-Z]+', s))
+            if len(sm) > 0:
+                mode_cmds.add(sm[0])
     mode_cmds.discard('%s')
     for k, v in sage.interfaces.all.__dict__.items():
         if isinstance(v, sage.interfaces.expect.Expect):

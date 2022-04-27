@@ -9,6 +9,14 @@ import SignIn from "components/landing/sign-in";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import Image from "./image";
 
+// See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
+interface StaticImageData {
+  src: string;
+  height: number;
+  width: number;
+  blurDataURL?: string;
+}
+
 interface Props {
   title: ReactNode;
   subtitle: ReactNode;
