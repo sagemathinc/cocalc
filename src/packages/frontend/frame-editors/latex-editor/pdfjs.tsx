@@ -296,55 +296,14 @@ export function PDFJS({
       return;
     }
     if (doc == null) return;
-
-    /*
-    We iterative through each page in the document, determine its height, and add that
-    to a running total, along with the gap between pages.  Once we get to the given page,
-    we then just add y.  We then scroll the containing div down to that position.
-    */
-    // Get all pages before page we are scrolling to in parallel.
-    const page_promises: Promise<PDFPageProxy>[] = [];
-    for (let n = 1; n <= page; n++) {
-      // their promises are slightly different now...
-      const page = doc.getPage(n) as unknown as Promise<PDFPageProxy>;
-      page_promises.push(page);
-    }
-
-    let pages;
-    try {
-      pages = await Promise.all(page_promises);
-    } catch (err) {
-      actions.set_error(`error scrolling PDF into position -- ${err}`);
-    }
-
-    await delay(0);
-    if (!isMounted.current) return;
-
-    const scale = get_scale();
-
-    // This EXTRA_GAP is something I observed, and I can't seem to get rid of
-    // except by a bunch of explicit style and displaying inline-block for pages,
-    // and that causes other problems.  It works, at least on Chrome v78, and in
-    // the worst case of not working, it would just mean that the result isn't
-    // visually centered perfectly.
-    const EXTRA_GAP = 5.5;
-
-    let s: number = PAGE_GAP + y * scale;
-    for (const page of pages.slice(0, pages.length - 1)) {
-      s += scale * page.view[3] + PAGE_GAP + EXTRA_GAP;
-    }
-    const elt = $(divRef.current);
-    const height = elt.height();
+    const height = divRef.current?.getBoundingClientRect()?.height;
     if (!height) return;
-    s -= height / 2; // center it in the viewport.
-    elt.scrollTop(s);
-    i = 0;
-    do {
-      i += 1;
-      await delay(100);
-      if (!isMounted.current) return;
-      elt.scrollTop(s);
-    } while (i < 50 && Math.abs((elt.scrollTop() as number) - s) > 10);
+
+    virtuosoRef.current?.scrollToIndex({
+      index: page - 1,
+      offset: y * get_scale() + PAGE_GAP - height / 2,
+    });
+
     // Wait a little before clearing the scroll_pdf_into_view field,
     // so the yellow highlight bar gets rendered as the page is rendered.
     await delay(100);
@@ -446,10 +405,6 @@ export function PDFJS({
     },
     initialState: editor_state.get("scrollState")?.toJS(),
   });
-  const virtuosoRangeRef = useRef<{ startIndex: number; endIndex: number }>({
-    startIndex: 0,
-    endIndex: 0,
-  });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   function renderPagesUsingVirtuoso() {
@@ -483,9 +438,6 @@ export function PDFJS({
             />
           );
         }}
-        rangeChanged={(visibleRange) => {
-          virtuosoRangeRef.current = visibleRange;
-        }}
         {...virtuosoScroll}
       />
     );
@@ -503,13 +455,12 @@ export function PDFJS({
     }
   }
 
-  // TODO use account's font size ?!
   function get_scale(): number {
-    return font_size / 12;
+    return font_size / (redux.getStore("account").get("font_size") ?? 14);
   }
 
   function get_font_size(scale: number): number {
-    return 12 * scale;
+    return (redux.getStore("account").get("font_size") ?? 14) * scale;
   }
 
   function render_other_viewers() {
