@@ -7,9 +7,11 @@ import { useFrameContext } from "./hooks";
 import ToolPanel from "./tools/panel";
 import { ElementsMap } from "./types";
 import { Map as iMap } from "immutable";
+import { useRef } from "react";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const { isFocused, desc } = useFrameContext();
+  const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
   let elements = syncdb.version(version).get();
   // TODO: annoyingly, we need a map also in order to plot edges efficiently...
   let elementsMap: ElementsMap = iMap();
@@ -19,11 +21,15 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   elements = elements.toJS();
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (
-    <div className="smc-vfill">
+    <div className="smc-vfill" ref={whiteboardDivRef}>
       {isFocused && (
         <>
           <ToolPanel selectedTool={selectedTool} readOnly />
-          <NavigationPanel fontSize={font_size} elements={elements} />
+          <NavigationPanel
+            fontSize={font_size}
+            elements={elements}
+            whiteboardDivRef={whiteboardDivRef}
+          />
         </>
       )}
       <Canvas

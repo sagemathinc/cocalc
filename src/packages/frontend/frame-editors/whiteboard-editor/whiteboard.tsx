@@ -58,6 +58,7 @@ export default function Whiteboard({
 
   const selectedTool = desc.get("selectedTool") ?? "select";
   const evtToDataRef = useRef<Function | null>(null);
+  const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
 
   if (!is_loaded || elements == null) {
     return (
@@ -76,7 +77,11 @@ export default function Whiteboard({
 
   const tool = desc.get("selectedTool");
   return (
-    <div className="smc-vfill" style={{ position: "relative" }}>
+    <div
+      className="smc-vfill"
+      style={{ position: "relative" }}
+      ref={whiteboardDivRef}
+    >
       {isFocused && (
         <>
           {!readOnly && <KernelPanel />}
@@ -97,6 +102,7 @@ export default function Whiteboard({
             fontSize={font_size}
             elements={elements}
             elementsMap={elementsMap}
+            whiteboardDivRef={whiteboardDivRef}
           />
         </>
       )}
