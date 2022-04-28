@@ -29,19 +29,19 @@ interface Item {
   mbps?: string;
 }
 
-const ICONS: IconName[] = [
+const ICONS = [
   "battery-empty",
   "battery-quarter",
   "battery-half",
   "battery-full",
-];
+] as const;
 
 const VMS = [
   PRICES.vms["n2-highmem-2"],
   PRICES.vms["n2-standard-4"],
   PRICES.vms["n2-highmem-8"],
   PRICES.vms["n2-standard-16"],
-];
+] as const;
 
 const VM_CONFIGS: Item[] = ICONS.map((battery, idx) => {
   const vm = VMS[idx];
@@ -59,7 +59,7 @@ const disk_configs = [
   PRICES.disks["128-standard"],
   PRICES.disks["128-balanced"],
   PRICES.disks["128-ssd"],
-];
+] as const;
 
 const DISK_CONFIGS: Item[] = ICONS.slice(1).map((battery, idx) => {
   const dc = disk_configs[idx];
@@ -105,19 +105,18 @@ export default function Products({ customize }) {
             </h2>
             <p>
               Upgrade one of your projects to run on a <b>Dedicated VM</b>. This
-              is an additional node in {siteName}'s cluster, where no resources
-              are shared with other projects. That machine can be <b>much</b>{" "}
+              is an additional node in {siteName}'s cluster, where resources are
+              not shared with other projects. That machine can be <b>much</b>{" "}
               larger than any of our generic machines as well. This allows you
               to run much more intensive workloads with consistent performance,
               because the usual quota limitations do not apply. You can also
               rent additional disk space for faster additional storage.
             </p>
             <p>
-              To get started, please contact us at{" "}
-              <A href="mailto:help@cocalc.com">help@cocalc.com</A>. We will work
-              out the actual requirements with you and set everything up. The
-              list of dedicated VM options below are just examples; we can
-              provide VM's with almost any configuration{" "}
+              The list of dedicated VM options below are just examples. Visit
+              the <a href={"/store/dedicated?type=vm"}>Dedicate VM Store</a> to
+              see current options. Besides that, we can provide VM's with almost
+              any configuration{" "}
               <A href="https://cloud.google.com/compute/docs/machine-types">
                 that Google Cloud offers:
               </A>{" "}
@@ -154,9 +153,11 @@ export default function Products({ customize }) {
               rent a Dedicated VM in order to subscribe to a Dedicated Disk.
             </p>
             <p>
-              The list of dedicated disk options below are just exmples. Usual
-              disk sizes are <strong>64, 128 and 256 GB</strong>, but we could
-              provide disks{" "}
+              The list of dedicated disk options below are just exmples. Visit
+              the{" "}
+              <a href={"/store/dedicated?type=disk"}>Dedicated Disk store</a> to
+              see available options. Usual disk sizes are{" "}
+              <strong>64, 128 and 256 GB</strong>, but we could provide disks{" "}
               <A href="https://cloud.google.com/compute/docs/disks/performance">
                 that GCP offers
               </A>{" "}

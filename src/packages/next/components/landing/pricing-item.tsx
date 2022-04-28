@@ -17,7 +17,8 @@ export default function PricingItem({ icon, children, title }: Props) {
         type="inner"
         title={
           <>
-            <Icon name={icon} style={{ marginRight: "10px" }} /> {title}
+            <Icon name={icon} style={{ marginRight: "10px" }} />{" "}
+            <strong>{title}</strong>
           </>
         }
       >

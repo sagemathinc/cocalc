@@ -8,6 +8,7 @@ import {
   DedicatedDiskSpeeds,
   VMsType,
   DiskType,
+  DISK_NAMES,
 } from "@cocalc/util/types/dedicated";
 
 type VMFamily = "n2";
@@ -185,7 +186,7 @@ for (const size_gb of DEDICATED_DISK_SIZES) {
       dedicated_disk: { size_gb, speed },
     };
     const tIdx = DEDICATED_DISK_SPEEDS.indexOf(speed);
-    const title = `${size_gb}G ${DEDICATED_DISK_SPEEDS[speed]}`;
+    const title = `${size_gb}G ${DISK_NAMES[speed]}`;
     const key = getDedicatedDiskKey({ size_gb, speed });
     DISKS[key] = {
       quota,
