@@ -6,7 +6,13 @@ but in a way that is always present and with an additional
 high level map view.
 */
 
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  MutableRefObject,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Slider, Tooltip } from "antd";
 import { useFrameContext } from "../hooks";
@@ -24,6 +30,12 @@ import {
 } from "../elements/style";
 import { Key } from "./panel";
 import { throttle } from "lodash";
+import useResizeObserver from "use-resize-observer";
+
+// nav panel can take at most this close to edge of full whiteboard.
+// We have to constrain this, because if you change your screen size, then things
+// could get annoyingly stuck, since you can't even grab the nav panel to resize it.
+const MAX_NAV_PANEL = 50;
 
 const TOOLS = {
   map: {
@@ -106,9 +118,15 @@ interface Props {
   fontSize?: number;
   elements: Element[];
   elementsMap?: ElementsMap;
+  whiteboardDivRef: MutableRefObject<HTMLDivElement | null>;
 }
 
-export default function Navigation({ fontSize, elements, elementsMap }: Props) {
+export default function Navigation({
+  fontSize,
+  elements,
+  elementsMap,
+  whiteboardDivRef,
+}: Props) {
   const [resize, setResize] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -116,6 +134,24 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
   const { actions, desc, id } = useFrameContext();
   const width = desc.get("navWidth") ?? MAP_WIDTH;
   const height = desc.get("navHeight") ?? MAP_HEIGHT;
+
+  const whiteboardResize = useResizeObserver({ ref: whiteboardDivRef });
+  useEffect(() => {
+    const rect = whiteboardDivRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    if (
+      width > rect.width - MAX_NAV_PANEL ||
+      height > rect.height - MAX_NAV_PANEL
+    ) {
+      // nav panel is too big, e.g., due to resizing containing window, changing
+      // screen resolution, splitting frame, etc., so we fix it.
+      actions.set_frame_tree({
+        id,
+        navWidth: Math.min(width, Math.round(rect.width - MAX_NAV_PANEL)),
+        navHeight: Math.min(height, Math.round(rect.height - MAX_NAV_PANEL)),
+      });
+    }
+  }, [width, height, whiteboardResize]);
 
   const [zoomSlider, setZoomSlider] = useState<number>(
     Math.round(100 * fontSizeToZoom(fontSize))

@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.61.0",
+  "version": "1.62.0",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -19,15 +19,15 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/assets": "^1.6.0",
-    "@cocalc/backend": "^1.13.0",
-    "@cocalc/cdn": "^1.10.0",
-    "@cocalc/database": "^0.19.0",
-    "@cocalc/frontend": "^1.48.0",
-    "@cocalc/next": "^0.47.0",
-    "@cocalc/server": "^0.25.0",
-    "@cocalc/static": "^1.81.0",
-    "@cocalc/util": "^1.39.0",
+    "@cocalc/assets": "^1.7.0",
+    "@cocalc/backend": "^1.14.0",
+    "@cocalc/cdn": "^1.12.0",
+    "@cocalc/database": "^0.20.0",
+    "@cocalc/frontend": "^1.49.0",
+    "@cocalc/next": "^0.48.0",
+    "@cocalc/server": "^0.26.0",
+    "@cocalc/static": "^1.82.0",
+    "@cocalc/util": "^1.40.0",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^7.4.6",
@@ -62,7 +62,7 @@
     "mime": "^1.3.4",
     "mkdirp": "^1.0.4",
     "moment": "^2.29.3",
-    "next": "12.1.0",
+    "next": "^12.1.5",
     "nodemailer": "^6.7.0",
     "nyc": "^15.1.0",
     "parse-domain": "^4.1.0",
@@ -82,6 +82,7 @@
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "read": "^1.0.7",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
@@ -100,7 +101,7 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^14.18.10",
     "@types/passport": "^1.0.3",
-    "@types/react-dom": "^17.0.0",
+    "@types/react-dom": "^17.0.2",
     "@types/sanitize-html": "^2.3.1",
     "coffee-coverage": "^3.0.1",
     "coffeelint": "^2.1.0",
@@ -113,7 +114,7 @@
     "should": "^7.1.1",
     "sinon": "^4.5.0",
     "ts-mocha": "^8.0.0",
-    "typescript": "^4.5.2"
+    "typescript": "^4.6.3"
   },
   "scripts": {
     "build": "npx tsc && coffee -m -c -o dist/ .",

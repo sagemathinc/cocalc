@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/assets",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "The static assets (images, code, etc.) for the CoCalc frontend.",
   "main": "index.js",
   "workspaces": [
@@ -19,11 +19,11 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "typescript": "^4.5.2",
+    "typescript": "^4.6.3",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@cocalc/backend": "^1.12.0",
+    "@cocalc/backend": "^1.13.0",
     "uglify-js": "^3.14.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/assets",
