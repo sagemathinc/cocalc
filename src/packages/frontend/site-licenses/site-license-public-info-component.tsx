@@ -10,9 +10,12 @@ import {
   useEffect,
   useIsMountedRef,
   useState,
-  useTypedRedux
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { query, user_search } from "@cocalc/frontend/frame-editors/generic/client";
+import {
+  query,
+  user_search,
+} from "@cocalc/frontend/frame-editors/generic/client";
 import { User } from "@cocalc/frontend/users";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
@@ -20,7 +23,7 @@ import { plural } from "@cocalc/util/misc";
 import {
   isLicenseStatus,
   LicenseStatus,
-  licenseStatusProvidesUpgrades
+  licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { fromJS, Map } from "immutable";
@@ -28,8 +31,10 @@ import { DebounceInput } from "react-debounce-input";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
+import { LICENSE_ACTIVATION_RULES } from "./rules";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
+
 
 interface Props {
   license_id: string;
@@ -369,33 +374,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   }
 
   function render_why(): JSX.Element {
-    const why = (
-      <div style={{ maxWidth: "400px" }}>
-        <ul style={{ paddingLeft: "15px" }}>
-          <li>
-            The <b>run limit</b> of simultaneously running projects isn't
-            reached.
-          </li>
-          <li>
-            The attempt to use the license is <b>after activation</b> and{" "}
-            <b>before expiration</b>.
-          </li>
-          <li>
-            Similar licenses are ignored, if they{" "}
-            <b>aren't providing any additional upgrades</b>.
-          </li>
-          <li>The hard limit on the maximum possible upgrade is reached.</li>
-          <li>
-            Only licenses of <b>similar nature</b> can be combined. e.g. a
-            license providing "member hosting" upgrade can't be summed up with a
-            license not providing "member hosting".
-          </li>
-        </ul>
-      </div>
-    );
     return (
       <Popover
-        content={why}
+        content={LICENSE_ACTIVATION_RULES}
         trigger="click"
         placement="rightTop"
         title="Licenses activation rules"

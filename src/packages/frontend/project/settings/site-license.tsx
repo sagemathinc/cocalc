@@ -12,9 +12,10 @@ import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
+import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
-import { Card } from "antd";
+import { Card, Popover } from "antd";
 import { Map } from "immutable";
 
 interface Props {
@@ -90,13 +91,31 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_title(): Rendered {
+    return (
+      <h4>
+        <Icon name="key" /> Licenses
+      </h4>
+    );
+  }
+
+  function render_extra(): Rendered {
+    return (
+      <Popover
+        content={LICENSE_INFORMATION}
+        trigger={["click", "hover"]}
+        placement="rightTop"
+        title="License information"
+      >
+        <Icon name="question-circle" />
+      </Popover>
+    );
+  }
+
   return (
     <Card
-      title={
-        <h4>
-          <Icon name="key" /> Licenses
-        </h4>
-      }
+      title={render_title()}
+      extra={render_extra()}
       type="inner"
       style={{ marginTop: "15px" }}
       bodyStyle={{ padding: "0px" }}
