@@ -61,6 +61,7 @@ const codemirror_associations: { [ext: string]: string } = {
   lua: "lua",
   m: "text/x-octave",
   md: "yaml-frontmatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
+  mjs: "javascript",
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",
