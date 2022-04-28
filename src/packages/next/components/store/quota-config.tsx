@@ -41,9 +41,9 @@ export function QuotaConfig({
               RAM. Note that RAM may be limited if many other users are using
               the same host, though member hosting significantly reduces
               competition for RAM. We also offer{" "}
-              <A external href="https://cocalc.com/pricing/dedicated">
+              <a href={"/store/dedicated?type=vm"}>
                 dedicated virtual machines
-              </A>{" "}
+              </a>{" "}
               with larger memory options.
             </>
           ) : undefined
@@ -74,9 +74,9 @@ export function QuotaConfig({
               To keep prices low, these vCPU's may be shared with other
               projects, though member hosting very significantly reduces
               competition for CPUs. We also offer{" "}
-              <A external href="https://cocalc.com/pricing/dedicated">
+              <a href={"/store/dedicated?type=vm"}>
                 dedicated virtual machines
-              </A>{" "}
+              </a>{" "}
               with more CPU options.
             </>
           ) : undefined
@@ -105,10 +105,7 @@ export function QuotaConfig({
               Snapshots and file edit history is included at no additional
               charge. Each licensed project receives this amount of extra
               storage space. We also offer much larger{" "}
-              <A external href="https://cocalc.com/pricing/dedicated">
-                dedicated disks
-              </A>
-              .
+              <a href={"/store/dedicated?type=disk"}>dedicated disks</a>.
             </>
           ) : undefined
         }

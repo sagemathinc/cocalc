@@ -9,9 +9,8 @@ Create a new site license.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { Divider, Form, Input } from "antd";
+import { Form, Input } from "antd";
 import A from "components/misc/A";
-import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
@@ -19,6 +18,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
+import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
 import { computeCost } from "./site-license-cost";
@@ -148,99 +148,12 @@ function CreateSiteLicense() {
           form={form}
           onChange={onChange}
         />
-        <Divider plain>Quota upgrades</Divider>
-        <Form.Item
-          label="Shared RAM"
-          name="ram"
-          initialValue={2}
-          extra={
-            showExplanations ? (
-              <>
-                Each project using this license can use up to this many GB's of
-                RAM. Note that RAM may be limited if many other users are using
-                the same host, though member hosting significantly reduces
-                competition for RAM. We also offer{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated virtual machines
-                </A>{" "}
-                with larger memory options.
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            min={1}
-            max={16}
-            onChange={(ram) => {
-              form.setFieldsValue({ ram });
-              onChange();
-            }}
-            units={"G RAM"}
-            presets={[1, 2, 3, 4, 8, 16]}
-          />
-        </Form.Item>{" "}
-        <Form.Item
-          label="Shared CPUs"
-          name="cpu"
-          initialValue={1}
-          extra={
-            showExplanations ? (
-              <>
-                <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                  Google cloud vCPU's.
-                </A>{" "}
-                To keep prices low, these vCPU's may be shared with other
-                projects, though member hosting very significantly reduces
-                competition for CPUs. We also offer{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated virtual machines
-                </A>{" "}
-                with more CPU options.
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            min={1}
-            max={3}
-            onChange={(cpu) => {
-              form.setFieldsValue({ cpu });
-              onChange();
-            }}
-            units={"vCPU"}
-            presets={[1, 2, 3]}
-          />
-        </Form.Item>
-        <Form.Item
-          label="Disk space"
-          name="disk"
-          initialValue={1}
-          extra={
-            showExplanations ? (
-              <>
-                Extra disk space lets you store a larger number of files.
-                Snapshots and file edit history is included at no additional
-                charge. Each licensed project receives this amount of extra
-                storage space. We also offer much larger{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated disks
-                </A>
-                .
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            min={1}
-            max={15}
-            onChange={(disk) => {
-              form.setFieldsValue({ disk });
-              onChange();
-            }}
-            units={"G Disk"}
-            presets={[1, 4, 8, 10, 15]}
-          />
-        </Form.Item>
+        <QuotaConfig
+          boost={false}
+          form={form}
+          onChange={onChange}
+          showExplanations={showExplanations}
+        />
         <RunLimit
           showExplanations={showExplanations}
           form={form}
