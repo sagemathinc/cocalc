@@ -111,15 +111,16 @@ export default function StoreLayout({ page }: Props) {
         color: COLORS.GRAY_D,
       }}
     >
-      <Menu main={main} />
       <Content
         style={{
-          padding: 24,
           margin: 0,
           minHeight: "60vh",
         }}
       >
-        <div style={{ maxWidth: "900px", margin: "auto" }}>{body()}</div>
+        <div style={{ maxWidth: "900px", margin: "auto" }}>
+          <Menu main={main} />
+          {body()}
+        </div>
       </Content>
     </Layout>
   );

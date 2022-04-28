@@ -28,7 +28,7 @@ export default function ConfigMenu({ main }) {
     <Menu
       mode="horizontal"
       selectedKeys={[main]}
-      style={{ height: "100%" }}
+      style={{ height: "100%", marginBottom: "24px" }}
       onSelect={select}
     >
       <Menu.Item key={""}>
