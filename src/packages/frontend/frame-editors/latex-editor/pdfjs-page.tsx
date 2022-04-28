@@ -17,7 +17,7 @@ import type {
 } from "pdfjs-dist/webpack";
 import { SyncHighlight } from "./pdfjs-annotation";
 
-export const PAGE_GAP: number = 42;
+export const PAGE_GAP: number = 8;
 export const BG_COL = "#525659";
 
 interface PageProps {
@@ -28,7 +28,6 @@ interface PageProps {
   scale: number;
   page: PDFPageProxy;
   sync_highlight?: SyncHighlight;
-  pageLabels?: string[];
 }
 
 function should_memoize(prev, next) {
@@ -39,8 +38,7 @@ function should_memoize(prev, next) {
 }
 
 export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
-  const { actions, id, n, doc, scale, page, sync_highlight, pageLabels } =
-    props;
+  const { actions, id, n, doc, scale, page, sync_highlight } = props;
 
   function render_content() {
     if (!page) return;
@@ -54,29 +52,6 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
         click_annotation={f}
         sync_highlight={sync_highlight}
       />
-    );
-  }
-
-  function renderPageNumber(): JSX.Element {
-    return (
-      <div
-        style={{
-          textAlign: "center",
-          color: "white",
-          backgroundColor: BG_COL,
-          height: `${PAGE_GAP}px`,
-          paddingTop: "15px",
-        }}
-      >
-        Page{" "}
-        {pageLabels != null ? (
-          <>
-            {pageLabels[n - 1]} ({n} / {pageLabels.length})
-          </>
-        ) : (
-          n
-        )}
-      </div>
     );
   }
 
@@ -129,7 +104,6 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
     <div
       style={{ height: `${PAGE_GAP + viewport.height}px`, background: BG_COL }}
     >
-      {renderPageNumber()}
       <div
         style={{
           height: `${viewport.height}px`,

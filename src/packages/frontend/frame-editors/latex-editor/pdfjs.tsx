@@ -32,6 +32,8 @@ import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
@@ -66,6 +68,7 @@ export function PDFJS({
   is_visible,
   status,
 }: PDFJSProps) {
+  const { desc } = useFrameContext();
   const isMounted = useIsMountedRef();
   const pageActions = useActions("page");
 
@@ -81,10 +84,6 @@ export function PDFJS({
   const [pages, set_pages] = useState<PDFPageProxy[]>([]);
   const [missing, set_missing] = useState<boolean>(false);
   const [doc, set_doc] = useState<PDFDocumentProxy | null>(null);
-  // documents often don't have pageLabels, but when they do, they are
-  // good to show (e.g., in a book the content at the beginning might
-  // be in roman numerals).
-  const [pageLabels, setPageLabels] = useState<undefined | string[]>(undefined);
 
   const divRef = useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: divRef });
@@ -116,28 +115,42 @@ export function PDFJS({
     // TODO: this same sort navigation *should* be used elsewhere, e.g.
     // in jupyter/cell-list.tsx.  We should refactor it out into a hook somehow.
     // Also, it's done even more badly in jupyter/cell-list.tsx.
-    if (
-      (evt.key == " " && !evt.shiftKey) ||
-      evt.key == "ArrowRight" ||
-      evt.key == "PageDown"
-    ) {
-      // space = page down
+    if ((evt.key == " " && !evt.shiftKey) || evt.key == "PageDown") {
+      // space = move a visible page down
       virtuosoRef.current?.scrollBy({
         top: divRef.current?.getBoundingClientRect()?.height ?? 200,
       });
       return;
     }
-    if (
-      (evt.key == " " && evt.shiftKey) ||
-      evt.key == "ArrowLeft" ||
-      evt.key == "PageUp"
-    ) {
-      // space = page up
+    if ((evt.key == " " && evt.shiftKey) || evt.key == "PageUp") {
+      // left = move a visible page up
       virtuosoRef.current?.scrollBy({
         top: -(divRef.current?.getBoundingClientRect()?.height ?? 200),
       });
       return;
     }
+    if (evt.key == "ArrowRight") {
+      // next page
+      virtuosoRef.current?.scrollBy({
+        top:
+          curPageHeightRef.current ??
+          divRef.current?.getBoundingClientRect()?.height ??
+          200,
+      });
+      return;
+    }
+    if (evt.key == "ArrowLeft") {
+      // previous page
+      virtuosoRef.current?.scrollBy({
+        top: -(
+          curPageHeightRef.current ??
+          divRef.current?.getBoundingClientRect()?.height ??
+          200
+        ),
+      });
+      return;
+    }
+
     if (evt.key == "ArrowDown") {
       if (evt.ctrlKey || evt.metaKey) {
         // end of document
@@ -178,7 +191,7 @@ export function PDFJS({
       actions.increase_font_size(id);
       return;
     }
-    if (evt.key == "0") {
+    if (evt.key == "0" && (evt.metaKey || evt.ctrlKey)) {
       actions.set_font_size(
         id,
         redux.getStore("account").get("font_size") ?? 14
@@ -250,7 +263,13 @@ export function PDFJS({
       set_loaded(true);
       set_pages(pages);
       set_missing(false);
-      setPageLabels(await doc.getPageLabels());
+
+      // documents often don't have pageLabels, but when they do, they are
+      // good to show (e.g., in a book the content at the beginning might
+      // be in roman numerals).
+      const pages0 = await doc.getPageLabels();
+      actions.setPages(id, pages0 ?? doc.numPages);
+      actions.setPage(id, desc.get("page") ?? (pages0 == null ? 1 : "1"));
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
@@ -301,7 +320,7 @@ export function PDFJS({
 
     virtuosoRef.current?.scrollToIndex({
       index: page - 1,
-      offset: y * get_scale() + PAGE_GAP - height / 2,
+      offset: y * getScale() + PAGE_GAP - height / 2,
     });
 
     // Wait a little before clearing the scroll_pdf_into_view field,
@@ -398,10 +417,76 @@ export function PDFJS({
     }
   }
 
+  const [curPageIndex, setCurPageIndex] = useState<number | string>(
+    desc.get("page")
+  );
+  // This can be handy:
+  const curPageHeightRef = useRef<number | undefined>(undefined);
+  const updateCurrentPage = useCallback(
+    ({ index, offset }) => {
+      // We *define* the current page to be whatever page intersects
+      // the exact middle of divRef.  This might not be perfect, but
+      // at least it is a definition.
+      // We figure this out since we know the page heights
+      // and the padding between pages.
+      const scale = getScale();
+      const divHeight = divRef.current?.getBoundingClientRect()?.height;
+      if (divHeight == null) return;
+      const middle = divHeight / 2;
+      let topOfPage = -offset;
+      const heightOfPage = pages[index]?.getViewport({ scale })?.height;
+      if (heightOfPage == null) return;
+      let bottomOfPage = topOfPage + heightOfPage + PAGE_GAP;
+      curPageHeightRef.current = heightOfPage + PAGE_GAP;
+      while (
+        index + 1 < pages.length &&
+        !(topOfPage <= middle && bottomOfPage >= middle)
+      ) {
+        index += 1;
+        topOfPage = bottomOfPage;
+        const heightOfPage = pages[index]?.getViewport({ scale })?.height;
+        if (heightOfPage == null) return;
+        bottomOfPage = topOfPage + heightOfPage + PAGE_GAP;
+        // so when done this is correct:
+        curPageHeightRef.current = heightOfPage + PAGE_GAP;
+      }
+      setCurPageIndex(index);
+      actions.setPage(id, index + 1);
+    },
+    [id, pages, font_size]
+  );
+
+  const getPageIndex = useCallback(() => {
+    const page = desc.get("page");
+    if (page == null) return;
+    let index;
+    if (typeof page == "string") {
+      // a little complicated in case of string page labels
+      index = desc.get("pages")?.indexOf(page);
+      if (index == -1 || index == null) return;
+    } else {
+      index = page - 1;
+    }
+    return index;
+  }, [desc.get("page"), desc.get("pages")]);
+
+  useEffect(() => {
+    const index = getPageIndex();
+    if (index == null || curPageIndex == index) return;
+    virtuosoRef.current?.scrollToIndex({ index, align: "center" });
+  }, [desc.get("page")]);
+
+  useEffect(() => {
+    const index = getPageIndex();
+    if (index == null) return;
+    virtuosoRef.current?.scrollToIndex({ index, align: "center" });
+  }, [font_size]);
+
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: name + id,
     onScroll: (scrollState) => {
       actions.save_editor_state(id, { scrollState });
+      updateCurrentPage(scrollState);
     },
     initialState: editor_state.get("scrollState")?.toJS(),
   });
@@ -409,11 +494,12 @@ export function PDFJS({
 
   function renderPagesUsingVirtuoso() {
     if (pages == null || pages.length == 0) return [];
-    const scale = get_scale();
+    const scale = getScale();
     const viewport = pages[0]?.getViewport({ scale });
     const height = (viewport?.height ?? 500) + PAGE_GAP;
     return (
       <Virtuoso
+        increaseViewportBy={4000}
         ref={virtuosoRef}
         defaultItemHeight={height}
         totalCount={doc.numPages}
@@ -434,7 +520,6 @@ export function PDFJS({
               key={n}
               scale={scale}
               sync_highlight={sync_highlight({ n, id })}
-              pageLabels={pageLabels}
             />
           );
         }}
@@ -455,9 +540,9 @@ export function PDFJS({
     }
   }
 
-  function get_scale(): number {
+  const getScale = useCallback(() => {
     return font_size / (redux.getStore("account").get("font_size") ?? 14);
-  }
+  }, [font_size]);
 
   function get_font_size(scale: number): number {
     return (redux.getStore("account").get("font_size") ?? 14) * scale;
