@@ -30,7 +30,6 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
     const is_root = current_path[0] === "/";
 
     v.push(
-      // yes, must be called as a normal function
       <PathSegmentLink
         path={""}
         display={<HomeOutlined />}
@@ -46,7 +45,6 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
       const is_current = i === current_path_depth;
       const is_history = i > current_path_depth;
       v.push(
-        // yes, must be called as a normal function
         <PathSegmentLink
           path={history_segments.slice(0, i + 1 || undefined).join("/")}
           display={trunc_middle(segment, 15)}
