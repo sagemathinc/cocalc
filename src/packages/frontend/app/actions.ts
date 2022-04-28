@@ -5,7 +5,7 @@
 
 import { redux, Actions } from "../app-framework";
 import { set_window_title } from "../browser";
-import { update_params, set_url} from "../history";
+import { update_params, set_url } from "../history";
 import { disconnect_from_project } from "../project/websocket/connect";
 import { session_manager } from "../session";
 import { PageState } from "./store";
@@ -32,7 +32,7 @@ export class PageActions extends Actions<PageState> {
   public set_active_key_handler(
     handler?: (e) => void,
     project_id?: string,
-    path?: string
+    path?: string  // IMPORTANT: This is the path for the tab! E.g., if setting keyboard handler for a frame, make sure to pass path for the tab. This is a terrible and confusing design and needs to be redone, probably via a hook!
   ): void {
     if (project_id != null) {
       if (
@@ -51,6 +51,7 @@ export class PageActions extends Actions<PageState> {
 
     if (this.active_key_handler != null && !this.suppress_key_handlers) {
       $(window).on("keydown", this.active_key_handler);
+    } else {
     }
   }
 

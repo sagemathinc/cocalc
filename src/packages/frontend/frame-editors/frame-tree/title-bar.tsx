@@ -20,7 +20,7 @@ import {
   CSS,
 } from "../../app-framework";
 import { is_safari } from "../generic/browser";
-import { Popconfirm } from "antd";
+import { Input, InputNumber, Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
@@ -150,6 +150,8 @@ interface Props {
   connection_status?: ConnectionStatus;
   font_size?: number;
   available_features?: AvailableFeatures;
+  page?: number | string;
+  pages?: number | List<string>;
 }
 
 export const FrameTitleBar: React.FC<Props> = (props: Props) => {
@@ -1352,6 +1354,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const labels = show_labels();
 
     const v: Rendered[] = [];
+    v.push(renderPage(true));
     v.push(render_save_timetravel_group());
     v.push(render_build());
     v.push(render_force_build());
@@ -1524,6 +1527,102 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderPage(is_active: boolean) {
+    if (props.page == null || props.pages == null) {
+      // do not render anything unless both page and pages are set
+      return;
+    }
+    let content;
+    if (typeof props.pages == "number") {
+      // pages contains the number of pages and page must also be a number
+      if (is_active) {
+        content = (
+          <>
+            <InputNumber
+              style={{ width: "9ex", height: "30px" }}
+              min={1}
+              max={props.pages}
+              value={props.page}
+              onChange={(page) => {
+                if(!page) return;
+                props.actions.setPage(props.id, page);
+              }}
+            />{" "}
+            / {props.pages}
+          </>
+        );
+      } else {
+        content = (
+          <>
+            {props.page} / {props.pages}
+          </>
+        );
+      }
+    } else {
+      // pages is a immutable list of string names of the pages
+      const n = props.pages.indexOf(`${props.page}`);
+      if (n == -1) {
+        if (is_active) {
+          content = (
+            <>
+              <Input
+                style={{ width: "9ex", height: "30px" }}
+                value={props.page}
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  props.actions.setPage(props.id, e.target.value);
+                }}
+              />{" "}
+              / {props.pages.size}
+            </>
+          );
+        } else {
+          content = (
+            <>
+              {props.page} / {props.pages.size}
+            </>
+          );
+        }
+      } else {
+        if (is_active) {
+          content = (
+            <>
+              <Input
+                style={{ width: "9ex", height: "30px" }}
+                value={props.page}
+                onChange={(e) =>
+                  props.actions.setPage(props.id, e.target.value)
+                }
+              />{" "}
+              ({n + 1} of {props.pages.size})
+            </>
+          );
+        } else {
+          content = (
+            <>
+              {props.page} ({n + 1} of {props.pages.size})
+            </>
+          );
+        }
+      }
+    }
+    return (
+      <span
+        key={"page"}
+        style={{
+          height: "30px",
+          lineHeight: "30px",
+          textAlign: "center",
+          ...(!is_active
+            ? { borderRight: "1px solid grey", paddingRight: "5px" }
+            : undefined),
+        }}
+      >
+        {content}
+      </span>
+    );
+  }
+
   // Whether this is *the* active currently focused frame:
   let style;
   const is_active = props.id === props.active_id;
@@ -1561,8 +1660,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={`titlebar-${props.id}`}
         className={"cc-frame-tree-title-bar"}
       >
+        {!is_active && renderPage(false)}
         {is_active ? render_main_buttons() : undefined}
-        {props.title ? render_title(is_active) : undefined}
+        {
+          props.title
+            ? render_title(is_active)
+            : undefined /* used, e.g., for terminal */
+        }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
         {render_control()}
