@@ -126,6 +126,8 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         subscription: "no",
         start: new Date(conf.range[0]),
         end: new Date(conf.range[1]),
+        title,
+        description,
       };
 
     case "disk":
@@ -135,6 +137,8 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         dedicated_disk: conf.dedicated_disk,
         subscription: conf.period,
         start: new Date(),
+        title,
+        description,
       };
   }
 }
