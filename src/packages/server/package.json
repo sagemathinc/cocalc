@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/server",
-  "version": "0.28.0",
+  "version": "0.28.1",
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
     "./*": "./dist/*.js",
