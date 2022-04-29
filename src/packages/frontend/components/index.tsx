@@ -49,3 +49,5 @@ export { Markdown } from "./markdown";
 export * from "./table-of-contents";
 export { NoWrap } from "./nowrap";
 export { QuestionMarkText } from "./question-mark-text";
+import Delay from "./delay";
+export { Delay };
