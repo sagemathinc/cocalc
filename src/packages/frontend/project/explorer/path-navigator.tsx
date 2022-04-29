@@ -42,6 +42,7 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
         full_name: "",
         key: 0,
         on_click: () => actions?.open_directory("", true, false),
+        active: current_path_depth === -1
       })
     );
 
