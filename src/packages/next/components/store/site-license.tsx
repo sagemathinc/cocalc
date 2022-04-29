@@ -28,6 +28,12 @@ import { UsageAndDuration } from "./usage-and-duration";
 
 export default function SiteLicense() {
   const router = useRouter();
+
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
+
   return (
     <>
       <h3>
@@ -65,11 +71,6 @@ function CreateSiteLicense() {
   const [shadowMember, setShadowMember] = useState<boolean | null>(null);
   const [form] = Form.useForm();
   const router = useRouter();
-
-  // most likely, user will go to the cart next
-  useEffect(() => {
-    router.prefetch("/store/cart");
-  }, []);
 
   function onChange() {
     setCost(computeCost(form.getFieldsValue(true)));

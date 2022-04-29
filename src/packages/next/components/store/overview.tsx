@@ -8,10 +8,19 @@ import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import { Col, Row } from "antd";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 const gridProps = { sm: 24, md: 12 };
 
 export default function Overview() {
+  const router = useRouter();
+
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/site-license");
+  }, []);
+
   function Product({ icon, title, href, children }) {
     return (
       <Col {...gridProps}>
