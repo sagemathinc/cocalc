@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { redux, useRedux } from "../app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
@@ -38,19 +38,34 @@ export const ChatInput: React.FC<Props> = (props) => {
     []
   );
 
+  const [input, setInput] = useState<string>(() => {
+    if (syncdb != null) {
+      const input = syncdb
+        .get_one({
+          event: "draft",
+          sender_id,
+          date: 0,
+        })
+        ?.get("input");
+      return input;
+    }
+    return props.input ?? "";
+  });
+
   const isMountedRef = useIsMountedRef();
+  const lastSavedRef = useRef<string | null>(null);
   const saveChat = useDebouncedCallback(
     (input) => {
       if (!isMountedRef.current || syncdb == null) return;
       props.onChange(input);
+      lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
       syncdb.set({
         event: "draft",
         sender_id,
         input,
-        date: 0,
-        editing: null,
-        history: null,
+        date: 0, // it's a primary key so can't use this to represent when user last edited this; may use other date for editing past chats.
+        active: new Date().valueOf(),
       });
       syncdb.commit();
     },
@@ -59,31 +74,24 @@ export const ChatInput: React.FC<Props> = (props) => {
   );
   useEffect(() => {
     if (syncdb == null) return;
-    const onSyncdbChange = (changes) => {
-      console.log("changes = ", changes?.toJS());
+    const onSyncdbChange = () => {
       const sender_id = redux.getStore("account").get_account_id();
       const x = syncdb.get_one({
         event: "draft",
         sender_id,
+        date: 0,
       });
-      console.log("x = ", x?.toJS());
+      const input = x?.get("input");
+      if (input != null && input !== lastSavedRef.current) {
+        setInput(input);
+        lastSavedRef.current = null;
+      }
     };
     syncdb.on("change", onSyncdbChange);
     return () => {
       syncdb.removeListener("change", onSyncdbChange);
     };
   }, [syncdb]);
-
-  const [input, setInput] = useState<string>(props.input ?? "");
-  const clearInput = () => {
-    saveChat.cancel();
-    setInput("");
-  };
-  useEffect(() => {
-    if (!props.input) {
-      clearInput();
-    }
-  }, [props.input]);
 
   return (
     <MarkdownInput
@@ -103,9 +111,8 @@ export const ChatInput: React.FC<Props> = (props) => {
         saveChat(input);
       }}
       onShiftEnter={(input) => {
-        setInput(input);
+        saveChat.cancel();
         props.on_send(input);
-        clearInput();
       }}
       height={props.height}
       placeholder={"Type a message..."}
@@ -119,11 +126,11 @@ export const ChatInput: React.FC<Props> = (props) => {
       style={props.style}
       onUndo={() => {
         saveChat.cancel();
-        actions.undo("");
+        syncdb?.undo();
       }}
       onRedo={() => {
         saveChat.cancel();
-        actions.redo("");
+        syncdb?.redo();
       }}
     />
   );

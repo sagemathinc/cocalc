@@ -284,6 +284,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             {render_increase_font_size()}
           </ButtonGroup>
           {render_export_button()}
+          {actions.syncdb != null && (
+            <ButtonGroup style={{ marginLeft: "5px" }}>
+              <Button onClick={() => actions.syncdb?.undo()}>
+                <Icon name="undo" /> Undo
+              </Button>
+              <Button onClick={() => actions.syncdb?.redo()}>
+                <Icon name="redo" /> Redo
+              </Button>
+            </ButtonGroup>
+          )}
         </Col>
         <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}
