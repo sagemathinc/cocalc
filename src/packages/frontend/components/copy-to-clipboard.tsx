@@ -16,7 +16,6 @@ interface Props {
 }
 
 export default function CopyToClipBoard({ value, style, size, label }: Props) {
-  console.log("size = ", size);
   const [copied, setCopied] = useState<boolean>(false);
   useEffect(() => {
     setCopied(false);
