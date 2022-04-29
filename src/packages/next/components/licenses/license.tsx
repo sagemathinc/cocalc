@@ -129,7 +129,7 @@ export function Details({
         </div>
       )}
       {result.is_manager && (
-        <Copyable label="ID:" text={license_id} style={{ marginTop: "5px" }} />
+        <Copyable label="ID:" value={license_id} style={{ marginTop: "5px" }} />
       )}
     </div>
   );

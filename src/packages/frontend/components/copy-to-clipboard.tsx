@@ -3,75 +3,71 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import copyToClipboard from "copy-to-clipboard";
-import { CSS, React, useRef, useState } from "../app-framework";
-import {
-  Button,
-  FormControl,
-  FormGroup,
-  InputGroup,
-  Overlay,
-  Tooltip,
-} from "react-bootstrap";
-import { Icon } from "./icon";
-
-/* Takes a value and makes it highlight on click.
-   Has a copy to clipboard button by default on the end.
-*/
+import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
+import { Button, Input, Tooltip } from "antd";
+import { CopyToClipboard } from "react-copy-to-clipboard";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   value: string;
-  buttonBefore?: JSX.Element; // Button to place before the copy text
-  hideAfter?: boolean; // Hide the default after button
-  style?: CSS;
+  style?: CSSProperties;
+  label?: ReactNode;
+  size?: "large" | "middle" | "small";
 }
 
-export const CopyToClipBoard: React.FC<Props> = ({
-  value,
-  buttonBefore,
-  hideAfter,
-  style,
-}) => {
-  const [showTooltip, setShowTooltip] = useState<boolean>(false);
-  const clipboardButtonRef = useRef(null);
+export default function CopyToClipBoard({ value, style, size, label }: Props) {
+  console.log("size = ", size);
+  const [copied, setCopied] = useState<boolean>(false);
+  useEffect(() => {
+    setCopied(false);
+  }, [value]);
 
-  return (
-    <FormGroup style={style}>
-      <InputGroup>
-        {buttonBefore != null && (
-          <InputGroup.Button>{buttonBefore}</InputGroup.Button>
-        )}
-        <FormControl
-          type="text"
-          readOnly={true}
-          style={{ cursor: "default" }}
-          onClick={(e) => (e.target as any).select?.()}
-          value={value}
-        />
-        {!hideAfter && (
-          <InputGroup.Button>
-            {showTooltip && clipboardButtonRef.current && (
-              <Overlay
-                show
-                target={clipboardButtonRef.current}
-                placement="bottom"
-              >
-                <Tooltip id="copied">Copied!</Tooltip>
-              </Overlay>
-            )}
-            <Button
-              ref={clipboardButtonRef}
-              onClick={() => {
-                setShowTooltip(true);
-                setTimeout(() => setShowTooltip(false), 2000);
-                copyToClipboard(value);
-              }}
-            >
-              <Icon name="clipboard" />
-            </Button>
-          </InputGroup.Button>
-        )}
-      </InputGroup>
-    </FormGroup>
+  let copy = useMemo(() => {
+    const btn = (
+      <CopyToClipboard text={value} onCopy={() => setCopied(true)}>
+        <Button
+          size={size}
+          style={{
+            margin:
+              "-2px -12px" /* hack so doesn't conflict w/ style of Input below*/,
+          }}
+        >
+          <Icon name={copied ? "clipboard-check" : "clipboard"} />
+        </Button>
+      </CopyToClipboard>
+    );
+    if (!copied) return btn;
+    return (
+      <Tooltip title="Copied!" defaultVisible>
+        {btn}
+      </Tooltip>
+    );
+  }, [value, copied, size]);
+
+  const input = (
+    <Input
+      size={size}
+      readOnly
+      onFocus={(e) => e.target.select()}
+      value={value}
+      addonAfter={copy}
+    />
   );
-};
+  if (!label) return <div style={style}>{input}</div>;
+  return (
+    <div style={{ display: "flex", ...style }}>
+      <div
+        style={{
+          marginRight: "15px",
+          display: "flex",
+          justifyContent: "center",
+          alignContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        {label}
+      </div>{" "}
+      <div style={{ display: "inline-block", flex: 1 }}>{input}</div>
+    </div>
+  );
+}
