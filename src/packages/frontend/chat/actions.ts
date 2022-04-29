@@ -85,20 +85,22 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public syncdb_change(changes): void {
-    let messages = this.store?.get("messages");
-    if (messages == null) {
-      // Messages need not be defined when changes appear in case of problems or race.
-      return;
-    }
-    let changed: boolean = false;
     changes.map((obj) => {
-      if (this.syncdb == null || messages == null) return;
+      if (this.syncdb == null) return;
       obj = obj.toJS();
       if (obj.event == "draft") {
+        let drafts = this.store?.get("drafts") ?? fromJS({});
         // used to show that another user is editing a message.
+        const record = this.syncdb.get_one(obj);
+        if (record == null) return;
+        const sender_id = record.get("sender_id");
+        drafts = drafts.set(sender_id, record);
+        this.setState({ drafts });
         return;
       }
       if (obj.event == "chat") {
+        let changed: boolean = false;
+        let messages = this.store?.get("messages") ?? fromJS({});
         obj.date = new Date(obj.date);
         const record = this.syncdb.get_one(obj);
         let x: any = record?.toJS();
@@ -113,11 +115,11 @@ export class ChatActions extends Actions<ChatState> {
             changed = true;
           }
         }
+        if (changed) {
+          this.setState({ messages });
+        }
       }
     });
-    if (changed) {
-      this.setState({ messages });
-    }
   }
 
   public send_chat(input?: string): void {

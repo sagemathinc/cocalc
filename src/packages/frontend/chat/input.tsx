@@ -60,14 +60,26 @@ export const ChatInput: React.FC<Props> = (props) => {
       props.onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
-      syncdb.set({
-        event: "draft",
-        sender_id,
-        input,
-        date: 0, // it's a primary key so can't use this to represent when user last edited this; may use other date for editing past chats.
-        active: new Date().valueOf(),
-      });
-      syncdb.commit();
+      // but definitely don't save (thus updating active) if
+      // the input didn't really change, since we use active for
+      // showing that a user is writing to other users.
+      const input0 = syncdb
+        .get_one({
+          event: "draft",
+          sender_id,
+          date: 0,
+        })
+        ?.get("input");
+      if (input0 != input) {
+        syncdb.set({
+          event: "draft",
+          sender_id,
+          input,
+          date: 0, // it's a primary key so can't use this to represent when user last edited this; may use other date for editing past chats.
+          active: new Date().valueOf(),
+        });
+        syncdb.commit();
+      }
     },
     SAVE_DEBOUNCE_MS,
     { leading: true }

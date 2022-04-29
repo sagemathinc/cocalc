@@ -16,6 +16,7 @@ import { search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { Avatar } from "../account/avatar/avatar";
 
 type MessageMap = Map<string, any>;
 
@@ -30,6 +31,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
   ({ project_id, path, scrollToBottomRef, show_heads }) => {
     const actions: ChatActions = useActions(project_id, path);
     const messages = useRedux(["messages"], project_id, path);
+    const drafts = useRedux(["drafts"], project_id, path);
     const font_size = useRedux(["font_size"], project_id, path);
     const search = useRedux(["search"], project_id, path);
     const user_map = useTypedRedux("users", "user_map");
@@ -104,6 +106,33 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       );
     }
 
+    function renderComposing() {
+      if (!drafts || drafts.size == 0) return;
+      const v: JSX.Element[] = [];
+      const cutoff = new Date().valueOf() - 1000 * 30; // 30s
+      for (const [sender_id] of drafts) {
+        if (account_id == sender_id) continue;
+        const record = drafts.get(sender_id);
+        if (record.get("active") < cutoff || !record.get("input").trim()) {
+          continue;
+        }
+        v.push(
+          <div
+            key={sender_id}
+            style={{ margin: "5px", color: "#666", textAlign: "center" }}
+          >
+            <Avatar size={20} account_id={sender_id} />
+            <span style={{ marginLeft: "15px" }}>
+              {get_user_name(user_map, sender_id)} is writing a message...
+            </span>
+          </div>
+        );
+      }
+      if (v.length == 0) return;
+      scrollToBottomRef?.current?.();
+      return <div>{v}</div>;
+    }
+
     return (
       <>
         {render_not_showing()}
@@ -123,6 +152,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
           }}
           {...virtuosoScroll}
         />
+        {renderComposing()}
       </>
     );
   }
