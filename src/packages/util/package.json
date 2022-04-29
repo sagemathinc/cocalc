@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.40.0",
+  "version": "1.42.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
