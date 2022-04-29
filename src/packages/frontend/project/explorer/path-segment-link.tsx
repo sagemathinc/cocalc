@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { React } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
 import { Breadcrumb } from "antd";
-import { Tip } from "../../components";
 
 interface Props {
   path: string;
@@ -18,7 +19,7 @@ interface Props {
 
 // One segment of the directory links at the top of the files listing.
 // this can't be a react component, because "Breadcrumb" only works with Breadcrumb.Item children!
-export function PathSegmentLink(props: Props) {
+export const PathSegmentLink: React.FC<Props> = React.memo((props: Props) => {
   const {
     path = "",
     display,
@@ -56,4 +57,4 @@ export function PathSegmentLink(props: Props) {
       {render_content()}
     </Breadcrumb.Item>
   );
-}
+});
