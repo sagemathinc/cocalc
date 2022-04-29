@@ -28,7 +28,9 @@ export default function Overview() {
   }
 
   return (
-    <div style={{ textAlign: "center", width: "75%", margin: "0px auto" }}>
+    <div
+      style={{ textAlign: "center", width: "75%", margin: "0px auto 0px auto" }}
+    >
       <Icon
         style={{
           fontSize: "100px",
@@ -48,7 +50,10 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
 
-      <Row gutter={[25, 50]} style={{ margin: "48px 0 60px 0" }}>
+      <Row
+        gutter={[25, 50]}
+        style={{ marginTop: "30px", marginBottom: "60px" }}
+      >
         <Product
           icon="key"
           title="Site License Upgrade"
