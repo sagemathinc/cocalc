@@ -71,6 +71,12 @@ export const ChatInput: React.FC<Props> = (props) => {
         })
         ?.get("input");
       if (input0 != input) {
+        if (input0 == null && !input) {
+          // DO NOT save if you haven't written a draft before, and
+          // the draft we would save here would be empty, since that
+          // would lead to what humans would consider false notifications.
+          return;
+        }
         syncdb.set({
           event: "draft",
           sender_id,
