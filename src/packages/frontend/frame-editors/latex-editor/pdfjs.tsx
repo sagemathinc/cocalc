@@ -31,14 +31,9 @@ import { SyncHighlight } from "./pdfjs-annotation";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
-
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-
-// Ensure this jQuery plugin is defined:
-import "./mouse-draggable";
 
 interface PDFJSProps {
   id: string;
@@ -87,11 +82,6 @@ export function PDFJS({
 
   const divRef = useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: divRef });
-
-  useEffect(() => {
-    mouse_draggable();
-    focus_on_click();
-  }, []);
 
   useEffect(() => {
     load_doc(reload);
@@ -201,14 +191,10 @@ export function PDFJS({
   }, []);
 
   useEffect(() => {
-    if (actions == null || pageActions == null || divRef.current == null)
+    if (actions == null || pageActions == null) {
       return;
+    }
     if (is_current && is_visible) {
-      // ensure any codemirror (etc.) elements blur, when
-      // this pdfjs viewer is focused, so keyboard actions don't
-      // also go to that editor.
-      ($ as any)(document.activeElement).blur();
-      $(divRef.current).focus();
       pageActions.set_active_key_handler(keyHandler, project_id, actions.path);
     } else {
       pageActions.erase_active_key_handler(keyHandler);
@@ -285,7 +271,6 @@ export function PDFJS({
           actions.update_pdf(new Date().valueOf(), true);
         }
       }
-      // actions.set_error();
     }
   }
 
@@ -327,37 +312,6 @@ export function PDFJS({
     // so the yellow highlight bar gets rendered as the page is rendered.
     await delay(100);
     actions.setState({ scroll_pdf_into_view: undefined });
-  }
-
-  function mouse_draggable(): void {
-    if (divRef.current == null) return;
-    $(divRef.current).mouse_draggable();
-  }
-
-  async function scroll_click(evt, scroll): Promise<void> {
-    /* This first delay is needed since otherwise react complains
-
-        backend.js:6 Warning: unstable_flushDiscreteUpdates: Cannot flush updates when React is already rendering.
-
-    whenever you click on the pdf to focus it.
-    */
-    await delay(0);
-
-    scroll.focus();
-    if (is_current) {
-      return;
-    }
-    evt.stopPropagation(); // stop propagation to focus doesn't land on *individual page*
-    actions.set_active_id(id); // fix side effect of stopping propagation.
-    // wait an do another focus -- critical or keyboard navigation is flakie.
-    await delay(0);
-    scroll.focus();
-  }
-
-  function focus_on_click(): void {
-    if (divRef.current == null) return;
-    const scroll = $(divRef.current);
-    scroll.on("click", (evt) => scroll_click(evt, scroll));
   }
 
   async function do_zoom_page_width(): Promise<void> {
@@ -602,9 +556,6 @@ export function PDFJS({
         backgroundColor: !loaded ? "white" : BG_COL,
       }}
       ref={divRef}
-      tabIndex={
-        1 /* Need so keyboard navigation works; also see mouse-draggable click event. */
-      }
     >
       {render_content()}
     </div>
