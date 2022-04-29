@@ -8,32 +8,32 @@ Render a single PDF page using canvas.
 */
 
 import $ from "jquery";
+import { useEffect, useRef } from "react";
 import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
-import { React, ReactDOM } from "../../app-framework";
-import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
+import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;
   scale: number;
-  click_annotation: Function;
-  sync_highlight?: SyncHighlight;
+  clickAnnotation: Function;
+  syncHighlight?: SyncHighlight;
 }
 
-export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
-  const { page, scale, click_annotation, sync_highlight } = props;
+export default function CanvasPage({
+  page,
+  scale,
+  clickAnnotation,
+  syncHighlight,
+}: Props) {
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
-  const pageRef = React.useRef(null);
+  useEffect(() => {
+    renderPage();
+  }, [page, scale]);
 
-  React.useEffect(
-    function () {
-      render_page();
-    },
-    [page, scale]
-  );
-
-  async function render_page(): Promise<void> {
+  async function renderPage(): Promise<void> {
     if (pageRef.current == null) return;
-    const div: HTMLElement = ReactDOM.findDOMNode(pageRef.current);
+    const div = pageRef.current;
     const viewport: PDFPageViewport = page.getViewport({
       scale: scale * window.devicePixelRatio,
     });
@@ -72,10 +72,10 @@ export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
       <AnnotationLayer
         page={page}
         scale={scale}
-        click_annotation={click_annotation}
-        sync_highlight={sync_highlight}
+        clickAnnotation={clickAnnotation}
+        syncHighlight={syncHighlight}
       />
       <div ref={pageRef} />
     </div>
   );
-});
+}

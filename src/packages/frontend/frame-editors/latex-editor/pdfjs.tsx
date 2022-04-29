@@ -26,7 +26,7 @@ import {
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { BG_COL, Page, PAGE_GAP } from "./pdfjs-page";
+import Page, { BG_COL, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
@@ -75,23 +75,23 @@ export function PDFJS({
   const derived_file_types: Set<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
 
-  const [loaded, set_loaded] = useState<boolean>(false);
-  const [pages, set_pages] = useState<PDFPageProxy[]>([]);
-  const [missing, set_missing] = useState<boolean>(false);
-  const [doc, set_doc] = useState<PDFDocumentProxy | null>(null);
+  const [loaded, setLoaded] = useState<boolean>(false);
+  const [pages, setPages] = useState<PDFPageProxy[]>([]);
+  const [missing, setMissing] = useState<boolean>(false);
+  const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [cursor, setCursor] = useState<"grabbing" | "grab">("grab");
 
   const divRef = useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: divRef });
 
   useEffect(() => {
-    load_doc(reload);
+    loadDoc(reload);
   }, [reload]);
 
   useEffect(() => {
-    if (zoom_page_height == id) do_zoom_page_height();
-    if (zoom_page_width == id) do_zoom_page_width();
-    if (sync == id) do_sync();
+    if (zoom_page_height == id) doZoomPageHeight();
+    if (zoom_page_width == id) doZoomPageWidth();
+    if (sync == id) doSync();
   }, [zoom_page_height, zoom_page_width, sync]);
 
   useEffect(() => {
@@ -202,7 +202,7 @@ export function PDFJS({
     }
   }, [is_current, is_visible, pageActions != null]);
 
-  function render_status(): JSX.Element {
+  function renderStatus(): JSX.Element {
     if (status) {
       return <Loading text="Building..." />;
     } else {
@@ -214,7 +214,7 @@ export function PDFJS({
     }
   }
 
-  function render_missing(): JSX.Element {
+  function renderMissing(): JSX.Element {
     return (
       <div
         style={{
@@ -222,22 +222,22 @@ export function PDFJS({
           color: COLORS.GRAY,
         }}
       >
-        Missing PDF -- {render_status()}
+        Missing PDF -- {renderStatus()}
       </div>
     );
   }
 
-  function render_loading(): JSX.Element {
+  function renderLoading(): JSX.Element {
     return <Loading theme="medium" />;
   }
 
-  async function load_doc(reload: number): Promise<void> {
+  async function loadDoc(reload: number): Promise<void> {
     try {
       const doc: PDFDocumentProxy = await getDocument(
         url_to_pdf(project_id, path, reload)
       );
       if (!isMounted.current) return;
-      set_missing(false);
+      setMissing(false);
       const v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         // their promises are slightly different now...
@@ -246,10 +246,10 @@ export function PDFJS({
       }
       const pages: PDFPageProxy[] = await Promise.all(v);
       if (!isMounted.current) return;
-      set_doc(doc);
-      set_loaded(true);
-      set_pages(pages);
-      set_missing(false);
+      setDoc(doc);
+      setLoaded(true);
+      setPages(pages);
+      setMissing(false);
 
       // documents often don't have pageLabels, but when they do, they are
       // good to show (e.g., in a book the content at the beginning might
@@ -265,7 +265,7 @@ export function PDFJS({
         err != null && // err can be null!!
         err.toString().indexOf("Missing") != -1
       ) {
-        set_missing(true);
+        setMissing(true);
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {
           // try again, since there is functionality for updating the pdf
@@ -315,7 +315,7 @@ export function PDFJS({
     actions.setState({ scroll_pdf_into_view: undefined });
   }
 
-  async function do_zoom_page_width(): Promise<void> {
+  async function doZoomPageWidth(): Promise<void> {
     if (divRef.current == null) return;
     actions.setState({ zoom_page_width: undefined }); // we got the message.
     if (doc == null) return;
@@ -329,10 +329,10 @@ export function PDFJS({
     const width = $(divRef.current).width();
     if (width === undefined) return;
     const scale = (width - 10) / page.view[2];
-    actions.set_font_size(id, get_font_size(scale));
+    actions.set_font_size(id, getFontSize(scale));
   }
 
-  async function do_zoom_page_height(): Promise<void> {
+  async function doZoomPageHeight(): Promise<void> {
     if (divRef.current == null) return;
     actions.setState({ zoom_page_height: undefined });
     let page;
@@ -346,10 +346,10 @@ export function PDFJS({
     const height = $(divRef.current).height();
     if (height === undefined) return;
     const scale = (height - 10) / page.view[3];
-    actions.set_font_size(id, get_font_size(scale));
+    actions.set_font_size(id, getFontSize(scale));
   }
 
-  function do_sync(): void {
+  function doSync(): void {
     if (divRef.current == null) return;
     actions.setState({ sync: undefined });
     const e = $(divRef.current);
@@ -359,7 +359,7 @@ export function PDFJS({
     dblclick(offset.left, offset.top + height / 2);
   }
 
-  function sync_highlight({ n, id }): SyncHighlight | undefined {
+  function syncHighlight({ n, id }): SyncHighlight | undefined {
     if (
       scroll_pdf_into_view != null &&
       scroll_pdf_into_view.page === n &&
@@ -474,7 +474,7 @@ export function PDFJS({
               n={n}
               key={n}
               scale={scale}
-              sync_highlight={sync_highlight({ n, id })}
+              syncHighlight={syncHighlight({ n, id })}
             />
           );
         }}
@@ -483,12 +483,12 @@ export function PDFJS({
     );
   }
 
-  function render_content(): JSX.Element | JSX.Element[] {
+  function renderContent(): JSX.Element | JSX.Element[] {
     if (!loaded) {
       if (missing) {
-        return render_missing();
+        return renderMissing();
       } else {
-        return render_loading();
+        return renderLoading();
       }
     } else {
       return <div className="smc-vfill">{renderPagesUsingVirtuoso()}</div>;
@@ -499,11 +499,11 @@ export function PDFJS({
     return font_size / (redux.getStore("account").get("font_size") ?? 14);
   }, [font_size]);
 
-  function get_font_size(scale: number): number {
+  function getFontSize(scale: number): number {
     return (redux.getStore("account").get("font_size") ?? 14) * scale;
   }
 
-  function render_other_viewers() {
+  function renderOtherViewers() {
     if (derived_file_types.size == 0) return;
     return (
       <>
@@ -514,7 +514,7 @@ export function PDFJS({
     );
   }
 
-  function render_custom_error_message() {
+  function renderCustomErrorMessage() {
     if (custom_pdf_error_message == null) return;
     return (
       <Alert
@@ -524,7 +524,7 @@ export function PDFJS({
     );
   }
 
-  function render_no_pdf(): JSX.Element {
+  function renderNoPdf(): JSX.Element {
     return (
       <div
         style={{
@@ -533,16 +533,16 @@ export function PDFJS({
           overflowY: "auto",
         }}
       >
-        There is no rendered PDF file available. {render_other_viewers()}
+        There is no rendered PDF file available. {renderOtherViewers()}
         <hr />
-        {render_custom_error_message()}
+        {renderCustomErrorMessage()}
       </div>
     );
   }
 
   if (mode == "rmd" && derived_file_types != undefined) {
     if (!derived_file_types.contains("pdf")) {
-      return render_no_pdf();
+      return renderNoPdf();
     }
   }
 
@@ -581,7 +581,7 @@ export function PDFJS({
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
     >
-      {render_content()}
+      {renderContent()}
     </div>
   );
 }

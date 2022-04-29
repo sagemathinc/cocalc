@@ -7,9 +7,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React } from "../../app-framework";
-import { is_different } from "@cocalc/util/misc";
-import { CanvasPage } from "./pdfjs-canvas-page";
+import CanvasPage from "./pdfjs-canvas-page";
 import type {
   PDFAnnotationData,
   PDFPageProxy,
@@ -27,30 +25,29 @@ interface PageProps {
   doc: PDFDocumentProxy;
   scale: number;
   page: PDFPageProxy;
-  sync_highlight?: SyncHighlight;
+  syncHighlight?: SyncHighlight;
 }
 
-function should_memoize(prev, next) {
-  return (
-    !is_different(prev, next, ["n", "scale", "page", "sync_highlight"]) &&
-    prev.doc.fingerprints[0] === next.doc.fingerprints[0] // [1] is used for editing -- "A (not guaranteed to be) unique ID to identify the PDF document. NOTE: The first element will always be defined for all PDF documents, whereas the second element is only defined for *modified* PDF documents." -- https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFDocumentProxy.html
-  );
-}
-
-export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
-  const { actions, id, n, doc, scale, page, sync_highlight } = props;
-
+export default function Page({
+  actions,
+  id,
+  n,
+  doc,
+  scale,
+  page,
+  syncHighlight,
+}: PageProps) {
   function render_content() {
     if (!page) return;
     const f = (annotation) => {
-      click_annotation(annotation);
+      clickAnnotation(annotation);
     };
     return (
       <CanvasPage
         page={page}
         scale={scale}
-        click_annotation={f}
-        sync_highlight={sync_highlight}
+        clickAnnotation={f}
+        syncHighlight={syncHighlight}
       />
     );
   }
@@ -65,7 +62,7 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
     actions.synctex_pdf_to_tex(n, x, y);
   }
 
-  async function click_annotation(
+  async function clickAnnotation(
     annotation0: PDFAnnotationData
   ): Promise<void> {
     // NOTE: We have to do this cast because the @types for pdfjs are incomplete and wrong.
@@ -117,4 +114,4 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
       </div>
     </div>
   );
-}, should_memoize);
+}
