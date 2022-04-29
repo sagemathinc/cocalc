@@ -268,11 +268,7 @@ export const Avatar: React.FC<Props> = (props) => {
   if (props.no_tooltip) {
     return elt;
   } else {
-    return (
-      <Tooltip title={render_tooltip_content()}>
-        {elt}
-      </Tooltip>
-    );
+    return <Tooltip title={render_tooltip_content()}>{elt}</Tooltip>;
   }
 };
 

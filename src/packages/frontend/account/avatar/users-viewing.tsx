@@ -46,10 +46,11 @@ function most_recent(activity: Activity[]): Activity {
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
   overflowX: "auto",
-  display: "flex",
+  overflowY: "hidden",
   zIndex: 1,
   whiteSpace: "nowrap",
   padding: "1px", // if not set, Chrome draws scrollbars around it #5399
+  height: "32px",
 } as const;
 
 const DEFAULT_STYLE: CSS = { maxWidth: "120px" } as const;
