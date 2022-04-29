@@ -51,7 +51,7 @@ exports.ExamplesFooter = rclass
                 target     = {'_blank'}
                 rel        = {"noopener"}
             >
-                <Icon name = {'code-fork'} /> Contribute
+                <Icon name = {'git'} /> Contribute
             </Button>
             <Button
                 onClick    = {@close}
