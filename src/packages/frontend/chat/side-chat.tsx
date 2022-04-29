@@ -17,10 +17,7 @@ import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
 
-import {
-  mark_chat_as_read_if_unseen,
-  INPUT_HEIGHT,
-} from "./utils";
+import { mark_chat_as_read_if_unseen, INPUT_HEIGHT } from "./utils";
 import { ChatLog } from "./chat-log";
 import { ChatInput } from "./input";
 
@@ -195,6 +192,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
       >
         <div style={{ display: "flex", flex: 1 }}>
           <ChatInput
+            cacheId={`${path}${project_id}-new`}
             input={input}
             on_send={() => {
               send_chat();
@@ -203,6 +201,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             height={INPUT_HEIGHT}
             onChange={(value) => actions.set_input(value)}
             submitMentionsRef={submitMentionsRef}
+            syncdb={actions.syncdb}
           />
           <div
             style={{

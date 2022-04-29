@@ -67,7 +67,7 @@ Nothing special here.
 
 ```
 sender_id : String which is the original message sender's account id
-event     : Can only be "chat" right now.
+event     : "chat" or "draft".  It's not really an "event"; type would have been better.
 date      : A date string
 history   : Array of "History" objects (described below)
 editing   : Object of <account id's> : <"FUTURE">

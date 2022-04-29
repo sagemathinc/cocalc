@@ -14,6 +14,7 @@ import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
 import useWheel from "./scroll-wheel";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -40,15 +41,21 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
+  const submitMentionsRef = useRef<Function>();
 
   const saveChat = useDebouncedCallback((input) => {
     actions.saveChat({ id: element.id, input });
-  }, 1500);
+  }, SAVE_DEBOUNCE_MS);
 
   const [input, setInput] = useState<string>("");
   // we ensure input is set properly to what's in the element
   // when it is focused.  When NOT focused, we don't bother,
   // to avoid wasting resources.
+  // NOTE: this implementation is highly inefficient and needs to be changed.
+  // The problem is that element.data[account_id] is not a string column, so
+  // every change saves the entire string, rather than just diffs.  The only
+  // good way to fix this is with another record type in the syncdb, I think...
+  // or a separate ephemeral table (which adds its own complexity, of course).
   useEffect(() => {
     if (!focused) return;
     const input1 =
@@ -103,6 +110,7 @@ function Conversation({ element, focused }: Props) {
           }}
         >
           <MultiMarkdownInput
+            submitMentionsRef={submitMentionsRef}
             saveDebounceMs={0}
             onFocus={() => {
               setEditFocus(true);
@@ -134,6 +142,7 @@ function Conversation({ element, focused }: Props) {
             onShiftEnter={(input) => {
               saveChat.cancel();
               actions.sendChat({ id: element.id, input });
+              submitMentionsRef.current?.(); // send all the mentions
               clearInput();
             }}
             onUndo={() => {
@@ -176,6 +185,7 @@ function Conversation({ element, focused }: Props) {
               style={{ height: INPUT_HEIGHT, marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
+                submitMentionsRef.current?.(); // send all the mentions
                 clearInput();
               }}
             >

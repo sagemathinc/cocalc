@@ -75,7 +75,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  submitMentionsRef?: any;
+  submitMentionsRef?: MutableRefObject<() => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
@@ -466,6 +466,11 @@ export function MarkdownInput({
   }, [options]);
 
   const ignoreChangeRef = useRef<boolean>(false);
+  // use valueRef since we can't just refer to value in saveValue
+  // below, due to not wanted to regenerate the saveValue function
+  // every time, due to debouncing, etc.
+  const valueRef = useRef<string | undefined>(value);
+  valueRef.current = value;
   const saveValue = useMemo(() => {
     // save value to owner via onChange
     if (onChange == null) return () => {}; // no op
@@ -482,7 +487,7 @@ export function MarkdownInput({
         return;
       }
       const newValue = cm.current.getValue();
-      if (value != newValue) {
+      if (valueRef.current !== newValue) {
         onChange(newValue);
       }
     };

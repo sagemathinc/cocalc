@@ -284,6 +284,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             {render_increase_font_size()}
           </ButtonGroup>
           {render_export_button()}
+          {actions.syncdb != null && (
+            <ButtonGroup style={{ marginLeft: "5px" }}>
+              <Button onClick={() => actions.syncdb?.undo()}>
+                <Icon name="undo" /> Undo
+              </Button>
+              <Button onClick={() => actions.syncdb?.redo()}>
+                <Icon name="redo" /> Redo
+              </Button>
+            </ButtonGroup>
+          )}
         </Col>
         <Col xs={3} md={3} style={{ padding: "2px" }}>
           {render_search()}
@@ -319,11 +329,15 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <ChatInput
+              cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
               height={INPUT_HEIGHT}
-              onChange={(value) => actions.set_input(value)}
+              onChange={(value) => {
+                actions.set_input(value);
+              }}
               submitMentionsRef={submitMentionsRef}
+              syncdb={actions.syncdb}
             />
           </div>
           <div

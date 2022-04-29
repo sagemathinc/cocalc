@@ -259,6 +259,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           status={status}
           title={desc.get("title")}
           type={desc.get("type")}
+          page={desc.get("page")}
+          pages={desc.get("pages")}
         />
       );
     }

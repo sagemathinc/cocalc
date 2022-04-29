@@ -15,7 +15,7 @@ import { get_sorted_dates } from "./chat-log";
 import { message_to_markdown } from "./message";
 
 export class ChatActions extends Actions<ChatState> {
-  private syncdb?: SyncDB;
+  public syncdb?: SyncDB;
   private store?: ChatStore;
 
   public set_syncdb(syncdb: SyncDB): void {
@@ -85,33 +85,41 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public syncdb_change(changes): void {
-    let messages = this.store?.get("messages");
-    if (messages == null) {
-      // Messages need not be defined when changes appear in case of problems or race.
-      return;
-    }
-    let changed: boolean = false;
     changes.map((obj) => {
-      if (this.syncdb == null || messages == null) return;
-      obj.date = new Date(obj.date);
-      const record = this.syncdb.get_one(obj);
-      let x : any = record != null ? record.toJS() : undefined;
-      if (x == null) {
-        // delete
-        messages = messages.delete(obj.date.valueOf());
-        changed = true;
-      } else {
-        // TODO/OPTIMIZATION: make into custom conversion to immutable (when rewrite)
-        x = this.process_syncdb_obj(x);
-        if (x != null) {
-          messages = messages.set(`${x.date.valueOf()}`, fromJS(x));
+      if (this.syncdb == null) return;
+      obj = obj.toJS();
+      if (obj.event == "draft") {
+        let drafts = this.store?.get("drafts") ?? fromJS({});
+        // used to show that another user is editing a message.
+        const record = this.syncdb.get_one(obj);
+        if (record == null) return;
+        const sender_id = record.get("sender_id");
+        drafts = drafts.set(sender_id, record);
+        this.setState({ drafts });
+        return;
+      }
+      if (obj.event == "chat") {
+        let changed: boolean = false;
+        let messages = this.store?.get("messages") ?? fromJS({});
+        obj.date = new Date(obj.date);
+        const record = this.syncdb.get_one(obj);
+        let x: any = record?.toJS();
+        if (x == null) {
+          // delete
+          messages = messages.delete(`${obj.date.valueOf()}`);
           changed = true;
+        } else {
+          x = this.process_syncdb_obj(x);
+          if (x != null) {
+            messages = messages.set(`${x.date.valueOf()}`, fromJS(x));
+            changed = true;
+          }
+        }
+        if (changed) {
+          this.setState({ messages });
         }
       }
     });
-    if (changed) {
-      this.setState({ messages });
-    }
   }
 
   public send_chat(input?: string): void {
@@ -130,10 +138,23 @@ export class ChatActions extends Actions<ChatState> {
     const sender_id = this.redux.getStore("account").get_account_id();
     const time_stamp = webapp_client.server_time().toISOString();
     this.syncdb.set({
+      event: "draft",
+      sender_id,
+      input,
+      date: 0,
+    });
+    this.syncdb.commit();
+    this.syncdb.set({
       sender_id,
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
+    });
+    this.syncdb.set({
+      event: "draft",
+      sender_id,
+      input: "",
+      date: 0,
     });
     // NOTE: we clear search, since it's very confusing to send a message and not
     // even see it (if it doesn't match search).

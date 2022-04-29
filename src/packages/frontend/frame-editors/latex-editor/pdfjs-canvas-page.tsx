@@ -65,7 +65,6 @@ export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
   return (
     <div
       style={{
-        margin: "auto",
         position: "relative",
         display: "inline-block",
       }}

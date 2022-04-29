@@ -143,7 +143,6 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         terminal={terminal}
         settings={settings}
         status={status}
-        renderer={spec.renderer}
         complete={complete && complete.get(desc.get("id"))}
         derived_file_types={derived_file_types}
         local_view_state={local_view_state}
