@@ -79,6 +79,7 @@ export function PDFJS({
   const [pages, set_pages] = useState<PDFPageProxy[]>([]);
   const [missing, set_missing] = useState<boolean>(false);
   const [doc, set_doc] = useState<PDFDocumentProxy | null>(null);
+  const [cursor, setCursor] = useState<"grabbing" | "grab">("grab");
 
   const divRef = useRef<HTMLDivElement>(null);
   usePinchToZoom({ target: divRef });
@@ -96,7 +97,7 @@ export function PDFJS({
   useEffect(() => {
     if (scroll_pdf_into_view) {
       const { page, y, id } = scroll_pdf_into_view;
-      do_scroll_pdf_into_view(page, y, id);
+      doScrollIntoView(page, y, id);
     }
   }, [scroll_pdf_into_view]);
 
@@ -274,7 +275,7 @@ export function PDFJS({
     }
   }
 
-  async function do_scroll_pdf_into_view(
+  async function doScrollIntoView(
     page: number,
     y: number,
     id2: string
@@ -545,17 +546,40 @@ export function PDFJS({
     }
   }
 
+  // Note: we don't have to do anything for touch, since it "just works" for some reason --
+  // probably the scroller just supports it.
+  // For the "hand tool", which is what we're implementing by default now (select will be soon),
+  // click and drag should move the scroll position.
+  const lastMousePosRef = useRef<null | number>(null);
+  const onMouseDown = useCallback((e) => {
+    lastMousePosRef.current = e.clientY;
+    setCursor("grabbing");
+  }, []);
+  const onMouseMove = useCallback((e) => {
+    if (!e.buttons || lastMousePosRef.current == null) return;
+    const delta = lastMousePosRef.current - e.clientY;
+    virtuosoRef.current?.scrollBy({ top: delta });
+    lastMousePosRef.current = e.clientY;
+  }, []);
+  const onMouseUp = useCallback(() => {
+    lastMousePosRef.current = null;
+    setCursor("grab");
+  }, []);
+
   return (
     <div
       className="smc-vfill"
       style={{
         overflow: "auto",
         width: "100%",
-        cursor: "default",
+        cursor,
         textAlign: "center",
         backgroundColor: !loaded ? "white" : BG_COL,
       }}
       ref={divRef}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
     >
       {render_content()}
     </div>
