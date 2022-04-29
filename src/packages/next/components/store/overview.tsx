@@ -48,40 +48,38 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
 
-      <p>
-        <Row gutter={[25, 50]} style={{ margin: "48px 0 60px 0" }}>
-          <Product
-            icon="key"
-            title="Site License Upgrade"
-            href="/store/site-license"
-          >
-            Upgrade your project, remove the warning banner, get internet
-            access, more CPU and Memory, etc.
-          </Product>
-          <Product icon="rocket" title="License Booster" href="/store/boost">
-            Add additional upgrades to an existing license.
-          </Product>
-          <Product
-            href={"/store/dedicated?type=disk"}
-            icon="save"
-            title="Dedicated Disk"
-          >
-            Add local storage to your project.
-          </Product>
-          <Product
-            href={"/store/dedicated?type=vm"}
-            icon="dedicated"
-            title="Dedicated VM"
-          >
-            Move your project to a much more powerful VM.
-          </Product>
-        </Row>
-      </p>
-      <p style={{ marginTop: "4em" }}>
+      <Row gutter={[25, 50]} style={{ margin: "48px 0 60px 0" }}>
+        <Product
+          icon="key"
+          title="Site License Upgrade"
+          href="/store/site-license"
+        >
+          Upgrade your project, remove the warning banner, get internet access,
+          more CPU and Memory, etc.
+        </Product>
+        <Product icon="rocket" title="License Booster" href="/store/boost">
+          Add additional upgrades to an existing license.
+        </Product>
+        <Product
+          href={"/store/dedicated?type=disk"}
+          icon="save"
+          title="Dedicated Disk"
+        >
+          Add local storage to your project.
+        </Product>
+        <Product
+          href={"/store/dedicated?type=vm"}
+          icon="dedicated"
+          title="Dedicated VM"
+        >
+          Move your project to a much more powerful VM.
+        </Product>
+      </Row>
+      <div style={{ marginTop: "4em" }}>
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
-      </p>
+      </div>
       <p>
         You can also browse your <A href="/billing">billing records</A> or{" "}
         <A href="/licenses">licenses</A>.

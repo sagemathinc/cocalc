@@ -1,12 +1,14 @@
-import { Menu, Typography } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
 const { Text } = Typography;
+
+type MenuItem = Required<MenuProps>["items"][number];
 
 export default function ConfigMenu({ main }) {
   const router = useRouter();
 
-  const style = { marginRight: "5px" };
+  // const style = { marginRight: "5px" };
 
   function select(e) {
     router.push(`/store/${e.keyPath[0]}`, undefined, {
@@ -24,34 +26,31 @@ export default function ConfigMenu({ main }) {
     );
   }
 
+  const items: MenuItem[] = [
+    { label: "Store", key: "store" },
+    { label: "Site License", key: "site-license", icon: <Icon name="key" /> },
+    {
+      label: <>Boost {renderNew()}</>,
+      key: "boost",
+      icon: <Icon name="rocket" />,
+    },
+    {
+      label: <>Dedicated {renderNew()}</>,
+      key: "dedicated",
+      icon: <Icon name="dedicated" />,
+    },
+    { label: "Cart", key: "cart", icon: <Icon name="shopping-cart" /> },
+    { label: "Checkout", key: "checkout", icon: <Icon name="list" /> },
+    { label: "Congrats", key: "congrats", icon: <Icon name="check-circle" /> },
+  ];
+
   return (
     <Menu
       mode="horizontal"
       selectedKeys={[main]}
       style={{ height: "100%", marginBottom: "24px" }}
       onSelect={select}
-    >
-      <Menu.Item key={""}>
-        <Text strong>Store</Text>
-      </Menu.Item>
-      <Menu.Item key={"site-license"}>
-        <Icon name={"key"} style={style} /> Site License
-      </Menu.Item>
-      <Menu.Item key={"boost"}>
-        <Icon name={"rocket"} style={style} /> Boost{renderNew()}
-      </Menu.Item>
-      <Menu.Item key={"dedicated"}>
-        <Icon name={"dedicated"} style={style} /> Dedicated{renderNew()}
-      </Menu.Item>
-      <Menu.Item key={"cart"}>
-        <Icon name={"shopping-cart"} style={style} /> Cart
-      </Menu.Item>
-      <Menu.Item key={"checkout"}>
-        <Icon name={"list"} style={style} /> Checkout
-      </Menu.Item>
-      <Menu.Item key={"congrats"}>
-        <Icon name={"check-circle"} style={style} /> Congrats
-      </Menu.Item>
-    </Menu>
+      items={items}
+    />
   );
 }
