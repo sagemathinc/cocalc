@@ -341,7 +341,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
           modeSwitchStyle={{ marginRight: "32px" }}
-          editBarStyle={{ paddingRight: "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */ }}
+          editBarStyle={{
+            paddingRight:
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+          }}
         />
       );
     }
