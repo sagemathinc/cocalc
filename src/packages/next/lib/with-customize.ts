@@ -64,6 +64,7 @@ export default async function withCustomize(
   customize.noindex = obj.props?.unlisted ?? false;
   customize.imprintOrPolicies =
     (customize.imprint ?? "" + customize.policies ?? "") != "";
+  customize.serverTime = Date.now();
 
   if (obj == null) {
     return { props: { customize } };

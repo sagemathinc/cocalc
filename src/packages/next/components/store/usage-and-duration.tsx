@@ -10,6 +10,7 @@ import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
+import { useTimeFixer } from "./util";
 
 interface Props {
   showExplanations?: boolean;
@@ -33,6 +34,8 @@ export function UsageAndDuration(props: Props) {
     discount = true,
     extraDuration,
   } = props;
+
+  useTimeFixer();
 
   function renderUsage() {
     if (!showUsage) return;

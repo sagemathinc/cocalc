@@ -1,6 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
+import useCustomize from "lib/use-customize";
+
 import { LicenseTypeInForms } from "./add-box";
 
 // site license type in a form, we have 4 forms hence 4 types
@@ -50,4 +57,30 @@ export function loadDateRange(range?: DateRange): DateRange {
     }
   }
   return range;
+}
+
+/**
+ * use serverTime to fix the users exact time and return an object with these properties:
+ * - offset: difference in milliseconds between server time and user time
+ * - timezone: the user's timezone
+ * - serverTime: the Date object of serverTime
+ * - userTime: the Date object of userTime
+ * - function toServerTime(date): converts a Date object from the user's time to the server time
+ *
+ * @param serverTime -- milliseconds since epoch from the server
+ */
+export function useTimeFixer() {
+  // server time is supposed to be always set, but just in case …
+  const { serverTime: customizeServerTime } = useCustomize();
+  if (customizeServerTime == null) {
+    console.warn("WARNING: customize.serverTime is not set, using Date.now()");
+  }
+  const serverTime = customizeServerTime ?? Date.now();
+
+  const offset = Date.now() - serverTime;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const serverTimeDate = new Date(serverTime);
+  const userTimeDate = new Date();
+  const toServerTime = (date: Date) => new Date(date.getTime() - offset);
+  return { offset, timezone, serverTimeDate, userTimeDate, toServerTime };
 }
