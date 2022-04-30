@@ -16,7 +16,7 @@ import { React, useRef, useState, usePrevious } from "../app-framework";
 const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "@cocalc/sync/editor/generic/util";
 import * as immutable from "immutable";
-import * as underscore from "underscore";
+import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
 import { all_fields_equal } from "@cocalc/util/misc";
 
@@ -40,6 +40,7 @@ interface JSONEditorProps {
   cm_options: immutable.Map<any, any>;
   undo?(): void;
   redo?(): void;
+  saveDebounceMs?: number;
 }
 
 function should_memoize(prev, next) {
@@ -51,12 +52,20 @@ function should_memoize(prev, next) {
 
 export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
   (props: JSONEditorProps) => {
-    const { value, font_size, on_change, cm_options, undo, redo } = props;
+    const {
+      value,
+      font_size,
+      on_change,
+      cm_options,
+      undo,
+      redo,
+      saveDebounceMs = 1000,
+    } = props;
 
     const prev_cm_options = usePrevious(cm_options);
     const prev_value = usePrevious(value);
 
-    const [error, set_error] = useState<string>();
+    const [error, set_error] = useState<string>("");
 
     const cm = useRef<any>(null);
     const cm_last_save = useRef<any>(null);
@@ -104,6 +113,7 @@ export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
       }
       const value = cm.current.getValue();
       if (value === cm_last_save.current) {
+        clear_error();
         return value;
       }
       try {
@@ -119,9 +129,7 @@ export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
     }
 
     function clear_error(): void {
-      if (error) {
-        set_error(undefined);
-      }
+      set_error("");
     }
 
     function cm_merge_remote(remote) {
@@ -202,7 +210,7 @@ export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
       $(cm.current.getWrapperElement()).css({ height: "100%" });
       cm_last_save.current = to_json(value);
       cm.current.setValue(cm_last_save.current);
-      const save = underscore.debounce(cm_save, 3000);
+      const save = debounce(cm_save, saveDebounceMs);
       cm.current.on("change", (_: any, changeObj: any) => {
         if (changeObj.origin !== "setValue") {
           save();

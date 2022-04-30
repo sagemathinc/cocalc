@@ -7,7 +7,8 @@
 
 import { CSS, React, useRedux } from "../app-framework";
 import * as immutable from "immutable";
-import { Button, ButtonGroup, Form } from "react-bootstrap";
+import { Button, ButtonGroup, Form } from "@cocalc/frontend/antd-bootstrap";
+import { Tooltip } from "antd";
 import {
   Icon,
   VisibleMDLG,
@@ -55,7 +56,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function command(name: string, do_focus: boolean): (event?) => void {
     return (_event?): void => {
-      $(":focus").blur(); // battling with react-bootstrap stupidity... ?
+      $(":focus").blur(); // TODO: not sure why doing this.
       frameActions.current?.command(name);
       if (do_focus) {
         focus();
@@ -95,16 +96,17 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     }
     const focus: boolean = !endswith(obj.m ? obj.m : "", "...");
     return (
-      <Button
-        className={className}
-        key={key}
-        onClick={command(name, focus)}
-        title={obj.m}
-        disabled={disabled}
-        style={style}
-      >
-        {obj.i && <Icon name={obj.i} />} {label}
-      </Button>
+      <Tooltip title={obj.m} placement="bottom">
+        <Button
+          className={className}
+          key={key}
+          onClick={command(name, focus)}
+          disabled={disabled}
+          style={style}
+        >
+          {obj.i && <Icon name={obj.i} />} {label}
+        </Button>
+      </Tooltip>
     );
   }
 

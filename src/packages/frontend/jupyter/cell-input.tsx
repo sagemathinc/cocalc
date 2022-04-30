@@ -12,7 +12,7 @@ declare const $: any;
 import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
-import { Button, ButtonGroup } from "react-bootstrap";
+import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { startswith, filename_extension } from "@cocalc/util/misc";
 import { Icon, Markdown } from "../components";
 import { CodeMirror } from "./codemirror-component";

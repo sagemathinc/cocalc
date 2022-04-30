@@ -7,7 +7,7 @@
 The tag editing toolbar functionality for cells.
 */
 
-import { Button, FormControl } from "react-bootstrap";
+import { Button, FormControl } from "@cocalc/frontend/antd-bootstrap";
 import { React, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { Icon } from "../components";

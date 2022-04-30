@@ -13,8 +13,8 @@ import {
   FormControl,
   FormGroup,
   InputGroup,
-  Modal,
-} from "react-bootstrap";
+} from "@cocalc/frontend/antd-bootstrap";
+import { Modal } from "antd";
 import * as immutable from "immutable";
 import { ErrorDisplay, Icon } from "../components";
 import { find_matches } from "./find";
@@ -35,14 +35,8 @@ function should_memoize(prev, next) {
 
 export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
   (props: FindAndReplaceProps) => {
-    const {
-      actions,
-      find_and_replace,
-      cells,
-      cur_id,
-      sel_ids,
-      cell_list,
-    } = props;
+    const { actions, find_and_replace, cells, cur_id, sel_ids, cell_list } =
+      props;
 
     const [all, set_all] = useState<boolean>(false);
     const [case_sensitive, set_case_sensitive] = useState<boolean>(false);
@@ -53,15 +47,10 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
     const findRef = useRef<HTMLInputElement | null>(null);
     const replaceRef = useRef<HTMLInputElement | null>(null);
 
-    const _matches = React.useMemo(() => get_matches(), [
-      cells,
-      sel_ids,
-      cell_list,
-      regexp,
-      case_sensitive,
-      all,
-      find,
-    ]);
+    const _matches = React.useMemo(
+      () => get_matches(),
+      [cells, sel_ids, cell_list, regexp, case_sensitive, all, find]
+    );
 
     function get_text(): string {
       const v: any = [];
@@ -107,7 +96,7 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
             set_case_sensitive(!case_sensitive);
             focus();
           }}
-          title="Match case"
+          title="Select to make search case sensitive"
           active={case_sensitive}
         >
           Aa
@@ -137,10 +126,10 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
             set_all(!all);
             focus();
           }}
-          title="Replace in all cells"
+          title="Toggle searching one cell versus all cells"
           active={all}
         >
-          <Icon name="replace" />
+          <Icon name="replace" /> {all ? "All Cells" : "Current Cell"}
         </Button>
       );
     }
@@ -412,22 +401,25 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
     if (!find_and_replace) return <span />;
 
     return (
-      <Modal show={find_and_replace} bsSize="large" onHide={close}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <Icon name="search" /> {title()}{" "}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {render_form()}
-          {render_results()}
-        </Modal.Body>
-
-        <Modal.Footer>
-          {render_replace_one_button()}
-          {render_replace_all_button()}
-          <Button onClick={close}>Close</Button>
-        </Modal.Footer>
+      <Modal
+        visible={find_and_replace}
+        width={900}
+        onCancel={close}
+        title={
+          <>
+            <Icon name="search" /> {title()}
+          </>
+        }
+        footer={
+          <>
+            {render_replace_one_button()}
+            {render_replace_all_button()}
+            <Button onClick={close}>Close</Button>
+          </>
+        }
+      >
+        {render_form()}
+        {render_results()}
       </Modal>
     );
   },

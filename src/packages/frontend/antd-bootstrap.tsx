@@ -26,6 +26,7 @@ export {
   Table,
 } from "react-bootstrap";
 
+import { MouseEventHandler } from "react";
 import { Rendered } from "./app-framework";
 import { r_join, Space } from "./components";
 
@@ -38,6 +39,7 @@ import {
   Checkbox as AntdCheckbox,
   Row as AntdRow,
   Col as AntdCol,
+  Tooltip,
 } from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
@@ -139,6 +141,7 @@ export const Button = (props: {
   tabIndex?: number;
   active?: boolean;
   id?: string;
+  autoFocus?: boolean;
 }) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -155,7 +158,7 @@ export const Button = (props: {
     style.backgroundColor = "#d4d4d4";
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
-  return (
+  const btn = (
     <AntdButton
       onClick={props.onClick}
       type={type}
@@ -168,21 +171,29 @@ export const Button = (props: {
       danger={danger}
       ghost={ghost}
       loading={loading}
-      title={props.title}
       tabIndex={props.tabIndex}
       id={props.id}
+      autoFocus={props.autoFocus}
     >
       <>{props.children}</>
     </AntdButton>
   );
+  if (props.title) {
+    return <Tooltip title={props.title}>{btn}</Tooltip>;
+  } else {
+    return btn;
+  }
 };
 
 export function ButtonGroup(props: {
   style?: React.CSSProperties;
   children?: any;
+  className?: string;
 }) {
   return (
-    <AntdButton.Group style={props.style}>{props.children}</AntdButton.Group>
+    <AntdButton.Group className={props.className} style={props.style}>
+      {props.children}
+    </AntdButton.Group>
   );
 }
 
@@ -199,7 +210,7 @@ export function ButtonToolbar(props: {
 }
 
 export function Grid(props: {
-  onClick: any;
+  onClick?: MouseEventHandler<HTMLDivElement>;
   style?: React.CSSProperties;
   children?: any;
 }) {
