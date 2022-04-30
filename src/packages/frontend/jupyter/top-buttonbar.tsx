@@ -164,6 +164,11 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function cell_type_title(key: string): string {
     switch (key) {
+      case "markdown":
+        // we call it Text to better match our slate editor, take less space,
+        // use the same number of letters as "Code", and I saw something similar
+        // in a beta of JupyterLab recently, for creating new cells...
+        return "Text";
       case "multi":
         return "-";
       default:
@@ -179,9 +184,11 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     return (
       /* The ButtonGroup is for consistent spacing relative to
          all of the other ButtonGroups. */
+      // NOTE: the UI is annoying when you move around from cell to
+      // cell of different types if the width isn't fixed.
       <ButtonGroup>
         <DropdownMenu
-          style={{ height: "34px" }}
+          style={{ height: "34px", width: "6em" }}
           cocalc-test={"jupyter-cell-type-dropdown"}
           button={true}
           key={"cell-type"}
@@ -209,10 +216,9 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
   function render_keyboard() {
     if (student_project_functionality.disableActions) return;
     return (
-      <>
+      <span style={{ marginLeft: "5px" }}>
         {render_button("0", "show keyboard shortcuts")}{" "}
-        <span style={{ marginLeft: "5px" }} />
-      </>
+      </span>
     );
   }
 

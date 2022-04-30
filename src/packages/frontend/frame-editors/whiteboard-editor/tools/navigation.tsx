@@ -139,16 +139,19 @@ export default function Navigation({
   useEffect(() => {
     const rect = whiteboardDivRef.current?.getBoundingClientRect();
     if (!rect) return;
-    if (
-      width > rect.width - MAX_NAV_PANEL ||
-      height > rect.height - MAX_NAV_PANEL
-    ) {
+    // note -- we don't cap the height width too strongly in case window is tiny,
+    // hence the Math.max below, where the first inputs match the bounds inputs
+    // to the Draggable component below.  In particular, note that these
+    // should match what is a prop to bounds for Draggable.
+    const maxWidth = Math.max(MAP_WIDTH, rect.width - MAX_NAV_PANEL);
+    const maxHeight = Math.max(MAP_HEIGHT / 2, rect.height - MAX_NAV_PANEL);
+    if (width > maxWidth || height > maxHeight) {
       // nav panel is too big, e.g., due to resizing containing window, changing
       // screen resolution, splitting frame, etc., so we fix it.
       actions.set_frame_tree({
         id,
-        navWidth: Math.min(width, Math.round(rect.width - MAX_NAV_PANEL)),
-        navHeight: Math.min(height, Math.round(rect.height - MAX_NAV_PANEL)),
+        navWidth: Math.min(width, maxWidth),
+        navHeight: Math.min(height, maxHeight),
       });
     }
   }, [width, height, whiteboardResize]);
@@ -290,8 +293,8 @@ function Map({
       <Draggable
         position={{ x: 0, y: 0 }}
         bounds={{
-          right: Math.max(0, width - MAP_WIDTH * 0.75),
-          bottom: Math.max(0, height - MAP_HEIGHT * 0.75),
+          right: Math.max(0, width - MAP_WIDTH),
+          bottom: Math.max(0, height - MAP_HEIGHT / 2),
         }}
         onDrag={(_, data) => {
           setResize({ x: -data.x, y: -data.y });

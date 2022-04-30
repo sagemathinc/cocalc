@@ -156,15 +156,22 @@ export class ChatActions extends Actions<ChatState> {
       input: "",
       date: 0,
     });
-    // NOTE: we clear search, since it's very confusing to send a message and not
+    // NOTE: we also clear search, since it's confusing to send a message and not
     // even see it (if it doesn't match search).
     this.setState({ search: "", input: "" });
-    // NOTE: further that annoyingly the search box isn't controlled so the input
-    // isn't cleared, which is also confusing. todo -- fix.
-    user_tracking("send_chat", {
-      project_id: this.store?.get("project_id"),
-      path: this.store?.get("path"),
-    });
+
+    if (this.store) {
+      const project_id = this.store.get("project_id");
+      const path = this.store.get("path");
+      // set notification saying that we sent an actual chat
+      webapp_client.mark_file({
+        project_id,
+        path,
+        action: "chat",
+        ttl: 10000,
+      });
+      user_tracking("send_chat", { project_id, path });
+    }
     this.save_to_disk();
   }
 

@@ -7,7 +7,7 @@ import { React, useActions, useTypedRedux} from "../app-framework";
 import { blur_active_element } from "./util";
 import { user_tracking } from "../user-tracking";
 import { Icon } from "../components";
-import { NavItem } from "react-bootstrap";
+import { NavItem } from "@cocalc/frontend/antd-bootstrap";
 
 interface Props {
   on_click?: () => void;

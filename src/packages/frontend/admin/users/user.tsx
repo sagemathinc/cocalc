@@ -10,11 +10,10 @@ Display of basic information about a user, with link to get more information abo
 import { Icon, Space, TimeAgo } from "@cocalc/frontend/components";
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize } from "@cocalc/util/misc";
-import { Row, Col } from "react-bootstrap";
+import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";
 import { Subscriptions } from "./subscriptions";
 import { Projects } from "./projects";
-import { Activity } from "./activity";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
@@ -105,13 +104,6 @@ export class UserResult extends Component<Props, State> {
     );
   }
 
-  render_activity(): Rendered {
-    if (!this.state.activity) {
-      return;
-    }
-    return <Activity account_id={this.props.account_id} />;
-  }
-
   render_impersonate(): Rendered {
     if (!this.state.impersonate) {
       return;
@@ -156,7 +148,7 @@ export class UserResult extends Component<Props, State> {
         style={{ cursor: "pointer" }}
         onClick={() => (this as any).setState({ [name]: !this.state[name] })}
       >
-        {capitalize(name)} {this.render_caret(this.state[name])}
+        {this.render_caret(this.state[name])} {capitalize(name)}
       </a>
     );
   }
@@ -168,9 +160,6 @@ export class UserResult extends Component<Props, State> {
         <Space />
         <Space />
         {this.render_more_link("subscriptions")}
-        <Space />
-        <Space />
-        {this.render_more_link("activity")}
         <Space />
         <Space />
         {this.render_more_link("impersonate")}
@@ -204,13 +193,19 @@ export class UserResult extends Component<Props, State> {
     return (
       <div>
         <Row style={{ borderTop: "1px solid #ccc" }}>
-          <Col md={1}>{this.props.first_name}</Col>
-          <Col md={1}>{this.props.last_name}</Col>
-          <Col md={2}>{this.props.email_address}</Col>
-          <Col md={3}>
+          <Col md={1} style={{ overflow: "auto" }}>
+            {this.props.first_name}
+          </Col>
+          <Col md={1} style={{ overflow: "auto" }}>
+            {this.props.last_name}
+          </Col>
+          <Col md={2} style={{ overflow: "auto" }}>
+            {this.props.email_address}
+          </Col>
+          <Col md={2}>
             {this.render_last_active()} ({this.render_created()})
           </Col>
-          <Col md={3}>{this.render_more_links()}</Col>
+          <Col md={4}>{this.render_more_links()}</Col>
           <Col md={2}>
             <span
               style={{
@@ -226,7 +221,6 @@ export class UserResult extends Component<Props, State> {
         </Row>
         {this.render_subscriptions()}
         {this.render_projects()}
-        {this.render_activity()}
         {this.render_impersonate()}
         {this.render_password()}
         {this.render_ban()}
@@ -238,22 +232,22 @@ export class UserResult extends Component<Props, State> {
     return (
       <div style={{ color: "#666" }}>
         <Row>
-          <Col md={1}>
+          <Col md={1} style={{ overflow: "auto" }}>
             <b>{this.props.first_name}</b>
           </Col>
-          <Col md={1}>
+          <Col md={1} style={{ overflow: "auto" }}>
             <b>{this.props.last_name}</b>
           </Col>
-          <Col md={2}>
+          <Col md={2} style={{ overflow: "auto" }}>
             <b>{this.props.email_address}</b>
           </Col>
-          <Col md={3}>
+          <Col md={2}>
             <b>
               {this.props.last_active} ({this.props.created}){" "}
               <Icon name="caret-down" />{" "}
             </b>
           </Col>
-          <Col md={3}>
+          <Col md={4}>
             <b>More...</b>
           </Col>
           <Col md={2}>

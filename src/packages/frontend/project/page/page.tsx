@@ -55,10 +55,8 @@ const NavWrapper = ({ style, children, id, className, bsStyle }) =>
 const SortableNav = SortableContainer(NavWrapper);
 
 const INDICATOR_STYLE: React.CSSProperties = {
-  paddingTop: "1px",
   overflow: "hidden",
   paddingLeft: "5px",
-  height: "32px",
 } as const;
 
 interface Props {

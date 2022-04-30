@@ -100,8 +100,8 @@ export interface SyncOpts0 {
   client: Client;
   patch_interval?: number;
 
-  // file_use_interval defaults to 10000 for chat and 60000
-  // for everything else.  Specify 0 to disable.
+  // file_use_interval defaults to 60000.
+  // Specify 0 to disable.
   file_use_interval?: number;
 
   string_id?: string;
@@ -157,7 +157,6 @@ export class SyncDoc extends EventEmitter {
   private change_throttle: number = 0;
 
   // file_use_interval throttle: default is 60s for everything
-  // except .sage-chat files, where it is 10s.
   private file_use_interval: number;
   private throttled_file_use?: Function;
 
@@ -341,13 +340,8 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_file_use_interval(): void {
-    const is_chat = filename_extension(this.path) === "sage-chat";
     if (this.file_use_interval == null) {
-      if (is_chat) {
-        this.file_use_interval = 10 * 1000;
-      } else {
-        this.file_use_interval = 60 * 1000;
-      }
+      this.file_use_interval = 60 * 1000;
     }
 
     if (!this.file_use_interval || !this.client.is_user()) {
@@ -355,35 +349,27 @@ export class SyncDoc extends EventEmitter {
       // this for browser user.
       return;
     }
-    //const dbg = this.dbg('init_file_use_interval')
-    let action;
-    if (is_chat) {
-      action = "chat";
-    } else {
-      action = "edit";
-    }
+
     const file_use = async () => {
-      if (!is_chat) {
-        await delay(100); // wait a little so my_patches and gets updated.
-        // We ONLY count this and record that the file was
-        // edited if there was an actual change record in the
-        // patches log, by this user, since last time.
-        let user_is_active: boolean = false;
-        for (const tm in this.my_patches) {
-          if (new Date(parseInt(tm)) > this.last_user_change) {
-            user_is_active = true;
-            break;
-          }
+      await delay(100); // wait a little so my_patches and gets updated.
+      // We ONLY count this and record that the file was
+      // edited if there was an actual change record in the
+      // patches log, by this user, since last time.
+      let user_is_active: boolean = false;
+      for (const tm in this.my_patches) {
+        if (new Date(parseInt(tm)) > this.last_user_change) {
+          user_is_active = true;
+          break;
         }
-        if (!user_is_active) {
-          return;
-        }
+      }
+      if (!user_is_active) {
+        return;
       }
       this.last_user_change = new Date();
       this.client.mark_file({
         project_id: this.project_id,
         path: this.path,
-        action,
+        action: "edit",
         ttl: this.file_use_interval,
       });
     };

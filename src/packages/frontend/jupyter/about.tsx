@@ -8,10 +8,9 @@ About dialog -- provides info about the Jupyter Notebook
 */
 
 import Ansi from "ansi-to-react";
-import { React } from "../app-framework";
-import { Button, Modal } from "react-bootstrap";
+import { Modal } from "antd";
 import { Icon, A } from "../components";
-const { ShowSupportLink } = require("../support");
+import { ShowSupportLink } from "../support";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { KernelInfo } from "./types";
 import { JupyterActions } from "./browser-actions";
@@ -22,9 +21,7 @@ interface AboutProps {
   backend_kernel_info?: KernelInfo;
 }
 
-export const About: React.FC<AboutProps> = React.memo((props: AboutProps) => {
-  const { actions, about, backend_kernel_info } = props;
-
+export function About({ actions, about, backend_kernel_info }: AboutProps) {
   function close(): void {
     actions.setState({ about: false });
     actions.focus(true);
@@ -91,6 +88,11 @@ export const About: React.FC<AboutProps> = React.memo((props: AboutProps) => {
           created
         </li>
         <li>
+          <b>Text/Markdown:</b> powerful graphical editor for markdown cells, so
+          you can write nicely formatted text to explain your code without
+          having to write markdown directly.
+        </li>
+        <li>
           <b>Snippets:</b> code samples for many kernels
         </li>
         <li>
@@ -146,46 +148,45 @@ export const About: React.FC<AboutProps> = React.memo((props: AboutProps) => {
   }
 
   return (
-    <Modal show={about} bsSize="large" onHide={close}>
-      <Modal.Header closeButton>
-        <Modal.Title>
+    <Modal
+      width={900}
+      visible={about}
+      onCancel={close}
+      onOk={close}
+      title={
+        <>
           <Icon name="question-circle" /> About CoCalc Jupyter notebook
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <p>You are using the CoCalc Jupyter notebook.</p>
+        </>
+      }
+    >
+      <p>You are using the CoCalc Jupyter notebook.</p>
 
-        <div style={{ color: "#333", margin: "0px 45px" }}>
-          CoCalc Jupyter notebook is a complete open source rewrite by SageMath,
-          Inc. of the classical Jupyter notebook client from the{" "}
-          <A href="http://jupyter.org/">Jupyter project</A>. CoCalc Jupyter
-          notebook maintains full compatibility with the file format and general
-          look and feel of the classical notebook. It improves on the classical
-          notebook as follows:
-          {render_features()}
-          Some functionality of classical extensions are not yet supported (if
-          you need something,{" "}
-          <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AA-jupyter">
-            check here
-          </A>{" "}
-          and create a <ShowSupportLink />
-          ), and some of the above is also available in classical Jupyter via
-          extensions.
-        </div>
+      <div style={{ color: "#333", margin: "0px 45px" }}>
+        CoCalc Jupyter notebook is a complete open source rewrite by SageMath,
+        Inc. of the classical Jupyter notebook client from the{" "}
+        <A href="http://jupyter.org/">Jupyter project</A>. CoCalc Jupyter
+        notebook maintains full compatibility with the file format and general
+        look and feel of the classical notebook. It improves on the classical
+        notebook as follows:
+        {render_features()}
+        Some functionality of classical extensions are not yet supported (if you
+        need something,{" "}
+        <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AA-jupyter">
+          check here
+        </A>{" "}
+        and create a <ShowSupportLink />
+        ), and some of the above is also available in classical Jupyter via
+        extensions.
+      </div>
 
-        <h4>Questions</h4>
-        {render_faq()}
+      <h4 style={{ marginTop: "15px" }}>Questions</h4>
+      {render_faq()}
 
-        <h4>Server Information</h4>
-        {render_server_info()}
+      <h4 style={{ marginTop: "15px" }}>Server Information</h4>
+      {render_server_info()}
 
-        <h4>Current Kernel Information</h4>
-        {render_kernel_info()}
-      </Modal.Body>
-
-      <Modal.Footer>
-        <Button onClick={close}>Close</Button>
-      </Modal.Footer>
+      <h4 style={{ marginTop: "15px" }}>Current Kernel Information</h4>
+      {render_kernel_info()}
     </Modal>
   );
-});
+}

@@ -93,28 +93,6 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
     return <span style={style}>{children}</span>;
   }
 
-  function get_scale(): React.CSSProperties | undefined {
-    return;
-    // I'm disabling this since I don't think it's that useful,
-    // and this does not work at all.  Plus our current react-bootstrap
-    // tip implementation is horribly broken.
-    /*
-    if (size == null) return;
-    switch (size) {
-      case "xsmall":
-        return { transform: "scale(0.75)" };
-      case "small":
-        return { transform: "scale(0.9)" };
-      case "medium":
-        return;
-      case "large":
-        return { transform: "scale(1.2)" };
-      default:
-        unreachable(size);
-    }
-    */
-  }
-
   function render_tooltip() {
     if (delayShow == null || delayHide == null) return null;
 
@@ -126,7 +104,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
       mouseLeaveDelay: delayHide / 1000,
     };
 
-    props.overlayStyle = Object.assign({}, popover_style, get_scale());
+    props.overlayStyle = Object.assign({}, popover_style);
 
     if (tip) {
       return (

@@ -13,14 +13,12 @@ We do NOT render any other annotations (e.g., notes, etc.), as would be produced
 like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-files-generated-by-pdflatex
 */
 
-const HIGHLIGHT_HEIGHT: number = 30;
-
-import { useIsMountedRef, React } from "../../app-framework";
+import { useRef, useState, useEffect } from "react";
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import type { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
+import { Util } from "pdfjs-dist";
 
-// Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
-const PDFJS = require("pdfjs-dist");
-import { is_different } from "@cocalc/util/misc";
+const HIGHLIGHT_HEIGHT: number = 30;
 
 export interface SyncHighlight {
   y: number;
@@ -30,45 +28,40 @@ export interface SyncHighlight {
 interface Props {
   page: PDFPageProxy;
   scale: number;
-  click_annotation: Function;
+  clickAnnotation: Function;
   // If sync_highlight is set, draw a horizontal yellow highlight around
   // this y position, which fades out over the next few seconds.
-  sync_highlight?: SyncHighlight;
+  syncHighlight?: SyncHighlight;
 }
 
-function should_memoize(prev, next) {
-  return !is_different(prev, next, ["page", "scale", "sync_highlight"]);
-}
-
-export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    page,
-    scale,
-    click_annotation,
-    sync_highlight: sync_highlight_prop,
-  } = props;
+export default function AnnotationLayer({
+  page,
+  scale,
+  clickAnnotation,
+  syncHighlight: sync_highlight_prop,
+}: Props) {
   const isMounted = useIsMountedRef();
-  const sync_highlight_number = React.useRef<number>(0);
-  const [annotations, set_annotations] = React.useState<
+  const sync_highlight_number = useRef<number>(0);
+  const [annotations, set_annotations] = useState<
     PDFAnnotationData[] | undefined
   >(undefined);
-  const [sync_highlight, set_sync_highlight] = React.useState<
+  const [sync_highlight, set_sync_highlight] = useState<
     SyncHighlight | undefined
   >(sync_highlight_prop);
 
-  React.useEffect(() => {
+  useEffect(() => {
     update_annotations();
   }, [page]);
 
   // react to changes in props
-  React.useEffect(() => {
+  useEffect(() => {
     if (sync_highlight_prop != null && sync_highlight_prop != sync_highlight) {
       set_sync_highlight(sync_highlight_prop);
     }
   }, [sync_highlight_prop]);
 
   // remove highlight after a brief timeout
-  React.useEffect(() => {
+  useEffect(() => {
     if (sync_highlight != null) {
       const wait_ms = sync_highlight.until.getTime() - Date.now();
       sync_highlight_number.current += 1;
@@ -84,7 +77,8 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
 
   async function update_annotations(): Promise<void> {
     try {
-      const annotations = ((await page.getAnnotations()) as unknown) as PDFAnnotationData[];
+      const annotations =
+        (await page.getAnnotations()) as unknown as PDFAnnotationData[];
       if (!isMounted.current) return;
       set_annotations(annotations);
     } catch (err) {
@@ -105,7 +99,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
         console.log("Annotation not implemented", annotation);
         continue;
       }
-      const [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
+      const [x1, y1, x2, y2] = Util.normalizeRect(annotation.rect);
       const page_height = page.view[3];
       const left = x1 - 1,
         top = page_height - y2 - 1,
@@ -121,7 +115,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
       // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
       const elt = (
         <div
-          onClick={() => click_annotation(annotation)}
+          onClick={() => clickAnnotation(annotation)}
           key={annotation.id}
           style={{
             position: "absolute",
@@ -178,4 +172,4 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return render_annotations();
-}, should_memoize);
+}

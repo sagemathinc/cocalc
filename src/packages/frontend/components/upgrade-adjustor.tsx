@@ -32,7 +32,7 @@ import {
   Row,
   Col,
 } from "../antd-bootstrap";
-import { Button as OldButton } from "react-bootstrap";
+import { Button as AntdButton } from "antd";
 import { UpgradeRestartWarning } from "../upgrade-restart-warning";
 import { Tip } from "./tip";
 import { Checkbox } from "antd";
@@ -176,15 +176,16 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
   }
 
   // the max button will set the upgrade input box to the number given as max
+  // This looks a little crappy but this whole component is deprecated anyways.
   function render_max_button(name, max): JSX.Element {
     return (
-      <OldButton
-        bsSize="small"
+      <AntdButton
+        size="small"
         onClick={() => set_state(name, max)}
-        style={{ padding: "0px 5px" }}
+        style={{ padding: "0px 5px", height: "20px" }}
       >
         Max
-      </OldButton>
+      </AntdButton>
     );
   }
 

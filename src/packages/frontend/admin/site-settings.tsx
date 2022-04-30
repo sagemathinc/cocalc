@@ -3,8 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { FormGroup, FormControl, Well } from "react-bootstrap";
-import { Button } from "../antd-bootstrap";
+import { Button, FormGroup, FormControl, Well } from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "../alerts";
 import humanizeList from "humanize-list";
 import {
