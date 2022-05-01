@@ -15,6 +15,19 @@ import getSource from "./source";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   // console.log("parse", JSON.stringify({ token, state }));
+
+  if (token.type == "image") {
+    // The image token that comes out of markdown-it is very weird, since if you do
+    //  [foo](bar.png)
+    // then it makes foo be the *child* of bar.png and sets no alt tag.  That just
+    // makes absolutely no sense at all, so we workaround this (bug?!) as follows.
+    // If this bug gets fixed upstream, then I guess the code below would safely become a no-op.
+    // I should report this.
+    if ((token.children?.length ?? 0) > 0) {
+      token.attrs[1] = ["alt", token.children[0].content];
+      token.children = [];
+    }
+  }
   for (const handler of handlers) {
     const nodes: Descendant[] | undefined = handler({ token, state, cache });
     if (nodes != null) {
