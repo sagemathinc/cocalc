@@ -14,7 +14,7 @@ import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { startswith, filename_extension } from "@cocalc/util/misc";
-import { Icon, Markdown } from "../components";
+import { Icon } from "../components";
 import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt/input";
 import { Complete } from "./complete";
@@ -25,6 +25,7 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 
 // TODO: plan to switch to this soon!
 // import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
@@ -224,17 +225,23 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <Markdown
+          <MostlyStaticMarkdown
             value={value}
-            project_id={props.project_id}
-            file_path={props.directory}
-            href_transform={href_transform(props.project_id, props.cell)}
-            post_hook={markdown_post_hook}
-            safeHTML={!props.trust}
+            onChange={(value) => {
+              // user checked a checkbox.
+              props.actions?.set_cell_input(props.id, value, true);
+            }}
           />
         </div>
       );
       // <MostlyStaticMarkdown value={value} />
+      //           /*
+      //             project_id={props.project_id}
+      //             file_path={props.directory}
+      //             href_transform={href_transform(props.project_id, props.cell)}
+      //             post_hook={markdown_post_hook}
+      //             safeHTML={!props.trust}
+      //           />
     }
 
     function render_unsupported(type: string): Rendered {

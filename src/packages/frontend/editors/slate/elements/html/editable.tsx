@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { register } from "../register";
 import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../../util";
@@ -23,7 +23,15 @@ const Element = ({ attributes, children, element }) => {
       ? `1px solid ${FOCUSED_COLOR}`
       : `1px solid transparent`;
   const html = ((element.html as string) ?? "").trim();
+
   const ref = useProcessLinks([html]);
+  useEffect(() => {
+    if (ref.current) {
+      // @ts-ignore
+      $(ref.current).katex({ preProcess: true });
+    }
+  }, [html]);
+
   // this feels ugly in practice, and we have the source so not doing it.
   const is_comment = false;
   // const is_comment = html.startsWith("<!--") && html.endsWith("-->");
