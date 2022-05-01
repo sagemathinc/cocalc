@@ -26,39 +26,39 @@ import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-edit
 import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 
 // TODO: plan to switch to this soon!
 // import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
-function href_transform(
+function attachmentTransform(
   project_id: string | undefined,
-  cell: Map<string, any>
-): (string) => string {
-  return (href: string) => {
-    if (!startswith(href, "attachment:")) {
-      return href;
-    }
-    const name = href.slice("attachment:".length);
-    const data = cell.getIn(["attachments", name]);
-    let ext = filename_extension(name);
-    switch (data?.get("type")) {
-      case "sha1":
-        const sha1 = data.get("value");
-        if (project_id == null) {
-          return href; // can't do anything.
-        }
-        return get_blob_url(project_id, ext, sha1);
-      case "base64":
-        if (ext === "jpg") {
-          ext = "jpeg";
-        }
-        return `data:image/${ext};base64,${data.get("value")}`;
-      default:
-        return "";
-    }
-  };
+  cell: Map<string, any>,
+  href?: string
+): string | undefined {
+  if (!href || !startswith(href, "attachment:")) {
+    return;
+  }
+  const name = href.slice("attachment:".length);
+  const data = cell.getIn(["attachments", name]);
+  let ext = filename_extension(name);
+  switch (data?.get("type")) {
+    case "sha1":
+      const sha1 = data.get("value");
+      if (project_id == null) {
+        return href; // can't do anything.
+      }
+      return get_blob_url(project_id, ext, sha1);
+    case "base64":
+      if (ext === "jpg") {
+        ext = "jpeg";
+      }
+      return `data:image/${ext};base64,${data.get("value")}`;
+    default:
+      return "";
+  }
 }
 
 function markdown_post_hook(elt) {
@@ -207,6 +207,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
+    const fileContext = useFileContext();
+    const urlTransform = useCallback(
+      (url, tag?) => {
+        const url1 = attachmentTransform(props.project_id, props.cell, url);
+        if (url1 != null && url1 != url) {
+          return url1;
+        }
+        return fileContext.urlTransform?.(url, tag);
+      },
+      [props.cell.get("attachments")]
+    );
+
     function render_markdown(): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
@@ -225,17 +237,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <MostlyStaticMarkdown
-            value={value}
-            onChange={(value) => {
-              // user checked a checkbox.
-              props.actions?.set_cell_input(props.id, value, true);
-            }}
-          />
+          <FileContext.Provider value={{ ...useFileContext, urlTransform }}>
+            <MostlyStaticMarkdown
+              value={value}
+              onChange={(value) => {
+                // user checked a checkbox.
+                props.actions?.set_cell_input(props.id, value, true);
+              }}
+            />
+          </FileContext.Provider>
         </div>
       );
-      // <MostlyStaticMarkdown value={value} />
-      //           /*
+      // <Markdown
       //             project_id={props.project_id}
       //             file_path={props.directory}
       //             href_transform={href_transform(props.project_id, props.cell)}
@@ -275,84 +288,88 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
       return (
-        <MarkdownInput
-          cacheId={`${props.id}${frameActions.current?.frame_id}`}
-          value={props.cell.get("input") ?? ""}
-          height="auto"
-          onChange={(value) => {
-            props.actions?.set_cell_input(props.id, value, true);
-          }}
-          getValueRef={getValueRef}
-          onShiftEnter={(value) => {
-            props.actions?.set_cell_input(props.id, value, true);
-            frameActions.current?.set_md_cell_not_editing(props.id);
-          }}
-          saveDebounceMs={SAVE_DEBOUNCE_MS}
-          cmOptions={cmOptions}
-          autoFocus={props.is_focused || props.is_current}
-          onUndo={
-            props.actions == null
-              ? undefined
-              : () => {
-                  props.actions?.undo();
-                }
-          }
-          onRedo={
-            props.actions == null
-              ? undefined
-              : () => {
-                  props.actions?.redo();
-                }
-          }
-          onSave={
-            props.actions == null
-              ? undefined
-              : () => {
-                  props.actions?.save();
-                }
-          }
-          onCursors={
-            props.actions == null
-              ? undefined
-              : (cursors) => {
-                  const id = props.cell.get("id");
-                  const cur = cursors.map((z) => {
-                    return { ...z, id };
-                  });
-                  props.actions?.set_cursor_locs(cur);
-                }
-          }
-          cursors={props.cell.get("cursors")?.toJS()}
-          onCursorTop={() => {
-            frameActions.current?.adjacentCell(-1, -1);
-          }}
-          onCursorBottom={() => {
-            frameActions.current?.adjacentCell(0, 1);
-          }}
-          isFocused={props.is_focused}
-          onFocus={() => {
-            const actions = frameActions.current;
-            if (actions != null) {
-              actions.unselect_all_cells();
-              actions.set_cur_id(props.id);
-              actions.set_mode("edit");
+        <FileContext.Provider value={{ ...useFileContext, urlTransform }}>
+          <MarkdownInput
+            cacheId={`${props.id}${frameActions.current?.frame_id}`}
+            value={props.cell.get("input") ?? ""}
+            height="auto"
+            onChange={(value) => {
+              props.actions?.set_cell_input(props.id, value, true);
+            }}
+            getValueRef={getValueRef}
+            onShiftEnter={(value) => {
+              props.actions?.set_cell_input(props.id, value, true);
+              frameActions.current?.set_md_cell_not_editing(props.id);
+            }}
+            saveDebounceMs={SAVE_DEBOUNCE_MS}
+            cmOptions={cmOptions}
+            autoFocus={props.is_focused || props.is_current}
+            onUndo={
+              props.actions == null
+                ? undefined
+                : () => {
+                    props.actions?.undo();
+                  }
             }
-          }}
-          registerEditor={(editor) => {
-            frameActions.current?.register_input_editor(
-              props.cell.get("id"),
-              editor
-            );
-          }}
-          unregisterEditor={() => {
-            frameActions.current?.unregister_input_editor(props.cell.get("id"));
-          }}
-          modeSwitchStyle={{ marginRight: "32px" }}
-          editBarStyle={{
-            paddingRight:
-              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
-          }}
-        />
+            onRedo={
+              props.actions == null
+                ? undefined
+                : () => {
+                    props.actions?.redo();
+                  }
+            }
+            onSave={
+              props.actions == null
+                ? undefined
+                : () => {
+                    props.actions?.save();
+                  }
+            }
+            onCursors={
+              props.actions == null
+                ? undefined
+                : (cursors) => {
+                    const id = props.cell.get("id");
+                    const cur = cursors.map((z) => {
+                      return { ...z, id };
+                    });
+                    props.actions?.set_cursor_locs(cur);
+                  }
+            }
+            cursors={props.cell.get("cursors")?.toJS()}
+            onCursorTop={() => {
+              frameActions.current?.adjacentCell(-1, -1);
+            }}
+            onCursorBottom={() => {
+              frameActions.current?.adjacentCell(0, 1);
+            }}
+            isFocused={props.is_focused}
+            onFocus={() => {
+              const actions = frameActions.current;
+              if (actions != null) {
+                actions.unselect_all_cells();
+                actions.set_cur_id(props.id);
+                actions.set_mode("edit");
+              }
+            }}
+            registerEditor={(editor) => {
+              frameActions.current?.register_input_editor(
+                props.cell.get("id"),
+                editor
+              );
+            }}
+            unregisterEditor={() => {
+              frameActions.current?.unregister_input_editor(
+                props.cell.get("id")
+              );
+            }}
+            modeSwitchStyle={{ marginRight: "32px" }}
+            editBarStyle={{
+              paddingRight:
+                "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+            }}
+          />
+        </FileContext.Provider>
       );
     }
 

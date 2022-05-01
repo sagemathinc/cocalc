@@ -63,6 +63,7 @@ export function toSlate({ type, children, token }) {
   }
 }
 
+
 register({
   slateType: "image",
   toSlate,
@@ -73,7 +74,7 @@ register({
     return (
       <img
         {...attributes}
-        src={urlTransform?.(src) ?? src}
+        src={urlTransform?.(src, 'img') ?? src}
         alt={alt}
         title={title}
         style={{

@@ -13,7 +13,11 @@ import {
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
-import { IS_FIREFOX, IS_SAFARI, HAS_BEFORE_INPUT_SUPPORT } from "../utils/environment";
+import {
+  IS_FIREFOX,
+  IS_SAFARI,
+  HAS_BEFORE_INPUT_SUPPORT,
+} from "../utils/environment";
 import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";

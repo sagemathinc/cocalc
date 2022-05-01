@@ -96,10 +96,9 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     }
     const focus: boolean = !endswith(obj.m ? obj.m : "", "...");
     return (
-      <Tooltip title={obj.m} placement="bottom">
+      <Tooltip title={obj.m} placement="bottom" key={key}>
         <Button
           className={className}
-          key={key}
           onClick={command(name, focus)}
           disabled={disabled}
           style={style}

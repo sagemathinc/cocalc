@@ -15,7 +15,7 @@
 import { delay } from "awaiting";
 // import { Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { is_different, path_split } from "@cocalc/util/misc";
+import { is_different } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
