@@ -37,31 +37,6 @@ export default function Page({
   page,
   syncHighlight,
 }: PageProps) {
-  function render_content() {
-    if (!page) return;
-    const f = (annotation) => {
-      clickAnnotation(annotation);
-    };
-    return (
-      <CanvasPage
-        page={page}
-        scale={scale}
-        clickAnnotation={f}
-        syncHighlight={syncHighlight}
-      />
-    );
-  }
-
-  function click(event): void {
-    if (!actions.synctex_pdf_to_tex) {
-      // no support for synctex for whatever is using this.
-      return;
-    }
-    const x: number = event.nativeEvent.offsetX / scale;
-    const y: number = event.nativeEvent.offsetY / scale;
-    actions.synctex_pdf_to_tex(n, x, y);
-  }
-
   async function clickAnnotation(
     annotation0: PDFAnnotationData
   ): Promise<void> {
@@ -108,9 +83,22 @@ export default function Page({
           background: "white",
           margin: "auto",
         }}
-        onDoubleClick={(e) => click(e)}
+        onDoubleClick={(event) => {
+          if (!actions.synctex_pdf_to_tex) {
+            // no support for synctex for whatever is using this.
+            return;
+          }
+          const x: number = event.nativeEvent.offsetX / scale;
+          const y: number = event.nativeEvent.offsetY / scale;
+          actions.synctex_pdf_to_tex(n, x, y);
+        }}
       >
-        {render_content()}
+        <CanvasPage
+          page={page}
+          scale={scale}
+          clickAnnotation={clickAnnotation}
+          syncHighlight={syncHighlight}
+        />
       </div>
     </div>
   );

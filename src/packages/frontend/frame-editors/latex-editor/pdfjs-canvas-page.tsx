@@ -7,7 +7,6 @@
 Render a single PDF page using canvas.
 */
 
-import $ from "jquery";
 import { useCallback, useEffect, useRef } from "react";
 import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
@@ -30,6 +29,11 @@ export default function CanvasPage({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastScaleRef = useRef<number>(scale);
   const lastRenderScaleRef = useRef<number>(scale);
+
+  const viewport: PDFPageViewport = page.getViewport({
+    scale: scale * window.devicePixelRatio,
+  });
+  const height = `${viewport.height / window.devicePixelRatio}px`;
 
   const scalePage = useCallback(async (scale) => {
     if (lastScaleRef.current == scale) return;
@@ -97,6 +101,7 @@ export default function CanvasPage({
       style={{
         position: "relative",
         display: "inline-block",
+        height,
       }}
     >
       <AnnotationLayer
