@@ -2403,6 +2403,7 @@ export class Actions<
       this.project_id,
       this.path
     );
+    this._key_handler = key_handler;
   }
 
   public erase_active_key_handler(key_handler: Function): void {
