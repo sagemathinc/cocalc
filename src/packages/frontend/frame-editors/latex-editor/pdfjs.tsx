@@ -189,16 +189,16 @@ export function PDFJS({
       );
       return;
     }
-  }, []);
+  }, []); // important -- don't change it because it gets removed based on the function
 
   useEffect(() => {
-    if (actions == null || pageActions == null) {
+    if (actions == null) {
       return;
     }
     if (is_current && is_visible) {
-      pageActions.set_active_key_handler(keyHandler, project_id, actions.path);
+      actions.set_active_key_handler(keyHandler);
     } else {
-      pageActions.erase_active_key_handler(keyHandler);
+      actions.erase_active_key_handler(keyHandler);
     }
   }, [is_current, is_visible, pageActions != null]);
 
@@ -454,7 +454,7 @@ export function PDFJS({
     const height = (viewport?.height ?? 500) + PAGE_GAP;
     return (
       <Virtuoso
-        increaseViewportBy={4000}
+        increaseViewportBy={2000}
         ref={virtuosoRef}
         defaultItemHeight={height}
         totalCount={doc.numPages}
