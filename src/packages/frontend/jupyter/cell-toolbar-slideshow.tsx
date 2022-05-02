@@ -8,8 +8,7 @@ The slideshow toolbar functionality for cells.
 */
 
 import { React } from "../app-framework";
-
-import { FormControl } from "react-bootstrap";
+import { FormControl } from "@cocalc/frontend/antd-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 import { JupyterActions } from "./browser-actions";
 

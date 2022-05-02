@@ -9,7 +9,7 @@ The metadata editing toolbar.
 
 import { React } from "../app-framework";
 
-import { Button } from "react-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 import { JupyterActions } from "./browser-actions";
 

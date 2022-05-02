@@ -12,8 +12,15 @@ import { React, Rendered, useState } from "../app-framework";
 import { Map } from "immutable";
 import json from "json-stable-stringify";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
-import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
-import { A, Icon, IconName, SearchInput, r_join } from "../components";
+import { Modal } from "antd";
+import { Button, Grid, Row, Col } from "@cocalc/frontend/antd-bootstrap";
+import {
+  A,
+  Icon,
+  IconName,
+  SearchInput,
+  r_join,
+} from "@cocalc/frontend/components";
 import {
   commands as create_commands,
   CommandDescription,
@@ -21,8 +28,8 @@ import {
 } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
-const { ShowSupportLink } = require("../support");
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { ShowSupportLink } from "@cocalc/frontend/support";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
@@ -501,49 +508,54 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
     if (keyboard_shortcuts == null) return <span />;
 
     return (
-      <Modal show={true} onHide={close} bsSize="large">
-        <Modal.Header closeButton>
-          <Modal.Title>
+      <Modal
+        visible={true}
+        onCancel={close}
+        onOk={close}
+        width={900}
+        title={
+          <>
             <Icon name="keyboard" /> Jupyter commands and keyboard shortcuts
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Grid style={{ width: "100%" }}>
-            <Row>
-              <Col md={12}>
-                <SearchInput
-                  autoFocus={true}
-                  value={search}
-                  on_change={search_change}
-                  placeholder={"Search commands..."}
-                />
-              </Col>
-            </Row>
-            <Row>
-              <Col md={9}>
-                {render_heading()}
-                <CommandList
-                  actions={actions}
-                  editor_actions={editor_actions}
-                  taken={taken}
-                  search={search}
-                />
-              </Col>
-              <Col md={3}>{render_symbols()}</Col>
-            </Row>
-          </Grid>
-        </Modal.Body>
-        <Modal.Footer>
-          <span style={{ float: "left", margin: "5px 0 0 25px" }}>
-            NOTE: Shortcut customization is{" "}
-            <A href="https://github.com/sagemathinc/cocalc/issues/3242">
-              not implemented
-            </A>
-            ; however, it is easy for us to{" "}
-            <ShowSupportLink text={"add new shortcuts and commands."} />{" "}
-          </span>
-          <Button onClick={close}>Close</Button>
-        </Modal.Footer>
+          </>
+        }
+        footer={
+          <>
+            <span style={{ float: "left", margin: "5px 0 0 25px" }}>
+              NOTE: Shortcut customization is{" "}
+              <A href="https://github.com/sagemathinc/cocalc/issues/3242">
+                not implemented
+              </A>
+              ; however, it is easy for us to{" "}
+              <ShowSupportLink text={"add new shortcuts and commands."} />{" "}
+            </span>
+            <Button onClick={close}>Close</Button>
+          </>
+        }
+      >
+        <Grid style={{ width: "100%" }}>
+          <Row>
+            <Col md={12}>
+              <SearchInput
+                autoFocus={true}
+                value={search}
+                on_change={search_change}
+                placeholder={"Search commands..."}
+              />
+            </Col>
+          </Row>
+          <Row>
+            <Col md={9}>
+              {render_heading()}
+              <CommandList
+                actions={actions}
+                editor_actions={editor_actions}
+                taken={taken}
+                search={search}
+              />
+            </Col>
+            <Col md={3}>{render_symbols()}</Col>
+          </Row>
+        </Grid>
       </Modal>
     );
   }

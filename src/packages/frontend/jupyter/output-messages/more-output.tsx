@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "react-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "@cocalc/frontend/components/icon";
 import React from "react";
 import { Map } from "immutable";
