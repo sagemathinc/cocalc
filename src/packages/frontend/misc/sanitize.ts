@@ -3,6 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// Updated note in 2022:  frontend/components/html-ssr.tsx
+// has some *actual* sanitization code using the xss library.
+// It's serious, but can often "break everything", leading to user complaints.
+// The implementation below seems just about trying to not crash the DOM,
+// and isn't at all a security thing.
+
 /*
 This HTML sanitization is necessary in such a case, where the user enters
 arbitrary HTML and then this HTML is added to the DOM. For example, a loose

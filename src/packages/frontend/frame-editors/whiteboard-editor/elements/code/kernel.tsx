@@ -87,7 +87,7 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
           }
         >
           <Button
-            style={{ margin: "5px", color: "#666" }}
+            style={{ color: "#666" }}
             size="small"
             onClick={() => {
               openJupyterNotebook({ project_id, path });

@@ -3,12 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { register } from "../register";
-import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
+import { useFocused, useSelected, useSlate } from "../hooks";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../../util";
 import { SlateCodeMirror } from "../codemirror";
 import { useSetElement } from "../set-element";
+import HTML from "@cocalc/frontend/components/html-ssr";
 
 function isBR(s: string): boolean {
   const x = s.toLowerCase().replace(/\s/g, "");
@@ -23,14 +24,6 @@ const Element = ({ attributes, children, element }) => {
       ? `1px solid ${FOCUSED_COLOR}`
       : `1px solid transparent`;
   const html = ((element.html as string) ?? "").trim();
-
-  const ref = useProcessLinks([html]);
-  useEffect(() => {
-    if (ref.current) {
-      // @ts-ignore
-      $(ref.current).katex({ preProcess: true });
-    }
-  }, [html]);
 
   // this feels ugly in practice, and we have the source so not doing it.
   const is_comment = false;
@@ -99,7 +92,7 @@ const Element = ({ attributes, children, element }) => {
             setEditMode(true);
           }}
         >
-          <div ref={ref} dangerouslySetInnerHTML={{ __html: html }}></div>
+          <HTML value={html} />
           {renderEditMode()}
         </div>
         {children}

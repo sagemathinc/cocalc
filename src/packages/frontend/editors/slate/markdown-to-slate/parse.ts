@@ -24,7 +24,10 @@ export function parse(token: Token, state: State, cache?): Descendant[] {
     // If this bug gets fixed upstream, then I guess the code below would safely become a no-op.
     // I should report this.
     if ((token.children?.length ?? 0) > 0) {
-      token.attrs[1] = ["alt", token.children[0].content];
+      if (token.attrs != null && token.children?.[0].content != null) {
+        // checks above to make typescript happy
+        token.attrs[1] = ["alt", token.children[0].content];
+      }
       token.children = [];
     }
   }

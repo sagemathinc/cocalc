@@ -7,8 +7,6 @@
 React component that describes the input of a cell
 */
 
-declare const $: any;
-
 import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
@@ -61,18 +59,24 @@ function attachmentTransform(
   }
 }
 
-function markdown_post_hook(elt) {
-  return elt.find(":header").each((_, h) => {
-    h = $(h);
-    const hash = h.text().trim().replace(/\s/g, "-");
-    h.attr("id", hash).addClass("cocalc-jupyter-header");
-    h.append(
-      $("<a/>")
-        .addClass("cocalc-jupyter-anchor-link")
-        .attr("href", `#${hash}`)
-        .text("¶")
-    );
-  });
+function HeadingTagComponent({ id, level, children, attributes }) {
+  let hash = "";
+  for (const child of children ?? []) {
+    hash += (child.props?.element?.text ?? "").replace(/\s/g, "-");
+  }
+  return React.createElement(
+    `h${level}`,
+    { id, ...attributes, className: "cocalc-jupyter-header" },
+    (children ?? []).concat(
+      <a
+        key="jupyter-anchor"
+        className="cocalc-jupyter-anchor-link"
+        href={`#${hash}`}
+      >
+        ¶
+      </a>
+    )
+  );
 }
 
 export interface CellInputProps {
@@ -237,7 +241,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <FileContext.Provider value={{ ...useFileContext, urlTransform }}>
+          <FileContext.Provider
+            value={{
+              ...useFileContext,
+              urlTransform,
+              HeadingTagComponent,
+              noSanitize: !!props.trust,
+            }}
+          >
             <MostlyStaticMarkdown
               value={value}
               onChange={(value) => {
@@ -248,13 +259,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           </FileContext.Provider>
         </div>
       );
-      // <Markdown
-      //             project_id={props.project_id}
-      //             file_path={props.directory}
-      //             href_transform={href_transform(props.project_id, props.cell)}
-      //             post_hook={markdown_post_hook}
-      //             safeHTML={!props.trust}
-      //           />
     }
 
     function render_unsupported(type: string): Rendered {
@@ -288,7 +292,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
       return (
-        <FileContext.Provider value={{ ...useFileContext, urlTransform }}>
+        <FileContext.Provider
+          value={{ ...useFileContext, urlTransform, noSanitize: !!props.trust }}
+        >
           <MarkdownInput
             cacheId={`${props.id}${frameActions.current?.frame_id}`}
             value={props.cell.get("input") ?? ""}

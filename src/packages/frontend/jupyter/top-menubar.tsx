@@ -595,8 +595,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style={{
           backgroundColor: "rgb(247,247,247)",
           border: "1px solid #e7e7e7",
-          minHeight: "34px",
-          paddingTop: "4px",
         }}
       >
         <ButtonGroup>
