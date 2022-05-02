@@ -842,7 +842,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                   padding: "70px",
                   background: "white",
                   overflow:
-                    "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
+                    height == "auto"
+                      ? "hidden" /* for height='auto' we never want a scrollbar  */
+                      : "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
                   ...pageStyle,
                 }
           }
