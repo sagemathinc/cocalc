@@ -14,6 +14,7 @@ import { replace_all } from "@cocalc/util/misc";
 
 interface Props {
   data: string;
+  inMarkdown?: boolean; // ignored, since 
 }
 
 export default function DefaultMath({ data }: Props) {

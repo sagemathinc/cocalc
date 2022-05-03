@@ -19,9 +19,10 @@ import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   data: string;
+  inMarkdown?: boolean;
 }
 
-export default function KaTeXAndMathJaxV2({ data }: Props) {
+export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
 
   useEffect(() => {
@@ -31,7 +32,10 @@ export default function KaTeXAndMathJaxV2({ data }: Props) {
     $(ref.current).katex({ preProcess: true });
   }, [data]);
 
-  if (redux.getStore("account")?.getIn(["other_settings", "katex"])) {
+  if (
+    inMarkdown &&
+    redux.getStore("account")?.getIn(["other_settings", "katex"])
+  ) {
     // There was an error, so will fallback to the old katex + mathjaxv2 via
     // an old jquery plugin...
     const __html = attemptKatex(data);

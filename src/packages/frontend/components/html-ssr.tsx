@@ -65,6 +65,15 @@ export default function HTML({
   if (!noSanitize) {
     value = stripXSS(value, getXSSOptions(urlTransform));
   }
+  if (value.trimLeft().startsWith("<html>")) {
+    // Sage output formulas are wrapped in "<html>" for some stupid reason, which
+    // probably originates with a ridiculous design choice that Tom Boothby or I
+    // made in 2006 related to "wiki" formatting in Sage notebooks.  If we don't strip
+    // this, then htmlReactParser just deletes the whole documents, since html is
+    // not a valid tag inside the DOM.  We do this in a really minimally flexible way
+    // to reduce the chances to 0 that we apply this when we shouldn't.
+    value = value.trim().slice("<html>".length, -"</html>".length);
+  }
   let options: any = {};
   options.replace = (domNode) => {
     if (domNode instanceof Text) {
