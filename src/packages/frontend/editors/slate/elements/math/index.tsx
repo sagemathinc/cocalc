@@ -6,7 +6,9 @@
 import React from "react";
 import { Element } from "slate";
 import { register, RenderElementProps, SlateElement } from "../register";
-import mathToHtml from "@cocalc/frontend/misc/math-to-html";
+//import mathToHtml from "@cocalc/frontend/misc/math-to-html";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import DefaultMath from "@cocalc/frontend/components/math/ssr";
 
 export interface DisplayMath extends SlateElement {
   type: "math_block";
@@ -22,14 +24,27 @@ export interface InlineMath extends SlateElement {
   isInline: true;
 }
 
-const StaticElement: React.FC<RenderElementProps> = ({
+export const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
+  const { MathComponent } = useFileContext();
   if (element.type != "math_block" && element.type != "math_inline") {
     // type guard.
     throw Error("bug");
   }
+  const C = MathComponent ?? DefaultMath;
+  return (
+    <span {...attributes}>
+      <C
+        data={wrap(
+          element.value,
+          element.type == "math_inline" && !element.display
+        )}
+      />
+    </span>
+  );
+  /*
   const { value } = element;
   const { err, __html } = React.useMemo(
     () => mathToHtml(value, element.type == "math_inline" && !element.display),
@@ -50,7 +65,16 @@ const StaticElement: React.FC<RenderElementProps> = ({
   ) : (
     <span {...attributes} dangerouslySetInnerHTML={{ __html }}></span>
   );
+  */
 };
+
+function wrap(math, isInline) {
+  math = "$" + math + "$";
+  if (!isInline) {
+    math = "$" + math + "$";
+  }
+  return math;
+}
 
 register({
   slateType: ["math_inline", "math_inline_double"],

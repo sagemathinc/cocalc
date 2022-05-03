@@ -21,11 +21,8 @@ import htmlReactParser, {
 import { Element, Text } from "domhandler/lib/node";
 import stripXSS, { safeAttrValue, whiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
-import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
-import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
-import { latexMathToHtml } from "@cocalc/frontend/misc/math-to-html";
-import { replace_all } from "@cocalc/util/misc";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import DefaultMath from "@cocalc/frontend/components/math/ssr";
 
 const URL_TAGS = ["src", "href", "data"];
 
@@ -63,7 +60,8 @@ export default function HTML({
   value: string;
   style?: React.CSSProperties;
 }) {
-  const { urlTransform, AnchorTagComponent, noSanitize } = useFileContext();
+  const { urlTransform, AnchorTagComponent, noSanitize, MathComponent } =
+    useFileContext();
   if (!noSanitize) {
     value = stripXSS(value, getXSSOptions(urlTransform));
   }
@@ -71,18 +69,10 @@ export default function HTML({
   options.replace = (domNode) => {
     if (domNode instanceof Text) {
       const { data } = domNode;
-      const [text, math] = remove_math(math_escape(data));
-      if (math.length == 0) return;
-      for (let i = 0; i < math.length; i++) {
-        math[i] = latexMathToHtml(math[i]);
+      if (MathComponent != null) {
+        return <MathComponent data={data} />;
       }
-      // Substitute processed math back in.
-      const __html = replace_all(
-        math_unescape(replace_math(text, math)),
-        "\\$",
-        "$"
-      );
-      return <div dangerouslySetInnerHTML={{ __html }}></div>;
+      return <DefaultMath data={data} />;
     }
 
     if (!(domNode instanceof Element)) return;

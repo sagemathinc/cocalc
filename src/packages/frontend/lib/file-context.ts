@@ -28,6 +28,8 @@ interface IFileContext {
     id?;
   }>;
 
+  MathComponent?: React.FC<{ data: string }>;
+
   // If given, then when an anchor (A) tag is clicked
   // on, the given function is called.
   anchorTagAction?: (url: string) => void;
