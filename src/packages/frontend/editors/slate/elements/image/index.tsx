@@ -63,18 +63,20 @@ export function toSlate({ type, children, token }) {
   }
 }
 
-
 register({
   slateType: "image",
   toSlate,
   StaticElement: ({ attributes, element }) => {
-    const { urlTransform } = useFileContext();
+    const { urlTransform, reloadImages } = useFileContext();
     const node = element as Image;
     const { src, alt, title } = node;
     return (
       <img
         {...attributes}
-        src={urlTransform?.(src, 'img') ?? src}
+        src={
+          (urlTransform?.(src, "img") ?? src) +
+          (reloadImages ? `?${Math.random()}` : "")
+        }
         alt={alt}
         title={title}
         style={{

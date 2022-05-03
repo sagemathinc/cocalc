@@ -243,7 +243,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           {render_markdown_edit_button()}
           <FileContext.Provider
             value={{
-              ...useFileContext,
+              ...fileContext,
               urlTransform,
               HeadingTagComponent,
               noSanitize: !!props.trust,
@@ -293,7 +293,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <FileContext.Provider
-          value={{ ...useFileContext, urlTransform, noSanitize: !!props.trust }}
+          value={{ ...fileContext, urlTransform, noSanitize: !!props.trust }}
         >
           <MarkdownInput
             cacheId={`${props.id}${frameActions.current?.frame_id}`}

@@ -40,6 +40,11 @@ interface IFileContext {
   urlTransform?: (url: string, tag?: string) => string | undefined;
 
   noSanitize?: boolean;
+
+  // If true, when rendering append a random query param after the source of any image
+  // to force it to reload.  This is, e.g., useful for R markdown, where each time it
+  // updates, the images may change, by their names don't, so we have to break the browser cache.
+  reloadImages?: boolean;
 }
 
 export const FileContext = createContext<IFileContext>({});
