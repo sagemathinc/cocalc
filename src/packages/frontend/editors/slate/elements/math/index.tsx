@@ -41,6 +41,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
           element.value,
           element.type == "math_inline" && !element.display
         )}
+        inMarkdown
       />
     </span>
   );

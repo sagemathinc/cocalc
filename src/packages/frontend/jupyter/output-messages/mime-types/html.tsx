@@ -15,5 +15,3 @@ const Html = ({ value }: { value: string }) => {
 // and as text/html that looks good.
 register("text/html", 5, Html);
 
-// put latex as HTML, since jupyter requires $'s anyways:
-register("text/latex", 3, Html);
