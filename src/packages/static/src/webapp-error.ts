@@ -92,6 +92,11 @@ function isWhitelisted({ error }): boolean {
       // Whitelisting this is fine, since darkreader is cosmetic.
       return true;
     }
+    if (error?.stack?.includes("codemirror/addon/edit/closetag")) {
+      // This closetag codemirror addon sometimes crashes; it's harmless, but scary.  This will probably
+      // get automatically fixed when we upgrade to codemirror 6.
+      return true;
+    }
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.
