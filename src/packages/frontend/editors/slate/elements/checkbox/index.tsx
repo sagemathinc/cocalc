@@ -29,9 +29,6 @@ function StaticElement({ attributes, children, element, setElement }: Props) {
         }}
         checked={!!element.value}
         disabled={setElement == null}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
         onChange={
           setElement == null
             ? undefined
