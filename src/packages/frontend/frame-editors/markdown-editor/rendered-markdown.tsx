@@ -13,7 +13,6 @@
 //    - [x] math is properly typeset
 
 import { delay } from "awaiting";
-// import { Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { is_different } from "@cocalc/util/misc";
 import { debounce } from "lodash";

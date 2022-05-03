@@ -1,15 +1,10 @@
 import register from "./register";
-import { Markdown } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-register("text/markdown", 4, ({ project_id, value, directory, trust }) => {
+register("text/markdown", 4, ({ value }) => {
   return (
     <div style={{ margin: "5px 0" }}>
-      <Markdown
-        value={value}
-        project_id={project_id}
-        file_path={directory}
-        safeHTML={!trust}
-      />
+      <StaticMarkdown value={value} />
     </div>
   );
 });

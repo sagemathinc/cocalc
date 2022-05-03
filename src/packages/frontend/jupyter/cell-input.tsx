@@ -59,26 +59,6 @@ function attachmentTransform(
   }
 }
 
-function HeadingTagComponent({ id, level, children, attributes }) {
-  let hash = "";
-  for (const child of children ?? []) {
-    hash += (child.props?.element?.text ?? "").replace(/\s/g, "-");
-  }
-  return React.createElement(
-    `h${level}`,
-    { id, ...attributes, className: "cocalc-jupyter-header" },
-    (children ?? []).concat(
-      <a
-        key="jupyter-anchor"
-        className="cocalc-jupyter-anchor-link"
-        href={`#${hash}`}
-      >
-        ¶
-      </a>
-    )
-  );
-}
-
 export interface CellInputProps {
   actions?: JupyterActions; // if not defined, then everything read only
   cm_options: Map<string, any>;
@@ -241,22 +221,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <FileContext.Provider
-            value={{
-              ...fileContext,
-              urlTransform,
-              HeadingTagComponent,
-              noSanitize: !!props.trust,
+          <MostlyStaticMarkdown
+            value={value}
+            onChange={(value) => {
+              // user checked a checkbox.
+              props.actions?.set_cell_input(props.id, value, true);
             }}
-          >
-            <MostlyStaticMarkdown
-              value={value}
-              onChange={(value) => {
-                // user checked a checkbox.
-                props.actions?.set_cell_input(props.id, value, true);
-              }}
-            />
-          </FileContext.Provider>
+          />
         </div>
       );
     }
@@ -292,90 +263,84 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
       return (
-        <FileContext.Provider
-          value={{ ...fileContext, urlTransform, noSanitize: !!props.trust }}
-        >
-          <MarkdownInput
-            cacheId={`${props.id}${frameActions.current?.frame_id}`}
-            value={props.cell.get("input") ?? ""}
-            height="auto"
-            onChange={(value) => {
-              props.actions?.set_cell_input(props.id, value, true);
-            }}
-            getValueRef={getValueRef}
-            onShiftEnter={(value) => {
-              props.actions?.set_cell_input(props.id, value, true);
-              frameActions.current?.set_md_cell_not_editing(props.id);
-            }}
-            saveDebounceMs={SAVE_DEBOUNCE_MS}
-            cmOptions={cmOptions}
-            autoFocus={props.is_focused || props.is_current}
-            onUndo={
-              props.actions == null
-                ? undefined
-                : () => {
-                    props.actions?.undo();
-                  }
+        <MarkdownInput
+          cacheId={`${props.id}${frameActions.current?.frame_id}`}
+          value={props.cell.get("input") ?? ""}
+          height="auto"
+          onChange={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+          }}
+          getValueRef={getValueRef}
+          onShiftEnter={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+            frameActions.current?.set_md_cell_not_editing(props.id);
+          }}
+          saveDebounceMs={SAVE_DEBOUNCE_MS}
+          cmOptions={cmOptions}
+          autoFocus={props.is_focused || props.is_current}
+          onUndo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.undo();
+                }
+          }
+          onRedo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.redo();
+                }
+          }
+          onSave={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.save();
+                }
+          }
+          onCursors={
+            props.actions == null
+              ? undefined
+              : (cursors) => {
+                  const id = props.cell.get("id");
+                  const cur = cursors.map((z) => {
+                    return { ...z, id };
+                  });
+                  props.actions?.set_cursor_locs(cur);
+                }
+          }
+          cursors={props.cell.get("cursors")?.toJS()}
+          onCursorTop={() => {
+            frameActions.current?.adjacentCell(-1, -1);
+          }}
+          onCursorBottom={() => {
+            frameActions.current?.adjacentCell(0, 1);
+          }}
+          isFocused={props.is_focused}
+          onFocus={() => {
+            const actions = frameActions.current;
+            if (actions != null) {
+              actions.unselect_all_cells();
+              actions.set_cur_id(props.id);
+              actions.set_mode("edit");
             }
-            onRedo={
-              props.actions == null
-                ? undefined
-                : () => {
-                    props.actions?.redo();
-                  }
-            }
-            onSave={
-              props.actions == null
-                ? undefined
-                : () => {
-                    props.actions?.save();
-                  }
-            }
-            onCursors={
-              props.actions == null
-                ? undefined
-                : (cursors) => {
-                    const id = props.cell.get("id");
-                    const cur = cursors.map((z) => {
-                      return { ...z, id };
-                    });
-                    props.actions?.set_cursor_locs(cur);
-                  }
-            }
-            cursors={props.cell.get("cursors")?.toJS()}
-            onCursorTop={() => {
-              frameActions.current?.adjacentCell(-1, -1);
-            }}
-            onCursorBottom={() => {
-              frameActions.current?.adjacentCell(0, 1);
-            }}
-            isFocused={props.is_focused}
-            onFocus={() => {
-              const actions = frameActions.current;
-              if (actions != null) {
-                actions.unselect_all_cells();
-                actions.set_cur_id(props.id);
-                actions.set_mode("edit");
-              }
-            }}
-            registerEditor={(editor) => {
-              frameActions.current?.register_input_editor(
-                props.cell.get("id"),
-                editor
-              );
-            }}
-            unregisterEditor={() => {
-              frameActions.current?.unregister_input_editor(
-                props.cell.get("id")
-              );
-            }}
-            modeSwitchStyle={{ marginRight: "32px" }}
-            editBarStyle={{
-              paddingRight:
-                "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
-            }}
-          />
-        </FileContext.Provider>
+          }}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
+          modeSwitchStyle={{ marginRight: "32px" }}
+          editBarStyle={{
+            paddingRight:
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+          }}
+        />
       );
     }
 
@@ -497,22 +462,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const type = props.cell.get("cell_type") || "code";
     return (
-      <div>
-        {render_cell_toolbar()}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "stretch",
-          }}
-          cocalc-test="cell-input"
-        >
-          {render_input_prompt(type)}
-          {render_complete()}
-          {render_input_value(type)}
-          {render_time()}
+      <FileContext.Provider
+        value={{
+          ...fileContext,
+          urlTransform,
+        }}
+      >
+        <div>
+          {render_cell_toolbar()}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "stretch",
+            }}
+            cocalc-test="cell-input"
+          >
+            {render_input_prompt(type)}
+            {render_complete()}
+            {render_input_value(type)}
+            {render_time()}
+          </div>
         </div>
-      </div>
+      </FileContext.Provider>
     );
   },
   (

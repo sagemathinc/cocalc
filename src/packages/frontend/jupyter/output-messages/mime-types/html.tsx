@@ -1,26 +1,10 @@
 import register from "./register";
-import { HTML } from "@cocalc/frontend/components";
+import HTML from "@cocalc/frontend/components/html-ssr";
 
-const Html = ({
-  project_id,
-  value,
-  directory,
-  trust,
-}: {
-  project_id?: string;
-  value: any;
-  directory?: string;
-  trust?: boolean;
-}) => {
+const Html = ({ value }: { value: string }) => {
   return (
     <div style={{ margin: "5px 0" }}>
-      <HTML
-        value={value}
-        auto_render_math={true}
-        project_id={project_id}
-        file_path={directory}
-        safeHTML={!trust}
-      />
+      <HTML value={value} />
     </div>
   );
 };
