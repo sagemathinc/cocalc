@@ -327,7 +327,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     data?: any,
     metadata?: any
   ): Promise<Comm> {
-    // console.log(`_create_comm(${target_name}, ${model_id}`, data, metadata);
+    console.log(`TODO: _create_comm(${target_name}, ${model_id}`, data, metadata);
     const comm = new Comm(
       target_name,
       model_id,
