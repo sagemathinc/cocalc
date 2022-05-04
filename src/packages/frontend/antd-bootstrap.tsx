@@ -28,7 +28,8 @@ export {
 
 import { MouseEventHandler } from "react";
 import { Rendered } from "./app-framework";
-import { r_join, Space } from "./components";
+import { r_join} from "./components/r_join";
+import { Space } from "./components/space";
 
 import {
   Alert as AntdAlert,

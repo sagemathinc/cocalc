@@ -7,10 +7,6 @@
 // You can't change other things like the style, href_transform function,
 // etc.  This is an assumption that makes things much more efficient,
 // and should be fine for everything in cocalc.
-// In particular, in jupyter/cell-input, the call to <Markdown... > there
-// provides a different function for href_transform every time it renders,
-// just for code simplicity, and there's really no need to update this
-// component.
 
 import React, { CSSProperties as CSS, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";

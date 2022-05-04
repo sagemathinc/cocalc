@@ -20,6 +20,8 @@ import { NotebookMode, Scroll } from "./types";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import HeadingTagComponent from "./heading-tag";
 
 import { createContext, useContext } from "react";
 interface IFrameContextType {
@@ -426,9 +428,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [cells]);
 
+  const fileContext = useFileContext();
+
+  let body;
+
   const iframeDivRef = useRef<any>(null);
   if (use_windowed_list) {
-    return (
+    body = (
       <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
         <Virtuoso
           ref={virtuosoRef}
@@ -474,11 +480,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         />
       </IFrameContext.Provider>
     );
-  }
-
-  // This is needed for **the share server**, which can't
-  // do windowing and also for the non-windowed mode.
-  function render_list_of_cells_directly() {
+  } else {
+    // This is needed for **the share server**, which hasn't had
+    // windowing implemented/tested for yet and also for the
+    // non-windowed mode, which we still support as an option.
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
     cell_list.forEach((id: string) => {
@@ -495,27 +500,33 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       }
     }
 
-    return v;
+    body = (
+      <div
+        key="cells"
+        className="smc-vfill"
+        style={{
+          fontSize: `${font_size}px`,
+          paddingLeft: "5px",
+          height: "100%",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+        ref={handleCellListRef}
+        onClick={actions != null && complete != null ? on_click : undefined}
+        onScroll={debounce(() => {
+          save_scroll();
+        }, 3000)}
+      >
+        {v}
+      </div>
+    );
   }
 
   return (
-    <div
-      key="cells"
-      className="smc-vfill"
-      style={{
-        fontSize: `${font_size}px`,
-        paddingLeft: "5px",
-        height: "100%",
-        overflowY: "auto",
-        overflowX: "hidden",
-      }}
-      ref={handleCellListRef}
-      onClick={actions != null && complete != null ? on_click : undefined}
-      onScroll={debounce(() => {
-        save_scroll();
-      }, 3000)}
+    <FileContext.Provider
+      value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
     >
-      {render_list_of_cells_directly()}
-    </div>
+      {body}
+    </FileContext.Provider>
   );
 };

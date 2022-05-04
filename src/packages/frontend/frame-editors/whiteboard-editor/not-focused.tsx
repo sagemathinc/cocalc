@@ -33,6 +33,12 @@ export default function NotFocused({
         ignoreNextClickRef.current = false;
         return;
       }
+      if (e?.target.className == "ant-checkbox-input") {
+        // special case -- clicking on a checkbox doesn't focus this element.
+        // we CANNOT handle this via e.stopPropagation() in editors/slate/elements/checkbox/index.tsx
+        // because Draggable fires this onStop before that onClick even happens.
+        return;
+      }
       if (selectable) {
         select(id, e, frame);
       } else if (edgeCreate) {
@@ -47,14 +53,14 @@ export default function NotFocused({
       cancel={".nodrag"}
       scale={canvasScale}
       disabled={!(selectable && !element.locked)}
-      onStop={(_, data) => {
+      onStop={(e, data) => {
         if (data.x || data.y) {
           frame.actions.moveElements([element], data);
           ignoreNextClickRef.current = true;
         } else {
           // Didn't move, so select it for edit. This is particular important on tablets, where
           // without this it would be really hard to select and edit anything.
-          onClick();
+          onClick(e);
         }
       }}
     >

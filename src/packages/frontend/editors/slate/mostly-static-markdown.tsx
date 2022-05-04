@@ -2,6 +2,14 @@
 Mostly static markdown, but with some minimal dynamic editable content, e.g., checkboxes,
 and maybe some other nice features, but much less than a full slate editor!
 
+This is used a lot in the fronend app, whereas the fully static one is used a lot in the next.js app.
+
+Extras include:
+
+- checkboxes
+
+- support for clicking on a hashtag being detected (e.g., used by task lists).
+
 This is a react component that renders markdown text using  Unlike the
 component defined in editable-markdown.tsx, this component is *static* -- you
 can't edit it. Moreover, it can be fully rendered on node.js for use in Next.js,
@@ -27,7 +35,6 @@ way with good code use!
 - We also optionally support very very minimal editing of static markdown right now:
    - namely, you can click checkboxes.  That's it.
   Editing preserves as much as it can about your original source markdown.
-
 */
 
 import { CSSProperties, useEffect, useRef, useMemo, useState } from "react";
@@ -167,7 +174,7 @@ function RenderElement({
           highlightStyle={
             {
               padding: 0,
-                backgroundColor:"#feff03" // to match what chrome browser users.
+              backgroundColor: "#feff03", // to match what chrome browser users.
             } /* since otherwise partial matches in parts of words add weird spaces in the word itself.*/
           }
           searchWords={searchWords}

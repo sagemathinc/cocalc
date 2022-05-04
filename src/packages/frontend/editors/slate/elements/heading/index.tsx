@@ -5,6 +5,7 @@
 
 import React from "react";
 import { register, SlateElement } from "../register";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 export interface Heading extends SlateElement {
   type: "heading";
@@ -24,6 +25,16 @@ register({
 
   StaticElement: ({ attributes, children, element }) => {
     if (element.type != "heading") throw Error("bug");
+
+    const { HeadingTagComponent } = useFileContext();
+    if (HeadingTagComponent != null) {
+      // support custom heading component for static rendering.
+      return (
+        <HeadingTagComponent {...attributes} level={element.level}>
+          {children}
+        </HeadingTagComponent>
+      );
+    }
     const { level } = element;
     const id = toId(toText(element));
     return React.createElement(`h${level}`, { id, ...attributes }, children);

@@ -17,6 +17,8 @@ interface LogoProps {
   kernel_info_known: boolean;
 }
 
+const SIZE = "24px"; // this matches the rest of the status bar.
+
 export const Logo: React.FC<LogoProps> = React.memo((props: LogoProps) => {
   const { kernel, project_id, kernel_info_known } = props;
   const [logo_failed, set_logo_failed] = React.useState<string | undefined>(
@@ -24,13 +26,13 @@ export const Logo: React.FC<LogoProps> = React.memo((props: LogoProps) => {
   );
 
   if (logo_failed === kernel) {
-    return <img style={{ width: "0px", height: "32px" }} />;
+    return <img style={{ width: "0px", height: SIZE }} />;
   } else {
     const src = get_logo_url(project_id, kernel);
     return (
       <img
         src={src}
-        style={{ width: "32px", height: "32px" }}
+        style={{ width: SIZE, height: SIZE }}
         onError={() => {
           if (kernel_info_known) set_logo_failed(kernel);
         }}

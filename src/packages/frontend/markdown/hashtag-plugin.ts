@@ -26,23 +26,10 @@ function isLinkClose(str) {
   return /^<\/a\s*>/i.test(str);
 }
 
-export function hashtagPlugin(md, options): void {
-  let arrayReplaceAt = md.utils.arrayReplaceAt,
-    escapeHtml = md.utils.escapeHtml,
-    regex,
-    hashtagRegExp = "\\w+",
-    preceding = "^|\\s";
+export function hashtagPlugin(md): void {
+  const { arrayReplaceAt, escapeHtml } = md.utils;
 
-  if (options) {
-    if (typeof options.preceding !== "undefined") {
-      preceding = options.preceding;
-    }
-    if (typeof options.hashtagRegExp !== "undefined") {
-      hashtagRegExp = options.hashtagRegExp;
-    }
-  }
-
-  regex = new RegExp("(" + preceding + ")#(" + hashtagRegExp + ")", "g");
+  const regex = /(^|\s)#(\w+)/g;
 
   function hashtag(state) {
     const { Token, tokens: blockTokens } = state;

@@ -63,3 +63,14 @@ export function latexMathToHtml(s: string): string {
     return __html;
   }
 }
+
+export function latexMathToHtmlOrError(s: string): {
+  __html: string;
+  err?: string;
+} {
+  return s.startsWith("$$")
+    ? mathToHtml(s.slice(2, s.length - 2), false)
+    : s.startsWith("$")
+    ? mathToHtml(s.slice(1, s.length - 1), true)
+    : mathToHtml(s, false);
+}

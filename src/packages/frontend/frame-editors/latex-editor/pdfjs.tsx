@@ -14,7 +14,6 @@ import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";
 import { delay } from "awaiting";
 import { Set } from "immutable";
-import $ from "jquery";
 import { seconds_ago, list_alternatives } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { dblclick } from "./mouse-click";
@@ -189,16 +188,16 @@ export function PDFJS({
       );
       return;
     }
-  }, []);
+  }, []); // important -- don't change it because it gets removed based on the function
 
   useEffect(() => {
-    if (actions == null || pageActions == null) {
+    if (actions == null) {
       return;
     }
     if (is_current && is_visible) {
-      pageActions.set_active_key_handler(keyHandler, project_id, actions.path);
+      actions.set_active_key_handler(keyHandler);
     } else {
-      pageActions.erase_active_key_handler(keyHandler);
+      actions.erase_active_key_handler(keyHandler);
     }
   }, [is_current, is_visible, pageActions != null]);
 
@@ -373,10 +372,13 @@ export function PDFJS({
   }
 
   const [curPageIndex, setCurPageIndex] = useState<number | string>(
-    desc.get("page")
+    desc.get("page") ?? 0
   );
   // This can be handy:
   const curPageHeightRef = useRef<number | undefined>(undefined);
+  const curPagePosRef = useRef<
+    { topOfPage: number; bottomOfPage: number; middle: number } | undefined
+  >(undefined);
   const updateCurrentPage = useCallback(
     ({ index, offset }) => {
       // We *define* the current page to be whatever page intersects
@@ -406,6 +408,7 @@ export function PDFJS({
         curPageHeightRef.current = heightOfPage + PAGE_GAP;
       }
       setCurPageIndex(index);
+      curPagePosRef.current = { topOfPage, bottomOfPage, middle };
       actions.setPage(id, index + 1);
     },
     [id, pages, font_size]
@@ -431,10 +434,27 @@ export function PDFJS({
     virtuosoRef.current?.scrollToIndex({ index, align: "center" });
   }, [desc.get("page")]);
 
+  // When we change anything about the font_size zoom, we preserve
+  // the scroll position of the current page. More precisely, imagine
+  // a horizontal line through the middle of the current viewport.  By
+  // definition, the page it intersects with is the current page.  The
+  // invariant we preserve is that this intersection point intersects
+  // the current page in the same place after the font size change.
   useEffect(() => {
     const index = getPageIndex();
     if (index == null) return;
-    virtuosoRef.current?.scrollToIndex({ index, align: "center" });
+    const height = divRef.current?.getBoundingClientRect()?.height;
+    if (!height) return;
+    const pos = curPagePosRef.current;
+    if (pos == null) return;
+    const { topOfPage, bottomOfPage, middle } = pos;
+    const percent = (middle - topOfPage) / (bottomOfPage - topOfPage);
+    const scale = getScale();
+    const heightOfPage = pages[index]?.getViewport({ scale })?.height;
+    if (heightOfPage == null) return;
+    const offset = -height / 2 + heightOfPage * percent;
+    const x = { index, offset };
+    virtuosoRef.current?.scrollToIndex(x);
   }, [font_size]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -454,7 +474,7 @@ export function PDFJS({
     const height = (viewport?.height ?? 500) + PAGE_GAP;
     return (
       <Virtuoso
-        increaseViewportBy={4000}
+        increaseViewportBy={2000}
         ref={virtuosoRef}
         defaultItemHeight={height}
         totalCount={doc.numPages}
