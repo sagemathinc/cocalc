@@ -15,6 +15,8 @@ import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 
+const k3d = require("k3d/dist/index.js");
+
 export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
@@ -56,7 +58,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_state_change(keys): Promise<void> {
-    // console.log("handle_table_state_change", keys);
+    //console.log("handle_table_state_change", keys);
     for (const key of keys) {
       const [, model_id, type] = JSON.parse(key);
       // console.log("handle_table_state_change - one key", key, model_id, type);
@@ -89,9 +91,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private async handle_table_model_state_change(
     model_id: string
   ): Promise<void> {
-    const state: ModelState | undefined = this.ipywidgets_state.get_model_state(
-      model_id
-    );
+    const state: ModelState | undefined =
+      this.ipywidgets_state.get_model_state(model_id);
     if (state == null) {
       // nothing to do...
       return;
@@ -154,10 +155,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private async handle_table_model_buffers_change(
     model_id: string
   ): Promise<void> {
-    // console.log(`handle_table_model_buffers_change -- ${model_id}`);
-    const { buffer_paths, buffers } = this.ipywidgets_state.get_model_buffers(
-      model_id
-    );
+    const { buffer_paths, buffers } =
+      this.ipywidgets_state.get_model_buffers(model_id);
+    //     console.log(`handle_table_model_buffers_change -- ${model_id}`, {
+    //       buffer_paths,
+    //       buffers,
+    //     });
     if (buffer_paths.length == 0) return; // nothing to do
     // convert each buffer in buffers to a DataView.
     let i: number = 0;
@@ -283,11 +286,17 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       model_module_version,
     });
 
+    // Model is NOT an EventEmitter.  It is a backbone.js thing,
+    // and browsing the source code of backbone, I learned that
+    // "all" is an alias for listening to all events, which is
+    // useful for debugging:
+    // model.on("all", console.log);
+
     // Initialize the model
     state = this.deserialize_state(model, state);
     model.set(state);
 
-    // Start listing to model changes.
+    // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
 
     // Inform CoCalc/React client that we just created this model.
@@ -388,7 +397,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    // console.log("loadClass", className, moduleName, moduleVersion);
+    // console.log("loadClass", { className, moduleName, moduleVersion });
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
@@ -400,6 +409,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       }
     } else if (moduleName === "@jupyter-widgets/output") {
       module = react_output;
+    } else if (moduleName === "k3d") {
+      module = k3d;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`

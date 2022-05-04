@@ -154,6 +154,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         switch (model.current.module) {
           case "@jupyter-widgets/controls":
           case "@jupyter-widgets/base":
+          case "k3d":
             // Right now we use phosphor views for many base and controls.
             // TODO: we can iteratively rewrite some of these using react
             // for a more consistent look and feel (with bootstrap).
@@ -167,7 +168,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
 
           default:
             throw Error(
-              `Not implemented widget module ${model.current.module}`
+              `Not implemented: the widget module "${model.current.module}"`
             );
         }
       } catch (err) {
@@ -183,12 +184,14 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (view.current != null) {
         try {
           view.current.remove(); // no clue what this does...
-        } catch (err) {
+        } catch (_err) {
           // after changing this to an FC, calling remove() causes
           // 'Widget is not attached.' in phosphorjs.
-          // The only way I found to trigger this is to concurrently work
-          // on the same cell with two tabs. It recovers fine from catching this!
-          console.warn(`widget/remove_view error: ${err}`);
+          // The way I found to trigger this is to concurrently work
+          // on the same cell with two tabs. It recovers fine from catching this,
+          // so the following is commented out.  Uncomment it if you want
+          // to debug this.
+          // console.warn(`widget/remove_view error: ${_err}`);
         }
         view.current.send = undefined;
         view.current = undefined;
@@ -236,7 +239,9 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (widget_manager == null) {
         return;
       }
-      const view_next = await widget_manager.create_view(model.current);
+      const view_next = await widget_manager.create_view(model.current, {});
+      //window.x = { view_next, model: model.current, widget_manager };
+      //console.log(x);
       if (!is_mounted.current) return;
       view.current = view_next as any;
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
@@ -414,8 +419,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
 
     return (
       <>
-        {/* This div is managed by phosphor, so don't put any react in it! */}
-        <div key="phosphor" ref={phosphorRef} />
+        {/* This div's content is managed by phosphor, so don't put any react in it! */}
+        <div key="phosphor" ref={phosphorRef} style={{ overflow: "hidden" }} />
         {outputs && (
           <div key="output" style={style}>
             <CellOutputMessages
