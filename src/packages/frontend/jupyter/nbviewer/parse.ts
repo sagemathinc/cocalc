@@ -5,6 +5,7 @@ import { field_cmp } from "@cocalc/util/misc";
 export interface KernelSpec {
   language?: string;
   display_name: string;
+  name: string;
 }
 
 interface Parsed {
