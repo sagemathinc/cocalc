@@ -7,7 +7,14 @@
 Top-level react component, which ties everything together
 */
 
-import { redux, CSS, React, useRedux, useRef, Rendered } from "../app-framework";
+import {
+  redux,
+  CSS,
+  React,
+  useRedux,
+  useRef,
+  Rendered,
+} from "../app-framework";
 import * as immutable from "immutable";
 
 import { A, ErrorDisplay } from "../components";
@@ -38,6 +45,7 @@ import { Scroll } from "./types";
 import useKernelUsage from "./kernel-usage";
 import { JupyterActions } from "./browser-actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+import { JupyterContext } from "./jupyter-context";
 
 const KERNEL_STYLE: CSS = {
   float: "right",
@@ -117,6 +125,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   // string name of the kernel
   const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
+  const kernelspec = useRedux([name, "kernel_info"]);
   const error: undefined | KernelsType = useRedux([name, "error"]);
   // settings for all the codemirror editors
   const cm_options: undefined | immutable.Map<any, any> = useRedux([
@@ -510,19 +519,21 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return render_fatal();
   }
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflowY: "hidden",
-      }}
-    >
-      {render_kernel_error()}
-      {render_error()}
-      {render_modals()}
-      {render_heading()}
-      {render_main()}
-    </div>
+    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS() }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflowY: "hidden",
+        }}
+      >
+        {render_kernel_error()}
+        {render_error()}
+        {render_modals()}
+        {render_heading()}
+        {render_main()}
+      </div>
+    </JupyterContext.Provider>
   );
 });
