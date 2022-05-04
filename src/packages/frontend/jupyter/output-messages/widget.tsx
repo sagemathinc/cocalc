@@ -16,7 +16,7 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
 
 import { JupyterActions } from "../browser-actions";
-import * as pWidget from "@phosphor/widgets";
+import * as pWidget from "@lumino/widgets";
 require("@jupyter-widgets/controls/css/widgets.css");
 import { CellOutputMessages } from "./message";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";

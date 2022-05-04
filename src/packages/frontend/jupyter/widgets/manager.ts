@@ -176,7 +176,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
-  deserialize_state(model: base.DOMWidgetModel, state: ModelState): ModelState {
+  deserialize_state(
+    model: base.DOMWidgetModel,
+    serialized_state: ModelState
+  ): ModelState {
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -186,7 +189,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // in particular for when a date is set in the kernel.
     const serializers = (model.constructor as any).serializers;
 
-    if (serializers == null) return state;
+    if (serializers == null) return serialized_state;
 
     // These two have unpack_model in them, which we already do
     // differently, and we have to fight against that.  Instead,
@@ -198,12 +201,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     delete serializers.target;
 
     const deserialized: ModelState = {};
-    for (const k in state) {
+    for (const k in serialized_state) {
       // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
-      // the layout and style deserializers are unpack_model, which
+      // the layout and style deserializers call unpack_model, which
       // blows up everything and leads to an infinite loop, since
       // we use a completely different unpack approach.  So we have
-      // to cross our fingers that nothing those keys can be ignored,
+      // to cross our fingers that those keys can be ignored,
       // and also that they are the only ones that use unpack_model.
       if (
         k !== "layout" &&
@@ -211,9 +214,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         serializers[k] &&
         serializers[k].deserialize
       ) {
-        deserialized[k] = serializers[k].deserialize(state[k]);
+        deserialized[k] = serializers[k].deserialize(serialized_state[k]);
       } else {
-        deserialized[k] = state[k];
+        deserialized[k] = serialized_state[k];
       }
     }
     return deserialized;
@@ -244,31 +247,35 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
-  private async create_new_model(model_id: string, state: any): Promise<void> {
+  private async create_new_model(
+    model_id: string,
+    serialized_state: any
+  ): Promise<void> {
+    // console.log("new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created -- shouldn't happen?
       return;
     }
 
-    if (state == null) {
-      throw Error("state must be set");
+    if (serialized_state == null) {
+      throw Error("serialized_state must be set");
     }
 
-    const model_name: string | undefined = state._model_name;
+    const model_name: string | undefined = serialized_state._model_name;
     if (model_name == null) {
       throw Error("_model_name must be defined");
     }
-    const model_module: string | undefined = state._model_module;
+    const model_module: string | undefined = serialized_state._model_module;
     if (model_module == null) {
       throw Error("_model_module must be defined");
     }
     const model_module_version: string | undefined =
-      state._model_module_version;
+      serialized_state._model_module_version;
     if (model_module_version == null) {
       throw Error("_model_module_version must be defined");
     }
 
-    const success = await this.dereference_model_links(state);
+    const success = await this.dereference_model_links(serialized_state);
 
     if (!success) {
       //console.log(model_id, "failed to dereference fully");
@@ -279,12 +286,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       this.incomplete_model_ids.delete(model_id);
     }
 
-    const model: base.DOMWidgetModel = await this.new_model({
-      model_module,
-      model_name,
-      model_id,
-      model_module_version,
-    });
+    const model: base.DOMWidgetModel = await this.new_model(
+      {
+        model_module,
+        model_name,
+        model_id,
+        model_module_version,
+      },
+      // layout and style lead to infinite recurse in some cases.
+      // Note that the k3d extension's initalize function depends
+      // on this state being provided here (it ignores model.set(state) below).
+      { ...serialized_state, layout: undefined, style: undefined }
+    );
 
     // Model is NOT an EventEmitter.  It is a backbone.js thing,
     // and browsing the source code of backbone, I learned that
@@ -292,8 +305,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // useful for debugging:
     // model.on("all", console.log);
 
-    // Initialize the model
-    state = this.deserialize_state(model, state);
+    // Initialize the model -- should include layout/style ?
+    const state = this.deserialize_state(model, serialized_state);
     model.set(state);
 
     // Start listening to model changes.
@@ -314,7 +327,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     data?: any,
     metadata?: any
   ): Promise<Comm> {
-    console.log(`_create_comm(${target_name}, ${model_id}`, data, metadata);
+    // console.log(`_create_comm(${target_name}, ${model_id}`, data, metadata);
     const comm = new Comm(
       target_name,
       model_id,
@@ -382,7 +395,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   // Get the currently-registered comms.
   async _get_comm_info(): Promise<any> {
-    console.log(`TODO: _get_comm_info`);
+    // console.log(`TODO: _get_comm_info`);
     throw Error("_get_comm_info not implemented");
     //return {};
   }
