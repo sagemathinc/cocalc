@@ -380,7 +380,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private sanitize_build_cmd(cmd: List<string>): List<string> {
     // special case "false", to disable processing
-    if (cmd.get(0).startsWith("false")) {
+    if (cmd.get(0)?.startsWith("false")) {
       return cmd;
     }
 
