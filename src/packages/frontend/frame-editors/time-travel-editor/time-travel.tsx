@@ -144,7 +144,9 @@ class TimeTravel extends Component<Props> {
         return this.render_document_sagews();
       case "md":
         return (
-          <StaticMarkdown value={this.get_doc()?.to_str() ?? "Loading..."} />
+          <div style={{ overflow: "auto", padding: "50px 70px" }}>
+            <StaticMarkdown value={this.get_doc()?.to_str() ?? "Loading..."} />
+          </div>
         );
       case "board":
         return (
