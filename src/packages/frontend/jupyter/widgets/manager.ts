@@ -15,7 +15,8 @@ import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 
-const k3d = require("k3d/dist/index.js");
+// Widgets that aren't built into ipywidgets:
+import * as k3d from "./k3d";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -61,7 +62,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     //console.log("handle_table_state_change", keys);
     for (const key of keys) {
       const [, model_id, type] = JSON.parse(key);
-      // console.log("handle_table_state_change - one key", key, model_id, type);
+      console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
         case "state":
           await this.handle_table_model_state_change(model_id);
@@ -171,6 +172,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const model = await this.get_model(model_id);
     if (model != null) {
       const state = model.get_state(true);
+      console.log({state, buffer_paths, buffers});
       base.put_buffers(state, buffer_paths, buffers);
       model.set_state(state);
     }
@@ -286,24 +288,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       this.incomplete_model_ids.delete(model_id);
     }
 
-    const model: base.DOMWidgetModel = await this.new_model(
-      {
-        model_module,
-        model_name,
-        model_id,
-        model_module_version,
-      },
-      // layout and style lead to infinite recurse in some cases.
-      // Note that the k3d extension's initalize function depends
-      // on this state being provided here (it ignores model.set(state) below).
-      { ...serialized_state, layout: undefined, style: undefined }
-    );
+    const model: base.DOMWidgetModel = await this.new_model({
+      model_module,
+      model_name,
+      model_id,
+      model_module_version,
+    });
 
     // Model is NOT an EventEmitter.  It is a backbone.js thing,
     // and browsing the source code of backbone, I learned that
     // "all" is an alias for listening to all events, which is
     // useful for debugging:
-    // model.on("all", console.log);
+    //model.on("all", console.log);
 
     // Initialize the model -- should include layout/style ?
     const state = this.deserialize_state(model, serialized_state);
@@ -327,7 +323,11 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     data?: any,
     metadata?: any
   ): Promise<Comm> {
-    console.log(`TODO: _create_comm(${target_name}, ${model_id}`, data, metadata);
+    console.log(
+      `TODO: _create_comm(${target_name}, ${model_id}`,
+      data,
+      metadata
+    );
     const comm = new Comm(
       target_name,
       model_id,
@@ -410,7 +410,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    // console.log("loadClass", { className, moduleName, moduleVersion });
+    console.log("loadClass", { className, moduleName, moduleVersion });
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
