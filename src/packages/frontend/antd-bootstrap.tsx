@@ -28,7 +28,7 @@ export {
 
 import { MouseEventHandler } from "react";
 import { Rendered } from "./app-framework";
-import { r_join} from "./components/r_join";
+import { r_join } from "./components/r_join";
 import { Space } from "./components/space";
 
 import {
@@ -180,7 +180,11 @@ export const Button = (props: {
     </AntdButton>
   );
   if (props.title) {
-    return <Tooltip title={props.title}>{btn}</Tooltip>;
+    return (
+      <Tooltip title={props.title} mouseEnterDelay={0.7} placement="bottom">
+        {btn}
+      </Tooltip>
+    );
   } else {
     return btn;
   }
