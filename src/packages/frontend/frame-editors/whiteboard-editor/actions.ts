@@ -92,35 +92,6 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  /*
-  // repair data since we assume that each element is a rect.
-  // nothing should ever break that, but it's good to sanitize
-  // our data some to avoid broken whiteboards.
-  private ensureIsRect(obj: Partial<Element>) {
-    if (obj.id == null) return; // can't happen
-    let changed: boolean = false;
-    if (obj.x == null) {
-      obj.x = 0;
-      changed = true;
-    }
-    if (obj.y == null) {
-      obj.y = 0;
-      changed = true;
-    }
-    if (obj.w == null) {
-      obj.w = DEFAULT_WIDTH;
-      changed = true;
-    }
-    if (obj.h == null) {
-      obj.w = DEFAULT_HEIGHT;
-      changed = true;
-    }
-    if (changed) {
-      this.setElement({ obj, commit: false });
-    }
-  }
-  */
-
   // This mutates the cursors by putting the id in them.
   setCursors(id: string, cursors: object[], sideEffect?: boolean): void {
     if (this._syncstring == null) return;
@@ -748,6 +719,7 @@ export class Actions extends BaseActions<State> {
     _value?: string | true | undefined,
     nextTo?: Element[]
   ): void {
+    if (frameId && this._get_frame_type(frameId) != "whiteboard") return;
     const pastedElements = pasteFromInternalClipboard();
     let target: Point = { x: 0, y: 0 };
     if (nextTo != null) {
@@ -1026,6 +998,7 @@ export class Actions extends BaseActions<State> {
   }
 
   setEditFocus(id: string, editFocus: boolean): void {
+    if (this._get_frame_type(id) != "whiteboard") return;
     this.set_frame_tree({ id, editFocus });
   }
 

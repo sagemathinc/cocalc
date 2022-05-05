@@ -40,6 +40,8 @@ export default function RenderStatic(props) {
       return <Timer {...props} />;
     case "chat":
       return <Chat {...props} />;
+    case "selection":
+      return null;
     default:
       return <Generic {...props} />;
   }
