@@ -15,17 +15,10 @@ import { Button } from "../../antd-bootstrap";
 import { SaveOutlined, DownOutlined } from "@ant-design/icons";
 import { React } from "../../app-framework";
 import { split } from "@cocalc/util/misc";
-import { Engine, build_command as latexmk_build_command } from "./latexmk";
+import { ENGINES, Engine, build_command as latexmk_build_command } from "./latexmk";
 import { Actions } from "./actions";
 import { COLORS } from "@cocalc/util/theme";
 
-const ENGINES: Engine[] = [
-  "PDFLaTeX",
-  "PDFLaTeX (shell-escape)",
-  "XeLaTeX",
-  "LuaTex",
-  "<disabled>",
-];
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
 function build_command_string(cmd: string | List<string>): string {
@@ -69,9 +62,8 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     knitr,
     font_size,
   } = props;
-  const [build_command_prev, set_build_command_prev] = React.useState(
-    build_command_orig
-  );
+  const [build_command_prev, set_build_command_prev] =
+    React.useState(build_command_orig);
   const [build_command, set_build_command] = React.useState<string>(
     build_command_string(build_command_orig)
   );
@@ -91,7 +83,6 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
       actions.output_directory
     );
     actions.set_build_command(cmd);
-    set_build_command(build_command_string(fromJS(cmd)));
   }
 
   function render_engine_options(): JSX.Element {
@@ -198,7 +189,9 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           <h4>Build Command</h4>
           Select a build engine from the menu at the right, or enter absolutely
           any custom build command line you want. Custom build commands are run
-          using bash, so you can separate multiple commands with a semicolon.  If there is no semicolon, then the command line must end with the filename (not including the directory).
+          using bash, so you can separate multiple commands with a semicolon. If
+          there is no semicolon, then the command line must end with the
+          filename (not including the directory).
         </div>
       </Alert>
     );

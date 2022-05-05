@@ -9,11 +9,7 @@ LaTeX Editor Actions.
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-const VIEWERS: ReadonlyArray<string> = [
-  "pdfjs_canvas",
-  "pdf_embed",
-  "build",
-];
+const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
@@ -383,34 +379,31 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private sanitize_build_cmd(cmd: List<string>): List<string> {
-    // First ensure the output directory is correct.
+    // special case "false", to disable processing
+    if (cmd.get(0).startsWith("false")) {
+      return cmd;
+    }
 
+    // Next, we ensure the output directory is correct.
     let outdir: string | undefined = undefined;
     let i: number = -1;
     for (const x of cmd) {
       i += 1;
-      if (startswith(x, "-output-directory")) {
+      if (startswith(x, "-output-directory=")) {
         outdir = x;
         break;
       }
     }
-    if (this.output_directory != null) {
-      // make sure it is right
-      const should_be = this.output_directory_cmd_flag();
-      if (outdir != should_be) {
-        if (outdir == null) {
-          // The build command must specify the output directory option (but doesn't),
-          // so we set it.
-          cmd = cmd.splice(cmd.size - 2, 0, should_be);
-        } else {
-          // change it
+    // only bother tweaking/adding the output directory, if it exists in the first place
+    if (outdir != null) {
+      if (this.output_directory != null) {
+        // make sure it is right
+        const should_be = this.output_directory_cmd_flag();
+        if (outdir != should_be) {
           cmd = cmd.set(i, should_be);
         }
-      }
-    } else {
-      // make sure it is null -- otherwise remove it.
-      if (outdir != null) {
-        // need to remove it
+      } else {
+        // remove it, if there is none set
         cmd = cmd.delete(i);
       }
     }
