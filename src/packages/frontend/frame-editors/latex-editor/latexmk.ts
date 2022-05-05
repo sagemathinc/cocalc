@@ -60,12 +60,22 @@ export async function latexmk(
   return exec_output;
 }
 
-export type Engine =
-  | "PDFLaTeX"
-  | "PDFLaTeX (shell-escape)"
-  | "XeLaTeX"
-  | "LuaTex"
-  | "<disabled>";
+type BuildCommandName = "pdf" | "xelatex" | "lualatex";
+
+export const NO_OUTPUT_DIR = "(no output dir)";
+
+export const ENGINES = [
+  "PDFLaTeX",
+  `PDFLaTeX ${NO_OUTPUT_DIR}`,
+  "PDFLaTeX (shell-escape)",
+  "XeLaTeX",
+  `XeLaTeX ${NO_OUTPUT_DIR}`,
+  "LuaTex",
+  `LuaTex ${NO_OUTPUT_DIR}`,
+  "<disabled>",
+] as const;
+
+export type Engine = typeof ENGINES[number];
 
 export function get_engine_from_config(config: string): Engine | null {
   switch (config.toLowerCase()) {
@@ -84,6 +94,26 @@ export function get_engine_from_config(config: string): Engine | null {
   return null;
 }
 
+function build_command_name(engine: Engine): BuildCommandName {
+  switch (engine) {
+    case "PDFLaTeX":
+    case "PDFLaTeX (shell-escape)":
+    case `PDFLaTeX ${NO_OUTPUT_DIR}`:
+      return "pdf";
+    case "XeLaTeX":
+    case `XeLaTeX ${NO_OUTPUT_DIR}`:
+      return "xelatex";
+    case "LuaTex":
+    case `LuaTex ${NO_OUTPUT_DIR}`:
+      return "lualatex";
+    default:
+      console.warn(
+        `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`
+      );
+      return "pdf";
+  }
+}
+
 export function build_command(
   engine: Engine,
   filename: string,
@@ -91,7 +121,8 @@ export function build_command(
   output_directory: string | undefined // probably should not require special escaping.
 ): string[] {
   // special case: disable build
-  if (engine == "<disabled>") return ["false"];
+  // the ; is important, see actions::sanitize_build_cmd_str
+  if (engine == "<disabled>") return ["false;"];
 
   /*
   errorstopmode recommended by
@@ -101,22 +132,6 @@ export function build_command(
   However, users hate errorstopmode, so we use nonstopmode, which can hang in rare cases with tikz.
   See https://github.com/sagemathinc/cocalc/issues/156
   */
-  const name: string = (function () {
-    switch (engine) {
-      case "PDFLaTeX":
-      case "PDFLaTeX (shell-escape)":
-        return "pdf";
-      case "XeLaTeX":
-        return "xelatex";
-      case "LuaTex":
-        return "lualatex";
-      default:
-        console.warn(
-          `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`
-        );
-        return "pdf";
-    }
-  })();
 
   if (knitr) {
     filename = change_filename_extension(filename, "tex");
@@ -141,8 +156,14 @@ export function build_command(
     output_directory = undefined;
   }
 
+  // we allow the user to easily disable the output_directory
+  // https://github.com/sagemathinc/cocalc/issues/5910
+  if (engine.endsWith(NO_OUTPUT_DIR)) {
+    output_directory = undefined;
+  }
+
   const tail = [
-    `-${name}`,
+    `-${build_command_name(engine)}`,
     "-f",
     "-g",
     "-bibtex",

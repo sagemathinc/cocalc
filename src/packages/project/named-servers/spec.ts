@@ -25,7 +25,7 @@ const SPEC: { [name: string]: CommandFunction } = {
       process.env.COCALC_JUPYTER_LAB_iopub_data_rate_limit ?? 2000000
     } --NotebookApp.iopub_msg_rate_limit=${
       process.env.COCALC_JUPYTER_LAB_iopub_msg_rate_limit ?? 50
-    } --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True --NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js --NotebookApp.base_url=${basePath} --ip=${ip} --port=${port}`,
+    } --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True --NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js --NotebookApp.base_url=${basePath} --ip=${ip} --port=${port} --collaborative`,
   pluto: (ip: string, port: number) =>
     `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
 } as const;
