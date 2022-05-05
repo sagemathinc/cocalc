@@ -1,7 +1,7 @@
 import React from "react";
 import { DataProps, hasHandler, getHandler, getPriority } from "./register";
 import { all_fields_equal as allFieldsEqual } from "@cocalc/util/misc";
-import useNBViewerContext from "@cocalc/frontend/jupyter/nbviewer/context";
+import useJupyterContext from "@cocalc/frontend/jupyter/jupyter-context";
 
 function shouldMemoize(prev, next) {
   return (
@@ -11,7 +11,7 @@ function shouldMemoize(prev, next) {
 }
 
 export const Data: React.FC<DataProps> = React.memo((props) => {
-  const nbviewer = useNBViewerContext();
+  const { kernelspec } = useJupyterContext();
   const data = props.message.get("data");
   if (data == null || typeof data.forEach != "function") {
     return null;
@@ -19,9 +19,11 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
 
   const types = data.keySeq().toJS();
   let type: string | undefined;
-  if (nbviewer?.kernelspec?.language === "r") {
-    // very special case -- using an R kernel inside nbviewer (so XSS prevention) -- prefer image, then plain text,
+  if (kernelspec?.language === "r") {
+    // very special case -- using an R kernel inside kernel (so XSS prevention) -- prefer image, then plain text,
     // due to bugs in text/latex *and* unfriendly markdown *and* complicated html that XSS mangles.
+    // Also, even if we could render they latex or markdown, it is actually genuinely wrong, in that it is
+    // much different than the output from, e.g., RStudio.
     for (const x of types) {
       if (x.startsWith("image")) {
         type = x;
@@ -30,6 +32,9 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
     }
     if (type === undefined && types.includes("text/plain")) {
       type = "text/plain";
+    }
+    if (type == null) {
+      type = getTypeToRender(types);
     }
   } else {
     type = getTypeToRender(types);
