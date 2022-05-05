@@ -46,7 +46,11 @@ export function ensureTargetPathIsCorrect(
     // no single quotes at all -- old version.
     // replace the last argument with quoted version
     const j = cmd.lastIndexOf(" ");
-    return cmd.slice(0, j) + " " + quoted;
+    if (j == -1) {
+      return cmd; // we don't do anything, e.g. this could be just "false"
+    } else {
+      return cmd.slice(0, j) + " " + quoted;
+    }
   }
 
   // Get rid of whatever is between single quotes and put in the correct
