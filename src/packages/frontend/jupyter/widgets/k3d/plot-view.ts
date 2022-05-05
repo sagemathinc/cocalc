@@ -230,6 +230,7 @@ export default class PlotView extends DOMWidgetView {
     this._setVoxelPaintColor();
 
     this.model.get("object_ids").forEach((id) => {
+      console.log("load object", { id, attributes: objects[id].attributes });
       this.renderPromises.push(
         this.K3DInstance.load({ objects: [objects[id].attributes] })
       );

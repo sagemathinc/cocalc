@@ -153,27 +153,35 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     this.state_lock.delete(model_id);
   }
 
+  // Mutate state to account for any buffers.  We have to do
+  // this any time we update the model via the update_model
+  // function; otherwise the state that is getting sync'd around
+  // between clients will just forget the buffers that are set
+  // via handle_table_model_buffers_change!
+  private setBuffers(model_id: string, state: ModelState): void {
+    const { buffer_paths, buffers } =
+      this.ipywidgets_state.get_model_buffers(model_id);
+    // console.log("setBuffers", { model_id, state, buffer_paths, buffers });
+    if (buffer_paths.length == 0) return; // nothing to do
+    // convert each buffer in buffers to a DataView.
+    let i = 0;
+    for (const buffer of buffers) {
+      buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
+      if (state[buffer_paths[i][0]] == null) {
+        state[buffer_paths[i][0]] = {};
+      }
+      i += 1;
+    }
+    base.put_buffers(state, buffer_paths, buffers);
+  }
+
   private async handle_table_model_buffers_change(
     model_id: string
   ): Promise<void> {
-    const { buffer_paths, buffers } =
-      this.ipywidgets_state.get_model_buffers(model_id);
-    //     console.log(`handle_table_model_buffers_change -- ${model_id}`, {
-    //       buffer_paths,
-    //       buffers,
-    //     });
-    if (buffer_paths.length == 0) return; // nothing to do
-    // convert each buffer in buffers to a DataView.
-    let i: number = 0;
-    for (const buffer of buffers) {
-      buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
-      i += 1;
-    }
     const model = await this.get_model(model_id);
     if (model != null) {
       const state = model.get_state(true);
-      console.log({state, buffer_paths, buffers});
-      base.put_buffers(state, buffer_paths, buffers);
+      this.setBuffers(model_id, state);
       model.set_state(state);
     }
   }
@@ -243,7 +251,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         );
         return;
       }
-      model.set_state(this.deserialize_state(model, change));
+      const state = this.deserialize_state(model, change);
+      this.setBuffers(model_id, state);
+      model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
