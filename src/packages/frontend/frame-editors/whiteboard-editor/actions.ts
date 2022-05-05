@@ -950,6 +950,7 @@ export class Actions extends BaseActions<State> {
   }
 
   enableWhiteboardKeyHandler(frameId: string) {
+    if (this._get_frame_type(frameId) != "whiteboard") return;
     this.keyHandler = getKeyHandler(this, frameId);
     this.set_active_key_handler(this.keyHandler);
   }
