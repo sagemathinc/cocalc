@@ -114,7 +114,7 @@ export class IpywidgetsState extends EventEmitter {
       return undefined;
     }
     const state_js = state.toJS();
-    let value : any = this.get(model_id, "value");
+    let value: any = this.get(model_id, "value");
     if (value != null) {
       value = value.toJS();
       if (value == null) {
@@ -129,7 +129,7 @@ export class IpywidgetsState extends EventEmitter {
 
   public get_model_value(model_id: string): Value {
     this.assert_state("ready");
-    let value : any = this.get(model_id, "value");
+    let value: any = this.get(model_id, "value");
     if (value == null) {
       return {};
     }
@@ -140,9 +140,10 @@ export class IpywidgetsState extends EventEmitter {
     return value;
   }
 
-  public get_model_buffers(
-    model_id: string
-  ): { buffer_paths: any[]; buffers: any[] } {
+  public get_model_buffers(model_id: string): {
+    buffer_paths: any[];
+    buffers: any[];
+  } {
     let value: any = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
@@ -151,13 +152,14 @@ export class IpywidgetsState extends EventEmitter {
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
     }
-    if (value.buffer_paths == null) {
-      value.buffer_paths = [];
+    // value is an array from JSON of paths array to buffers:
+    const buffer_paths: string[][] = [];
+    const buffers: any[] = [];
+    for (const path in value) {
+      buffer_paths.push(JSON.parse(path));
+      buffers.push(value[path]);
     }
-    if (value.buffers == null) {
-      value.buffers = [];
-    }
-    return value;
+    return { buffers, buffer_paths };
   }
 
   public set_model_value(
@@ -180,7 +182,13 @@ export class IpywidgetsState extends EventEmitter {
     // TODO: this is very inefficient for now since it just sends
     // the binary data via JSON + websocket.  Instead, I guess we
     // could use HTTP?
-    this.set(model_id, "buffers", { buffer_paths, buffers }, fire_change_event);
+
+    const data: { [path: string]: any } = {};
+    for (let i = 0; i < buffer_paths.length; i++) {
+      data[JSON.stringify(buffer_paths[i])] = buffers[i];
+    }
+
+    this.set(model_id, "buffers", data, fire_change_event);
   }
 
   public set_model_state(
@@ -202,7 +210,7 @@ export class IpywidgetsState extends EventEmitter {
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
     }
-    let merge: "none" | "deep";
+    let merge: "none" | "shallow" | "deep";
     if (type == "value") {
       // we manually do the shallow merge only on the data field.
       const data0 = this.get_model_value(model_id);
@@ -213,6 +221,11 @@ export class IpywidgetsState extends EventEmitter {
         data = data0;
       }
       merge = "none";
+    } else if (type == "buffers") {
+      // we keep around the buffers that were
+      // already set, but overwrite
+      // when they change.
+      merge = "deep";
     } else {
       merge = "deep";
     }
@@ -424,9 +437,8 @@ export class IpywidgetsState extends EventEmitter {
     }
     const dbg = this.dbg("capture_output_message");
     dbg(JSON.stringify(mesg));
-    const model_id = this.capture_output[msg_id][
-      this.capture_output[msg_id].length - 1
-    ];
+    const model_id =
+      this.capture_output[msg_id][this.capture_output[msg_id].length - 1];
     if (model_id == null) return false; // should not happen.
 
     if (mesg.header.msg_type == "clear_output") {

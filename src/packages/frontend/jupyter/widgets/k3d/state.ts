@@ -14,4 +14,3 @@ export const chunks: { [id: number]: any } = {};
 
 export const plots: any[] = [];
 
-window.state = { objects, chunks, plots };

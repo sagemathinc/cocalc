@@ -15,8 +15,11 @@ import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 
-// Widgets that aren't built into ipywidgets:
+// Third party widgets:
+// I rewrote the entire k3d widget interface...
 import * as k3d from "./k3d";
+
+//////
 
 export type SendCommFunction = (string, data) => string;
 
@@ -62,7 +65,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     //console.log("handle_table_state_change", keys);
     for (const key of keys) {
       const [, model_id, type] = JSON.parse(key);
-      console.log("handle_table_state_change - one key", key, model_id, type);
+      // console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
         case "state":
           await this.handle_table_model_state_change(model_id);
@@ -164,15 +167,28 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // console.log("setBuffers", { model_id, state, buffer_paths, buffers });
     if (buffer_paths.length == 0) return; // nothing to do
     // convert each buffer in buffers to a DataView.
+    const paths: string[][] = [];
+    const vals: any[] = [];
     let i = 0;
     for (const buffer of buffers) {
-      buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
+      if (
+        buffer_paths[i][0] == "model_matrix" &&
+        buffer_paths[i][1] == "data" &&
+        buffer.data.length == 4
+      ) {
+        // No clue why, but this totally messed up broken data is sent randomly as
+        // part of the buffers for k3d, which breaks everything by making the entire
+        // scene invisible.  So weird.
+        continue;
+      }
+      vals.push(new DataView(new Uint8Array(buffer.data).buffer));
       if (state[buffer_paths[i][0]] == null) {
         state[buffer_paths[i][0]] = {};
       }
+      paths.push(buffer_paths[i]);
       i += 1;
     }
-    base.put_buffers(state, buffer_paths, buffers);
+    base.put_buffers(state, paths, vals);
   }
 
   private async handle_table_model_buffers_change(
@@ -420,7 +436,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    console.log("loadClass", { className, moduleName, moduleVersion });
+    // console.log("loadClass", { className, moduleName, moduleVersion });
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
