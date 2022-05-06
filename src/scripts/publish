@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
 set -ev
+git pull
 time npm run update-version --packages=$1 --newversion=$2
 time npm run publish --packages=$1
