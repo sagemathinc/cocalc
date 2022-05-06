@@ -168,14 +168,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // convert each buffer in buffers to a DataView.
     const paths: string[][] = [];
     const vals: any[] = [];
-    let i = 0;
-    for (const buffer of buffers) {
+    for (let i = 0; i < buffers.length; i++) {
       if (state[buffer_paths[i][0]] == null) {
         continue;
       }
-      vals.push(new DataView(new Uint8Array(buffer.data).buffer));
+      vals.push(new DataView(new Uint8Array(buffers[i].data).buffer));
       paths.push(buffer_paths[i]);
-      i += 1;
     }
     // console.log("put_buffers", { model_id, state, paths, vals });
     base.put_buffers(state, paths, vals);
@@ -206,23 +204,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
     this.update_model(model_id, change);
   }
-
-  //   serialize_state(
-  //     model: base.DOMWidgetModel,
-  //     deserialized_state: ModelState
-  //   ): ModelState {
-  //     const serializers = (model.constructor as any).serializers;
-  //     const serialized_state: ModelState = {};
-  //     for (const key in deserialized_state) {
-  //       if (deserialized_state[key]?.data != null) {
-  //         window.x = { key, f: serializers[key]?.serialize, deserialized_state, model };
-  //       }
-  //       serialized_state[key] =
-  //         serializers[key]?.serialize(deserialized_state[key]) ??
-  //         deserialized_state[key];
-  //     }
-  //     return serialized_state;
-  //   }
 
   deserialize_state(
     model: base.DOMWidgetModel,

@@ -1,5 +1,6 @@
 import { ISerializers, WidgetModel } from "@jupyter-widgets/base";
-import { serialize, version } from "k3d/dist/standalone";
+import { version } from "k3d/dist/standalone";
+import * as serialize from "./serialize";
 import { runOnEveryPlot } from "./util";
 import { objects, plots } from "./state";
 
