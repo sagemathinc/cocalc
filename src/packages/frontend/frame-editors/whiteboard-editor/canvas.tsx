@@ -60,6 +60,7 @@ import {
 import { Element, ElementType, ElementsMap, Point, Rect } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
+import RenderReadOnlyElement from "./elements/render-static";
 import RenderEdge from "./elements/edge";
 import Focused from "./focused";
 import {
@@ -152,6 +153,7 @@ export default function Canvas({
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
+  const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
@@ -580,7 +582,7 @@ export default function Canvas({
     }
 
     let elt = (
-      <RenderElement
+      <RenderElt
         element={element}
         focused={focused}
         canvasScale={canvasScale}
@@ -674,6 +676,7 @@ export default function Canvas({
             edgeStart={isEdgeStart}
             frame={frame}
             canvasScale={canvasScale}
+            readOnly={readOnly}
           >
             {elt}
           </NotFocused>
@@ -740,7 +743,7 @@ export default function Canvas({
         multi={multi}
       >
         {!isAllEdges && (
-          <RenderElement element={element} canvasScale={canvasScale} focused />
+          <RenderElt element={element} canvasScale={canvasScale} focused />
         )}
       </Focused>
     );

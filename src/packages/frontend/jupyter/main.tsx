@@ -56,6 +56,7 @@ const KERNEL_STYLE: CSS = {
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap",
+  margin: "5px",
 } as const;
 
 export const ERROR_STYLE: CSS = {
