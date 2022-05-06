@@ -69,32 +69,6 @@ export default class ObjectModel extends WidgetModel {
     }
   }
 
-  getAttributesAsArrays() {
-    const x: any = {};
-    for (const key in this.attributes) {
-      const val = this.attributes[key];
-      if (val?.dtype != null && val.data != null) {
-        switch (val.dtype) {
-          case "uint32":
-            x[key] = { ...val, data: new Uint32Array(val.data.buffer) };
-            break;
-          case "uint8":
-            x[key] = { ...val, data: new Uint8Array(val.data.buffer) };
-            break;
-          case "float32":
-            x[key] = { ...val, data: new Float32Array(val.data.buffer) };
-            break;
-          default:
-            console.warn(`Unknown dtype="${val.dtype}"`);
-            x[key] = { ...val, data: new Float32Array(val.data.buffer) };
-        }
-      } else {
-        x[key] = val;
-      }
-    }
-    return x;
-  }
-
   static serializers: ISerializers = {
     ...WidgetModel.serializers,
     model_matrix: serialize,

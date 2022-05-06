@@ -164,43 +164,65 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private setBuffers(model_id: string, state: ModelState): void {
     const { buffer_paths, buffers } =
       this.ipywidgets_state.get_model_buffers(model_id);
-    // console.log("setBuffers", { model_id, state, buffer_paths, buffers });
     if (buffer_paths.length == 0) return; // nothing to do
     // convert each buffer in buffers to a DataView.
     const paths: string[][] = [];
     const vals: any[] = [];
     let i = 0;
     for (const buffer of buffers) {
-      if (
-        buffer_paths[i][0] == "model_matrix" &&
-        buffer_paths[i][1] == "data" &&
-        buffer.data.length == 4
-      ) {
-        // No clue why, but this totally messed up broken data is sent randomly as
-        // part of the buffers for k3d, which breaks everything by making the entire
-        // scene invisible.  So weird.
+      if (state[buffer_paths[i][0]] == null) {
         continue;
       }
       vals.push(new DataView(new Uint8Array(buffer.data).buffer));
-      if (state[buffer_paths[i][0]] == null) {
-        state[buffer_paths[i][0]] = {};
-      }
       paths.push(buffer_paths[i]);
       i += 1;
     }
+    // console.log("put_buffers", { model_id, state, paths, vals });
     base.put_buffers(state, paths, vals);
   }
 
   private async handle_table_model_buffers_change(
     model_id: string
   ): Promise<void> {
+    /*
+    The data structures currently don't store which buffers changed, so we're
+    updating all of them before, which is of course wildly inefficient.
+
+    We definitely do have to serialize, then pass to update_model, so that
+    the widget can properly deserialize again, as I learned with k3d, which
+    processes everything.
+    */
     const model = await this.get_model(model_id);
-    if (model != null) {
-      const state = model.get_state(true);
-      this.setBuffers(model_id, state);
-      model.set_state(state);
+    if (model == null) return;
+    const { buffer_paths } = this.ipywidgets_state.get_model_buffers(model_id);
+    const deserialized_state = model.get_state(true);
+    const serializers = (model.constructor as any).serializers;
+    const change: { [key: string]: any } = {};
+    for (const paths of buffer_paths) {
+      const key = paths[0];
+      change[key] =
+        serializers[key]?.serialize(deserialized_state[key]) ??
+        deserialized_state[key];
     }
+    this.update_model(model_id, change);
   }
+
+  //   serialize_state(
+  //     model: base.DOMWidgetModel,
+  //     deserialized_state: ModelState
+  //   ): ModelState {
+  //     const serializers = (model.constructor as any).serializers;
+  //     const serialized_state: ModelState = {};
+  //     for (const key in deserialized_state) {
+  //       if (deserialized_state[key]?.data != null) {
+  //         window.x = { key, f: serializers[key]?.serialize, deserialized_state, model };
+  //       }
+  //       serialized_state[key] =
+  //         serializers[key]?.serialize(deserialized_state[key]) ??
+  //         deserialized_state[key];
+  //     }
+  //     return serialized_state;
+  //   }
 
   deserialize_state(
     model: base.DOMWidgetModel,
@@ -227,6 +249,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     delete serializers.target;
 
     const deserialized: ModelState = {};
+    this.setBuffers(model.model_id, serialized_state);
     for (const k in serialized_state) {
       // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
       // the layout and style deserializers call unpack_model, which
@@ -234,17 +257,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       // we use a completely different unpack approach.  So we have
       // to cross our fingers that those keys can be ignored,
       // and also that they are the only ones that use unpack_model.
-      if (
-        k !== "layout" &&
-        k !== "style" &&
-        serializers[k]?.deserialize
-      ) {
-        window.x = { k, s: serialized_state[k], f: serializers[k].deserialize };
+      if (k !== "layout" && k !== "style" && serializers[k]?.deserialize) {
         deserialized[k] = serializers[k].deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];
       }
     }
+
     return deserialized;
   }
 
@@ -268,7 +287,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         return;
       }
       const state = this.deserialize_state(model, change);
-      this.setBuffers(model_id, state);
       model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
@@ -414,9 +432,17 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           : 0
       ) + 1;
     this.last_changed[model_id] = changed;
-    // console.log("handle_model_change (frontend) -- actually saving", changed);
+    console.log("handle_model_change (frontend) -- actually saving", changed);
     this.ipywidgets_state.set_model_value(model_id, changed, true);
     this.ipywidgets_state.save();
+
+    //     const serialized_changed = this.serialize_state(model, changed);
+    //     console.log("handle_model_change (frontend) -- actually saving", {
+    //       changed,
+    //       serialized_changed,
+    //     });
+    //     this.ipywidgets_state.set_model_value(model_id, serialized_changed, true);
+    //     this.ipywidgets_state.save();
   }
 
   // Get the currently-registered comms.

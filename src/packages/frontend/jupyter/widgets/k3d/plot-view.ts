@@ -230,13 +230,13 @@ export default class PlotView extends DOMWidgetView {
     this._setVoxelPaintColor();
 
     this.model.get("object_ids").forEach((id) => {
-//       console.log("load object", {
-//         id,
-//         attributes: objects[id].getAttributesAsArrays(),
-//       });
+      //       console.log("load object", {
+      //         id,
+      //         attributes: objects[id].attributes,
+      //       });
       this.renderPromises.push(
         this.K3DInstance.load({
-          objects: [objects[id].getAttributesAsArrays()],
+          objects: [objects[id].attributes],
         })
       );
     }, this);
@@ -486,7 +486,7 @@ export default class PlotView extends DOMWidgetView {
     difference(newObjectId, oldObjectId).forEach((id: number) => {
       this.renderPromises.push(
         this.K3DInstance.load({
-          objects: [objects[id].getAttributesAsArrays()],
+          objects: [objects[id].attributes],
         })
       );
     }, this);
@@ -495,10 +495,7 @@ export default class PlotView extends DOMWidgetView {
   refreshObject(obj, changed) {
     if (this.model.get("object_ids").indexOf(obj.get("id")) !== -1) {
       this.renderPromises.push(
-        this.K3DInstance.reload(
-          objects[obj.get("id")].getAttributesAsArrays(),
-          changed
-        )
+        this.K3DInstance.reload(objects[obj.get("id")].attributes, changed)
       );
     }
   }
