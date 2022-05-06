@@ -23,6 +23,7 @@ import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
 import { EventRecord, to_search_string } from "./types";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 
 interface Props {
   project_id: string;
@@ -134,7 +135,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
       return;
     }
     return (
-      <div style={{ textAlign: "center", padding:'15px' }}>
+      <div style={{ textAlign: "center", padding: "15px" }}>
         <Button
           bsStyle={"info"}
           onClick={load_all}
@@ -171,6 +172,9 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     );
   }
 
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: `log-${project_id}`,
+  });
   function render_log_entries(): JSX.Element {
     if (state.current.next_cursor_pos) {
       delete state.current.next_cursor_pos;
@@ -180,6 +184,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
         ref={virtuosoRef}
         totalCount={get_log().size + 1}
         itemContent={row_renderer}
+        {...virtuosoScroll}
       />
     );
   }
