@@ -79,9 +79,13 @@ export default function ColorPicker({
       )}
       <div
         style={{
-          display: "flex",
+          display:
+            picker != "slider"
+              ? "flex"
+              : undefined /* https://github.com/sagemathinc/cocalc/issues/5912 */,
           justifyContent,
           overflowX: "auto",
+          overflowY: "hidden",
         }}
       >
         <Picker

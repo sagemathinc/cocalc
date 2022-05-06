@@ -237,9 +237,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       if (
         k !== "layout" &&
         k !== "style" &&
-        serializers[k] &&
-        serializers[k].deserialize
+        serializers[k]?.deserialize
       ) {
+        window.x = { k, s: serialized_state[k], f: serializers[k].deserialize };
         deserialized[k] = serializers[k].deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];

@@ -21,7 +21,11 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   elements = elements.toJS();
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (
-    <div className="smc-vfill" ref={whiteboardDivRef}>
+    <div
+      className="smc-vfill"
+      ref={whiteboardDivRef}
+      style={{ position: "relative" }}
+    >
       {isFocused && (
         <>
           <ToolPanel selectedTool={selectedTool} readOnly />

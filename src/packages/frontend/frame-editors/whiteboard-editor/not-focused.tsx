@@ -11,6 +11,7 @@ interface Props {
   edgeStart?: boolean;
   frame;
   canvasScale: number;
+  readOnly?: boolean;
 }
 
 export default function NotFocused({
@@ -21,6 +22,7 @@ export default function NotFocused({
   edgeStart,
   frame,
   canvasScale,
+  readOnly,
 }: Props) {
   const { id } = element;
 
@@ -39,20 +41,20 @@ export default function NotFocused({
         // because Draggable fires this onStop before that onClick even happens.
         return;
       }
-      if (selectable) {
+      if (readOnly || selectable) {
         select(id, e, frame);
       } else if (edgeCreate) {
         edge(id, frame);
       }
     },
-    [selectable, edgeCreate, id, frame]
+    [selectable, edgeCreate, id, frame, readOnly]
   );
   return (
     <Draggable
       position={{ x: 0, y: 0 }}
       cancel={".nodrag"}
       scale={canvasScale}
-      disabled={!(selectable && !element.locked)}
+      disabled={readOnly || !(selectable && !element.locked)}
       onStop={(e, data) => {
         if (data.x || data.y) {
           frame.actions.moveElements([element], data);
