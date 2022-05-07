@@ -274,7 +274,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    // console.log("new_model", { model_id, serialized_state });
+    // console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created -- shouldn't happen?
       return;
@@ -545,3 +545,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     return true;
   }
 }
+
+import { WidgetModel } from "@jupyter-widgets/base";
+// We do our own sync, but backbone calls this...
+WidgetModel.prototype.sync = (method, model, options) => {
+  console.log("WidgetModel.sync ", { method, model, options });
+};

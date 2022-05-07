@@ -75,7 +75,10 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     }, [value]);
 
     React.useEffect(() => {
-      if (view.current != null) return;
+      if (view.current != null) {
+        // view already initialized
+        return;
+      }
       const model_id = value.get("model_id");
       // view not yet initialized and model is now known, so initialize it.
       if (widget_model_ids?.contains(model_id)) {
@@ -160,7 +163,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
           default:
             // Right now we use phosphor views for many base and controls.
             // TODO: we can iteratively rewrite some of these using react
-            // for a more consistent look and feel (with bootstrap).
+            // for a more consistent look and feel (with antd).
             await init_phosphor_view(model_id);
             break;
         }
@@ -176,8 +179,9 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     function remove_view(): void {
       if (view.current != null) {
         try {
-          view.current.remove(); // no clue what this does...
+          view.current.remove();
         } catch (_err) {
+          // console.trace();
           // after changing this to an FC, calling remove() causes
           // 'Widget is not attached.' in phosphorjs.
           // The way I found to trigger this is to concurrently work
@@ -233,8 +237,6 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         return;
       }
       const view_next = await widget_manager.create_view(model.current, {});
-      //window.x = { view_next, model: model.current, widget_manager };
-      //console.log(x);
       if (!is_mounted.current) return;
       view.current = view_next as any;
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
@@ -412,7 +414,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
 
     return (
       <>
-        {/* This div's content is managed by phosphor, so don't put any react in it! */}
+        {/* This key='phosphor' div's content is managed by phosphor, so don't put any react in it! */}
         <div key="phosphor" ref={phosphorRef} style={{ overflow: "hidden" }} />
         {outputs && (
           <div key="output" style={style}>

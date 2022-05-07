@@ -13,6 +13,7 @@ export default class PlotView extends DOMWidgetView {
   private voxelsCallback: number;
   private objectHoverCallback: number;
   private objectClickCallback: number;
+  private listeners: { [name: string]: Function } = {};
 
   render() {
     const containerEnvelope = window.document.createElement("div");
@@ -37,6 +38,7 @@ export default class PlotView extends DOMWidgetView {
   }
 
   remove() {
+    //console.log(this.debugid, "PlotView - remove", this.model.model_id);
     pull(plots, this);
     this.K3DInstance.off(
       this.K3DInstance.events.CAMERA_CHANGE,
@@ -62,9 +64,16 @@ export default class PlotView extends DOMWidgetView {
       this.K3DInstance.events.OBJECT_CLICKED,
       this.objectClickCallback
     );
+
+    // Disable all listeners.  This is not done in upstream, which seems to be a mistake.
+    for (const name in this.listeners) {
+      this.model.off(name, this.listeners[name], this);
+    }
   }
 
   _init() {
+    //this.debugid = Math.random();
+    //console.log(this.debugid, "PlotView - init", this.model.model_id);
     const self = this;
     this.renderPromises = [];
     plots.push(this);
@@ -131,56 +140,6 @@ export default class PlotView extends DOMWidgetView {
       this
     );
 
-    this.model.on("change:camera_auto_fit", this._setCameraAutoFit, this);
-    this.model.on(
-      "change:lighting",
-      this._setDirectionalLightingIntensity,
-      this
-    );
-    this.model.on("change:time", this._setTime, this);
-    this.model.on("change:grid_auto_fit", this._setGridAutoFit, this);
-    this.model.on("change:grid_visible", this._setGridVisible, this);
-    this.model.on("change:grid_color", this._setGridColor, this);
-    this.model.on("change:label_color", this._setLabelColor, this);
-    this.model.on("change:fps_meter", this._setFpsMeter, this);
-    this.model.on("change:fps", this._setFps, this);
-    this.model.on("change:screenshot_scale", this._setScreenshotScale, this);
-    this.model.on("change:voxel_paint_color", this._setVoxelPaintColor, this);
-    this.model.on("change:background_color", this._setBackgroundColor, this);
-    this.model.on("change:grid", this._setGrid, this);
-    this.model.on("change:auto_rendering", this._setAutoRendering, this);
-    this.model.on("change:camera", this._setCamera, this);
-    this.model.on("change:camera_animation", this._setCameraAnimation, this);
-    this.model.on("change:clipping_planes", this._setClippingPlanes, this);
-    this.model.on("change:object_ids", this._onObjectsListChange, this);
-    this.model.on("change:menu_visibility", this._setMenuVisibility, this);
-    this.model.on("change:colorbar_object_id", this._setColorMapLegend, this);
-    this.model.on(
-      "change:colorbar_scientific",
-      this._setColorbarScientific,
-      this
-    );
-    this.model.on("change:rendering_steps", this._setRenderingSteps, this);
-    this.model.on("change:axes", this._setAxes, this);
-    this.model.on("change:camera_no_rotate", this._setCameraLock, this);
-    this.model.on("change:camera_no_zoom", this._setCameraLock, this);
-    this.model.on("change:camera_no_pan", this._setCameraLock, this);
-    this.model.on("change:camera_rotate_speed", this._setCameraSpeeds, this);
-    this.model.on("change:camera_zoom_speed", this._setCameraSpeeds, this);
-    this.model.on("change:camera_pan_speed", this._setCameraSpeeds, this);
-    this.model.on("change:camera_fov", this._setCameraFOV, this);
-    this.model.on(
-      "change:camera_damping_factor",
-      this._setCameraDampingFactor,
-      this
-    );
-    this.model.on("change:axes_helper", this._setAxesHelper, this);
-    this.model.on("change:snapshot_type", this._setSnapshotType, this);
-    this.model.on("change:name", this._setName, this);
-    this.model.on("change:mode", this._setViewMode, this);
-    this.model.on("change:camera_mode", this._setCameraMode, this);
-    this.model.on("change:manipulate_mode", this._setManipulateMode, this);
-
     try {
       this.K3DInstance = new K3D(ThreeJsProvider, this.container, {
         antialias: this.model.get("antialias"),
@@ -216,9 +175,59 @@ export default class PlotView extends DOMWidgetView {
       if (this.model.get("camera_auto_fit") === false) {
         this.K3DInstance.setCamera(this.model.get("camera"));
       }
-    } catch (e) {
-      console.log(e);
+    } catch (err) {
+      console.log(`WARNING: Issue creating K3DInstance -- ${err}`);
       return;
+    }
+
+    // IMPORTANT!  Upstream only creating listeners, and never removed them.
+    // This maybe doesn't matter as much in JupyterLab
+    // where there is no colaboration/virtualization/etc., but in CoCalc it is
+    // a disaster.  Hence restructuring the code to ensure everything is
+    // removed by the remove method as well.  Also, we only add these listeners
+    // after successfully creating the K3DInstance above, since they would only
+    // potentially cause trouble when something goes wrong.
+    this.listeners = {
+      "change:camera_auto_fit": this._setCameraAutoFit,
+      "change:lighting": this._setDirectionalLightingIntensity,
+      "change:time": this._setTime,
+      "change:grid_auto_fit": this._setGridAutoFit,
+      "change:grid_visible": this._setGridVisible,
+      "change:grid_color": this._setGridColor,
+      "change:label_color": this._setLabelColor,
+      "change:fps_meter": this._setFpsMeter,
+      "change:fps": this._setFps,
+      "change:screenshot_scale": this._setScreenshotScale,
+      "change:voxel_paint_color": this._setVoxelPaintColor,
+      "change:background_color": this._setBackgroundColor,
+      "change:grid": this._setGrid,
+      "change:auto_rendering": this._setAutoRendering,
+      "change:camera": this._setCamera,
+      "change:camera_animation": this._setCameraAnimation,
+      "change:clipping_planes": this._setClippingPlanes,
+      "change:object_ids": this._onObjectsListChange,
+      "change:menu_visibility": this._setMenuVisibility,
+      "change:colorbar_object_id": this._setColorMapLegend,
+      "change:colorbar_scientific": this._setColorbarScientific,
+      "change:rendering_steps": this._setRenderingSteps,
+      "change:axes": this._setAxes,
+      "change:camera_no_rotate": this._setCameraLock,
+      "change:camera_no_zoom": this._setCameraLock,
+      "change:camera_no_pan": this._setCameraLock,
+      "change:camera_rotate_speed": this._setCameraSpeeds,
+      "change:camera_zoom_speed": this._setCameraSpeeds,
+      "change:camera_pan_speed": this._setCameraSpeeds,
+      "change:camera_fov": this._setCameraFOV,
+      "change:camera_damping_factor": this._setCameraDampingFactor,
+      "change:axes_helper": this._setAxesHelper,
+      "change:snapshot_type": this._setSnapshotType,
+      "change:name": this._setName,
+      "change:mode": this._setViewMode,
+      "change:camera_mode": this._setCameraMode,
+      "change:manipulate_mode": this._setManipulateMode,
+    };
+    for (const name in this.listeners) {
+      this.model.on(name, this.listeners[name], this);
     }
 
     this.K3DInstance.setClearColor(this.model.get("background_color"));
@@ -230,10 +239,6 @@ export default class PlotView extends DOMWidgetView {
     this._setVoxelPaintColor();
 
     this.model.get("object_ids").forEach((id) => {
-      //       console.log("load object", {
-      //         id,
-      //         attributes: objects[id].attributes,
-      //       });
       this.renderPromises.push(
         this.K3DInstance.load({
           objects: [objects[id].attributes],
