@@ -50,6 +50,10 @@ export default class ObjectModel extends WidgetModel {
       },
       this
     );
+
+    if (args[0].id != null) {
+      objects[args[0].id] = this;
+    }
   }
 
   set(...args) {

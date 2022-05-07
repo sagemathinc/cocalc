@@ -15,9 +15,11 @@ import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 
-// Third party widgets:
+// Third party custom widgets:
 // I rewrote the entire k3d widget interface...
 import * as k3d from "./k3d";
+// pythreejs
+//import * as jupyter_threejs from "jupyter-threejs";
 
 //////
 
@@ -302,6 +304,16 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error("_model_module_version must be defined");
     }
 
+    const model: base.DOMWidgetModel = await this.new_model(
+      {
+        model_module,
+        model_name,
+        model_id,
+        model_module_version,
+      },
+      serialized_state
+    );
+
     const success = await this.dereference_model_links(serialized_state);
 
     if (!success) {
@@ -312,13 +324,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       //console.log(model_id, "successful full dereference");
       this.incomplete_model_ids.delete(model_id);
     }
-
-    const model: base.DOMWidgetModel = await this.new_model({
-      model_module,
-      model_name,
-      model_id,
-      model_module_version,
-    });
 
     // Model is NOT an EventEmitter.  It is a backbone.js thing,
     // and browsing the source code of backbone, I learned that
@@ -413,7 +418,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           : 0
       ) + 1;
     this.last_changed[model_id] = changed;
-    console.log("handle_model_change (frontend) -- actually saving", changed);
+    // console.log("handle_model_change (frontend) -- actually saving", changed);
     this.ipywidgets_state.set_model_value(model_id, changed, true);
     this.ipywidgets_state.save();
 
@@ -457,6 +462,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       module = react_output;
     } else if (moduleName === "k3d") {
       module = k3d;
+    //} else if (moduleName === "jupyter-threejs") {
+    //      module = jupyter_threejs;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`

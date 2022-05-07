@@ -17,6 +17,9 @@ export default class ChunkModel extends WidgetModel {
   initialize(...args) {
     super.initialize.apply(this, args);
     this.on("change", this._change, this);
+    if (args[0].id != null) {
+      chunks[args[0].id] = this;
+    }
   }
 
   set(...args) {
