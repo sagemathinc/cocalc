@@ -547,7 +547,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 }
 
 import { WidgetModel } from "@jupyter-widgets/base";
-// We do our own sync, but backbone calls this...
-WidgetModel.prototype.sync = (method, model, options) => {
-  console.log("WidgetModel.sync ", { method, model, options });
-};
+// We do our own sync, but backbone calls this.
+WidgetModel.prototype.sync = () => {};
+// WidgetModel.prototype.sync = (method, model, options) => {
+//   console.log("WidgetModel.sync ", { method, model, options });
+// };

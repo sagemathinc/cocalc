@@ -14,6 +14,7 @@ export default class PlotView extends DOMWidgetView {
   private objectHoverCallback: number;
   private objectClickCallback: number;
   private listeners: { [name: string]: Function } = {};
+  private lastCameraSync: number = 0;
 
   render() {
     const containerEnvelope = window.document.createElement("div");
@@ -77,9 +78,6 @@ export default class PlotView extends DOMWidgetView {
     const self = this;
     this.renderPromises = [];
     plots.push(this);
-
-    // a little abuse, since it is useful:
-    (this.model as any).lastCameraSync = new Date().getTime();
 
     this.model.on(
       "msg:custom",
@@ -248,14 +246,11 @@ export default class PlotView extends DOMWidgetView {
 
     this.cameraChangeId = this.K3DInstance.on(
       this.K3DInstance.events.CAMERA_CHANGE,
-      (control) => {
-        // @ts-ignore: this _comm_live is private
-        if (self.model._comm_live) {
-          if (new Date().getTime() - (self.model as any).lastCameraSync > 200) {
-            (self.model as any).lastCameraSync = new Date().getTime();
-            // @ts-ignore -- see comment about {patch:true} elsewhere.
-            self.model.save("camera", control, { patch: true });
-          }
+      (camera) => {
+        if (new Date().getTime() - self.lastCameraSync > 200) {
+          self.lastCameraSync = new Date().getTime();
+          // @ts-ignore -- see comment about {patch:true} elsewhere.
+          self.model.save("camera", camera, { patch: true });
         }
       }
     );
@@ -263,18 +258,15 @@ export default class PlotView extends DOMWidgetView {
     this.GUIObjectChanges = this.K3DInstance.on(
       this.K3DInstance.events.OBJECT_CHANGE,
       (change) => {
-        // @ts-ignore: _comm_live is private
-        if (self.model._comm_live) {
-          if (change.value.data && change.value.shape) {
-            change.value.compression_level =
-              objects[change.id].attributes.compression_level;
-          }
+        if (change.value.data && change.value.shape) {
+          change.value.compression_level =
+            objects[change.id].attributes.compression_level;
+        }
 
-          if (objects[change.id]) {
-            objects[change.id].save(change.key, change.value, {
-              patch: true,
-            });
-          }
+        if (objects[change.id]) {
+          objects[change.id].save(change.key, change.value, {
+            patch: true,
+          });
         }
       }
     );
