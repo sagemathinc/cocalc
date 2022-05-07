@@ -152,24 +152,17 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         }
 
         switch (model.current.module) {
-          case "@jupyter-widgets/controls":
-          case "@jupyter-widgets/base":
-          case "k3d":
-            // Right now we use phosphor views for many base and controls.
-            // TODO: we can iteratively rewrite some of these using react
-            // for a more consistent look and feel (with bootstrap).
-            await init_phosphor_view(model_id);
-            break;
-
           case "@jupyter-widgets/output":
             model.current.on("change", update_output);
             update_output();
             break;
 
           default:
-            throw Error(
-              `Not implemented: the widget module "${model.current.module}"`
-            );
+            // Right now we use phosphor views for many base and controls.
+            // TODO: we can iteratively rewrite some of these using react
+            // for a more consistent look and feel (with bootstrap).
+            await init_phosphor_view(model_id);
+            break;
         }
       } catch (err) {
         // TODO -- show an error component somehow...

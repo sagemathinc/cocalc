@@ -15,11 +15,16 @@ import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 
+///////
 // Third party custom widgets:
 // I rewrote the entire k3d widget interface...
 import * as k3d from "./k3d";
-// pythreejs
+
+// pythreejs:
 //import * as jupyter_threejs from "jupyter-threejs";
+
+// ipyvolume:
+// import * as ipyvolume from "ipyvolume/dist";
 
 //////
 
@@ -222,26 +227,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     if (serializers == null) return serialized_state;
 
-    // These two have unpack_model in them, which we already do
-    // differently, and we have to fight against that.  Instead,
-    // we just delete them entirely.  This delete really happens
-    // only once, since serialize is a static class member.
-    // Triggered by things like setting value in kernel of DatePicker,
-    // or using ipyvolume.
-    delete serializers.source;
-    delete serializers.target;
-
+    // We skip deserialize if the deserialize function is unpack_model,
+    // since we do our own model unpacking, due to issues with ordering
+    // and RTC.
     const deserialized: ModelState = {};
     this.setBuffers(model.model_id, serialized_state);
     for (const k in serialized_state) {
-      // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
-      // the layout and style deserializers call unpack_model, which
-      // blows up everything and leads to an infinite loop, since
-      // we use a completely different unpack approach.  So we have
-      // to cross our fingers that those keys can be ignored,
-      // and also that they are the only ones that use unpack_model.
-      if (k !== "layout" && k !== "style" && serializers[k]?.deserialize) {
-        deserialized[k] = serializers[k].deserialize(serialized_state[k]);
+      const deserialize = serializers[k]?.deserialize;
+      if (deserialize !== undefined && deserialize !== base.unpack_models) {
+        deserialized[k] = deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];
       }
@@ -462,8 +456,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       module = react_output;
     } else if (moduleName === "k3d") {
       module = k3d;
-    //} else if (moduleName === "jupyter-threejs") {
-    //      module = jupyter_threejs;
+      //} else if (moduleName === "jupyter-threejs") {
+      //      module = jupyter_threejs;
+      // } else if (moduleName === "ipyvolume") {
+      //  module = ipyvolume;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
@@ -495,7 +491,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v7-4.md#model-state
 
   TODO: there's no way I can see how to tell which values will be references,
-  so we just search from everything for now, at least as a string (layout, style) or
+  so we just search  everything for now, at least as a string (layout, style) or
   array of strings (children, axes, buttons).  I wish I knew that those 5 were the
   only keys to consider...  I'm also worried because what if some random value
   just happens to look like a reference?
