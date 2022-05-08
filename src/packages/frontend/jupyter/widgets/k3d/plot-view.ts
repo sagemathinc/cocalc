@@ -186,7 +186,9 @@ export default class PlotView extends DOMWidgetView {
         labelColor: this.model.get("label_color"),
       });
 
+      // Restore any saved state:
       this._setCamera();
+      this._setFpsMeter();
     } catch (err) {
       console.log(`WARNING: Issue creating K3DInstance -- ${err}`);
       return;
