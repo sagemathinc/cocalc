@@ -7,6 +7,9 @@ NOTES:
    and realtime collaboration.  We also only enable auto_rendering
    when camera position not known.
 
+-  group:null below in 3 places is to workaround bug in upstream in
+   involving "if (json.group !== null)" in js/src/core/lib/objectsGUIprovider.js
+
 */
 
 import { K3D, ThreeJsProvider } from "k3d/dist/standalone";
@@ -177,6 +180,7 @@ export default class PlotView extends DOMWidgetView {
         fps: this.model.get("fps"),
         // only initialize autoRendering possibly to true if no camera is known
         // yet. This enables virtualization, opening other frames, collaboration, etc.
+        // We do re-enable autoRendering below.
         autoRendering:
           this.model.get("auto_rendering") &&
           (this.model.get("camera")?.length ?? 0) == 0,
@@ -189,6 +193,14 @@ export default class PlotView extends DOMWidgetView {
       // Restore any saved state:
       this._setCamera();
       this._setFpsMeter();
+      if (this.model.get("auto_rendering")) {
+        // Now that this is done, we re-enable auto rendering so other changes
+        // result in updates.  This is important, e.g., otherwise if you do something
+        // like change the color of a mesh, you won't see the change until you
+        // move the scene.  We still have to do this after a timeout, since otherwise
+        // it interferes with restoring the camera position.
+        setTimeout(() => this._setAutoRendering(), 0);
+      }
     } catch (err) {
       console.log(`WARNING: Issue creating K3DInstance -- ${err}`);
       return;
@@ -253,7 +265,8 @@ export default class PlotView extends DOMWidgetView {
     this.model.get("object_ids").forEach((id) => {
       this.renderPromises.push(
         this.K3DInstance.load({
-          objects: [objects[id].attributes],
+          // group:null to workaround upstream bug (see NOTES above)
+          objects: [{ group: null, ...objects[id].attributes }],
         })
       );
     }, this);
@@ -493,7 +506,7 @@ export default class PlotView extends DOMWidgetView {
     difference(newObjectId, oldObjectId).forEach((id: number) => {
       this.renderPromises.push(
         this.K3DInstance.load({
-          objects: [objects[id].attributes],
+          objects: [{ group: null, ...objects[id].attributes }],
         })
       );
     }, this);
@@ -502,7 +515,10 @@ export default class PlotView extends DOMWidgetView {
   refreshObject(obj, changed) {
     if (this.model.get("object_ids").indexOf(obj.get("id")) !== -1) {
       this.renderPromises.push(
-        this.K3DInstance.reload(objects[obj.get("id")].attributes, changed)
+        this.K3DInstance.reload(
+          { group: null, ...objects[obj.get("id")].attributes },
+          changed
+        )
       );
     }
   }
