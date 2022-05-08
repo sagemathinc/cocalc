@@ -20,11 +20,15 @@ import * as react_controls from "./controls";
 // I rewrote the entire k3d widget interface...
 import * as k3d from "./k3d";
 
-// pythreejs:
+// pythreejs: fails miserably
 //import * as jupyter_threejs from "jupyter-threejs";
 
-// ipyvolume:
+// ipyvolume: fails miserably
 // import * as ipyvolume from "ipyvolume/dist";
+
+// bqplot: totally fails
+// simple example: "from bqplot import pyplot; pyplot.plot([1],[1])"
+// import * as bqplot from "bqplot/dist";
 
 //////
 
@@ -460,6 +464,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       //      module = jupyter_threejs;
       // } else if (moduleName === "ipyvolume") {
       //  module = ipyvolume;
+    // } else if (moduleName === "bqplot") {
+    //  module = bqplot;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
