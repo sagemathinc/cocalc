@@ -24,10 +24,8 @@ export default class ObjectModel extends WidgetModel {
     this.on(
       "msg:custom",
       (msg) => {
-        let property;
-
         if (msg.msg_type === "fetch") {
-          property = this.get(msg.field);
+          const property = this.get(msg.field);
 
           if (property.data && property.shape) {
             property.compression_level = this.attributes.compression_level;
@@ -41,7 +39,7 @@ export default class ObjectModel extends WidgetModel {
           this.get("type") === "Volume"
         ) {
           runOnEveryPlot(this.get("id"), (plot, objInstance) => {
-            if (objInstance && objInstance.refreshLightMap) {
+            if (objInstance?.refreshLightMap) {
               objInstance.refreshLightMap(msg.direction);
               plot.K3DInstance.render();
             }

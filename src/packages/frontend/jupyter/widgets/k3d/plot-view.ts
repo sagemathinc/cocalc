@@ -1,3 +1,14 @@
+/*
+
+
+NOTES:
+ - we do not support the "camera_auto_fit" option, since
+   we must always use the last known camera, due to virtualization
+   and realtime collaboration.  We also only enable auto_rendering
+   when camera position not known.
+
+*/
+
 import { K3D, ThreeJsProvider } from "k3d/dist/standalone";
 import { DOMWidgetView } from "@jupyter-widgets/base";
 import { chunks, objects, plots } from "./state";
@@ -82,6 +93,7 @@ export default class PlotView extends DOMWidgetView {
     this.model.on(
       "msg:custom",
       (obj) => {
+        // console.log("PlotView: received msg:custom", obj);
         const { model } = this;
 
         if (obj.msg_type === "fetch_screenshot") {
@@ -163,16 +175,18 @@ export default class PlotView extends DOMWidgetView {
         axesHelper: this.model.get("axes_helper"),
         grid: this.model.get("grid"),
         fps: this.model.get("fps"),
-        autoRendering: this.model.get("auto_rendering"),
+        // only initialize autoRendering possibly to true if no camera is known
+        // yet. This enables virtualization, opening other frames, collaboration, etc.
+        autoRendering:
+          this.model.get("auto_rendering") &&
+          (this.model.get("camera")?.length ?? 0) == 0,
         gridVisible: this.model.get("grid_visible"),
         gridColor: this.model.get("grid_color"),
         clippingPlanes: this.model.get("clipping_planes"),
         labelColor: this.model.get("label_color"),
       });
 
-      if (this.model.get("camera_auto_fit") === false) {
-        this.K3DInstance.setCamera(this.model.get("camera"));
-      }
+      this._setCamera();
     } catch (err) {
       console.log(`WARNING: Issue creating K3DInstance -- ${err}`);
       return;
@@ -186,7 +200,6 @@ export default class PlotView extends DOMWidgetView {
     // after successfully creating the K3DInstance above, since they would only
     // potentially cause trouble when something goes wrong.
     this.listeners = {
-      "change:camera_auto_fit": this._setCameraAutoFit,
       "change:lighting": this._setDirectionalLightingIntensity,
       "change:time": this._setTime,
       "change:grid_auto_fit": this._setGridAutoFit,
@@ -231,7 +244,6 @@ export default class PlotView extends DOMWidgetView {
     this.K3DInstance.setClearColor(this.model.get("background_color"));
     this.K3DInstance.setChunkList(chunks);
 
-    this._setCameraAutoFit();
     this._setGridAutoFit();
     this._setMenuVisibility();
     this._setVoxelPaintColor();
@@ -338,10 +350,6 @@ export default class PlotView extends DOMWidgetView {
         this.K3DInstance.setTime(this.model.get("time"))
       );
     }
-  }
-
-  _setCameraAutoFit() {
-    this.K3DInstance.setCameraAutoFit(this.model.get("camera_auto_fit"));
   }
 
   _setGridAutoFit() {
