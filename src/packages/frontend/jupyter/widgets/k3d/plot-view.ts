@@ -82,7 +82,7 @@ export default class PlotView extends DOMWidgetView {
 
     // Disable all listeners.  This is not done in upstream, which seems to be a mistake.
     for (const name in this.listeners) {
-      this.model.off(name, this.listeners[name], this);
+      this.model.off(name, this.listeners[name] as any, this);
     }
   }
 
@@ -252,7 +252,7 @@ export default class PlotView extends DOMWidgetView {
       "change:manipulate_mode": this._setManipulateMode,
     };
     for (const name in this.listeners) {
-      this.model.on(name, this.listeners[name], this);
+      this.model.on(name, this.listeners[name] as any, this);
     }
 
     this.K3DInstance.setClearColor(this.model.get("background_color"));

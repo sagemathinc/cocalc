@@ -35,14 +35,14 @@ function deserializeArray(obj: {
   shape: Shape;
 }) {
   const { dtype } = obj;
-  if (obj.data !== undefined) {
+  if (obj.data != null) {
     return {
       dtype,
       data: new typesToArray[dtype](obj.data.buffer),
       shape: obj.shape,
     };
   }
-  if (obj.compressed_data !== undefined) {
+  if (obj.compressed_data != null) {
     const buffer = new typesToArray[dtype](
       unzlibSync(new Uint8Array(obj.compressed_data.buffer)).buffer
     );
@@ -71,7 +71,7 @@ export function deserialize(obj, manager) {
     // plain number
     return obj;
   }
-  if (obj.shape !== undefined) {
+  if (obj.shape != null) {
     // plain data
     return deserializeArray(obj);
   }
@@ -82,6 +82,12 @@ export function deserialize(obj, manager) {
   let timeSeries = true;
   const deserializedObj: any = {};
   for (const k in obj) {
+    if (k == "data" || k == "timeSeries") {
+      // we allow and remove these to simplify other code.  This allows for
+      // transforming from normal data to time series data, which happens, e.g.,
+      // when changing to making an animation like in the example in the k3d docs.
+      continue;
+    }
     if (!isNumeric(k)) {
       timeSeries = false;
     }
@@ -134,12 +140,8 @@ export function serialize(
     return obj;
   }
 
-  if (obj !== null) {
-    if (
-      obj.data !== undefined &&
-      obj.shape !== undefined &&
-      obj.dtype !== undefined
-    ) {
+  if (obj != null) {
+    if (obj.data != null && obj.shape != null && obj.dtype != null) {
       return serializeArray(obj);
     }
     if (Array.isArray(obj)) {

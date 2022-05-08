@@ -186,8 +186,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       vals.push(new DataView(new Uint8Array(buffers[i].data).buffer));
       paths.push(buffer_paths[i]);
     }
-    // console.log("put_buffers", { model_id, state, paths, vals });
-    base.put_buffers(state, paths, vals);
+    put_buffers(state, paths, vals);
   }
 
   private async handle_table_model_buffers_change(
@@ -238,7 +237,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     this.setBuffers(model.model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
-      if (deserialize !== undefined && deserialize !== base.unpack_models) {
+      if (deserialize != null && deserialize !== base.unpack_models) {
         deserialized[k] = deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];
@@ -464,8 +463,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       //      module = jupyter_threejs;
       // } else if (moduleName === "ipyvolume") {
       //  module = ipyvolume;
-    // } else if (moduleName === "bqplot") {
-    //  module = bqplot;
+      // } else if (moduleName === "bqplot") {
+      //  module = bqplot;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
@@ -558,3 +557,37 @@ WidgetModel.prototype.sync = () => {};
 // WidgetModel.prototype.sync = (method, model, options) => {
 //   console.log("WidgetModel.sync ", { method, model, options });
 // };
+
+// We modify the upstream version from
+// ipywidgets/packages/base/src/utils.ts
+// to be non-fatal, so it's more flexible wrt to our realtime sync setup.
+export function put_buffers(
+  state,
+  buffer_paths: (string | number)[][],
+  buffers: any[]
+): void {
+  for (let i = 0; i < buffer_paths.length; i++) {
+    const buffer_path = buffer_paths[i];
+    // make sure the buffers are DataViews
+    let buffer = buffers[i];
+    if (!(buffer instanceof DataView)) {
+      buffer = new DataView(
+        buffer instanceof ArrayBuffer ? buffer : buffer.buffer
+      );
+    }
+    // say we want to set state[x][y][z] = buffer
+    let obj = state as any;
+    // we first get obj = state[x][y]
+    for (let j = 0; j < buffer_path.length - 1; j++) {
+      if (obj[buffer_path[j]] == null) {
+        // doesn't exist, so create it.  This makes things work in
+        // possibly more random order, rather than crashing.  I hit this,
+        // e.g., when defining animations for k3d.
+        obj[buffer_path[j]] = {};
+      }
+      obj = obj[buffer_path[j]];
+    }
+    // and then set: obj[z] = buffer
+    obj[buffer_path[buffer_path.length - 1]] = buffer;
+  }
+}
