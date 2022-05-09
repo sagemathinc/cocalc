@@ -161,10 +161,10 @@ export const Widget: React.FC<WidgetProps> = React.memo(
             break;
 
           default:
-            // Right now we use phosphor views for many base and controls.
+            // Right now we use Lumino views for many base and controls.
             // TODO: we can iteratively rewrite some of these using react
             // for a more consistent look and feel (with antd).
-            await init_phosphor_view(model_id);
+            await init_lumino_view(model_id);
             break;
         }
       } catch (err) {
@@ -230,7 +230,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       };
     }
 
-    async function init_phosphor_view(model_id: string): Promise<void> {
+    async function init_lumino_view(model_id: string): Promise<void> {
       if (actions == null) return;
       const widget_manager = actions.widget_manager;
       if (widget_manager == null) {

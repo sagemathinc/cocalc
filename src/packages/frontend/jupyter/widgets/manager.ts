@@ -14,6 +14,7 @@ import { Comm } from "./comm";
 import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
+import { size } from "lodash";
 
 ///////
 // Third party custom widgets:
@@ -86,6 +87,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           break;
         case "buffers":
           await this.handle_table_model_buffers_change(model_id);
+          break;
+        case "message":
+          this.handle_table_model_message_change(model_id);
           break;
         default:
           throw Error(`unknown state type '${type}'`);
@@ -213,6 +217,17 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         deserialized_state[key];
     }
     this.update_model(model_id, change);
+  }
+
+  private async handle_table_model_message_change(
+    model_id: string
+  ): Promise<void> {
+    const message = this.ipywidgets_state.get_message(model_id);
+    if (size(message) == 0) return; // temporary until we have delete functionality
+    // console.log("handle_table_model_message_change", message);
+    const model = await this.get_model(model_id);
+    if (model == null) return;
+    model.trigger("msg:custom", message);
   }
 
   deserialize_state(

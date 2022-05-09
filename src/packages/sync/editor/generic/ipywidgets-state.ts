@@ -9,6 +9,7 @@ import { close, delete_null_fields, len } from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
+import { delay } from "awaiting";
 
 type State = "init" | "ready" | "closed";
 
@@ -202,7 +203,7 @@ export class IpywidgetsState extends EventEmitter {
   // Do any setting of the underlying table through this function.
   public set(
     model_id: string,
-    type: "value" | "state" | "buffers",
+    type: "value" | "state" | "buffers" | "message",
     data: any,
     fire_change_event: boolean = true
   ): void {
@@ -226,6 +227,8 @@ export class IpywidgetsState extends EventEmitter {
       // already set, but overwrite
       // when they change.
       merge = "deep";
+    } else if (type == "message") {
+      merge = "none";
     } else {
       merge = "deep";
     }
@@ -319,12 +322,9 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     const { state } = data;
-    if (state == null) {
-      dbg("state is null -- ignoring message");
-      return;
+    if (state != null) {
+      delete_null_fields(state);
     }
-
-    delete_null_fields(state);
 
     // It is critical to send any buffers data before
     // the other data; otherwise, deserialization on
@@ -345,7 +345,16 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     switch (content.data.method) {
+      case "custom":
+        const message = content.data.content;
+        dbg("custom message", message);
+        // NOTE: any buffers that are part of this comm message
+        // already got set above.
+        // We now send the message.
+        this.sendCustomMessage(model_id, message, false);
+        break;
       case "update":
+        if(state == null) return;
         dbg("method -- update");
         if (state != null) {
           if (this.clear_output[model_id] && state.outputs != null) {
@@ -399,6 +408,7 @@ export class IpywidgetsState extends EventEmitter {
         }
         break;
       case undefined:
+        if(state == null) return;
         dbg("method -- undefined (=initial set?)");
         this.set_model_state(model_id, state, false);
         break;
@@ -471,5 +481,32 @@ export class IpywidgetsState extends EventEmitter {
     outputs.push(mesg.content);
     this.set_model_value(model_id, { outputs });
     return true;
+  }
+
+  private async sendCustomMessage(
+    model_id: string,
+    message: object,
+    fire_change_event: boolean = true
+  ): Promise<void> {
+    /*
+    Send a custom message.
+
+    It's not at all clear what this should even mean in the context of
+    realtime collaboration, and there will likely be clients where
+    this is bad.  But for now, we just make the message available
+    via the table for a few seconds, then remove it.  Any clients
+    that are connected while we do this can react, and any that aren't
+    just don't get the message (which is presumably fine).
+    */
+
+    this.set(model_id, "message", message, fire_change_event);
+    await delay(3000);
+    // Actually, delete is not implemented for synctable, so for
+    // now we just set it to an empty message.
+    this.set(model_id, "message", {}, fire_change_event);
+  }
+
+  public get_message(model_id: string) {
+    return this.get(model_id, "message")?.toJS();
   }
 }
