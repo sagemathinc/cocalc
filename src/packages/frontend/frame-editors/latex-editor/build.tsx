@@ -99,6 +99,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
   const build_command = useRedux([name, "build_command"]);
+  const build_command_hardcoded =
+    useRedux([name, "build_command_hardcoded"]) ?? false;
   const knitr: boolean = useRedux([name, "knitr"]);
   const [active_tab, set_active_tab] = React.useState<string>(
     BUILD_SPECS.latex.label
@@ -191,6 +193,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
         actions={actions}
         build_command={build_command}
         knitr={knitr}
+        build_command_hardcoded={build_command_hardcoded}
       />
     );
   }
