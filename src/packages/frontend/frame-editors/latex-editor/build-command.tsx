@@ -8,17 +8,20 @@ Customization and selection of the build command.
 */
 
 import { List } from "immutable";
-import { Loading } from "@cocalc/frontend/components";
+import { Loading, Icon } from "@cocalc/frontend/components";
 import { Alert } from "react-bootstrap";
 import { Input, Form, Dropdown, Menu } from "antd";
-import { Button } from "../../antd-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { SaveOutlined, DownOutlined } from "@ant-design/icons";
-import { React } from "../../app-framework";
+import { React } from "@cocalc/frontend/app-framework";
 import { split } from "@cocalc/util/misc";
-import { ENGINES, Engine, build_command as latexmk_build_command } from "./latexmk";
+import {
+  ENGINES,
+  Engine,
+  build_command as latexmk_build_command,
+} from "./latexmk";
 import { Actions } from "./actions";
 import { COLORS } from "@cocalc/util/theme";
-
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
 function build_command_string(cmd: string | List<string>): string {
@@ -52,6 +55,7 @@ interface Props {
   build_command: string | List<string>;
   knitr: boolean;
   font_size: number;
+  build_command_hardcoded?: boolean;
 }
 
 export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
@@ -61,6 +65,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     build_command: build_command_orig,
     knitr,
     font_size,
+    build_command_hardcoded = false,
   } = props;
   const [build_command_prev, set_build_command_prev] =
     React.useState(build_command_orig);
@@ -69,6 +74,8 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   );
   const [focus, set_focus] = React.useState<boolean>(false);
   const [dirty, set_dirty] = React.useState<boolean>(false);
+  const [show_hardcoded_info, set_show_hardcoded_info] =
+    React.useState<boolean>(false);
 
   if (!focus && build_command_prev != build_command_orig) {
     set_build_command_prev(build_command_orig);
@@ -85,6 +92,10 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     actions.set_build_command(cmd);
   }
 
+  function rescan(): void {
+    actions.init_build_directive(true);
+  }
+
   function render_engine_options(): JSX.Element {
     const v: JSX.Element[] = ENGINES.map((engine) => (
       <Menu.Item key={engine}>{engine}</Menu.Item>
@@ -98,6 +109,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
         placement={"bottomRight"}
         overlay={render_engine_options()}
         trigger={["hover", "click"]}
+        disabled={build_command_hardcoded}
       >
         <Button bsSize={"xsmall"}>
           Engine <DownOutlined />
@@ -136,6 +148,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           textOverflow: "ellipsis",
         }}
         value={build_command}
+        disabled={build_command_hardcoded}
         onChange={(e) => handle_command_line_change((e.target as any).value)}
         onFocus={() => set_focus(true)}
         onKeyDown={(evt) => {
@@ -197,18 +210,73 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_body() {
+  function render_hardcoded() {
     return (
-      <div>
-        {render_command_line()}
-        {render_help()}
-      </div>
+      <>
+        <h4>
+          Hardcoded build-command
+          <a
+            style={{ float: "right" }}
+            onClick={() => set_show_hardcoded_info(!show_hardcoded_info)}
+          >
+            <Icon name={"question-circle"} />{" "}
+            {show_hardcoded_info ? "Close Help" : "Help"}
+          </a>
+          <a
+            style={{ float: "right", marginRight: "10px" }}
+            onClick={() => rescan()}
+          >
+            <Icon name="reload" /> Rescan
+          </a>
+        </h4>
+        <pre style={{ whiteSpace: "pre-line" }}>{build_command}</pre>
+        {show_hardcoded_info && (
+          <Alert bsStyle="warning">
+            <div style={{ color: COLORS.GRAY }}>
+              <p>
+                There is a <code>% !TeX cocalc = ...</code> directive in your
+                document. This hardcodes the build command for this document.
+                The command is sanitized to work well with this editor by e.g.
+                always replacing the last token to the current file name. To
+                disable any sanitization, add a semicolon at the end or use a
+                semicolon to issue more than one command.
+              </p>
+              <p>
+                After changing the build command directive, commenting it out
+                via <code>%% </code> or removing it, make sure to{" "}
+                <a onClick={() => rescan()}>rescan the document</a>.
+              </p>
+              <p>
+                Example:{" "}
+                <code>
+                  % !TeX cocalc = latexmk -pdf -f -g -bibtex -deps -synctex=1
+                  -interaction=nonstopmode file.tex
+                </code>
+                .
+              </p>
+            </div>
+          </Alert>
+        )}
+      </>
     );
+  }
+
+  function render_body() {
+    if (build_command_hardcoded) {
+      return <>{render_hardcoded()}</>;
+    } else {
+      return (
+        <>
+          {render_command_line()}
+          {render_help()}
+        </>
+      );
+    }
   }
 
   if (build_command == null) {
     return <Loading />;
   } else {
-    return render_body();
+    return <div style={{ paddingRight: "5px" }}>{render_body()}</div>;
   }
 });

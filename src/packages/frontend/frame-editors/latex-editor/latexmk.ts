@@ -89,6 +89,7 @@ export function get_engine_from_config(config: string): Engine | null {
 
     case "lua":
     case "luatex":
+    case "lualatex":
       return "LuaTex";
   }
   return null;

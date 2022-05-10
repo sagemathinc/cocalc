@@ -156,7 +156,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   spyder: {
     command: "spyder",
     desc: "Spyder is a powerful scientific environment written in Python, for Python, and designed by and for scientists, engineers and data analysts.",
-    icon: "calculator",
+    icon: "python",
     label: "Spyder",
   },
   gchempaint: {
