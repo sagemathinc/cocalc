@@ -76,6 +76,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = (
   // makes a choice).
   return (
     <Modal
+      width={700}
       visible={confirm_dialog.get("choice") == null}
       onCancel={close}
       title={

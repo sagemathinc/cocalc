@@ -491,7 +491,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
 
     function render_heading(): Rendered {
       return (
-        <Grid style={{ width: "100%", fontWeight: "bold", color: "#666" }}>
+        <Grid style={{ width: "100%", fontWeight: "bold", color: "#666", marginTop:'15px' }}>
           <Row>
             <Col md={1} sm={1} />
             <Col md={7} sm={7}>
