@@ -71,6 +71,7 @@ interface FrameActions extends Actions {
 interface EditorActions extends Actions {
   download?: (id: string) => void;
   restart?: () => void;
+  rescan_latex_directive?: () => void;
 }
 
 import { AvailableFeatures } from "../../project_configuration";
@@ -1106,6 +1107,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_rescan_latex_directives(): Rendered {
+    if (!is_visible("rescan_latex_directive", true)) return;
+    return (
+      <Button
+        key={"rescan-latex-directive"}
+        disabled={!!props.status}
+        bsSize={button_size()}
+        onClick={() => props.editor_actions.rescan_latex_directive?.()}
+        title={"Rescan document for build directive"}
+      >
+        <Icon name={"reload"} /> <VisibleMDLG>Directive</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_clean(): Rendered {
     if (!is_visible("clean", true)) {
       return;
@@ -1364,6 +1380,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_switch_to_file());
     v.push(render_clean());
     v.push(render_zoom_group());
+    v.push(render_rescan_latex_directives());
     if (!is_public) {
       v.push(render_undo_redo_group());
     }
@@ -1544,7 +1561,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
               max={props.pages}
               value={props.page}
               onChange={(page) => {
-                if(!page) return;
+                if (!page) return;
                 props.actions.setPage(props.id, page);
               }}
             />{" "}

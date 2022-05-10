@@ -84,6 +84,7 @@ interface LatexEditorState extends CodeEditorState {
   knitr_error: boolean; // true, if there is a knitr problem
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
   includeError?: string;
+  build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -211,7 +212,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     );
   }
 
-  private async init_build_directive(): Promise<void> {
+  public async rescan_latex_directive(): Promise<void> {
+    await this.init_build_directive(true);
+  }
+
+  /**
+   * we check the first ~1000 lines for
+   * % !TeX program = xelatex | pdflatex | ...
+   * % !TeX cocalc = the exact command line
+   */
+  public async init_build_directive(cocalcOnly = false): Promise<void> {
     // check if there is an engine configured
     // https://github.com/sagemathinc/cocalc/issues/2839
     if (this.engine_config !== undefined) return;
@@ -222,27 +232,58 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (this._state == "closed") return;
 
+    let program = ""; // later, might contain the !TeX program build directive
+    let cocalc_cmd = ""; // later, might contain the cocalc command
+
     const s = this._syncstring.to_str();
     let line: string;
+    let lineNo = 0;
     for (line of splitlines(s)) {
-      if (startswith(line, "% !TeX program =")) {
-        const tokens = line.split("=");
-        if (tokens.length >= 2) {
-          this.engine_config = get_engine_from_config(tokens[1].trim());
-          if (this.engine_config != null) {
-            // Now set the build command to what is configured.
-            this.set_build_command(
-              build_command(
-                this.engine_config,
-                path_split(this.path).tail,
-                this.knitr,
-                this.output_directory
-              )
-            );
-          }
-          return;
-        }
+      lineNo += 1;
+      if (lineNo > 1000) break;
+      if (!startswith(line, "%")) continue;
+      const i = line.indexOf("=");
+      if (i == -1) continue;
+      // we match on lower case and normalize all spaces
+      const directive = line
+        .slice(0, i)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      if (
+        !cocalcOnly &&
+        (startswith(directive, "% !tex program") ||
+          startswith(directive, "% !tex ts-program"))
+      ) {
+        program = line.slice(i + 1).trim();
+      } else if (startswith(directive, "% !tex cocalc")) {
+        cocalc_cmd = line.slice(i + 1).trim();
       }
+      if (cocalc_cmd || (cocalc_cmd && program)) break;
+    }
+
+    // cocalc command takes precedence!
+    if (cocalc_cmd) {
+      // once set, it will be sanitized upon the next syncdb change event
+      this.set_build_command(cocalc_cmd);
+      this.setState({ build_command_hardcoded: true });
+    } else if (program) {
+      // get_engine_from_config picks an "Engine" we know of via lower-case match
+      this.engine_config = get_engine_from_config(program);
+      if (this.engine_config != null) {
+        // Now set the build command to what is configured.
+        this.set_build_command(
+          build_command(
+            this.engine_config,
+            path_split(this.path).tail,
+            this.knitr,
+            this.output_directory
+          )
+        );
+      }
+      this.setState({ build_command_hardcoded: false });
+    } else {
+      this.setState({ build_command_hardcoded: false });
     }
   }
 
@@ -268,6 +309,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
       if (this._state == "closed") return;
+    } else {
+      // this scans for the "cocalc" directive, which hardcodes the build command
+      await this.init_build_directive(true);
     }
 
     // Also, whenever the syncdb changes or loads, we load the build
