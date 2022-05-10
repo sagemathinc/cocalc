@@ -99,7 +99,13 @@ const ZeroWidthString = (props: { length?: number; isLineBreak?: boolean }) => {
         {
           display: "inline-block",
           width: "1px",
-          textIndent: 0,
+          textIndent: 0 /* This is needed to offset textIndex that is used in task list items!
+          This example breaks otherwise, if you put the cursor in the third bullet point and move up to previous line in the link.
+
+- x
+- [ ] y wstein.org
+-
+*/,
         }
       }
     >
