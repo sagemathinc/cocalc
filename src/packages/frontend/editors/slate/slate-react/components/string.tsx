@@ -99,6 +99,7 @@ const ZeroWidthString = (props: { length?: number; isLineBreak?: boolean }) => {
         {
           display: "inline-block",
           width: "1px",
+          textIndent: 0,
         }
       }
     >
