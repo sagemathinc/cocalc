@@ -100,6 +100,14 @@ export class FileUseActions<T = FileUseState> extends Actions<
     fix_path: boolean = true,
     timestamp: Date | undefined = undefined
   ): Promise<void> {
+    //     console.log("mark_file", {
+    //       project_id,
+    //       path,
+    //       action,
+    //       ttl,
+    //       fix_path,
+    //       timestamp,
+    //     });
     if (fix_path) {
       // This changes .foo.txt.sage-chat to foo.txt.
       path = misc.original_path(path);

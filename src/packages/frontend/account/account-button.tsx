@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import React from "react";
 import { Popconfirm, Popover } from "antd";
-import { NavItem } from "react-bootstrap";
+import { NavItem } from "@cocalc/frontend/antd-bootstrap";
 import { AccountActions } from "../account";
 
 interface Props {

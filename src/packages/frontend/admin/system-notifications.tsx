@@ -10,14 +10,14 @@ import {
   rclass,
   redux,
   Rendered,
-} from "../app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   Button,
   ButtonToolbar,
   FormGroup,
   FormControl,
   Well,
-} from "react-bootstrap";
+} from "@cocalc/frontend/antd-bootstrap";
 import { Map } from "immutable";
 import { plural } from "@cocalc/util/misc";
 import { Icon, Loading } from "../components";

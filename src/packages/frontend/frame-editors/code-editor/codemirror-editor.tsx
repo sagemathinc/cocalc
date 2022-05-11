@@ -61,6 +61,7 @@ interface Props {
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
   is_subframe?: boolean;
+  placeholder?: string;
 }
 
 export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
@@ -232,7 +233,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     if (props.is_public) {
       return;
     }
-    editor_actions()?.set_syncstring_to_codemirror();
+    editor_actions()?.set_syncstring_to_codemirror(undefined, true);
     editor_actions()?.syncstring_commit();
   }
 
@@ -492,7 +493,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       >
         {render_cursors()}
         {render_gutter_markers()}
-        <textarea ref={textareaRef} style={{ display: "none" }} />
+        <textarea
+          ref={textareaRef}
+          style={{ display: "none" }}
+          placeholder={props.placeholder}
+        />
       </div>
     </div>
   );

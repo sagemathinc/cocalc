@@ -13,6 +13,7 @@ declare var DEBUG: boolean;
 import { ProjectsNav } from "../projects/projects-nav";
 
 import { COLORS } from "@cocalc/util/theme";
+import { IS_SAFARI, IS_MOBILE, IS_IOS } from "../feature";
 
 import { Button, Navbar, Nav } from "../antd-bootstrap";
 import {
@@ -77,7 +78,19 @@ const PROJECTS_STYLE: React.CSSProperties = {
   padding: "10px 7px",
 } as const;
 
-let page_height: string = "100vh";
+// ipad and ios have a weird trick where they make the screen
+// actually smaller than 100vh and have it be scrollable, even
+// when overflow:hidden, which causes massive UI pain to cocalc.
+// so in that case we make the page_height less.  Without this
+// one little tricky, cocalc is very, very frustrating to use
+// on mobile safari. See the million discussions over the years:
+// https://liuhao.im/english/2015/05/29/ios-safari-window-height.html
+// ...
+// https://lukechannings.com/blog/2021-06-09-does-safari-15-fix-the-vh-bug/
+let page_height: string =
+  IS_MOBILE || IS_SAFARI
+    ? `calc(100vh - env(safe-area-inset-bottom) - ${IS_IOS ? 80 : 20}px)`
+    : "100vh";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",

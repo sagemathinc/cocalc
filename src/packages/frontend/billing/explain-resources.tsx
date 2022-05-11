@@ -158,7 +158,7 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
               <li>The number of projects</li>
               <li>If you qualify for an academic discount</li>
               <li>
-                Upgrade schema per project: a small 1 GB memory / 1 shared CPU
+                Upgrade schema per project: a small 1 G memory / 1 shared CPU
                 upgrade is fine for basic calculations, but we find that many
                 data and computational science projects run better with
                 additional RAM and CPU.

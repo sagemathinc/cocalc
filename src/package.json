@@ -17,7 +17,7 @@
     "psql": "PGUSER='smc' PGHOST=$INIT_CWD/data/postgres/socket psql",
     "database": "cd dev/project && ./start_postgres.py",
     "version-check": "./workspaces.py version-check",
-    "c": "./scripts/c"
+    "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c"
   },
   "repository": {
     "type": "git",

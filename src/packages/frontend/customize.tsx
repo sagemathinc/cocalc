@@ -408,17 +408,17 @@ export const Footer: React.FC = React.memo(() => {
 
   function contents() {
     const elements = [
-      <A key={0} href={appBasePath}>
+      <A key="name" href={appBasePath}>
         <SiteName /> by {organizationName}
       </A>,
-      <A key={1} href={SystemStatusUrl}>
+      <A key="status" href={SystemStatusUrl}>
         System Status
       </A>,
-      <A key={2} href={TOSurl}>
+      <A key="tos" href={TOSurl}>
         Terms of Service
       </A>,
-      <HelpEmailLink key={3} />,
-      <span key={4} title={webappVersionInfo}>
+      <HelpEmailLink key="help" />,
+      <span key="year" title={webappVersionInfo}>
         &copy; {YEAR}
       </span>,
     ];

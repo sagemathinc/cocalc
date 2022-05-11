@@ -19,6 +19,7 @@ import {
   useRef,
 } from "../../app-framework";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 interface Props {
   actions: any;
@@ -43,6 +44,8 @@ const COMMAND_STYLE = {
 } as CSS;
 
 export const TerminalFrame: React.FC<Props> = React.memo((props) => {
+  const divRef = useRef<any>(null);
+  usePinchToZoom({ target: divRef });
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
@@ -175,6 +178,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     <div className={"smc-vfill"}>
       {render_command()}
       <div
+        ref={divRef}
         className={"smc-vfill"}
         style={{ backgroundColor, padding: "0 0 0 4px" }}
         onClick={() => {

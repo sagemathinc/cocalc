@@ -7,6 +7,7 @@ import getPool from "@cocalc/database/pool";
 import generateHash from "@cocalc/server/auth/hash";
 import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/server/auth/remember-me";
 import Cookies from "cookies";
+import { getAccountIdFromApiKey } from "@cocalc/server/auth/api";
 
 // Return account_id if they are signed in.
 // If not, returns undefined.
@@ -21,7 +22,19 @@ export default async function getAccountId(
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.
   const hash = getRememberMeHash(req);
-  if (!hash) return; // not signed in.
+  if (!hash) {
+    // not signed in via a cookie.
+    // What about an api key?
+    if (req.header("Authorization")) {
+      try {
+        return await getAccountIdFromApiKey(req);
+      } catch (_err) {
+        // non-fatal, at least for now...
+        return;
+      }
+    }
+    return;
+  }
   const pool = getPool(noCache ? "short" : undefined);
   // important to use CHAR(127) instead of TEXT for 100x performance gain.
   const result = await pool.query(

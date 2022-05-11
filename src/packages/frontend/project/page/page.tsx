@@ -14,6 +14,7 @@ import {
   useActions,
   useRedux,
   useTypedRedux,
+  redux,
 } from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
@@ -28,6 +29,10 @@ import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
 import { useProjectStatus } from "./project-status-hook";
+import {
+  defaultFrameContext,
+  FrameContext,
+} from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -50,10 +55,8 @@ const NavWrapper = ({ style, children, id, className, bsStyle }) =>
 const SortableNav = SortableContainer(NavWrapper);
 
 const INDICATOR_STYLE: React.CSSProperties = {
-  paddingTop: "1px",
   overflow: "hidden",
   paddingLeft: "5px",
-  height: "32px",
 } as const;
 
 interface Props {
@@ -286,12 +289,22 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       }
       const tab_name = "editor-" + path;
       return v.push(
-        <Content
+        <FrameContext.Provider
           key={tab_name}
-          is_visible={active_project_tab === tab_name}
-          project_id={project_id}
-          tab_name={tab_name}
-        />
+          value={{
+            ...defaultFrameContext,
+            project_id,
+            path,
+            actions: redux.getEditorActions(project_id, path) as any,
+            isFocused: active_project_tab === tab_name,
+          }}
+        >
+          <Content
+            is_visible={active_project_tab === tab_name}
+            project_id={project_id}
+            tab_name={tab_name}
+          />
+        </FrameContext.Provider>
       );
     });
     return v;
@@ -299,18 +312,17 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
 
   // fixed tab -- not an editor
   function render_project_content() {
-    const v: JSX.Element[] = [];
+    if (!is_active) {
+      // see https://github.com/sagemathinc/cocalc/issues/3799
+      // Some of the fixed project tabs (none editors) are hooked
+      // into redux and moronic about rendering everything on every
+      // tiny change... Until that is fixed, it is critical to NOT
+      // render these pages at all, unless the tab is active
+      // and they are visible.
+      return;
+    }
     if (active_project_tab.slice(0, 7) !== "editor-") {
-      if (!is_active) {
-        // see https://github.com/sagemathinc/cocalc/issues/3799
-        // Some of the fixed project tabs (none editors) are hooked
-        // into redux and moronic about rendering everything on every
-        // tiny change... Until that is fixed, it is critical to NOT
-        // render these pages at all, unless the tab is active
-        // and they are visible.
-        return;
-      }
-      v.push(
+      return (
         <Content
           key={active_project_tab}
           is_visible={true}
@@ -319,7 +331,6 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
         />
       );
     }
-    return v.concat(render_editor_tabs());
   }
 
   function render_project_modal() {
@@ -362,6 +373,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       {!fullscreen && render_file_tabs()}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
+      {render_editor_tabs()}
       {render_project_content()}
       {render_project_modal()}
     </div>

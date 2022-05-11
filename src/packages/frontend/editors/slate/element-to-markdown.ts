@@ -6,6 +6,7 @@
 import { Element } from "slate";
 import { Info, serialize } from "./slate-to-markdown";
 import { getChildInfoHook, getSlateToMarkdown } from "./elements";
+import stringify from "json-stable-stringify";
 
 export interface ChildInfo extends Info {
   // Child info is like info, but we all any other property -- see
@@ -21,14 +22,25 @@ export function serializeElement(node: Element, info: Info): string {
     throw Error("BUG -- serializeElement takes an element as input");
   }
 
+  if (
+    info.noCache === undefined ||
+    info.topLevel === undefined ||
+    !info.noCache.has(info.topLevel)
+  ) {
+    const cachedMarkdown = info.cache?.[stringify(node)];
+    if (cachedMarkdown != null) {
+      return cachedMarkdown;
+    }
+  }
+
   const childInfo = {
     ...info,
     ...{ parent: node },
   } as ChildInfo;
 
-  const hook = getChildInfoHook(node["type"]);
-  if (hook != null) {
-    hook({ node, childInfo });
+  const childInfoHook = getChildInfoHook(node["type"]);
+  if (childInfoHook != null) {
+    childInfoHook({ node, childInfo });
   }
   const v: string[] = [];
   for (let index = 0; index < node.children.length; index++) {
@@ -39,12 +51,13 @@ export function serializeElement(node: Element, info: Info): string {
       })
     );
   }
+
   let children = v.join("");
   const slateToMarkdown = getSlateToMarkdown(node["type"]);
   const md = slateToMarkdown({ node, children, info, childInfo });
-  if (info.hook != null) {
-    const h = info.hook(node, md);
-    if (h != null) return h;
+  const hook = info.hook?.(node);
+  if (hook !== undefined) {
+    return hook(md);
   }
   return md;
 }

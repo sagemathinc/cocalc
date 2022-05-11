@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
 import Header from "components/landing/header";
 import Footer from "components/landing/footer";

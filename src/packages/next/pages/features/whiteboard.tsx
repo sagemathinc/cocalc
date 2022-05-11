@@ -8,6 +8,7 @@ import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Pitch from "components/landing/pitch";
+import SignIn from "components/landing/sign-in";
 
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
 
@@ -21,12 +22,17 @@ export default function Whiteboard({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
-              title={<h1>Online Whiteboard</h1>}
+              title={
+                <h1>
+                  Online Collaborative Whiteboards for Mathematics and
+                  Computation
+                </h1>
+              }
               subtitle={
                 <>
                   <hr />
                   Sketch out ideas and run Jupyter code cells with CoCalc's
-                  mathematical whiteboard
+                  whiteboard
                 </>
               }
               image={WhiteboardImage}
@@ -43,7 +49,7 @@ export default function Whiteboard({ customize }) {
                 </p>
                 <ul>
                   <li>
-                    <strong>text</strong> with mathematical formulas,
+                    <strong>text</strong> with mathematical LaTeX expressions,
                   </li>
                   <li>
                     sticky <strong>notes</strong>,
@@ -53,10 +59,17 @@ export default function Whiteboard({ customize }) {
                   </li>
                   <li>
                     <A href="/features/jupyter-notebook">Jupyter</A>{" "}
-                    <strong>code cells</strong>,
+                    <strong>code cells</strong> with support for tab completion
+                    and interactive widgets,
                   </li>
                   <li>
-                    <strong>chat</strong> conversations with your friends,
+                    <strong>chat</strong> conversations with collaborators,
+                  </li>
+                  <li>
+                    hundreds of <strong>icons</strong>,
+                  </li>
+                  <li>
+                    <strong>frames</strong> to group objects, and
                   </li>
                   <li>
                     <strong>stopwatches</strong> and{" "}
@@ -86,11 +99,13 @@ export default function Whiteboard({ customize }) {
                     view multiple parts of the whiteboard simultaneously,
                   </li>
                   <li>
-                    easily navigate with an <strong>overview map</strong>,
+                    easily navigate with an <strong>overview map</strong> with
+                    two preview modes,
                   </li>
                   <li>
                     every change you make is recorded via browsable{" "}
-                    <strong>TimeTravel</strong>,
+                    <strong>TimeTravel</strong> and you can copy/paste from any
+                    point in the history,
                   </li>
                   <li>
                     and you can <strong>publish</strong> your whiteboards to{" "}
@@ -101,18 +116,18 @@ export default function Whiteboard({ customize }) {
             }
           />
         </Layout.Content>
-
         <div
           style={{
             color: "#555",
-            fontSize: "40px",
+            fontSize: "16px",
             textAlign: "center",
             margin: "20px",
           }}
         >
-          <A href="https://github.com/sagemathinc/cocalc/pull/5674">
-            Coming in March 2022!
-          </A>
+          <h1>Now Available!</h1>
+          Try a whiteboard out in any CoCalc project by clicking +New, then
+          clicking "Whiteboard".
+          <SignIn startup={"Whiteboard"} />
         </div>
         <Footer />
       </Layout>

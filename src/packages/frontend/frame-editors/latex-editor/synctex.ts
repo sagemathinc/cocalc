@@ -26,8 +26,8 @@ function exec_synctex(
   return exec({
     timeout: 5,
     command: "synctex",
-    args: args,
-    project_id: project_id,
+    args,
+    project_id,
     path,
     err_on_exit: true,
   });
@@ -40,22 +40,26 @@ export async function pdf_to_tex(opts: {
   x: number; // x-coordinate on page
   y: number; // y-coordinate on page,
   output_directory: string | undefined;
+  src: string; // the "path" where the source file is
 }): Promise<SyncTex> {
   const { head, tail } = path_split(opts.pdf_path);
   const path: string =
     opts.output_directory != null ? opts.output_directory : head;
-  const output = await exec_synctex(opts.project_id, path, [
-    "edit",
-    "-o",
-    `${opts.page}:${opts.x}:${opts.y}:${tail}`,
-  ]);
+  const args = ["edit", "-o", `${opts.page}:${opts.x}:${opts.y}:${tail}`];
+  const output = await exec_synctex(opts.project_id, path, args);
   const info = parse_synctex_output(output.stdout);
   if (info.Input != null) {
     // Determine canonical path to source file
     // Unfortunately, we use a roundtrip back to the project again for this (slightly more latency, but more robust).
-    info.Input = await (await project_api(opts.project_id)).canonical_path(
-      `${info.Input}`
-    );
+    const projectAPI = await project_api(opts.project_id);
+    const inputOrig = `${info.Input}`;
+    try {
+      info.Input = await projectAPI.canonical_path(inputOrig);
+    } catch (_) {
+      // there are situations, where synctex claims the file extension is .Rnw, while in reality it is .rnw or whatever else
+      // we use the path of the input file as a fallback. Usually, this should work fine.
+      info.Input = opts.src;
+    }
   }
   return info;
 }
@@ -74,9 +78,9 @@ export async function tex_to_pdf(opts: {
     opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
   // TODO: obviously this should happen once -- not constantly!
-  const HOME = await (await project_api(opts.project_id)).eval_code(
-    "process.env.HOME"
-  );
+  const HOME = await (
+    await project_api(opts.project_id)
+  ).eval_code("process.env.HOME");
   const output = await exec_synctex(opts.project_id, opts.dir, [
     "view",
     "-i",

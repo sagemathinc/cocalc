@@ -5,6 +5,7 @@ import { field_cmp } from "@cocalc/util/misc";
 export interface KernelSpec {
   language?: string;
   display_name: string;
+  name: string;
 }
 
 interface Parsed {
@@ -56,7 +57,7 @@ function getCMOptions(mode: string | { name: string } | undefined | null) {
   if (typeof mode === "string") {
     mode = { name: mode };
   }
-  if (mode.name === "ipython") {
+  if (mode.name.includes("python") || mode.name.includes("sage")) {
     mode.name = "python";
   } else if (mode.name === "gp") {
     mode.name = "pari";

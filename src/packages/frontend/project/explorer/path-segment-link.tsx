@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tip } from "@cocalc/frontend/components";
 import { Breadcrumb } from "antd";
-import { Tip } from "../../components";
 
 interface Props {
   path: string;

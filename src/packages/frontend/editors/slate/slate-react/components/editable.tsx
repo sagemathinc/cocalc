@@ -13,7 +13,11 @@ import {
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
-import { IS_FIREFOX, IS_SAFARI, IS_CHROME_LEGACY } from "../utils/environment";
+import {
+  IS_FIREFOX,
+  IS_SAFARI,
+  HAS_BEFORE_INPUT_SUPPORT,
+} from "../utils/environment";
 import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";
@@ -38,14 +42,6 @@ import { debounce } from "lodash";
 import getDirection from "direction";
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 import { hasEditableTarget, hasTarget } from "./dom-utils";
-
-// COMPAT: Edge Legacy don't support the `beforeinput` event
-// Chrome Legacy doesn't support `beforeinput` correctly
-const HAS_BEFORE_INPUT_SUPPORT =
-  !IS_CHROME_LEGACY &&
-  globalThis.InputEvent &&
-  // @ts-ignore The `getTargetRanges` property isn't recognized.
-  typeof globalThis.InputEvent.prototype.getTargetRanges === "function";
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
@@ -119,18 +115,25 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
   // Return true if the given event should be handled
   // by the event handler code defined below.
+  // Regarding slateIgnore below, we use this with codemirror
+  // editor for fenced code blocks and math.
+  // I couldn't find any way to get codemirror to allow the copy to happen,
+  // but at the same time to not let the event propogate.
   const shouldHandle = useCallback(
-    ({
-      event, // the event itself
-      name, // name of the event, e.g., "onClick"
-      notReadOnly, // require doc to not be readOnly (ignored if not specified)
-      editableTarget, // require event target to be editable (defaults to true if not specified!)
-    }: {
-      event;
-      name: string;
-      notReadOnly?: boolean;
-      editableTarget?: boolean;
-    }) =>
+    (
+      {
+        event, // the event itself
+        name, // name of the event, e.g., "onClick"
+        notReadOnly, // require doc to not be readOnly (ignored if not specified)
+        editableTarget, // require event target to be editable (defaults to true if not specified!)
+      }: {
+        event;
+        name: string;
+        notReadOnly?: boolean;
+        editableTarget?: boolean;
+      } // @ts-ignore
+    ) =>
+      !event.nativeEvent?.slateIgnore &&
       (notReadOnly == null || notReadOnly == !readOnly) &&
       ((editableTarget ?? true) == true
         ? hasEditableTarget(editor, event.target)
@@ -395,7 +398,15 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             if (data instanceof DataTransfer) {
               ReactEditor.insertData(editor, data);
             } else if (typeof data === "string") {
-              Editor.insertText(editor, data);
+              try {
+                Editor.insertText(editor, data);
+              } catch (err) {
+                // I've seen this crash several times in a way I can't reproduce, maybe
+                // when focusing (not sure).  Better make it a warning with useful info.
+                console.warn(
+                  `SLATE -- issue with DOM insertText operation ${err}, ${data}`
+                );
+              }
             }
 
             break;
@@ -415,7 +426,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       // @ts-ignore The `beforeinput` event isn't recognized.
       ref.current.addEventListener("beforeinput", onDOMBeforeInput);
     }
-
     return () => {
       if (ref.current && HAS_BEFORE_INPUT_SUPPORT) {
         // @ts-ignore The `beforeinput` event isn't recognized.
@@ -424,7 +434,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  const updateDOMSelection = useUpdateDOMSelection({ editor, state });
+  useUpdateDOMSelection({ editor, state });
   const DOMSelectionChange = useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
@@ -475,6 +485,21 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           // Allow for passed-in styles to override anything.
           ...style,
         }}
+        onScroll={
+          // When height is auto it's critical to keep the div from
+          // scrolling at all.  Otherwise, especially when moving the
+          // cursor above and back down from a fenced code block, things
+          // will get scrolled off the screen and not be visible.
+          // The following code ensures that scrollTop is always 0
+          // in case of height:'auto'.
+          style.height === "auto"
+            ? () => {
+                if (ref.current != null) {
+                  ref.current.scrollTop = 0;
+                }
+              }
+            : undefined
+        }
         onBeforeInput={useCallback(
           (event: React.FormEvent<HTMLDivElement>) => {
             // COMPAT: Certain browsers don't support the `beforeinput` event, so we
@@ -554,7 +579,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }) &&
               isDOMNode(event.target)
             ) {
-              const node = ReactEditor.toSlateNode(editor, event.target);
+              let node;
+              try {
+                node = ReactEditor.toSlateNode(editor, event.target);
+              } catch (err) {
+                // node not actually in editor.
+                return;
+              }
               let path;
               try {
                 path = ReactEditor.findPath(editor, node);
@@ -577,6 +608,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // not focused part isn't upstream, but we
               // need it to have codemirror blocks.
               if (
+                editor.selection == null ||
                 !ReactEditor.isFocused(editor) ||
                 (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1]))
               ) {
@@ -1020,9 +1052,8 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             onScroll={() => {
               if (editor.scrollCaretAfterNextScroll) {
                 editor.scrollCaretAfterNextScroll = false;
-                editor.scrollCaretIntoView();
               }
-              updateDOMSelection();
+              editor.updateDOMSelection?.();
               props.onScroll?.({} as any);
             }}
           />

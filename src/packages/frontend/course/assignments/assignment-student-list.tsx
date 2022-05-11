@@ -159,7 +159,6 @@ export const StudentListForAssignment: React.FC<StudentListForAssignmentProps> =
     function render_students(): Rendered {
       return (
         <ScrollableList
-          windowing={util.windowing(65)}
           rowCount={student_list.length}
           rowRenderer={({ key }) => render_student_info(key)}
           rowKey={(index) => student_list[index]}

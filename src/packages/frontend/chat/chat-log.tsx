@@ -7,19 +7,16 @@
 Render all the messages in the chat.
 */
 
+import React, { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { List, Map } from "immutable";
-import {
-  React,
-  useActions,
-  useMemo,
-  useRedux,
-  useTypedRedux,
-} from "../app-framework";
+import { useActions, useRedux, useTypedRedux } from "../app-framework";
 import { Alert } from "../antd-bootstrap";
-import { ScrollInfo, WindowedList } from "../components/windowed-list";
 import { Message } from "./message";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { Avatar } from "../account/avatar/avatar";
 
 type MessageMap = Map<string, any>;
 
@@ -27,13 +24,14 @@ interface ChatLogProps {
   project_id: string; // used to render links more effectively
   path: string;
   show_heads: boolean;
-  windowed_list_ref?: React.RefObject<WindowedList>;
+  scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }
 
 export const ChatLog: React.FC<ChatLogProps> = React.memo(
-  ({ project_id, path, windowed_list_ref, show_heads }) => {
+  ({ project_id, path, scrollToBottomRef, show_heads }) => {
     const actions: ChatActions = useActions(project_id, path);
     const messages = useRedux(["messages"], project_id, path);
+    const drafts = useRedux(["drafts"], project_id, path);
     const font_size = useRedux(["font_size"], project_id, path);
     const search = useRedux(["search"], project_id, path);
     const user_map = useTypedRedux("users", "user_map");
@@ -41,6 +39,30 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     const sorted_dates = useMemo<string[]>(() => {
       return get_sorted_dates(messages, search);
     }, [messages, search, project_id, path]);
+
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const manualScrollRef = useRef<boolean>(false);
+
+    useEffect(() => {
+      if (scrollToBottomRef == null) return;
+      scrollToBottomRef.current = (force?: boolean) => {
+        if (manualScrollRef.current && !force) return;
+        manualScrollRef.current = false;
+        virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 });
+        // sometimes scrolling to bottom is requested before last entry added,
+        // so we do it again in the next render loop.  This seems needed mainly
+        // for side chat when there is little vertical space.
+        setTimeout(
+          () =>
+            virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 }),
+          0
+        );
+      };
+    }, [scrollToBottomRef != null]);
+
+    const virtuosoScroll = useVirtuosoScrollHook({
+      cacheId: `${project_id}${path}`,
+    });
 
     // Given the date of the message as an ISO string, return rendered version.
     function render_message(date: string, i: number): JSX.Element | undefined {
@@ -63,17 +85,11 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
           }
           include_avatar_col={show_heads}
           get_user_name={(account_id) => get_user_name(user_map, account_id)}
-          scroll_into_view={() => windowed_list_ref?.current?.scrollToRow(i)}
+          scroll_into_view={() =>
+            virtuosoRef.current?.scrollIntoView({ index: i })
+          }
         />
       );
-    }
-
-    function row_renderer({ key, index }): JSX.Element | undefined {
-      return render_message(key, index);
-    }
-
-    function row_key(index): string | undefined {
-      return sorted_dates[index];
     }
 
     function render_not_showing(): JSX.Element | undefined {
@@ -90,38 +106,53 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       );
     }
 
-    function on_scroll(info: ScrollInfo): void {
-      // TODO: get rid of this annoying hackish way of passing
-      // state (or document it better and make work with typescript).
-      if (
-        windowed_list_ref?.current != null &&
-        !(windowed_list_ref.current as any).chat_scroll_to_bottom
-      ) {
-        if (
-          info.maxScrollOffset &&
-          Math.abs(info.scrollOffset - info.maxScrollOffset) < 40
-        ) {
-          // at the bottom so turn off chat_manual_scroll.
-          (windowed_list_ref.current as any).chat_manual_scroll = false;
-        } else {
-          (windowed_list_ref.current as any).chat_manual_scroll = true;
+    function renderComposing() {
+      if (!drafts || drafts.size == 0) return;
+      const v: JSX.Element[] = [];
+      const cutoff = new Date().valueOf() - 1000 * 30; // 30s
+      for (const [sender_id] of drafts) {
+        if (account_id == sender_id) continue;
+        const record = drafts.get(sender_id);
+        if (record.get("active") < cutoff || !record.get("input").trim()) {
+          continue;
         }
+        v.push(
+          <div
+            key={sender_id}
+            style={{ margin: "5px", color: "#666", textAlign: "center" }}
+          >
+            <Avatar size={20} account_id={sender_id} />
+            <span style={{ marginLeft: "15px" }}>
+              {get_user_name(user_map, sender_id)} is writing a message...
+            </span>
+          </div>
+        );
       }
+      if (v.length == 0) return;
+      scrollToBottomRef?.current?.();
+      return <div>{v}</div>;
     }
 
     return (
       <>
         {render_not_showing()}
-        <WindowedList
-          ref={windowed_list_ref}
-          overscan_row_count={15}
-          estimated_row_size={62}
-          row_count={sorted_dates.length}
-          row_renderer={row_renderer}
-          row_key={row_key}
-          cache_id={`${project_id}${path}`}
-          on_scroll={on_scroll}
+        <Virtuoso
+          ref={virtuosoRef}
+          totalCount={sorted_dates.length}
+          itemContent={(index) => {
+            return (
+              <div style={{ overflow: "hidden" }}>
+                {render_message(sorted_dates[index], index)}
+              </div>
+            );
+          }}
+          rangeChanged={({ endIndex }) => {
+            // manually scrolling if NOT at the bottom.
+            manualScrollRef.current = endIndex < sorted_dates.length - 1;
+          }}
+          {...virtuosoScroll}
         />
+        {renderComposing()}
       </>
     );
   }

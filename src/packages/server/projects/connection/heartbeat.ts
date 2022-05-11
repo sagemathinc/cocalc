@@ -12,4 +12,6 @@ export default function initHeartbeat(socket) {
     socket.write_mesg("json", heartbeat());
     setTimeout(sendHeartbeat, PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000);
   };
+  // start the heart beating!
+  sendHeartbeat();
 }

@@ -11,7 +11,6 @@ import { Props as HTMLProps } from "./html";
 type Props = HTMLProps & {
   // inject data attributes with line numbers to enable reverse search:
   line_numbers?: boolean;
-  no_hashtags?: boolean;
 };
 
 export const Markdown: React.FC<Props> = (props) => {
@@ -21,7 +20,6 @@ export const Markdown: React.FC<Props> = (props) => {
     }
     return markdown_to_html(props.value, {
       line_numbers: props.line_numbers,
-      no_hashtags: props.no_hashtags,
     });
   }
 
@@ -29,6 +27,7 @@ export const Markdown: React.FC<Props> = (props) => {
     <HTML
       id={props.id}
       auto_render_math={true}
+      preProcessMath={false}
       value={to_html()}
       style={props.style}
       project_id={props.project_id}
@@ -36,7 +35,6 @@ export const Markdown: React.FC<Props> = (props) => {
       className={props.className}
       href_transform={props.href_transform}
       post_hook={props.post_hook}
-      highlight={props.highlight}
       safeHTML={props.safeHTML}
       reload_images={props.reload_images}
       smc_image_scaling={props.smc_image_scaling}

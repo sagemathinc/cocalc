@@ -14,12 +14,17 @@ silently swallowed in persistent mode...
 */
 
 // How long to wait from when we hit 0 clients until closing this channel.
-// Making this short can save some memory and cpu.
+// Making this short saves memory and cpu.
 // Making it longer reduces the potential time to open a file, e.g., if you
-// disconnect then reconnect.
+// disconnect then reconnect, e.g., by refreshing your browser.
 // Related to https://github.com/sagemathinc/cocalc/issues/5627
-// I tried 0 and that made "won't save" much works.
-const CLOSE_DELAY_MS = 5 * 60 * 1000;
+// and https://github.com/sagemathinc/cocalc/issues/5823
+// and https://github.com/sagemathinc/cocalc/issues/5617
+
+// Setting this to 0 to optimize resource usage and because opening files
+// is fast, and also on the current tab gets opened on refresh anyways.
+
+const CLOSE_DELAY_MS = 0;
 
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least

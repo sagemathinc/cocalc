@@ -25,6 +25,7 @@ import {
 import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 import isPost from "lib/api/is-post";
+// import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 export default async function signIn(req, res) {
   if (!isPost(req, res)) return;
@@ -37,13 +38,19 @@ export default async function signIn(req, res) {
     return;
   }
   let account_id: string;
+
   try {
+    // Don't bother checking reCaptcha for *sign in* for now, since it causes trouble
+    // when large classes all sign in from one point.  Also, it's much less important
+    // for sign in, than for sign up and payment.
+    // await reCaptcha(req);
     account_id = await getAccount(email, password);
   } catch (err) {
     res.json({ error: `Problem signing into account -- ${err.message}.` });
     recordFail(email, req.ip);
     return;
   }
+
   await signUserIn(req, res, account_id);
 }
 

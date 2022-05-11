@@ -13,15 +13,15 @@
 //    - [x] math is properly typeset
 
 import { delay } from "awaiting";
-// import SlateMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { Markdown } from "@cocalc/frontend/components";
-import { is_different, path_split } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { is_different } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { Actions } from "./actions";
 import { Path } from "../frame-tree/path";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   actions: Actions;
@@ -61,6 +61,8 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     reload_images,
     is_current,
   } = props;
+
+  const fileContext = useFileContext();
 
   const scroll = React.useRef<HTMLDivElement>(null);
 
@@ -103,19 +105,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function goto_source_line(event) {
-    let elt = event.target;
-    while (elt != null && elt.dataset?.sourceLine == null) {
-      elt = elt.parentElement;
-    }
-    if (elt == null) return;
-    const line = elt.dataset?.sourceLine;
-    if (line != null) {
-      actions.programmatical_goto_line(line);
-      return;
-    }
-  }
-
   const style: CSS = {
     overflowY: "auto",
     width: "100%",
@@ -145,18 +134,14 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
         className={"cocalc-editor-div smc-vfill"}
       >
         <div style={style_inner} className="smc-vfill">
-          {/*<SlateMarkdown value={value} />
-          <div style={{ border: "1px solid red", margin: "20px" }} />*/}
-          <Markdown
-            line_numbers={true}
-            onDoubleClick={goto_source_line}
-            value={value}
-            project_id={project_id}
-            file_path={path_split(path).head}
-            safeHTML={true}
-            reload_images={reload_images}
-            highlight_code={true}
-          />
+          <FileContext.Provider
+            value={{
+              ...fileContext,
+              reloadImages: reload_images,
+            }}
+          >
+            <StaticMarkdown value={value} />
+          </FileContext.Provider>
         </div>
       </div>
     </div>

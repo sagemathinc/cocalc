@@ -13,7 +13,7 @@ export type Scroll =
   | number
   | "cell visible"
   | "cell top"
-  | "list up"
+  | "list up"   // should probably have been called "page up" and "page down"...
   | "list down";
 
 export type KernelInfo = immutable.Map<string, any>;

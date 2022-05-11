@@ -28,5 +28,6 @@ register({
 
   rules: {
     autoFocus: true,
+    autoAdvance: false,
   },
 });

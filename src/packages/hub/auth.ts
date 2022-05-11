@@ -74,7 +74,6 @@ import {
 } from "./email";
 import bodyParser from "body-parser";
 import Saml2js from "saml2js";
-import handle from "@cocalc/next/lib/share/handle-raw";
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
 
@@ -538,9 +537,12 @@ export class PassportManager {
         const cookies = new Cookies(req, res);
         // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
+
+        const secure = req.protocol === "https";
+
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
-          secure: true,
+          secure: secure,
           overwrite: true,
           httpOnly: false,
         });

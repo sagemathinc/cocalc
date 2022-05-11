@@ -7,9 +7,8 @@
 Modal for editing attachments that are attached to a markdown cell
 */
 
-import { React } from "../app-framework";
 import { Icon } from "../components";
-import { Button, Modal } from "react-bootstrap";
+import { Button, Modal } from "antd";
 import { Map as ImmutableMap } from "immutable";
 import { JupyterActions } from "./browser-actions";
 
@@ -22,77 +21,65 @@ const ROW_STYLE: React.CSSProperties = {
 
 interface EditAttachmentsProps {
   actions: JupyterActions;
-  cell: ImmutableMap<string, any>;
+  cell?: ImmutableMap<string, any>;
 }
 
-function should_memoize(prev, next) {
-  return next.cell === prev.cell;
-}
+export function EditAttachments({ actions, cell }: EditAttachmentsProps) {
+  function close() {
+    actions.setState({ edit_attachments: undefined });
+    actions.focus(true);
+  }
 
-export const EditAttachments: React.FC<EditAttachmentsProps> = React.memo(
-  (props: EditAttachmentsProps) => {
-    const { actions, cell } = props;
-
-    function close() {
-      actions.setState({ edit_attachments: undefined });
-      actions.focus(true);
+  function renderAttachments() {
+    const v: any[] = [];
+    if (cell) {
+      const attachments = cell.get("attachments");
+      if (attachments) {
+        attachments.forEach((_, name) => {
+          if (v.length > 0) {
+            v.push(<div style={{ marginTop: "7px" }} key={name + "space"} />);
+          }
+          return v.push(
+            <div key={name} style={{ ...ROW_STYLE, width: "100%" }}>
+              <div style={{ flex: 1 }}>{name}</div>
+              <div>
+                <Button
+                  onClick={() => {
+                    actions.delete_attachment_from_cell(cell.get("id"), name);
+                  }}
+                  danger
+                >
+                  <Icon name="trash" /> Delete
+                </Button>
+              </div>
+            </div>
+          );
+        });
+      }
     }
-
-    function delete_attachment(name: string) {
-      actions.delete_attachment_from_cell(cell.get("id"), name);
-    }
-
-    function render_attachment(name: string) {
+    if (v.length === 0) {
       return (
-        <div key={name} style={{ ...ROW_STYLE, width: "100%" }}>
-          <div style={{ flex: 1 }}>{name}</div>
-          <div>
-            <Button onClick={() => delete_attachment(name)} bsStyle="danger">
-              <Icon name="trash" /> Delete
-            </Button>
-          </div>
-        </div>
+        <span>
+          There are no attachments. To attach images, use Edit &rarr; Insert
+          Image.
+        </span>
       );
     }
+    return v;
+  }
 
-    function render_attachments() {
-      const v: any[] = [];
-      if (cell) {
-        const attachments = cell.get("attachments");
-        if (attachments) {
-          attachments.forEach((_, name) => {
-            if (v.length > 0) {
-              v.push(<div style={{ marginTop: "7px" }} key={name + "space"} />);
-            }
-            return v.push(render_attachment(name));
-          });
-        }
+  return (
+    <Modal
+      visible={cell != null}
+      onCancel={close}
+      onOk={close}
+      title={
+        <>
+          <Icon name="trash" /> Delete Cell Attachments
+        </>
       }
-      if (v.length === 0) {
-        return (
-          <span>
-            There are no attachments. To attach images, use Edit &rarr; Insert
-            Image.
-          </span>
-        );
-      }
-      return v;
-    }
-
-    return (
-      <Modal show={cell != null} onHide={close}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <Icon name="trash" /> Delete Cell Attachments
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>{render_attachments()}</Modal.Body>
-
-        <Modal.Footer>
-          <Button onClick={close}>Close</Button>
-        </Modal.Footer>
-      </Modal>
-    );
-  },
-  should_memoize
-);
+    >
+      {renderAttachments()}
+    </Modal>
+  );
+}

@@ -28,7 +28,7 @@ export const useCursorDecorate = ({
 }: {
   editor: SlateEditor;
   value: string;
-  cursors: Map<string, any>;
+  cursors?: Map<string, any>;
   search: SearchHook;
   // NOTE: Passing search in is really ugly but we are doing it because slate
   // can only have one decorate function at once and both search and cursors

@@ -33,7 +33,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       }
     >
       <span
-        style={{ fontWeight: 350, color: "#666" }}
+        style={{ fontWeight: 400, color: "#666" }}
         title={"Uncheck for space between list items"}
       >
         {" "}
@@ -132,5 +132,5 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
     </Button>
   );
 
-  return <div style={{ flex: 1, display: "flex" }}>{v}</div>;
+  return <div style={{ display: "flex" }}>{v}</div>;
 };

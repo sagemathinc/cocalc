@@ -10,7 +10,7 @@ Task Actions
 const LAST_EDITED_THRESH_S = 30;
 const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
 
-import { fromJS, Map, Set } from "immutable";
+import { fromJS, Map } from "immutable";
 import { debounce, throttle } from "lodash";
 import { delay } from "awaiting";
 import {
@@ -45,7 +45,7 @@ import {
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 export class TaskActions extends Actions<TaskState> {
-  private syncdb: SyncDB;
+  public syncdb: SyncDB;
   private project_id: string;
   private path: string;
   private store: TaskStore;
@@ -160,10 +160,6 @@ export class TaskActions extends Actions<TaskState> {
       });
       local_view_state = local_view_state.set("sort", sort);
     }
-    local_view_state = local_view_state.set(
-      "full_desc",
-      local_view_state.get("full_desc")?.toSet() ?? Set()
-    );
 
     return local_view_state;
   }
@@ -222,6 +218,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   private __update_visible(): void {
+    if (this.store == null) return;
     const tasks = this.store.get("tasks");
     if (tasks == null) return;
     const view = this.store.get("local_view_state");
@@ -348,10 +345,9 @@ export class TaskActions extends Actions<TaskState> {
         key == "show_max" ||
         key == "font_size" ||
         key == "sort" ||
-        key == "full_desc" ||
         key == "selected_hashtags" ||
         key == "search" ||
-        key == "scrollTop"
+        key == "scrollState"
       ) {
         local = local.set(key as any, fromJS(value));
       } else {
@@ -434,7 +430,8 @@ export class TaskActions extends Actions<TaskState> {
   public set_task(
     task_id?: string,
     obj?: object,
-    setState: boolean = false
+    setState: boolean = false,
+    save: boolean = true // make new commit to syncdb state
   ): void {
     if (obj == null || this.is_closed) {
       return;
@@ -463,7 +460,9 @@ export class TaskActions extends Actions<TaskState> {
 
     obj["task_id"] = task_id;
     this.syncdb.set(obj);
-    this.syncdb.commit();
+    if (save) {
+      this.commit();
+    }
     if (setState) {
       // also set state directly in the tasks object locally
       // **immediately**; this would happen
@@ -571,6 +570,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public set_current_task(task_id: string): void {
+    if (this.store.get("current_task_id") == task_id) return;
     this.setState({ current_task_id: task_id });
     this.scroll_into_view();
   }
@@ -605,7 +605,7 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.undo();
-    this.syncdb.commit();
+    this.commit();
   }
 
   public redo(): void {
@@ -613,6 +613,10 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.syncdb.redo();
+    this.commit();
+  }
+
+  public commit(): void {
     this.syncdb.commit();
   }
 
@@ -656,6 +660,14 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public edit_desc(task_id: string | undefined): void {
+    // close any that were currently in edit state before opening new one
+    const local = this.store.get("local_task_state");
+    for (const [id, state] of local) {
+      if (state.get("editing_desc")) {
+        this.stop_editing_desc(id);
+      }
+    }
+
     this.set_local_task_state(task_id, { editing_desc: true });
   }
 
@@ -666,34 +678,27 @@ export class TaskActions extends Actions<TaskState> {
     this.set_task(task_id, { due_date: date });
   }
 
-  public set_desc(task_id: string | undefined, desc: string): void {
-    this.set_task(task_id, { desc });
+  public set_desc(
+    task_id: string | undefined,
+    desc: string,
+    save: boolean = true
+  ): void {
+    this.set_task(task_id, { desc }, false, save);
   }
 
-  public toggle_full_desc(task_id: string | undefined): void {
+  public set_color(task_id: string, color: string, save: boolean = true): void {
+    this.set_task(task_id, { color }, false, save);
+  }
+
+  public toggleHideBody(task_id: string | undefined): void {
     if (task_id == null) {
       task_id = this.store.get("current_task_id");
     }
     if (task_id == null) {
       return;
     }
-    let local_view_state = this.store.get("local_view_state");
-    if (local_view_state == null) return;
-    const full_desc = local_view_state.get("full_desc") ?? Set<string>();
-    if (full_desc.has(task_id)) {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.remove(task_id)
-      );
-    } else {
-      local_view_state = local_view_state.set(
-        "full_desc",
-        full_desc.add(task_id)
-      );
-    }
-    this.setState({ local_view_state });
-    this._update_visible();
-    this._save_local_view_state();
+    const hideBody = !this.store.getIn(["tasks", task_id, "hideBody"]);
+    this.set_task(task_id, { hideBody });
   }
 
   public show_deleted(): void {

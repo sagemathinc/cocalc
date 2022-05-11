@@ -82,7 +82,7 @@ export const useSearch: (Options) => SearchHook = (options) => {
             ref={inputRef}
             allowClear={true}
             size="small"
-            placeholder="Find..."
+            placeholder="Search..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{

@@ -7,7 +7,6 @@
 A single task
 */
 
-import { Set } from "immutable";
 import { React, CSS } from "../../app-framework";
 import { Grid, Row, Col } from "../../antd-bootstrap";
 import { MinToggle } from "./min-toggle";
@@ -17,8 +16,9 @@ import { DueDate } from "./due";
 import { DragHandle } from "./drag";
 import { DoneCheckbox } from "./done";
 import { header_part } from "./desc-rendering";
-import { SelectedHashtags, TaskMap } from "./types";
+import { TaskMap } from "./types";
 import { TaskActions } from "./actions";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 interface Props {
   actions?: TaskActions;
@@ -28,12 +28,11 @@ interface Props {
   is_current: boolean;
   editing_due_date: boolean;
   editing_desc: boolean;
-  full_desc: boolean;
   font_size: number;
   sortable: boolean;
   read_only: boolean;
-  selected_hashtags: SelectedHashtags;
-  search_terms: Set<string>;
+  selectedHashtags: Set<string>;
+  searchWords?: string[];
 }
 
 export const Task: React.FC<Props> = React.memo(
@@ -45,12 +44,11 @@ export const Task: React.FC<Props> = React.memo(
     is_current,
     editing_due_date,
     editing_desc,
-    full_desc,
     font_size,
     sortable,
     read_only,
-    selected_hashtags,
-    search_terms,
+    selectedHashtags,
+    searchWords,
   }) => {
     const style: CSS = {
       margin: "2px 5px",
@@ -58,12 +56,12 @@ export const Task: React.FC<Props> = React.memo(
       background: "white",
     };
     if (is_current) {
-      style.border = "1px solid rgb(171, 171, 171)";
-      style.borderLeft = "5px solid rgb(66, 165, 245)";
-      style.background = "rgb(247, 247, 247)";
+      style.border = "2px solid rgb(66, 165, 245)";
+      style.borderLeft = "10px solid rgb(66, 165, 245)";
     } else {
-      style.border = "1px solid #ccc";
-      style.borderLeft = "5px solid #ccc";
+      style.border = "2px solid transparent";
+      style.borderLeft = "10px solid #ccc";
+      style.borderTop = "2px solid #eeejj";
     }
     if (task.get("deleted")) {
       style.background = "#d9534f";
@@ -85,19 +83,33 @@ export const Task: React.FC<Props> = React.memo(
       min_toggle = header_part(desc) !== desc.trim();
     }
 
+    const color = task.get("color");
+    if (color) {
+      style.background = color;
+      style.color = avatar_fontcolor(color);
+    }
+
     return (
       <Grid
         style={style}
         onClick={() => actions?.set_current_task(task.get("task_id"))}
       >
         <Row>
+          <Col sm={1} style={{ textAlign: "center" }}>
+            <DoneCheckbox
+              actions={actions}
+              read_only={read_only}
+              done={!!task.get("done")}
+              task_id={task.get("task_id")}
+            />
+          </Col>
           <Col sm={1}>
             {actions != null && <DragHandle sortable={sortable} />}
             {actions != null && (
               <MinToggle
                 actions={actions}
                 task_id={task.get("task_id")}
-                full_desc={full_desc}
+                hideBody={task.get("hideBody")}
                 has_body={min_toggle}
               />
             )}
@@ -109,13 +121,14 @@ export const Task: React.FC<Props> = React.memo(
               project_id={project_id}
               task_id={task.get("task_id")}
               desc={task.get("desc") ?? ""}
-              full_desc={full_desc}
+              color={color}
               editing={editing_desc}
               is_current={is_current}
               font_size={font_size}
               read_only={read_only}
-              selected_hashtags={selected_hashtags}
-              search_terms={search_terms}
+              selectedHashtags={selectedHashtags}
+              searchWords={searchWords}
+              hideBody={task.get("hideBody")}
             />
           </Col>
           <Col sm={1}>
@@ -135,14 +148,6 @@ export const Task: React.FC<Props> = React.memo(
             <span style={{ fontSize: "10pt", color: "#666" }}>
               <Changed last_edited={task.get("last_edited")} />
             </span>
-          </Col>
-          <Col sm={1}>
-            <DoneCheckbox
-              actions={actions}
-              read_only={read_only}
-              done={!!task.get("done")}
-              task_id={task.get("task_id")}
-            />
           </Col>
         </Row>
       </Grid>

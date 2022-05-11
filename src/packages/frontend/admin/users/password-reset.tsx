@@ -4,7 +4,7 @@
  */
 
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
-import { Button } from "react-bootstrap";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { CopyToClipBoard, Icon, ErrorDisplay } from "@cocalc/frontend/components";
 import { webapp_client } from "../../webapp-client";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

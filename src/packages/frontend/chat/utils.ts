@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { original_path } from "@cocalc/util/misc";
 
@@ -12,7 +11,7 @@ import { redux } from "../app-framework";
 import { MentionList } from "./store";
 import { Message } from "./types";
 
-export const INPUT_HEIGHT = "100px";
+export const INPUT_HEIGHT = "130px";
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
@@ -106,38 +105,6 @@ export function message_colors(
       lighten: { color: "#888" },
       message_class: "smc-message-from-other",
     };
-  }
-}
-
-export async function scroll_to_bottom(
-  log_container_ref: { current: any },
-  force: boolean = false
-): Promise<void> {
-  if (
-    !log_container_ref.current ||
-    (!force && log_container_ref.current.chat_manual_scroll) ||
-    log_container_ref.current.chat_scroll_to_bottom
-  ) {
-    return;
-  }
-
-  try {
-    // this "chat_scroll_to_bottom" is an abusive hack because I'm lazy -- ws.
-    log_container_ref.current.chat_scroll_to_bottom = true;
-    delete log_container_ref.current.chat_manual_scroll;
-    for (const d of [1, 50, 200]) {
-      if (log_container_ref.current == null) {
-        break;
-      }
-      log_container_ref.current.chat_scroll_to_bottom = true;
-      const windowed_list = log_container_ref.current;
-      if (windowed_list != null) {
-        windowed_list.scrollToRow(-1);
-        await delay(d);
-      }
-    }
-  } finally {
-    delete log_container_ref.current?.chat_scroll_to_bottom;
   }
 }
 

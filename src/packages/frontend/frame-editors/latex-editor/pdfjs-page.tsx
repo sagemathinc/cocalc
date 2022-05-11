@@ -7,10 +7,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React } from "../../app-framework";
-import { is_different } from "@cocalc/util/misc";
-import { NonloadedPage } from "./pdfjs-nonloaded-page";
-import { CanvasPage } from "./pdfjs-canvas-page";
+import CanvasPage from "./pdfjs-canvas-page";
 import type {
   PDFAnnotationData,
   PDFPageProxy,
@@ -18,80 +15,29 @@ import type {
 } from "pdfjs-dist/webpack";
 import { SyncHighlight } from "./pdfjs-annotation";
 
-export const PAGE_GAP: number = 20;
-const BG_COL = "#525659";
+export const PAGE_GAP: number = 8;
+export const BG_COL = "#525659";
 
 interface PageProps {
   actions: any;
   id: string;
   n: number;
   doc: PDFDocumentProxy;
-  renderer: string;
   scale: number;
   page: PDFPageProxy;
-  sync_highlight?: SyncHighlight;
+  syncHighlight?: SyncHighlight;
 }
 
-function should_memoize(prev, next) {
-  return (
-    !is_different(prev, next, [
-      "n",
-      "renderer",
-      "scale",
-      "page",
-      "sync_highlight",
-    ]) && prev.doc.fingerprint === next.doc.fingerprint
-  );
-}
-
-export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
-  const { actions, id, n, doc, renderer, scale, page, sync_highlight } = props;
-
-  function render_content() {
-    if (!page) return;
-    const f = (annotation) => {
-      click_annotation(annotation);
-    };
-    if (renderer == "none") {
-      return <NonloadedPage page={page} scale={scale} />;
-    } else {
-      return (
-        <CanvasPage
-          page={page}
-          scale={scale}
-          click_annotation={f}
-          sync_highlight={sync_highlight}
-        />
-      );
-    }
-  }
-
-  function render_page_number(): JSX.Element {
-    return (
-      <div
-        style={{
-          textAlign: "center",
-          color: "white",
-          backgroundColor: BG_COL,
-          height: `${PAGE_GAP}px`,
-        }}
-      >
-        Page {n}
-      </div>
-    );
-  }
-
-  function click(event): void {
-    if (!actions.synctex_pdf_to_tex) {
-      // no support for synctex for whatever is using this.
-      return;
-    }
-    const x: number = event.nativeEvent.offsetX / scale;
-    const y: number = event.nativeEvent.offsetY / scale;
-    actions.synctex_pdf_to_tex(n, x, y);
-  }
-
-  async function click_annotation(
+export default function Page({
+  actions,
+  id,
+  n,
+  doc,
+  scale,
+  page,
+  syncHighlight,
+}: PageProps) {
+  async function clickAnnotation(
     annotation0: PDFAnnotationData
   ): Promise<void> {
     // NOTE: We have to do this cast because the @types for pdfjs are incomplete and wrong.
@@ -124,12 +70,36 @@ export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
     console.warn("Unknown annotation link", annotation);
   }
 
+  const viewport = page.getViewport({ scale });
+
   return (
-    <div>
-      {render_page_number()}
-      <div style={{ background: BG_COL }} onDoubleClick={(e) => click(e)}>
-        {render_content()}
+    <div
+      style={{ height: `${PAGE_GAP + viewport.height}px`, background: BG_COL }}
+    >
+      <div
+        style={{
+          height: `${viewport.height}px`,
+          width: `${viewport.width}px`,
+          background: "white",
+          margin: "auto",
+        }}
+        onDoubleClick={(event) => {
+          if (!actions.synctex_pdf_to_tex) {
+            // no support for synctex for whatever is using this.
+            return;
+          }
+          const x: number = event.nativeEvent.offsetX / scale;
+          const y: number = event.nativeEvent.offsetY / scale;
+          actions.synctex_pdf_to_tex(n, x, y);
+        }}
+      >
+        <CanvasPage
+          page={page}
+          scale={scale}
+          clickAnnotation={clickAnnotation}
+          syncHighlight={syncHighlight}
+        />
       </div>
     </div>
   );
-}, should_memoize);
+}

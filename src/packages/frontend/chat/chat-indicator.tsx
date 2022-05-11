@@ -14,12 +14,10 @@ import { VideoChatButton } from "./video/launch-button";
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
-  marginTop: "3px",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
-  paddingTop: "3px",
 };
 
 const CHAT_INDICATOR_TIP = (

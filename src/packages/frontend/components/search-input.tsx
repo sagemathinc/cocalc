@@ -9,11 +9,10 @@
    - `esc` to clear
 */
 
-import { Input } from "antd";
+import { Input, InputRef } from "antd";
 import { Button } from "../antd-bootstrap";
-//import { , FormGroup, InputGroup, FormControl } from "../antd-bootstrap";
 import { Icon } from "./icon";
-import { React, ReactDOM, useEffect, useState, useRef } from "../app-framework";
+import { React, useEffect, useState, useRef } from "../app-framework";
 
 interface Props {
   default_value?: string;
@@ -44,20 +43,18 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
 
-  const input_ref = useRef(null);
+  const input_ref = useRef<InputRef>(null);
 
   useEffect(() => {
     if (props.autoSelect && input_ref.current) {
       try {
-        ReactDOM.findDOMNode(input_ref.current).select();
+        input_ref.current?.select();
       } catch (_) {}
     }
   }, []);
 
   useEffect(() => {
-    if (input_ref.current) {
-      ReactDOM.findDOMNode(input_ref.current).focus();
-    }
+    input_ref.current?.focus();
   }, [focus]);
 
   function get_opts(): { ctrl_down: boolean } {
@@ -72,7 +69,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
 
   function clear_and_focus_search_input(): void {
     clear_value();
-    ReactDOM.findDOMNode(input_ref.current)?.focus();
+    input_ref.current?.focus();
   }
 
   function search_button(): JSX.Element {

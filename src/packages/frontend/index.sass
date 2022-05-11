@@ -158,10 +158,9 @@ div#smc-react-container
   border-radius    : 3px
 
 /* fix bootstrap ugliness  */
-
 code
   color            : #333
-  background-color : rgba(0,0,0,0)
+  background-color : white
   padding          : 0
 
 blockquote p
@@ -393,3 +392,8 @@ blockquote p
 .cc-help-stats-table
   th, td
     text-align     : right
+
+// see https://wordpress.org/support/topic/katex-block-doesnt-break-formulas-into-lines/
+// Also in /packages/next/styles/globals.css
+.katex-html
+    white-space: pre-wrap

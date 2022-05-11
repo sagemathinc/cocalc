@@ -5,19 +5,18 @@
 
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
-
-import { fromJS } from "immutable";
-import { Icon, Space } from "../../components";
-import { COLORS } from "@cocalc/util/theme";
-import { unreachable } from "@cocalc/util/misc";
-import { Button, Menu, Dropdown } from "antd";
-import { Row, Col } from "../../antd-bootstrap";
 import { DownOutlined } from "@ant-design/icons";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { Icon, Space } from "@cocalc/frontend/components";
 import {
-  GROUPS,
   COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
   DEFAULT_COMPUTE_IMAGE,
+  GROUPS,
 } from "@cocalc/util/compute-images";
+import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Button, Dropdown, Menu } from "antd";
+import { fromJS } from "immutable";
 
 // we want "Default", "Previous", ... to come first, hence "order" trumps "short" title
 const img_sorter = (a, b): number => {

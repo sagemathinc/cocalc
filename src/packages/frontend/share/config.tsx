@@ -364,21 +364,15 @@ class Configure extends Component<Props, State> {
         : this.props.path,
       this.props.path
     );
-    const button_before = (
-      <Button bsStyle="default" onClick={() => open_new_tab(url)}>
-        <Icon name="external-link" />
-      </Button>
-    );
 
     return (
       <>
         <h4>Link</h4>
         <div style={{ paddingBottom: "5px" }}>Your share will appear here.</div>
-        <CopyToClipBoard
-          value={url}
-          button_before={button_before}
-          hide_after={true}
-        />
+        <Button bsStyle="default" onClick={() => open_new_tab(url)}>
+          <Icon name="external-link" />
+        </Button>
+        <CopyToClipBoard value={url} />
       </>
     );
   }

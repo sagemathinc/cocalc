@@ -21,6 +21,7 @@ interface Customize extends ServerCustomize {
   imprint?: string; // HTML/MD for an imprint page
   policies?: string; // HTML/MD for a policy page
   imprintOrPolicies?: boolean; // is true if either of the above is more than an empty string
+  serverTime?: number; // the time on the server, in milliseconds since the epoch
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

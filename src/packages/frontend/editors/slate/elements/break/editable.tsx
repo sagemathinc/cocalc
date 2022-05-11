@@ -37,7 +37,7 @@ register({
     // Just in case somehow the children were edited
     // (it doesn't seem they can be), we still won't
     // loose information:
-    return children;
+    return children + "\n";
   },
 });
 

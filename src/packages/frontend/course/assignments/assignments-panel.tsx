@@ -199,7 +199,6 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     }
     return (
       <ScrollableList
-        windowing={util.windowing(50)}
         rowCount={assignments.length}
         rowRenderer={({ key, index }) => render_assignment(key, index)}
         rowKey={(index) => assignments[index]?.assignment_id ?? ""}

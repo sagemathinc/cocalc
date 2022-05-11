@@ -1,30 +1,58 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Checkout -- finalize purchase and pay.
 */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import { Alert, Button, Row, Col, Table } from "antd";
 import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
-import { money } from "@cocalc/util/licenses/purchase/util";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";
 import PaymentMethods from "components/billing/payment-methods";
 import { copy_without as copyWithout } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
+import useCustomize from "lib/use-customize";
 
-export default function Checkout() {
+export default function CheckoutWithCaptcha() {
+  const { reCaptchaKey } = useCustomize();
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <Checkout />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function Checkout() {
+  const { reCaptchaKey } = useCustomize();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+
+  // most likely, user will do the purchase and then see the congratulations page
+  useEffect(() => {
+    router.prefetch("/store/congrats");
+  }, []);
+
   const cart = useAPI("/shopping/cart/get");
+
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     const x: any[] = [];
@@ -50,9 +78,17 @@ export default function Checkout() {
     try {
       setOrderError("");
       setPlacingOrder(true);
+      let reCaptchaToken: undefined | string;
+      if (reCaptchaKey) {
+        if (!executeRecaptcha) {
+          throw Error("Please wait a few seconds, then try again.");
+        }
+        reCaptchaToken = await executeRecaptcha("checkout");
+      }
+
       // This api call tells the backend, "buy everything in my shopping cart."
       // It succeeds if the purchase goes through.
-      await apiPost("/shopping/cart/checkout");
+      await apiPost("/shopping/cart/checkout", { reCaptchaToken });
       // Success!
       if (!isMounted.current) return;
       // If the user is still viewing the page after the purchase happened, we
@@ -114,152 +150,142 @@ export default function Checkout() {
     },
   ];
 
-  return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
-      {items.length == 0 && (
-        <>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-            {cart.result?.length > 0 && (
-              <>
-                Nothing in Your <SiteName />{" "}
-                <A href="/store/cart">Shopping Cart</A> is Selected
-              </>
-            )}
-            {(cart.result?.length ?? 0) == 0 && (
-              <>
-                Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is
-                Empty
-              </>
-            )}
-          </h3>
-          <A href="/store/site-license">Buy a License</A>
-        </>
-      )}
-      {items.length > 0 && (
-        <div>
-          <div style={{ maxWidth: "900px", margin: "auto" }}>
-            {orderError && (
-              <Alert
-                type="error"
-                message={
-                  <>
-                    <b>Error placing order:</b> {orderError}
-                  </>
-                }
-                style={{ margin: "30px 0" }}
-              />
-            )}
-            <Row>
-              <Col md={14} sm={24}>
-                <div>
-                  <h3 style={{ fontSize: "16pt" }}>
-                    <Icon name={"list"} style={{ marginRight: "5px" }} />
-                    Checkout (<A href="/store/cart">{items.length} items</A>)
-                  </h3>
-                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                    1. Payment Method
-                  </h4>
-                  <p>
-                    The default payment method shown below will be used for this
-                    purchase.
-                  </p>
-                  <PaymentMethods startMinimized setTaxRate={setTaxRate} />
-                </div>
-              </Col>
-              <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
-                <div>
-                  <div
-                    style={{
-                      textAlign: "center",
-                      border: "1px solid #ddd",
-                      padding: "15px",
-                      borderRadius: "5px",
-                      minWidth: "300px",
-                    }}
-                  >
-                    <Button
-                      disabled={subTotal == 0 || placingOrder}
-                      style={{ margin: "15px 0" }}
-                      size="large"
-                      type="primary"
-                      onClick={placeOrder}
-                    >
-                      {placingOrder ? (
-                        <Loading delay={0}>Placing Order...</Loading>
-                      ) : (
-                        "Place Your Order"
-                      )}
-                    </Button>
+  function placeOrderButton() {
+    return (
+      <Button
+        disabled={subTotal == 0 || placingOrder}
+        style={{ marginTop: "7px", marginBottom: "15px" }}
+        size="large"
+        type="primary"
+        onClick={placeOrder}
+      >
+        {placingOrder ? (
+          <Loading delay={0}>Placing Order...</Loading>
+        ) : (
+          "Place Your Order"
+        )}
+      </Button>
+    );
+  }
 
-                    <Terms />
-                    <OrderSummary items={items} taxRate={taxRate} />
-                    <span style={{ fontSize: "13pt" }}>
-                      <TotalCost items={items} taxRate={taxRate} />
-                    </span>
-                  </div>
-                  <GetAQuote items={items} />
-                </div>
-              </Col>
-            </Row>
+  function renderOrderError() {
+    if (!orderError) return;
+    return (
+      <Alert
+        type="error"
+        message={
+          <>
+            <b>Error placing order:</b> {orderError}
+          </>
+        }
+        style={{ margin: "30px 0" }}
+      />
+    );
+  }
 
-            <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-              2. Review Items ({items.length})
-            </h4>
-            <div style={{ border: "1px solid #eee" }}>
-              <Table
-                showHeader={false}
-                columns={columns}
-                dataSource={items}
-                rowKey={"id"}
-                pagination={{ hideOnSinglePage: true }}
-              />
-            </div>
-            <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-              3. Place Your Order
-            </h4>
-            <div style={{ fontSize: "12pt" }}>
-              <Row>
-                <Col sm={12}>
-                  <Button
-                    disabled={subTotal == 0 || placingOrder}
-                    style={{ marginTop: "7px", marginBottom: "15px" }}
-                    size="large"
-                    type="primary"
-                    href="/store/checkout"
-                    onClick={placeOrder}
-                  >
-                    {placingOrder ? (
-                      <Loading delay={0}>Placing Order...</Loading>
-                    ) : (
-                      "Place Your Order"
-                    )}
-                  </Button>
-                </Col>
-                <Col sm={12}>
-                  <div style={{ fontSize: "15pt" }}>
-                    <TotalCost items={cart.result} taxRate={taxRate} />
-                    <br />
-                    <Terms />
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </div>
-        </div>
-      )}
-      {orderError && (
-        <Alert
-          type="error"
-          message={
+  function emptyCart() {
+    return (
+      <>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
+          {cart.result?.length > 0 && (
             <>
-              <b>Error placing order:</b> {orderError}
+              Nothing in Your <SiteName />{" "}
+              <A href="/store/cart">Shopping Cart</A> is Selected
             </>
-          }
-          style={{ margin: "30px 0" }}
-        />
-      )}
-    </div>
+          )}
+          {(cart.result?.length ?? 0) == 0 && (
+            <>
+              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
+            </>
+          )}
+        </h3>
+        <A href="/store/site-license">Buy a License</A>
+      </>
+    );
+  }
+
+  function nonemptyCart(items) {
+    return (
+      <>
+        {renderOrderError()}
+        <Row>
+          <Col md={14} sm={24}>
+            <div>
+              <h3 style={{ fontSize: "16pt" }}>
+                <Icon name={"list"} style={{ marginRight: "5px" }} />
+                Checkout (<A href="/store/cart">{items.length} items</A>)
+              </h3>
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                1. Payment Method
+              </h4>
+              <p>
+                The default payment method shown below will be used for this
+                purchase.
+              </p>
+              <PaymentMethods startMinimized setTaxRate={setTaxRate} />
+            </div>
+          </Col>
+          <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
+            <div>
+              <div
+                style={{
+                  textAlign: "center",
+                  border: "1px solid #ddd",
+                  padding: "15px",
+                  borderRadius: "5px",
+                  minWidth: "300px",
+                }}
+              >
+                {placeOrderButton()}
+                <Terms />
+                <OrderSummary items={items} taxRate={taxRate} />
+                <span style={{ fontSize: "13pt" }}>
+                  <TotalCost items={items} taxRate={taxRate} />
+                </span>
+              </div>
+              <GetAQuote items={items} />
+            </div>
+          </Col>
+        </Row>
+
+        <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
+          2. Review Items ({items.length})
+        </h4>
+        <div style={{ border: "1px solid #eee" }}>
+          <Table
+            showHeader={false}
+            columns={columns}
+            dataSource={items}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+        </div>
+        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
+          3. Place Your Order
+        </h4>
+        <div style={{ fontSize: "12pt" }}>
+          <Row>
+            <Col sm={12}>{placeOrderButton()}</Col>
+            <Col sm={12}>
+              <div style={{ fontSize: "15pt" }}>
+                <TotalCost items={cart.result} taxRate={taxRate} />
+                <br />
+                <Terms />
+              </div>
+            </Col>
+          </Row>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {items.length == 0 && emptyCart()}
+      {items.length > 0 && nonemptyCart(items)}
+      {renderOrderError()}
+    </>
   );
 }
 
@@ -303,10 +329,12 @@ function OrderSummary({ items, taxRate }) {
         Items ({items.length}):{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
-      <div>
-        Self-service discount (25%):{" "}
-        <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
-      </div>
+      {full - cost > 0 && (
+        <div>
+          Self-service discount (25%):{" "}
+          <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
+        </div>
+      )}
       <div>
         Estimated tax:{" "}
         <span style={{ float: "right" }}>{money(tax, true)}</span>

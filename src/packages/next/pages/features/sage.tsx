@@ -43,7 +43,7 @@ export default function Sage({ customize }) {
                   is to create a viable free open source alternative to Magma,
                   Maple, Mathematica and Matlab by building on top of many
                   existing open-source packages, including NumPy, SciPy,
-                  matplotlib, Sympy, Maxima, GAP, FLINT, and{" "}
+                  matplotlib, SymPy, Maxima, GAP, FLINT, and{" "}
                   <A href="/features/r-statistical-software">R</A>.
                 </>
               }

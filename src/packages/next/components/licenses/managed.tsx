@@ -22,6 +22,7 @@ import Timestamp from "components/misc/timestamp";
 import License, { DateRange } from "./license";
 import SelectUsers from "components/account/select-users";
 import useCustomize from "lib/use-customize";
+import A from "components/misc/A";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
@@ -341,7 +342,11 @@ export default function ManagedLicenses() {
       <h3>Licenses that you Manage ({result.length})</h3>
       These are the licenses that you have purchased or been added to manage.
       You can add other people as managers of any of these licenses, if they
-      need to be able to use these licenses to upgrade projects.
+      need to be able to use these licenses to upgrade projects. You can also{" "}
+      <A href="/billing/subscriptions">
+        manage your purchased subscriptions
+      </A>{" "}
+      and browse <A href="/billing/receipts">your receipts and invoices</A>.
       <div style={{ margin: "15px 0" }}>
         <Checkbox
           disabled={numExpired == 0}

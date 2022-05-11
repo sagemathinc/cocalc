@@ -12,9 +12,17 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
+import { CSSProperties, useRef } from "react";
 import { Alert, Button } from "antd";
 import { redux, React, useMemo, useTypedRedux } from "../app-framework";
-import { A, Icon, ProjectState, Space, VisibleMDLG } from "../components";
+import {
+  A,
+  Delay,
+  Icon,
+  ProjectState,
+  Space,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
 import { server_seconds_ago } from "@cocalc/util/misc";
@@ -23,12 +31,28 @@ interface Props {
   project_id: string;
 }
 
+const STYLE = {
+  fontSize: "40px",
+  textAlign: "center",
+  color: "#666666",
+  marginBottom: "15px",
+  borderBottom: "1px solid grey",
+  borderTop: "1px solid grey",
+  paddingBottom: "10px",
+} as CSSProperties;
+
 export const StartButton: React.FC<Props> = ({ project_id }) => {
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
+  const lastNotRunningRef = useRef<null | number>(null);
   const state = useMemo(() => {
-    return project_map?.getIn([project_id, "state"]);
+    const state = project_map?.getIn([project_id, "state"]);
+    if (state != null) {
+      lastNotRunningRef.current =
+        state.get("state") == "running" ? null : new Date().valueOf();
+    }
+    return state;
   }, [project_map]);
 
   // start_requested is true precisely if a start of this project
@@ -62,8 +86,35 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") == "running" && connected) {
-    return <></>;
+  if (state?.get("state") == "running") {
+    if (connected) {
+      return <></>;
+    } else {
+      // Show a "Connecting..." banner after a few seconds.
+      // We don't show it immediately, since it can appear intermittently
+      // for second, which is annoying and not helpful.
+      // NOTE: if the project changed to a NOT running state a few seconds ago, then we do
+      // show Connecting immediately, since then it's useful and not "flashy".
+      const last = lastNotRunningRef.current;
+      return (
+        <Delay
+          delayMs={
+            last != null && new Date().valueOf() - last < 60000 ? 0 : 3000
+          }
+        >
+          <div style={STYLE}>
+            <Alert
+              message={
+                <span style={{ fontSize: "20pt", color: "#666" }}>
+                  Connecting... <Icon name="cocalc-ring" spin />
+                </span>
+              }
+              type="warning"
+            />
+          </div>
+        </Delay>
+      );
+    }
   }
 
   function render_not_allowed() {
@@ -141,37 +192,24 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   }
 
   function render_normal_view() {
-    let message;
-    if (state?.get("state") == "running" && !connected) {
-      message = (
-        <span style={{ fontSize: "20pt", color: "#666" }}>Connecting... <Icon name="cocalc-ring" spin /></span>
-      );
-    } else {
-      message = (
-        <>
-          <span style={{ fontSize: "20pt", color: "#666" }}>
-            <ProjectState state={state} show_desc={allowed} />
-          </span>
-          {render_start_project_button()}
-          {!allowed && render_not_allowed()}
-        </>
-      );
-    }
-    return <Alert message={message} type="warning" />;
+    return (
+      <Alert
+        message={
+          <>
+            <span style={{ fontSize: "20pt", color: "#666" }}>
+              <ProjectState state={state} show_desc={allowed} />
+            </span>
+            {render_start_project_button()}
+            {!allowed && render_not_allowed()}
+          </>
+        }
+        type="warning"
+      />
+    );
   }
 
   return (
-    <div
-      style={{
-        fontSize: "40px",
-        textAlign: "center",
-        color: "#666666",
-        marginBottom: "15px",
-        borderBottom: "1px solid grey",
-        borderTop: "1px solid grey",
-        paddingBottom: "10px",
-      }}
-    >
+    <div style={STYLE}>
       {state == null && redux.getStore("account")?.get("is_admin")
         ? render_admin_view()
         : render_normal_view()}

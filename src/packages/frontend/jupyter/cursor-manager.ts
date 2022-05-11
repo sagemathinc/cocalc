@@ -39,7 +39,7 @@ export class CursorManager {
         });
       }
     }
-    if (info == null) return cells;
+    if (info == null || info.get("time") == null) return cells;
 
     // set new cursor locations
     info.get("locs").forEach((loc) => {

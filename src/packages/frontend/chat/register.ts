@@ -30,7 +30,8 @@ export function init(path: string, redux, project_id: string): string {
   const syncdb = webapp_client.sync_client.sync_db({
     project_id,
     path,
-    primary_keys: ["date"],
+    primary_keys: ["date", "sender_id", "event"],
+    string_cols: ["input"], // used only for drafts, since store lots of versions as user types
   });
 
   syncdb.once("error", (err) => {

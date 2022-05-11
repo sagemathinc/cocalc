@@ -21,8 +21,7 @@ import "xterm/css/xterm.css";
 
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
-//import { WebglAddon } from "xterm-addon-webgl";
-
+import { WebglAddon } from "xterm-addon-webgl";
 import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions, CodeEditorState } from "../code-editor/actions";
@@ -141,13 +140,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // isn't noticeably faster over the web at least.  Also, I had
     // it crash on latest chrome and a solid modern laptop, perha due to
     // https://github.com/xtermjs/xterm.js/issues/2253
-    /*
+    // Now that #2253 is fixed, let's try this again.
     try {
-      this.terminal.loadAddon(new WebglAddon());
+      const addon = new WebglAddon();
+      addon.onContextLoss(() => {
+        addon.dispose();
+      });
+      this.terminal.loadAddon(addon);
     } catch (err) {
       console.log("WebGL Terminal not available; falling back to canvas.");
     }
-    */
 
     this.element = this.terminal.element;
     this.update_settings();

@@ -22,8 +22,7 @@ import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { cmp, keys, trunc_middle } from "@cocalc/util/misc";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
-import { Row, Col } from "react-bootstrap";
-const { Panel } = require("react-bootstrap"); // fighting with stupid typescript declarations!
+import { Row, Col, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
 
 interface Project {

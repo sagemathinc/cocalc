@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.17.0",
+  "version": "1.25.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
@@ -25,10 +25,10 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/backend": "^1.12.1",
-    "@cocalc/frontend": "^1.38.0",
-    "@cocalc/sync": "^0.3.0",
-    "@cocalc/util": "^1.31.0",
+    "@cocalc/backend": "^1.14.0",
+    "@cocalc/frontend": "^1.53.6",
+    "@cocalc/sync": "^0.6.1",
+    "@cocalc/util": "^1.43.6",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -46,7 +46,7 @@
     "execa": "^5.0.0",
     "expect": "^26.6.2",
     "express": "^4.17.1",
-    "express-rate-limit": "^3.4.0",
+    "express-rate-limit": "^6.3.0",
     "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
@@ -63,7 +63,7 @@
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
-    "prettier": "^2.3.2",
+    "prettier": "^2.6.2",
     "primus": "^8.0.3",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
@@ -87,7 +87,7 @@
     "@types/node": "^14.18.10",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.5.2"
+    "typescript": "^4.6.3"
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",

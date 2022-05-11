@@ -37,36 +37,44 @@ export function unindentListItem(editor: Editor): boolean {
     if (Path.hasPrevious(path)) {
       to = Path.next(to);
     }
-    Editor.withoutNormalizing(editor, () => {
-      if (path[path.length - 1] < list.children.length - 1) {
-        // not last child so split
-        Transforms.splitNodes(editor, {
-          match: (node) => Element.isElement(node) && isListElement(node),
-          mode: "lowest",
+    try {
+      Editor.withoutNormalizing(editor, () => {
+        if (path[path.length - 1] < list.children.length - 1) {
+          // not last child so split
+          Transforms.splitNodes(editor, {
+            match: (node) => Element.isElement(node) && isListElement(node),
+            mode: "lowest",
+          });
+        }
+        Transforms.moveNodes(editor, {
+          match: (node) => node === item,
+          to,
         });
-      }
-      Transforms.moveNodes(editor, {
-        match: (node) => node === item,
-        to,
+        Transforms.unwrapNodes(editor, {
+          match: (node) => node === item,
+          mode: "lowest",
+          at: to,
+        });
       });
-      Transforms.unwrapNodes(editor, {
-        match: (node) => node === item,
-        mode: "lowest",
-        at: to,
-      });
-    });
+    } catch (err) {
+      console.warn(`SLATE -- issue making list item ${err}`);
+    }
     return true;
   }
 
   const to = Path.next(parentOfListPath);
 
-  Editor.withoutNormalizing(editor, () => {
-    Transforms.moveNodes(editor, {
-      to,
-      match: (node) => node === list,
+  try {
+    Editor.withoutNormalizing(editor, () => {
+      Transforms.moveNodes(editor, {
+        to,
+        match: (node) => node === list,
+      });
+      Transforms.unwrapNodes(editor, { at: to });
     });
-    Transforms.unwrapNodes(editor, { at: to });
-  });
+  } catch (err) {
+    console.warn(`SLATE -- issue with unindentListItem ${err}`);
+  }
 
   // re-indent any extra siblings that we just unintentionally un-indented
   // Yes, I wish there was a simpler way than this, but fortunately this
@@ -161,18 +169,22 @@ export function indentListItem(
     // console.log("Type issue that should not happen.");
     return false;
   }
-  Editor.withoutNormalizing(editor, () => {
-    Transforms.moveNodes(editor, {
-      to,
-      match: (node) => node === item,
-      at,
+  try {
+    Editor.withoutNormalizing(editor, () => {
+      Transforms.moveNodes(editor, {
+        to,
+        match: (node) => node === item,
+        at,
+      });
+      Transforms.wrapNodes(
+        editor,
+        { type: list.type, tight: true, children: [] },
+        { at: to }
+      );
     });
-    Transforms.wrapNodes(
-      editor,
-      { type: list.type, tight: true, children: [] },
-      { at: to }
-    );
-  });
+  } catch (err) {
+    console.warn(`SLATE -- issue with indentListItem ${err}`);
+  }
 
   return true;
 }

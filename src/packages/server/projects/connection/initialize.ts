@@ -22,7 +22,13 @@ export default function initialize(project_id: string, socket): void {
   socket.on("mesg", (type, mesg) => {
     switch (type) {
       case "blob":
-        handleBlob({ socket, project_id, uuid: mesg.uuid, blob: mesg.blob });
+        handleBlob({
+          socket,
+          project_id,
+          uuid: mesg.uuid,
+          blob: mesg.blob,
+          ttlSeconds: mesg.ttlSeconds,
+        });
         return;
       case "json":
         handleMessage({ socket, project_id, mesg });

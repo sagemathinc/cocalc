@@ -4,11 +4,11 @@ The HTTP API, which works via POST requests.
 import { Router } from "express";
 import bodyParser from "body-parser";
 const { http_message_api_v1 } = require("@cocalc/hub/api/handler");
-import { split } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/hub/logger";
 import { database } from "../database";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import { getApiKey } from "@cocalc/server/auth/api";
 
 export default function init(
   app_router: Router,
@@ -30,27 +30,13 @@ export default function init(
   router.use(bodyParser({ limit: "500kb" }));
 
   router.post("/*", async (req, res) => {
-    const h = req.header("Authorization");
-    if (h == null) {
-      res
-        .status(400)
-        .send({ error: "You must provide authentication via an API key." });
+    let api_key;
+    try {
+      api_key = getApiKey(req);
+    } catch (err) {
+      res.status(400).send({ error: err.message });
       return;
     }
-    const [type, user] = split(h);
-    let api_key;
-    switch (type) {
-      case "Bearer":
-        api_key = user;
-        break;
-      case "Basic":
-        api_key = Buffer.from(user, "base64").toString().split(":")[0];
-        break;
-      default:
-        res.status(400).send({ error: `Unknown authorization type '${type}'` });
-        return;
-    }
-
     const { body } = req;
     const path = req.baseUrl;
     const event = path.slice(path.lastIndexOf("/") + 1);

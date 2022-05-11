@@ -31,11 +31,17 @@ export function markdownEscape(
   s: string,
   isFirstChild: boolean = false
 ): string {
-  // some keys from the map above are purposely missing here, since overescaping
-  // makes the generated markdown ugly.
-
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\\_`<>$&\xa0|]/g, (m) => MAP[m]);
+  s = s.replace(/[\*\(\)\[\]\$\+\-\\_`#<>]/g, (m) => MAP[m]);
+  // Version of the above, but with some keys from the map purposely missing here,
+  // since overescaping makes the generated markdown ugly.  However, sadly we HAVE
+  // to escape everything (as above), since otherwise collaborative editing gets
+  // broken, and tons of trouble with slate.  E.g., User a types a single - at the
+  // beginning of the line, and user
+  // B types something somewhere else in the document.  The dash then automatically
+  // turns into a list without user A doing anything.  NOT good.
+  // Fortunately, caching makes this less painful.
+  // s = s.replace(/[\\_`<>$&\xa0|]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
@@ -92,12 +98,15 @@ export function li_indent(s: string, amount: number = 2): string {
   }
 }
 
-export function ensure_ends_in_newline(s: string): string {
+// Ensure that s ends in **exactly one** newline.
+export function ensure_ends_in_exactly_one_newline(s: string): string {
   if (s[s.length - 1] != "\n") {
     return s + "\n";
-  } else {
-    return s;
   }
+  while (s[s.length - 2] == "\n") {
+    s = s.slice(0, s.length - 1);
+  }
+  return s;
 }
 
 export function ensure_ends_in_two_newline(s: string): string {
@@ -132,9 +141,11 @@ function lastIndexOfNonWhitespace(s: string): number {
   return (/\s+$/.exec(s)?.index ?? s.length) - 1;
 }
 
-export function stripWhitespace(
-  s: string
-): { before: string; trimmed: string; after: string } {
+export function stripWhitespace(s: string): {
+  before: string;
+  trimmed: string;
+  after: string;
+} {
   const i = indexOfNonWhitespace(s);
   const j = lastIndexOfNonWhitespace(s);
   return {
@@ -193,14 +204,6 @@ export function padCenter(s: string, n: number): string {
 
 //export const FOCUSED_COLOR = "#2196f3";
 export const FOCUSED_COLOR = "rgb(126,182,226)";
-
-export function replace_math(text, math) {
-  // Replace all the math group placeholders in the text
-  // with the saved strings.
-  return text.replace(/`\uFE32\uFE33(\d+)\uFE32\uFE33`/g, function (_, n) {
-    return math[n];
-  });
-}
 
 export function string_to_style(style: string): any {
   const obj: any = {};

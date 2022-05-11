@@ -24,7 +24,7 @@ register({
       isVoid: true,
       isInline: true,
       content: token.content,
-      children: [{ text: " " }],
+      children: [{ text: "" }],
       markup: token.markup,
     };
   },

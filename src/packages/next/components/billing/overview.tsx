@@ -15,6 +15,11 @@ export default function Overview() {
         <A href="/billing/receipts">your invoices and receipts</A>.
       </p>
       <p>
+        You can also <A href="/store/site-license">buy a license</A> at{" "}
+        <A href="/store">the store</A> and{" "}
+        <A href="/licenses/managed">browse your existing licenses</A>.
+      </p>
+      <p>
         You can also read{" "}
         <A href="https://doc.cocalc.com/account/purchases.html#subscription-list">
           the billing documentation

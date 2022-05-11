@@ -33,10 +33,6 @@ import { Channel } from "../websocket/types";
 import { COLORS } from "@cocalc/util/theme";
 import humanizeList from "humanize-list";
 
-export const CodeWhite: React.FC = ({ children }) => (
-  <code style={{ color: "white" }}>{children}</code>
-);
-
 interface AboutContentProps {
   proc: Process;
 }
@@ -186,36 +182,32 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
           return (
             <span>
               Current memory usage of the project's container:{" "}
-              <CodeWhite>{cg_info.mem_rss.toFixed(0)}MiB</CodeWhite> of a
-              maximum of <CodeWhite>{cg_info.mem_tot.toFixed(0)}MiB</CodeWhite>.
-              This might diverge from the processes individual usages and this
-              value also includes the in-memory <CodeWhite>/tmp</CodeWhite>{" "}
-              directory. The remaining free memory is usually shared with other
-              projects on the underlying machine and hence you might not be able
-              to fully attain it.
+              <code>{cg_info.mem_rss.toFixed(0)}MiB</code> of a maximum of{" "}
+              <code>{cg_info.mem_tot.toFixed(0)}MiB</code>. This might diverge
+              from the processes individual usages and this value also includes
+              the in-memory <code>/tmp</code> directory. The remaining free
+              memory is usually shared with other projects on the underlying
+              machine and hence you might not be able to fully attain it.
             </span>
           );
         case "disk":
           return (
             <span>
               Currently, the files stored in this project use{" "}
-              <CodeWhite>{disk_usage.usage.toFixed(0)}MiB</CodeWhite> of a
-              maximum of <CodeWhite>{disk_usage.total.toFixed(0)}MiB</CodeWhite>
-              . Please be aware that a project might not work properly if that
-              limit is reached.
+              <code>{disk_usage.usage.toFixed(0)}MiB</code> of a maximum of{" "}
+              <code>{disk_usage.total.toFixed(0)}MiB</code>. Please be aware
+              that a project might not work properly if that limit is reached.
             </span>
           );
         case "cpu":
           return (
             <span>
               This shows your current CPU usage. Right now, this project is
-              using{" "}
-              <CodeWhite>{cg_info.cpu_usage_rate.toFixed(2)}secs</CodeWhite> CPU
+              using <code>{cg_info.cpu_usage_rate.toFixed(2)}secs</code> CPU
               time per second with a limit of{" "}
-              <CodeWhite>{cg_info.cpu_usage_limit.toFixed(2)}secs/s</CodeWhite>.
-              Since this project shares the CPU power of the underlying machine
-              with other projects, you might not be able to fully attain the
-              limit.
+              <code>{cg_info.cpu_usage_limit.toFixed(2)}secs/s</code>. Since
+              this project shares the CPU power of the underlying machine with
+              other projects, you might not be able to fully attain the limit.
             </span>
           );
       }
@@ -454,7 +446,7 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
         <Tip
           title={
             <span>
-              Click to open <CodeWhite>{path}</CodeWhite>
+              Click to open <code>{path}</code>
             </span>
           }
           style={{ paddingLeft: "1rem" }}

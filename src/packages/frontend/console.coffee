@@ -194,7 +194,7 @@ class Console extends EventEmitter
             return;
         api = await webapp_client.project_client.api(@project_id)
         # aux_path for compat with new frame terminal editor.
-        {aux_file} = require('./frame-editors/frame-tree/util')
+        {aux_file} = require("@cocalc/util/misc")
         aux_path = aux_file("#{@path}-0", "term");
         @conn = await api.terminal(aux_path)
         @conn.on 'end', =>

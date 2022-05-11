@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cdn",
-  "version": "1.10.0",
+  "version": "1.12.0",
   "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
   "main": "dist/index.js",
   "keywords": [
@@ -9,11 +9,11 @@
   ],
   "devDependencies": {
     "bootstrap": "=3.4.1",
-    "codemirror": "^5.63.3",
+    "codemirror": "^5.65.3",
     "katex": "^0.15.0",
     "mathjax": "^2.7.9",
-    "pdfjs-dist": "^2.9.359",
-    "typescript": "^4.5.2"
+    "pdfjs-dist": "^2.13.216",
+    "typescript": "^4.6.3"
   },
   "scripts": {
     "build": "rm -rf dist && mkdir -p dist && ./setup.py",

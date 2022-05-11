@@ -29,6 +29,9 @@ interface CodeMirrorProps {
   cursors?: ImmutableMap<any, any>;
   complete?: ImmutableMap<any, any>;
   is_scrolling?: boolean;
+  registerEditor?;
+  unregisterEditor?;
+  getValueRef?;
 }
 
 function should_memoize(prev, next) {
@@ -56,6 +59,9 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       cursors,
       complete,
       is_scrolling,
+      registerEditor,
+      unregisterEditor,
+      getValueRef,
     } = props;
 
     const is_mounted = useIsMountedRef();
@@ -84,10 +90,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
 
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
-    if (
-      (has_rendered_nonstatic.current || !is_scrolling) &&
-      actions != null
-    ) {
+    if ((has_rendered_nonstatic.current || !is_scrolling) && actions != null) {
       has_rendered_nonstatic.current = true;
       return (
         <CodeMirrorEditor
@@ -104,6 +107,9 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           is_focused={is_focused}
           is_scrolling={is_scrolling}
           complete={complete}
+          registerEditor={registerEditor}
+          unregisterEditor={unregisterEditor}
+          getValueRef={getValueRef}
         />
       );
     } else {

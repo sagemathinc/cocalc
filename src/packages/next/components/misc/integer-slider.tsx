@@ -1,5 +1,6 @@
 import { Button, Slider, InputNumber, Row, Col, Tag } from "antd";
 import { useState } from "react";
+import { COLORS as COLORS_THEME } from "@cocalc/util/theme";
 
 interface Props {
   min: number;
@@ -11,6 +12,8 @@ interface Props {
   onChange: (number) => void;
   units?: string;
   presets?: number[];
+  disabled?: boolean;
+  step?: number;
 }
 
 export default function IntegerSlider({
@@ -23,6 +26,8 @@ export default function IntegerSlider({
   initialValue,
   units,
   presets,
+  disabled = false,
+  step = 1,
 }: Props) {
   function toNumber(x) {
     return typeof x === "number" ? x : min;
@@ -36,6 +41,7 @@ export default function IntegerSlider({
       <Row>
         <Col span={12}>
           <Slider
+            disabled={disabled}
             style={{ width: "100%" }}
             min={min}
             max={max}
@@ -45,12 +51,15 @@ export default function IntegerSlider({
             }}
             value={value != null ? toNumber(value) : val}
             defaultValue={initialValue}
+            step={step}
           />
         </Col>
         <Col span={12}>
           <InputNumber
             min={min}
             max={maxText ?? max}
+            step={step}
+            disabled={disabled}
             style={{
               marginLeft: "16px",
               marginBottom: "5px",
@@ -60,15 +69,20 @@ export default function IntegerSlider({
             defaultValue={initialValue}
             value={value ?? val}
             onChange={(value) => {
-              onChange(toNumber(value));
-              setVal(toNumber(value));
+              let val = toNumber(value);
+              if (step !== 1) {
+                // quantize val to a multiple of step
+                val = Math.round(val / step) * step;
+              }
+              onChange(val);
+              setVal(val);
             }}
             addonAfter={units}
           />
           {defaultValue != null && (
             <Button
               type="dashed"
-              disabled={(value ?? val) == defaultValue}
+              disabled={disabled || (value ?? val) == defaultValue}
               style={{ marginLeft: "5px" }}
               onClick={() => {
                 onChange(defaultValue);
@@ -85,9 +99,10 @@ export default function IntegerSlider({
           {presets.map((number) => (
             <Tag
               key={number}
-              color="blue"
-              style={{ cursor: "pointer" }}
+              color={disabled ? COLORS_THEME.GRAY_LL : "blue"}
+              style={{ cursor: disabled ? "not-allowed" : "pointer" }}
               onClick={() => {
+                if (disabled) return;
                 onChange(number);
                 setVal(number);
               }}

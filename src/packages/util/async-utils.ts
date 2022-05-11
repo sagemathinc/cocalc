@@ -116,7 +116,10 @@ export async function retry_until_success<T>(
 import { EventEmitter } from "events";
 
 /* Wait for an event emitter to emit any event at all once.
-   Returns array of args emitted by that event. */
+   Returns array of args emitted by that event.
+   If timeout_ms is 0 (the default) this can wait an unbounded
+   amount of time.  That's intentional and does make sense
+   in our applications. */
 export async function once(
   obj: EventEmitter,
   event: string,

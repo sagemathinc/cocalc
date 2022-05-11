@@ -82,8 +82,8 @@ export function serializeLeaf(node: Text, info: Info): string {
 
   if (info.hook != null) {
     // always do this (even if text empty), e.g., it could be putting a special marker in.
-    const h = info.hook(node, text);
-    if (h != null) return h;
+    const h = info.hook(node);
+    if (h != null) return h(text);
   }
 
   return text;

@@ -3,23 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Checkbox } from "antd";
-import { ErrorDisplay, Icon, Loading, Space } from "../../components";
 import {
   CSS,
   React,
   useActions,
   useEffect,
+  useIsMountedRef,
   useMemo,
   useState,
   useTypedRedux,
-  useIsMountedRef,
-} from "../../app-framework";
-
+} from "@cocalc/frontend/app-framework";
 import {
-  SiteLicensePublicInfoTable,
-  SiteLicenses,
-} from "../../site-licenses/site-license-public-info";
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Space,
+} from "@cocalc/frontend/components";
+import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
+import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import { Button, Checkbox } from "antd";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",
@@ -28,7 +30,7 @@ export const LICENSES_STYLE: CSS = {
 
 export const ManagedLicenses: React.FC = () => {
   const [error, setError] = useState<string | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [show_all, set_show_all] = useState<boolean>(false);
   const actions = useActions("billing");
   const is_mounted_ref = useIsMountedRef();

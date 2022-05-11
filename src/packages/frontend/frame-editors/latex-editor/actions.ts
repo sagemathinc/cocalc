@@ -9,12 +9,7 @@ LaTeX Editor Actions.
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-const VIEWERS: ReadonlyArray<string> = [
-  "pdfjs_canvas",
-  "pdfjs_svg",
-  "pdf_embed",
-  "build",
-];
+const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
@@ -89,6 +84,7 @@ interface LatexEditorState extends CodeEditorState {
   knitr_error: boolean; // true, if there is a knitr problem
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
   includeError?: string;
+  build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -216,7 +212,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     );
   }
 
-  private async init_build_directive(): Promise<void> {
+  public async rescan_latex_directive(): Promise<void> {
+    await this.init_build_directive(true);
+  }
+
+  /**
+   * we check the first ~1000 lines for
+   * % !TeX program = xelatex | pdflatex | ...
+   * % !TeX cocalc = the exact command line
+   */
+  public async init_build_directive(cocalcOnly = false): Promise<void> {
     // check if there is an engine configured
     // https://github.com/sagemathinc/cocalc/issues/2839
     if (this.engine_config !== undefined) return;
@@ -227,27 +232,58 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (this._state == "closed") return;
 
+    let program = ""; // later, might contain the !TeX program build directive
+    let cocalc_cmd = ""; // later, might contain the cocalc command
+
     const s = this._syncstring.to_str();
     let line: string;
+    let lineNo = 0;
     for (line of splitlines(s)) {
-      if (startswith(line, "% !TeX program =")) {
-        const tokens = line.split("=");
-        if (tokens.length >= 2) {
-          this.engine_config = get_engine_from_config(tokens[1].trim());
-          if (this.engine_config != null) {
-            // Now set the build command to what is configured.
-            this.set_build_command(
-              build_command(
-                this.engine_config,
-                path_split(this.path).tail,
-                this.knitr,
-                this.output_directory
-              )
-            );
-          }
-          return;
-        }
+      lineNo += 1;
+      if (lineNo > 1000) break;
+      if (!startswith(line, "%")) continue;
+      const i = line.indexOf("=");
+      if (i == -1) continue;
+      // we match on lower case and normalize all spaces
+      const directive = line
+        .slice(0, i)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      if (
+        !cocalcOnly &&
+        (startswith(directive, "% !tex program") ||
+          startswith(directive, "% !tex ts-program"))
+      ) {
+        program = line.slice(i + 1).trim();
+      } else if (startswith(directive, "% !tex cocalc")) {
+        cocalc_cmd = line.slice(i + 1).trim();
       }
+      if (cocalc_cmd || (cocalc_cmd && program)) break;
+    }
+
+    // cocalc command takes precedence!
+    if (cocalc_cmd) {
+      // once set, it will be sanitized upon the next syncdb change event
+      this.set_build_command(cocalc_cmd);
+      this.setState({ build_command_hardcoded: true });
+    } else if (program) {
+      // get_engine_from_config picks an "Engine" we know of via lower-case match
+      this.engine_config = get_engine_from_config(program);
+      if (this.engine_config != null) {
+        // Now set the build command to what is configured.
+        this.set_build_command(
+          build_command(
+            this.engine_config,
+            path_split(this.path).tail,
+            this.knitr,
+            this.output_directory
+          )
+        );
+      }
+      this.setState({ build_command_hardcoded: false });
+    } else {
+      this.setState({ build_command_hardcoded: false });
     }
   }
 
@@ -273,6 +309,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
       if (this._state == "closed") return;
+    } else {
+      // this scans for the "cocalc" directive, which hardcodes the build command
+      await this.init_build_directive(true);
     }
 
     // Also, whenever the syncdb changes or loads, we load the build
@@ -384,34 +423,31 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private sanitize_build_cmd(cmd: List<string>): List<string> {
-    // First ensure the output directory is correct.
+    // special case "false", to disable processing
+    if (cmd.get(0)?.startsWith("false")) {
+      return cmd;
+    }
 
+    // Next, we ensure the output directory is correct.
     let outdir: string | undefined = undefined;
     let i: number = -1;
     for (const x of cmd) {
       i += 1;
-      if (startswith(x, "-output-directory")) {
+      if (startswith(x, "-output-directory=")) {
         outdir = x;
         break;
       }
     }
-    if (this.output_directory != null) {
-      // make sure it is right
-      const should_be = this.output_directory_cmd_flag();
-      if (outdir != should_be) {
-        if (outdir == null) {
-          // The build command must specify the output directory option (but doesn't),
-          // so we set it.
-          cmd = cmd.splice(cmd.size - 2, 0, should_be);
-        } else {
-          // change it
+    // only bother tweaking/adding the output directory, if it exists in the first place
+    if (outdir != null) {
+      if (this.output_directory != null) {
+        // make sure it is right
+        const should_be = this.output_directory_cmd_flag();
+        if (outdir != should_be) {
           cmd = cmd.set(i, should_be);
         }
-      }
-    } else {
-      // make sure it is null -- otherwise remove it.
-      if (outdir != null) {
-        // need to remove it
+      } else {
+        // remove it, if there is none set
         cmd = cmd.delete(i);
       }
     }
@@ -1070,6 +1106,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         pdf_path: pdf_path(this.path),
         project_id: this.project_id,
         output_directory: this.get_output_directory(),
+        src: this.path,
       });
       const line = info.Line;
       if (typeof line != "number") {
@@ -1079,18 +1116,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
-
       this.goto_line_in_file(line, info.Input);
     } catch (err) {
       if (err.message.indexOf("ENOENT") != -1) {
-        console.log("err", err);
+        console.log("synctex_pdf_to_tex err:", err);
         // err is just a string exception, and I'm nervous trying
         // to JSON.parse it, so we'll do something less robust,
         // which should have a sufficiently vague message that
         // it is OK.  When you try to run synctex and the synctex
         // file is missing, you get an error with ENOENT in it...
         this.set_error(
-          "Synctex failed to run.  Force Rebuild your project (use the Build frame)o r retry once the build is complete."
+          'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.'
         );
         return;
       }

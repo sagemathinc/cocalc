@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { User } from "../licenses/purchase/types";
 import { Upgrades } from "../upgrades/types";
 import { DedicatedDisk, DedicatedVM } from "./dedicated";
 
@@ -9,13 +15,14 @@ export interface SiteLicenseQuota {
   disk?: number;
   always_running?: boolean;
   member?: boolean;
-  user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | boolean;
+  user?: User;
+  dedicated_vm?: DedicatedVM | false;
   dedicated_disk?: DedicatedDisk;
   // idle_timeouts came later:
   // 1. they don't mix, just like member/free and always_running does not mix
   // 2. we define the timeout spans indirectly, gives us a bit of room to modify this later on.
   idle_timeout?: "short" | "medium" | "day";
+  boost?: boolean; // default false
 }
 
 // For typescript use of these from user side, we make this available:

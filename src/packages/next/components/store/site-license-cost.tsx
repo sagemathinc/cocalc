@@ -1,84 +1,156 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
+import { untangleUptime } from "@cocalc/util/consts/site-license";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import {
   compute_cost,
-  percent_discount,
-  money,
-  Cost as Cost0,
-  Subscription,
-  PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/util";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { plural } from "@cocalc/util/misc";
-import { ReactNode } from "react";
-import Timestamp from "components/misc/timestamp";
+  compute_cost_dedicated,
+} from "@cocalc/util/licenses/purchase/compute-cost";
 import {
-  LicenseIdleTimeouts,
-  untangleUptime,
-} from "@cocalc/util/consts/site-license";
+  CostInputPeriod,
+  PurchaseInfo,
+  Subscription,
+} from "@cocalc/util/licenses/purchase/types";
+import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
+import { plural } from "@cocalc/util/misc";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
+import {
+  dedicatedDiskDisplay,
+  dedicatedVmDisplay,
+} from "@cocalc/util/upgrades/utils";
+import Timestamp from "components/misc/timestamp";
+import { ReactNode } from "react";
 
-export type Period = "range" | "monthly" | "yearly";
+function computeDedicatedDiskCost(
+  props: ComputeCostProps
+): CostInputPeriod | undefined {
+  if (props.type !== "disk") {
+    throw new Error("compute cost for disk only");
+  }
+  if (props.dedicated_disk == null)
+    throw new Error("missing props.dedicated_disk");
+  const { dedicated_disk } = props;
+  if (props.period != "monthly") throw new Error("period must be monthly");
+  if (dedicated_disk === false) throw new Error(`should not happen`);
 
-export interface Cost extends Cost0 {
-  input: any;
-  period: Period;
+  try {
+    return {
+      input: { ...props, subscription: props.period },
+      ...compute_cost_dedicated({
+        dedicated_disk,
+        subscription: props.period,
+      }),
+    };
+  } catch (err) {
+    console.log(`problem calculating dedicated price: ${err}`);
+  }
 }
 
-export function computeCost({
-  user,
-  run_limit,
-  period,
-  range,
-  ram,
-  cpu,
-  disk,
-  always_running,
-  member,
-  uptime,
-}: {
-  user: "academic" | "business";
-  run_limit: number;
-  period: Period;
-  range: [Date | undefined, Date | undefined];
-  ram: number;
-  cpu: number;
-  disk: number;
-  always_running: boolean;
-  member: boolean;
-  input: PurchaseInfo;
-  uptime: keyof typeof LicenseIdleTimeouts | "always_running";
-}): Cost | undefined {
-  if (period == "range" && range?.[1] == null) {
-    return undefined;
+function computeDedicatedVMCost(
+  props: ComputeCostProps
+): CostInputPeriod | undefined {
+  if (props.type !== "vm") {
+    throw new Error("compute cost for VM only");
   }
-
-  const input = {
-    user,
-    upgrade: "custom" as "custom",
-    quantity: run_limit,
-    subscription: (period == "range" ? "no" : period) as
-      | "no"
-      | "monthly"
-      | "yearly",
-    start: range?.[0] ?? new Date(),
-    end: range?.[1],
-    custom_ram: ram,
-    custom_dedicated_ram: 0,
-    custom_cpu: cpu,
-    custom_dedicated_cpu: 0,
-    custom_disk: disk,
-    custom_always_running: always_running,
-    custom_member: member,
-    custom_uptime: uptime,
-  };
+  if (props.dedicated_vm == null) {
+    throw new Error("missing props.dedicated_vm");
+  }
+  const { range, dedicated_vm } = props;
+  const machine = dedicated_vm.machine;
+  if (range == null || range[0] == null || range[1] == null) return;
+  const price_day = PRICES.vms[machine]?.price_day;
+  if (price_day == null) return;
+  const days = getDays({ start: range[0], end: range[1] });
+  const price = days * price_day;
   return {
-    ...compute_cost(input),
-    input,
-    period,
+    cost: price,
+    cost_per_unit: price,
+    discounted_cost: price,
+    cost_per_project_per_month: AVG_MONTH_DAYS * price_day,
+    cost_sub_month: AVG_MONTH_DAYS * price_day,
+    cost_sub_year: 12 * AVG_MONTH_DAYS * price_day,
+    input: {
+      ...props,
+      subscription: "no",
+      start: range[0] ?? new Date(),
+      end: range?.[1],
+    },
+    period: "range",
   };
+}
+
+export function computeCost(
+  props: ComputeCostProps
+): CostInputPeriod | undefined {
+  const type = props.type ?? "quota";
+  switch (type) {
+    case "disk":
+      return computeDedicatedDiskCost(props);
+
+    case "vm":
+      return computeDedicatedVMCost(props);
+
+    case "quota":
+    default:
+      if (props.type === "disk" || props.type === "vm") {
+        throw Error("must be a quota upgrade license");
+      }
+      const {
+        user,
+        run_limit,
+        period,
+        range,
+        ram,
+        cpu,
+        disk,
+        always_running,
+        member,
+        uptime,
+        boost = false, // if true, allow "all zero" values and start at 0 USD
+      } = props;
+
+      if (period == "range" && range?.[1] == null) {
+        return undefined;
+      }
+
+      const input: PurchaseInfo = {
+        type: "quota",
+        user,
+        upgrade: "custom" as "custom",
+        quantity: run_limit,
+        subscription: (period == "range" ? "no" : period) as
+          | "no"
+          | "monthly"
+          | "yearly",
+        start: range?.[0] ?? new Date(),
+        end: range?.[1],
+        custom_ram: ram,
+        custom_dedicated_ram: 0,
+        custom_cpu: cpu,
+        custom_dedicated_cpu: 0,
+        custom_disk: disk,
+        custom_always_running: always_running,
+        custom_member: member,
+        custom_uptime: uptime,
+        boost,
+      };
+      return {
+        ...compute_cost(input),
+        input,
+        period,
+      };
+  }
 }
 
 interface Props {
-  cost: Cost;
+  cost: CostInputPeriod;
   simple?: boolean;
   oneLine?: boolean;
 }
@@ -87,6 +159,7 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
+  const discount_pct = percent_discount(cost);
   if (simple) {
     return (
       <>
@@ -99,7 +172,10 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
         ) : (
           ""
         )}
-        {oneLine ? null : <br />} (includes 25% self-service discount)
+        {oneLine ? null : <br />}{" "}
+        {discount_pct > 0 && (
+          <>(includes {discount_pct}% self-service discount)</>
+        )}
       </>
     );
   }
@@ -115,8 +191,7 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
           {money(cost.discounted_cost)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
-        , if you purchase here ({percent_discount(cost)}% self-service
-        discount).
+        , if you purchase here ({discount_pct}% self-service discount).
       </>
     );
   } else {
@@ -132,7 +207,31 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
   );
 }
 
-export function describeItem(info: PurchaseInfo): ReactNode {
+export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
+  if (info.type === "disk") {
+    return (
+      <>
+        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk)}){" "}
+        {describePeriod(info)}
+      </>
+    );
+  }
+
+  if (info.type === "vm") {
+    return (
+      <>
+        Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
+        {describePeriod(info)}
+      </>
+    );
+  }
+
+  if (info.type !== "quota") {
+    throw Error("at this point, we only deal with type=quota");
+  }
+
+  if (info.custom_uptime == null || info.quantity == null)
+    throw new Error("should not happen");
   const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
   return (
     <>
@@ -150,7 +249,7 @@ export function describeItem(info: PurchaseInfo): ReactNode {
   );
 }
 
-function describeQuantity({ quantity }: { quantity: number }): ReactNode {
+function describeQuantity({ quantity = 1 }: { quantity?: number }): ReactNode {
   return `for ${quantity} running ${plural(quantity, "project")}`;
 }
 
@@ -159,15 +258,17 @@ export function describePeriod({
   start,
   end,
 }: {
-  subscription: Subscription;
-  start: Date | string;
+  subscription?: Omit<Subscription, "no">;
+  start?: Date | string;
   end?: Date | string;
 }): ReactNode {
   if (subscription == "no") {
+    if (start == null || end == null) throw new Error(`start date not set!`);
+    const days = getDays({ start, end });
     return (
       <>
-        <Timestamp dateOnly datetime={start} absolute /> -{" "}
-        <Timestamp dateOnly datetime={end} absolute />
+        <Timestamp dateOnly datetime={start} absolute /> to{" "}
+        <Timestamp dateOnly datetime={end} absolute />, {days} days
       </>
     );
   } else {

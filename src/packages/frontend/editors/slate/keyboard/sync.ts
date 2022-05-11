@@ -10,7 +10,12 @@ register(
     { key: "Enter", alt: true },
     { key: "Enter", meta: true },
   ],
-  ({ editor }) => {
+  ({ editor, extra }) => {
+    const altEnter = extra?.actions?.altEnter;
+    if (altEnter != null) {
+      altEnter(editor.getMarkdownValue());
+      return true;
+    }
     editor.inverseSearch(true);
     return true;
   }

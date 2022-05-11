@@ -15,7 +15,6 @@ import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
 import type { JupyterActions } from "./browser-actions";
 
-
 interface CellOutputProps {
   actions?: JupyterActions;
   name?: string;
@@ -26,6 +25,9 @@ interface CellOutputProps {
   more_output?: ImmutableMap<string, any>;
   trust?: boolean;
   complete?: boolean;
+  hidePrompt?: boolean;
+  style?: React.CSSProperties;
+  divRef?;
 }
 
 function should_memoize(prev, next) {
@@ -70,11 +72,14 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       more_output,
       trust,
       complete,
+      hidePrompt,
+      divRef,
+      style,
     } = props;
 
     function render_output_prompt() {
       const collapsed = cell.get("collapsed");
-      let exec_count = cell.get('exec_count');;
+      let exec_count = cell.get("exec_count");
       const output = cell.get("output");
       if (output != null) {
         output.forEach((x) => {
@@ -115,43 +120,42 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
     function render_output_value(): JSX.Element | undefined {
       if (cell.get("collapsed")) {
         return render_collapsed();
-      } else {
-        let output = cell.get("output");
-        if (output == null) {
-          return;
-        }
-        if (more_output != null) {
-          // There's more output; remove the button to get more output, and
-          // include all the new more output messages.
-          let n = output.size - 1;
-          const more = output.get(`${n}`);
-          more_output.get("mesg_list").forEach((mesg) => {
-            output = output.set(`${n}`, mesg);
-            n += 1;
-          });
-          if (
-            cell.get("end") == null ||
-            more_output.get("time") < cell.get("end")
-          ) {
-            // There may be more output since either the end time isn't set
-            // or the time when we got the output is before the calculation ended.
-            // We thus put the "more output" button back, so the user can click it again.
-            output = output.set(`${n}`, more);
-          }
-        }
-        return (
-          <CellOutputMessages
-            scrolled={cell.get("scrolled")}
-            output={output}
-            project_id={project_id}
-            directory={directory}
-            actions={actions}
-            name={name}
-            trust={trust}
-            id={id}
-          />
-        );
       }
+      let output = cell.get("output");
+      if (output == null) {
+        return;
+      }
+      if (more_output != null) {
+        // There's more output; remove the button to get more output, and
+        // include all the new more output messages.
+        let n = output.size - 1;
+        const more = output.get(`${n}`);
+        more_output.get("mesg_list").forEach((mesg) => {
+          output = output.set(`${n}`, mesg);
+          n += 1;
+        });
+        if (
+          cell.get("end") == null ||
+          more_output.get("time") < cell.get("end")
+        ) {
+          // There may be more output since either the end time isn't set
+          // or the time when we got the output is before the calculation ended.
+          // We thus put the "more output" button back, so the user can click it again.
+          output = output.set(`${n}`, more);
+        }
+      }
+      return (
+        <CellOutputMessages
+          scrolled={cell.get("scrolled")}
+          output={output}
+          project_id={project_id}
+          directory={directory}
+          actions={actions}
+          name={name}
+          trust={trust}
+          id={id}
+        />
+      );
     }
 
     function render_hidden(): JSX.Element {
@@ -180,19 +184,22 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
 
     return (
       <div
+        ref={divRef}
         key="out"
         style={{
           display: "flex",
           flexDirection: "row",
           alignItems: "stretch",
           minHeight,
+          ...style,
         }}
         cocalc-test="cell-output"
       >
-        {render_output_prompt()}
+        {!hidePrompt && render_output_prompt()}
         {render_output_value()}
       </div>
     );
   },
   should_memoize
 );
+

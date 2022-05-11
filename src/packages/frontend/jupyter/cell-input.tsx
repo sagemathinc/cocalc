@@ -7,13 +7,12 @@
 React component that describes the input of a cell
 */
 
-declare const $: any;
-
+import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
-import { Button, ButtonGroup } from "react-bootstrap";
+import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { startswith, filename_extension } from "@cocalc/util/misc";
-import { Icon, Markdown } from "../components";
+import { Icon } from "../components";
 import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt/input";
 import { Complete } from "./complete";
@@ -23,48 +22,41 @@ import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 
-function href_transform(
+// TODO: plan to switch to this soon!
+// import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+
+function attachmentTransform(
   project_id: string | undefined,
-  cell: Map<string, any>
-): (string) => string {
-  return (href: string) => {
-    if (!startswith(href, "attachment:")) {
-      return href;
-    }
-    const name = href.slice("attachment:".length);
-    const data = cell.getIn(["attachments", name]);
-    let ext = filename_extension(name);
-    switch (data?.get("type")) {
-      case "sha1":
-        const sha1 = data.get("value");
-        if (project_id == null) {
-          return href; // can't do anything.
-        }
-        return get_blob_url(project_id, ext, sha1);
-      case "base64":
-        if (ext === "jpg") {
-          ext = "jpeg";
-        }
-        return `data:image/${ext};base64,${data.get("value")}`;
-      default:
-        return "";
-    }
-  };
-}
-
-function markdown_post_hook(elt) {
-  return elt.find(":header").each((_, h) => {
-    h = $(h);
-    const hash = h.text().trim().replace(/\s/g, "-");
-    h.attr("id", hash).addClass("cocalc-jupyter-header");
-    h.append(
-      $("<a/>")
-        .addClass("cocalc-jupyter-anchor-link")
-        .attr("href", `#${hash}`)
-        .text("¶")
-    );
-  });
+  cell: Map<string, any>,
+  href?: string
+): string | undefined {
+  if (!href || !startswith(href, "attachment:")) {
+    return;
+  }
+  const name = href.slice("attachment:".length);
+  const data = cell.getIn(["attachments", name]);
+  let ext = filename_extension(name);
+  switch (data?.get("type")) {
+    case "sha1":
+      const sha1 = data.get("value");
+      if (project_id == null) {
+        return href; // can't do anything.
+      }
+      return get_blob_url(project_id, ext, sha1);
+    case "base64":
+      if (ext === "jpg") {
+        ext = "jpeg";
+      }
+      return `data:image/${ext};base64,${data.get("value")}`;
+    default:
+      return "";
+  }
 }
 
 export interface CellInputProps {
@@ -132,10 +124,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           opt = props.cm_options.get("markdown");
           break;
         case "raw":
-        default:
+        default: // no use with no mode
           opt = props.cm_options.get("options");
           opt = opt.set("mode", {});
-          opt = opt.set("foldGutter", false); // no use with no mode
+          opt = opt.set("foldGutter", false);
           break;
       }
       if (props.is_readonly) {
@@ -157,6 +149,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
       return (
         <CodeMirror
+          getValueRef={getValueRef}
           value={value}
           options={options(type)}
           actions={props.actions}
@@ -165,6 +158,15 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
         />
       );
     }
@@ -189,6 +191,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
+    const fileContext = useFileContext();
+    const urlTransform = useCallback(
+      (url, tag?) => {
+        const url1 = attachmentTransform(props.project_id, props.cell, url);
+        if (url1 != null && url1 != url) {
+          return url1;
+        }
+        return fileContext.urlTransform?.(url, tag);
+      },
+      [props.cell.get("attachments")]
+    );
+
     function render_markdown(): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
@@ -207,13 +221,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <Markdown
+          <MostlyStaticMarkdown
             value={value}
-            project_id={props.project_id}
-            file_path={props.directory}
-            href_transform={href_transform(props.project_id, props.cell)}
-            post_hook={markdown_post_hook}
-            safeHTML={!props.trust}
+            onChange={(value) => {
+              // user checked a checkbox.
+              props.actions?.set_cell_input(props.id, value, true);
+            }}
           />
         </div>
       );
@@ -223,6 +236,114 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return <div>Unsupported cell type {type}</div>;
     }
 
+    const getValueRef = useRef<any>(null);
+
+    const beforeChange = useCallback(() => {
+      if (getValueRef.current == null || props.actions == null) return;
+      props.actions.set_cell_input(props.id, getValueRef.current(), true);
+    }, [props.id]);
+
+    useEffect(() => {
+      if (props.actions == null) return;
+      if (props.is_focused) {
+        props.actions.syncdb.on("before-change", beforeChange);
+      } else {
+        // On loss of focus, we call it once just to be sure that any
+        // changes are saved.  Not doing this would definitely result
+        // in lost work, if user made a change, then immediately switched
+        // cells right when upstream changes are coming in.
+        beforeChange();
+        props.actions.syncdb.removeListener("before-change", beforeChange);
+      }
+      return () => {
+        props.actions?.syncdb.removeListener("before-change", beforeChange);
+      };
+    }, [props.is_focused]);
+
+    function renderMarkdownEdit() {
+      const cmOptions = options("markdown").toJS();
+      return (
+        <MarkdownInput
+          cacheId={`${props.id}${frameActions.current?.frame_id}`}
+          value={props.cell.get("input") ?? ""}
+          height="auto"
+          onChange={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+          }}
+          getValueRef={getValueRef}
+          onShiftEnter={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+            frameActions.current?.set_md_cell_not_editing(props.id);
+          }}
+          saveDebounceMs={SAVE_DEBOUNCE_MS}
+          cmOptions={cmOptions}
+          autoFocus={props.is_focused || props.is_current}
+          onUndo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.undo();
+                }
+          }
+          onRedo={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.redo();
+                }
+          }
+          onSave={
+            props.actions == null
+              ? undefined
+              : () => {
+                  props.actions?.save();
+                }
+          }
+          onCursors={
+            props.actions == null
+              ? undefined
+              : (cursors) => {
+                  const id = props.cell.get("id");
+                  const cur = cursors.map((z) => {
+                    return { ...z, id };
+                  });
+                  props.actions?.set_cursor_locs(cur);
+                }
+          }
+          cursors={props.cell.get("cursors")?.toJS()}
+          onCursorTop={() => {
+            frameActions.current?.adjacentCell(-1, -1);
+          }}
+          onCursorBottom={() => {
+            frameActions.current?.adjacentCell(0, 1);
+          }}
+          isFocused={props.is_focused}
+          onFocus={() => {
+            const actions = frameActions.current;
+            if (actions != null) {
+              actions.unselect_all_cells();
+              actions.set_cur_id(props.id);
+              actions.set_mode("edit");
+            }
+          }}
+          registerEditor={(editor) => {
+            frameActions.current?.register_input_editor(
+              props.cell.get("id"),
+              editor
+            );
+          }}
+          unregisterEditor={() => {
+            frameActions.current?.unregister_input_editor(props.cell.get("id"));
+          }}
+          modeSwitchStyle={{ marginRight: "32px" }}
+          editBarStyle={{
+            paddingRight:
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+          }}
+        />
+      );
+    }
+
     function render_input_value(type: string): Rendered {
       switch (type) {
         case "code":
@@ -230,8 +351,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         case "raw":
           return render_codemirror(type);
         case "markdown":
-          if (props.is_markdown_edit) return render_codemirror(type);
-          else return render_markdown();
+          if (props.is_markdown_edit) {
+            return renderMarkdownEdit();
+            //return render_codemirror(type);
+          } else {
+            return render_markdown();
+          }
         default:
           return render_unsupported(type);
       }
@@ -337,22 +462,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const type = props.cell.get("cell_type") || "code";
     return (
-      <div>
-        {render_cell_toolbar()}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "stretch",
-          }}
-          cocalc-test="cell-input"
-        >
-          {render_input_prompt(type)}
-          {render_complete()}
-          {render_input_value(type)}
-          {render_time()}
+      <FileContext.Provider
+        value={{
+          ...fileContext,
+          urlTransform,
+        }}
+      >
+        <div>
+          {render_cell_toolbar()}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "stretch",
+            }}
+            cocalc-test="cell-input"
+          >
+            {render_input_prompt(type)}
+            {render_complete()}
+            {render_input_value(type)}
+            {render_time()}
+          </div>
         </div>
-      </div>
+      </FileContext.Provider>
     );
   },
   (

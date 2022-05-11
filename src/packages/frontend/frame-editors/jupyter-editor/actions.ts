@@ -93,7 +93,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   private watch_for_introspect(): void {
-    const store = this.jupyter_actions.store;
+    const store = this.store;
     let introspect = store.get("introspect");
     store.on("change", () => {
       const i = store.get("introspect");

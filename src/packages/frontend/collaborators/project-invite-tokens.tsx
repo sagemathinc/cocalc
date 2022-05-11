@@ -211,7 +211,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       if (expires && expires <= webapp_client.server_time()) {
         return <div>This token is expired.</div>;
       }
-      const base = `${document.location.origin}${appBasePath}`;
       return (
         <div>
           Make this link available to people who you would like to join this
@@ -219,7 +218,10 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           <br />
           <br />
           <CopyToClipBoard
-            value={join(base, `app?${PROJECT_INVITE_QUERY_PARAM}=${token}`)}
+            value={`${document.location.origin}${join(
+              appBasePath,
+              "app"
+            )}?${PROJECT_INVITE_QUERY_PARAM}=${token}`}
             style={{ width: "100%" }}
           />
           <br />

@@ -8,14 +8,11 @@ import { Map } from "immutable";
 import { round1, plural } from "@cocalc/util/misc";
 import { redux, rclass, rtypes, Component } from "../../app-framework";
 import { A, Icon, Loading, Space } from "../../components";
-
 import { SiteName, PolicyPricingPageUrl, Footer } from "../../customize";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-
+import { Progress } from "antd";
 import { Row, Col, Panel } from "../../antd-bootstrap";
-import { ProgressBar } from "react-bootstrap";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
-
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 
@@ -89,11 +86,7 @@ class UpgradesPage extends Component<reduxProps> {
               ) : undefined}
             </Col>
             <Col sm={7}>
-              <ProgressBar
-                striped
-                now={percent_used}
-                style={{ margin: "3px 0px", border: "1px solid grey" }}
-              />
+              <Progress percent={percent_used} />
             </Col>
           </Row>
         </Col>

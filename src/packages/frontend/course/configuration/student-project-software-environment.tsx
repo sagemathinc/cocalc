@@ -6,42 +6,38 @@
 import {
   React,
   redux,
+  Rendered,
   useState,
   useTypedRedux,
-  CSS,
-  Rendered,
-} from "../../app-framework";
-import { fromJS } from "immutable";
-import { Icon, Markdown, A } from "../../components";
+} from "@cocalc/frontend/app-framework";
+import { A, Icon, Markdown } from "@cocalc/frontend/components";
+import {
+  ComputeImage,
+  ComputeImages,
+} from "@cocalc/frontend/custom-software/init";
 import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,
-} from "../../custom-software/selector";
-import { ConfigurationActions } from "./actions";
-import { Button, Card, Alert, Radio, Divider } from "antd";
-import { HelpEmailLink } from "../../customize";
-import { SoftwareImageDisplay } from "../../project/settings/project-control";
+} from "@cocalc/frontend/custom-software/selector";
 import {
   compute_image2basename,
   is_custom_image,
-} from "../../custom-software/util";
-import { ComputeImage, ComputeImages } from "../../custom-software/init";
+} from "@cocalc/frontend/custom-software/util";
+import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
   COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
   DEFAULT_COMPUTE_IMAGE,
 } from "@cocalc/util/compute-images";
-const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { Alert, Button, Card, Divider, Radio } from "antd";
+import { fromJS } from "immutable";
+import { ConfigurationActions } from "./actions";
+
+const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";
-
-const RADIO_STYLE: CSS = {
-  display: "block",
-  height: "30px",
-  lineHeight: "30px",
-  fontWeight: "normal",
-};
 
 interface Props {
   actions: ConfigurationActions;
@@ -201,19 +197,20 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   }
 
   function render_inherit(): Rendered {
+    // We use fontWeight: "normal" below because otherwise the default
+    // of bold for the entire label is a bit much for such a large label.
     return (
       <Radio.Group
         onChange={(e) => on_inherit_change(e.target.value)}
         value={inherit}
-        style={{ display: "block" }}
       >
-        <Radio style={RADIO_STYLE} value={true}>
+        <Radio style={{ fontWeight: "normal" }} value={true}>
           <strong>Inherit</strong> student projects software environments from
-          this teacher project.
+          this teacher project
         </Radio>
-        <Radio style={RADIO_STYLE} value={false}>
+        <Radio style={{ fontWeight: "normal" }} value={false}>
           <strong>Explicitly</strong> specify student project software
-          environments.
+          environments
         </Radio>
       </Radio.Group>
     );
@@ -226,8 +223,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     <Card
       title={
         <>
-          <Icon name="laptop" /> Software environment:{" "}
-          {current_environment}
+          <Icon name="laptop" /> Software environment: {current_environment}
         </>
       }
     >

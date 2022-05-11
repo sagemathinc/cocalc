@@ -45,6 +45,7 @@ import { log_file_open } from "../open-file";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import getUrlTransform from "./url-transform";
 import getAnchorTagComponent from "./anchor-tag-component";
+import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -162,6 +163,7 @@ export const TabContent: React.FC<TabContentProps> = ({
           urlTransform: getUrlTransform({ project_id, path }),
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
+          MathComponent: KaTeXAndMathJaxV2,
         };
         return (
           <FileContext.Provider value={value}>

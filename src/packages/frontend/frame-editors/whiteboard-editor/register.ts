@@ -10,7 +10,7 @@ Register the Whiteboard editor
 import { register_file_editor } from "@cocalc/frontend/frame-editors/frame-tree/register";
 
 register_file_editor({
-  ext: "whiteboard",
+  ext: "board",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
 });

@@ -287,6 +287,7 @@ def clean(args) -> None:
 
 
 def delete_package_lock(args) -> None:
+
     def f(path: str) -> None:
         p = os.path.join(path, 'package-lock.json')
         if os.path.exists(p):
@@ -405,16 +406,11 @@ def publish_package(args, package: str) -> None:
     if 'BASE_PATH' in os.environ:
         del os.environ['BASE_PATH']
     cmd("npm run build", package)
-    try:
-        # And now publish it:
-        if args.tag:
-            cmd(f"npm publish --tag {args.tag}", package)
-        else:
-            cmd("npm publish", package)
-    except:
-        print(
-            f"Publish failed; you might need to manually revert the version in '{package}/package.json'."
-        )
+    # And now publish it:
+    if args.tag:
+        cmd(f"npm publish --tag {args.tag}", package)
+    else:
+        cmd("npm publish", package)
     try:
         cmd(
             f"git commit -v . -m 'Publish new version of package {package} to npmjs package repo.'",

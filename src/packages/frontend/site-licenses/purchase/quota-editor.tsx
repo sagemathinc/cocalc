@@ -13,10 +13,19 @@ Editing a quota
 
 */
 
-import { Button, Checkbox, InputNumber, Row, Col, Select } from "antd";
+import {
+  Button,
+  Checkbox,
+  InputNumber,
+  Row,
+  Col,
+  Select,
+  Typography,
+} from "antd";
 import { Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { COSTS, GCE_COSTS, money } from "@cocalc/util/licenses/purchase/util";
+import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -25,6 +34,7 @@ import {
   untangleUptime,
   Uptime,
 } from "@cocalc/util/consts/site-license";
+import { User } from "@cocalc/util/licenses/purchase/types";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -52,10 +62,18 @@ interface Props {
   hideExtra?: boolean; // hide extra boxes, etc. -- this is used for admin editing, where they know what is up.
   disabled?: boolean;
   show_advanced_default?: boolean; // if the "advanced" part should pop up by default
+  adminMode?: boolean; // admins are allowed to e.g. set quota limit to 0 (i.e. for boost licenses)
 }
 
 export const QuotaEditor: React.FC<Props> = (props: Props) => {
-  const { quota, onChange, hideExtra, disabled, show_advanced_default } = props;
+  const {
+    quota,
+    onChange,
+    hideExtra,
+    disabled,
+    show_advanced_default,
+    adminMode = false,
+  } = props;
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
@@ -71,12 +89,15 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     ? { control: 18, max: 6 }
     : { control: 8, max: 3, desc: 16 };
 
-  function user(): "academic" | "business" {
+  function user(): User {
     if (quota.user == null) {
       throw Error("quota.user must be set");
     }
     return quota.user;
   }
+
+  const isDedicated =
+    quota.dedicated_vm != null || quota.dedicated_disk != null;
 
   function render_cpu() {
     return (
@@ -84,7 +105,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         <Col md={col.control - col.max}>
           <InputNumber
             disabled={disabled}
-            min={COSTS.basic.cpu}
+            min={adminMode ? 0 : COSTS.basic.cpu}
             max={COSTS.custom_max.cpu}
             value={quota.cpu}
             onChange={(x) => {
@@ -129,7 +150,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         <Col md={col.control - col.max}>
           <InputNumber
             disabled={disabled}
-            min={COSTS.basic.ram}
+            min={adminMode ? 0 : COSTS.basic.ram}
             max={COSTS.custom_max.ram}
             value={quota.ram}
             onChange={(x) => {
@@ -151,12 +172,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              GB RAM (
+              G RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.ram *
                   hosting_multiplier
-              )}/GB RAM per month per project`}
+              )}/G RAM per month per project`}
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
@@ -172,7 +193,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         <Col md={col.control - col.max}>
           <InputNumber
             disabled={disabled}
-            min={COSTS.basic.dedicated_cpu}
+            min={adminMode ? 0 : COSTS.basic.dedicated_cpu}
             max={COSTS.custom_max.dedicated_cpu}
             value={quota.dedicated_cpu}
             onChange={(x) => {
@@ -221,7 +242,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         <Col md={col.control - col.max}>
           <InputNumber
             disabled={disabled}
-            min={COSTS.basic.dedicated_ram}
+            min={adminMode ? 0 : COSTS.basic.dedicated_ram}
             max={COSTS.custom_max.dedicated_ram}
             value={quota.dedicated_ram}
             onChange={(x) => {
@@ -230,7 +251,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Space />
-          <span style={UNIT_STYLE}>dedicated GB RAM</span>
+          <span style={UNIT_STYLE}>dedicated G RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -245,7 +266,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              dedicated GB RAM (
+              dedicated G RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.dedicated_ram *
@@ -266,7 +287,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         <Col md={col.control - col.max}>
           <InputNumber
             disabled={disabled}
-            min={COSTS.basic.disk}
+            min={adminMode ? 0 : COSTS.basic.disk}
             max={COSTS.custom_max.disk}
             value={quota.disk}
             onChange={(x) => {
@@ -275,7 +296,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Space />
-          <span style={UNIT_STYLE}>GB disk space</span>
+          <span style={UNIT_STYLE}>G disk space</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -288,10 +309,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              GB Disk Space (
+              G Disk Space (
               {`${money(
                 COSTS.user_discount[user()] * COSTS.custom_cost.disk
-              )}/GB disk per month per project`}
+              )}/G disk per month per project`}
               )
             </b>
             {render_explanation(
@@ -386,7 +407,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
-          <Select defaultValue={"short"} onChange={onIdleTimeoutChange}>
+          <Select
+            defaultValue={quota.idle_timeout ?? "short"}
+            onChange={onIdleTimeoutChange}
+          >
             {idleTimeoutUptimeOptions()}
           </Select>{" "}
           idle timeout
@@ -471,6 +495,14 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
+  if (isDedicated) {
+    return (
+      <Typography.Text strong type="danger">
+        Dear Admin: editing a dedicated VM or Disk is not yet implemented.
+      </Typography.Text>
+    );
+  }
+
   return (
     <div>
       {render_cpu()}
@@ -486,5 +518,4 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && !hideExtra && render_dedicated()}
     </div>
   );
-  //
 };

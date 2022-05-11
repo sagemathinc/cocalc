@@ -33,10 +33,6 @@ export { BillingActions } from "../billing/actions";
 export { BillingStore } from "../billing/store";
 export type { BillingStoreState as BillingState } from "../billing/store";
 
-export type { ComputeEnvironmentState } from "../compute-environment/types";
-export { ComputeEnvironmentActions } from "../compute-environment/actions";
-export type { ComputeEnvironmentStore } from "../compute-environment/store";
-
 // compute_images
 export {
   ComputeImagesActions,

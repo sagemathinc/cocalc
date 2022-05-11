@@ -105,7 +105,7 @@ const DEFAULT_SPAWN_OPTIONS = {
 // actually launch the kernel.
 // the returning object contains all the configuration information and in particular,
 // `spawn` is the running process started by "execa"
-async function launch_kernel_spec(
+function launch_kernel_spec(
   kernel_spec,
   config,
   connection_file: string,
@@ -147,10 +147,14 @@ export async function launch_jupyter_kernel(
   const specs = cached_specs ?? (await findAll());
   const kernel_spec = specs[name];
   if (kernel_spec == null) {
-    throw new Error(`No spec available for kernel "${name}"`);
+    throw new Error(
+      `No spec available for kernel "${name}".  Available specs: ${JSON.stringify(
+        Object.keys(specs)
+      )}`
+    );
   }
   const launch_info = await write_connection_file();
-  return await launch_kernel_spec(
+  return launch_kernel_spec(
     kernel_spec.spec,
     launch_info.config,
     launch_info.connection_file,

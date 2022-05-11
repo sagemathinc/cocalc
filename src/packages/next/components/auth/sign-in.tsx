@@ -7,6 +7,10 @@ import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { useState } from "react";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
@@ -16,12 +20,23 @@ interface Props {
   onSuccess?: () => void; // if given, call after sign in *succeeds*.
 }
 
-export default function SignIn({ strategies, minimal, onSuccess }: Props) {
-  const { anonymousSignup, siteName } = useCustomize();
+export default function SignIn(props: Props) {
+  const { reCaptchaKey } = useCustomize();
+
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
+      <SignIn0 {...props} />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function SignIn0({ strategies, minimal, onSuccess }: Props) {
+  const { anonymousSignup, reCaptchaKey, siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const haveSSO = strategies != null && strategies.length > 0;
 
@@ -33,7 +48,20 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
     setError("");
     try {
       setSigningIn(true);
-      await apiPost("/auth/sign-in", { email, password });
+
+      let reCaptchaToken: undefined | string;
+      if (reCaptchaKey) {
+        if (!executeRecaptcha) {
+          throw Error("Please wait a few seconds, then try again.");
+        }
+        reCaptchaToken = await executeRecaptcha("signin");
+      }
+
+      await apiPost("/auth/sign-in", {
+        email,
+        password,
+        reCaptchaToken,
+      });
       onSuccess?.();
     } catch (err) {
       setError(`${err}`);

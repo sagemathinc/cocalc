@@ -25,7 +25,9 @@ const Element: React.FC<RenderElementProps> = ({
   const setElement = useSetElement(editor, element);
 
   const border =
-    focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
+    focused && selected
+      ? `1px solid ${FOCUSED_COLOR}`
+      : `1px solid transparent`;
 
   return (
     <span {...attributes}>
@@ -57,10 +59,17 @@ register({
 // toggle checkboxes from the keyboard.  Returns true if it toggles
 // a checkbox and false otherwise.
 export function toggleCheckbox(editor: Editor): boolean {
-  const checkbox = Editor.nodes(editor, {
-    match: (node) => node["type"] == "checkbox",
-    mode: "lowest",
-  }).next().value;
+  let checkbox;
+  try {
+    checkbox = Editor.nodes(editor, {
+      match: (node) => node["type"] == "checkbox",
+      mode: "lowest",
+    }).next().value;
+  } catch (_) {
+    // this happens, when e.g., next() doesn't work due to
+    // change in document/focus wrt to what editor assumes.
+    return false;
+  }
   if (checkbox != null && checkbox[0]["type"] == "checkbox") {
     // toggle checkbox checked state
     const value = !checkbox[0]["value"];

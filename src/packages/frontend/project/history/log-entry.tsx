@@ -3,48 +3,49 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "@cocalc/util/misc";
-import React from "react";
-import * as lodash from "lodash";
-const TRUNC = 90;
-import { Rendered, redux } from "../../app-framework";
-import { Grid, Col, Row } from "react-bootstrap";
+import { CSS, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
-  TimeAgo,
   PathLink,
   r_join,
   Space,
+  TimeAgo,
   Tip,
-} from "../../components";
+} from "@cocalc/frontend/components";
+import { file_associations } from "@cocalc/frontend/file-associations";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { User } = require("../../users");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import { ProjectTitle } from "../../projects/project-title";
-import { file_associations } from "../../file-associations";
-import { SystemProcess } from "./system-process";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { UserMap } from "@cocalc/frontend/todo-types";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/licenses/describe-quota";
+import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
+import React from "react";
+import { Col, Grid, Row } from "react-bootstrap";
+import { SystemProcess } from "./system-process";
 import {
-  ProjectEvent,
+  AssistantEvent,
+  CollaboratorEvent,
+  FileActionEvent,
+  LibraryEvent,
+  LicenseEvent,
+  MiniTermEvent,
   OpenFile,
   ProjectControlEvent,
-  MiniTermEvent,
-  FileActionEvent,
-  X11Event,
-  LibraryEvent,
-  AssistantEvent,
-  UpgradeEvent,
-  LicenseEvent,
-  CollaboratorEvent,
-  SystemEvent,
+  ProjectEvent,
   PublicPathEvent,
+  SystemEvent,
+  UpgradeEvent,
+  X11Event,
 } from "./types";
-import { FILE_ACTIONS } from "../../project_actions";
 
-const selected_item: React.CSSProperties = {
+const TRUNC = 90;
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { User } = require("../../users");
+
+const selected_item: CSS = {
   backgroundColor: "#08c",
   color: "white",
 };
@@ -70,7 +71,7 @@ interface Props {
   account_id: string;
   user_map?: UserMap;
   cursor: boolean;
-  backgroundStyle?: React.CSSProperties;
+  backgroundStyle?: CSS;
   project_id: string;
 }
 
@@ -590,9 +591,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   const style = props.cursor ? selected_item : props.backgroundStyle;
   return (
     <Grid fluid={true} style={{ width: "100%" }}>
-      <Row
-        style={lodash.extend({ borderBottom: "1px solid lightgrey" }, style)}
-      >
+      <Row style={style}>
         <Col sm={1} style={{ textAlign: "center" }}>
           <Icon name={icon()} style={style} />
         </Col>

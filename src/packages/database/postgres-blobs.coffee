@@ -609,7 +609,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 dbg("determine inactive syncstring ids")
                 @_query
                     query    : 'SELECT string_id FROM syncstrings'
-                    where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL']
+                    where    : [{'last_active <= $::TIMESTAMP' : misc.days_ago(opts.age_days)}, 'archived IS NULL', 'huge IS NOT TRUE']
                     limit    : opts.limit
                     timeout_s : TIMEOUT_LONG_S
                     cb       : all_results 'string_id', (err, v) =>
@@ -624,10 +624,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @archive_patches
                         string_id : string_id
                         cb        : (err) ->
-                           if err or not opts.delay
-                               cb(err)
-                           else
-                               setTimeout(cb, opts.delay)
+                            if err or not opts.delay
+                                cb(err)
+                            else
+                                setTimeout(cb, opts.delay)
                 async.mapLimit(syncstrings, opts.map_limit, f, cb)
         ], (err) =>
             if err
@@ -641,6 +641,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     # Offlines and archives the patch, unless the string is active very recently, in
     # which case this is a no-op.
+    #
+    # TODO: this ignores all syncstrings marked as "huge:true", because the patches are too large.
+    #       come up with a better strategy (incremental?) to generate the blobs to avoid the problem.
     archive_patches: (opts) =>
         opts = defaults opts,
             string_id : required
@@ -649,13 +652,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cutoff    : misc.minutes_ago(30)  # never touch anything this new
             cb        : undefined
         dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active = undefined
+        syncstring = patches = blob_uuid = project_id = last_active = huge = undefined
         where = {"string_id = $::CHAR(40)" : opts.string_id}
         async.series([
             (cb) =>
-                dbg("get project_id")
+                dbg("get syncstring info")
                 @_query
-                    query : "SELECT project_id, archived, last_active FROM syncstrings"
+                    query : "SELECT project_id, archived, last_active, huge FROM syncstrings"
                     where : where
                     cb    : one_result (err, x) =>
                         if err
@@ -667,10 +670,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         else
                             project_id = x.project_id
                             last_active = x.last_active
+                            huge = !!x.huge
+                            dbg("got last_active=#{last_active} project_id=#{project_id} huge=#{huge}")
                             cb()
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
                     dbg("excluding due to cutoff")
+                    cb(); return
+                if huge
+                    dbg("excluding due to being huge")
                     cb(); return
                 dbg("get patches")
                 @export_patches
@@ -681,6 +689,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
                     cb(); return
+                if huge
+                    cb(); return
                 dbg("create blob from patches")
                 try
                     blob = Buffer.from(JSON.stringify(patches))
@@ -689,19 +699,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # need to break patches up...
                     # This is not exactly the end of the world as the entire point of all this is to
                     # just save some space in the database...
-                    cb(err)
-                    return
-                dbg('save blob')
-                blob_uuid = misc_node.uuidsha1(blob)
-                @save_blob
-                    uuid       : blob_uuid
-                    blob       : blob
-                    project_id : project_id
-                    compress   : opts.compress
-                    level      : opts.level
-                    cb         : cb
+                    dbg('error creating blob, marking syncstring as being "huge": ' + err)
+                    huge = true
+                    @_query
+                        query : "UPDATE syncstrings"
+                        set   : {huge : true}
+                        where : where
+                        cb    : (err) =>
+                            cb(err)
+                            return
+                if not huge
+                    dbg('save blob')
+                    blob_uuid = misc_node.uuidsha1(blob)
+                    @save_blob
+                        uuid       : blob_uuid
+                        blob       : blob
+                        project_id : project_id
+                        compress   : opts.compress
+                        level      : opts.level
+                        cb         : cb
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
+                    cb(); return
+                if huge
                     cb(); return
                 dbg("update syncstring to indicate patches have been archived in a blob")
                 @_query
@@ -711,6 +731,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb    : cb
             (cb) =>
                 if last_active? and last_active >= opts.cutoff
+                    cb(); return
+                if huge
                     cb(); return
                 dbg("actually deleting patches")
                 delete_patches(db:@, string_id: opts.string_id, cb:cb)
@@ -782,15 +804,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             string_id : required
             cb        : required   # cb(err, array)
         @_query
-            query : "SELECT extract(epoch from time)*1000 as epoch, * FROM patches"
+            query : "SELECT * FROM patches"
             where : {"string_id = $::CHAR(40)" : opts.string_id}
             cb    : all_results (err, patches) =>
                 if err
                     opts.cb(err)
                 else
-                    for p in patches
-                        p.time = new Date(p.epoch)
-                        delete p.epoch
                     opts.cb(undefined, patches)
 
     import_patches: (opts) =>

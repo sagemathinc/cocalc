@@ -35,11 +35,26 @@ const Element = (props: {
     renderLeaf,
     selection,
   } = props;
+  // console.log("renderElement", element);
+
   const ref = useRef<HTMLElement>(null);
   const editor = useSlateStatic();
   const readOnly = useReadOnly();
-  const isInline = editor.isInline(element);
   const key = ReactEditor.findKey(editor, element);
+
+  // Update element-related weak maps with the DOM element ref.
+  useIsomorphicLayoutEffect(() => {
+    if (ref.current) {
+      KEY_TO_ELEMENT.set(key, ref.current);
+      NODE_TO_ELEMENT.set(element, ref.current);
+      ELEMENT_TO_NODE.set(ref.current, element);
+    } else {
+      KEY_TO_ELEMENT.delete(key);
+      NODE_TO_ELEMENT.delete(element);
+    }
+  });
+
+  const isInline = editor.isInline(element);
 
   let children: JSX.Element | null = (
     <Children
@@ -109,18 +124,6 @@ const Element = (props: {
     NODE_TO_PARENT.set(text, element);
   }
 
-  // Update element-related weak maps with the DOM element ref.
-  useIsomorphicLayoutEffect(() => {
-    if (ref.current) {
-      KEY_TO_ELEMENT.set(key, ref.current);
-      NODE_TO_ELEMENT.set(element, ref.current);
-      ELEMENT_TO_NODE.set(ref.current, element);
-    } else {
-      KEY_TO_ELEMENT.delete(key);
-      NODE_TO_ELEMENT.delete(element);
-    }
-  });
-
   return (
     <SelectedContext.Provider value={!!selection}>
       {React.createElement(renderElement, { attributes, children, element })}
@@ -138,7 +141,7 @@ const MemoizedElement = React.memo(Element, (prev, next) => {
       (!!prev.selection &&
         !!next.selection &&
         Range.equals(prev.selection, next.selection)));
-  //console.log("MemoizedElement", { prev, next, is_equal });
+  // console.log("MemoizedElement", { is_equal, prev, next });
   return is_equal;
 });
 

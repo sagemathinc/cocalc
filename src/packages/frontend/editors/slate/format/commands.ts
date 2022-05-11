@@ -6,6 +6,7 @@
 import { isEqual } from "lodash";
 import { is_array, startswith } from "@cocalc/util/misc";
 import {
+  BaseRange,
   Editor,
   Element,
   Location,
@@ -70,6 +71,7 @@ function currentWord(editor: SlateEditor): Range | undefined {
 
   function moveLeft(pos: { i: number; offset: number }): boolean {
     if (pos.offset == 0) {
+      if ((pos.i = 0)) return false;
       pos.i -= 1;
       pos.offset = Math.max(0, len(siblings[pos.i]) - 1);
       return true;
@@ -121,7 +123,7 @@ function isMarkActive(editor: Editor, mark: string): boolean {
     return !!Editor.marks(editor)?.[mark];
   } catch (err) {
     // see comment in getMarks...
-    console.log("Editor.marks", err);
+    console.warn("Editor.marks", err);
     return false;
   }
 }
@@ -169,12 +171,18 @@ function unformatSelectedText(
   editor: SlateEditor,
   options: { prefix?: string }
 ): void {
-  const at = getSelection(editor);
+  let at: BaseRange | undefined = getSelection(editor);
   if (at == null) return; // nothing to do.
+  if (Range.isCollapsed(at)) {
+    at = currentWord(editor);
+  }
+  if (at == null) return;
   if (options.prefix) {
     // Remove all formatting of the selected text
     // that begins with the given prefix.
-    while (true) {
+    let i = 0;
+    while (i < 100) {
+      i += 1; // paranoid: just in case there is a stupid infinite loop...
       const mark = findMarkWithPrefix(editor, options.prefix);
       if (!mark) break;
       Transforms.setNodes(
@@ -303,7 +311,6 @@ export function restoreSelectionAndFocus(editor: SlateEditor): void {
 }
 
 export function formatAction(editor: SlateEditor, cmd: string, args): void {
-  // console.log("formatAction", cmd, args);
   restoreSelectionAndFocus(editor);
   try {
     if (
@@ -434,14 +441,14 @@ function transformToEquation(editor: Editor, display: boolean): void {
   let node: Node;
   if (display) {
     node = {
-      type: "display_math",
+      type: "math_block",
       value,
       isVoid: true,
       children: [{ text: "" }],
     };
   } else {
     node = {
-      type: "inline_math",
+      type: "math_inline",
       value,
       isVoid: true,
       isInline: true,

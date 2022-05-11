@@ -19,13 +19,83 @@ import emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";
+import mathPlugin from "markdown-it-texmath";
 export { parseHeader } from "./header";
 import Markdown from "./component";
 export { Markdown };
 
+// The markdown-it-texmath plugin is very impressive, but it doesn't parse
+// things like \begin{equation}x^3$\end{equation} without dollar signs.
+// However, that is a basic requirement for cocalc in order to preserve
+// Jupyter classic compatibility.  So we define our own rules, inspired
+// by the dollars rules from the the plugin,
+// and extend the regexps to also recognize these.  We do this with a new
+// object "cocalc", to avoid potential conflicts.
+// IMPORTANT: We remove the math_block_eqno from upstream, since it is ridiculous,
+// and leads to very disturbing behavior and loss of information, e..g,
+//     $$x$$
+//
+//     (a) xyz
+// Gets rendered with the xyz gone.  Horrible and very confusing.  Equation numbers
+// when we do them, should be done as in latex, not with some weird notation that
+// is very surprising.  See https://github.com/sagemathinc/cocalc/issues/5879
+
+// TODO: Note that \begin{math} / \end{math} is the only environment that should
+// be inline math rather than display math.  I did not implement this edge case yet,
+// and instead \begin{math} still gets interpreted as displayed math.  Note also,
+// that \begin{math|displaymath}... also breaks when using mathjax (e.g., it's broken
+// in jupyter upstream), but works with our slate editor and renderer.
+
+mathPlugin.rules["cocalc"] = {
+  inline: [
+    {
+      name: "math_inline_double",
+      rex: /\${2}([^$]*?[^\\])\${2}/gy,
+      tmpl: "<section><eqn>$1</eqn></section>",
+      tag: "$$",
+      displayMode: true,
+      pre: mathPlugin.$_pre,
+      post: mathPlugin.$_post,
+    },
+    {
+      // We modify this from what's included in markdown-it-texmath to allow for
+      // multiple line inline formulas, e.g., "$2+\n3$" should work, but doesn't in upstream.
+      name: "math_inline",
+      rex: /\$((?:[^\$\s\\])|(?:[\S\s]*?[^\\]))\$/gmy,
+      tmpl: "<eq>$1</eq>",
+      tag: "$",
+      outerSpace: false,
+      pre: mathPlugin.$_pre,
+      post: mathPlugin.$_post,
+    },
+    {
+      // using \begin/\end as part of inline markdown...
+      name: "math_inline_double",
+      rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy,
+      tag: "\\",
+      displayMode: true,
+      tmpl: "<section><eqn>$1</eqn></section>",
+      pre: mathPlugin.$_pre,
+      post: mathPlugin.$_post,
+    },
+  ],
+  block: [
+    {
+      name: "math_block",
+      rex: /\${2}([^$]*?[^\\])\${2}/gmy,
+      tmpl: "<section><eqn>$1</eqn></section>",
+      tag: "$$",
+    },
+    {
+      name: "math_block",
+      rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy, // regexp to match \begin{...}...\end{...} environment.
+      tmpl: "<section><eqn>$1</eqn></section>",
+      tag: "\\",
+    },
+  ],
+};
+
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
-import { remove_math, replace_math } from "@cocalc/util/mathjax-utils"; // from project Jupyter
 
 export const OPTIONS: MarkdownIt.Options = {
   html: true,
@@ -34,12 +104,33 @@ export const OPTIONS: MarkdownIt.Options = {
   breaks: false, // breaks=true is NOT liked by many devs.
 };
 
-const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin, mentionPlugin];
-const PLUGINS_NO_HASHTAGS = [emojiPlugin, checkboxPlugin, mentionPlugin];
+const PLUGINS = [
+  [
+    mathPlugin,
+    {
+      delimiters: "cocalc",
+      engine: {
+        renderToString: (tex, options) => {
+          // We need to continue to support rendering to MathJax as an option,
+          // but texmath only supports katex.  Thus we output by default to
+          // html using script tags, which are then parsed later using our
+          // katex/mathjax plugin.
+          return `<script type="math/tex${
+            options.displayMode ? "; mode=display" : ""
+          }">${tex}</script>`;
+        },
+      },
+    },
+  ],
+  [emojiPlugin],
+  [checkboxPlugin],
+  [hashtagPlugin],
+  [mentionPlugin],
+];
 
 function usePlugins(m, plugins) {
-  for (const plugin of plugins) {
-    m.use(plugin);
+  for (const [plugin, options] of plugins) {
+    m.use(plugin, options);
   }
 }
 
@@ -102,7 +193,6 @@ export interface MD2html {
 
 interface Options {
   line_numbers?: boolean; // if given, embed extra line number info useful for inverse/forward search.
-  no_hashtags?: boolean; // if given, do not specially process hashtags with the plugin
   processMath?: (string) => string; // if given, apply this function to all the math
 }
 
@@ -111,14 +201,7 @@ function process(
   mode: "default" | "frontmatter",
   options?: Options
 ): MD2html {
-  let text: string;
-  let math: string[];
-  [text, math] = remove_math(math_escape(markdown_string));
-  if (options?.processMath != null) {
-    for (let i = 0; i < math.length; i++) {
-      math[i] = options.processMath(math[i]);
-    }
-  }
+  const text = markdown_string;
 
   let html: string;
   let frontmatter = "";
@@ -133,32 +216,18 @@ function process(
     );
     html = md_frontmatter.render(text);
   } else {
-    if (options?.no_hashtags) {
-      html = markdown_it_no_hashtags.render(text);
-    } else if (options?.line_numbers) {
+    if (options?.line_numbers) {
       html = markdown_it_line_numbers.render(text);
     } else {
       html = markdown_it.render(text);
     }
   }
-
-  // console.log(3, JSON.stringify(html));
-  // Substitute processed math back in.
-  html = replace_math(html, math);
-  // console.log(4, JSON.stringify(html));
-  html = math_unescape(html);
-  // console.log(5, JSON.stringify(html));
   return { html, frontmatter };
 }
 
 export function markdown_to_html_frontmatter(s: string): MD2html {
   return process(s, "frontmatter");
 }
-
-// This is needed right now for todo list (*ONLY* because they use an
-// old approach to parsing hashtags).
-const markdown_it_no_hashtags = new MarkdownIt(OPTIONS);
-usePlugins(markdown_it, PLUGINS_NO_HASHTAGS);
 
 export function markdown_to_html(s: string, options?: Options): string {
   return process(s, "default", options).html;
