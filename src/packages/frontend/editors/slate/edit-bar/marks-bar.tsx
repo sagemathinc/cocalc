@@ -13,12 +13,15 @@ import ColorButton from "./color-button";
 import FontFamily from "./font-family";
 import FontSize from "./font-size";
 import Heading from "./heading";
+import Insert from "./insert";
 
 export const BUTTON_STYLE = {
   color: "#666",
-  height: "26px",
+  height: "24px",
   borderLeft: "1px solid lightgray",
   borderRight: "1px solid lightgray",
+  borderTop: "none",
+  borderBottom: "none",
   padding: "0 10px",
 } as CSSProperties;
 
@@ -57,6 +60,7 @@ const MARKS: IconName[] = [
 
 export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
   const v: JSX.Element[] = [];
+  v.push(<Insert key="insert" editor={editor} />);
   for (const mark of MARKS) {
     v.push(
       <MarkButton

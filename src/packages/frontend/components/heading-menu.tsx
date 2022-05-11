@@ -20,7 +20,6 @@ export default function HeadingMenu({ onClick, style }: Props) {
       button={true}
       title={<Icon name={"header"} />}
       key={"heading"}
-      id={"heading"}
       onClick={onClick}
       style={style}
     >

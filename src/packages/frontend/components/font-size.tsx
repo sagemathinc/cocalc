@@ -25,7 +25,6 @@ export default function FontSizeMenu({ onClick, style }: Props) {
       button={true}
       title={<Icon name={"text-height"} />}
       key={"font-size"}
-      id={"font-size"}
       onClick={onClick}
     >
       {items}
