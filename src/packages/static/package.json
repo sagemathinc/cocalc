@@ -53,7 +53,7 @@
     "@cocalc/backend": "^1.17.0",
     "@cocalc/cdn": "^1.12.0",
     "@cocalc/frontend": "^1.56.0",
-    "@cocalc/util": "^1.44.0",
+    "@cocalc/util": "^1.44.1",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^27.4.1",
     "@types/jquery": "^3.5.5",
