@@ -3,12 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import React, { CSSProperties } from "react";
 import { Button } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { formatAction } from "../format";
 import { SlateEditor } from "../editable-markdown";
 import { Marks } from "./marks";
+import ColorButton from "./color-button";
+
+export const BUTTON_STYLE = {
+  color: "#666",
+  height: "26px",
+  borderLeft: "1px solid lightgray",
+  borderRight: "1px solid lightgray",
+  padding: "0 10px",
+} as CSSProperties;
 
 interface MarkButtonProps {
   mark: IconName;
@@ -20,14 +29,7 @@ const MarkButton: React.FC<MarkButtonProps> = ({ mark, active, editor }) => {
   return (
     <Button
       type="text"
-      style={{
-        color: "#666",
-        backgroundColor: active ? "#ccc" : undefined,
-        height: "26px",
-        borderLeft: "1px solid lightgray",
-        borderRight: "1px solid lightgray",
-        padding: "0 10px",
-      }}
+      style={{ ...BUTTON_STYLE, backgroundColor: active ? "#ccc" : undefined }}
       onClick={() => formatAction(editor, mark, [])}
     >
       <Icon name={mark} />
@@ -62,6 +64,7 @@ export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
       />
     );
   }
+  v.push(<ColorButton key={"color"} editor={editor} />);
   return (
     <div style={{ paddingRight: "10px", flex: 1, whiteSpace: "nowrap" }}>
       {v}
