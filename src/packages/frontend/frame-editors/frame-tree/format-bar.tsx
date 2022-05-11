@@ -11,9 +11,9 @@ import { React, Rendered } from "../../app-framework";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
-import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
+import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 
 const FONT_SIZES = [
   "xx-small",
@@ -176,25 +176,10 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_font_family_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (const family of FONT_FACES) {
-      const item: Rendered = (
-        <MenuItem key={family} eventKey={family}>
-          <span style={{ fontFamily: family }}>{family}</span>
-        </MenuItem>
-      );
-      items.push(item);
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"font"} />}
-        key={"font-family"}
-        id={"font-family"}
+      <FontFamilyMenu
         onClick={(family) => actions.format_action("font_family", family)}
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 
