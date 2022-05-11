@@ -25,9 +25,9 @@ const StaticElement = ({ attributes, element }) => {
   const html = ((element.html as string) ?? "").trim();
   if (element.type == "html_inline") {
     return (
-      <div {...attributes} style={{ display: "inline" }}>
-        <HTML value={html} />
-      </div>
+      <span {...attributes} style={{ display: "inline" }}>
+        <HTML inline value={html} />
+      </span>
     );
   } else {
     return (
