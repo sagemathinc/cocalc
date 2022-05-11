@@ -5,16 +5,16 @@
 
 // Upgrading quotas for all student projects
 
-import { SiteLicenseStrategy, UpgradeGoal } from "../types";
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
-  is_zero_map,
-  len,
-  map_sum,
-  parse_number_input,
-  plural,
-  round2,
-} from "@cocalc/util/misc";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+  Button,
+  ButtonGroup,
+  Checkbox,
+  Col,
+  FormControl,
+  FormGroup,
+  Row,
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -26,33 +26,37 @@ import {
   useRef,
   useState,
   useTypedRedux,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
+import {
+  A,
+  Icon,
+  Loading,
+  Tip,
+  UPGRADE_ERROR_STYLE,
+} from "@cocalc/frontend/components";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
+import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
+import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import { ShowSupportLink } from "@cocalc/frontend/support";
+import { UpgradeRestartWarning } from "@cocalc/frontend/upgrade-restart-warning";
+import {
+  is_zero_map,
+  len,
+  map_sum,
+  parse_number_input,
+  plural,
+  round2,
+} from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { Alert, Card, Form, Radio, Switch, Typography } from "antd";
 import { CourseActions } from "../actions";
 import {
   CourseSettingsRecord,
   CourseStore,
   DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
 } from "../store";
-import {
-  SiteLicensePublicInfoTable,
-  SiteLicenses,
-} from "../../site-licenses/site-license-public-info";
-import { SiteLicenseInput } from "../../site-licenses/input";
-import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
-import { ShowSupportLink } from "../../support";
-import { A, Icon, Loading, Tip, UPGRADE_ERROR_STYLE } from "../../components";
-import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
-import {
-  Button,
-  ButtonGroup,
-  Checkbox,
-  FormGroup,
-  FormControl,
-  Row,
-  Col,
-} from "../../antd-bootstrap";
-import { Alert, Card, Form, Radio, Switch, Typography } from "antd";
-import { alert_message } from "../../alerts";
+import { SiteLicenseStrategy, UpgradeGoal } from "../types";
 import { ConfigurationActions } from "./actions";
 
 const radioStyle: CSS = {

@@ -6,12 +6,23 @@ import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
-import { Alert, Button, Input, Menu, Row, Col, Popconfirm, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  Menu,
+  MenuProps,
+  Row,
+  Col,
+  Popconfirm,
+  Table,
+} from "antd";
 import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
 
+type MenuItem = Required<MenuProps>["items"][number];
 type Tab = "saved-for-later" | "buy-it-again";
 
 interface Props {
@@ -22,6 +33,12 @@ interface Props {
 export default function OtherItems({ onChange, cart }) {
   const [tab, setTab] = useState<Tab>("saved-for-later");
   const [search, setSearch] = useState<string>("");
+
+  const items: MenuItem[] = [
+    { label: "Saved For Later", key: "saved-for-later" as Tab },
+    { label: "Buy It Again", key: "buy-it-again" as Tab },
+  ];
+
   return (
     <div>
       <Row>
@@ -32,12 +49,8 @@ export default function OtherItems({ onChange, cart }) {
             onSelect={(e) => {
               setTab(e.keyPath[0] as Tab);
             }}
-          >
-            <Menu.Item key={"saved-for-later" as Tab}>
-              Saved For Later
-            </Menu.Item>
-            <Menu.Item key={"buy-it-again" as Tab}>Buy It Again</Menu.Item>
-          </Menu>
+            items={items}
+          />
         </Col>
         <Col sm={6}>
           <div

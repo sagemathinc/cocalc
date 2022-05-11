@@ -219,7 +219,9 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
       if (row.id == default_source) {
         row.default_source = true;
         if (setTaxRate != null) {
-          setTaxRate(salesTax(row.address_zip));
+          // TODO: setTimeout as a quick fix. You can't change the state while the parent is rendering
+          // Cannot update a component (`Checkout`) while rendering a different component `PaymentMethods`).
+          setTimeout(() => setTaxRate(salesTax(row.address_zip)), 0);
         }
       }
       if (row.id.startsWith("card_")) {

@@ -319,9 +319,10 @@ function select_dedicated_vm(site_licenses: SiteLicenses): DedicatedVM | null {
 // extract all dedicated disks that are defined anywhere
 function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
   const dedicated_disks: DedicatedDisk[] = [];
-  for (const val of Object.values(site_licenses)) {
+  for (const [id, val] of Object.entries(site_licenses)) {
     if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_disk != null) {
       dedicated_disks.push(val.quota.dedicated_disk);
+      delete site_licenses[id];
     }
   }
   return dedicated_disks;
@@ -482,6 +483,7 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
 
   // will only return "regular" site licenses
   const regular = selectMatchingLicenses(site_licenses);
+
   const all = regular?.selected ?? {};
   if (regular != null) {
     const boosts = selectMatchingLicenses(site_licenses, regular.groupKey);
@@ -740,6 +742,20 @@ function quota_v2(opts: OptsV2): Quota {
   );
 }
 
+function pickValidLicenses(site_licenses?: SiteLicenses): SiteLicenses {
+  if (site_licenses == null || isEmpty(site_licenses)) return {};
+
+  return Object.entries(site_licenses).reduce((acc, [k, v]) => {
+    const s = v?.status;
+    // we ignore certain ones, which can't be active
+    if (s !== "exhausted" && s !== "expired" && s !== "future") {
+      // we keep ineffective, though
+      acc[k] = v;
+    }
+    return acc;
+  }, {} as SiteLicenses);
+}
+
 // this is the main function – used by backend services to calculate the run quota of a given project
 export function quota(
   settings_arg?: Settings,
@@ -771,6 +787,9 @@ export function quota(
     ...(site_settings?.max_upgrades ?? {}),
   });
 
+  // pick only valid licenses
+  site_licenses = pickValidLicenses(site_licenses);
+
   // site_licenses will at least be an empty dict object
   site_licenses = prepareSiteLicenses(site_licenses);
 
@@ -791,11 +810,11 @@ export function quota(
       always_running: true,
       memory_limit: 128 * 1000, //  fallback, hence this setting is very high!
       cpu_limit: 16, // fallback, hence this setting is very high!
-      disk_quota: quota.disk_quota, // TODO: introduce disk quotas for VMs or use dedicated disks
+      disk_quota: max_upgrades.disk_quota, // TODO: introduce disk quotas for VMs or use dedicated disks
       idle_timeout: quota.idle_timeout, // always_running is true, but it's sane to set this > 0
     };
     if (vm == null) {
-      console.log(`no VM spec known for machine "${dedicated_vm.machine}"`);
+      throw new Error(`no VM spec known for machine "${dedicated_vm.machine}"`);
     } else {
       if (vm.spec?.cpu != null) {
         dedicated_quota.cpu_limit = vm.spec?.cpu;
