@@ -8,14 +8,18 @@ import {
 import { formatAction } from "../format";
 
 const ITEMS: [string, string, IconName | JSX.Element][] = [
-  ["format_code", "Block of code", "CodeOutlined"],
-  ["insertunorderedlist", "Unordered list", "list"],
-  ["insertorderedlist", "Ordered list", "list-ol"],
-  ["equation", "Inline LaTeX math", <span>$</span>],
-  ["display_equation", "Displayed LaTeX math", <span>$$</span>],
-  ["quote", "Quote selected text", "quote-left"],
+  ["format_code", "Block of code (shortcut: ```␣)", "CodeOutlined"],
+  ["insertunorderedlist", "Unordered list (shortcut: -␣)", "list"],
+  ["insertorderedlist", "Ordered list (shortcut: 1.␣)", "list-ol"],
+  ["equation", "Inline LaTeX math (shortcut: $x$␣)", <span>$</span>],
+  [
+    "display_equation",
+    "Displayed LaTeX math  (shortcut: $$x$$␣)",
+    <span>$$</span>,
+  ],
+  ["quote", "Quote selected text  (shortcut: >␣)", "quote-left"],
+  ["horizontalRule", "Horizontal rule (shortcut: ---␣)", <span>&mdash;</span>],
   ["table", "Table", "table"],
-  ["horizontalRule", "Horizontal rule", <span>&mdash;</span>],
 ];
 
 interface Props {
@@ -27,7 +31,10 @@ export default function InsertMenu({ editor }: Props) {
   for (const [command, description, icon] of ITEMS) {
     items.push(
       <MenuItem key={command} eventKey={command}>
-        {typeof icon == "string" ? <Icon name={icon} /> : icon} {description}
+        <div style={{ display: "inline-block", width: "24px" }}>
+          {typeof icon == "string" ? <Icon name={icon} /> : icon}
+        </div>{" "}
+        {description}
       </MenuItem>
     );
   }

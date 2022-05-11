@@ -4,7 +4,7 @@
  */
 
 import React, { CSSProperties } from "react";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { formatAction } from "../format";
 import { SlateEditor } from "../editable-markdown";
@@ -33,13 +33,18 @@ interface MarkButtonProps {
 
 const MarkButton: React.FC<MarkButtonProps> = ({ mark, active, editor }) => {
   return (
-    <Button
-      type="text"
-      style={{ ...BUTTON_STYLE, backgroundColor: active ? "#ccc" : undefined }}
-      onClick={() => formatAction(editor, mark, [])}
-    >
-      <Icon name={mark} />
-    </Button>
+    <Tooltip title={TITLES[mark]} mouseEnterDelay={1}>
+      <Button
+        type="text"
+        style={{
+          ...BUTTON_STYLE,
+          backgroundColor: active ? "#ccc" : undefined,
+        }}
+        onClick={() => formatAction(editor, mark, [])}
+      >
+        <Icon name={mark} />
+      </Button>
+    </Tooltip>
   );
 };
 
@@ -57,6 +62,16 @@ const MARKS: IconName[] = [
   /*"sup",
       "sub",*/
 ];
+
+const TITLES = {
+  bold: "Bold (shortcut: **foo**␣)",
+  italic: "Italics (shortcut: *foo*␣)",
+  underline: "Underline (shortcut: _foo_␣)",
+  strikethrough: "Strikethrough (shortcut: ~foo~␣)",
+  code: "Code (shortcut: `foo`␣)",
+  sup: "Superscript",
+  sub: "Subscript",
+};
 
 export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
   const v: JSX.Element[] = [];
