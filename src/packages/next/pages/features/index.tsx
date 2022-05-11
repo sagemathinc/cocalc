@@ -76,7 +76,7 @@ const dataSource = [
   },
   {
     link: "/features/r-statistical-software",
-    title: "R statistical software",
+    title: "R Statistical Software",
     logo: Rlogo,
     image: RJupyter,
     description: (
@@ -180,7 +180,7 @@ const dataSource = [
   },
   {
     link: "/features/terminal",
-    title: "Linux terminal",
+    title: "Linux Terminal",
     logo: terminalLogo,
     image: terminalScreenshot,
     description: (
@@ -192,7 +192,7 @@ const dataSource = [
   },
   {
     link: "/features/teaching",
-    title: "Teaching a course",
+    title: "Teaching a Course",
     logo: teachingLogo,
     image: teachingScreenshot,
     description: (
@@ -208,7 +208,7 @@ const dataSource = [
   },
   {
     link: "/features/api",
-    title: "API interface",
+    title: "API Interface",
     image: apiScreenshot,
     logo: "server",
     description: (
@@ -220,7 +220,7 @@ const dataSource = [
   },
   {
     link: "https://doc.cocalc.com",
-    title: "There is more to explore",
+    title: "There is much more to explore",
     logo: sageLogo,
     image: sageScreenshot,
     description: (
@@ -230,7 +230,8 @@ const dataSource = [
           Course management
         </A>
         , <A href="https://doc.cocalc.com/tasks.html">Task management</A>,{" "}
-        <A href="https://doc.cocalc.com/chat.html">Chat</A>, etc.
+        <A href="https://doc.cocalc.com/chat.html">Chat</A>,
+        {" "}<A href="https://about.cocalc.com/">and more...</A>
       </>
     ),
   },
@@ -244,7 +245,15 @@ export default function Features({ customize }) {
         <Header page="features" />
         <IndexList
           title="Overview of CoCalc features"
-          description="These pages are an overview of what CoCalc is able to do."
+          description={
+            <>
+              These pages are an overview of what CoCalc is able to do. You can
+              also{" "}
+              <A href="https://about.cocalc.com">
+                learn about our mission, developers and features...
+              </A>
+            </>
+          }
           dataSource={dataSource}
         />
         <Footer />

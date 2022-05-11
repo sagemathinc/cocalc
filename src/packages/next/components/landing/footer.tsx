@@ -35,6 +35,7 @@ export default function Footer() {
     zendesk,
     imprint,
     policies,
+    onCoCalcCom,
   } = useCustomize();
 
   function organization(): JSX.Element {
@@ -59,7 +60,10 @@ export default function Footer() {
       }}
     >
       <div>
-        {siteName ?? <Item first>CoCalc</Item>}
+        <Item first>{siteName ?? "CoCalc"}</Item>
+        {onCoCalcCom && <Item>
+          <A href="https://about.cocalc.com/">About</A>
+        </Item>}
         <Item>
           <A href="https://cocalc.com">CoCalc</A>
         </Item>
