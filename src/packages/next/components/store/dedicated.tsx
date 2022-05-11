@@ -86,6 +86,7 @@ function CreateDedicatedResource() {
   );
   const [vmMachine, setVmMachine] = useState<keyof VMsType | null>(null);
   const [diskNameValid, setDiskNameValid] = useState<boolean>(false);
+  const [showInfo, setShowInfo] = useState<boolean>(false);
   const [form] = Form.useForm();
   const router = useRouter();
 
@@ -309,56 +310,71 @@ function CreateDedicatedResource() {
       case "disk":
         return (
           <>
-            <p>
-              When the license is valid and activated by adding to a project, a
-              disk will be created. This disk will be formatted and mounted into
-              your project. In particular, you'll be able to access it via a
-              symlink in your project's home directory – i.e.{" "}
-              <code>~/{HOME_PREFIX}/&lt;name&gt;</code> will be pointing to{" "}
-              <code>{ROOT}/&lt;name&gt;</code> .
-            </p>
-            <p>
-              When you cancel the subscription, it will end with the last
-              billing period. Then, <strong>after being expired</strong>, the
-              disk and all the data it contains <strong>will be deleted</strong>
-              !
-            </p>
-            <p>
+            <Typography.Paragraph
+              ellipsis={{
+                expandable: true,
+                rows: 2,
+                symbol: "more",
+                onExpand: () => setShowInfo(true),
+              }}
+            >
+              This license attaches a disk to your project. When the license is
+              valid and activated by adding to a project, a disk will be created
+              on the fly. It will be formatted and mounted into your project.
+              You'll be able to access it via a symlink in your project's home
+              directory – i.e. <code>~/{HOME_PREFIX}/&lt;name&gt;</code> will be
+              pointing to <code>{ROOT}/&lt;name&gt;</code>.
+            </Typography.Paragraph>
+            <Typography.Paragraph style={{ display: showInfo ? "" : "none" }}>
+              Once you cancel the subscription, the subscription will end at the
+              end of the billing period. Then, the disk and all the data it
+              contains <strong>will be deleted</strong>!
+            </Typography.Paragraph>
+            <Typography.Paragraph style={{ display: showInfo ? "" : "none" }}>
               It's also possible to move a disk from one project to another one.
               First, remove the license from the project, restart the project to
               unmount the disk. Then, add the license to another project and
               restart that project as well.
-            </p>
-            <p>
+            </Typography.Paragraph>
+            <Typography.Paragraph style={{ display: showInfo ? "" : "none" }}>
               Note: it is also possible to mount external data storage to a
               project:{" "}
               <A href={DOC_CLOUD_STORAGE_URL}>
                 cloud storage & remote file systems
               </A>
               . This could help transferring data in and out of <SiteName />.
-            </p>
+            </Typography.Paragraph>
           </>
         );
       case "vm":
         return (
           <>
-            <p>
+            <Typography.Paragraph
+              ellipsis={{
+                expandable: true,
+                rows: 2,
+                symbol: "more",
+                onExpand: () => setShowInfo(true),
+              }}
+            >
               For the specified period of time, a virtual machine is provisioned
               and started inside of <SiteName />
-              's cluster. You just have to add the license to one of your
-              projects in order to tell it to move to this virtual machine when
-              it starts up the next time. Once your project has moved over, the
-              usual quota upgrades will be ineffective – instead, your project
-              runs with the quota limits implied by the performance of that
-              virtual machine. The files/data in your project will be exactly
-              the same as before.
-            </p>
-            <p>
-              Once the period is over, the virtual machine will be shut down. At
-              that point your project will be stopped as well. The next time it
-              starts, it will run under the usual quota regime on a shared node
-              in the cluster.
-            </p>
+              's cluster. You have to add the license to one of your projects in
+              order to tell it to move to this virtual machine. This happens
+              when the project is started or restarted.
+            </Typography.Paragraph>
+            <Typography.Paragraph style={{ display: showInfo ? "" : "none" }}>
+              Once your project has moved over, the usual quota upgrades will be
+              ineffective – instead, your project runs with the quota limits
+              implied by the performance of the underlying virtual machine. The
+              files/data in your project will be exactly the same as before.
+            </Typography.Paragraph>
+            <Typography.Paragraph style={{ display: showInfo ? "" : "none" }}>
+              Once the license period is over, the virtual machine will be shut
+              down. At that point your project will be stopped as well. The next
+              time it starts, it will run under the usual quota regime on a
+              shared node in the cluster.
+            </Typography.Paragraph>
           </>
         );
     }
