@@ -11,6 +11,7 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { ProjectsNav } from "../projects/projects-nav";
+import { Tooltip } from "antd";
 
 import { COLORS } from "@cocalc/util/theme";
 import { IS_SAFARI, IS_MOBILE, IS_IOS } from "../feature";
@@ -37,6 +38,7 @@ import { ConnectionIndicator } from "./connection-indicator";
 import { FileUsePage } from "../file-use/page";
 import { NotificationBell } from "./notification-bell";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = 36;
@@ -310,16 +312,20 @@ export const Page: React.FC = () => {
           inner_style={{ padding: "0px" }}
           active_top_tab={active_top_tab}
         >
-          {show_label && (
+          <Tooltip
+            title="Show all the projects on which you collaborate."
+            mouseEnterDelay={1}
+            mouseLeaveDelay={0}
+            placement="right"
+          >
             <div
               style={PROJECTS_STYLE}
               cocalc-test="project-button"
               className={NAV_CLASS}
             >
-              Projects
+              <Icon name="edit" /> Projects
             </div>
-          )}
-          <AppLogo />
+          </Tooltip>
         </NavTab>
       </Nav>
     );
@@ -384,6 +390,7 @@ export const Page: React.FC = () => {
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
         <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
+          <AppLogo />
           {is_logged_in && render_project_nav_button()}
           <ProjectsNav />
           {render_right_nav()}
