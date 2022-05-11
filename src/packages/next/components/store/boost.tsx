@@ -135,9 +135,9 @@ function CreateBooster() {
       >
         Boost licenses only work in combination with regular Site Licenses. The
         intention of a Boost License is to increase how much resources your
-        project can use, without having to purchase yet another regular license.
-        For example, it's perfectly fine if you need such a boost only for a
-        couple of days, while otherwise you are happy with a smaller license as
+        project receives, without having to purchase yet another regular license.
+        For example, you can increase just the RAM for some projects for
+        a couple of days, while otherwise you are happy with a smaller license as
         part of an ongoing subscription. The following conditions must be met in
         order to benefit from an activated boost license:
         <ul>
@@ -156,7 +156,7 @@ function CreateBooster() {
           </li>
         </ul>
         Besides that – just like a regular license – you can't exceed the run
-        limit, the boost license must be valid as well, and combining all
+        limit; the boost license must be valid as well, and combining all
         upgrades and boosts together, you cannot exceed the overall upgrade
         limits. If you need vastly more resources, consider purchasing a{" "}
         <Link href={"./dedicated?type=vm"} scroll={false}>
