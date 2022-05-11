@@ -17,7 +17,7 @@ export interface Marks {
   tt?: boolean;
   code?: boolean;
   small?: boolean;
-  search?: boolean;  // search highlighting...
+  search?: boolean; // search highlighting...
 }
 
 // Map from prefix of markdown token types to Slate marks.
@@ -113,7 +113,9 @@ function handleMarks({ token, state }) {
     }
 
     // Colors look like <span style='color:#ff7f50'>:
-    if (startswith(x, "<span style='color:")) {
+    const singleColor = startswith(x, "<span style='color:");
+    const doubleColor = !singleColor && startswith(x, `<span style="color:`);
+    if (singleColor || doubleColor) {
       // delete any other colors -- only one at a time
       for (const mark in state.marks) {
         if (startswith(mark, "color:")) {
@@ -121,7 +123,7 @@ function handleMarks({ token, state }) {
         }
       }
       // now set our color
-      const c = x.split(":")[1]?.split("'")[0];
+      const c = x.split(":")[1]?.split(singleColor ? "'" : `"`)[0];
       if (c) {
         state.marks["color:" + c] = true;
       }
@@ -129,7 +131,9 @@ function handleMarks({ token, state }) {
     }
 
     for (const c of ["family", "size"]) {
-      if (startswith(x, `<span style='font-${c}:`)) {
+      const single = startswith(x, `<span style='font-${c}:`);
+      const double = !single && startswith(x, `<span style="font-${c}:`);
+      if (single || double) {
         const n = `<span style='font-${c}:`.length;
         // delete any other fonts -- only one at a time
         for (const mark in state.marks) {
@@ -137,7 +141,7 @@ function handleMarks({ token, state }) {
             delete state.marks[mark];
           }
         }
-        // now set our font
+        // now set our font family or size
         state.marks[`font-${c}:${x.slice(n, x.length - 2)}`] = true;
         return [];
       }

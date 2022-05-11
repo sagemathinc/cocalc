@@ -124,8 +124,10 @@ export default function ColorPicker({
 interface ButtonProps {
   onChange: (htmlColor: string) => void;
   title?: ReactNode;
+  style?: CSSProperties;
+  type?: "default" | "link" | "text" | "ghost" | "primary" | "dashed";
 }
-export function ColorButton({ onChange, title }: ButtonProps) {
+export function ColorButton({ onChange, title, style, type }: ButtonProps) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
@@ -142,7 +144,7 @@ export function ColorButton({ onChange, title }: ButtonProps) {
           }}
         />
       </Modal>
-      <Button onClick={() => setShow(!show)}>
+      <Button onClick={() => setShow(!show)} style={style} type={type}>
         <Icon name="colors" />
       </Button>
     </>

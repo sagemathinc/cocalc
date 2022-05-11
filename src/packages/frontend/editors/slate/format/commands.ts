@@ -6,6 +6,7 @@
 import { isEqual } from "lodash";
 import { is_array, startswith } from "@cocalc/util/misc";
 import {
+  BaseRange,
   Editor,
   Element,
   Location,
@@ -70,6 +71,7 @@ function currentWord(editor: SlateEditor): Range | undefined {
 
   function moveLeft(pos: { i: number; offset: number }): boolean {
     if (pos.offset == 0) {
+      if ((pos.i = 0)) return false;
       pos.i -= 1;
       pos.offset = Math.max(0, len(siblings[pos.i]) - 1);
       return true;
@@ -169,12 +171,18 @@ function unformatSelectedText(
   editor: SlateEditor,
   options: { prefix?: string }
 ): void {
-  const at = getSelection(editor);
+  let at: BaseRange | undefined = getSelection(editor);
   if (at == null) return; // nothing to do.
+  if (Range.isCollapsed(at)) {
+    at = currentWord(editor);
+  }
+  if (at == null) return;
   if (options.prefix) {
     // Remove all formatting of the selected text
     // that begins with the given prefix.
-    while (true) {
+    let i = 0;
+    while (i < 100) {
+      i += 1; // paranoid: just in case there is a stupid infinite loop...
       const mark = findMarkWithPrefix(editor, options.prefix);
       if (!mark) break;
       Transforms.setNodes(
