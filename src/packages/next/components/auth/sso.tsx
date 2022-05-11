@@ -130,6 +130,7 @@ export function StrategyAvatar(props: AvatarProps) {
         height: `${size - 2}px`,
         width: `${size - 2}px`,
         marginLeft: "2.5px",
+        objectFit: "contain",
       }}
     />
   ) : (
