@@ -12,6 +12,7 @@ import { Marks } from "./marks";
 import ColorButton from "./color-button";
 import FontFamily from "./font-family";
 import FontSize from "./font-size";
+import Heading from "./heading";
 
 export const BUTTON_STYLE = {
   color: "#666",
@@ -68,6 +69,7 @@ export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
   }
   v.push(<FontFamily key={"font"} editor={editor} />);
   v.push(<FontSize key={"size"} editor={editor} />);
+  v.push(<Heading key="heading" editor={editor} />);
   v.push(<ColorButton key={"color"} editor={editor} />);
   return (
     <div style={{ paddingRight: "10px", flex: 1, whiteSpace: "nowrap" }}>
