@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { User } from "../licenses/purchase/types";
 import { Upgrades } from "../upgrades/types";
 import { DedicatedDisk, DedicatedVM } from "./dedicated";
 
@@ -9,8 +15,8 @@ export interface SiteLicenseQuota {
   disk?: number;
   always_running?: boolean;
   member?: boolean;
-  user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | boolean;
+  user?: User;
+  dedicated_vm?: DedicatedVM | false;
   dedicated_disk?: DedicatedDisk;
   // idle_timeouts came later:
   // 1. they don't mix, just like member/free and always_running does not mix

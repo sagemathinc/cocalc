@@ -3,34 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Uptime } from "@cocalc/util/consts/site-license";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { React } from "../app-framework";
-const { HelpEmailLink, SiteName } = require("../customize");
 import { A, IconName, Space } from "../components";
 import {
-  STUDENT_COURSE_PRICE,
-  TEACHER_PAYS,
-  STUDENT_PAYS,
-  INSTRUCTOR_GUIDE,
-  DOC_LICENSE_URL,
   DOC_ACCOUNT_LICENSES,
+  DOC_LICENSE_URL,
+  INSTRUCTOR_GUIDE,
+  STUDENT_COURSE_PRICE,
+  STUDENT_PAYS,
+  TEACHER_PAYS,
 } from "./data";
-import {
-  compute_cost,
-  discount_pct,
-  User,
-  Upgrade,
-  Subscription,
-} from "@cocalc/util/licenses/purchase/util";
 import { LicenseExamples } from "./license-examples";
-import { Uptime } from "@cocalc/util/consts/site-license";
+const { HelpEmailLink, SiteName } = require("../customize");
 
 export const TITLE = "Course licenses";
 
-const p1data = {
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+const p1data: PurchaseInfo = {
+  type: "quota",
+  user: "academic",
+  upgrade: "custom",
   quantity: 20 + 2,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-02-01T11:59:59.999Z"),
   custom_ram: 2,
@@ -43,11 +40,12 @@ const p1data = {
 };
 const Price1 = compute_cost(p1data);
 
-const p2data = {
-  user: "business" as User,
-  upgrade: "custom" as Upgrade,
+const p2data: PurchaseInfo = {
+  type: "quota",
+  user: "business",
+  upgrade: "custom",
   quantity: 5 + 1,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-01-06T11:59:59.999Z"),
   custom_ram: 2,
@@ -60,11 +58,12 @@ const p2data = {
 };
 const Price2 = compute_cost(p2data);
 
-const p3data = {
-  user: "academic" as User,
-  upgrade: "custom" as Upgrade,
+const p3data: PurchaseInfo = {
+  type: "quota",
+  user: "academic",
+  upgrade: "custom",
   quantity: 120 + 2,
-  subscription: "no" as Subscription,
+  subscription: "no",
   start: new Date("2020-01-01T12:00Z"),
   end: new Date("2020-05-01T11:59:59.999Z"),
   custom_ram: 1,
@@ -86,11 +85,11 @@ const EXAMPLES = [
       { value: 1, unit: "Trainer", resource: "Project" },
       { value: p2data.quantity - 1, unit: "Participant", resource: "Projects" },
       { value: 5, unit: "days", resource: "Duration" },
-      { value: p2data.custom_ram, unit: "GB", resource: "Shared RAM" },
+      { value: p2data.custom_ram, unit: "G", resource: "Shared RAM" },
       { value: p2data.custom_cpu, unit: "cores", resource: "Shared CPU" },
       {
         value: p2data.custom_dedicated_ram,
-        unit: "GB",
+        unit: "G",
         resource: "Dedicated RAM",
       },
       {
@@ -98,7 +97,7 @@ const EXAMPLES = [
         unit: "cores",
         resource: "Dedicated CPU",
       },
-      { value: p2data.custom_disk, unit: "GB", resource: "Disk space" },
+      { value: p2data.custom_disk, unit: "G", resource: "Disk space" },
     ],
     price: Price2,
     period: `5 days`,
@@ -112,9 +111,9 @@ const EXAMPLES = [
       { value: 1, unit: "Shared", resource: "Project" },
       { value: p1data.quantity - 2, unit: "Student", resource: "Projects" },
       { value: 1, unit: "month", resource: "Duration" },
-      { value: p1data.custom_ram, unit: "GB", resource: "Shared RAM" },
+      { value: p1data.custom_ram, unit: "G", resource: "Shared RAM" },
       { value: p1data.custom_cpu, unit: "cores", resource: "Shared CPU" },
-      { value: p1data.custom_disk, unit: "GB", resource: "Disk space" },
+      { value: p1data.custom_disk, unit: "G", resource: "Disk space" },
       {
         value: discount_pct,
         unit: "%",
@@ -133,9 +132,9 @@ const EXAMPLES = [
       { value: 1, unit: "Shared", resource: "Project" },
       { value: p3data.quantity - 2, unit: "Student", resource: "Projects" },
       { value: 4, unit: "months", resource: "Duration" },
-      { value: p3data.custom_ram, unit: "GB", resource: "Shared RAM" },
+      { value: p3data.custom_ram, unit: "G", resource: "Shared RAM" },
       { value: p3data.custom_cpu, unit: "cores", resource: "Shared CPU" },
-      { value: p3data.custom_disk, unit: "GB", resource: "Disk space" },
+      { value: p3data.custom_disk, unit: "G", resource: "Disk space" },
       {
         value: discount_pct,
         unit: "%",

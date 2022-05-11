@@ -58,6 +58,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   DeleteOutlined,
+  DeploymentUnitOutlined,
   DesktopOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
@@ -264,6 +265,7 @@ const IconSpec = {
   cut: ScissorOutlined,
   dashboard: DashboardOutlined,
   database: DatabaseOutlined,
+  dedicated: DeploymentUnitOutlined, // icon for "dedicated resources"
   desktop: DesktopOutlined,
   discord: { IconFont: "discord" },
   docker: { IconFont: "docker" },

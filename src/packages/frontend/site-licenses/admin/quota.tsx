@@ -33,6 +33,7 @@ export const EditQuota: React.FC<EditProps> = ({
   return (
     <QuotaEditor
       hideExtra={true}
+      adminMode={true}
       quota={q}
       show_advanced_default={true}
       onChange={(change) => {

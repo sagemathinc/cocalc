@@ -48,10 +48,13 @@ export function requiresMemberhosting(key?: Uptime | string): boolean {
 
 export type Uptime = Keys | "always_running";
 
-export function untangleUptime(uptime: Uptime): {
+export function untangleUptime(uptime?: Uptime): {
   always_running: boolean;
   idle_timeout: Keys;
 } {
+  if (uptime == null) {
+    throw new Error(`uptime must be defined`);
+  }
   if (uptime == "always_running") {
     return { always_running: true, idle_timeout: "day" };
   }

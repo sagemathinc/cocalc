@@ -192,7 +192,36 @@ class SiteLicenseHook {
 
     const orderedIds: string[] = [];
 
-    // first all regular licenses (boost == false), then the boost licenses
+    // first, pick the "dedicated licenses", in particular dedicated VM.
+    // otherwise: regular quota upgrade licenses are picked and registered as valid,
+    // while in fact later on, when incrementally applying more licenses in computeNextSiteLicense,
+    // those will become ineffective.
+
+    for (let idx = 0; idx < ids.length; idx++) {
+      const id = ids[idx];
+      const val = validLicenses.get(id).toJS();
+      if (isSiteLicenseQuotaSetting(val)) {
+        const vm = val.quota.dedicated_vm;
+        if (vm != null && vm !== false) {
+          orderedIds.push(id);
+          ids.splice(idx, 1);
+        }
+      }
+    }
+
+    for (let idx = 0; idx < ids.length; idx++) {
+      const id = ids[idx];
+      const val = validLicenses.get(id).toJS();
+      if (isSiteLicenseQuotaSetting(val)) {
+        const disk = val.quota.dedicated_disk;
+        if (disk != null) {
+          orderedIds.push(id);
+          ids.splice(idx, 1);
+        }
+      }
+    }
+
+    // then all regular licenses (boost == false), then the boost licenses
     for (const boost of [false, true]) {
       const idsPartition = ids.filter((id) => {
         const val = validLicenses.get(id).toJS();

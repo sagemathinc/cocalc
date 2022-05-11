@@ -9,18 +9,21 @@
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import {
-  compute_cost,
-  COSTS,
-  money,
   PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/util";
+  PurchaseInfoQuota,
+} from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
-import expect from "expect";
-import { getProductId, unitAmount } from "../licenses/purchase/charge";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
+import expect from "expect";
+import { unitAmount } from "../licenses/purchase/charge";
+import { getProductId } from "../licenses/purchase/product-id";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 
 describe("product id and compute cost", () => {
-  const info1: Omit<PurchaseInfo, "quantity"> = {
+  const info1: Omit<PurchaseInfoQuota, "quantity"> = {
+    type: "quota",
     user: "academic",
     upgrade: "custom",
     custom_uptime: "short",
@@ -37,7 +40,7 @@ describe("product id and compute cost", () => {
 
   it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
     const id = getProductId({ ...info1, quantity });
-    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v1`);
+    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v2`);
   });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
@@ -139,5 +142,32 @@ describe("start/end of day", () => {
 
   it("end on string", () => {
     expect(endOfDay(s)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
+  });
+});
+
+describe("dedicated disk", () => {
+  it("calculates subscription price of one disk", () => {
+    const pi: PurchaseInfo = {
+      type: "disk",
+      start: startOfDay(new Date()),
+      quantity: 1,
+      subscription: "monthly",
+      dedicated_disk: {
+        name: "mydisk123",
+        speed: "balanced",
+        size_gb: 32,
+      },
+    };
+
+    const cost = compute_cost(pi);
+    expect(cost).toEqual({
+      cost: 8,
+      cost_per_project_per_month: 8,
+      cost_per_unit: 8,
+      cost_sub_month: 8,
+      cost_sub_year: 96,
+      discounted_cost: 8,
+      period: "monthly",
+    });
   });
 });

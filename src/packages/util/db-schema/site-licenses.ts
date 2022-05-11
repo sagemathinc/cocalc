@@ -17,93 +17,9 @@ licenses for different purposes (e.g., one license for faculty and one license
 for students).
 */
 
-import { is_valid_uuid_string, plural } from "../misc";
-import { Table } from "./types";
+import { is_valid_uuid_string } from "../misc";
 import { SCHEMA } from "./index";
-import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
-import { SiteLicenseQuota } from "../types/site-licenses";
-import {
-  LicenseIdleTimeouts,
-  untangleUptime,
-  Uptime,
-} from "../consts/site-license";
-import { capitalize } from "lodash";
-
-export function describe_quota(
-  quota: SiteLicenseQuota & { uptime?: Uptime },
-  short?: boolean
-): string {
-  // regarding quota.uptime: it is assumed that all calls already query using the schema defined
-  // in SiteLicenseQuota, but if not, we untangle the uptime field.
-  if (quota.uptime != null) {
-    const { always_running, idle_timeout } = untangleUptime(quota.uptime);
-    quota.always_running = always_running;
-    quota.idle_timeout = idle_timeout;
-    delete quota.uptime;
-  }
-
-  const v: string[] = [];
-  let intro: string = "";
-  const isBoost = quota.boost === true;
-  const booster = isBoost ? " booster" : "";
-  if (short) {
-    intro = `${capitalize(quota.user)}${booster},`;
-  } else {
-    intro = `${capitalize(quota.user)} license${booster} providing`;
-  }
-
-  if (quota.ram) {
-    v.push(`${quota.ram}GB RAM`);
-  }
-  if (quota.cpu) {
-    v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
-  }
-  if (quota.disk) {
-    v.push(`${quota.disk}GB disk`);
-  }
-  if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}GB dedicated RAM`);
-  }
-  if (quota.dedicated_cpu) {
-    v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
-    );
-  }
-  if (
-    typeof quota.dedicated_vm !== "boolean" &&
-    typeof quota.dedicated_vm?.machine === "string"
-  ) {
-    v.push(
-      `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
-    );
-  } else {
-    if (quota.member && !isBoost) {
-      v.push("member" + (short ? "" : " hosting"));
-    }
-  }
-  if (
-    quota.dedicated_disk != null &&
-    typeof quota.dedicated_disk !== "boolean"
-  ) {
-    v.push(
-      `a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`
-    );
-  }
-  if (quota.always_running) {
-    v.push("always running");
-  } else {
-    if (quota.idle_timeout != null) {
-      const it = LicenseIdleTimeouts[quota.idle_timeout];
-      if (it != null) {
-        v.push(`${it.label} timeout`);
-      }
-    }
-  }
-  if (!isBoost) {
-    v.push("network"); // always provided, because we trust customers.
-  }
-  return `${intro} ${v.join(", ")}`;
-}
+import { Table } from "./types";
 
 Table({
   name: "site_licenses",
@@ -174,6 +90,8 @@ Table({
     pg_indexes: [
       "((quota -> 'dedicated_disk' IS NOT NULL))",
       "((quota -> 'dedicated_vm' IS NOT NULL))",
+      "((quota -> 'dedicated_disk' ->> 'name'))",
+      "((quota -> 'dedicated_vm' ->> 'name'))",
     ],
     user_query: {
       get: {

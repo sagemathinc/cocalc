@@ -38,7 +38,7 @@ export default function Congrats() {
   }
 
   return (
-    <div>
+    <>
       <div style={{ float: "right" }}>
         <Image
           src={bella}
@@ -47,7 +47,7 @@ export default function Congrats() {
           alt="Picture of a doggie."
         />
       </div>
-      <div style={{ maxWidth: "900px", margin: "auto", fontSize:'12pt' }}>
+      <div style={{  fontSize: "12pt" }}>
         <h1 style={{ fontSize: "24pt" }}>
           <Icon
             name="check-circle"
@@ -62,7 +62,10 @@ export default function Congrats() {
         <div style={{ margin: "15px auto", maxWidth: "700px" }}>
           {r_join(
             result.map((item) => (
-              <License license_id={item.purchased.license_id} />
+              <License
+                key={item.purchased.license_id}
+                license_id={item.purchased.license_id}
+              />
             ))
           )}
         </div>
@@ -102,6 +105,6 @@ export default function Congrats() {
           </li>
         </ul>
       </div>
-    </div>
+    </>
   );
 }

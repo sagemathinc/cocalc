@@ -4,7 +4,7 @@ but you can also get all items that have been removed from the cart,
 and also all items that were purchased.
 */
 
-import { isValidUUID } from "@cocalc/util/misc";
+import { assertValidAccountID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { Item } from "@cocalc/util/db-schema/shopping-cart-items";
 export type { Item };
@@ -20,9 +20,7 @@ export default async function getCart({
   purchased,
   removed,
 }: Options): Promise<Item[]> {
-  if (!isValidUUID(account_id)) {
-    throw Error("account_id is invalid");
-  }
+  assertValidAccountID(account_id);
   const pool = getPool();
   const { rows } = await pool.query(
     `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
@@ -40,9 +38,7 @@ export async function getItem({
   account_id: string;
   id: number;
 }): Promise<Item> {
-  if (!isValidUUID(account_id)) {
-    throw Error("account_id is invalid");
-  }
+  assertValidAccountID(account_id);
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT * FROM shopping_cart_items WHERE account_id=$1 AND id=$2",

@@ -8,9 +8,9 @@ This configures the project hub based on an environment variable or other data.
 */
 
 import debug from "debug";
-const L = debug("project:project-setup");
-import { setPriority } from "os";
 import { existsSync } from "fs";
+import { setPriority } from "os";
+const L = debug("project:project-setup");
 // const { callback2: cb2 } = require("@cocalc/util/async-utils");
 // const { execute_code } = require("@cocalc/backend/misc_node");
 
