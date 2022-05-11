@@ -23,6 +23,18 @@ CONSIDERATIONS:
 */
 
 declare var $;
+
+
+export const FONT_SIZES = [
+  "xx-small",
+  "x-small",
+  "small",
+  "medium",
+  "large",
+  "x-large",
+  "xx-large",
+] as const;
+
 export const FONT_FACES = [
   "Serif",
   "Sans",

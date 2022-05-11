@@ -14,16 +14,7 @@ import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
-
-const FONT_SIZES = [
-  "xx-small",
-  "x-small",
-  "small",
-  "medium",
-  "large",
-  "x-large",
-  "xx-large",
-] as const;
+import FontSizeMenu from "@cocalc/frontend/components/font-size";
 
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
@@ -184,27 +175,10 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_font_size_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (const size of FONT_SIZES) {
-      const item: Rendered = (
-        <MenuItem key={size} eventKey={size}>
-          <span style={{ fontSize: size }}>
-            {size} {size === "medium" ? "(default)" : undefined}
-          </span>
-        </MenuItem>
-      );
-      items.push(item);
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"text-height"} />}
-        key={"font-size"}
-        id={"font-size"}
+      <FontSizeMenu
         onClick={(size) => actions.format_action("font_size_new", size)}
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 

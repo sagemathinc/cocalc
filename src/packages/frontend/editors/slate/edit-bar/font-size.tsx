@@ -1,13 +1,13 @@
 import { BUTTON_STYLE } from "./marks-bar";
 import { formatAction } from "../format";
-import FontFamilyMenu from "@cocalc/frontend/components/font-family";
+import FontSizeMenu from "@cocalc/frontend/components/font-size";
 
 export default function Component({ editor }) {
   return (
-    <FontFamilyMenu
+    <FontSizeMenu
       style={{ ...BUTTON_STYLE, height: "24px", width: "46px", padding: 0 }}
-      onClick={(font_family) => {
-        formatAction(editor, "font_family", font_family);
+      onClick={(font_size) => {
+        formatAction(editor, "font_size", font_size);
       }}
     />
   );
