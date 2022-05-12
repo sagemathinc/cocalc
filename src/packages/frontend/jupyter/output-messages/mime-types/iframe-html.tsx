@@ -7,9 +7,16 @@ public nbviewer.
 Note that some HTML, e.g., anything embedded in markdown cells, still gets rendered via sanitized html.
 */
 
+import {useEffect} from "react";
 import register from "./register";
 
 const IframeHtml = ({ value }) => {
+  // after mounting, we measure the content of the iframe and resize to better fit it.
+  // This will work fine on the share server, and looks much better.
+  useEffect(()=>{
+    
+  }, []);
+
   return (
     <iframe
       width="100%"
@@ -24,4 +31,4 @@ const IframeHtml = ({ value }) => {
   );
 };
 
-register("text/html", 3, IframeHtml);
+register("text/html", 5, IframeHtml);

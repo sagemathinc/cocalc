@@ -7,7 +7,11 @@ interface IJupyterContext {
 }
 
 export const JupyterContext = createContext<IJupyterContext>({
-  kernelspec: { display_name: "Unknown Kernel", name: "unknown" },
+  kernelspec: {
+    display_name: "Unknown Kernel",
+    name: "unknown",
+    language: "unknown",
+  },
 });
 
 const useJupyterContext: () => IJupyterContext = () => {
