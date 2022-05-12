@@ -7,6 +7,7 @@ import { Customize } from "lib/customize";
 import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import { MAX_WIDTH } from "lib/config";
 
 interface Item {
   title: string;
@@ -79,7 +80,7 @@ export default function Courses({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",
