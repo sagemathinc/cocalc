@@ -9,19 +9,27 @@ Note that some HTML, e.g., anything embedded in markdown cells, still gets rende
 
 import { useEffect, useRef } from "react";
 import register from "./register";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 const IframeHtml = ({ value }) => {
   const iframeRef = useRef<any>(null);
+  const isMountedRef = useIsMountedRef();
   // After mounting, we measure the content of the iframe and resize to better fit it.
-  // TODO: I'm not convinced this works at all; maybe a delay is needed in general, or
-  // just fully use https://www.npmjs.com/package/iframe-resizer-react
-  // This is important, but not today.
+  // TODO: Might wnat to switch to https://www.npmjs.com/package/iframe-resizer-react
+  // instead of the hack of timeouts below...
   useEffect(() => {
     if (iframeRef.current == null) return;
-    iframeRef.current.height = `${
-      iframeRef.current.contentWindow.document.documentElement?.offsetHeight ??
-      600
-    }px`;
+    const f = () => {
+      if (iframeRef.current != null && isMountedRef.current) {
+        iframeRef.current.height = `${
+          iframeRef.current.contentWindow.document.documentElement
+            ?.offsetHeight ?? 600
+        }px`;
+      }
+    };
+    f();
+    setTimeout(f, 10);
+    setTimeout(f, 250);
   }, []);
 
   return (
