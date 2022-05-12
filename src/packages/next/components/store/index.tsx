@@ -21,6 +21,7 @@ import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
+import { MAX_WIDTH } from "lib/config";
 
 const { Content } = Layout;
 
@@ -117,7 +118,7 @@ export default function StoreLayout({ page }: Props) {
           minHeight: "60vh",
         }}
       >
-        <div style={{ maxWidth: "900px", margin: "auto" }}>
+        <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
           <Menu main={main} />
           {body()}
         </div>

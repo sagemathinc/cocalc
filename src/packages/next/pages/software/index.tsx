@@ -4,16 +4,16 @@ import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
-
 import executablesScreenshot from "public/software/executables.png";
 import pythonScreenshot from "/public/features/frame-editor-python.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import JuliaJupyter from "/public/software/julia-jupyter.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import A from "components/misc/A";
+import { MAX_WIDTH } from "lib/config";
 
 export const STYLE_PAGE: React.CSSProperties = {
-  maxWidth: "900px",
+  maxWidth: MAX_WIDTH,
   margin: "15px auto",
   padding: "15px",
   backgroundColor: "white",

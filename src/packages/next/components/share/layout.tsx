@@ -6,7 +6,7 @@
 import { ReactNode } from "react";
 import { join } from "path";
 import { Layout as AntdLayout } from "antd";
-
+import { SHARE_MAX_WIDTH } from "lib/config";
 import Head from "next/head";
 import Analytics from "components/analytics";
 import Footer from "components/landing/footer";
@@ -40,7 +40,7 @@ export function Layout({ title, children }: Props) {
             style={{
               color: "#555",
               margin: "0 auto",
-              maxWidth: "900px",
+              maxWidth: SHARE_MAX_WIDTH,
               fontSize: "11pt",
               padding: "15px",
             }}

@@ -26,6 +26,7 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
+import { MAX_WIDTH } from "lib/config";
 
 const { Text, Paragraph } = Typography;
 
@@ -204,7 +205,7 @@ function CreateBooster() {
         form={form}
         style={{
           marginTop: "15px",
-          maxWidth: "900px",
+          maxWidth: MAX_WIDTH,
           margin: "auto",
           border: "1px solid #ddd",
           padding: "15px",

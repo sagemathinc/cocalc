@@ -25,6 +25,7 @@ import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+import { MAX_WIDTH } from "lib/config";
 
 export default function SiteLicense() {
   const router = useRouter();
@@ -124,7 +125,7 @@ function CreateSiteLicense() {
         form={form}
         style={{
           marginTop: "15px",
-          maxWidth: "900px",
+          maxWidth: MAX_WIDTH,
           margin: "auto",
           border: "1px solid #ddd",
           padding: "15px",

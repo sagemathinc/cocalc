@@ -10,6 +10,7 @@ import { Layout } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
+import { MAX_WIDTH } from "lib/config";
 
 export default function TermsOfService({ customize }) {
   return (
@@ -23,7 +24,7 @@ export default function TermsOfService({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",
