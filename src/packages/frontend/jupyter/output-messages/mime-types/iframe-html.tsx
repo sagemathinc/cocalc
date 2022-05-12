@@ -16,7 +16,6 @@ const IframeHtml = ({ value }) => {
   // This will work fine on the share server, and looks much better.
   useEffect(() => {
     if (iframeRef.current == null) return;
-    window.iframeRef = iframeRef;
     iframeRef.current.height = `${
       iframeRef.current.contentWindow.document.documentElement.offsetHeight ??
       600
