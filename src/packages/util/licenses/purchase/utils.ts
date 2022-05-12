@@ -6,10 +6,10 @@
 import { Cost } from "./types";
 
 export function percent_discount({
-  cost,
-  discounted_cost,
-}: Pick<Cost, "cost" | "discounted_cost">): number {
-  return Math.round(100 * (1 - discounted_cost / cost));
+  cost_cents,
+  discounted_cost_cents,
+}: Pick<Cost, "cost_cents" | "discounted_cost_cents">): number {
+  return Math.round(100 * (1 - discounted_cost_cents / cost_cents));
 }
 
 export function money(n: number, hideCurrency: boolean = false): string {
