@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 
 interface IJupyterContext {
   kernelspec: KernelSpec;
+  trust?: boolean;
 }
 
 export const JupyterContext = createContext<IJupyterContext>({

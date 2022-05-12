@@ -11,7 +11,7 @@ function shouldMemoize(prev, next) {
 }
 
 export const Data: React.FC<DataProps> = React.memo((props) => {
-  const { kernelspec } = useJupyterContext();
+  const { kernelspec, trust } = useJupyterContext();
   const data = props.message.get("data");
   if (data == null || typeof data.forEach != "function") {
     return null;
@@ -20,17 +20,20 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
   const types = data.keySeq().toJS();
   let type: string | undefined;
   if (kernelspec?.language === "r") {
-    // very special case -- using an R kernel inside kernel (so XSS prevention) -- prefer image, then plain text,
-    // due to bugs in text/latex *and* unfriendly markdown *and* complicated html that XSS mangles.
-    // Also, even if we could render they latex or markdown, it is actually genuinely wrong, in that it is
-    // much different than the output from, e.g., RStudio.
+    // very special case -- using an R kernel inside nbviewer (so with strong XSS prevention) -- prefer image, then plain text,
+    // due to unfriendly markdown *and* complicated html that XSS mangles too much.
+    // The output from markdown say is really weird, e.g., for c(1,2) it is "1. 1\n2. 2\n".
     for (const x of types) {
       if (x.startsWith("image")) {
         type = x;
         break;
       }
     }
-    if (type === undefined && types.includes("text/plain")) {
+    if (type === undefined && !trust && types.includes("text/plain")) {
+      // untrusted so we use text/plain.  This will happen on share server and in cocalc
+      // until the user trusts, in which case it will switch to html with no sanitization
+      // and that looks good.  HTML with sanitization is really bad, e.g., because the
+      // style for c(1,2,3) just looks like an enumerated list.
       type = "text/plain";
     }
     if (type == null) {
