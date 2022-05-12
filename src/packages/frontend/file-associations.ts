@@ -61,6 +61,7 @@ const codemirror_associations: { [ext: string]: string } = {
   lua: "lua",
   m: "text/x-octave",
   md: "yaml-frontmatter", // See https://codemirror.net/mode/yaml-frontmatter/index.html; this is really "a YAML frontmatter at the start of a file, switching to " github flavored markdown after that.
+  mjs: "javascript",
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
   patch: "text/x-diff",
@@ -227,8 +228,8 @@ file_associations["lean"] = {
 file_associations["md"] = file_associations["markdown"] = {
   icon: "markdown",
   opts: {
-    indent_unit: 4,
-    tab_size: 4,
+    indent_unit: 2,
+    tab_size: 2,
     mode: codemirror_associations["md"],
     spellcheck: true,
   },
@@ -454,7 +455,7 @@ const archive_association = {
 file_associations[""] = {
   editor: "unknown",
   icon: "question-circle",
-  opts: {},
+  opts: { indent_unit: 4, tab_size: 4 },
   name: "",
 };
 

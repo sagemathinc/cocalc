@@ -127,6 +127,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
     await p;
   });
 
+  // @ts-ignore
   test("a change event", async (done) => {
     synctable.once("change", (keys) => {
       expect(keys).toEqual(["123e4567-e89b-12d3-a456-426655440001"]);

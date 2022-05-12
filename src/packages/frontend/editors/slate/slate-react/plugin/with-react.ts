@@ -324,7 +324,7 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
       if (offset) {
         if (windowed) {
-          const scroller = e.windowedListRef.current.scrollerRef.current;
+          const scroller = e.windowedListRef.current?.getScrollerRef();
           if (scroller != null) {
             scroller.scrollTop = scroller.scrollTop - offset;
           }

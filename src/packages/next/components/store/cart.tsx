@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Shopping cart.
 
 The UX is similar to Amazon.com, since that's probably the single most popular
@@ -6,34 +11,42 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
-import { useMemo, useState } from "react";
-import useAPI from "lib/hooks/api";
-import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Loading from "components/share/loading";
-import A from "components/misc/A";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { capitalize, plural } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
-import { EditRunLimit } from "./site-license";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useIsMounted from "lib/hooks/mounted";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
+import OtherItems from "./other-items";
+import { EditRunLimit } from "./run-limit";
 import {
   computeCost,
-  DisplayCost,
   describeItem,
   describePeriod,
+  DisplayCost,
 } from "./site-license-cost";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { money } from "@cocalc/util/licenses/purchase/util";
-import SiteName from "components/share/site-name";
-import useIsMounted from "lib/hooks/mounted";
-import { capitalize, plural } from "@cocalc/util/misc";
-import { useRouter } from "next/router";
-import OtherItems from "./other-items";
-import { untangleUptime } from "@cocalc/util/consts/site-license";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
+  const router = useRouter();
+
+  // most likely, user will checkout next
+  useEffect(() => {
+    router.prefetch("/store/checkout");
+  }, []);
+
   const cart = useAPI("/shopping/cart/get");
+
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     // TODO deal with errors returned by useAPI
@@ -54,6 +67,7 @@ export default function ShoppingCart() {
   if (cart.error) {
     return <Alert type="error" message={cart.error} />;
   }
+
   if (!items) {
     return <Loading center />;
   }
@@ -73,7 +87,7 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, checked, cost, description }) => {
+      render: ({ id, checked, cost, description, type }) => {
         return (
           <div>
             <CheckboxColumn
@@ -88,6 +102,7 @@ export default function ShoppingCart() {
                 setUpdating,
                 isMounted,
                 reload,
+                type,
               }}
               compact
             />
@@ -123,7 +138,7 @@ export default function ShoppingCart() {
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description }) => (
+      render: (_, { id, cost, description, type }) => (
         <DescriptionColumn
           {...{
             id,
@@ -133,6 +148,7 @@ export default function ShoppingCart() {
             setUpdating,
             isMounted,
             reload,
+            type,
           }}
           compact={false}
         />
@@ -150,65 +166,72 @@ export default function ShoppingCart() {
     },
   ];
 
+  function noItems() {
+    return (
+      <>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
+          <SiteName /> Shopping Cart is Empty
+        </h3>
+        <A href="/store/site-license">Buy a License</A>
+      </>
+    );
+  }
+
+  function renderItems() {
+    return (
+      <>
+        <div style={{ float: "right", marginBottom: "15px" }}>
+          <span style={{ fontSize: "13pt" }}>
+            <TotalCost items={items} />
+          </span>
+          <A href="/store/checkout">
+            <Button
+              disabled={subTotal == 0 || updating}
+              style={{ marginLeft: "15px" }}
+              size="large"
+              type="primary"
+            >
+              Proceed to Checkout
+            </Button>
+          </A>
+        </div>
+        <h3>
+          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
+          Shopping Cart
+        </h3>
+        <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
+          <SelectAllItems items={items} onChange={reload} />
+        </div>
+        <div style={{ border: "1px solid #eee" }}>
+          <Table
+            showHeader={false}
+            columns={columns}
+            dataSource={items}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+        </div>
+        <div
+          style={{
+            float: "right",
+            fontSize: "12pt",
+            margin: "15px 15px 0 0",
+          }}
+        >
+          <div style={{ float: "right" }}>
+            <TotalCost items={cart.result} />
+          </div>
+          <br />
+        </div>
+      </>
+    );
+  }
+
   return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
-      {items.length == 0 && (
-        <>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
-            <SiteName /> Shopping Cart is Empty
-          </h3>
-          <A href="/store/site-license">Buy a License</A>
-        </>
-      )}
-      {items.length > 0 && (
-        <>
-          {" "}
-          <div style={{ float: "right", marginBottom: "15px" }}>
-            <span style={{ fontSize: "13pt" }}>
-              <TotalCost items={items} />
-            </span>
-            <A href="/store/checkout">
-              <Button
-                disabled={subTotal == 0 || updating}
-                style={{ marginLeft: "15px" }}
-                size="large"
-                type="primary"
-              >
-                Proceed to Checkout
-              </Button>
-            </A>
-          </div>
-          <h3>
-            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
-            Shopping Cart
-          </h3>
-          <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
-            <SelectAllItems items={items} onChange={reload} />
-          </div>
-          <div style={{ border: "1px solid #eee" }}>
-            <Table
-              showHeader={false}
-              columns={columns}
-              dataSource={items}
-              rowKey={"id"}
-              pagination={{ hideOnSinglePage: true }}
-            />
-          </div>
-          <div
-            style={{
-              float: "right",
-              fontSize: "12pt",
-              margin: "15px 15px 0 0",
-            }}
-          >
-            <div style={{ float: "right" }}>
-              <TotalCost items={cart.result} />
-            </div>
-            <br />
-          </div>
-        </>
-      )}
+    <>
+      {items.length == 0 && noItems()}
+      {items.length > 0 && renderItems()}
 
       <div
         style={{
@@ -218,7 +241,7 @@ export default function ShoppingCart() {
       >
         <OtherItems onChange={reload} cart={cart} />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -303,38 +326,44 @@ function CheckboxColumn({
   );
 }
 
-function DescriptionColumn({
-  id,
-  cost,
-  description,
-  updating,
-  setUpdating,
-  isMounted,
-  reload,
-  compact,
-}) {
+interface DCProps {
+  id: string;
+  cost: CostInputPeriod;
+  description;
+  updating: boolean;
+  setUpdating: (u: boolean) => void;
+  isMounted: { current: boolean };
+  reload: () => void;
+  compact: boolean;
+}
+
+function DescriptionColumn(props: DCProps) {
+  const {
+    id,
+    cost,
+    description,
+    updating,
+    setUpdating,
+    isMounted,
+    reload,
+    compact,
+  } = props;
   const router = useRouter();
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(description.run_limit);
-  const { idle_timeout, always_running } = untangleUptime(input.custom_uptime);
+
+  const showRunLimitEditor =
+    description.type !== "disk" && description.type !== "vm";
 
   function editableQuota() {
     return (
       <div>
         <div>
-          {describe_quota({
-            ram: input.custom_ram,
-            cpu: input.custom_cpu,
-            disk: input.custom_disk,
-            always_running,
-            idle_timeout,
-            member: input.custom_member,
-            user: input.user,
-          })}
-          {!editRunLimit && (
+          {describeQuotaFromInfo(input)}
+          {showRunLimitEditor && !editRunLimit && (
             <>
-              {" "}
+              <br />
               <Button
                 onClick={() => setEditRunLimit(true)}
                 disabled={updating}
@@ -384,77 +413,88 @@ function DescriptionColumn({
     );
   }
 
+  // this could rely an the "type" field, but we rather check the data directly
+  function editPage(): "site-license" | "boost" | "dedicated" {
+    if (input.type === "disk" || input.type === "vm") {
+      return "dedicated";
+    } else if (input.boost) {
+      return "boost";
+    }
+    return "site-license";
+  }
+
   return (
-    <>
-      <div style={{ fontSize: "12pt" }}>
-        {description.title && (
-          <div>
-            <b>{description.title}</b>
-          </div>
-        )}
-        {description.description && <div>{description.description}</div>}
+    <div style={{ fontSize: "12pt" }}>
+      {description.title && (
         <div>
-          <b>
-            {input.subscription == "no"
-              ? describePeriod(input)
-              : capitalize(input.subscription) + " subscription"}
-          </b>
+          <b>{description.title}</b>
         </div>
-        <div
-          style={{
-            border: "1px solid lightblue",
-            background: "white",
-            padding: "15px 15px 5px 15px",
-            margin: "5px 0 10px 0",
-            borderRadius: "5px",
-          }}
-        >
-          {compact ? describeItem(input) : editableQuota()}{" "}
-        </div>
-        <Button
-          style={{ marginRight: "5px" }}
-          onClick={() => router.push(`/store/site-license?id=${id}`)}
-        >
-          <Icon name="pencil" /> Edit
-        </Button>
-        <Button
-          style={{ margin: "0 5px 5px 0" }}
-          disabled={updating}
-          onClick={async () => {
-            setUpdating(true);
-            try {
-              await apiPost("/shopping/cart/remove", { id });
-              if (!isMounted.current) return;
-              await reload();
-            } finally {
-              if (!isMounted.current) return;
-              setUpdating(false);
-            }
-          }}
-        >
-          <Icon name="save" /> Save for later
-        </Button>
-        <Popconfirm
-          title={"Are you sure you want to delete this item?"}
-          onConfirm={async () => {
-            setUpdating(true);
-            try {
-              await apiPost("/shopping/cart/delete", { id });
-              if (!isMounted.current) return;
-              await reload();
-            } finally {
-              if (!isMounted.current) return;
-              setUpdating(false);
-            }
-          }}
-          okText={"Yes, delete this item"}
-          cancelText={"Cancel"}
-        >
-          <Button disabled={updating} type="dashed">
-            <Icon name="trash" /> Delete
-          </Button>
-        </Popconfirm>
+      )}
+      {description.description && <div>{description.description}</div>}
+      <div>
+        <b>
+          {input.subscription == "no"
+            ? describePeriod(input)
+            : capitalize(input.subscription) + " subscription"}
+        </b>
       </div>
-    </>
+      <div
+        style={{
+          border: "1px solid lightblue",
+          background: "white",
+          padding: "15px 15px 5px 15px",
+          margin: "5px 0 10px 0",
+          borderRadius: "5px",
+        }}
+      >
+        {compact ? describeItem(input) : editableQuota()}{" "}
+      </div>
+      <Button
+        style={{ marginRight: "5px" }}
+        onClick={() => {
+          const page = editPage();
+          router.push(`/store/${page}?id=${id}`);
+        }}
+      >
+        <Icon name="pencil" /> Edit
+      </Button>
+      <Button
+        style={{ margin: "0 5px 5px 0" }}
+        disabled={updating}
+        onClick={async () => {
+          setUpdating(true);
+          try {
+            await apiPost("/shopping/cart/remove", { id });
+            if (!isMounted.current) return;
+            await reload();
+          } finally {
+            if (!isMounted.current) return;
+            setUpdating(false);
+          }
+        }}
+      >
+        <Icon name="save" /> Save for later
+      </Button>
+      <Popconfirm
+        title={"Are you sure you want to delete this item?"}
+        onConfirm={async () => {
+          setUpdating(true);
+          try {
+            await apiPost("/shopping/cart/delete", { id });
+            if (!isMounted.current) return;
+            await reload();
+          } finally {
+            if (!isMounted.current) return;
+            setUpdating(false);
+          }
+        }}
+        okText={"Yes, delete this item"}
+        cancelText={"Cancel"}
+      >
+        <Button disabled={updating} type="dashed">
+          <Icon name="trash" /> Delete
+        </Button>
+      </Popconfirm>
+    </div>
   );
 }

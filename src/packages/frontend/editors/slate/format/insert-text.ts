@@ -38,7 +38,6 @@ import { getRules } from "../elements";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 import { formatHeading, setSelectionAndFocus } from "./commands";
-const linkify = require("linkify-it")();
 
 export const withInsertText = (editor) => {
   const { insertText: insertText0 } = editor;
@@ -67,19 +66,6 @@ export const withInsertText = (editor) => {
 
   editor.insertText = (text, autoFormat?) => {
     if (!text) return;
-    if (linkify.test(text)) {
-      // inserting a link somehow, e.g., by pasting.  Instead,
-      // create a link node instead of plain text.
-      Transforms.insertNodes(editor, [
-        {
-          type: "link",
-          isInline: true,
-          url: text,
-          children: [{ text }],
-        },
-      ]);
-      return;
-    }
     if (!autoFormat) {
       insertText(text);
       return;
@@ -145,10 +131,17 @@ function markdownAutoformatAt(
   const pos = path[path.length - 1]; // position among siblings.
 
   // Find the first whitespace from the end after triming whitespace.
-  // This is what we autoformat on, since it is the most predictable,
+  // This is what we autoformat on by default, since it is the most predictable,
   // and doesn't suddenly do something with text earlier in the node
   // that the user already explicitly decided not to autoformat.
+  // NOTE that there are several cases below where we move start back though,
+  // e.g., checkboxes that are written using "[ ]".
   let text = node.text;
+  if (text.endsWith(" ")) {
+    // do not autoformat if there is already whitespace at the end, e.g., maybe
+    // user chose not to autoformat this earlier.
+    return false;
+  }
   let start = text.lastIndexOf(" ", text.trimRight().length - 1);
 
   // Special case some block level formatting (for better handling and speed).
@@ -175,12 +168,19 @@ function markdownAutoformatAt(
   // However, there are some cases where we extend the range of
   // the autofocus further to the left from start:
   //    - "[ ]" for checkboxes.
+  //    - "[link text](url)", since link text may have spaces in it.
   //    - formatting, e.g., "consider `foo bar`".
   //    - NOTE: I'm not allowing for space in  math formulas ($ or $$) here,
   //      since it is very annoying if you trying to type USD amounts. A
   //      workaround is create the inline formula with no spaces, then edit it.
   const text0 = text.trimRight();
-  if (text0.endsWith("]")) {
+  if (text0.endsWith(")") && text0.includes("[") && text0.includes("](")) {
+    // may be a link such as [link text](url):
+    const i = text.lastIndexOf("[");
+    if (i != -1) {
+      start = Math.min(i - 1, start);
+    }
+  } else if (text0.endsWith("]") && text0.includes("[")) {
     const i = text.lastIndexOf("[");
     if (i != -1) {
       start = Math.min(i - 1, start);
@@ -285,9 +285,6 @@ function markdownAutoformatAt(
     // **much** better than selecting the corresponding text
     // and letting insertNodes take care of it.
     Transforms.removeNodes(editor, { at: path });
-    // We put an empty paragraph after, so that formatting
-    // is preserved (otherwise it gets stripped); also some documents
-    // ending in void block elements are difficult to use.
     Transforms.insertNodes(editor, doc);
 
     // Normally just move the cursor beyond what was just
@@ -298,6 +295,15 @@ function markdownAutoformatAt(
     if (!rules?.autoFocus) {
       // move cursor out of the newly created block element.
       Transforms.move(editor, { distance: 1 });
+    }
+    if (rules?.autoAdvance) {
+      setSelectionAndFocus(editor, {
+        focus: { path, offset: 0 },
+        anchor: { path, offset: 0 },
+      });
+      setTimeout(() => {
+        Transforms.move(editor, { distance: 1, unit: "line" });
+      }, 0);
     }
   }
   return true;

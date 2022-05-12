@@ -31,6 +31,11 @@ With a specific project:
 Or with an editor in a project:
 
  useRedux(['path', 'in', 'project store'], 'project-id', 'path')
+
+If you don't know the name of the store initially, you can use a name of '',
+and you'll always get back undefined.
+
+ useRedux(['', 'other', 'stuff']) === undefined
 */
 
 import { is_valid_uuid_string } from "@cocalc/util/misc";
@@ -45,6 +50,11 @@ export function useReduxNamedStore(path: string[]) {
   });
 
   React.useEffect(() => {
+    if (path[0] == "") {
+      // Special case -- we allow passing "" for the name of the store and get out undefined.
+      // This is useful when using the useRedux hook but when the name of the store isn't known initially.
+      return undefined;
+    }
     const store = redux.getStore(path[0]);
     if (store == null) {
       // TODO: I could make it return undefined until the store is created.
@@ -193,7 +203,6 @@ export interface StoreStates {
   page: types.PageState;
   projects: types.ProjectsState;
   users: types.UsersState;
-  "compute-environment": types.ComputeEnvironmentState;
 }
 
 export function useTypedRedux<
@@ -328,9 +337,6 @@ export function useActions(name: "mentions"): types.MentionsActions;
 export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "users"): types.UsersActions;
-export function useActions(
-  name: "compute-environment"
-): types.ComputeEnvironmentActions;
 
 // If it is none of the explicitly named ones... it's a project or just some general actions.
 // That said *always* use {project_id} as below to get the actions for a project, so you
@@ -389,7 +395,6 @@ export interface Stores {
   page: types.PageStore;
   projects: types.ProjectsStore;
   users: types.UsersStore;
-  "compute-environment": types.ComputeEnvironmentStore;
 }
 
 // If it is none of the explicitly named ones... it's a project.

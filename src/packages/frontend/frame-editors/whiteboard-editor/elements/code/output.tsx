@@ -4,9 +4,10 @@ import { fromJS } from "immutable";
 import { useFrameContext } from "../../hooks";
 import { path_split } from "@cocalc/util/misc";
 import { getJupyterActions } from "./actions";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
+import { useIsMountedRef, useRedux } from "@cocalc/frontend/app-framework";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import useWheel from "../scroll-wheel";
+import { moreOutput } from "./static";
 
 // Support for all the output Jupyter MIME types must be explicitly loaded.
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-frontend";
@@ -27,6 +28,22 @@ export default function Output({ element, onClick }) {
     })();
   }, []);
 
+  // We hook into the Jupyter store for the associated notebook, when available,
+  // to get the additional output map.
+  const more_output = useRedux([jupyterActions?.name ?? "", "more_output"]);
+
+  // If there is any additional output, we save it in the moreOutput LRU cache.
+  // This is needed so that the additional output is available and visible even
+  // in static mode (which is used when cell isn't focused), and also when you
+  // focus the code cell again.  This LRU cache is mainly just a trick to
+  // simplify our code and keep things reasonably efficient.
+  useEffect(() => {
+    const x = more_output?.get(element.id);
+    if (x != null && x != moreOutput.get(element.id)) {
+      moreOutput.set(element.id, x);
+    }
+  }, [more_output]);
+
   const divRef = useRef(null);
   useWheel(divRef);
 
@@ -46,6 +63,7 @@ export default function Output({ element, onClick }) {
         actions={jupyterActions}
         name={jupyterActions?.name}
         id={element.id}
+        more_output={more_output?.get(element.id) ?? moreOutput.get(element.id)}
         cell={fromJS(element.data)}
         project_id={project_id}
         directory={path_split(path).head}

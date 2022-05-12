@@ -27,7 +27,7 @@ import { ProjectsSearch } from "./search";
 import { AddToProjectToken } from "./token";
 import { Hashtags } from "./hashtags";
 import { ProjectsListingDescription } from "./project-list-desc";
-import { ProjectList } from "./project-list";
+import ProjectList from "./project-list";
 import { get_visible_projects, get_visible_hashtags } from "./util";
 import { Footer } from "@cocalc/frontend/customize";
 

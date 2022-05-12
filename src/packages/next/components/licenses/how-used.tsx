@@ -30,7 +30,7 @@ function TitleId({ title, project_id, collaborators, account_id, label }) {
           Project Id:
         </>
       )}
-      <Copyable text={project_id} size="small" />
+      <Copyable value={project_id} size="small" />
     </div>
   );
 }

@@ -7,37 +7,56 @@
 Render a single PDF page using canvas.
 */
 
-import $ from "jquery";
+import { useCallback, useEffect, useRef } from "react";
 import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
-import { React, ReactDOM } from "../../app-framework";
-import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
+import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
+import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   page: PDFPageProxy;
   scale: number;
-  click_annotation: Function;
-  sync_highlight?: SyncHighlight;
+  clickAnnotation: Function;
+  syncHighlight?: SyncHighlight;
 }
 
-export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
-  const { page, scale, click_annotation, sync_highlight } = props;
+export default function CanvasPage({
+  page,
+  scale,
+  clickAnnotation,
+  syncHighlight,
+}: Props) {
+  const divRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastScaleRef = useRef<number>(scale);
+  const lastRenderScaleRef = useRef<number>(scale);
 
-  const pageRef = React.useRef(null);
+  const viewport: PDFPageViewport = page.getViewport({
+    scale: scale * window.devicePixelRatio,
+  });
+  const height = `${viewport.height / window.devicePixelRatio}px`;
 
-  React.useEffect(
-    function () {
-      render_page();
-    },
-    [page, scale]
-  );
+  const scalePage = useCallback(async (scale) => {
+    if (lastScaleRef.current == scale) return;
+    const div = divRef.current;
+    const canvas = canvasRef.current;
+    if (div == null || canvas == null) return;
+    lastScaleRef.current = scale;
+    const viewport: PDFPageViewport = page.getViewport({
+      scale: scale * window.devicePixelRatio,
+    });
+    canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
+    canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
+  }, []);
 
-  async function render_page(): Promise<void> {
-    if (pageRef.current == null) return;
-    const div: HTMLElement = ReactDOM.findDOMNode(pageRef.current);
+  const renderPage = useCallback(async (page, scale) => {
+    if (divRef.current == null) return;
+    lastScaleRef.current = lastRenderScaleRef.current = scale;
+    const div = divRef.current;
     const viewport: PDFPageViewport = page.getViewport({
       scale: scale * window.devicePixelRatio,
     });
     const canvas: HTMLCanvasElement = document.createElement("canvas");
+    canvasRef.current = canvas;
     const ctx = canvas.getContext("2d");
     if (ctx == null) {
       console.error(
@@ -49,8 +68,7 @@ export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
     canvas.height = viewport.height;
     canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
     canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
-    $(div).empty();
-    div.appendChild(canvas);
+    div.replaceChildren(canvas);
     try {
       await page.render({
         canvasContext: ctx,
@@ -60,23 +78,39 @@ export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
       console.error(`pdf.js -- Error rendering canvas page: ${err}`);
       return;
     }
-  }
+  }, []);
+
+  const debouncedRender = useDebouncedCallback(renderPage, 500);
+
+  useEffect(() => {
+    renderPage(page, scale);
+  }, [page]);
+
+  useEffect(() => {
+    scalePage(scale);
+    if (lastRenderScaleRef.current < scale) {
+      // upscaling, so may need to render.
+      debouncedRender(page, scale);
+    } else {
+      debouncedRender.cancel();
+    }
+  }, [scale]);
 
   return (
     <div
       style={{
-        margin: "auto",
         position: "relative",
         display: "inline-block",
+        height,
       }}
     >
       <AnnotationLayer
         page={page}
         scale={scale}
-        click_annotation={click_annotation}
-        sync_highlight={sync_highlight}
+        clickAnnotation={clickAnnotation}
+        syncHighlight={syncHighlight}
       />
-      <div ref={pageRef} />
+      <div ref={divRef} />
     </div>
   );
-});
+}

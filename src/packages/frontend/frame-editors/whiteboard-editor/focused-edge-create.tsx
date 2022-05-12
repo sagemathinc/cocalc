@@ -8,13 +8,17 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "./types";
 import { CSSProperties } from "react";
 import { MAX_ELEMENTS, DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./math";
-import { SELECTED_BORDER_COLOR } from "./elements/style";
+import {
+  SELECTED_BORDER_COLOR,
+  SELECTED_PADDING,
+  SELECTED_BORDER_WIDTH,
+} from "./elements/style";
 import { useFrameContext } from "./hooks";
 import { getParams } from "./tools/tool-panel";
 
-const SIZE = 12;
+const BORDER = SELECTED_PADDING + SELECTED_BORDER_WIDTH;
+const SIZE = SELECTED_BORDER_WIDTH * 4;
 const OFFSET = -SIZE / 2;
-const OFFSET_PX = `${OFFSET}px`;
 
 export type Position = "top" | "bottom" | "left" | "right";
 
@@ -38,17 +42,17 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
   const h = element.h ?? DEFAULT_HEIGHT;
   const w = element.w ?? DEFAULT_WIDTH;
   if (position == "top") {
-    style.top = OFFSET_PX;
+    style.top = `${-SIZE / 2 - BORDER / 2}px`;
     style.left = `${w / 2 + OFFSET}px`;
   } else if (position == "bottom") {
-    style.bottom = `${-SIZE / 4}px`;
+    style.bottom = 0;
     style.left = `${w / 2 + OFFSET}px`;
   } else if (position == "left") {
     style.top = `${h / 2 + OFFSET}px`;
-    style.left = OFFSET_PX;
+    style.left = `${-SIZE / 2 - BORDER / 2}px`;
   } else if (position == "right") {
     style.top = `${h / 2 + OFFSET}px`;
-    style.right = `${-SIZE / 4}px`;
+    style.right = 0;
   }
 
   return (

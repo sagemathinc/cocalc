@@ -7,14 +7,12 @@
 React component that describes the input of a cell
 */
 
-declare const $: any;
-
 import { useCallback, useEffect, useRef } from "react";
 import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
-import { Button, ButtonGroup } from "react-bootstrap";
+import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { startswith, filename_extension } from "@cocalc/util/misc";
-import { Icon, Markdown } from "../components";
+import { Icon } from "../components";
 import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt/input";
 import { Complete } from "./complete";
@@ -25,49 +23,40 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+
+// TODO: plan to switch to this soon!
+// import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
-function href_transform(
+function attachmentTransform(
   project_id: string | undefined,
-  cell: Map<string, any>
-): (string) => string {
-  return (href: string) => {
-    if (!startswith(href, "attachment:")) {
-      return href;
-    }
-    const name = href.slice("attachment:".length);
-    const data = cell.getIn(["attachments", name]);
-    let ext = filename_extension(name);
-    switch (data?.get("type")) {
-      case "sha1":
-        const sha1 = data.get("value");
-        if (project_id == null) {
-          return href; // can't do anything.
-        }
-        return get_blob_url(project_id, ext, sha1);
-      case "base64":
-        if (ext === "jpg") {
-          ext = "jpeg";
-        }
-        return `data:image/${ext};base64,${data.get("value")}`;
-      default:
-        return "";
-    }
-  };
-}
-
-function markdown_post_hook(elt) {
-  return elt.find(":header").each((_, h) => {
-    h = $(h);
-    const hash = h.text().trim().replace(/\s/g, "-");
-    h.attr("id", hash).addClass("cocalc-jupyter-header");
-    h.append(
-      $("<a/>")
-        .addClass("cocalc-jupyter-anchor-link")
-        .attr("href", `#${hash}`)
-        .text("¶")
-    );
-  });
+  cell: Map<string, any>,
+  href?: string
+): string | undefined {
+  if (!href || !startswith(href, "attachment:")) {
+    return;
+  }
+  const name = href.slice("attachment:".length);
+  const data = cell.getIn(["attachments", name]);
+  let ext = filename_extension(name);
+  switch (data?.get("type")) {
+    case "sha1":
+      const sha1 = data.get("value");
+      if (project_id == null) {
+        return href; // can't do anything.
+      }
+      return get_blob_url(project_id, ext, sha1);
+    case "base64":
+      if (ext === "jpg") {
+        ext = "jpeg";
+      }
+      return `data:image/${ext};base64,${data.get("value")}`;
+    default:
+      return "";
+  }
 }
 
 export interface CellInputProps {
@@ -202,6 +191,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
+    const fileContext = useFileContext();
+    const urlTransform = useCallback(
+      (url, tag?) => {
+        const url1 = attachmentTransform(props.project_id, props.cell, url);
+        if (url1 != null && url1 != url) {
+          return url1;
+        }
+        return fileContext.urlTransform?.(url, tag);
+      },
+      [props.cell.get("attachments")]
+    );
+
     function render_markdown(): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
@@ -220,13 +221,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
           {render_markdown_edit_button()}
-          <Markdown
+          <MostlyStaticMarkdown
             value={value}
-            project_id={props.project_id}
-            file_path={props.directory}
-            href_transform={href_transform(props.project_id, props.cell)}
-            post_hook={markdown_post_hook}
-            safeHTML={!props.trust}
+            onChange={(value) => {
+              // user checked a checkbox.
+              props.actions?.set_cell_input(props.id, value, true);
+            }}
           />
         </div>
       );
@@ -336,6 +336,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
           modeSwitchStyle={{ marginRight: "32px" }}
+          editBarStyle={{
+            paddingRight:
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+          }}
         />
       );
     }
@@ -458,22 +462,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const type = props.cell.get("cell_type") || "code";
     return (
-      <div>
-        {render_cell_toolbar()}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "stretch",
-          }}
-          cocalc-test="cell-input"
-        >
-          {render_input_prompt(type)}
-          {render_complete()}
-          {render_input_value(type)}
-          {render_time()}
+      <FileContext.Provider
+        value={{
+          ...fileContext,
+          urlTransform,
+        }}
+      >
+        <div>
+          {render_cell_toolbar()}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "stretch",
+            }}
+            cocalc-test="cell-input"
+          >
+            {render_input_prompt(type)}
+            {render_complete()}
+            {render_input_value(type)}
+            {render_time()}
+          </div>
         </div>
-      </div>
+      </FileContext.Provider>
     );
   },
   (

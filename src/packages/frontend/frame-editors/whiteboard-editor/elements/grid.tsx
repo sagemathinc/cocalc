@@ -23,6 +23,9 @@ export default function Grid({ transforms, divRef }: Props) {
     <div
       ref={divRef}
       style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
         width: `${transforms.width}px`,
         height: `${transforms.height}px`,
         ...GRID,

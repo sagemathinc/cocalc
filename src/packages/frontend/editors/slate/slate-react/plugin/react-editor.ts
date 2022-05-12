@@ -591,8 +591,8 @@ export const ReactEditor = {
     return true;
   },
 
-  scrollIntoDOM(editor: ReactEditor, path: Path) {
-    editor.scrollIntoDOM(path[0]);
+  scrollIntoDOM(editor: ReactEditor, path: Path): boolean {
+    return editor.scrollIntoDOM(path[0]);
   },
 
   forceUpdate(editor: ReactEditor) {

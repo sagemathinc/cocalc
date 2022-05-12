@@ -7,6 +7,7 @@
 What happens when you hit arrow keys.
 */
 
+import { Transforms } from "slate";
 import { register } from "./register";
 import {
   blocksCursor,
@@ -30,8 +31,9 @@ const down = ({ editor }: { editor: SlateEditor }) => {
     ) {
       // moving to the next block:
       if (editor.scrollIntoDOM(index + 1)) {
+        // we did actually have to scroll the block below current one into the dom.
         setTimeout(() => {
-          // did cursor move -- if not, we manually move it.
+          // did cursor move? -- if not, we manually move it.
           if (cur == editor.selection?.focus) {
             moveCursorDown(editor, true);
             moveCursorToBeginningOfBlock(editor);
@@ -60,16 +62,22 @@ const down = ({ editor }: { editor: SlateEditor }) => {
       return true;
     }
   } finally {
-    if (cur != null && editor.onCursorBottom != null) {
-      // check if attempt to move cursor did nothing in the next
-      // render loop (after selection gets sync'd).
-      // TODO/NOTE: this is incompatible with windowing (see similar code above, which would conflict with this).
-      setTimeout(() => {
-        if (cur == editor.selection?.focus) {
+    setTimeout(() => {
+      if (cur != null && cur == editor.selection?.focus) {
+        // it is VERY bad for the cursor to be completely stuck... so we ensure
+        // this can't happen here.
+        const n = editor.selection.focus.path[0];
+        if (n < editor.children.length - 1) {
+          Transforms.setSelection(editor, {
+            focus: { path: [n + 1, 0], offset: 0 },
+            anchor: { path: [n + 1, 0], offset: 0 },
+          });
+        } else {
+          // TODO/NOTE: this is incompatible with windowing (see similar code above, which would conflict with this).
           editor.onCursorBottom?.();
         }
-      }, 0);
-    }
+      }
+    }, 0);
   }
 };
 
@@ -133,7 +141,7 @@ so maybe that should be implemented...?
 
 function pageWindowed(sign) {
   return ({ editor }) => {
-    const scroller = editor.windowedListRef.current?.scrollerRef.current;
+    const scroller = editor.windowedListRef.current?.getScrollerRef();
     if (scroller == null) return false;
     const { scrollTop } = scroller;
 
@@ -154,13 +162,13 @@ const pageDown = pageWindowed(1);
 register({ key: "PageDown" }, pageDown);
 
 function beginningOfDoc({ editor }) {
-  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  const scroller = editor.windowedListRef.current?.getScrollerRef();
   if (scroller == null) return false;
   scroller.scrollTop = 0;
   return true;
 }
 function endOfDoc({ editor }) {
-  const scroller = editor.windowedListRef.current?.scrollerRef.current;
+  const scroller = editor.windowedListRef.current?.getScrollerRef();
   if (scroller == null) return false;
   scroller.scrollTop = 1e20; // basically infinity
   // might have to do it again do to measuring size of rows...

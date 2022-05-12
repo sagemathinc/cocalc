@@ -169,7 +169,7 @@ export default function ToolPanel<Params>({
           <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
             {TOOLS[tool].tip}
           </div>
-          <Tooltip title={TOOLS[tool].tip}>
+          <Tooltip title={TOOLS[tool].tip}  mouseEnterDelay={0.7}>
             <Button type="text">
               <Icon
                 style={{ color: SELECTED, fontSize: "20px" }}

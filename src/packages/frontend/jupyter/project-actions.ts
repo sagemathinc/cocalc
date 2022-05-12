@@ -396,7 +396,8 @@ export class JupyterActions extends JupyterActions0 {
   // manager_on_cell_change is called after a cell change has been
   // incorporated into the store by syncdb_cell_change.
   // It ensures any cell with a compute request
-  // gets computed,    Only one client -- the project itself -- will run this code.
+  // gets computed.
+  //    Only one client -- the project itself -- will run this code.
   manager_on_cell_change = (id: any, new_cell: any, old_cell: any) => {
     const dbg = this.dbg(`manager_on_cell_change(id='${id}')`);
     dbg(

@@ -3,18 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
-const { Panel } = require("react-bootstrap");
-import { Col, Row, Table } from "react-bootstrap";
-import { Space, Icon, IconName } from "../components";
-import { COLORS } from "@cocalc/util/theme";
 import {
-  Cost,
-  User,
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
-} from "@cocalc/util/licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/consts";
+import { Cost, User } from "@cocalc/util/licenses/purchase/types";
+import { COLORS } from "@cocalc/util/theme";
+import { Col, Row, Table } from "react-bootstrap";
+import { React } from "../app-framework";
+import { Icon, IconName, Space } from "../components";
+const { Panel } = require("react-bootstrap");
 
 // This component renders 3 price examples for licensed upgrades in a row
 

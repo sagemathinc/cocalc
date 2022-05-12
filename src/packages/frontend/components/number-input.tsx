@@ -58,7 +58,6 @@ export class NumberInput extends React.Component<Props, State> {
         <Col xs={16}>
           <Input
             type="text"
-            ref="input"
             value={
               this.state.number != undefined
                 ? this.state.number

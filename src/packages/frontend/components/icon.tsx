@@ -58,6 +58,7 @@ import {
   DashboardOutlined,
   DatabaseOutlined,
   DeleteOutlined,
+  DeploymentUnitOutlined,
   DesktopOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
@@ -264,6 +265,7 @@ const IconSpec = {
   cut: ScissorOutlined,
   dashboard: DashboardOutlined,
   database: DatabaseOutlined,
+  dedicated: DeploymentUnitOutlined, // icon for "dedicated resources"
   desktop: DesktopOutlined,
   discord: { IconFont: "discord" },
   docker: { IconFont: "docker" },
@@ -312,6 +314,7 @@ const IconSpec = {
   emacs: { IconFont: "gnuemacs" },
   google: GoogleOutlined,
   "graduation-cap": { IconFont: "graduation" },
+  graph: { IconFont: "graph" },
   grass: { IconFont: "grass" },
   group: { IconFont: "group" },
   hand: { IconFont: "hand" },

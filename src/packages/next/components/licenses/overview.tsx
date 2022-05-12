@@ -18,6 +18,11 @@ export default function Overview() {
         <A href="/licenses/how-used">a specific site licenses is being used</A>.{" "}
       </p>
       <p>
+        You can also{" "}
+        <A href="/billing/subscriptions">manage your purchased subscriptions</A>{" "}
+        and browse <A href="/billing/receipts">your receipts and invoices</A>.
+      </p>
+      <p>
         Read{" "}
         <A href="https://doc.cocalc.com/licenses.html">
           the license documentation

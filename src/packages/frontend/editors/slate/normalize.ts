@@ -7,10 +7,12 @@
 
 - merging adjacent lists, since the roundtrip to markdown does that.
 
-WARNING: Before very very very careful before changing anything here!!!
+WARNING: The following warning used to apply.  However, we now normalize
+markdown_to_slate always, so it does not apply: "Before very very very
+careful before changing anything here!!!
 It is absolutely critical that the output of markdown_to_slate be normalized
 according to all the rules here.  If you change a rule here, that will
-likely break this assumption and things will go to hell.  Be careful.
+likely break this assumption and things will go to hell.  Be careful.""
 
 */
 

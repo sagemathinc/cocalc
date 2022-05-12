@@ -193,7 +193,10 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   let style: React.CSSProperties;
   if (path != null) {
     if (is_selected) {
-      style = { ...DEFAULT_FILE_TAB_STYLES, backgroundColor: COLORS.BLUE_BG };
+      style = {
+        ...DEFAULT_FILE_TAB_STYLES,
+        backgroundColor: COLORS.ANTD_BG_BLUE_L,
+      };
     } else {
       style = DEFAULT_FILE_TAB_STYLES;
     }

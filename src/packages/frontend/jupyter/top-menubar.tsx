@@ -9,11 +9,22 @@
 import { React, useTypedRedux, useRedux, Rendered } from "../app-framework";
 import { user_activity } from "../tracker";
 import * as immutable from "immutable";
-import { ButtonGroup, SelectCallback } from "react-bootstrap";
-import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../components";
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Icon,
+  r_join,
+  DropdownMenu,
+  MenuItem,
+  MenuDivider,
+} from "../components";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import { open_new_tab } from "../misc";
-import { capitalize, copy, endswith, all_fields_equal } from "@cocalc/util/misc";
+import {
+  capitalize,
+  copy,
+  endswith,
+  all_fields_equal,
+} from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -374,7 +385,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       }
     }
 
-    function command(name: string): SelectCallback {
+    function command(name: string) {
       return () => {
         frameActions.current?.command(name);
         $(":focus").blur(); // battling with react-bootstrap stupidity... ?
@@ -584,8 +595,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style={{
           backgroundColor: "rgb(247,247,247)",
           border: "1px solid #e7e7e7",
-          minHeight: "34px",
-          paddingTop: "4px",
         }}
       >
         <ButtonGroup>

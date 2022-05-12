@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { ElementType, Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "./defaults";
+import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../math";
 
 export type ConfigParams =
   | "fontFamily"
@@ -22,7 +23,7 @@ interface ToolDescription {
   readOnly?: boolean; // if true, show this tool even in readonly view
   resizable?: boolean; // if true, show resize handles.  Some things should only resize via adapting to their content.
   key?: string | string[]; // keyboard shortcut or shortcuts
-  type?: ElementType;
+  type?: ElementType; // this should equal the key below
   size?: (Element) => { w: number; h: number };
   select?: boolean; // if true, select and set to edit on create
 }
@@ -43,11 +44,11 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "v", // "v" = what figma and miro use.
   },
   edge: {
-    icon: "arrow-right",
+    icon: "graph",
     tip: "Edge",
     config: new Set(["color", "radius", "opacity"]),
     key: "e",
-    type: "edge",
+    type: "edge", // e.g., this is assumed to also be the tool name!
   },
   text: {
     icon: "text1",
@@ -99,6 +100,10 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontSize", "color"]),
     key: "i",
     type: "icon",
+    size: (element) => {
+      const s = (element.data?.fontSize ?? DEFAULT_FONT_SIZE) + 6;
+      return { w: s, h: s };
+    },
   },
   chat: {
     icon: "comment",
@@ -133,3 +138,17 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
 };
 
 export type Tool = keyof typeof TOOLS;
+
+// default size for the tool
+export function setDefaultSize(element: Partial<Element>): void {
+  const { type } = element;
+  const size = TOOLS[type ?? ""]?.size;
+  if (size != null) {
+    const { w, h } = size(element);
+    element.w = w;
+    element.h = h;
+  } else {
+    element.w = DEFAULT_WIDTH;
+    element.h = DEFAULT_HEIGHT;
+  }
+}

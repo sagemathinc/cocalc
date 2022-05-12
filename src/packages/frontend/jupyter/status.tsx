@@ -8,7 +8,14 @@
 import { ReactNode } from "react";
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
-import { Popover, Popconfirm, Progress, Tooltip, Typography } from "antd";
+import {
+  Button,
+  Popover,
+  Popconfirm,
+  Progress,
+  Tooltip,
+  Typography,
+} from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { A, Icon, IconName, Loading } from "../components";
 import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
@@ -218,20 +225,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         return <div style={{ display: "flex", color: "#888" }}>Trusted</div>;
       } else {
         return (
-          <div
-            title={"Notebook is not trusted"}
-            style={{
-              display: "flex",
-              background: "#5bc0de",
-              color: "white",
-              cursor: "pointer",
-              padding: "3px",
-              borderRadius: "3px",
-            }}
-            onClick={() => actions.trust_notebook()}
-          >
-            Not Trusted
-          </div>
+          <Tooltip title={"Notebook is not trusted"}>
+            <Button danger onClick={() => actions.trust_notebook()} size="small">
+              Not Trusted
+            </Button>
+          </Tooltip>
         );
       }
     }
@@ -304,7 +302,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             float: "right",
             display: "inline-block",
             paddingRight: "10px",
-            marginTop: "7px",
             color: "#888",
             borderRight: "1px solid grey",
           }}
@@ -535,7 +532,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     const body = (
       <div
         className="pull-right"
-        style={{ color: COLORS.GRAY, cursor: "pointer", marginTop: "7px" }}
+        style={{ color: COLORS.GRAY, cursor: "pointer" }}
       >
         {info}
       </div>

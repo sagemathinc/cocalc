@@ -69,10 +69,10 @@ export const SubscriptionList: React.FC<Props> = ({
     return (
       <Button
         bsStyle="primary"
-        disabled={state != "view"}
+        disabled={true /*DEPRECATED;  was 'state != "view"'*/}
         onClick={() => set_state("buy_upgrades")}
       >
-        <Icon name="plus-circle" /> Buy Upgrades...
+        <Icon name="plus-circle" /> Buy Upgrades (deprecated)...
       </Button>
     );
   }

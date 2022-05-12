@@ -58,7 +58,6 @@ export interface EditorDescription {
   mode?: any; // I think it's a CM mode (?)
   reload_images?: boolean;
   gutters?: string[]; // I think it's cm gutters
-  renderer?: string; // e.g., "canvas" or "svg"
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
   guide_info?: { title?: string; descr?: string; icon?: IconName };

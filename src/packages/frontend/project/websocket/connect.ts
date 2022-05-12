@@ -20,8 +20,8 @@ const {
   once,
   retry_until_success,
 } = require("@cocalc/util/async-utils"); // so also works on backend.
-import { callback } from "awaiting";
-import { /* getScript*/ ajax, globalEval } from "jquery";
+import { callback, delay } from "awaiting";
+import { ajax, globalEval } from "jquery";
 import { redux } from "../../app-framework";
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
 import { webapp_client } from "../../webapp-client";
@@ -235,7 +235,11 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // attempting websocket connections (which turns out to be very bad
   // for modern browsers!), we use our own strategy.
   conn.on("end", async function () {
-    log(`project websocket: reconnecting to '${project_id}'...`);
+    log(`project websocket: reconnecting to '${project_id}' in 1s...`);
+    // put this delay in since otherwise we try to reconnect so rapidly that
+    // we basically DOS the project thus slowing down connecting by a
+    // few seconds, which is dumb:
+    await delay(1000);
     if (conn.api == null) return; // done with this connection
     update_state("offline");
     await get_primus(false);

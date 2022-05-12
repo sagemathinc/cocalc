@@ -5,14 +5,12 @@
 
 // Katex support -- NOTE: this import of katex is pretty LARGE.
 import "katex/dist/katex.min.css";
-import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 
 // Everything else.
 import {
   React,
   useEffect,
   useFrameContext,
-  useMemo,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { startswith } from "@cocalc/util/misc";
@@ -20,6 +18,7 @@ import { SlateCodeMirror } from "../codemirror";
 import { useFocused, useSelected } from "../../slate-react";
 import { useCollapsed } from "../hooks";
 import { FOCUSED_COLOR } from "../../util";
+import { StaticElement } from "./index";
 
 interface Props {
   value: string;
@@ -31,8 +30,6 @@ export const SlateMath: React.FC<Props> = React.memo(
   ({ value, onChange, isInline }) => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const frameContext = useFrameContext();
-
-    const { err, __html } = useMemo(() => mathToHtml(value, isInline), [value]);
 
     const focused = useFocused();
     const selected = useSelected();
@@ -74,19 +71,14 @@ export const SlateMath: React.FC<Props> = React.memo(
             frameContext.actions.set_active_id(frameContext.id);
           }}
         >
-          {err ? (
-            <span
-              style={{
-                backgroundColor: "#fff2f0",
-                border: "1px solid #ffccc7",
-                padding: "5px 10px",
-              }}
-            >
-              {err}
-            </span>
-          ) : (
-            <span dangerouslySetInnerHTML={{ __html }}></span>
-          )}
+          {/* any below since we are abusing the StaticElement component a bit */}
+          <StaticElement
+            element={
+              { value, type: isInline ? "math_inline" : "math_block" } as any
+            }
+            children={undefined}
+            attributes={{} as any}
+          />
         </span>
       );
     }

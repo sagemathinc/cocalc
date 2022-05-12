@@ -9,8 +9,8 @@ import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
 import { useSetElement } from "../set-element";
 import { FOCUSED_COLOR } from "../../util";
 import { Resizable } from "re-resizable";
-
 import { Image } from "./index";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 // NOTE: We do NOT use maxWidth:100% since that ends up
 // making the resizing screw up the aspect ratio.
@@ -79,13 +79,16 @@ register({
 
     const focused = useFocused();
     const selected = useSelected();
-    const border = `2px solid ${focused && selected ? FOCUSED_COLOR : "white"}`;
+    const border = `2px solid ${
+      focused && selected ? FOCUSED_COLOR : "transparent"
+    }`;
 
     const ref = useProcessLinks([src]);
     const imageRef = useRef<any>(null);
 
     const editor = useSlate();
     const setElement = useSetElement(editor, element);
+    const { urlTransform } = useFileContext();
 
     return (
       <span {...attributes}>
@@ -93,7 +96,6 @@ register({
           <Resizable
             style={{
               display: "inline-block",
-              background: "#f0f0f0",
               border,
               maxWidth: "100%",
             }}
@@ -128,7 +130,7 @@ register({
                 setHeight(height);
               }}
               ref={imageRef}
-              src={src}
+              src={urlTransform?.(src, 'img') ?? src}
               alt={alt}
               title={title}
               style={{

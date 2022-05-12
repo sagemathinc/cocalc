@@ -6,7 +6,13 @@ but in a way that is always present and with an additional
 high level map view.
 */
 
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  MutableRefObject,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Slider, Tooltip } from "antd";
 import { useFrameContext } from "../hooks";
@@ -24,6 +30,12 @@ import {
 } from "../elements/style";
 import { Key } from "./panel";
 import { throttle } from "lodash";
+import useResizeObserver from "use-resize-observer";
+
+// nav panel can take at most this close to edge of full whiteboard.
+// We have to constrain this, because if you change your screen size, then things
+// could get annoyingly stuck, since you can't even grab the nav panel to resize it.
+const MAX_NAV_PANEL = 50;
 
 const TOOLS = {
   map: {
@@ -106,9 +118,15 @@ interface Props {
   fontSize?: number;
   elements: Element[];
   elementsMap?: ElementsMap;
+  whiteboardDivRef: MutableRefObject<HTMLDivElement | null>;
 }
 
-export default function Navigation({ fontSize, elements, elementsMap }: Props) {
+export default function Navigation({
+  fontSize,
+  elements,
+  elementsMap,
+  whiteboardDivRef,
+}: Props) {
   const [resize, setResize] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -116,6 +134,27 @@ export default function Navigation({ fontSize, elements, elementsMap }: Props) {
   const { actions, desc, id } = useFrameContext();
   const width = desc.get("navWidth") ?? MAP_WIDTH;
   const height = desc.get("navHeight") ?? MAP_HEIGHT;
+
+  const whiteboardResize = useResizeObserver({ ref: whiteboardDivRef });
+  useEffect(() => {
+    const rect = whiteboardDivRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // note -- we don't cap the height width too strongly in case window is tiny,
+    // hence the Math.max below, where the first inputs match the bounds inputs
+    // to the Draggable component below.  In particular, note that these
+    // should match what is a prop to bounds for Draggable.
+    const maxWidth = Math.max(MAP_WIDTH, rect.width - MAX_NAV_PANEL);
+    const maxHeight = Math.max(MAP_HEIGHT / 2, rect.height - MAX_NAV_PANEL);
+    if (width > maxWidth || height > maxHeight) {
+      // nav panel is too big, e.g., due to resizing containing window, changing
+      // screen resolution, splitting frame, etc., so we fix it.
+      actions.set_frame_tree({
+        id,
+        navWidth: Math.min(width, maxWidth),
+        navHeight: Math.min(height, maxHeight),
+      });
+    }
+  }, [width, height, whiteboardResize]);
 
   const [zoomSlider, setZoomSlider] = useState<number>(
     Math.round(100 * fontSizeToZoom(fontSize))
@@ -246,7 +285,7 @@ function Map({
       <Canvas
         isNavigator
         previewMode={navMap == "preview"}
-        margin={10 / scale}
+        margin={20 + 10 / scale}
         elements={elements}
         elementsMap={elementsMap}
         scale={scale}
@@ -254,8 +293,8 @@ function Map({
       <Draggable
         position={{ x: 0, y: 0 }}
         bounds={{
-          right: Math.max(0, width - MAP_WIDTH * 0.75),
-          bottom: Math.max(0, height - MAP_HEIGHT * 0.75),
+          right: Math.max(0, width - MAP_WIDTH),
+          bottom: Math.max(0, height - MAP_HEIGHT / 2),
         }}
         onDrag={(_, data) => {
           setResize({ x: -data.x, y: -data.y });

@@ -4,7 +4,7 @@ Floating panel from which you can select a tool.
 
 */
 
-import { CSSProperties, ReactNode } from "react";
+import { CSSProperties, ReactNode, useEffect } from "react";
 import { Button, Tooltip, Typography } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
@@ -29,6 +29,15 @@ interface Props {
 }
 
 export default function Panel({ selectedTool, readOnly }: Props) {
+  const { actions, id } = useFrameContext();
+  useEffect(() => {
+    // ensure that in readonly mode the only possibly selected tool is select or hand.
+    // this could happen if switch from non-read only to read only, or switch entire frame
+    // from whiteboard to timetravel
+    if (readOnly && selectedTool != "select" && selectedTool != "hand") {
+      actions.setSelectedTool(id, "hand");
+    }
+  }, [readOnly]);
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     if (TOOLS[tool].hideFromToolbar) continue;

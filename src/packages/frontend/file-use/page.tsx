@@ -6,7 +6,7 @@
 import { delay } from "awaiting";
 import { redux, rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Loading } from "../components";
-import { FileUseViewer } from "./viewer";
+import FileUseViewer from "./viewer";
 import { Map as iMap } from "immutable";
 import { MentionsMap } from "../notifications/mentions/types";
 
@@ -68,7 +68,6 @@ class FileUsePage extends Component<Props, {}> {
 
     return (
       <FileUseViewer
-        redux={redux}
         file_use_list={this.props.get_sorted_file_use_list2()}
         user_map={this.props.user_map}
         project_map={this.props.project_map}

@@ -1,20 +1,26 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
-import A from "components/misc/A";
-import { join } from "path";
-import basePath from "lib/base-path";
-import Menu from "./menu";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import useProfile from "lib/hooks/profile";
+import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
-import { useRouter } from "next/router";
 import SiteName from "components/share/site-name";
+import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
+import Boost from "./boost";
 import Cart from "./cart";
-import SiteLicense from "./site-license";
-import Overview from "./overview";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
-import Anonymous from "components/misc/anonymous";
+import DedicatedResource from "./dedicated";
+import Menu from "./menu";
+import Overview from "./overview";
+import SiteLicense from "./site-license";
 
 const { Content } = Layout;
 
@@ -22,10 +28,14 @@ interface Props {
   page: string;
 }
 
-export default function ConfigLayout({ page }: Props) {
+export default function StoreLayout({ page }: Props) {
   const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
+
+  useEffect(() => {
+    router.prefetch("/store/site-license");
+  }, []);
 
   if (!isCommercial) {
     return (
@@ -79,6 +89,10 @@ export default function ConfigLayout({ page }: Props) {
     switch (main) {
       case "site-license":
         return <SiteLicense />;
+      case "boost":
+        return <Boost />;
+      case "dedicated":
+        return <DedicatedResource />;
       case "cart":
         return <Cart />;
       case "checkout":
@@ -94,34 +108,19 @@ export default function ConfigLayout({ page }: Props) {
       style={{
         padding: "0 24px 24px",
         backgroundColor: "white",
-        color: "#555",
+        color: COLORS.GRAY_D,
       }}
     >
-      <Menu main={main} />
       <Content
         style={{
-          padding: 24,
           margin: 0,
-          minHeight: 280,
+          minHeight: "60vh",
         }}
       >
-        {main == "overview" && (
-          <div style={{ float: "right", margin: "0 0 15px 15px" }}>
-            <Alert
-              type="warning"
-              message={
-                <>
-                  This is the new <SiteName /> store (
-                  <A href={join(basePath, "settings", "licenses")} external>
-                    the old page
-                  </A>
-                  ).
-                </>
-              }
-            />
-          </div>
-        )}
-        {body()}
+        <div style={{ maxWidth: "900px", margin: "auto" }}>
+          <Menu main={main} />
+          {body()}
+        </div>
       </Content>
     </Layout>
   );

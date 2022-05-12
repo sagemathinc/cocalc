@@ -3,8 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { FormGroup, FormControl, Well } from "react-bootstrap";
-import { Button } from "../antd-bootstrap";
+import { Button, FormGroup, FormControl, Well } from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "../alerts";
 import humanizeList from "humanize-list";
 import {
@@ -42,11 +41,7 @@ import { isEqual } from "lodash";
 
 import { COLORS } from "@cocalc/util/theme";
 
-// Commented out since Select via antd is broken now,
-// at least when used here...
-// import { Select } from "antd";
-// const { Option } = Select;
-import { Input } from "antd";
+import { Input, InputRef } from "antd";
 
 import {
   CopyToClipBoard,
@@ -58,6 +53,21 @@ import {
 } from "../components";
 
 import { version } from "@cocalc/util/smc-version";
+
+// We use this for now since antd's rewriting their components
+// in such a way that ReactDOM.findDOMNode no longer applies,
+// and we use Input from there...
+// This whole admin settings pages desparately needs a rewrite!
+function findDOMNode(x: any) {
+  try {
+    return ReactDOM.findDOMNode(x);
+  } catch (err) {
+    if (x.input != null) {
+      return x.input;
+    }
+    throw err;
+  }
+}
 
 type State = "view" | "load" | "edit" | "save" | "error";
 
@@ -78,10 +88,13 @@ class SiteSettingsComponent extends Component<
   SiteSettingsProps,
   SiteSettingsState
 > {
+  private testEmailRef: React.RefObject<InputRef>;
+
   constructor(props, state) {
     super(props, state);
     this.on_json_entry_change = this.on_json_entry_change.bind(this);
     this.on_change_entry = this.on_change_entry.bind(this);
+    this.testEmailRef = React.createRef();
     this.state = { state: "view", disable_tests: false };
   }
 
@@ -239,7 +252,7 @@ class SiteSettingsComponent extends Component<
   private on_json_entry_change(name) {
     const e = copy(this.state.edited);
     try {
-      const new_val = ReactDOM.findDOMNode(this.refs[name])?.value;
+      const new_val = findDOMNode(this.refs[name])?.value;
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
       e[name] = new_val;
@@ -322,7 +335,7 @@ class SiteSettingsComponent extends Component<
 
   private on_change_entry(name, val?) {
     const e = copy(this.state.edited);
-    e[name] = val ?? ReactDOM.findDOMNode(this.refs[name])?.value;
+    e[name] = val ?? findDOMNode(this.refs[name])?.value;
     return this.setState({ edited: e });
   }
 
@@ -571,9 +584,18 @@ class SiteSettingsComponent extends Component<
   private async send_test_email(
     type: "password_reset" | "invite_email" | "mention" | "verification"
   ): Promise<void> {
-    const email = ReactDOM.findDOMNode(this.refs.test_email)?.value;
-    if (email == null) return;
-    console.log(`sending test email "${type}" to ${email}`);
+    const email = this.testEmailRef.current?.input?.value;
+    if (!email) {
+      alert_message({
+        type: "error",
+        message: "NOT sending test email, since email field is empty",
+      });
+      return;
+    }
+    alert_message({
+      type: "info",
+      message: `sending test email "${type}" to ${email}`,
+    });
     // saving info
     await this.store();
     this.setState({ disable_tests: true });
@@ -622,14 +644,15 @@ class SiteSettingsComponent extends Component<
         <Input
           style={{ width: "auto" }}
           defaultValue={this.props.email_address}
-          ref={"test_email"}
+          ref={this.testEmailRef}
         />
         <Button
+          style={{ marginLeft: "10px" }}
           bsSize={"small"}
           disabled={this.state.disable_tests}
           onClick={() => this.send_test_email("password_reset")}
         >
-          Forgot Password
+          Send Test Forgot Password Email
         </Button>
         {
           // <Button

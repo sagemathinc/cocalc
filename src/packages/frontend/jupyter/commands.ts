@@ -635,7 +635,7 @@ export function commands(
     },
 
     "run cell": {
-      m: "Run cells",
+      m: "Run selected cells",
       k: [{ which: 13, ctrl: true }],
       f() {
         frame_actions.run_selected_cells();
@@ -645,14 +645,14 @@ export function commands(
     },
 
     "run cell and insert below": {
-      m: "Run cells and insert cell below",
+      m: "Run selected cells and insert cell below",
       k: [{ which: 13, alt: true }],
       f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {
       i: "step-forward",
-      m: "Run cells and select below",
+      m: "Run selected cells and select below",
       k: [{ which: 13, shift: true }],
       f() {
         frame_actions.shift_enter_run_selected_cells();
@@ -675,7 +675,7 @@ export function commands(
 
     "scroll notebook down": {
       k: [{ mode: "escape", which: 32 }],
-      f: () => frame_actions.scroll("list down"),
+        f: () => frame_actions.scroll("list down"),
     },
 
     "scroll notebook up": {

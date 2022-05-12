@@ -8,9 +8,9 @@ import {
   React,
   Rendered,
   useActions,
+  useEffect,
   useIsMountedRef,
   useRedux,
-  useEffect,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
@@ -28,7 +28,7 @@ import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
 import { Alert, Button, Col, Form, Input, Row } from "antd";
 import { Set } from "immutable";
-import { concat, keys, sortBy } from "lodash";
+import { concat, isEqual, keys, sortBy } from "lodash";
 import { CourseActions } from "../actions";
 import {
   AssignmentsMap,
@@ -65,6 +65,7 @@ function isSame(prev, next) {
     "assignments",
     "students",
     "frame_id",
+    "user_map", // be careful, this could change quite often. below is a "useEffect" to mitigate frequent updates.
   ]);
 }
 
@@ -116,6 +117,23 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     const [selected_option_nodes, set_selected_option_nodes] = useState<
       any | undefined
     >(undefined);
+    // the type is copy/paste from what TS infers in the util.parse_students function
+    const [students_unordered, set_students_unordered] = useState<
+      {
+        create_project: number;
+        account_id: string;
+        student_id: string;
+        first_name: string;
+        last_name: string;
+        last_active: number;
+        hosting: string;
+        email_address: string;
+        project_id: string;
+        deleted: boolean;
+        note: string;
+        last_email_invite: number;
+      }[]
+    >([]);
     const [selected_option_num, set_selected_option_num] = useState<number>(0);
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
     const [studentInputFocused, setStudentInputFocused] =
@@ -124,6 +142,14 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     useEffect(() => {
       set_selected_option_num(selected_option_nodes?.length ?? 0);
     }, [selected_option_nodes]);
+
+    // this updates a JS list from the ever changing user_map immutableMap
+    React.useEffect(() => {
+      const v = util.parse_students(students, user_map, redux);
+      if (!isEqual(v, students_unordered)) {
+        set_students_unordered(v);
+      }
+    }, [students, user_map]);
 
     // student_list not a list, but has one, plus some extra info.
     const student_list: StudentList = React.useMemo(() => {
@@ -139,7 +165,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // deleted        : False
       // note           : "Is younger sister of Abby Florence (TA)"
 
-      const students_ordered = util.parse_students(students, user_map, redux);
+      const students_ordered = [...students_unordered];
+
       if (active_student_sort != null) {
         students_ordered.sort(
           util.pick_student_sorter(active_student_sort.toJS())
@@ -191,7 +218,13 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       })();
 
       return { students: students_next, num_omitted, num_deleted };
-    }, [students, show_deleted, search, active_student_sort]);
+    }, [
+      students,
+      students_unordered,
+      show_deleted,
+      search,
+      active_student_sort,
+    ]);
 
     async function do_add_search(e): Promise<void> {
       // Search for people to add to the course
@@ -624,9 +657,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function render_student_table_header(num_deleted: number): Rendered {
       // HACK: that marginRight is to get things to line up with students.
-      // This is done all wrong due to using react-window...  We need
-      // to make an extension to our WindowedList that supports explicit
-      // headers (and uses css grid).
       return (
         <div>
           <Row style={{ marginRight: 0 }}>
@@ -699,7 +729,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
             students[index] != null ? students[index].student_id : undefined
           }
           cacheId={`course-student-${name}-${frame_id}`}
-          windowing={util.windowing(37)}
         />
       );
     }

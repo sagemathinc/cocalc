@@ -13,7 +13,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { Tool } from "./tools/spec";
+import { setDefaultSize, Tool } from "./tools/spec";
 import {
   Data,
   Element,
@@ -26,8 +26,6 @@ import {
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
   getPageSpan,
   centerRectsAt,
   centerOfRect,
@@ -44,10 +42,10 @@ import {
   MAX_FONT_SIZE,
 } from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { cloneDeep } from "lodash";
+import { cloneDeep, size } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
-import { lastMessageNumber } from "./elements/chat-static";
+import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
@@ -76,8 +74,16 @@ export class Actions extends BaseActions<State> {
         const id = key.get("id");
         if (id) {
           const element = this._syncstring.get_one(key);
-          // @ts-ignore
-          elements = elements.set(id, element);
+          if (!element) {
+            // there is a delete.
+            elements = elements.delete(id);
+          } else if (!element.get("type")) {
+            // no valid type field - discard
+            this._syncstring.delete({ id });
+          } else {
+            // @ts-ignore
+            elements = elements.set(id, element);
+          }
         }
       });
       if (elements !== elements0) {
@@ -85,35 +91,6 @@ export class Actions extends BaseActions<State> {
       }
     });
   }
-
-  /*
-  // repair data since we assume that each element is a rect.
-  // nothing should ever break that, but it's good to sanitize
-  // our data some to avoid broken whiteboards.
-  private ensureIsRect(obj: Partial<Element>) {
-    if (obj.id == null) return; // can't happen
-    let changed: boolean = false;
-    if (obj.x == null) {
-      obj.x = 0;
-      changed = true;
-    }
-    if (obj.y == null) {
-      obj.y = 0;
-      changed = true;
-    }
-    if (obj.w == null) {
-      obj.w = DEFAULT_WIDTH;
-      changed = true;
-    }
-    if (obj.h == null) {
-      obj.w = DEFAULT_HEIGHT;
-      changed = true;
-    }
-    if (changed) {
-      this.setElement({ obj, commit: false });
-    }
-  }
-  */
 
   // This mutates the cursors by putting the id in them.
   setCursors(id: string, cursors: object[], sideEffect?: boolean): void {
@@ -140,12 +117,20 @@ export class Actions extends BaseActions<State> {
     const element = this._syncstring.get_one({ id })?.toJS();
     if (element == null) return;
     delete element.z; // so it is placed at the top
+    delete element.locked; // so it isn't locked; copy should never be locked
+    let clearedContent = false;
     if (element.str != null) {
+      clearedContent = true;
       element.str = "";
     }
     if (element.data?.output != null) {
+      clearedContent = true;
       // code cell
       delete element.data.output;
+    }
+    if (element.type == "chat") {
+      clearedContent = true;
+      clearChat(element);
     }
     moveRectAdjacent(element, placement);
 
@@ -168,12 +153,18 @@ export class Actions extends BaseActions<State> {
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
     moveUntilNotIntersectingAnything(element, elements, axis);
 
+    // only after moving, do this, so size will be the default, since we
+    // emptied the object content:
+    if (clearedContent) {
+      delete element.w;
+      delete element.h;
+    }
     return this.createElement(element, commit).id;
   }
 
   setElement({
     obj,
-    commit,
+    commit = true,
     cursors,
     create,
   }: {
@@ -183,7 +174,6 @@ export class Actions extends BaseActions<State> {
     create?: boolean;
   }): void {
     if (this._syncstring == null) return;
-    if (commit == null) commit = true;
     if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
     }
@@ -280,12 +270,19 @@ export class Actions extends BaseActions<State> {
       // most calls to createElement should NOT resort to having to do this.
       obj.z = this.getPageSpan().zMax + 1;
     }
-    if (obj.w == null) {
-      obj.w = DEFAULT_WIDTH;
+    if ((obj.w == null || obj.h == null) && obj.type) {
+      setDefaultSize(obj);
     }
-    if (obj.h == null) {
-      obj.h = DEFAULT_HEIGHT;
+
+    // Remove certain fields that never ever make no sense for a new element
+    // E.g., this runState and start would come up pasting or creating an
+    // adjacent code cell, but obviously the code isn't also running in the
+    // new cell, which has a different id.
+    if (obj.data != null) {
+      delete obj.data.runState;
+      delete obj.data.start;
     }
+
     this.setElement({ create: true, obj, commit, cursors: [{}] });
     return obj as Element;
   }
@@ -342,7 +339,6 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" | "toggle" = "only",
     expandGroups: boolean = true // for internal use when we recurse
   ): void {
-    this.setEditFocus(frameId, false);
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
@@ -381,6 +377,7 @@ export class Actions extends BaseActions<State> {
     } else if (type == "only") {
       selection = [id];
     }
+    this.setEditFocus(frameId, size(selection) == 1);
     this.set_frame_tree({ id: frameId, selection });
   }
 
@@ -390,7 +387,6 @@ export class Actions extends BaseActions<State> {
     type: "add" | "remove" | "only" = "only",
     expandGroups: boolean = true
   ): void {
-    this.setEditFocus(frameId, false);
     const X = new Set(ids);
     if (expandGroups) {
       // extend id list to contain any groups it intersects.
@@ -414,6 +410,10 @@ export class Actions extends BaseActions<State> {
     for (const id of X) {
       this.setSelection(frameId, id, type, false);
     }
+    // do not set in edit mode when selecting 1 or more things; in particular,
+    // don't for selecting just one, undoing what setSelection does, which is
+    // to set edit focus for one.
+    this.setEditFocus(frameId, false);
   }
 
   // Groups
@@ -541,6 +541,7 @@ export class Actions extends BaseActions<State> {
   // of the rectangle spanned by all elements is the given
   // center point, or (0,0) if not given.
   // ids of elements are updated to not conflict with existing ids.
+  // Also ensures all are not locked.
   // Also, any groups are remapped to new groups, to avoid "expanding" existing groups.
   // Returns the ids of the inserted elements.
   insertElements(elements: Element[], center?: Point): string[] {
@@ -557,6 +558,7 @@ export class Actions extends BaseActions<State> {
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;
+      delete element.locked;
       if (element.group != null) {
         let newGroupId = groupMap[element.group];
         if (newGroupId == null) {
@@ -717,6 +719,7 @@ export class Actions extends BaseActions<State> {
     _value?: string | true | undefined,
     nextTo?: Element[]
   ): void {
+    if (frameId && this._get_frame_type(frameId) != "whiteboard") return;
     const pastedElements = pasteFromInternalClipboard();
     let target: Point = { x: 0, y: 0 };
     if (nextTo != null) {
@@ -947,6 +950,7 @@ export class Actions extends BaseActions<State> {
   }
 
   enableWhiteboardKeyHandler(frameId: string) {
+    if (this._get_frame_type(frameId) != "whiteboard") return;
     this.keyHandler = getKeyHandler(this, frameId);
     this.set_active_key_handler(this.keyHandler);
   }
@@ -995,6 +999,7 @@ export class Actions extends BaseActions<State> {
   }
 
   setEditFocus(id: string, editFocus: boolean): void {
+    if (this._get_frame_type(id) != "whiteboard") return;
     this.set_frame_tree({ id, editFocus });
   }
 

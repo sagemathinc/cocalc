@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COSTS, PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
-import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
-import getConn from "@cocalc/server/stripe/connection";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { getLogger } from "@cocalc/backend/logger";
-import {
-  LicenseIdleTimeoutsKeysOrdered,
-  untangleUptime,
-} from "@cocalc/util/consts/site-license";
+import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
+import getConn from "@cocalc/server/stripe/connection";
+import { COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { getDays } from "@cocalc/util/stripe/timecalcs";
+import { getProductId } from "./product-id";
+import { getProductMetadata } from "./product-metadata";
+import { getProductName } from "./product-name";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -22,121 +22,11 @@ export async function chargeUserForLicense(
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
-  logger.debug("got product_id", product_id);
   if (info.subscription == "no") {
     return await stripePurchaseProduct(stripe, product_id, info);
   } else {
     return await stripeCreateSubscription(stripe, product_id, info);
   }
-}
-
-function getDays(info): number {
-  if (info.start == null || info.end == null) throw Error("bug");
-  return Math.round(
-    (info.end.valueOf() - info.start.valueOf()) / (24 * 60 * 60 * 1000)
-  );
-}
-
-// When we change pricing, the products in stripe will already
-// exist with old prices (often grandfathered) so we may want to
-// instead change the version so new products get created
-// automatically.
-// 20220406: version 2 after discovering an unintentional volume discount,
-//           skewing the unit price per "product" in stripe.
-const VERSION = 1;
-
-export function getProductId(info: PurchaseInfo): string {
-  /* We generate a unique identifier that represents the parameters of the purchase.
-     The following parameters determine what "product" they are purchasing:
-        - custom_uptime (until 2022-02: custom_always_running)
-        - custom_cpu
-        - custom_dedicated_cpu
-        - custom_disk
-        - custom_member
-        - custom_ram
-        - custom_dedicated_ram
-        - period: subscription or set number of days
-      We encode these in a string which serves to identify the product.
-  */
-  function period(): string {
-    if (info.subscription == "no") {
-      return getDays(info).toString();
-    } else {
-      return "0"; // 0 means "subscription" -- same product for all types of subscription billing;
-    }
-  }
-
-  // this is backwards compatible: short: 0, always_running: 1, ...
-  function idleTimeout(): number {
-    switch (info.custom_uptime) {
-      case "short":
-        return 0;
-      case "always_running":
-        return 1;
-      default:
-        return 1 + LicenseIdleTimeoutsKeysOrdered.indexOf(info.custom_uptime);
-    }
-  }
-
-  const pid = [
-    `license_`,
-    `a${idleTimeout()}`,
-    `b${info.user == "business" ? 1 : 0}`,
-    `c${info.custom_cpu}`,
-    `d${info.custom_disk}`,
-    `m${info.custom_member ? 1 : 0}`,
-    `p${period()}`,
-    `r${info.custom_ram}`,
-  ];
-  if (info.custom_dedicated_ram) pid.push(`y${info.custom_dedicated_ram}`);
-  if (info.custom_dedicated_cpu)
-    pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
-  pid.push(`_v${VERSION}`);
-  return pid.join("");
-}
-
-function getProductName(info): string {
-  /* Similar to getProductId above, but meant to be human readable.  This name is what
-     customers see on invoices, so it's very valuable as it reflects what they bought clearly.
-  */
-  let period: string;
-  if (info.subscription == "no") {
-    period = `${getDays(info)} days`;
-  } else {
-    period = "subscription";
-  }
-
-  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
-
-  let desc = describe_quota({
-    user: info.user,
-    ram: info.custom_ram,
-    cpu: info.custom_cpu,
-    dedicated_ram: info.custom_dedicated_ram,
-    dedicated_cpu: info.custom_dedicated_cpu,
-    disk: info.custom_disk,
-    member: info.custom_member,
-    always_running,
-    idle_timeout,
-  });
-  desc += " - " + period;
-  return desc;
-}
-
-function getProductMetadata(info): object {
-  return {
-    user: info.user,
-    ram: info.custom_ram,
-    cpu: info.custom_cpu,
-    dedicated_ram: info.custom_dedicated_ram,
-    dedicated_cpu: info.custom_dedicated_cpu,
-    disk: info.custom_disk,
-    uptime: info.custom_uptime,
-    member: info.custom_member,
-    subscription: info.subscription,
-    start: info.start?.toISOString(),
-    end: info.end?.toISOString(),
-  };
 }
 
 export function unitAmount(info: PurchaseInfo): number {
@@ -161,23 +51,60 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
       product,
     });
   } else {
+    await stripeCreatePriceSubscriptions({ product, conn, info });
+  }
+}
+
+/** subscription prices:
+ * - for "quota" licenses, the online discount is baked into the price.
+ *   i.e. see in compute_cost(...) the discounted_cost is the total price with discounts,
+ *   while all other costs don't have the online discount.
+ * - dedicated resources do not have an online discount.
+ */
+async function stripeCreatePriceSubscriptions({
+  conn,
+  info,
+  product,
+}: {
+  conn: any;
+  info: PurchaseInfo;
+  product: string;
+}): Promise<void> {
+  if (info.cost == null) throw Error("cost must be defined");
+  const { type } = info;
+  const common = {
+    currency: "usd",
+    product,
+  } as const;
+  if (type === "quota") {
     // create the two recurring subscription costs. Build
     // in the self-service discount, which is:
     //    COSTS.online_discount
     await conn.prices.create({
-      currency: "usd",
+      ...common,
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_month * 100
       ),
-      product,
       recurring: { interval: "month" },
     });
     await conn.prices.create({
-      currency: "usd",
+      ...common,
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_year * 100
       ),
-      product,
+      recurring: { interval: "year" },
+    });
+  } else if (type === "disk" || type === "vm") {
+    // there are no vm subscriptions – at this point in time – but if there are some,
+    // we would handle them just like the dedicated disks
+    await conn.prices.create({
+      ...common,
+      unit_amount: Math.round(100 * info.cost.cost_sub_month),
+      recurring: { interval: "month" },
+    });
+    await conn.prices.create({
+      ...common,
+      unit_amount: Math.round(100 * info.cost.cost_sub_year),
       recurring: { interval: "year" },
     });
   }
@@ -188,12 +115,13 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
   // check to see if the product has already been created; if not, create it.
   if (!(await stripeProductExists(product_id))) {
     // now we have to create the product.
-    const metadata = getProductMetadata(info) as any; // avoid dealing with TS typings for metadata for now.
+    const metadata = getProductMetadata(info);
     const name = getProductName(info);
     let statement_descriptor = "COCALC LIC ";
     if (info.subscription != "no") {
       statement_descriptor += "SUB";
     } else {
+      if (info.type === "disk") throw new Error("disk do not have a period");
       const n = getDays(info);
       statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
     }
@@ -223,6 +151,19 @@ async function stripeProductExists(product_id: string): Promise<boolean> {
   }
 }
 
+/**
+ * rough outline, of what I think this does/should do:
+ * - a product is a single purchase, e.g. license for a specific interval --
+ *   there is also a subscription function, see below.
+ * - A "price" is created, which is also parametrized by the number of days,
+ *   but not the number of projects.
+ * - This product price is without an online discount (no idea why), but instead
+ *   briefly a coupon is created and added to the user's account at stripe.
+ * - the above is only for type==quota licenses, not VMs!
+ * - The invoice is created, with the desired price, quantity, etc.
+ * - When issuing the invoice to be paid, stripe calculates the discount
+ *   (which introduces rounding errors between what we show the user and what happens at stripe)
+ */
 async function stripePurchaseProduct(
   stripe: StripeClient,
   product_id: string,
@@ -230,10 +171,12 @@ async function stripePurchaseProduct(
 ): Promise<Purchase> {
   const { quantity } = info;
   logger.debug("stripePurchaseProduct", product_id, quantity);
+
+  if (info.type === "disk")
+    throw new Error("can only deal with VMs and quota licenses");
+
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();
-
-  const coupon = await getSelfServiceDiscountCoupon(conn);
 
   logger.debug("stripePurchaseProduct: get price");
   const prices = await conn.prices.list({
@@ -285,7 +228,13 @@ async function stripePurchaseProduct(
   } as Stripe.InvoiceCreateParams;
 
   logger.debug("stripePurchaseProduct options=", JSON.stringify(options));
-  await conn.customers.update(customer, { coupon });
+
+  // coupons are only for quota license upgrades, not dedicated VMs
+  if (info.type === "quota") {
+    const coupon = await getSelfServiceDiscountCoupon(conn);
+    await conn.customers.update(customer, { coupon });
+  }
+
   const invoice_id = (await conn.invoices.create(options)).id;
   await conn.invoices.finalizeInvoice(invoice_id, {
     auto_advance: true,
@@ -293,8 +242,10 @@ async function stripePurchaseProduct(
   const invoice = await conn.invoices.pay(invoice_id, {
     payment_method: info.payment_method,
   });
-  // remove coupon so it isn't automatically applied
-  await conn.customers.deleteDiscount(customer);
+  if (info.type === "quota") {
+    // remove coupon so it isn't automatically applied
+    await conn.customers.deleteDiscount(customer);
+  }
   await stripe.update_database();
   if (!invoice.paid) {
     // We void it so user doesn't get charged later.  Of course,
@@ -308,6 +259,13 @@ async function stripePurchaseProduct(
   return { type: "invoice", id: invoice_id };
 }
 
+/**
+ * similar to the function above, this creates a subscription.
+ * - *two* prices are created, the monthly and yearly price.
+ * - there is a price for each possible configuration, but not the quantity.
+ * - most importantly, the online discount is baked into the price directly.
+ *   i.e. no coupons.
+ */
 async function stripeCreateSubscription(
   stripe: StripeClient,
   product_id: string,
@@ -329,6 +287,7 @@ async function stripeCreateSubscription(
       break;
     }
   }
+
   if (price == null) {
     await stripeCreatePrice(info);
     const prices = await conn.prices.list({
@@ -372,6 +331,7 @@ async function stripeCreateSubscription(
 
   const { id } = await conn.subscriptions.create(options);
   await stripe.update_database();
+
   return { type: "subscription", id };
 }
 
@@ -403,9 +363,14 @@ export async function setPurchaseMetadata(
   metadata
 ): Promise<void> {
   const conn = await getConn();
-  if (purchase.type == "subscription") {
-    await conn.subscriptions.update(purchase.id, { metadata });
-  } else if (purchase.type == "invoice") {
-    await conn.invoices.update(purchase.id, { metadata });
+  switch (purchase.type) {
+    case "subscription":
+      await conn.subscriptions.update(purchase.id, { metadata });
+      break;
+    case "invoice":
+      await conn.invoices.update(purchase.id, { metadata });
+      break;
+    default:
+      throw new Error(`unexpected purchase type ${purchase.type}`);
   }
 }

@@ -15,3 +15,4 @@ export default function infoToMode(info: string | undefined | null): string {
     return "txt";
   }
 }
+

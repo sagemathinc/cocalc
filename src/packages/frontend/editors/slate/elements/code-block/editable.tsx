@@ -12,9 +12,9 @@ import {
 import { register, RenderElementProps } from "../register";
 import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
-//import { indent } from "../../util";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
+import { Input } from "antd";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -40,7 +40,6 @@ const Element: React.FC<RenderElementProps> = ({
           value={element.value}
           info={element.info}
           onChange={(value) => {
-            //setElement(editor, elementRef.current, { value });
             setElement({ value });
           }}
           onFocus={async () => {
@@ -107,6 +106,10 @@ register({
   slateType: "code_block",
   fromSlate,
   Element,
+  rules: {
+    autoFocus: true,
+    autoAdvance: true,
+  },
 });
 
 // The info editor.
@@ -139,14 +142,14 @@ const InfoEditor: React.FC<InfoProps> = ({
   value,
 }) => {
   return (
-    <textarea
+    <Input
+      size="small"
+      placeholder="Language..."
       style={INFO_STYLE}
-      rows={1}
       onFocus={onFocus}
       onBlur={onBlur}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder={"Language..."}
     />
   );
 };

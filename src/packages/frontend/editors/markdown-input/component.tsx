@@ -75,7 +75,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  submitMentionsRef?: any;
+  submitMentionsRef?: MutableRefObject<() => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
@@ -284,29 +284,7 @@ export function MarkdownInput({
     // UNCOMMENT FOR DEBUGGING ONLY
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
-    if (onChange != null) {
-      let f = (editor, change) => {
-        if (change.origin == "setValue") {
-          // Since this is a controlled component, firing onChange for this
-          // could lead to an infinite loop and randomly crash the browser.
-          return;
-        }
-        if (current_uploads_ref.current != null) {
-          // IMPORTANT: we do NOT report the latest version back while
-          // uploading files.  Otherwise, if more than one is being
-          // uploaded at once, then we end up with an infinite loop
-          // of updates.  In any case, once all the uploads finish
-          // we'll start reporting chanages again.  This is fine
-          // since you don't want to submit input *during* uploads anyways.
-          return;
-        }
-        onChange(editor.getValue());
-      };
-      if (saveDebounceMs) {
-        f = debounce(f, saveDebounceMs);
-      }
-      cm.current.on("change", f);
-    }
+    cm.current.on("change", saveValue);
 
     if (onBlur != null) {
       cm.current.on("blur", (editor) => onBlur(editor.getValue()));
@@ -327,7 +305,7 @@ export function MarkdownInput({
     if (onCursors != null) {
       cm.current.on("cursorActivity", () => {
         if (cm.current == null || !isFocusedRef.current) return;
-        if ((cm.current as any)._setValueNoJump) return;
+        if (ignoreChangeRef.current) return;
         onCursors(
           cm.current
             .getDoc()
@@ -340,14 +318,14 @@ export function MarkdownInput({
     if (onUndo != null) {
       cm.current.undo = () => {
         if (cm.current == null) return;
-        onChange?.(cm.current.getValue());
+        saveValue();
         onUndo();
       };
     }
     if (onRedo != null) {
       cm.current.redo = () => {
         if (cm.current == null) return;
-        onChange?.(cm.current.getValue());
+        saveValue();
         onRedo();
       };
     }
@@ -487,15 +465,54 @@ export function MarkdownInput({
     }
   }, [options]);
 
-  useEffect(() => {
+  const ignoreChangeRef = useRef<boolean>(false);
+  // use valueRef since we can't just refer to value in saveValue
+  // below, due to not wanted to regenerate the saveValue function
+  // every time, due to debouncing, etc.
+  const valueRef = useRef<string | undefined>(value);
+  valueRef.current = value;
+  const saveValue = useMemo(() => {
+    // save value to owner via onChange
+    if (onChange == null) return () => {}; // no op
+    const f = () => {
+      if (cm.current == null) return;
+      if (ignoreChangeRef.current) return;
+      if (current_uploads_ref.current != null) {
+        // IMPORTANT: we do NOT report the latest version back while
+        // uploading files.  Otherwise, if more than one is being
+        // uploaded at once, then we end up with an infinite loop
+        // of updates.  In any case, once all the uploads finish
+        // we'll start reporting changes again.  This is fine
+        // since you don't want to submit input *during* uploads anyways.
+        return;
+      }
+      const newValue = cm.current.getValue();
+      if (valueRef.current !== newValue) {
+        onChange(newValue);
+      }
+    };
+    if (saveDebounceMs) {
+      return debounce(f, saveDebounceMs);
+    } else {
+      return f;
+    }
+  }, []);
+
+  const setValueNoJump = useCallback((newValue: string | undefined) => {
     if (
-      value == null ||
+      newValue == null ||
       cm.current == null ||
-      cm.current.getValue() === value
+      cm.current.getValue() === newValue
     ) {
       return;
     }
-    cm.current.setValueNoJump(value);
+    ignoreChangeRef.current = true;
+    cm.current.setValueNoJump(newValue);
+    ignoreChangeRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    setValueNoJump(value);
     if (upload_close_preview_ref.current != null) {
       upload_close_preview_ref.current(true);
     }
@@ -523,7 +540,7 @@ export function MarkdownInput({
       return;
     }
     cm.current.replaceRange(s, cm.current.getCursor());
-    onChange?.(cm.current.getValue());
+    saveValue();
   }
 
   function upload_complete(file: {
@@ -535,7 +552,6 @@ export function MarkdownInput({
       throw Error("path must be set if enableUploads is set.");
     }
 
-    // console.log("upload_complete", file);
     if (current_uploads_ref.current != null) {
       delete current_uploads_ref.current[file.name];
       if (len(current_uploads_ref.current) == 0) {
@@ -558,24 +574,35 @@ export function MarkdownInput({
     } else {
       s1 = upload_link(path, file);
     }
-    cm.current.setValueNoJump(input.replace(s0, s1));
-    onChange?.(cm.current.getValue());
+    const newValue = input.replace(s0, s1);
+    setValueNoJump(newValue);
+    saveValue();
   }
 
   function upload_removed(file: { name: string; type: string }): void {
     if (cm.current == null) return;
-    // console.log("upload_removed", file);
     if (project_id == null || path == null) {
       throw Error("project_id and path must be set if enableUploads is set.");
     }
+    if (!current_uploads_ref.current?.[file.name]) {
+      // it actually succeeded if this is not set -- it was removed
+      // via upload_complete above.
+      return;
+    }
+    delete current_uploads_ref.current[file.name];
+    if (onUploadEnd != null) {
+      onUploadEnd();
+    }
+
     const input = cm.current.getValue();
     const s = upload_link(path, file);
     if (input.indexOf(s) == -1) {
       // not there anymore; maybe user already submitted -- do nothing further.
       return;
     }
-    cm.current.setValueNoJump(input.replace(s, ""));
-    onChange?.(cm.current.getValue());
+    const newValue = input.replace(s, "");
+    setValueNoJump(newValue);
+    saveValue();
     // delete from project itself
     const target = join(aux_file(path, AUX_FILE_EXT), file.name);
     // console.log("deleting target", target, { paths: [target] });

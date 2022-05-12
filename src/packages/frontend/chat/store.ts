@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {List, Map} from "immutable";
+import { List, Map } from "immutable";
 import { Store, TypedMap, redux } from "../app-framework";
 
 type Mention = TypedMap<{
@@ -23,7 +23,8 @@ export interface ChatState {
   input: string; // content of the input box
   message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
   is_preview?: boolean; // currently displaying preview of the main input chat
-  messages?: Map<any, any>;
+  messages?: Map<string, any>;
+  drafts?: Map<string, any>;
   offset?: number; // information about where on screen the chat editor is located
   position?: number; // more info about where chat editor is located
   use_saved_position?: boolean; //   whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
@@ -46,6 +47,7 @@ export class ChatStore extends Store<ChatState> {
       message_plain_text: "",
       is_preview: undefined,
       messages: undefined,
+      drafts: undefined,
       offset: undefined,
       position: undefined,
       use_saved_position: undefined,

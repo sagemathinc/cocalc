@@ -151,6 +151,11 @@ export default function Home({ customize }) {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     ></iframe>
+                    <br />
+                    <br />
+                    <A href="https://about.cocalc.com">
+                      Learn All About CoCalc's Mission, Developers and Features...
+                    </A>
                   </div>
                 )}
               </div>

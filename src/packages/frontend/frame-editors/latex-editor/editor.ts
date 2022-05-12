@@ -91,6 +91,7 @@ const EDITOR_SPEC = {
       "clean",
       "decrease_font_size",
       "increase_font_size",
+      "rescan_latex_directive",
     ]),
   } as EditorDescription,
 
@@ -107,7 +108,6 @@ const EDITOR_SPEC = {
   settings: SETTINGS_SPEC,
 
   time_travel,
-
 };
 
 // See https://github.com/sagemathinc/cocalc/issues/5114

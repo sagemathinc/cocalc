@@ -3,8 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
-import { Icon } from "../../components";
+import { Icon } from "@cocalc/frontend/components";
 import { PathNavigator } from "../explorer/path-navigator";
 
 const SIZE = "20px";
@@ -19,7 +18,7 @@ export const ProjectSearchHeader: React.FC<{ project_id: string }> = ({
         {" in "}
         <PathNavigator
           project_id={project_id}
-          style={{ display: "inline", fontSize: SIZE }}
+          style={{ display: "inline-block", fontSize: SIZE }}
         />
       </span>
     </div>

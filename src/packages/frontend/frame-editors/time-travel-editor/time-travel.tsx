@@ -36,8 +36,9 @@ import {
 import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "board"]);
+const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "board", "md"]);
 
 interface Props {
   actions: TimeTravelActions;
@@ -133,7 +134,7 @@ class TimeTravel extends Component<Props> {
     if (this.props.desc.get("text_mode")) {
       return this.render_document_codemirror();
     }
-    // if you change this, also change HAS_SPECIAL_VIEWER above!
+    // **if you change this, also change HAS_SPECIAL_VIEWER above!**
     switch (this.props.docext) {
       case "tasks":
         return this.render_document_tasks(syncdoc, version);
@@ -141,6 +142,12 @@ class TimeTravel extends Component<Props> {
         return this.render_document_jupyter_notebook(syncdoc, version);
       case "sagews":
         return this.render_document_sagews();
+      case "md":
+        return (
+          <div style={{ overflow: "auto", padding: "50px 70px" }}>
+            <StaticMarkdown value={this.get_doc()?.to_str() ?? "Loading..."} />
+          </div>
+        );
       case "board":
         return (
           <Whiteboard

@@ -25,9 +25,6 @@ import "timeago";
 // Scroll into view plugin
 import "jquery.scrollintoview/jquery.scrollintoview";
 
-//  Highlight jQuery plugin: http://bartaz.github.io/sandbox.js/jquery.highlight.html
-import "jquery-highlight";
-
 // Bootstrap
 import "bootstrap";
 

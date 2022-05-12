@@ -7,7 +7,14 @@
 Top-level react component, which ties everything together
 */
 
-import { CSS, React, useRedux, Rendered } from "../app-framework";
+import {
+  redux,
+  CSS,
+  React,
+  useRedux,
+  useRef,
+  Rendered,
+} from "../app-framework";
 import * as immutable from "immutable";
 
 import { A, ErrorDisplay } from "../components";
@@ -38,6 +45,7 @@ import { Scroll } from "./types";
 import useKernelUsage from "./kernel-usage";
 import { JupyterActions } from "./browser-actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+import { JupyterContext } from "./jupyter-context";
 
 const KERNEL_STYLE: CSS = {
   float: "right",
@@ -48,6 +56,7 @@ const KERNEL_STYLE: CSS = {
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap",
+  margin: "5px",
 } as const;
 
 export const ERROR_STYLE: CSS = {
@@ -117,6 +126,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   // string name of the kernel
   const kernels: undefined | KernelsType = useRedux([name, "kernels"]);
+  const kernelspec = useRedux([name, "kernel_info"]);
   const error: undefined | KernelsType = useRedux([name, "error"]);
   // settings for all the codemirror editors
   const cm_options: undefined | immutable.Map<any, any> = useRedux([
@@ -185,6 +195,24 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
 
   const kernel_error: undefined | string = useRedux([name, "kernel_error"]);
+
+  // We use react-virtuoso, which is an amazing library for
+  // doing windowing on dynamically sized content... like
+  // what comes up with Jupyter notebooks.
+  // We do have to ensure that this can be easily disabled
+  // by users, due to situations like this
+  //   https://github.com/sagemathinc/cocalc/issues/4727
+  // e.g., where maybe they want to use Javascript across all
+  // cells, or they want to preserve state in iframes, which
+  // requires keeping things rendered.
+  // NOTE: we get this once from the account store and do NOT
+  // load it again, since we didn't implement switching between
+  // rendering modes on the fly and such a switch will crash for sure.
+  const useWindowedListRef = useRef<boolean>(
+    !redux
+      .getStore("account")
+      .getIn(["editor_settings", "disable_jupyter_virtualization"])
+  );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
 
@@ -306,41 +334,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function use_windowed_list(): boolean {
-    // IMPORTANT: We are not using react-windowed at all
-    // for Jupyter, due to situations like this
-    //   https://github.com/sagemathinc/cocalc/issues/4727
-    // I'm going to leave all the code in for now though,
-    // since there is no harm and maybe some surprise
-    // will pop up.  Also, we could have a non-default
-    // option for huge notebooks that people might want to use.
-
-    // That said, you can comment this "return false" out uncomment code below,
-    // and all the windowing code is still here, and seems to "work".
-    // My longterm plan for this is instead to make a slate version of Jupyter,
-    // which will automatically support long docs.
-    return false;
-
-    /*
-    if (
-      editor_settings == null ||
-      cell_list == null ||
-      editor_settings.get("disable_jupyter_windowing")
-    ) {
-      // very obvious reasons to disable windowing...
-      return false;
-    }
-    // OK, we have a big notebook.  Let's window if we're not on Safari/Firefox,
-    // where I don't know what is going on -- maybe some polyfill doesn't really
-    // work... (see #4320).
-    if (is_safari() || is_firefox()) {
-      return false;
-    }
-    // OK, let's do it.
-    return true;
-    */
-  }
-
   function render_cells() {
     if (
       cell_list == null ||
@@ -383,7 +376,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         scroll={scroll}
         cell_toolbar={cell_toolbar}
         trust={trust}
-        use_windowed_list={use_windowed_list()}
+        use_windowed_list={useWindowedListRef.current}
       />
     );
   }
@@ -527,19 +520,21 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return render_fatal();
   }
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflowY: "hidden",
-      }}
-    >
-      {render_kernel_error()}
-      {render_error()}
-      {render_modals()}
-      {render_heading()}
-      {render_main()}
-    </div>
+    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS() }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflowY: "hidden",
+        }}
+      >
+        {render_kernel_error()}
+        {render_error()}
+        {render_modals()}
+        {render_heading()}
+        {render_main()}
+      </div>
+    </JupyterContext.Provider>
   );
 });

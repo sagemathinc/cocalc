@@ -290,6 +290,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = async () => {
+    if (this.store == null) return;
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
@@ -1961,8 +1962,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: string): Promise<void> => {
-    const time = this._client.server_time() - 0;
+  async fetch_more_output(id: string): Promise<void> {
+    const time = this._client.server_time().valueOf();
     try {
       const more_output = await this.api_call("more_output", { id: id }, 60000);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
@@ -1973,7 +1974,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } catch (err) {
       this.set_error(err);
     }
-  };
+  }
 
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {
@@ -2619,6 +2620,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   update_select_kernel_data = (): void => {
+    if (this.store == null) return;
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);

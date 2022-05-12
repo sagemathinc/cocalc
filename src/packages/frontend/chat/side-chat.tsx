@@ -17,11 +17,7 @@ import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
 
-import {
-  mark_chat_as_read_if_unseen,
-  scroll_to_bottom,
-  INPUT_HEIGHT,
-} from "./utils";
+import { mark_chat_as_read_if_unseen, INPUT_HEIGHT } from "./utils";
 import { ChatLog } from "./chat-log";
 import { ChatInput } from "./input";
 
@@ -41,7 +37,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
 
   const project_map = useTypedRedux("projects", "project_map");
 
-  const log_container_ref = useRef(null);
+  const scrollToBottomRef = useRef<any>(null);
 
   const submitMentionsRef = useRef<Function>();
 
@@ -52,7 +48,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   }, []);
 
   useEffect(() => {
-    scroll_to_bottom(log_container_ref);
+    scrollToBottomRef.current?.();
   }, [messages]);
 
   function mark_as_read() {
@@ -62,7 +58,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   function send_chat(): void {
     const value = submitMentionsRef.current?.();
     actions.send_chat(value);
-    scroll_to_bottom(log_container_ref, true);
+    scrollToBottomRef.current?.(true);
   }
 
   function render_add_collab() {
@@ -182,7 +178,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
         <ChatLog
           project_id={project_id}
           path={path}
-          windowed_list_ref={log_container_ref}
+          scrollToBottomRef={scrollToBottomRef}
           show_heads={false}
         />
       </div>
@@ -196,6 +192,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
       >
         <div style={{ display: "flex", flex: 1 }}>
           <ChatInput
+            cacheId={`${path}${project_id}-new`}
             input={input}
             on_send={() => {
               send_chat();
@@ -204,6 +201,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             height={INPUT_HEIGHT}
             onChange={(value) => actions.set_input(value)}
             submitMentionsRef={submitMentionsRef}
+            syncdb={actions.syncdb}
           />
           <div
             style={{

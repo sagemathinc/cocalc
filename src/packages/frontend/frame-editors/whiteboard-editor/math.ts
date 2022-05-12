@@ -18,7 +18,7 @@ export function zoomToFontSize(zoom?: number): number {
   return zoom ? zoom * DEFAULT_FONT_SIZE : DEFAULT_FONT_SIZE;
 }
 
-export const DEFAULT_WIDTH = 250;
+export const DEFAULT_WIDTH = 350;
 export const DEFAULT_HEIGHT = 100;
 export const DEFAULT_GAP = 30;
 export const DEFAULT_EDGE_LENGTH = 100;
@@ -465,6 +465,12 @@ export function moveUntilNotIntersectingAnything(
   axis: "x" | "y",
   dir: "+" | "-" | "best" = "best"
 ): void {
+  if (!rect.w || !rect.h || rect.x == null || rect.y == null) {
+    // would infinite loop below otherwise... and there is nothing good to do,
+    // so just give up.
+    // None of the above should happen, but bad data shouldn't lead to infinite loop.
+    return;
+  }
   if (dir == "best") {
     const start = { x: rect.x, y: rect.y };
     moveUntilNotIntersectingAnything(rect, rects, axis, "+");
@@ -483,7 +489,9 @@ export function moveUntilNotIntersectingAnything(
     }
     return;
   }
-  while (true) {
+  let cnt = 0;
+  while (cnt < 1000) { // no matter what, we aren't going to infinite loop!
+    cnt += 1;
     const before = { x: rect.x, y: rect.y };
     for (const r of rects) {
       const { w, h } = intersectionOfRectangles(rect, r);

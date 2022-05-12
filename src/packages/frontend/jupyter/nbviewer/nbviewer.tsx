@@ -14,7 +14,7 @@ import { path_split } from "@cocalc/util/misc";
 import parse from "./parse";
 import { CodeMirrorStatic } from "../codemirror-static";
 import "../output-messages/mime-types/init-nbviewer";
-import { Context } from "./context";
+import { JupyterContext } from "../jupyter-context";
 
 interface Props {
   content: string;
@@ -54,7 +54,7 @@ export default function NBViewer({
   const { cellList, cells, cmOptions, kernelspec } = x;
 
   return (
-    <Context.Provider value={{ kernelspec }}>
+    <JupyterContext.Provider value={{ kernelspec }}>
       <div style={style}>
         <div style={{ marginBottom: "15px" }}>
           <b>Kernel:</b> {kernelspec.display_name}
@@ -68,6 +68,6 @@ export default function NBViewer({
           directory={path ? path_split(path).head : undefined}
         />
       </div>
-    </Context.Provider>
+    </JupyterContext.Provider>
   );
 }

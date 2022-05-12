@@ -17,7 +17,8 @@ export default function PricingItem({ icon, children, title }: Props) {
         type="inner"
         title={
           <>
-            <Icon name={icon} style={{ marginRight: "10px" }} /> {title}
+            <Icon name={icon} style={{ marginRight: "10px" }} />{" "}
+            <strong>{title}</strong>
           </>
         }
       >
@@ -45,7 +46,7 @@ export function Line({
 
   let unit = "";
   if (desc?.includes("RAM") || desc?.includes("Disk")) {
-    unit = "GB";
+    unit = "G";
   } else if (desc?.includes("CPU")) {
     unit = amount == 1 ? "core" : "cores";
   } else if (desc?.includes("Projects")) {

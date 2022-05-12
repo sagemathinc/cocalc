@@ -13,11 +13,12 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import useEditFocus from "./edit-focus";
 import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { delay } from "awaiting";
 import useWheel from "./scroll-wheel";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
+
+const INPUT_HEIGHT = "123px";
 
 interface Props {
   element: Element;
@@ -40,15 +41,21 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
+  const submitMentionsRef = useRef<Function>();
 
   const saveChat = useDebouncedCallback((input) => {
     actions.saveChat({ id: element.id, input });
-  }, 1500);
+  }, SAVE_DEBOUNCE_MS);
 
   const [input, setInput] = useState<string>("");
   // we ensure input is set properly to what's in the element
   // when it is focused.  When NOT focused, we don't bother,
   // to avoid wasting resources.
+  // NOTE: this implementation is highly inefficient and needs to be changed.
+  // The problem is that element.data[account_id] is not a string column, so
+  // every change saves the entire string, rather than just diffs.  The only
+  // good way to fix this is with another record type in the syncdb, I think...
+  // or a separate ephemeral table (which adds its own complexity, of course).
   useEffect(() => {
     if (!focused) return;
     const input1 =
@@ -59,19 +66,12 @@ function Conversation({ element, focused }: Props) {
     }
   }, [element, focused]);
 
-  const isMountedRef = useIsMountedRef();
-  const clearInput = async () => {
+  const clearInput = () => {
     setInput("");
-    // There's a potential very slight chance that additional input
-    // from slate will get set in the next event loop, so we make
-    // sure to clear that.  This is due to how onChange and slate work.
-    await delay(1);
-    if (isMountedRef.current) {
-      setInput("");
-    }
+    saveChat.cancel();
   };
 
-  // When the component goes to be unmounted, we will fetch data if the input has changed.
+  // When the component is unmounted, we will fetch data if the input has changed.
   useEffect(
     () => () => {
       saveChat.flush();
@@ -110,6 +110,7 @@ function Conversation({ element, focused }: Props) {
           }}
         >
           <MultiMarkdownInput
+            submitMentionsRef={submitMentionsRef}
             saveDebounceMs={0}
             onFocus={() => {
               setEditFocus(true);
@@ -118,17 +119,20 @@ function Conversation({ element, focused }: Props) {
               setEditFocus(false);
             }}
             isFocused={focused && editFocus}
-            cacheId={element.id}
             hideHelp
             noVfill
             minimal
             placeholder="Type a message..."
-            height={"123px"}
+            height={INPUT_HEIGHT}
             value={input}
             style={{
-              flex: 1,
+              width: `${element.w - 152}px`, /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */
               ...(mode == "editor"
-                ? { border: "1px solid #ccc", padding: "10px" }
+                ? {
+                    border: "1px solid #ccc",
+
+                    paddingLeft: "5px",
+                  }
                 : undefined),
             }}
             onChange={(input) => {
@@ -138,6 +142,7 @@ function Conversation({ element, focused }: Props) {
             onShiftEnter={(input) => {
               saveChat.cancel();
               actions.sendChat({ id: element.id, input });
+              submitMentionsRef.current?.(); // send all the mentions
               clearInput();
             }}
             onUndo={() => {
@@ -152,30 +157,35 @@ function Conversation({ element, focused }: Props) {
               visibility:
                 !editFocus || mode == "markdown" ? "hidden" : undefined,
               bottom: "-36px",
-              left: "122px",
+              left: "126px",
               position: "absolute",
               boxShadow: "1px 3px 5px #ccc",
               margin: "5px",
               minWidth: "500px",
               background: "white",
               fontFamily: "sans-serif",
+              paddingRight: 0, // undoing a temporary hack
             }}
             modeSwitchStyle={{
               visibility: !editFocus ? "hidden" : undefined,
               bottom: "-30px",
               left: 0,
-              width: "126px",
+              width: "130px",
               boxShadow: "1px 3px 5px #ccc",
             }}
             onModeChange={setMode}
+            cmOptions={{
+              lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling
+            }}
           />
           <Tooltip title="Send message (shift+enter)">
             <Button
               disabled={!input.trim()}
               type="primary"
-              style={{ height: "100%", marginLeft: "5px" }}
+              style={{ height: INPUT_HEIGHT, marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
+                submitMentionsRef.current?.(); // send all the mentions
                 clearInput();
               }}
             >

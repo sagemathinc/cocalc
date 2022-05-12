@@ -36,7 +36,11 @@ export default function getKeyHandler(
   return (e) => {
     const node = actions._get_frame_node(frameId);
     if (node == null) return;
-    const key = e.key?.toLowerCase();
+    if (e?.key == null) {
+      // an issue with e.key being defined was reported by a user.
+      return;
+    }
+    const key = e.key.toLowerCase();
     //console.log(key);
 
     if (key == "s" && (e.metaKey || e.ctrlKey)) {
@@ -91,6 +95,7 @@ export default function getKeyHandler(
         } else if (key == "enter") {
           // not in editFocus mode but hit enter, so switch to editFocus
           actions.setEditFocus(frameId, true);
+          e.preventDefault(); // so enter doesn't go to editor after switching to edit mode.
         }
       }
     }
@@ -150,6 +155,7 @@ export default function getKeyHandler(
           id,
         }))
       );
+      actions.clearSelection(frameId);
       return;
     }
     if (!(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) {

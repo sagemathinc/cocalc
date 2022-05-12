@@ -19,6 +19,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 export interface EditorFunctions {
   set_cursor?: (pos: { x?: number; y?: number }) => void;
@@ -33,7 +34,7 @@ interface MultimodeState {
 const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
-// editor uses slate.
+// editor uses slate.  TODO: this should be "text", not "editor".  Oops.
 export type Mode = "markdown" | "editor";
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
@@ -60,13 +61,13 @@ interface Props {
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
-  enableUpload?: boolean;
+  enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  saveDebounceMs?: number;
+  saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
   onBlur?: () => void;
   onFocus?: () => void;
   minimal?: boolean;
@@ -126,12 +127,12 @@ export default function MultiMarkdownInput({
   style,
   autoFocus,
   enableMentions,
-  enableUpload,
+  enableUpload = true,
   onUploadStart,
   onUploadEnd,
   submitMentionsRef,
   extraHelp,
-  saveDebounceMs,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
   hideHelp,
   onBlur,
   onFocus,
@@ -205,8 +206,10 @@ export default function MultiMarkdownInput({
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
-        // expected that sometimes this will fail, since after all the selection from last
-        // use might be invalid now due to another user changing the document, etc.
+        // console.warn(_err);  // definitely don't need this.
+        // This is expected to fail, since the selection from last
+        // use will be invalid now if another user changed the
+        // document, etc., or you did in a different mode, possibly.
       }
     }
     return () => {
@@ -337,10 +340,10 @@ export default function MultiMarkdownInput({
       {mode == "editor" && (
         <div
           style={{
-            ...style,
             height: height ?? "100%",
             width: "100%",
             fontSize: "14px" /* otherwise button bar can be skewed */,
+            ...style, // make it possible to override width, height, etc.  This of course allows for problems but is essential. E.g., we override width for chat input in a whiteboard.
           }}
           className={height != "auto" ? "smc-vfill" : undefined}
         >
@@ -363,14 +366,22 @@ export default function MultiMarkdownInput({
                 : { padding: "5px 15px" }
             }
             height={height}
-            editBarStyle={editBarStyle}
+            editBarStyle={
+              {
+                paddingRight: "127px",
+                ...editBarStyle,
+              } /* this paddingRight is of course just a stupid temporary hack, since by default the mode switch is on top of it, which matters when cursor in a list or URL */
+            }
             saveDebounceMs={saveDebounceMs}
             getValueRef={getValueRef}
             actions={{
               set_value: (value) => {
                 onChange?.(value);
               },
-              shiftEnter: onShiftEnter,
+              shiftEnter: (value) => {
+                onChange?.(value);
+                onShiftEnter?.(value);
+              },
               altEnter: (value) => {
                 onChange?.(value);
                 setMode("markdown");
@@ -400,6 +411,7 @@ export default function MultiMarkdownInput({
             registerEditor={registerEditor}
             unregisterEditor={unregisterEditor}
             placeholder={placeholder ?? "Type text..."}
+            submitMentionsRef={submitMentionsRef}
           />
         </div>
       )}

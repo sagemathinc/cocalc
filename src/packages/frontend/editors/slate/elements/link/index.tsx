@@ -31,10 +31,9 @@ register({
     }
     let props;
     if (url != null) {
-      url = urlTransform?.(url) ?? url;
-      const isExternal = url?.includes("://");
+      const isExternal = url.includes("://");
       props = {
-        href: url,
+        href: urlTransform?.(url, 'a') ?? url,
         target: isExternal ? "_blank" : undefined,
         rel: isExternal ? "noopener" : undefined,
       };

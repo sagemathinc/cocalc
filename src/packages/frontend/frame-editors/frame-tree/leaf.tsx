@@ -143,7 +143,6 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         terminal={terminal}
         settings={settings}
         status={status}
-        renderer={spec.renderer}
         complete={complete && complete.get(desc.get("id"))}
         derived_file_types={derived_file_types}
         local_view_state={local_view_state}
@@ -153,6 +152,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
         is_visible={is_visible}
         tab_is_visible={tab_is_visible}
         placeholder={placeholder}
+        onFocus={() => actions.set_active_id(desc.get("id"), true)}
       />
     );
   }

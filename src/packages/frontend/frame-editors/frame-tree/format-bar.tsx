@@ -9,21 +9,12 @@ The format bar.
 
 import { React, Rendered } from "../../app-framework";
 import { SetMap } from "./types";
-import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
-import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
-
-const FONT_SIZES = [
-  "xx-small",
-  "x-small",
-  "small",
-  "medium",
-  "large",
-  "x-large",
-  "xx-large",
-] as const;
+import FontFamilyMenu from "@cocalc/frontend/components/font-family";
+import FontSizeMenu from "@cocalc/frontend/components/font-size";
+import HeadingMenu from "@cocalc/frontend/components/heading-menu";
 
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
@@ -176,83 +167,28 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_font_family_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (const family of FONT_FACES) {
-      const item: Rendered = (
-        <MenuItem key={family} eventKey={family}>
-          <span style={{ fontFamily: family }}>{family}</span>
-        </MenuItem>
-      );
-      items.push(item);
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"font"} />}
-        key={"font-family"}
-        id={"font-family"}
+      <FontFamilyMenu
         onClick={(family) => actions.format_action("font_family", family)}
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 
   function render_font_size_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (const size of FONT_SIZES) {
-      const item: Rendered = (
-        <MenuItem key={size} eventKey={size}>
-          <span style={{ fontSize: size }}>
-            {size} {size === "medium" ? "(default)" : undefined}
-          </span>
-        </MenuItem>
-      );
-      items.push(item);
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"text-height"} />}
-        key={"font-size"}
-        id={"font-size"}
+      <FontSizeMenu
         onClick={(size) => actions.format_action("font_size_new", size)}
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 
-  function heading_content(heading: number): JSX.Element {
-    const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
-    if (heading === 0) {
-      return <span>{label}</span>;
-    } else {
-      return React.createElement(`h${heading}`, {}, label);
-    }
-  }
-
   function render_heading_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (let heading = 0; heading <= 6; heading++) {
-      items.push(
-        <MenuItem key={heading} eventKey={heading}>
-          {heading_content(heading)}
-        </MenuItem>
-      );
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"header"} />}
-        key={"heading"}
-        id={"heading"}
+      <HeadingMenu
         onClick={(heading) =>
           actions.format_action(`format_heading_${heading}`)
         }
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 

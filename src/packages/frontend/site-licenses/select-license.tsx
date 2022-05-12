@@ -8,11 +8,12 @@ IMPORTANT: this component must work in *both* from nextjs and static.
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { describe_quota as describeQuota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Select, Space } from "antd";
 import { keys } from "lodash";
 import { ReactNode, useMemo, useRef, useState } from "react";
+
 const { Option } = Select;
 
 export interface License {

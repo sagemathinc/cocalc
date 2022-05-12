@@ -1,4 +1,13 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+/* Jupyter cells
+
+
+- Locked: a locked cell can't have the input/output hidden/shown and can't have the input
+  code changed.  However, you *can* run the code and interact with widgets.  This makes
+  a notebook with a bunch of locked cells useful for users to share something without consumers
+  breaking it.   Also, it matches with jupyter notebook.
+*/
+
+import { useEffect, useRef, useState } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
@@ -14,11 +23,15 @@ import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
 import { debounce } from "lodash";
 
+const EXTRA_HEIGHT = 30;
+const MIN_HEIGHT = 78;
+
 interface Props {
   element: Element;
   focused?: boolean;
   canvasScale: number;
   cursors?: { [account_id: string]: any[] };
+  readOnly?: boolean;
 }
 
 export default function Code({
@@ -26,10 +39,10 @@ export default function Code({
   focused,
   canvasScale,
   cursors,
+  readOnly,
 }: Props) {
   const { hideInput, hideOutput } = element.data ?? {};
   const [editFocus, setEditFocus] = useEditFocus(false);
-
   const { actions, project_id, path } = useFrameContext();
   const [mode, setMode] = useState<any>(codemirrorMode("py"));
   useAsyncEffect(async () => {
@@ -38,7 +51,7 @@ export default function Code({
 
   const renderInput = () => {
     if (hideInput) return;
-    if (focused || cursors != null) {
+    if (!element.locked && (focused || cursors != null) && !readOnly) {
       return (
         <div className="nodrag">
           <Input
@@ -49,6 +62,7 @@ export default function Code({
             canvasScale={canvasScale}
             onFocus={() => setEditFocus(true)}
             mode={mode}
+            getValueRef={getValueRef}
           />
         </div>
       );
@@ -56,22 +70,43 @@ export default function Code({
     return <InputStatic element={element} mode={mode} />;
   };
   const divRef = useRef<any>(null);
-  const resize = useResizeObserver({ ref: divRef });
-  const resizeIfNecessary = useMemo(() => {
-    if (actions.in_undo_mode()) return () => {};
+  const getValueRef = useRef<any>(null);
+  const resize = useResizeObserver({
+    ref: readOnly || !focused ? undefined : divRef, // only listen if necessary!
+  });
+  const resizeRef = useRef<Function | null>(null);
+  useEffect(() => {
+    if (readOnly || !focused) {
+      resizeRef.current = null;
+      return;
+    }
     const shrinkElement = debounce(() => {
+      // for why "element.str == getValueRef.current?.()" see comment in ../text.tsx
+      if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
-      const h = elt.offsetHeight + 16;
+      const h = Math.max(
+        MIN_HEIGHT,
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+      );
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
       });
     }, 250);
-    return () => {
+
+    resizeRef.current = () => {
+      if (actions.in_undo_mode() && element.str == getValueRef?.current?.()) {
+        return;
+      }
       const elt = divRef.current;
       if (elt == null) return;
-      const newHeight = elt.offsetHeight + 16;
+      const newHeight = Math.max(
+        MIN_HEIGHT,
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+      );
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
@@ -82,11 +117,17 @@ export default function Code({
         shrinkElement();
       }
     };
-  }, [element.id]);
+
+    resizeRef.current?.();
+
+    return () => {
+      shrinkElement.cancel();
+    };
+  }, [element.id, canvasScale, editFocus, readOnly]);
 
   useEffect(() => {
-    resizeIfNecessary();
-  }, [resize, resizeIfNecessary]);
+    resizeRef.current?.();
+  }, [resize]);
 
   return (
     <div style={{ ...getStyle(element), height: "100%" }}>
@@ -96,7 +137,7 @@ export default function Code({
         {!hideOutput && element.data?.output && (
           <Output element={element} onClick={() => setEditFocus(true)} />
         )}
-        {focused && <ControlBar element={element} />}
+        {focused && !readOnly && <ControlBar element={element} />}
       </div>
     </div>
   );

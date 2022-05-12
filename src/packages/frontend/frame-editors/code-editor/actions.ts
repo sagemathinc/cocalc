@@ -1444,6 +1444,7 @@ export class Actions<
     }
     // Now actually set the value.
     this._syncstring.from_str(value);
+    this._syncstring.commit();
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
@@ -2402,6 +2403,7 @@ export class Actions<
       this.project_id,
       this.path
     );
+    this._key_handler = key_handler;
   }
 
   public erase_active_key_handler(key_handler: Function): void {
@@ -2606,5 +2608,42 @@ export class Actions<
 
   public set_parent_file(path: string) {
     this.parent_file = path;
+  }
+
+  /////////////////////////
+  // Document current page and pages.
+  // page -- number or string; if number is the n-th page, starting with 1; if string,
+  //         then should be in the array pages.
+  // pages -- number = number of pages; string[] = names of all pages.
+  // We use both strings and numbers because pages can be given by strings
+  // instead of numbers, e.g., roman numerals at the beginning of a book.
+  // If both page and pages is set, then information is displayed in the
+  // title bar showing the current page, and number of pages, and user can
+  // edit the current page, which results in calling setPage.
+  // If call setPage with a string and that string is not a valid page, then
+  // call gets ignored or set to 1.  In particular, set pages first before
+  // setting page.
+
+  // Set current page in the document that is or should be displayed
+  setPage(id: string, page: string | number): void {
+    const pages = this._get_frame_node(id)?.get("pages");
+    if (pages == null) return; // no pages info
+    if (typeof page == "number") {
+      if (typeof pages != "number") {
+        // if page is a number and pages is an array of strings, we get
+        // the page-th entry instead.
+        const p = pages.get(page - 1);
+        if (p == null) return; // invalid
+        page = p;
+      } else {
+        page = Math.min(pages, Math.max(1, page));
+      }
+    }
+    this.set_frame_tree({ id, page });
+  }
+
+  // Set ordered list of all pages in the document
+  setPages(id: string, pages: string[] | number): void {
+    this.set_frame_tree({ id, pages });
   }
 }

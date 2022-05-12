@@ -8,29 +8,19 @@ Rendered view of the description of a single task
 */
 
 import { React } from "../../app-framework";
-import { Markdown } from "../../components";
-import { Set } from "immutable";
-import {
-  process_hashtags,
-  process_checkboxes,
-  header_part,
-} from "./desc-rendering";
-import { path_split } from "@cocalc/util/misc";
-import { apply_without_math } from "@cocalc/util/mathjax-utils-2";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { header_part } from "./desc-rendering";
 import { TaskActions } from "./actions";
-import { SelectedHashtags } from "./types";
 
 interface Props {
   actions?: TaskActions;
   task_id: string;
   desc: string;
-  path?: string;
-  project_id?: string;
-  full_desc: boolean;
   read_only: boolean;
-  selected_hashtags?: SelectedHashtags;
-  search_terms?: Set<string>;
+  selectedHashtags?: Set<string>;
+  searchWords?: string[];
   is_current?: boolean;
+  hideBody?: boolean;
 }
 
 export const DescriptionRendered: React.FC<Props> = React.memo(
@@ -38,13 +28,11 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     actions,
     task_id,
     desc,
-    path,
-    project_id,
-    full_desc,
     read_only,
-    selected_hashtags,
-    search_terms,
+    selectedHashtags,
+    searchWords,
     is_current,
+    hideBody,
   }) => {
     function render_content() {
       let value = desc;
@@ -52,7 +40,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
         return <span style={{ color: "#666" }}>Enter a description...</span>;
       }
       let show_more_link: boolean;
-      if (!full_desc) {
+      if (hideBody) {
         let header = header_part(value);
         show_more_link =
           !!is_current && actions != null && header.trim() != value.trim();
@@ -60,25 +48,31 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
       } else {
         show_more_link = false;
       }
-      const v: Function[] = [process_checkboxes];
-      v.push((x) => process_hashtags(x, selected_hashtags));
-      value = apply_without_math(value, v);
-
-      // we use the no_hashtags option below so the generic Markdown
-      // renderer doesn't do any processing of hashtags.
       return (
         <>
-          <Markdown
+          <MostlyStaticMarkdown
             value={value}
-            project_id={project_id}
-            file_path={path ? path_split(path).head : undefined}
-            highlight={search_terms}
-            no_hashtags={true}
+            searchWords={searchWords}
+            onChange={
+              actions != null
+                ? (value) => {
+                    actions.set_desc(task_id, value, true);
+                  }
+                : undefined
+            }
+            selectedHashtags={selectedHashtags}
+            toggleHashtag={
+              selectedHashtags != null && actions != null
+                ? (tag) =>
+                    actions.set_hashtag_state(
+                      tag,
+                      selectedHashtags.has(tag) ? undefined : 1
+                    )
+                : undefined
+            }
           />
           {show_more_link && (
-            <a onClick={() => actions?.toggle_full_desc(task_id)}>
-              Show more...
-            </a>
+            <a onClick={() => actions?.toggleHideBody(task_id)}>Show more...</a>
           )}
         </>
       );

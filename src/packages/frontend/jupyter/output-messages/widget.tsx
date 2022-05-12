@@ -334,15 +334,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
           {renderReactTabView()}
         </div>
       );
-      // TODO: we have to upgrade to modern react-bootstrap
-      // (see https://github.com/sagemathinc/cocalc/issues/3782)
-      // or implement this from scratch since our react-bootstrap,
-      // which is doc'd at
-      // https://5c507d49471426000887a6a7--react-bootstrap.netlify.com/components/navs/
-      // doesn't have Accordion.  (There's code
-      // but it isn't documented...).
-      // Actually we are entirely switching away from
-      // bootstrap, so use the accordion here:
+      // TODO: we have to rewrite using antd:
       //    https://ant.design/components/collapse/
     }
 
