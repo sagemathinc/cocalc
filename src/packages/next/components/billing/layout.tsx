@@ -3,23 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Layout } from "antd";
 import { unreachable } from "@cocalc/util/misc";
-import A from "components/misc/A";
-import { join } from "path";
-import basePath from "lib/base-path";
-import Menu from "./menu";
+import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import useProfile from "lib/hooks/profile";
+import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
-import { useRouter } from "next/router";
+import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
+import { useRouter } from "next/router";
+import { MainPagesType } from "./consts";
+import InvoicesAndReceipts from "./invoices-and-receipts";
+import Menu from "./menu";
+import Overview from "./overview";
 import PaymentMethods from "./payment-methods";
 import Subscriptions from "./subscriptions";
-import InvoicesAndReceipts from "./invoices-and-receipts";
-import Overview from "./overview";
-import { MainPagesType } from "./consts";
-import Anonymous from "components/misc/anonymous";
 
 const { Content } = Layout;
 
@@ -70,7 +67,7 @@ export default function ConfigLayout({ page }: Props) {
   }
 
   if (is_anonymous) {
-    return <Anonymous/>;
+    return <Anonymous />;
   }
 
   // page could be an empty array, then main is undefined → overview page
@@ -107,20 +104,6 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        <div style={{ float: "right", margin: "0 0 15px 15px" }}>
-          <Alert
-            type="warning"
-            message={
-              <>
-                This is the new billing page (
-                <A href={join(basePath, "settings", "billing")} external>
-                  the old page
-                </A>
-                ).
-              </>
-            }
-          />
-        </div>
         {body()}
       </Content>
     </Layout>
