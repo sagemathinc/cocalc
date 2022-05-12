@@ -23,7 +23,6 @@ export default function FontFamilyMenu({ onClick, style }: Props) {
       button={true}
       title={<Icon name={"font"} />}
       key={"font-family"}
-      id={"font-family"}
       onClick={onClick}
     >
       {items}

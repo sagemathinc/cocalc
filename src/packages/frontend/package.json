@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.56.0",
+  "version": "1.57.1",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -43,7 +43,7 @@
     "@ant-design/icons": "^4.7.0",
     "@cocalc/assets": "^1.7.0",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/hub": "^1.63.1",
+    "@cocalc/hub": "^1.66.1",
     "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/project": "^1.25.0",
     "@cocalc/sync": "^0.6.1",
@@ -80,7 +80,7 @@
     "europa": "^4.0.0",
     "expect": "^26.6.2",
     "history": "^1.17.0",
-    "html-react-parser": "^1.2.8",
+    "html-react-parser": "^1.4.12",
     "htmlparser": "^1.7.7",
     "humanize-list": "^1.0.1",
     "immutable": "4.0.0-rc.12",
