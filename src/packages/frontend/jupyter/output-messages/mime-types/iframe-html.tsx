@@ -12,13 +12,14 @@ import register from "./register";
 
 const IframeHtml = ({ value }) => {
   const iframeRef = useRef<any>(null);
-  // after mounting, we measure the content of the iframe and resize to better fit it.
-  // This will work fine on the share server, and looks much better.
+  // After mounting, we measure the content of the iframe and resize to better fit it.
+  // TODO: I'm not convinced this works at all; maybe a delay is needed in general, or
+  // just fully use https://www.npmjs.com/package/iframe-resizer-react
+  // This is important, but not today.
   useEffect(() => {
     if (iframeRef.current == null) return;
-    window.iframeRef = iframeRef;
     iframeRef.current.height = `${
-      iframeRef.current.contentWindow.document.documentElement.offsetHeight ??
+      iframeRef.current.contentWindow.document.documentElement?.offsetHeight ??
       600
     }px`;
   }, []);
