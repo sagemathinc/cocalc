@@ -9,12 +9,12 @@ The format bar.
 
 import { React, Rendered } from "../../app-framework";
 import { SetMap } from "./types";
-import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 import FontSizeMenu from "@cocalc/frontend/components/font-size";
+import HeadingMenu from "@cocalc/frontend/components/heading-menu";
 
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.
@@ -182,36 +182,13 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function heading_content(heading: number): JSX.Element {
-    const label = heading == 0 ? "Paragraph" : `Heading ${heading}`;
-    if (heading === 0) {
-      return <span>{label}</span>;
-    } else {
-      return React.createElement(`h${heading}`, {}, label);
-    }
-  }
-
   function render_heading_dropdown(): Rendered {
-    const items: Rendered[] = [];
-    for (let heading = 0; heading <= 6; heading++) {
-      items.push(
-        <MenuItem key={heading} eventKey={heading}>
-          {heading_content(heading)}
-        </MenuItem>
-      );
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"header"} />}
-        key={"heading"}
-        id={"heading"}
+      <HeadingMenu
         onClick={(heading) =>
           actions.format_action(`format_heading_${heading}`)
         }
-      >
-        {items}
-      </DropdownMenu>
+      />
     );
   }
 
