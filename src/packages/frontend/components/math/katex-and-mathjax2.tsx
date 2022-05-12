@@ -24,34 +24,42 @@ interface Props {
 
 export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
+  const [text, math] = remove_math(math_escape(data));
 
   useEffect(() => {
+    // be no-op when math.length == 0.
     if (ref.current == null) return;
+    // There was an error during attemptKatex below, so will fallback to the old
+    // katex + mathjaxv2 via an old jquery plugin.
     ref.current.innerHTML = data;
     // @ts-ignore
     $(ref.current).katex({ preProcess: true });
   }, [data]);
 
+  if (math.length == 0) {
+    // no math and the input is text, so return as is. Definitely do NOT wrap in a span.
+    // See https://github.com/sagemathinc/cocalc/issues/5920
+    return <>{data}</>;
+  }
+
   if (
     inMarkdown &&
     redux.getStore("account")?.getIn(["other_settings", "katex"])
   ) {
-    // There was an error, so will fallback to the old katex + mathjaxv2 via
-    // an old jquery plugin...
-    const __html = attemptKatex(data);
+    const __html = attemptKatex(text, math);
     if (__html != null) {
+      // no error -- using katex is allowed and fully worked.
       return <span dangerouslySetInnerHTML={{ __html }}></span>;
     }
   }
 
+  // didn't end up using katex, so we make a span, which we will fill in via that
+  // useEffect above.
   return <span ref={ref}></span>;
 }
 
-function attemptKatex(data: string): undefined | string {
+function attemptKatex(text: string, math: string[]): undefined | string {
   // Try to use KaTeX directly, with no jquery or useEffect doing anything:
-  const [text, math] = remove_math(math_escape(data));
-  if (math.length == 0) return data;
-
   for (let i = 0; i < math.length; i++) {
     const { __html, err } = latexMathToHtmlOrError(math[i]);
     if (!err) {

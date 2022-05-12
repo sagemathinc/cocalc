@@ -81,7 +81,7 @@
     "europa": "^4.0.0",
     "expect": "^26.6.2",
     "history": "^1.17.0",
-    "html-react-parser": "^1.2.8",
+    "html-react-parser": "^1.4.12",
     "htmlparser": "^1.7.7",
     "humanize-list": "^1.0.1",
     "immutable": "4.0.0-rc.12",
