@@ -16,14 +16,17 @@ import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { latexMathToHtmlOrError } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
+import { replaceMathBracketDelims } from "./util";
 
 interface Props {
   data: string;
   inMarkdown?: boolean;
 }
 
+
 export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
+  data = replaceMathBracketDelims(data);
   const [text, math] = remove_math(math_escape(data));
 
   useEffect(() => {

@@ -11,13 +11,15 @@ import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { latexMathToHtml } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
+import { replaceMathBracketDelims } from "./util";
 
 interface Props {
   data: string;
-  inMarkdown?: boolean; // ignored, since 
+  inMarkdown?: boolean; // ignored, since
 }
 
 export default function DefaultMath({ data }: Props) {
+  data = replaceMathBracketDelims(data);
   const [text, math] = remove_math(math_escape(data));
   if (math.length == 0) {
     // no math
