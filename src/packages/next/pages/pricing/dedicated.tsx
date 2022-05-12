@@ -17,6 +17,7 @@ import PricingItem, { Line } from "components/landing/pricing-item";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
+import { MAX_WIDTH } from "lib/config";
 
 interface Item {
   title: string;
@@ -87,7 +88,7 @@ export default function Products({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",
@@ -114,7 +115,7 @@ export default function Products({ customize }) {
             </p>
             <p>
               The list of dedicated VM options below are just examples. Visit
-              the <a href={"/store/dedicated?type=vm"}>Dedicate VM Store</a> to
+              the <A href={"/store/dedicated?type=vm"}>Dedicated VM Store</A> to
               see current options. Besides that, we can provide VM's with almost
               any configuration{" "}
               <A href="https://cloud.google.com/compute/docs/machine-types">
@@ -155,7 +156,7 @@ export default function Products({ customize }) {
             <p>
               The list of dedicated disk options below are just exmples. Visit
               the{" "}
-              <a href={"/store/dedicated?type=disk"}>Dedicated Disk store</a> to
+              <A href={"/store/dedicated?type=disk"}>Dedicated Disk store</A> to
               see available options. Usual disk sizes are{" "}
               <strong>64, 128 and 256 GB</strong>, but we could provide disks{" "}
               <A href="https://cloud.google.com/compute/docs/disks/performance">
