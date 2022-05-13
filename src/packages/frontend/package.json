@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.57.1",
+  "version": "1.57.3",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -43,7 +43,7 @@
     "@ant-design/icons": "^4.7.0",
     "@cocalc/assets": "^1.7.0",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/hub": "^1.66.1",
+    "@cocalc/hub": "^1.66.3",
     "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/project": "^1.25.0",
     "@cocalc/sync": "^0.6.1",
@@ -158,7 +158,7 @@
     "use-debounce": "^7.0.1",
     "use-resize-observer": "^8.0.0",
     "utility-types": "^3.10.0",
-    "xss": "^1.0.9",
+    "xss": "^1.0.11",
     "xterm": "^4.18.0",
     "xterm-addon-fit": "^0.5.0",
     "xterm-addon-web-links": "^0.5.1",

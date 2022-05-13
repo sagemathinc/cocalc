@@ -13,6 +13,7 @@ import basePath from "lib/base-path";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 import apiPost from "lib/api/post";
+import { MAX_WIDTH } from "lib/config";
 
 const favicon = join(basePath, "webapp/favicon-32x32.png");
 
@@ -41,7 +42,7 @@ export default function Custom404() {
               color: "#555",
               margin: "50px auto",
               minHeight: "50vh",
-              maxWidth: "900px",
+              maxWidth: MAX_WIDTH,
               fontSize: "150%",
             }}
           >

@@ -3,10 +3,15 @@ import { createContext, useContext } from "react";
 
 interface IJupyterContext {
   kernelspec: KernelSpec;
+  trust?: boolean;
 }
 
 export const JupyterContext = createContext<IJupyterContext>({
-  kernelspec: { display_name: "Unknown Kernel", name: "unknown" },
+  kernelspec: {
+    display_name: "Unknown Kernel",
+    name: "unknown",
+    language: "unknown",
+  },
 });
 
 const useJupyterContext: () => IJupyterContext = () => {
