@@ -1154,7 +1154,7 @@ export class JupyterActions extends JupyterActions0 {
           data
         );
       } else if (type === "buffers") {
-        // nothing to do.
+        // nothing to do on the backend (?)
       } else if (type === "state") {
         // TODO: currently ignoring this, since it seems chatty and pointless,
         // and could lead to race conditions probably with multiple users, etc.

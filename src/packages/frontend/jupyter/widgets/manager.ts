@@ -248,7 +248,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model: base.DOMWidgetModel,
     serialized_state: ModelState
   ): ModelState {
-    console.log("deserialize_state", { model, serialized_state });
+    // console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -269,11 +269,11 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     constructor: any,
     serialized_state: ModelState
   ): ModelState {
-    console.log("_deserialize_state", {
-      model_id,
-      constructor,
-      serialized_state,
-    });
+    //     console.log("_deserialize_state", {
+    //       model_id,
+    //       constructor,
+    //       serialized_state,
+    //     });
     const { serializers } = constructor;
 
     if (serializers == null) return serialized_state;
@@ -302,7 +302,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const model: base.DOMWidgetModel | undefined = await this.get_model(
       model_id
     );
-    console.log("update_model", { model, change });
+    // console.log("update_model", { model, change });
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, change);
       if (change.last_changed != null) {
@@ -356,7 +356,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     );
 
     // TODO: this is silly, of course!!
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const isDereferenced = await this.dereference_model_links(state);
       if (isDereferenced) break;
       console.warn("dereference_model -- still not done", state);
@@ -372,9 +372,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       model_id: model_id,
       comm: options.comm,
     };
-    console.log("making new model", ModelType, state);
     const widget_model = new ModelType(state, modelOptions);
-    console.log("ceated it");
     widget_model.name = options.model_name;
     widget_model.module = options.model_module;
     return widget_model;
@@ -384,7 +382,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    console.log("create_new_model", { model_id, serialized_state });
+    // console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created -- shouldn't happen?
       return;
@@ -623,7 +621,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async dereference_model_links(state): Promise<boolean> {
-    console.log("dereference_model_links", "BEFORE", state);
+    // console.log("dereference_model_links", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
@@ -667,7 +665,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         }
       }
     }
-    console.log("dereference_model_links", "AFTER (success)", state);
+    // console.log("dereference_model_links", "AFTER (success)", state);
     return true;
   }
 }

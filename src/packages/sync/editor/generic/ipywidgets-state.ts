@@ -260,11 +260,23 @@ export class IpywidgetsState extends EventEmitter {
     }
   }
   public async clear(): Promise<void> {
-    // TODO -- delete everything from table.
-    // This is needed when we restart the kernel.
+    // This is used when we restart the kernel.
     this.assert_state("ready");
     const dbg = this.dbg("clear");
-    dbg("NOT IMPLEMENTED");
+    dbg();
+    // There's no implemented delete for tables yet, so instead we set the data
+    // for everything to null.  All other code related to widgets needs to handle
+    // such data appropriately and ignore it.  (An advantage of this over trying to
+    // implement a genuine delete is that delete is tricky when clients reconnect
+    // and sync...). This table is in memory only anyways, so the table will get properly
+    // fully flushed from existence at some point.
+    const keys = this.table?.get()?.keySeq()?.toJS();
+    if (keys == null) return; // nothing to do.
+    for (const key of keys) {
+      const [string_id, model_id, type] = JSON.parse(key);
+      this.table.set({ string_id, type, model_id, data: null }, "none", false);
+    }
+    await this.table.save();
   }
 
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
@@ -354,23 +366,21 @@ export class IpywidgetsState extends EventEmitter {
         this.sendCustomMessage(model_id, message, false);
         break;
       case "update":
-        if(state == null) return;
+        if (state == null) return;
         dbg("method -- update");
-        if (state != null) {
-          if (this.clear_output[model_id] && state.outputs != null) {
-            // we are supposed to clear the output before inserting
-            // the next output.
-            dbg("clearing outputs");
-            if (state.outputs.length > 0) {
-              state.outputs = [state.outputs[state.outputs.length - 1]];
-            } else {
-              state.outputs = [];
-            }
-            delete this.clear_output[model_id];
+        if (this.clear_output[model_id] && state.outputs != null) {
+          // we are supposed to clear the output before inserting
+          // the next output.
+          dbg("clearing outputs");
+          if (state.outputs.length > 0) {
+            state.outputs = [state.outputs[state.outputs.length - 1]];
+          } else {
+            state.outputs = [];
           }
-
-          this.set_model_value(model_id, state, false);
+          delete this.clear_output[model_id];
         }
+
+        this.set_model_value(model_id, state, false);
 
         if (state.msg_id != null) {
           const { msg_id } = state;
@@ -408,7 +418,7 @@ export class IpywidgetsState extends EventEmitter {
         }
         break;
       case undefined:
-        if(state == null) return;
+        if (state == null) return;
         dbg("method -- undefined (=initial set?)");
         this.set_model_state(model_id, state, false);
         break;
