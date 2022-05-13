@@ -11,10 +11,11 @@ import {
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { Comm } from "./comm";
-import { copy, is_array, len, uuid } from "@cocalc/util/misc";
+import { copy, is_array, is_object, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 import { size } from "lodash";
+import { delay } from "awaiting";
 
 ///////
 // Third party custom widgets:
@@ -28,8 +29,21 @@ import * as k3d from "./k3d";
 // import * as ipyvolume from "ipyvolume/dist";
 
 // bqplot: totally fails
-// simple example: "from bqplot import pyplot; pyplot.plot([1],[1])"
+// simple examples don't really use widgets, but the big notebook
+// linked at https://github.com/bqplot/bqplot does
+// This actually currently half way works. The plot appears, but
+// things instantly get squished, and buttons don't work.  But it's close.
+// To develop it, I switched to import "bqplot" instead of "bqplot/dist",
+// and also (!) had to install the exact same random version of d3 that
+// is needed by bqplot (since webpack grabs it rather than the one in bqplot).
+// Also, it's necessary to install raw-loader into packages/frontend to
+// do such dev work.
 // import * as bqplot from "bqplot/dist";
+
+// matplotlib:
+// This just silently fails when I've tried it.
+// There's also warning by webpack about a map file missing. They are harmless.
+// import * as matplotlib from "jupyter-matplotlib";
 
 //////
 
@@ -234,6 +248,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model: base.DOMWidgetModel,
     serialized_state: ModelState
   ): ModelState {
+    console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -241,7 +256,25 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // This is used in an interesting way for the date picker, see:
     //     ipywidgets/packages/controls/src/widget_date.ts
     // in particular for when a date is set in the kernel.
-    const serializers = (model.constructor as any).serializers;
+
+    return this._deserialize_state(
+      model.model_id,
+      model.constructor,
+      serialized_state
+    );
+  }
+
+  private _deserialize_state(
+    model_id: string,
+    constructor: any,
+    serialized_state: ModelState
+  ): ModelState {
+    console.log("_deserialize_state", {
+      model_id,
+      constructor,
+      serialized_state,
+    });
+    const { serializers } = constructor;
 
     if (serializers == null) return serialized_state;
 
@@ -249,7 +282,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // since we do our own model unpacking, due to issues with ordering
     // and RTC.
     const deserialized: ModelState = {};
-    this.setBuffers(model.model_id, serialized_state);
+    this.setBuffers(model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
       if (deserialize != null && deserialize !== base.unpack_models) {
@@ -269,6 +302,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const model: base.DOMWidgetModel | undefined = await this.get_model(
       model_id
     );
+    console.log("update_model", { model, change });
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, change);
       if (change.last_changed != null) {
@@ -288,11 +322,69 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
+  // I rewrote _make_model based on an old version I found (instead of master),
+  // since I figured that was more likely to work with the rest of the code and
+  // with widgets-in-the-wild, since the released ipywidgets that all widgets target
+  // it kind of massively different than what is in master.
+  async _make_model(
+    options,
+    serialized_state: any = {}
+  ): Promise<base.WidgetModel> {
+    const model_id = options.model_id;
+    let ModelType: typeof base.WidgetModel;
+    try {
+      ModelType = await this.loadClass(
+        options.model_name,
+        options.model_module,
+        options.model_module_version
+      );
+    } catch (error) {
+      console.warn("Could not load widget module");
+      throw error;
+    }
+
+    if (!ModelType) {
+      throw new Error(
+        `Cannot find model module ${options.model_module}@${options.model_module_version}, ${options.model_name}`
+      );
+    }
+
+    const state = this._deserialize_state(
+      model_id,
+      ModelType,
+      serialized_state
+    );
+
+    // TODO: this is silly, of course!!
+    for (let i = 0; i < 3; i++) {
+      const isDereferenced = await this.dereference_model_links(state);
+      if (isDereferenced) break;
+      console.warn("dereference_model -- still not done", state);
+      await delay(250);
+      if (i == 2) {
+        console.log("giving up");
+        await delay(10000000);
+      }
+    }
+
+    const modelOptions = {
+      widget_manager: this,
+      model_id: model_id,
+      comm: options.comm,
+    };
+    console.log("making new model", ModelType, state);
+    const widget_model = new ModelType(state, modelOptions);
+    console.log("ceated it");
+    widget_model.name = options.model_name;
+    widget_model.module = options.model_module;
+    return widget_model;
+  }
+
   private async create_new_model(
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    // console.log("create_new_model", { model_id, serialized_state });
+    console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created -- shouldn't happen?
       return;
@@ -315,6 +407,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (model_module_version == null) {
       throw Error("_model_module_version must be defined");
     }
+    console.log(1);
 
     const model: base.DOMWidgetModel = await this.new_model(
       {
@@ -326,8 +419,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       serialized_state
     );
 
+    console.log(2);
     const success = await this.dereference_model_links(serialized_state);
-
+    console.log(3);
     if (!success) {
       //console.log(model_id, "failed to dereference fully");
       this.incomplete_model_ids.add(model_id);
@@ -358,18 +452,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     throw Error("display_view not implemented");
   }
 
-  // Create a comm -- THIS IS NOT USED AT ALL
+  // Create a comm -- I think THIS IS NOT USED AT ALL...?
   async _create_comm(
     target_name: string,
     model_id: string,
-    data?: any,
-    metadata?: any
+    _data?: any,
+    _metadata?: any
   ): Promise<Comm> {
-    console.log(
-      `TODO: _create_comm(${target_name}, ${model_id}`,
-      data,
-      metadata
-    );
     const comm = new Comm(
       target_name,
       model_id,
@@ -474,12 +563,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       module = react_output;
     } else if (moduleName === "k3d") {
       module = k3d;
-      //} else if (moduleName === "jupyter-threejs") {
-      //      module = jupyter_threejs;
-      // } else if (moduleName === "ipyvolume") {
-      //  module = ipyvolume;
-      // } else if (moduleName === "bqplot") {
-      //  module = bqplot;
+    } else if (moduleName === "jupyter-matplotlib") {
+      //throw Error(`custom widgets: ${moduleName} not installed`);
+      // module = matplotlib;
+    } else if (moduleName === "jupyter-threejs") {
+      throw Error(`custom widgets: ${moduleName} not installed`);
+      // module = jupyter_threejs;
+    } else if (moduleName === "ipyvolume") {
+      throw Error(`custom widgets: ${moduleName} not installed`);
+      // module = ipyvolume;
+    } else if (moduleName === "bqplot") {
+      throw Error(`custom widgets: ${moduleName} not installed`);
+      // module = bqplot;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
@@ -531,6 +626,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async dereference_model_links(state): Promise<boolean> {
+    console.log("dereference_model_links", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
@@ -560,8 +656,21 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
             }
           }
         }
+      } else if (is_object(val)) {
+        for (const key in val) {
+          const z = val[key];
+          if (typeof z == "string" && z.slice(0, 10) == "IPY_MODEL_") {
+            const model = await this.dereference_model_link(z);
+            if (model != null) {
+              val[key] = model;
+            } else {
+              return false;
+            }
+          }
+        }
       }
     }
+    console.log("dereference_model_links", "AFTER (success)", state);
     return true;
   }
 }

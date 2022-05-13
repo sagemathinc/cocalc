@@ -244,6 +244,12 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       pWidget.Widget.attach(view.current.pWidget, elt as any);
       handle_phosphor_focus();
       handle_phosphor_custom_events(model_id);
+      // @ts-ignore: this is a jquery plugin I wrote to use our icons
+      // to process <i class="fa fa-...."/> which happen to be used a
+      // lot in widgets, annoyingly.  So you have to test everything in
+      // each widget, then possibly add icons (or aliases) to
+      // frontend/components/icon.tsx that handles the missing ones.
+      $(elt).processIcons();
     }
 
     function renderReactView(): JSX.Element | undefined {

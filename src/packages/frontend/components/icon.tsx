@@ -369,6 +369,9 @@ const IconSpec = {
   "money-check": { IconFont: "money-check" },
   mousepointer: { IconFont: "mousepointer" },
   move: { IconFont: "move" },
+  arrows: {
+    IconFont: "move",
+  } /* fa-arrows is used by the bqplot custom widget */,
   "network-wired": ClusterOutlined,
   "node-js": { IconFont: "node-js" },
   note: { IconFont: "note-text" },
