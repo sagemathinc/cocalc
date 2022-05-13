@@ -137,9 +137,9 @@ export default function JupyterNotebook({ customize }) {
               notified about the presence of collaborators.
             </p>
             <p>
-              Edit text between code cells using markdown or our{" "}
-              <A href="https://doc.cocalc.com/wysiwyg.html">
-                WYSIWYG collaborative markdown text editor
+              Edit text between code cells using{" "}
+              <A href="https://doc.cocalc.com/markdown.html">
+                markdown or our collaborative rich text editor
               </A>
               .
             </p>

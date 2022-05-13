@@ -52,8 +52,8 @@ export default function Whiteboard({ customize }) {
                 </p>
                 <ul>
                   <li>
-                    <A href="https://doc.cocalc.com/wysiwyg.html">
-                      WYSIWYG collaborative markdown text editor
+                    <A href="https://doc.cocalc.com/markdown.html">
+                      Rich text collaborative markdown editor
                     </A>{" "}
                     with mathematical LaTeX expressions,
                   </li>
