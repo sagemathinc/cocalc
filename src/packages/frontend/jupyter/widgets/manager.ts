@@ -407,7 +407,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (model_module_version == null) {
       throw Error("_model_module_version must be defined");
     }
-    console.log(1);
 
     const model: base.DOMWidgetModel = await this.new_model(
       {
@@ -419,9 +418,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       serialized_state
     );
 
-    console.log(2);
     const success = await this.dereference_model_links(serialized_state);
-    console.log(3);
     if (!success) {
       //console.log(model_id, "failed to dereference fully");
       this.incomplete_model_ids.add(model_id);
@@ -564,7 +561,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "k3d") {
       module = k3d;
     } else if (moduleName === "jupyter-matplotlib") {
-      //throw Error(`custom widgets: ${moduleName} not installed`);
+      throw Error(`custom widgets: ${moduleName} not installed`);
       // module = matplotlib;
     } else if (moduleName === "jupyter-threejs") {
       throw Error(`custom widgets: ${moduleName} not installed`);
