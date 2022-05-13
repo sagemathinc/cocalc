@@ -24,6 +24,7 @@ export type ProjectLogMap = Map<string, EventRecordMap>;
  * All events must have an event field
  */
 export type ProjectEvent =
+  | UnknownEvent
   | AssistantEvent
   | ProjectControlEvent
   | FileActionEvent
@@ -44,6 +45,16 @@ export type ProjectEvent =
   | { event: "hide_project" }
   | { event: "unhide_project" }
   | SystemEvent;
+
+export function isUnknownEvent(event: ProjectEvent): event is UnknownEvent {
+  return (event as any).event == null;
+}
+
+// there are problematic events in the DB, which aren't any of the entries below
+// https://github.com/sagemathinc/cocalc/issues/5927
+type UnknownEvent = {
+  time: number;
+};
 
 export type SetTitleEvent = {
   event: "set";
