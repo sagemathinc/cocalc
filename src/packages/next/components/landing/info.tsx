@@ -3,6 +3,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { CSSProperties, ReactNode } from "react";
 import { MediaURL } from "./util";
 import Image, { StaticImageData } from "./image";
+import { MAX_WIDTH } from "lib/config";
 
 const showcase = {
   width: "100%",
@@ -79,7 +80,7 @@ export default function Info({
   if (!graphic) {
     return (
       <div style={{ width: "100%" }}>
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+        <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
           <div
             style={{
               background: "#fafafa",

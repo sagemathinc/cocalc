@@ -7,6 +7,7 @@ import { Layout } from "antd";
 import getStats from "lib/landing/stats";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Statistics from "components/statistics";
+import { MAX_WIDTH } from "lib/config";
 
 export default function Stats({ customize, stats }) {
   const { siteName } = customize;
@@ -22,7 +23,7 @@ export default function Stats({ customize, stats }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",

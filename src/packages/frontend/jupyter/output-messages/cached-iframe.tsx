@@ -9,7 +9,7 @@ split the Jupyter frame, then the iframes of course get reset.  That was a probl
 i.e., it's not special to using windowing.
 */
 
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { get_blob_url } from "../server-urls";
@@ -69,7 +69,11 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
     eltRef.current.style.width = `${divRect.width}px`;
     // Set the height to match the contents:
     try {
-      const height = Math.max(400, $(eltRef.current).contents().height() ?? 0);
+      const height = Math.max(
+        200,
+        eltRef.current.contentWindow.document.documentElement.offsetHeight ??
+          200
+      );
       eltRef.current.style.height = `${height}px`;
       divRef.current.style.height = `${height}px`;
     } catch (_) {
@@ -151,12 +155,14 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
 
   return (
     <div ref={divRef} style={{ height: HEIGHT, width: "100%" }}>
-      <Button
-        style={{ float: "right", zIndex: 1, marginTop: "5px" }}
-        onClick={reloadIframe}
-      >
-        <Icon name="reload" />
-      </Button>
+      <Tooltip title="Reload iframe">
+        <Button
+          style={{ float: "right", zIndex: 1, marginTop: "5px" }}
+          onClick={reloadIframe}
+        >
+          <Icon name="reload" />
+        </Button>
+      </Tooltip>
     </div>
   );
 }

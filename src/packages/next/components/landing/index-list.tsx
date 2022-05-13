@@ -5,6 +5,7 @@ import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
 import useCustomize, { CustomizeType } from "lib/use-customize";
+import { MAX_WIDTH } from "lib/config";
 
 export interface Item {
   link: string;
@@ -47,7 +48,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
     >
       <div
         style={{
-          maxWidth: "900px",
+          maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",
