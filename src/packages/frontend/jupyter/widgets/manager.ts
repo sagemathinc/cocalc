@@ -17,35 +17,32 @@ import * as react_controls from "./controls";
 import { size } from "lodash";
 import { delay } from "awaiting";
 
-///////
-// Third party custom widgets:
-// I rewrote the entire k3d widget interface...
-import * as k3d from "./k3d";
+/*
+NOTES: Third party custom widgets:
 
-// pythreejs: fails miserably
-//import * as jupyter_threejs from "jupyter-threejs";
+Notes here, but they need to be async imported in the loadClass function, so
+they only get loaded when used, as they can be very large.
 
-// ipyvolume: fails miserably
-// import * as ipyvolume from "ipyvolume/dist";
+pythreejs: fails
 
-// bqplot: totally fails
-// simple examples don't really use widgets, but the big notebook
-// linked at https://github.com/bqplot/bqplot does
-// This actually currently half way works. The plot appears, but
-// things instantly get squished, and buttons don't work.  But it's close.
-// To develop it, I switched to import "bqplot" instead of "bqplot/dist",
-// and also (!) had to install the exact same random version of d3 that
-// is needed by bqplot (since webpack grabs it rather than the one in bqplot).
-// Also, it's necessary to install raw-loader into packages/frontend to
-// do such dev work.
-// import * as bqplot from "bqplot/dist";
+ipyvolume: fails
 
-// matplotlib:
-// This just silently fails when I've tried it.
-// There's also warning by webpack about a map file missing. They are harmless.
-// import * as matplotlib from "jupyter-matplotlib";
+bqplot: sort of works.
+simple examples don't really use widgets, but the big notebook
+linked at https://github.com/bqplot/bqplot does
+This actually currently half way works. The plot appears, but
+things instantly get squished, and buttons don't work.  But it's close.
+To develop it, I switched to import "bqplot" instead of "bqplot/dist",
+and also (!) had to install the exact same random version of d3 that
+is needed by bqplot (since webpack grabs it rather than the one in bqplot).
+Also, it's necessary to install raw-loader into packages/frontend to
+do such dev work.
 
-//////
+matplotlib:
+This just silently fails when I've tried it.
+There's also warning by webpack about a map file missing. They are harmless.
+
+*/
 
 export type SendCommFunction = (string, data) => string;
 
@@ -557,19 +554,20 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "@jupyter-widgets/output") {
       module = react_output;
     } else if (moduleName === "k3d") {
-      module = k3d;
+      // NOTE: I completely rewrote the entire k3d widget interface...
+      module = await import("./k3d");
     } else if (moduleName === "jupyter-matplotlib") {
+      //module = await import("jupyter-matplotlib");
       throw Error(`custom widgets: ${moduleName} not installed`);
-      // module = matplotlib;
     } else if (moduleName === "jupyter-threejs") {
+      //module = await import("jupyter-threejs");
       throw Error(`custom widgets: ${moduleName} not installed`);
-      // module = jupyter_threejs;
     } else if (moduleName === "ipyvolume") {
+      //module = await import("ipyvolume/dist");
       throw Error(`custom widgets: ${moduleName} not installed`);
-      // module = ipyvolume;
     } else if (moduleName === "bqplot") {
+      //module = await import("bqplot/dist");
       throw Error(`custom widgets: ${moduleName} not installed`);
-      // module = bqplot;
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
