@@ -8,7 +8,7 @@ import { Subscription } from "@cocalc/util/licenses/purchase/types";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
-import DateRange from "components/misc/date-range";
+import DateRange, { DateRangeType } from "components/misc/date-range";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
 
@@ -35,7 +35,7 @@ export function UsageAndDuration(props: Props) {
     extraDuration,
   } = props;
 
-  useTimeFixer();
+  const { toServerTime, serverTimeDate } = useTimeFixer();
 
   function renderUsage() {
     if (!showUsage) return;
@@ -68,6 +68,40 @@ export function UsageAndDuration(props: Props) {
     );
   }
 
+  function fixRangeSelector(range: DateRangeType): DateRangeType {
+    // fixes the range to the start/end of day in the timezone of the user
+    const [start, end] = range;
+    const fixedStart =
+      start != null ? startOfDay(toServerTime(start)) : undefined;
+    let fixedEnd = end != null ? endOfDay(toServerTime(end)) : undefined;
+    if (fixedStart != null && fixedEnd != null && fixedStart < serverTimeDate) {
+      const diff = serverTimeDate.getTime() - fixedStart.getTime();
+      fixedEnd = new Date(fixedEnd.getTime() + diff);
+      // we don't care about changing fixedStart, because it's already in the past
+    }
+    const fixed: DateRangeType = [fixedStart, fixedEnd];
+    return fixed;
+  }
+
+  function renderRangeSelector(getFieldValue) {
+    const period = getFieldValue("period");
+    if (period !== "range") return;
+    return (
+      <DateRange
+        disabled={disabled}
+        noPast
+        maxDaysInFuture={365 * 4}
+        style={{ margin: "5px 0 30px", textAlign: "center" }}
+        initialValues={getFieldValue("range")}
+        onChange={(range) => {
+          range = fixRangeSelector(range);
+          form.setFieldsValue({ range });
+          onChange();
+        }}
+      />
+    );
+  }
+
   function renderRange() {
     return (
       <Form.Item
@@ -76,27 +110,7 @@ export function UsageAndDuration(props: Props) {
           prevValues.period !== currentValues.period
         }
       >
-        {({ getFieldValue }) =>
-          getFieldValue("period") == "range" ? (
-            <DateRange
-              disabled={disabled}
-              noPast
-              maxDaysInFuture={365 * 4}
-              style={{ margin: "5px 0 30px", textAlign: "center" }}
-              initialValues={getFieldValue("range")}
-              onChange={(range) => {
-                // fixes the range to the start/end of day in the timezone of the user
-                const [start, end] = range;
-                range = [
-                  start != null ? startOfDay(start) : undefined,
-                  end != null ? endOfDay(end) : undefined,
-                ];
-                form.setFieldsValue({ range });
-                onChange();
-              }}
-            />
-          ) : null
-        }
+        {({ getFieldValue }) => renderRangeSelector(getFieldValue)}
       </Form.Item>
     );
   }
