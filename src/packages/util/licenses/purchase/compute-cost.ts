@@ -169,8 +169,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
     cost: cost_total,
     discounted_cost: Math.max(min_sale, cost_total * COSTS.online_discount),
     cost_per_project_per_month,
-    cost_sub_month,
-    cost_sub_year,
+    // attn: cost_sub* will be multiplied by the online discount in server/licenses/purchase/charge.ts
+    // regarding min_sale, see above regarding cost_per_unit
+    cost_sub_month: Math.max(min_sale / COSTS.online_discount, cost_sub_month),
+    cost_sub_year: Math.max(min_sale / COSTS.online_discount, cost_sub_year),
   };
 }
 
