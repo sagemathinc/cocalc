@@ -44,6 +44,7 @@ function Conversation({ element, focused }: Props) {
   const submitMentionsRef = useRef<Function>();
 
   const saveChat = useDebouncedCallback((input) => {
+    lastInputRef.current = input;
     actions.saveChat({ id: element.id, input });
   }, SAVE_DEBOUNCE_MS);
 
@@ -56,17 +57,22 @@ function Conversation({ element, focused }: Props) {
   // every change saves the entire string, rather than just diffs.  The only
   // good way to fix this is with another record type in the syncdb, I think...
   // or a separate ephemeral table (which adds its own complexity, of course).
+  // Things *are* done properly and efficiently for our normal side and chatroom
+  // chat (e.g., @cocalc/frontend/chat).
+  const lastInputRef = useRef<string>("");
   useEffect(() => {
     if (!focused) return;
     const input1 =
       element.data?.[redux.getStore("account").get_account_id()]?.input ?? "";
-    if (input1 != input) {
+    if (input1 != lastInputRef.current) {
       saveChat.cancel();
       setInput(input1);
     }
+    lastInputRef.current = input1;
   }, [element, focused]);
 
   const clearInput = () => {
+    lastInputRef.current = "";
     setInput("");
     saveChat.cancel();
   };
@@ -126,7 +132,9 @@ function Conversation({ element, focused }: Props) {
             height={INPUT_HEIGHT}
             value={input}
             style={{
-              width: `${element.w - 152}px`, /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */
+              width: `${
+                element.w - 152
+              }px` /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */,
               ...(mode == "editor"
                 ? {
                     border: "1px solid #ccc",
