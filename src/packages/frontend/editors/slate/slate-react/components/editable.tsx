@@ -395,18 +395,18 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           case "insertFromYank":
           case "insertReplacementText":
           case "insertText": {
-            if (data instanceof DataTransfer) {
-              ReactEditor.insertData(editor, data);
-            } else if (typeof data === "string") {
-              try {
+            try {
+              if (data instanceof DataTransfer) {
+                ReactEditor.insertData(editor, data);
+              } else if (typeof data === "string") {
                 Editor.insertText(editor, data);
-              } catch (err) {
-                // I've seen this crash several times in a way I can't reproduce, maybe
-                // when focusing (not sure).  Better make it a warning with useful info.
-                console.warn(
-                  `SLATE -- issue with DOM insertText operation ${err}, ${data}`
-                );
               }
+            } catch (err) {
+              // I've seen this crash several times in a way I can't reproduce, maybe
+              // when focusing (not sure).  Better make it a warning with useful info.
+              console.warn(
+                `SLATE -- issue with DOM insertText/insertData operation ${err}, ${data}`
+              );
             }
 
             break;
