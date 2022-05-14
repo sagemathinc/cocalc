@@ -104,7 +104,9 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
 
     function render_websocket_indicator() {
       return (
-        <span style={{ paddingRight: "5px" }}>
+        // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
+        // now visible via a big "Connecting..." banner after a few seconds.
+        <span style={{ paddingRight: "5px" }} className="hidden-xs">
           <WebsocketIndicator state={project_websockets?.get(project_id)} />
         </span>
       );
@@ -194,9 +196,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         <div style={PROJECT_NAME_STYLE} onClick={click_title}>
           <Tip title={title} tip={render_tip()} placement="bottom" size="small">
             {icon}
-            <span style={{ marginLeft: 5, position: "relative" }}>
-              {title}
-            </span>
+            <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
           </Tip>
         </div>
       </SortableNavTab>
@@ -204,7 +204,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
   }
 );
 
-export const ProjectsNav: React.FC = React.memo(() => {
+export const ProjectsNav: React.FC<{ style? }> = React.memo(({ style }) => {
   const actions = useActions("projects");
 
   const num_ghost_tabs = useTypedRedux("page", "num_ghost_tabs");
@@ -251,6 +251,7 @@ export const ProjectsNav: React.FC = React.memo(() => {
         overflow: "hidden",
         height: "36px",
         margin: "0",
+        ...style,
       }}
     >
       <SortableNav

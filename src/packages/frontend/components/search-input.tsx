@@ -54,6 +54,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }, []);
 
   useEffect(() => {
+    if (focus == null) return;
     input_ref.current?.focus();
   }, [focus]);
 

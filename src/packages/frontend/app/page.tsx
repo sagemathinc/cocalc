@@ -40,8 +40,15 @@ import { NotificationBell } from "./notification-bell";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { Icon } from "@cocalc/frontend/components/icon";
 
+// This is not responsive -- but I just need something is actually
+// usable on my phone.  TODO: if you load with phone in landscape mode,
+// then switch to portrait, this is broken.  But it's better than
+// always being 100% broken.
+const IS_PHONE =
+  IS_MOBILE && window.innerWidth != null && window.innerWidth <= 480;
+
 const HIDE_LABEL_THRESHOLD = 6;
-const NAV_HEIGHT = 36;
+const NAV_HEIGHT = IS_PHONE ? 72 : 36;
 const NAV_CLASS = "hidden-xs";
 
 const TOP_BAR_STYLE: React.CSSProperties = {
@@ -318,11 +325,7 @@ export const Page: React.FC = () => {
             mouseLeaveDelay={0}
             placement="right"
           >
-            <div
-              style={PROJECTS_STYLE}
-              cocalc-test="project-button"
-              className={NAV_CLASS}
-            >
+            <div style={PROJECTS_STYLE} cocalc-test="project-button">
               <Icon name="edit" /> Projects
             </div>
           </Tooltip>
@@ -392,7 +395,19 @@ export const Page: React.FC = () => {
         <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
           <AppLogo />
           {is_logged_in && render_project_nav_button()}
-          <ProjectsNav />
+          <ProjectsNav
+            style={
+              IS_PHONE
+                ? {
+                    /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
+                    top: "32px",
+                    left: 0,
+                    position: "absolute",
+                    width: "100vw",
+                  }
+                : undefined
+            }
+          />
           {render_right_nav()}
         </Navbar>
       )}
