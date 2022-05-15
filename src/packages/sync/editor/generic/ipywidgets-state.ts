@@ -348,16 +348,64 @@ export class IpywidgetsState extends EventEmitter {
     while (before < after) {
       before = modelIds.size;
       for (const model_id of modelIds) {
-        const x = this.get(model_id, "state");
-        if (x == null) continue;
-        for (const id of getModelIds(x)) {
+        const data = this.get(model_id, "state");
+        if (data == null) continue;
+        for (const id of getModelIds(data)) {
           modelIds.add(id);
         }
       }
       after = modelIds.size;
     }
+    // Also any custom ways of doing referencing...
+    this.includeThirdPartyReferences(modelIds);
 
     return modelIds;
+  }
+
+  private includeThirdPartyReferences(modelIds: Set<string>) {
+    /*
+    Motivation (RANT):
+    It seems to me that third party widgets can just invent their own
+    ways of referencing each other, and there's no way to know what they are
+    doing.  The only possible way to do garbage collection is by reading
+    and understanding their code or reverse engineering their data.
+    It's not unlikely that any nontrivail third
+    party widget has invented it's own custom way to do object references,
+    and for every single one we may need to write custom code for garbage
+    collection, which can randomly break if they change.
+    <sarcasm>Yeah.</sarcasm>
+    /*
+
+    /* k3d:
+    We handle k3d here, which creates models with
+         {_model_module:'k3d', _model_name:'ObjectModel', id:number}
+    where the id is in the object_ids attribute of some model found above:
+       {_model_module:'k3d', object_ids:[..., id, ...]}
+    But note that this format is something that was entirely just invented
+    arbitrarily by the k3d dev.
+    */
+    // First get all object_ids of all active models:
+    // We're not explicitly restricting to k3d here, since maybe other widgets use
+    // this same approach, and the worst case scenario is just insufficient garbage collection.
+    const object_ids = new Set<number>([]);
+    for (const model_id of modelIds) {
+      this.get(model_id, "state")
+        ?.get("object_ids")
+        ?.forEach((id) => {
+          object_ids.add(id);
+        });
+    }
+    if (object_ids.size == 0) {
+      // nothing to do -- no such object_ids in any current models.
+      return;
+    }
+    // let's find the models with these id's as id attribute and include them.
+    this.table.get()?.forEach((val) => {
+      if (object_ids.has(val?.getIn(["data", "id"]))) {
+        const model_id = val.get("model_id");
+        modelIds.add(model_id);
+      }
+    });
   }
 
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'

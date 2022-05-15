@@ -456,8 +456,6 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       );
     }
 
-    console.log("isUnsupported = ", isUnsupported);
-
     if (isUnsupported) {
       return renderUnsupported();
     }
