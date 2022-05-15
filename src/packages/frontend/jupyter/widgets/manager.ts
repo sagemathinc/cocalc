@@ -352,14 +352,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       serialized_state
     );
 
-    // TODO: this is silly, of course!!
-    for (let i = 0; i < 5; i++) {
+    // TODO: this is silly, of course.  I will rewrite this when I better
+    // understand what is going on.
+    const TRIES = 6;
+    for (let i = 0; i < TRIES; i++) {
       const isDereferenced = await this.dereference_model_links(state);
       if (isDereferenced) break;
-      console.warn("dereference_model -- still not done", state);
-      await delay(250);
-      if (i == 2) {
-        console.log("giving up");
+      await delay(200);
+      if (i == TRIES) {
+        console.warn("dereference_model failed (giving up)", state);
         await delay(10000000);
       }
     }

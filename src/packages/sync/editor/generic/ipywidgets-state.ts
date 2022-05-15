@@ -10,10 +10,18 @@ import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
 import { delay } from "awaiting";
+import { debounce } from "lodash";
 
 type State = "init" | "ready" | "closed";
 
 type Value = { [key: string]: any };
+
+// When there is no activity for this much time, them we
+// do some garbage collection.  This is only done in the
+// backend project, and not by frontend browser clients.
+// The garbage collection is deleting models and related
+// data when they are not referenced in the notebook.
+const GC_DEBOUNCE_MS = 5000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -35,6 +43,7 @@ export class IpywidgetsState extends EventEmitter {
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
+  private gc: Function;
 
   // If capture_output[msg_id] is defined, then
   // all output with that msg_id is captured by the
@@ -58,6 +67,13 @@ export class IpywidgetsState extends EventEmitter {
       // persistent -- doesn't automatically vanish when all browser clients disconnect
       this.table_options = [{ ephemeral: true, persistent: true }];
     }
+    this.gc = client.is_project() // no-op if not project
+      ? debounce(() => {
+          if (this.state == "ready") {
+            this.deleteUnused();
+          }
+        }, GC_DEBOUNCE_MS)
+      : () => {};
   }
 
   public async init(): Promise<void> {
@@ -240,6 +256,7 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   public async save(): Promise<void> {
+    this.gc();
     await this.table.save();
   }
 
@@ -252,7 +269,7 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   private dbg(_f): Function {
-    if (this.client.is_project() || true) {
+    if (this.client.is_project()) {
       // TODO
       return this.client.dbg(`IpywidgetsState.${_f}`);
     } else {
@@ -277,6 +294,70 @@ export class IpywidgetsState extends EventEmitter {
       this.table.set({ string_id, type, model_id, data: null }, "none", false);
     }
     await this.table.save();
+  }
+
+  // Clean up all data in the table about models that are not
+  // referenced (directly or indirectly) in any cell in the notebook.
+  public async deleteUnused(): Promise<void> {
+    this.assert_state("ready");
+    const dbg = this.dbg("deleteUnused");
+    dbg();
+    // See comment in the "clear" function above about no delete for tables,
+    // which is why we just set the data to null.
+    const activeIds = this.getActiveModelIds();
+    this.table.get()?.forEach((val, key) => {
+      if (key == null || val == null || val.get("data") == null) return; // already deleted
+      const [string_id, model_id, type] = JSON.parse(key);
+      if (!activeIds.has(model_id)) {
+        this.table.set(
+          { string_id, type, model_id, data: null },
+          "none",
+          false
+        );
+      }
+    });
+    await this.table.save();
+  }
+
+  private getActiveModelIds(): Set<string> {
+    // First we find the ids of models that are explicitly referenced
+    // in the current version of the Jupyter notebook by iterating through
+    // the output of all cells.
+    const modelIds: Set<string> = new Set();
+    this.syncdoc.get({ type: "cell" }).forEach((cell) => {
+      const output = cell.get("output");
+      if (output != null) {
+        output.forEach((mesg) => {
+          const model_id = mesg.getIn([
+            "data",
+            "application/vnd.jupyter.widget-view+json",
+            "model_id",
+          ]);
+          if (model_id != null) {
+            // same id could of course appear in multiple cells
+            // if there are multiple view of the same model.
+            modelIds.add(model_id);
+          }
+        });
+      }
+    });
+    // Next, for each model we just found, we add in all the ids of models
+    // that it explicitly references
+    let before = 0;
+    let after = modelIds.size;
+    while (before < after) {
+      before = modelIds.size;
+      for (const model_id of modelIds) {
+        const x = this.get(model_id, "state");
+        if (x == null) continue;
+        for (const id of getModelIds(x)) {
+          modelIds.add(id);
+        }
+      }
+      after = modelIds.size;
+    }
+
+    return modelIds;
   }
 
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
@@ -519,4 +600,20 @@ export class IpywidgetsState extends EventEmitter {
   public get_message(model_id: string) {
     return this.get(model_id, "message")?.toJS();
   }
+}
+
+function getModelIds(x): Set<string> {
+  const ids: Set<string> = new Set();
+  x?.forEach((val) => {
+    if (typeof val == "string") {
+      if (val.startsWith("IPY_MODEL_")) {
+        ids.add(val.slice("IPY_MODEL_".length));
+      }
+    } else if (val.forEach != null) {
+      for (const z of getModelIds(val)) {
+        ids.add(z);
+      }
+    }
+  });
+  return ids;
 }
