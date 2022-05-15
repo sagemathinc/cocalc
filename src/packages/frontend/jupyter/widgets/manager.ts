@@ -89,27 +89,40 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     for (const key of keys) {
       const [, model_id, type] = JSON.parse(key);
       // console.log("handle_table_state_change - one key", key, model_id, type);
-      switch (type) {
-        case "state":
-          await this.handle_table_model_state_change(model_id);
-          break;
-        case "value":
-          await this.handle_table_model_value_change(model_id);
-          break;
-        case "buffers":
-          await this.handle_table_model_buffers_change(model_id);
-          break;
-        case "message":
-          this.handle_table_model_message_change(model_id);
-          break;
-        default:
-          throw Error(`unknown state type '${type}'`);
+
+      try {
+        switch (type) {
+          case "state":
+            await this.handle_table_model_state_change(model_id);
+            break;
+          case "value":
+            await this.handle_table_model_value_change(model_id);
+            break;
+          case "buffers":
+            await this.handle_table_model_buffers_change(model_id);
+            break;
+          case "message":
+            this.handle_table_model_message_change(model_id);
+            break;
+          default:
+            throw Error(`unknown state type '${type}'`);
+        }
+      } catch (err) {
+        console.warn("issue handling table state change", key, err);
       }
     }
     while (this.incomplete_model_ids.size > 0) {
       const size_before = this.incomplete_model_ids.size;
       for (const model_id of this.incomplete_model_ids) {
-        await this.handle_table_model_state_change(model_id);
+        try {
+          await this.handle_table_model_state_change(model_id);
+        } catch (err) {
+          console.warn(
+            "issue handling table model state change",
+            model_id,
+            err
+          );
+        }
       }
       if (this.incomplete_model_ids.size >= size_before) {
         // no shrink -- avoid infinite loop; will try after next change.

@@ -10,7 +10,7 @@ Widget rendering.
 import $ from "jquery";
 import { Map, Set, List, fromJS } from "immutable";
 import { Tabs, Tab } from "../../antd-bootstrap";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
@@ -20,6 +20,7 @@ import * as pWidget from "@lumino/widgets";
 require("@jupyter-widgets/controls/css/widgets.css");
 import { CellOutputMessages } from "./message";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { A } from "@cocalc/frontend/components";
 
 interface WidgetProps {
   value: Map<string, any>;
@@ -39,6 +40,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     const phosphorRef = useRef<HTMLDivElement>(null);
     const reactBoxRef = useRef<HTMLDivElement>(null);
 
+    const [isUnsupported, setIsUnsupported] = useState<boolean>(false);
+
     const view = useRef<any>();
     const model = useRef<any>();
     const init_view_is_running = useRef<boolean>(false);
@@ -52,7 +55,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       List<string> | string | undefined
     >();
 
-    React.useEffect(() => {
+    useEffect(() => {
       if (widget_model_ids?.contains(value.get("model_id"))) {
         // model known already
         init_view(value.get("model_id"));
@@ -63,7 +66,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       };
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
       if (prev_value == null) return;
       const prev_model_id = prev_value.get("model_id");
       const next_model_id = value.get("model_id");
@@ -74,7 +77,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       }
     }, [value]);
 
-    React.useEffect(() => {
+    useEffect(() => {
       if (view.current != null) {
         // view already initialized
         return;
@@ -171,6 +174,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         // TODO -- show an error component somehow...
         console.trace();
         console.warn("widget.tsx: init_view -- failed ", err);
+        setIsUnsupported(true);
       } finally {
         init_view_is_running.current = false;
       }
@@ -236,9 +240,13 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (widget_manager == null) {
         return;
       }
-      const view_next = await widget_manager.create_view(model.current, {});
-      if (!is_mounted.current) return;
-      view.current = view_next as any;
+      try {
+        view.current = await widget_manager.create_view(model.current, {});
+        if (!is_mounted.current) return;
+      } catch (_err) {
+        setIsUnsupported(true);
+      }
+
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
       if (elt == null) return;
       pWidget.Widget.attach(view.current.pWidget, elt as any);
@@ -252,25 +260,27 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       $(elt).processIcons();
     }
 
+    function renderUnsupported() {
+      return (
+        <div style={{ margin: "5px" }}>
+          <A
+            style={{ color: "white", background: "red", padding: "5px" }}
+            href={"https://cocalc.com/support/new"}
+          >
+            Unsupported Third Party Widget{" "}
+            <code>
+              {model.current.module}.{model.current.name}
+            </code>
+            ...
+          </A>
+        </div>
+      );
+    }
+
     function renderReactView(): JSX.Element | undefined {
       if (react_view == null) return;
       if (typeof react_view == "string") {
-        return (
-          <div style={{ margin: "5px" }}>
-            <a
-              style={{ color: "white", background: "red", padding: "5px" }}
-              href={"https://github.com/sagemathinc/cocalc/issues/3806"}
-              target={"_blank"}
-              rel={"noopener noreferrer"}
-            >
-              Unsupported Third Party Widget{" "}
-              <code>
-                {model.current.module}.{model.current.name}
-              </code>
-              ...
-            </a>
-          </div>
-        );
+        return renderUnsupported();
       }
       if (model.current == null) return;
       switch (model.current.name) {
@@ -416,6 +426,12 @@ export const Widget: React.FC<WidgetProps> = React.memo(
           {v}
         </div>
       );
+    }
+
+    console.log("isUnsupported = ", isUnsupported);
+
+    if (isUnsupported) {
+      return renderUnsupported();
     }
 
     return (
