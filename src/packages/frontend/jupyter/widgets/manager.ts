@@ -48,24 +48,24 @@ export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
-  private widget_model_ids_add: Function;
+  private setWidgetModelIdState: (
+    model_id: string,
+    state: string | null // '' = created; 'module_name'=unsupported; null=not created.
+  ) => void;
   private incomplete_model_ids: Set<string> = new Set();
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
 
-  // widget_model_ids_add gets called after each model is created.
+  // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
   // can render will try again.
-  constructor(
-    ipywidgets_state: IpywidgetsState,
-    widget_model_ids_add: Function
-  ) {
+  constructor(ipywidgets_state: IpywidgetsState, setWidgetModelIdState) {
     super();
     this.ipywidgets_state = ipywidgets_state;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
-    this.widget_model_ids_add = widget_model_ids_add;
+    this.setWidgetModelIdState = setWidgetModelIdState;
     this.init_ipywidgets_state();
   }
 
@@ -393,9 +393,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    // console.log("create_new_model", { model_id, serialized_state });
+    console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
-      // already created -- shouldn't happen?
+      // already created
+      this.setWidgetModelIdState(model_id, "");
       return;
     }
 
@@ -417,15 +418,24 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error("_model_module_version must be defined");
     }
 
-    const model: base.DOMWidgetModel = await this.new_model(
-      {
-        model_module,
-        model_name,
-        model_id,
-        model_module_version,
-      },
-      serialized_state
-    );
+    let model: base.DOMWidgetModel;
+    try {
+      model = await this.new_model(
+        {
+          model_module,
+          model_name,
+          model_id,
+          model_module_version,
+        },
+        serialized_state
+      );
+    } catch (err) {
+      console.warn(
+        `ipywidgets -- ${model_module}.${model_name} not supported: ${err}`
+      );
+      this.setWidgetModelIdState(model_id, `${model_module}.${model_name}`);
+      return;
+    }
 
     const success = await this.dereference_model_links(serialized_state);
     if (!success) {
@@ -451,7 +461,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model.on("change", this.handle_model_change.bind(this));
 
     // Inform CoCalc/React client that we just created this model.
-    this.widget_model_ids_add(model_id);
+    this.setWidgetModelIdState(model_id, "");
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {

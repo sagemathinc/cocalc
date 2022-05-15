@@ -8,7 +8,7 @@ Widget rendering.
 */
 
 import $ from "jquery";
-import { Map, Set, List, fromJS } from "immutable";
+import { Map, List, fromJS } from "immutable";
 import { Tabs, Tab } from "../../antd-bootstrap";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
@@ -21,6 +21,7 @@ require("@jupyter-widgets/controls/css/widgets.css");
 import { CellOutputMessages } from "./message";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { A } from "@cocalc/frontend/components";
+import getSupportURL from "@cocalc/frontend/support/url";
 
 interface WidgetProps {
   value: Map<string, any>;
@@ -40,13 +41,19 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     const phosphorRef = useRef<HTMLDivElement>(null);
     const reactBoxRef = useRef<HTMLDivElement>(null);
 
-    const [isUnsupported, setIsUnsupported] = useState<boolean>(false);
+    // Note: this is potentially confusing, since isUnsupported is a string.
+    // It's "" if supported as far as we know, and a string -- usually the
+    // name of the unsupported widget -- if not.
+    const [isUnsupported, setIsUnsupported] = useState<string>("");
+    const widgetModelIdState: Map<string, string> = useRedux([
+      name,
+      "widgetModelIdState",
+    ]);
 
     const view = useRef<any>();
     const model = useRef<any>();
     const init_view_is_running = useRef<boolean>(false);
     const is_mounted = useIsMountedRef();
-    const widget_model_ids: Set<string> = useRedux([name, "widget_model_ids"]);
 
     // WidgetState: used to store output state, for output widgets, which we render.
     const [outputs, set_outputs] = useState<Map<string, any> | undefined>();
@@ -56,8 +63,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     >();
 
     useEffect(() => {
-      if (widget_model_ids?.contains(value.get("model_id"))) {
-        // model known already
+      if (widgetModelIdState.get("model_id") === "") {
+        // model already created and working.
         init_view(value.get("model_id"));
       }
       return () => {
@@ -83,11 +90,19 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         return;
       }
       const model_id = value.get("model_id");
-      // view not yet initialized and model is now known, so initialize it.
-      if (widget_model_ids?.contains(model_id)) {
-        init_view(model_id);
+      const state = widgetModelIdState.get(model_id);
+      if (state == null) {
+        // no info yet.
+        return;
       }
-    }, [widget_model_ids]);
+      if (state === "") {
+        // view not yet initialized, but model is now known, so we initialize it:
+        init_view(model_id);
+      } else {
+        // unfortunately widget manager has found that this widget isn't supported right now.
+        setIsUnsupported(state);
+      }
+    }, [widgetModelIdState]);
 
     function update_output(): void {
       if (!is_mounted.current) return;
@@ -174,7 +189,11 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         // TODO -- show an error component somehow...
         console.trace();
         console.warn("widget.tsx: init_view -- failed ", err);
-        setIsUnsupported(true);
+        if (model.current != null) {
+          setIsUnsupported(`${model.current.module}.${model.current.name}`);
+        } else {
+          setIsUnsupported(`initializing view failed - ${err}`);
+        }
       } finally {
         init_view_is_running.current = false;
       }
@@ -243,8 +262,12 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       try {
         view.current = await widget_manager.create_view(model.current, {});
         if (!is_mounted.current) return;
-      } catch (_err) {
-        setIsUnsupported(true);
+      } catch (err) {
+        if (!is_mounted.current) return;
+        setIsUnsupported(
+          `view of ${model.current.module}.${model.current.name} - ${err}`
+        );
+        return;
       }
 
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
@@ -262,16 +285,21 @@ export const Widget: React.FC<WidgetProps> = React.memo(
 
     function renderUnsupported() {
       return (
-        <div style={{ margin: "5px" }}>
-          <A
-            style={{ color: "white", background: "red", padding: "5px" }}
-            href={"https://cocalc.com/support/new"}
+        <div style={{ margin: "5px 0" }}>
+          <div
+            style={{ color: "white", background: "crimson", padding: "15px" }}
           >
-            Unsupported Third Party Widget{" "}
-            <code>
-              {model.current.module}.{model.current.name}
-            </code>
-            ...
+            Unsupported Widget:{" "}
+            <code style={{ padding: "5px" }}>{isUnsupported}</code>
+          </div>
+          <A
+            href={getSupportURL({
+              subject: "Unsupported Widget",
+              body: `I am using a Jupyter notebook, and ran into trouble with a widget -- ${isUnsupported}...`,
+              type: "question",
+            })}
+          >
+            (Create support ticket...)
           </A>
         </div>
       );
