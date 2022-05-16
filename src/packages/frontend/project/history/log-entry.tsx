@@ -28,6 +28,7 @@ import {
   AssistantEvent,
   CollaboratorEvent,
   FileActionEvent,
+  isUnknownEvent,
   LibraryEvent,
   LicenseEvent,
   MiniTermEvent,
@@ -104,6 +105,9 @@ function areEqual(prev: Props, next: Props): boolean {
 }
 
 export const LogEntry: React.FC<Props> = React.memo((props) => {
+  const { event, account_id, user_map, cursor, project_id, backgroundStyle } =
+    props;
+
   function render_open_file(event: OpenFile): JSX.Element {
     return (
       <span>
@@ -112,9 +116,9 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         <PathLink
           path={event.filename}
           full={true}
-          style={props.cursor ? selected_item : undefined}
+          style={cursor ? selected_item : undefined}
           trunc={TRUNC}
-          project_id={props.project_id}
+          project_id={project_id}
         />{" "}
         <TookTime ms={event.time} />
       </span>
@@ -129,9 +133,9 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         <PathLink
           path={event.path}
           full={true}
-          style={props.cursor ? selected_item : undefined}
+          style={cursor ? selected_item : undefined}
           trunc={TRUNC}
-          project_id={props.project_id}
+          project_id={project_id}
         />{" "}
         to be {event.disabled ? "disabled" : "enabled"}
         {" and "}
@@ -191,7 +195,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   function project_title(event: { project: string }): JSX.Element {
     return (
       <ProjectTitle
-        style={props.cursor ? selected_item : undefined}
+        style={cursor ? selected_item : undefined}
         project_id={event.project}
       />
     );
@@ -207,7 +211,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       <PathLink
         path={path}
         full={true}
-        style={props.cursor ? selected_item : undefined}
+        style={cursor ? selected_item : undefined}
         key={i}
         trunc={TRUNC}
         link={link}
@@ -310,9 +314,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
 
   function click_set(e: React.SyntheticEvent): void {
     e.preventDefault();
-    redux
-      .getActions({ project_id: props.project_id })
-      .set_active_tab("settings");
+    redux.getActions({ project_id }).set_active_tab("settings");
   }
 
   function render_set(obj: any): Rendered[] {
@@ -330,7 +332,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
           set{" "}
           <a
             onClick={click_set}
-            style={props.cursor ? selected_item : undefined}
+            style={cursor ? selected_item : undefined}
             href=""
           >
             {content}
@@ -379,9 +381,9 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
             <PathLink
               path={event.path}
               full={true}
-              style={props.cursor ? selected_item : undefined}
+              style={cursor ? selected_item : undefined}
               trunc={TRUNC}
-              project_id={props.project_id}
+              project_id={project_id}
             />
           </span>
         );
@@ -451,7 +453,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
     return (
       <span>
         invited user{" "}
-        <User user_map={props.user_map} account_id={event.invitee_account_id} />
+        <User user_map={user_map} account_id={event.invitee_account_id} />
       </span>
     );
   }
@@ -465,13 +467,18 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   }
 
   function render_desc(): Rendered | Rendered[] {
-    if (typeof props.event === "string") {
-      return <span>{props.event}</span>;
+    if (typeof event === "string") {
+      return <span>{event}</span>;
     }
 
-    switch (props.event.event) {
+    // ignores events like {time: 1234} – see https://github.com/sagemathinc/cocalc/issues/5927
+    if (isUnknownEvent(event)) {
+      return;
+    }
+
+    switch (event.event) {
       case "start_project":
-        return render_start_project(props.event);
+        return render_start_project(event);
       case "project_stop_requested":
         return render_project_stop_requested();
       case "project_stopped":
@@ -483,33 +490,33 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       case "project_restart_requested":
         return render_project_restart_requested();
       case "open": // open a file
-        return render_open_file(props.event);
+        return render_open_file(event);
       case "set":
-        return render_set(misc.copy_without(props.event, "event"));
+        return render_set(misc.copy_without(event, "event"));
       case "miniterm":
-        return render_miniterm(props.event);
+        return render_miniterm(event);
       case "termInSearch":
-        return render_miniterm(props.event);
+        return render_miniterm(event);
       case "file_action":
-        return render_file_action(props.event);
+        return render_file_action(event);
       case "upgrade":
-        return render_upgrade(props.event);
+        return render_upgrade(event);
       case "license":
-        return render_license(props.event);
+        return render_license(event);
       case "invite_user":
-        return render_invite_user(props.event);
+        return render_invite_user(event);
       case "invite_nonuser":
-        return render_invite_nonuser(props.event);
+        return render_invite_nonuser(event);
       case "remove_collaborator":
-        return render_remove_collaborator(props.event);
+        return render_remove_collaborator(event);
       case "open_project": // not used anymore???
         return <span>opened this project</span>;
       case "library":
-        return render_library(props.event);
+        return render_library(event);
       case "assistant":
-        return render_assistant(props.event);
+        return render_assistant(event);
       case "x11":
-        return render_x11(props.event);
+        return render_x11(event);
       case "delete_project":
         return <span>deleted the project</span>;
       case "undelete_project":
@@ -519,34 +526,34 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       case "unhide_project":
         return <span>unhid the project from themself</span>;
       case "public_path":
-        return render_public_path(props.event);
+        return render_public_path(event);
       default:
-        return <span>Unknown event: {JSON.stringify(props.event)}</span>;
+        return <span>Unknown event: {JSON.stringify(event)}</span>;
     }
   }
   // ignore unknown -- would just look mangled to user...
   //else
   // FUTURE:
-  //    return <span>{misc.to_json(@props.event)}</span>
+  //    return <span>{misc.to_json(@event)}</span>
 
   function render_user(): JSX.Element {
-    if (props.account_id != null) {
-      return <User user_map={props.user_map} account_id={props.account_id} />;
+    if (account_id != null) {
+      return <User user_map={user_map} account_id={account_id} />;
     } else {
-      return <SystemProcess event={props.event as SystemEvent} />;
+      return <SystemProcess event={event as SystemEvent} />;
     }
   }
 
   function icon(): IconName {
-    if (typeof props.event === "string" || props.event == undefined) {
+    if (typeof event === "string" || event == null || isUnknownEvent(event)) {
       return "dot-circle";
     }
 
-    switch (props.event.event) {
+    switch (event.event) {
       case "open_project":
         return "folder-open";
       case "open": // open a file
-        const ext = misc.filename_extension(props.event.filename);
+        const ext = misc.filename_extension(event.filename);
         const info = file_associations[ext];
         if (info == null) return "file-code";
         let x = info.icon;
@@ -558,7 +565,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       case "set":
         return "wrench";
       case "file_action":
-        const action_name = file_action_icons[props.event.action];
+        const action_name = file_action_icons[event.action];
         return FILE_ACTIONS[action_name].icon;
       case "upgrade":
         return "arrow-circle-up";
@@ -568,7 +575,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         return "user";
     }
 
-    if (props.event.event.indexOf("project") !== -1) {
+    if (event.event.indexOf("project") !== -1) {
       return "edit";
     } else {
       return "dot-circle";
@@ -576,19 +583,14 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   }
 
   function renderDuration() {
-    if (typeof props.event != "string" && props.event["duration_ms"] != null) {
+    if (typeof event != "string" && event["duration_ms"] != null) {
       return (
-        <>
-          {" "}
-          (time = {round1(
-            (props.event["duration_ms"] ?? 0) / 1000
-          )} seconds){" "}
-        </>
+        <> (time = {round1((event["duration_ms"] ?? 0) / 1000)} seconds) </>
       );
     }
   }
 
-  const style = props.cursor ? selected_item : props.backgroundStyle;
+  const style = props.cursor ? selected_item : backgroundStyle;
   return (
     <Grid fluid={true} style={{ width: "100%" }}>
       <Row style={style}>

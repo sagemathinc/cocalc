@@ -13,28 +13,28 @@ Editing a quota
 
 */
 
-import {
-  Button,
-  Checkbox,
-  InputNumber,
-  Row,
-  Col,
-  Select,
-  Typography,
-} from "antd";
-import { Space } from "../../components";
-import { CSS, React, useMemo, useState } from "../../app-framework";
-import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round1 } from "@cocalc/util/misc";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import { Space } from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
   untangleUptime,
   Uptime,
 } from "@cocalc/util/consts/site-license";
+import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { plural, round1 } from "@cocalc/util/misc";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import {
+  Button,
+  Checkbox,
+  Col,
+  InputNumber,
+  Row,
+  Select,
+  Typography,
+} from "antd";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",

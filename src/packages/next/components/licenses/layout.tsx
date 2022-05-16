@@ -1,17 +1,14 @@
 import { Alert, Layout } from "antd";
-import A from "components/misc/A";
-import { join } from "path";
-import basePath from "lib/base-path";
-import Menu from "./menu";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import useProfile from "lib/hooks/profile";
+import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
+import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
+import HowUsed from "./how-used";
 import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
-import HowUsed from "./how-used";
+import Menu from "./menu";
 import Overview from "./overview";
-import Anonymous from "components/misc/anonymous";
 
 const { Content } = Layout;
 
@@ -46,7 +43,7 @@ export default function ConfigLayout({ page }: Props) {
   }
 
   if (is_anonymous) {
-    return <Anonymous/>;
+    return <Anonymous />;
   }
 
   const [main] = page;
@@ -79,20 +76,6 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        <div style={{ float: "right", margin: "0 0 15px 15px" }}>
-          <Alert
-            type="warning"
-            message={
-              <>
-                This is the new licenses page (
-                <A href={join(basePath, "settings", "licenses")} external>
-                  the old page
-                </A>
-                ).
-              </>
-            }
-          />
-        </div>
         {body()}
       </Content>
     </Layout>

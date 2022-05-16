@@ -3,18 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import "./project-upgrades-table";
-import { Map } from "immutable";
-import { round1, plural } from "@cocalc/util/misc";
-import { redux, rclass, rtypes, Component } from "../../app-framework";
-import { A, Icon, Loading, Space } from "../../components";
-import { SiteName, PolicyPricingPageUrl, Footer } from "../../customize";
+import { Col, Panel, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  rclass,
+  redux,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { A, Icon, Loading, Space } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { plural, round1 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Progress } from "antd";
-import { Row, Col, Panel } from "../../antd-bootstrap";
-import { ProjectUpgradesTable } from "./project-upgrades-table";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Map } from "immutable";
 import { join } from "path";
+import { Footer, PolicyPricingPageUrl, SiteName } from "../../customize";
+import "./project-upgrades-table";
+import { ProjectUpgradesTable } from "./project-upgrades-table";
+export { tmp as UpgradesPage };
 
 interface reduxProps {
   stripe_customer?: Map<string, any>;
@@ -52,14 +58,20 @@ class UpgradesPage extends Component<reduxProps> {
         <h3>
           Thank you for supporting <SiteName />
         </h3>
-        <span style={{ color: "#666" }}>
-          We offer many{" "}
-          <A href={PolicyPricingPageUrl}> pricing and subscription options</A>,
-          which you can subscribe to in the Billing tab. Your upgrades are
-          listed below, along with how you have applied them to projects. You
-          can adjust your project upgrades from the settings page in any
-          project.
-        </span>
+        <div style={{ color: "#666" }}>
+          <p>
+            You have some now deprecated "quota upgrades". They are listed
+            below, along with how you have applied them to projects. You can
+            adjust your project upgrade contribution from the settings page in
+            any project.
+          </p>
+          <p>
+            Going forward, we offer many{" "}
+            <A href={PolicyPricingPageUrl}> pricing and subscription options</A>
+            , which you can subscribe to in the{" "}
+            <A href={join(appBasePath, "store")}>Store</A>.
+          </p>
+        </div>
         <Space />
       </div>
     );
@@ -182,4 +194,3 @@ class UpgradesPage extends Component<reduxProps> {
 }
 
 const tmp = rclass(UpgradesPage);
-export { tmp as UpgradesPage };
