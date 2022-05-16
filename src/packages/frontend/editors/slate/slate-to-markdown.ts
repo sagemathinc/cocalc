@@ -5,6 +5,7 @@
 import { Node, Element, Text } from "slate";
 import { serializeLeaf } from "./leaf-to-markdown";
 import { serializeElement } from "./element-to-markdown";
+import type { References } from "./elements/references";
 
 export interface Info {
   parent?: Node; // the parent of the node being serialized (if there is a parent)
@@ -15,6 +16,7 @@ export interface Info {
   cache?;
   noCache?: Set<number>; // never use cache for these top-level nodes
   topLevel?: number; // top-level block that contains this node.
+  references?: References;
 }
 
 export function serialize(node: Node, info: Info): string {
@@ -41,6 +43,13 @@ export function slate_to_markdown(
   // const t = new Date().valueOf();
 
   let markdown = "";
+  let references: References | undefined = undefined;
+  for (let i = slate.length - 1; i >= 0; i--) {
+    if (slate[i]?.["type"] == "references") {
+      references = slate[i]?.["value"];
+      break;
+    }
+  }
   for (let i = 0; i < slate.length; i++) {
     markdown += serialize(slate[i], {
       no_escape: !!options?.no_escape,
@@ -50,6 +59,7 @@ export function slate_to_markdown(
       lastChild: i == slate.length - 1,
       cache: options?.cache,
       noCache: options?.noCache,
+      references,
     });
   }
 

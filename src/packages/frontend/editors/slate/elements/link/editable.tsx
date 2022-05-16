@@ -41,9 +41,23 @@ register({
     );
   },
 
-  fromSlate: ({ node, children }) => {
-    // [my website](wstein.org "here")
+  fromSlate: ({ node, children, info }) => {
     let url = node.url ?? "";
+    if (info.references != null) {
+      // might be able to use a reference link; if so, we will.
+      for (const name in info.references) {
+        if (info.references[name].href == url) {
+          // get to use this.
+          const c = `${children}`;
+          if (c.toLowerCase() == name.toLowerCase()) {
+            return `[${c}]`;
+          }
+          return `[${children}][${name}]`;
+        }
+      }
+    }
+
+    // [my website](wstein.org "here")
     let title = node.title ?? "";
     if (title.length > 0) {
       title = ` \"${title}\"`;
