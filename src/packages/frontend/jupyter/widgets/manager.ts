@@ -44,6 +44,8 @@ There's also warning by webpack about a map file missing. They are harmless.
 
 */
 
+const MAX_DEREF_WAIT_MS = 1000 * 15;
+
 export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
@@ -52,7 +54,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     state: string | null // '' = created; 'module_name'=unsupported; null=not created.
   ) => void;
-  private incomplete_model_ids: Set<string> = new Set();
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
 
@@ -76,58 +77,45 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     // Now process all info currently in the table.
-    this.handle_table_state_change(this.ipywidgets_state.keys());
+    const v: any[] = [];
+    for (const { model_id, type } of this.ipywidgets_state.keys()) {
+      v.push(this.handle_table_state_change({ model_id, type }));
+    }
+    await Promise.all(v);
 
-    this.ipywidgets_state.on(
-      "change",
-      this.handle_table_state_change.bind(this)
-    );
+    this.ipywidgets_state.on("change", async (keys) => {
+      for (const key of keys) {
+        const [, model_id, type] = JSON.parse(key);
+        await this.handle_table_state_change({ model_id, type });
+      }
+    });
   }
 
-  private async handle_table_state_change(keys): Promise<void> {
-    //console.log("handle_table_state_change", keys);
-    for (const key of keys) {
-      const [, model_id, type] = JSON.parse(key);
-      // console.log("handle_table_state_change - one key", key, model_id, type);
-
-      try {
-        switch (type) {
-          case "state":
-            await this.handle_table_model_state_change(model_id);
-            break;
-          case "value":
-            await this.handle_table_model_value_change(model_id);
-            break;
-          case "buffers":
-            await this.handle_table_model_buffers_change(model_id);
-            break;
-          case "message":
-            this.handle_table_model_message_change(model_id);
-            break;
-          default:
-            throw Error(`unknown state type '${type}'`);
-        }
-      } catch (err) {
-        console.warn("issue handling table state change", key, err);
-      }
-    }
-    while (this.incomplete_model_ids.size > 0) {
-      const size_before = this.incomplete_model_ids.size;
-      for (const model_id of this.incomplete_model_ids) {
-        try {
+  private async handle_table_state_change({ model_id, type }): Promise<void> {
+    // console.log("handle_table_state_change - ", model_id, type);
+    try {
+      switch (type) {
+        case "state":
           await this.handle_table_model_state_change(model_id);
-        } catch (err) {
-          console.warn(
-            "issue handling table model state change",
-            model_id,
-            err
-          );
-        }
+          break;
+        case "value":
+          await this.handle_table_model_value_change(model_id);
+          break;
+        case "buffers":
+          await this.handle_table_model_buffers_change(model_id);
+          break;
+        case "message":
+          this.handle_table_model_message_change(model_id);
+          break;
+        default:
+          throw Error(`unknown state type '${type}'`);
       }
-      if (this.incomplete_model_ids.size >= size_before) {
-        // no shrink -- avoid infinite loop; will try after next change.
-        return;
-      }
+    } catch (err) {
+      console.warn(
+        "issue handling table state change",
+        { model_id, type },
+        err
+      );
     }
   }
 
@@ -340,6 +328,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     options,
     serialized_state: any = {}
   ): Promise<base.WidgetModel> {
+    // console.log("_make_model", { options, serialized_state });
     const model_id = options.model_id;
     let ModelType: typeof base.WidgetModel;
     try {
@@ -367,14 +356,20 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     // TODO: this is silly, of course.  I will rewrite this when I better
     // understand what is going on.
-    const TRIES = 6;
-    for (let i = 0; i < TRIES; i++) {
+    const start = new Date().valueOf();
+    let d = 1;
+    while (true) {
       const isDereferenced = await this.dereference_model_links(state);
       if (isDereferenced) break;
-      await delay(200);
-      if (i == TRIES) {
-        console.warn("dereference_model failed (giving up)", state);
-        await delay(10000000);
+      const now = new Date().valueOf();
+      if (now - start > MAX_DEREF_WAIT_MS) {
+        throw Error(`unable to dereference model links - "${model_id}"`);
+      }
+      if (now - start < 3000) {
+        await delay(d);
+        d *= 1.2;
+      } else {
+        await once(this.ipywidgets_state, "change");
       }
     }
 
@@ -386,6 +381,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const widget_model = new ModelType(state, modelOptions);
     widget_model.name = options.model_name;
     widget_model.module = options.model_module;
+    // console.log("_make_model -- finished making it!", { state });
     return widget_model;
   }
 
@@ -393,7 +389,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    console.log("create_new_model", { model_id, serialized_state });
+    // console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created
       this.setWidgetModelIdState(model_id, "");
@@ -436,26 +432,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       this.setWidgetModelIdState(model_id, `${model_module}.${model_name}`);
       return;
     }
-
-    const success = await this.dereference_model_links(serialized_state);
-    if (!success) {
-      //console.log(model_id, "failed to dereference fully");
-      this.incomplete_model_ids.add(model_id);
-      return;
-    } else {
-      //console.log(model_id, "successful full dereference");
-      this.incomplete_model_ids.delete(model_id);
-    }
-
-    // Model is NOT an EventEmitter.  It is a backbone.js thing,
-    // and browsing the source code of backbone, I learned that
-    // "all" is an alias for listening to all events, which is
-    // useful for debugging:
-    //model.on("all", console.log);
-
-    // Initialize the model -- should include layout/style ?
-    const state = this.deserialize_state(model, serialized_state);
-    model.set(state);
 
     // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));

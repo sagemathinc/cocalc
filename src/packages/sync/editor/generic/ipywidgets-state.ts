@@ -21,7 +21,7 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
-const GC_DEBOUNCE_MS = 5000;
+const GC_DEBOUNCE_MS = 30000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -69,6 +69,7 @@ export class IpywidgetsState extends EventEmitter {
     }
     this.gc = client.is_project() // no-op if not project
       ? debounce(() => {
+          return; // temporarily disabled since it is still too aggressive
           if (this.state == "ready") {
             this.deleteUnused();
           }
@@ -98,15 +99,21 @@ export class IpywidgetsState extends EventEmitter {
     });
   }
 
-  public keys(): any {
-    // return type is immutable js iterator
+  public keys(): { model_id: string; type: "value" | "state" | "buffer" }[] {
+    // return type is arrow of s
     this.assert_state("ready");
     const x = this.table.get();
     if (x == null) {
       return [];
-    } else {
-      return x.keys();
     }
+    const keys: { model_id: string; type: "value" | "state" | "buffer" }[] = [];
+    x.forEach((val, key) => {
+      if (val.get("data") != null && key != null) {
+        const [, model_id, type] = JSON.parse(key);
+        keys.push({ model_id, type });
+      }
+    });
+    return keys;
   }
 
   public get(model_id: string, type: string): iMap<string, any> | undefined {
@@ -298,6 +305,8 @@ export class IpywidgetsState extends EventEmitter {
 
   // Clean up all data in the table about models that are not
   // referenced (directly or indirectly) in any cell in the notebook.
+  // There is also a comm:close event/message somewhere, which
+  // could also be useful....?
   public async deleteUnused(): Promise<void> {
     this.assert_state("ready");
     const dbg = this.dbg("deleteUnused");
@@ -342,16 +351,19 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     // Next, for each model we just found, we add in all the ids of models
-    // that it explicitly references
+    // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
+    // and by output messages.
     let before = 0;
     let after = modelIds.size;
     while (before < after) {
       before = modelIds.size;
       for (const model_id of modelIds) {
-        const data = this.get(model_id, "state");
-        if (data == null) continue;
-        for (const id of getModelIds(data)) {
-          modelIds.add(id);
+        for (const type of ["state", "value"]) {
+          const data = this.get(model_id, type);
+          if (data == null) continue;
+          for (const id of getModelIds(data)) {
+            modelIds.add(id);
+          }
         }
       }
       after = modelIds.size;
@@ -650,10 +662,18 @@ export class IpywidgetsState extends EventEmitter {
   }
 }
 
+// Get model id's that appear either as serialized references
+// of the form IPY_MODEL_....
+// or in output messages.
 function getModelIds(x): Set<string> {
   const ids: Set<string> = new Set();
-  x?.forEach((val) => {
-    if (typeof val == "string") {
+  x?.forEach((val, key) => {
+    if (key == "application/vnd.jupyter.widget-view+json") {
+      const model_id = val.get("model_id");
+      if (model_id) {
+        ids.add(model_id);
+      }
+    } else if (typeof val == "string") {
       if (val.startsWith("IPY_MODEL_")) {
         ids.add(val.slice("IPY_MODEL_".length));
       }
