@@ -17,6 +17,7 @@ import "./list/list-item";
 import "./math";
 import "./mention";
 import "./meta";
+import "./references";
 import "./paragraph";
 import "./table";
 
