@@ -26,11 +26,17 @@ import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 import { SlateEditor } from "../editable-markdown";
 
+// currentWord:
+//
 // Expand collapsed selection to range containing exactly the
 // current word, even if selection potentially spans multiple
 // text nodes.  If cursor is not *inside* a word (being on edge
 // is not inside) then returns undefined.  Otherwise, returns
 // the Range containing the current word.
+//
+// NOTE: I posted this on the slate Github and there's a discussion
+// with various varients based on this:
+//    https://github.com/ianstormtaylor/slate/issues/4162
 function currentWord(editor: SlateEditor): Range | undefined {
   const selection = getSelection(editor);
   if (selection == null || !Range.isCollapsed(selection)) {

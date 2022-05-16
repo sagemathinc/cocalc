@@ -50,6 +50,8 @@ import type { Mention } from "./mention";
 import "./mention/editable";
 import type { Meta } from "./meta";
 import "./meta/editable";
+import type { References } from "./references";
+import "./references/editable";
 import type { Paragraph } from "./paragraph";
 import "./paragraph/editable";
 import type { Table, THead, TBody, TR, TD, TH } from "./table";
@@ -61,6 +63,7 @@ declare module "slate" {
   export interface CustomTypes {
     Element:
       | Meta
+      | References
       | Checkbox
       | Emoji
       | Hashtag
