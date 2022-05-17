@@ -521,7 +521,9 @@ export class IpywidgetsState extends EventEmitter {
           delete this.clear_output[model_id];
         }
 
-        this.set_model_value(model_id, state, false);
+        const last_changed =
+          (this.get(model_id, "value")?.get("last_changed") ?? 0) + 1;
+        this.set_model_value(model_id, { ...state, last_changed }, false);
 
         if (state.msg_id != null) {
           const { msg_id } = state;
@@ -552,10 +554,6 @@ export class IpywidgetsState extends EventEmitter {
             }
           }
           delete state.msg_id;
-        }
-
-        if (len(state) > 0) {
-          this.set_model_state(model_id, state, false);
         }
         break;
       case undefined:
