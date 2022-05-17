@@ -24,7 +24,7 @@ import { markdown_it, parseHeader } from "@cocalc/frontend/markdown";
 //import MarkdownIt from "markdown-it";
 //const markdown_it = new MarkdownIt();
 
-import type { Token } from "./types";
+import type { References, Token } from "./types";
 
 // Before feeding to markdown-it and tokenizing, for
 // each line that ends in a single trailing space,
@@ -78,6 +78,7 @@ export function parse_markdown(
   tokens: Token[];
   meta?: string;
   lines: string[];
+  references?: References;
 } {
   // const t0 = new Date().valueOf();
   let meta: undefined | string = undefined;
@@ -90,11 +91,12 @@ export function parse_markdown(
 
   const lines = markdown.split("\n");
   markdown = replaceSingleTrailingWhitespace(markdown);
-  const tokens: Token[] = markdown_it.parse(markdown, {});
+  const state: any = {};
+  const tokens: Token[] = markdown_it.parse(markdown, state);
   restoreSingleTrailingWhitespace(tokens);
 
   // window.parse_markdown = { tokens, meta };
   // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   // console.log("tokens", tokens);
-  return { tokens, meta, lines };
+  return { tokens, meta, lines, references: state.references };
 }

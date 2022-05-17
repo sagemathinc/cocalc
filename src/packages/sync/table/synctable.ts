@@ -11,14 +11,7 @@ websockets, unit testing, etc.), we have one single approach via
 a Client that has a certain interface.  Then we implement different
 Clients that have this interface, in order to support different
 ways of orchestrating a SyncTable.
-
-TODO:
- - copy over and update docs from synctable.coffee header.
-
-
 */
-
-// CoCalc, Copyright (C) 2018, Sagemath Inc.
 
 // If true, will log to the console a huge amount of
 // info about every get/set

@@ -403,18 +403,14 @@ export const Explorer = rclass(
     }
 
     render_upgrade_in_place() {
-      const cards =
-        (this.props.customer &&
-          this.props.customer.sources &&
-          this.props.customer.sources.total_count) ||
-        0;
+      const cards = this.props.customer?.sources?.total_count ?? 0;
 
       return (
         <div style={{ marginTop: "10px" }}>
           <BillingPage is_simplified={true} for_course={true} />
-          {cards && (
+          {cards > 0 ? (
             <PayCourseFee project_id={this.props.project_id} redux={redux} />
-          )}
+          ) : undefined}
         </div>
       );
     }

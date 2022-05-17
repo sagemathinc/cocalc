@@ -9,9 +9,11 @@ import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta/type";
+import { createReferencesNode } from "../elements/references/type";
 import stringify from "json-stable-stringify";
 import normalize from "./normalize";
 import getSource from "./source";
+import { len } from "@cocalc/util/misc";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   // console.log("parse", JSON.stringify({ token, state }));
@@ -51,8 +53,8 @@ export function markdown_to_slate(
 ): Descendant[] {
   // Parse the markdown:
   // const t0 = new Date().valueOf();
-  const { tokens, meta, lines } = parse_markdown(markdown, no_meta);
-  // window.tokens = tokens;
+  const { tokens, meta, lines, references } = parse_markdown(markdown, no_meta);
+  // window.markdown_parse = { tokens, meta, lines, references };
 
   const doc: Descendant[] = [];
   if (meta != null) {
@@ -68,6 +70,9 @@ export function markdown_to_slate(
       }
       doc.push(node);
     }
+  }
+  if (references != null && len(references) > 0) {
+    doc.push(createReferencesNode(references));
   }
 
   ensureDocNonempty(doc);

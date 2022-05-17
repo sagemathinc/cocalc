@@ -18,10 +18,10 @@ import {
   useAsyncEffect,
   useTypedRedux,
   useState,
-} from "../../app-framework";
-import { Icon, Loading, Space } from "../../components";
-import { alert_message } from "../../alerts";
-import { PaymentMethods } from "../../billing/payment-methods";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { PaymentMethods } from "@cocalc/frontend/billing/payment-methods";
 
 interface Props {
   onClose: (id: string | undefined) => void;

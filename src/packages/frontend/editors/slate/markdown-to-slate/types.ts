@@ -30,3 +30,10 @@ export interface State {
   markdown?: string;
   tight?: boolean;
 }
+
+interface Reference {
+  title?: string;
+  href?: string;
+}
+
+export type References = { [name: string]: Reference };

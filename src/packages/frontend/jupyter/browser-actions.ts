@@ -7,7 +7,7 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
-import { Map, Set } from "immutable";
+import { Map } from "immutable";
 import { debounce, isEqual } from "underscore";
 import { merge_copy, uuid } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
@@ -83,7 +83,7 @@ export class JupyterActions extends JupyterActions0 {
       }
       this.widget_manager = new WidgetManager(
         ipywidgets_state,
-        this.widget_model_ids_add.bind(this)
+        this.setWidgetModelIdState.bind(this)
       );
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
@@ -165,11 +165,18 @@ export class JupyterActions extends JupyterActions0 {
     // this.deprecated("focus_unlock");
   };
 
-  private widget_model_ids_add(model_id: string): void {
-    const widget_model_ids: Set<string> = this.store
-      .get("widget_model_ids")
-      .add(model_id);
-    this.setState({ widget_model_ids });
+  private setWidgetModelIdState(
+    model_id: string,
+    state: string | null // '' = good; 'nonempty' = bad; null=delete
+  ): void {
+    let widgetModelIdState: Map<string, string> =
+      this.store.get("widgetModelIdState");
+    if (state === null) {
+      widgetModelIdState = widgetModelIdState.delete(model_id);
+    } else {
+      widgetModelIdState = widgetModelIdState.set(model_id, state);
+    }
+    this.setState({ widgetModelIdState });
   }
 
   protected close_client_only(): void {
