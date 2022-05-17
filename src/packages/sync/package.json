@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/sync",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
     "./*": "./dist/*.js",
@@ -23,7 +23,7 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/util": "^1.43.2",
+    "@cocalc/util": "^1.46.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
