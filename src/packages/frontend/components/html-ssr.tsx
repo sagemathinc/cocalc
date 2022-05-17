@@ -89,6 +89,24 @@ export default function HTML({
     if (!(domNode instanceof Element)) return;
 
     const { name, children, attribs } = domNode;
+
+    if (name == "script") {
+      const type = domNode.attribs?.type?.toLowerCase();
+      if (type?.startsWith("math/tex")) {
+        const child = domNode.children?.[0];
+        if (child instanceof Text && child.data) {
+          let data = "$" + child.data + "$";
+          if (type.includes("display")) {
+            data = "$" + data + "$";
+          }
+          if (MathComponent != null) {
+            return <MathComponent data={data} />;
+          }
+          return <DefaultMath data={data} />;
+        }
+      }
+    }
+
     if (AnchorTagComponent != null && name == "a") {
       return (
         <AnchorTagComponent {...attribs}>
