@@ -37,11 +37,23 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
     whiteList: {
       ...whiteList,
       iframe: ["src", "srcdoc", "width", "height"],
+      script: ["type"],
+      html: [],
     },
     safeAttrValue: (tag, name, value) => {
       if (tag == "iframe" && name == "srcdoc") {
         // important not to mangle this or it won't work.
         return value;
+      }
+      if (tag == "script" && name == "type") {
+        if (value.toLowerCase().startsWith("math/tex")) {
+          if (value.includes("display")) {
+            return "math/tex; mode=display";
+          } else {
+            return "math/tex";
+          }
+        }
+        return "";
       }
       if (urlTransform && URL_TAGS.includes(name)) {
         // use the url transform
