@@ -188,18 +188,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // function; otherwise the state that is getting sync'd around
   // between clients will just forget the buffers that are set
   // via handle_table_model_buffers_change!
-  private setBuffers(model_id: string, state: ModelState): void {
+  private async setBuffers(model_id: string, state: ModelState): Promise<void> {
     const { buffer_paths, buffers } =
-      this.ipywidgets_state.get_model_buffers(model_id);
+      await this.ipywidgets_state.get_model_buffers(model_id);
     if (buffer_paths.length == 0) return; // nothing to do
-    // convert each buffer in buffers to a DataView.
+    // convert each ArrayBuffer in buffers to a DataView.
     const paths: string[][] = [];
     const vals: any[] = [];
     for (let i = 0; i < buffers.length; i++) {
       if (state[buffer_paths[i][0]] == null) {
         continue;
       }
-      vals.push(new DataView(new Uint8Array(buffers[i].data).buffer));
+      vals.push(new DataView(buffers[i]));
       paths.push(buffer_paths[i]);
     }
     put_buffers(state, paths, vals);
@@ -218,7 +218,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     */
     const model = await this.get_model(model_id);
     if (model == null) return;
-    const { buffer_paths } = this.ipywidgets_state.get_model_buffers(model_id);
+    const { buffer_paths } = await this.ipywidgets_state.get_model_buffers(
+      model_id
+    );
     const deserialized_state = model.get_state(true);
     const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
@@ -242,10 +244,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model.trigger("msg:custom", message);
   }
 
-  deserialize_state(
+  async deserialize_state(
     model: base.DOMWidgetModel,
     serialized_state: ModelState
-  ): ModelState {
+  ): Promise<ModelState> {
     // console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
@@ -255,18 +257,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     //     ipywidgets/packages/controls/src/widget_date.ts
     // in particular for when a date is set in the kernel.
 
-    return this._deserialize_state(
+    return await this._deserialize_state(
       model.model_id,
       model.constructor,
       serialized_state
     );
   }
 
-  private _deserialize_state(
+  private async _deserialize_state(
     model_id: string,
     constructor: any,
     serialized_state: ModelState
-  ): ModelState {
+  ): Promise<ModelState> {
     //     console.log("_deserialize_state", {
     //       model_id,
     //       constructor,
@@ -280,7 +282,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // since we do our own model unpacking, due to issues with ordering
     // and RTC.
     const deserialized: ModelState = {};
-    this.setBuffers(model_id, serialized_state);
+    await this.setBuffers(model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
       if (deserialize != null && deserialize !== base.unpack_models) {
@@ -313,7 +315,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         );
         return;
       }
-      const state = this.deserialize_state(model, change);
+      const state = await this.deserialize_state(model, change);
       model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
@@ -348,7 +350,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );
     }
 
-    const state = this._deserialize_state(
+    const state = await this._deserialize_state(
       model_id,
       ModelType,
       serialized_state

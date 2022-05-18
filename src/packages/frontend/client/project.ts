@@ -35,6 +35,7 @@ import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 
 export interface ExecOpts {
   project_id: string;
@@ -319,7 +320,7 @@ export class ProjectClient {
       "-o",
       "-type",
       "d",
-      "-iwholename",  // See https://github.com/sagemathinc/cocalc/issues/5502
+      "-iwholename", // See https://github.com/sagemathinc/cocalc/issues/5502
       `'${opts.query}'`,
       "-readable",
     ];
@@ -505,5 +506,15 @@ export class ProjectClient {
 
   public usage_info(project_id: string): UsageInfoWS {
     return get_usage_info(project_id);
+  }
+
+  public async ipywidgetsGetBuffer(
+    project_id: string,
+    path: string,
+    model_id: string,
+    buffer_path: string
+  ): Promise<ArrayBuffer> {
+    const url = ipywidgetsGetBufferUrl(project_id, path, model_id, buffer_path);
+    return await (await fetch(url)).arrayBuffer();
   }
 }

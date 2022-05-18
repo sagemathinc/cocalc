@@ -3,14 +3,26 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+NOTE: Like much of our Jupyter-related code in CoCalc,
+the code in this file is very much run in *both* the
+frontend web browser and backend project server.
+*/
+
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
-import { close, delete_null_fields, len } from "@cocalc/util/misc";
+import {
+  close,
+  delete_null_fields,
+  len,
+  auxFileToOriginal,
+} from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
 import { delay } from "awaiting";
 import { debounce } from "lodash";
+import sha1 from "sha1";
 
 type State = "init" | "ready" | "closed";
 
@@ -44,6 +56,19 @@ export class IpywidgetsState extends EventEmitter {
   private table_options: any[] = [];
   private create_synctable: Function;
   private gc: Function;
+
+  // TODO: garbage collect this, both on the frontend and backend.
+  // This should be done in conjunction with the main table (with gc
+  // on backend, and with change to null event on the frontend).
+  private buffers: {
+    [model_id: string]: { [path: string]: { buffer: Buffer; hash: string } };
+  } = {};
+  // Similar but used on frontend
+  private arrayBuffers: {
+    [model_id: string]: {
+      [path: string]: { buffer: ArrayBuffer; hash: string };
+    };
+  } = {};
 
   // If capture_output[msg_id] is defined, then
   // all output with that msg_id is captured by the
@@ -164,11 +189,33 @@ export class IpywidgetsState extends EventEmitter {
     return value;
   }
 
-  public get_model_buffers(model_id: string): {
-    buffer_paths: any[];
-    buffers: any[];
-  } {
-    let value: any = this.get(model_id, "buffers");
+  /*
+  Setting and getting buffers.
+
+  - Setting the model buffers only happens on the backend project.
+    This is done in response to a comm message from the kernel
+    that has content.data.buffer_paths set.
+
+  - Getting the model buffers only happens in the frontend browser.
+    This happens when creating models that support widgets, and often
+    happens in conjunction with deserialization.
+
+    Getting a model buffer for a given path can happen
+    *at any time* after the buffer is created, not just right when
+    it is created like in JupyterLab!  The reason is because a browser
+    can connect or get refreshed at any time, and then they need the
+    buffer to reconstitue the model.  Moreover, a user might only
+    scroll the widget into view in their (virtualized) notebook at any
+    point, and it is only then that point the model gets created.
+    This means that we have to store and garbage collect model
+    buffers, which is a problem I don't think upstream ipywidgets
+    has to solve.
+  */
+  public async get_model_buffers(model_id: string): Promise<{
+    buffer_paths: string[][];
+    buffers: ArrayBuffer[];
+  }> {
+    let value: iMap<string, any> | undefined = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
     }
@@ -176,15 +223,91 @@ export class IpywidgetsState extends EventEmitter {
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
     }
-    // value is an array from JSON of paths array to buffers:
+    // value is an array from JSON of paths array to array buffers:
     const buffer_paths: string[][] = [];
-    const buffers: any[] = [];
+    const buffers: ArrayBuffer[] = [];
+    if (this.arrayBuffers[model_id] == null) {
+      this.arrayBuffers[model_id] = {};
+    }
     for (const path in value) {
       buffer_paths.push(JSON.parse(path));
-      buffers.push(value[path]);
+      const hash = value[path];
+      const cur = this.arrayBuffers[model_id][path];
+      if (cur?.hash == hash) {
+        buffers.push(cur.buffer);
+      } else {
+        // async get of the buffer efficiently via HTTP:
+        if (this.client.ipywidgetsGetBuffer == null) {
+          throw Error(
+            "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers"
+          );
+        }
+        try {
+          const buffer = await this.client.ipywidgetsGetBuffer(
+            this.syncdoc.project_id,
+            auxFileToOriginal(this.syncdoc.path),
+            model_id,
+            path
+          );
+          this.arrayBuffers[model_id][path] = { buffer, hash };
+          buffers.push(buffer);
+        } catch (err) {
+          console.log(`skipping ${model_id}, ${path} due to ${err}`);
+        }
+      }
     }
     return { buffers, buffer_paths };
   }
+
+  // Used on the backend by the project http server
+  public getBuffer(model_id: string, buffer_path: string): Buffer | undefined {
+    const dbg = this.dbg("getBuffer");
+    dbg("getBuffer", model_id, buffer_path);
+    dbg("we have this.buffers = ", this.buffers);
+    return this.buffers[model_id]?.[buffer_path]?.buffer;
+  }
+
+  private set_model_buffers(
+    model_id: string,
+    buffer_paths: string[],
+    buffers: Buffer[],
+    fire_change_event: boolean = true
+  ): void {
+    const dbg = this.dbg("set_model_buffers");
+    dbg("buffer_paths = ", buffer_paths);
+    dbg("buffers=", buffers);
+
+    const data: { [path: string]: boolean } = {};
+    if (this.buffers[model_id] == null) {
+      this.buffers[model_id] = {};
+    }
+    for (let i = 0; i < buffer_paths.length; i++) {
+      const key = JSON.stringify(buffer_paths[i]);
+      // we set to the sha1 of the buffer not to make getting
+      // the buffer easy, but to make it easy to KNOW if we
+      // even need to get the buffer.
+      const hash = sha1(buffers[i]);
+      data[key] = hash;
+      this.buffers[model_id][key] = { buffer: buffers[i], hash };
+    }
+    this.set(model_id, "buffers", data, fire_change_event);
+  }
+
+  /*
+  Setting model state and value
+
+  - model state -- gets set once right when model is defined by kernel
+  - model "value" -- should be called "update"; gets set with changes to
+    the model state since it was created.
+    (I think an inefficiency with this approach is the entire updated
+    "value" gets broadcast each time anything about it is changed.
+    Fortunately usually value is small.  However, it would be much
+    better to broadcast only the information about what changed, though
+    that is more difficult to implement given our current simple key:value
+    store sync layer.  This tradeoff may be fully worth it for
+    our applications, since large data should be in buffers, and those
+    are efficient.)
+  */
 
   public set_model_value(
     model_id: string,
@@ -192,27 +315,6 @@ export class IpywidgetsState extends EventEmitter {
     fire_change_event: boolean = true
   ): void {
     this.set(model_id, "value", value, fire_change_event);
-  }
-
-  public set_model_buffers(
-    model_id: string,
-    buffer_paths: string[],
-    buffers: any[],
-    fire_change_event: boolean = true
-  ): void {
-    // const dbg = this.dbg("set_model_buffers");
-    // dbg("buffer_paths = ", buffer_paths);
-    // dbg("buffers=", buffers);
-    // TODO: this is inefficient for now since it just sends
-    // the binary data via JSON + websocket.  Instead, I guess we
-    // could use HTTP?
-
-    const data: { [path: string]: any } = {};
-    for (let i = 0; i < buffer_paths.length; i++) {
-      data[JSON.stringify(buffer_paths[i])] = buffers[i];
-    }
-
-    this.set(model_id, "buffers", data, fire_change_event);
   }
 
   public set_model_state(
@@ -284,10 +386,14 @@ export class IpywidgetsState extends EventEmitter {
     }
   }
   public async clear(): Promise<void> {
-    // This is used when we restart the kernel.
+    // This is used when we restart the kernel -- we reset
+    // things so no information about any models is known
+    // and delete all Buffers.
     this.assert_state("ready");
     const dbg = this.dbg("clear");
     dbg();
+
+    this.buffers = {};
     // There's no implemented delete for tables yet, so instead we set the data
     // for everything to null.  All other code related to widgets needs to handle
     // such data appropriately and ignore it.  (An advantage of this over trying to
@@ -483,10 +589,7 @@ export class IpywidgetsState extends EventEmitter {
     // the other data; otherwise, deserialization on
     // the client side can't work, since it is missing
     // the data it needs.
-    if (
-      content.data.buffer_paths != null &&
-      content.data.buffer_paths.length > 0
-    ) {
+    if (content.data.buffer_paths?.length > 0) {
       // Deal with binary buffers:
       dbg("setting binary buffers");
       this.set_model_buffers(

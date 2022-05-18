@@ -685,6 +685,15 @@ export function aux_file(path: string, ext: string): string {
   }
 }
 
+export function auxFileToOriginal(path: string): string {
+  const s = path_split(path);
+  if (!s.head) {
+    return path.slice(1);
+  }
+  const i = s.tail.lastIndexOf(".");
+  return s.head + "/" + s.tail.slice(1, i);
+}
+
 /*
 Generate a cryptographically safe secure random string with
 16 characters chosen to be reasonably unambiguous to look at.

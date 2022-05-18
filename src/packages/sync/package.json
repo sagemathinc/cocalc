@@ -28,7 +28,8 @@
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "immutable": "^3.8.2",
-    "json-stable-stringify": "^1.0.1"
+    "json-stable-stringify": "^1.0.1",
+    "sha1": "^1.1.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync",
   "repository": {
