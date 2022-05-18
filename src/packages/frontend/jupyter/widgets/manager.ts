@@ -464,7 +464,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     data: any
   ): string {
-    //console.log("TODO: process_comm_message_from_browser", model_id, data);
+    // console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
       throw Error("data must not be null");
     }
