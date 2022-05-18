@@ -505,10 +505,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // increment sequence number.
     changed.last_changed =
       Math.max(
-        last_changed ? last_changed : 0,
-        this.last_changed[model_id] != null
-          ? this.last_changed[model_id].last_changed
-          : 0
+        last_changed ?? 0,
+        this.last_changed[model_id]?.last_changed ?? 0
       ) + 1;
     this.last_changed[model_id] = changed;
     // console.log("handle_model_change (frontend) -- actually saving", changed);
