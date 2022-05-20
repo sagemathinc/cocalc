@@ -686,12 +686,13 @@ export function aux_file(path: string, ext: string): string {
 }
 
 export function auxFileToOriginal(path: string): string {
-  const s = path_split(path);
-  if (!s.head) {
-    return path.slice(1);
+  const { head, tail } = path_split(path);
+  const i = tail.lastIndexOf(".");
+  const filename = tail.slice(1, i);
+  if (!head) {
+    return filename;
   }
-  const i = s.tail.lastIndexOf(".");
-  return s.head + "/" + s.tail.slice(1, i);
+  return head + "/" + filename;
 }
 
 /*

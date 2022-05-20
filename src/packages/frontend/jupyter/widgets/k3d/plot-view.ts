@@ -263,12 +263,12 @@ export default class PlotView extends DOMWidgetView {
     this._setVoxelPaintColor();
 
     this.model.get("object_ids").forEach((id) => {
-      this.renderPromises.push(
-        this.K3DInstance.load({
-          // group:null to workaround upstream bug (see NOTES above)
-          objects: [{ group: null, ...objects[id].attributes }],
-        })
-      );
+      // group:null to workaround upstream bug (see NOTES above)
+      const v = [{ group: null, ...objects[id]?.attributes }];
+      if (!v[0].type) {
+        return;
+      }
+      this.renderPromises.push(this.K3DInstance.load({ objects: v }));
     }, this);
 
     this.cameraChangeId = this.K3DInstance.on(
@@ -504,6 +504,8 @@ export default class PlotView extends DOMWidgetView {
     }, this);
 
     difference(newObjectId, oldObjectId).forEach((id: number) => {
+      // group:null to workaround upstream bug (see NOTES above)
+      if (objects[id] == null) return;
       this.renderPromises.push(
         this.K3DInstance.load({
           objects: [{ group: null, ...objects[id].attributes }],
@@ -514,9 +516,11 @@ export default class PlotView extends DOMWidgetView {
 
   refreshObject(obj, changed) {
     if (this.model.get("object_ids").indexOf(obj.get("id")) !== -1) {
+      const id = obj.get("id");
+      if (objects[id] == null) return;
       this.renderPromises.push(
         this.K3DInstance.reload(
-          { group: null, ...objects[obj.get("id")].attributes },
+          { group: null, ...objects[id].attributes },
           changed
         )
       );

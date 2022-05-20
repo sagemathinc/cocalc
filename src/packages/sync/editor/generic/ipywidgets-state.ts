@@ -215,11 +215,7 @@ export class IpywidgetsState extends EventEmitter {
     buffer_paths: string[][];
     buffers: ArrayBuffer[];
   }> {
-    let value: iMap<string, any> | undefined = this.get(model_id, "buffers");
-    if (value == null) {
-      return { buffer_paths: [], buffers: [] };
-    }
-    value = value.toJS();
+    let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
     }
@@ -229,33 +225,37 @@ export class IpywidgetsState extends EventEmitter {
     if (this.arrayBuffers[model_id] == null) {
       this.arrayBuffers[model_id] = {};
     }
-    for (const path in value) {
-      buffer_paths.push(JSON.parse(path));
-      const hash = value[path];
+    const f = async (path: string) => {
+      const hash = value?.get(path);
+      if (hash == null) return;
       const cur = this.arrayBuffers[model_id][path];
       if (cur?.hash == hash) {
+        buffer_paths.push(JSON.parse(path));
         buffers.push(cur.buffer);
-      } else {
-        // async get of the buffer efficiently via HTTP:
-        if (this.client.ipywidgetsGetBuffer == null) {
-          throw Error(
-            "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers"
-          );
-        }
-        try {
-          const buffer = await this.client.ipywidgetsGetBuffer(
-            this.syncdoc.project_id,
-            auxFileToOriginal(this.syncdoc.path),
-            model_id,
-            path
-          );
-          this.arrayBuffers[model_id][path] = { buffer, hash };
-          buffers.push(buffer);
-        } catch (err) {
-          console.log(`skipping ${model_id}, ${path} due to ${err}`);
-        }
+        return;
       }
-    }
+      // async get of the buffer efficiently via HTTP:
+      if (this.client.ipywidgetsGetBuffer == null) {
+        throw Error(
+          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers"
+        );
+      }
+      try {
+        const buffer = await this.client.ipywidgetsGetBuffer(
+          this.syncdoc.project_id,
+          auxFileToOriginal(this.syncdoc.path),
+          model_id,
+          path
+        );
+        this.arrayBuffers[model_id][path] = { buffer, hash };
+        buffer_paths.push(JSON.parse(path));
+        buffers.push(buffer);
+      } catch (err) {
+        console.log(`skipping ${model_id}, ${path} due to ${err}`);
+      }
+    };
+    // Run f in parallel on all of the keys of value:
+    await Promise.all(value.keySeq().toJS().map(f));
     return { buffers, buffer_paths };
   }
 

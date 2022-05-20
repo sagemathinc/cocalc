@@ -57,6 +57,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
 
+  private numCreating: number = 0;
+  private createdQueue: Function[] = [];
+
   // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
   // can render will try again.
@@ -316,6 +319,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         return;
       }
       const state = await this.deserialize_state(model, change);
+      console.log("set_state", state);
       model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
@@ -330,7 +334,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     options,
     serialized_state: any = {}
   ): Promise<base.WidgetModel> {
-    // console.log("_make_model", { options, serialized_state });
+    //     console.log("_make_model", options.model_id, {
+    //       serialized_state,
+    //     });
     const model_id = options.model_id;
     let ModelType: typeof base.WidgetModel;
     try {
@@ -383,7 +389,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const widget_model = new ModelType(state, modelOptions);
     widget_model.name = options.model_name;
     widget_model.module = options.model_module;
-    // console.log("_make_model -- finished making it!", { state });
+    //     console.log("_make_model ", options.model_id, "-- finished making it!", {
+    //       state,
+    //     });
     return widget_model;
   }
 
@@ -417,6 +425,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     let model: base.DOMWidgetModel;
+    this.numCreating += 1;
+    this.setWidgetModelIdState(model_id, "loading");
     try {
       model = await this.new_model(
         {
@@ -433,13 +443,23 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );
       this.setWidgetModelIdState(model_id, `${model_module}.${model_name}`);
       return;
+    } finally {
+      this.numCreating -= 1;
     }
 
     // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
-
     // Inform CoCalc/React client that we just created this model.
-    this.setWidgetModelIdState(model_id, "");
+    this.createdQueue.push(() => {
+      this.setWidgetModelIdState(model_id, "");
+    });
+    if (this.numCreating == 0) {
+      const v = this.createdQueue;
+      this.createdQueue = [];
+      for (const f of v) {
+        f();
+      }
+    }
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {
