@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import { CSSProperties } from "react";
 import { Icon } from "./icon";
-import { TypedMap } from "../app-framework";
+import { TypedMap, useDelayedRender } from "../app-framework";
 
 export type Estimate = TypedMap<{
   time: number; // Time in seconds
@@ -13,16 +13,15 @@ export type Estimate = TypedMap<{
 }>;
 export const Estimate = null; // webpack + TS es2020 modules need this
 
-
 interface Props {
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   text?: string;
   estimate?: Estimate;
   theme?: "medium" | undefined;
   delay?: number; // if given, don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
 }
 
-const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
+const LOADING_THEMES: { [keys: string]: CSSProperties } = {
   medium: {
     fontSize: "24pt",
     textAlign: "center",
@@ -32,37 +31,29 @@ const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
   },
 };
 
-export class Loading extends React.Component<Props> {
-  static defaultProps = { text: "Loading..." };
+export function Loading({ style, text, estimate, theme, delay }: Props) {
+  const render = useDelayedRender(delay ?? 0);
+  if (!render) {
+    return <></>;
+  }
 
-  render_estimate() {
-    if (this.props.estimate != undefined) {
-      return (
+  return (
+    <div
+      style={{
+        ...(theme ? LOADING_THEMES[theme] : undefined),
+        ...style,
+      }}
+    >
+      <span>
+        <Icon name="cocalc-ring" spin /> {text ?? "Loading..."}
+      </span>
+      {estimate != undefined && (
         <div>
-          Loading '{this.props.estimate.get("type")}' file.
+          Loading '{estimate.get("type")}' file.
           <br />
-          Estimated time: {this.props.estimate.get("time")}s
+          Estimated time: {estimate.get("time")}s
         </div>
-      );
-    }
-  }
-
-  render() {
-    let style: React.CSSProperties | undefined = undefined;
-    if (this.props.style != undefined) {
-      style = this.props.style;
-    } else if (this.props.theme != undefined) {
-      style = LOADING_THEMES[this.props.theme];
-    }
-
-    return (
-      <div style={style}>
-        <span>
-          <Icon name="cocalc-ring" spin /> {this.props.text}
-        </span>
-        {this.render_estimate()}
-      </div>
-    );
-  }
+      )}
+    </div>
+  );
 }
-
