@@ -10,6 +10,7 @@ Widget rendering.
 import $ from "jquery";
 import { Map, List, fromJS } from "immutable";
 import { Tabs, Tab } from "../../antd-bootstrap";
+import { Alert } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -466,7 +467,11 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       <>
         {!isUnsupported &&
           widgetModelIdState.get(value.get("model_id")) == null && (
-            <div>You may need to evaluate this cell to create widgets.</div>
+            <Alert
+              style={{ margin: "15px" }}
+              type="warning"
+              message="You probably need to run some code to create this widget."
+            />
           )}
         {isUnsupported && renderUnsupported()}
         {isLoading && !isUnsupported && (

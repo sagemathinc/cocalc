@@ -33,7 +33,7 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
-const GC_DEBOUNCE_MS = 30000;
+const GC_DEBOUNCE_MS = 15000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -263,7 +263,6 @@ export class IpywidgetsState extends EventEmitter {
   public getBuffer(model_id: string, buffer_path: string): Buffer | undefined {
     const dbg = this.dbg("getBuffer");
     dbg("getBuffer", model_id, buffer_path);
-    dbg("we have this.buffers = ", this.buffers);
     return this.buffers[model_id]?.[buffer_path]?.buffer;
   }
 

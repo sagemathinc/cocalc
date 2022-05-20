@@ -179,7 +179,7 @@ export default class PlotView extends DOMWidgetView {
         grid: this.model.get("grid"),
         fps: this.model.get("fps"),
         // only initialize autoRendering possibly to true if no camera is known
-        // yet. This enables virtualization, opening other frames, collaboration, etc.
+        // yet. This is needed for virtualization, opening other frames, collaboration, etc.
         // We do re-enable autoRendering below.
         autoRendering:
           this.model.get("auto_rendering") &&
