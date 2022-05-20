@@ -528,7 +528,7 @@ export class JupyterActions extends JupyterActions0 {
       );
 
       dbg(
-        `found ${v.length} non-running cells, so ensuring kernel is running...`
+        `found ${v.length} non-running cell that should be running, so ensuring kernel is running...`
       );
       this.ensure_backend_kernel_setup();
       try {
@@ -650,6 +650,9 @@ export class JupyterActions extends JupyterActions0 {
         cell.pos = orig_cell.get("pos");
       }
       this.syncdb.set(cell);
+      // This is potentially very verbose -- don't due it unless
+      // doing low level debugging:
+      //dbg(`change (save=${save}): cell='${JSON.stringify(cell)}'`);
       if (save) {
         this.syncdb.save();
       }
@@ -662,6 +665,8 @@ export class JupyterActions extends JupyterActions0 {
       if (this._running_cells != null) {
         delete this._running_cells[id];
       }
+      this.syncdb.save();
+      setTimeout(() => this.syncdb.save(), 100);
     });
 
     if (this.jupyter_kernel == null) {
