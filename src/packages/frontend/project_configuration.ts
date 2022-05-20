@@ -138,6 +138,7 @@ function formatting_prettier(formatting: Capabilities): Capabilities {
     formatting.typescript = true;
     formatting.json = true;
     formatting.yaml = true;
+    formatting.html = true;
     formatting.markdown = true;
   }
   // for backwards compatibility
@@ -149,7 +150,6 @@ function formatting_prettier(formatting: Capabilities): Capabilities {
   }
   if (formatting.tidy) {
     formatting["xml-tidy"] = true;
-    formatting["html-tidy"] = true;
   }
   if (formatting.formatR) {
     formatting.r = true;
