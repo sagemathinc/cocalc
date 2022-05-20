@@ -91,8 +91,8 @@ function ComparisonTable({
           return <SupportMarker type={support} />;
         }
         let type: SupportType;
-        let note: string;
-        let link: string = "";
+        let note: string | undefined;
+        let link: string | undefined = "";
         if (typeof support == "string") {
           type = true;
           note = support;
