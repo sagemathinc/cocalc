@@ -7,6 +7,7 @@ interface Options {
   project_id: string;
   path: string;
 }
+// NOTE: there is a similar function in next/lib/share/url-transform.ts
 
 export default function getUrlTransform({ project_id, path }: Options) {
   const dir = containingPath(path);
