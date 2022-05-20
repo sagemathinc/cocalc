@@ -24,7 +24,7 @@
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
-    "build": "./production-build.py"
+    "build": "rm -rf dist && ./production-build.py"
   },
   "repository": {
     "type": "git",

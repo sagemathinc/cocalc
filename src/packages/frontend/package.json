@@ -190,7 +190,7 @@
     "typescript": "^4.6.3"
   },
   "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
+    "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput "
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
