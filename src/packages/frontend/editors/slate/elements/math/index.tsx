@@ -6,7 +6,6 @@
 import React from "react";
 import { Element } from "slate";
 import { register, RenderElementProps, SlateElement } from "../register";
-//import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import DefaultMath from "@cocalc/frontend/components/math/ssr";
 

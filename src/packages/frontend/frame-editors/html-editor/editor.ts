@@ -10,7 +10,7 @@ Top-level react component for editing HTML documents
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
-import { QuickHTMLPreview } from "./rendered-html";
+import SanitizedPreview from "./rendered-html";
 import { IFrameHTML } from "./iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -58,9 +58,9 @@ const EDITOR_SPEC = {
 
   preview: {
     short: "Preview",
-    name: "Quick Preview",
+    name: "Sanitized Preview",
     icon: "html5",
-    component: QuickHTMLPreview,
+    component: SanitizedPreview,
     buttons: set([
       "print",
       "decrease_font_size",
