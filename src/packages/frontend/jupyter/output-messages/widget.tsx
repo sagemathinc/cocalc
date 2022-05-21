@@ -266,6 +266,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (widget_manager == null) {
         return;
       }
+      // console.log("now actually creating the view from widget.tsx:")
       try {
         view.current = await widget_manager.create_view(model.current, {});
         if (!is_mounted.current) return;

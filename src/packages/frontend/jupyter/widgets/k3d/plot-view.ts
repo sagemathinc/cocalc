@@ -264,10 +264,17 @@ export default class PlotView extends DOMWidgetView {
 
     this.model.get("object_ids").forEach((id) => {
       // group:null to workaround upstream bug (see NOTES above)
-      const v = [{ group: null, ...objects[id]?.attributes }];
-      if (!v[0].type) {
+      if (objects[id] == null) {
+        console.log(`plot-view: init - ${id} missing object`);
         return;
       }
+      const v = [{ group: null, ...objects[id]?.attributes }];
+      if (!v[0].type) {
+        console.log(`plot-view: init - ${id} missing TYPE`);
+        return;
+      }
+      // console.log(`plot-view: init - loading`, id);
+
       this.renderPromises.push(this.K3DInstance.load({ objects: v }));
     }, this);
 
@@ -505,7 +512,12 @@ export default class PlotView extends DOMWidgetView {
 
     difference(newObjectId, oldObjectId).forEach((id: number) => {
       // group:null to workaround upstream bug (see NOTES above)
-      if (objects[id] == null) return;
+      if (objects[id] == null) {
+        console.log(`plot-view: difference - ${id} missing`);
+        return;
+        //       } else {
+        //         console.log("plot-view: difference - loading object", id);
+      }
       this.renderPromises.push(
         this.K3DInstance.load({
           objects: [{ group: null, ...objects[id].attributes }],
@@ -517,7 +529,12 @@ export default class PlotView extends DOMWidgetView {
   refreshObject(obj, changed) {
     if (this.model.get("object_ids").indexOf(obj.get("id")) !== -1) {
       const id = obj.get("id");
-      if (objects[id] == null) return;
+      if (objects[id] == null) {
+        console.log(`plot-view: refreshObject - ${id} missing`);
+        return;
+        //       } else {
+        //         console.log("plot-view: refreshObject - refreshing object", id);
+      }
       this.renderPromises.push(
         this.K3DInstance.reload(
           { group: null, ...objects[id].attributes },

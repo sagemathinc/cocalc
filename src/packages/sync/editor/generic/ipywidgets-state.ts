@@ -33,7 +33,7 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
-const GC_DEBOUNCE_MS = 15000;
+const GC_DEBOUNCE_MS = 10000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -94,7 +94,7 @@ export class IpywidgetsState extends EventEmitter {
     }
     this.gc = client.is_project() // no-op if not project
       ? debounce(() => {
-          return; // temporarily disabled since it is still too aggressive
+          // return; // temporarily disabled since it is still too aggressive
           if (this.state == "ready") {
             this.deleteUnused();
           }
@@ -433,31 +433,13 @@ export class IpywidgetsState extends EventEmitter {
     await this.table.save();
   }
 
-  private getActiveModelIds(): Set<string> {
-    // First we find the ids of models that are explicitly referenced
-    // in the current version of the Jupyter notebook by iterating through
-    // the output of all cells.
-    const modelIds: Set<string> = new Set();
-    this.syncdoc.get({ type: "cell" }).forEach((cell) => {
-      const output = cell.get("output");
-      if (output != null) {
-        output.forEach((mesg) => {
-          const model_id = mesg.getIn([
-            "data",
-            "application/vnd.jupyter.widget-view+json",
-            "model_id",
-          ]);
-          if (model_id != null) {
-            // same id could of course appear in multiple cells
-            // if there are multiple view of the same model.
-            modelIds.add(model_id);
-          }
-        });
-      }
-    });
-    // Next, for each model we just found, we add in all the ids of models
-    // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
-    // and by output messages.
+  // For each model in init, we add in all the ids of models
+  // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
+  // and by output messages and other things we learn about (e.g., k3d
+  // has its own custom references).
+  public getReferencedModelIds(init: string | Set<string>): Set<string> {
+    const modelIds =
+      typeof init == "string" ? new Set([init]) : new Set<string>(init);
     let before = 0;
     let after = modelIds.size;
     while (before < after) {
@@ -477,6 +459,33 @@ export class IpywidgetsState extends EventEmitter {
     this.includeThirdPartyReferences(modelIds);
 
     return modelIds;
+  }
+
+  // We find the ids of all models that are explicitly referenced
+  // in the current version of the Jupyter notebook by iterating through
+  // the output of all cells, then expanding the result to everything
+  // that these models reference.  This is used as a foundation for
+  // garbage collection.
+  private getActiveModelIds(): Set<string> {
+    const modelIds: Set<string> = new Set();
+    this.syncdoc.get({ type: "cell" }).forEach((cell) => {
+      const output = cell.get("output");
+      if (output != null) {
+        output.forEach((mesg) => {
+          const model_id = mesg.getIn([
+            "data",
+            "application/vnd.jupyter.widget-view+json",
+            "model_id",
+          ]);
+          if (model_id != null) {
+            // same id could of course appear in multiple cells
+            // if there are multiple view of the same model.
+            modelIds.add(model_id);
+          }
+        });
+      }
+    });
+    return this.getReferencedModelIds(modelIds);
   }
 
   private includeThirdPartyReferences(modelIds: Set<string>) {
@@ -506,11 +515,13 @@ export class IpywidgetsState extends EventEmitter {
     // this same approach, and the worst case scenario is just insufficient garbage collection.
     const object_ids = new Set<number>([]);
     for (const model_id of modelIds) {
-      this.get(model_id, "state")
-        ?.get("object_ids")
-        ?.forEach((id) => {
-          object_ids.add(id);
-        });
+      for (const type of ["state", "value"]) {
+        this.get(model_id, type)
+          ?.get("object_ids")
+          ?.forEach((id) => {
+            object_ids.add(id);
+          });
+      }
     }
     if (object_ids.size == 0) {
       // nothing to do -- no such object_ids in any current models.
@@ -550,7 +561,10 @@ export class IpywidgetsState extends EventEmitter {
     msg: CommMessage
   ): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(JSON.stringify(msg));
+    // WARNING: serializing any msg could cause huge server load, e.g., it could contain
+    // a 20MB buffer in it.
+    //dbg(JSON.stringify(msg));  // EXTREME DANGER!
+    dbg(msg.header);
     this.assert_state("ready");
 
     const { content } = msg;

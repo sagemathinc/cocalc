@@ -1181,7 +1181,11 @@ export class JupyterActions extends JupyterActions0 {
 
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(mesg);
+    // serializing the full message could cause enormous load on the server, since
+    // the mesg may contain large buffers.  Only do for low level debugging!
+    // dbg(mesg); // EXTREME DANGER!
+    // This should be safe:
+    dbg(mesg.header);
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
