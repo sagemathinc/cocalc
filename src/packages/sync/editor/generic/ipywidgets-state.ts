@@ -274,7 +274,6 @@ export class IpywidgetsState extends EventEmitter {
   ): void {
     const dbg = this.dbg("set_model_buffers");
     dbg("buffer_paths = ", buffer_paths);
-    dbg("buffers=", buffers);
 
     const data: { [path: string]: boolean } = {};
     if (this.buffers[model_id] == null) {
@@ -564,7 +563,7 @@ export class IpywidgetsState extends EventEmitter {
     // WARNING: serializing any msg could cause huge server load, e.g., it could contain
     // a 20MB buffer in it.
     //dbg(JSON.stringify(msg));  // EXTREME DANGER!
-    dbg(msg.header);
+    dbg(JSON.stringify(msg.header));
     this.assert_state("ready");
 
     const { content } = msg;

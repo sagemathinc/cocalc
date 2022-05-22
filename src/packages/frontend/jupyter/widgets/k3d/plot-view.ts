@@ -16,6 +16,7 @@ import { K3D, ThreeJsProvider } from "k3d/dist/standalone";
 import { DOMWidgetView } from "@jupyter-widgets/base";
 import { chunks, objects, plots } from "./state";
 import { pull, difference } from "lodash";
+import { delay } from "awaiting";
 
 export default class PlotView extends DOMWidgetView {
   private K3DInstance: K3D;
@@ -262,7 +263,11 @@ export default class PlotView extends DOMWidgetView {
     this._setMenuVisibility();
     this._setVoxelPaintColor();
 
-    this.model.get("object_ids").forEach((id) => {
+    this.model.get("object_ids").forEach(async (id) => {
+      while (objects[id] == null) {
+        await delay(100);
+      }
+
       // group:null to workaround upstream bug (see NOTES above)
       if (objects[id] == null) {
         console.log(`plot-view: init - ${id} missing object`);

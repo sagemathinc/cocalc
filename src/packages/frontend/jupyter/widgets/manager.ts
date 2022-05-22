@@ -17,8 +17,6 @@ import * as react_controls from "./controls";
 import { size } from "lodash";
 import { delay } from "awaiting";
 
-const STUPID_DELAY = 250;
-
 /*
 NOTES: Third party custom widgets:
 
@@ -58,6 +56,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   ) => void;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
+  private lastTableChange: number = 0;
 
   // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
@@ -79,22 +78,40 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     // Now process all info currently in the table.
-    const v: any[] = [];
     for (const { model_id, type } of this.ipywidgets_state.keys()) {
-      v.push(this.handle_table_state_change({ model_id, type }));
+      this.handle_table_state_change({ model_id, type });
     }
-    await Promise.all(v);
 
     this.ipywidgets_state.on("change", async (keys) => {
       for (const key of keys) {
         const [, model_id, type] = JSON.parse(key);
-        await this.handle_table_state_change({ model_id, type });
+        // do NOT await this, so all get done in parallel.
+        this.handle_table_state_change({ model_id, type });
       }
     });
   }
 
+  // Wait until there has been no update to the sync table for
+  // at least stableMs milliseconds.  The reason for doing this is
+  // there are often a burst of comm messages to initialize a complicated
+  // widget, involving creating a bunch of models, updating them, sending
+  // buffers, etc.  Each message updates the sync table immediately;
+  // it's important to wait until this stops before allowing
+  // the corresponding views to get created, since otherwise things
+  // get randomly broken (at least, e.g., for k3d).
+  private async waitUntilTableStabilizes(stableMs = 250): Promise<void> {
+    while (true) {
+      const now = new Date().valueOf();
+      if (now - this.lastTableChange >= stableMs) {
+        return;
+      }
+      await delay(stableMs - (now - this.lastTableChange));
+    }
+  }
+
   private async handle_table_state_change({ model_id, type }): Promise<void> {
     // console.log("handle_table_state_change - ", model_id, type);
+    this.lastTableChange = new Date().valueOf();
     try {
       switch (type) {
         case "state":
@@ -128,11 +145,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       // given table a chance to push out the corresponding value update
       // before we create the model.  Otherwise get_model_state below
       // can't take into account the value.
-      // This works (for small data only) but **I hate it**.  A better approach might be to just
-      // debounce the updates from the table somehow, so everything comes
-      // in a single transaction, or surround a collection of updates
-      // with some indicator.
-      await delay(STUPID_DELAY);
+      await this.waitUntilTableStabilizes();
     }
     const state: ModelState | undefined =
       this.ipywidgets_state.get_model_state(model_id);
@@ -454,47 +467,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
-    // console.log("create_new-model - FINISHED", { model_id, serialized_state });
-    this.setStateWhenReferencesAllCreated(model_id);
-  }
-
-  private async setStateWhenReferencesAllCreated(model_id: string) {
-    // Give sync table a chance to report any additional dependencies.
-    // We have to do this because the kernel sends comm messages like this:
-    //    make a model
-    //    update that model a little with the fact that you're referencing another model
-    //    here's another model that's referenced
-    //    etc.
-    //
-    // and the code that calls setStateWhenReferencesAllCreated is
-    // reacting to changes in the table, which happen on each individual
-    // message above.
-    // Also, actually trying to create a view before everything is ready
-    // and then updating it simply does NOT work in general (e.g., for k3d),
-    // since people didn't implement their custom widgets to satisfy that
-    // assumption... and it would be hard to see how to do so (e.g., there is a
-    // difference between making an initial scene and adding objects to it).
-    await delay(STUPID_DELAY);
-
-    // Now get the models that reference model_id, according to the table
-    // now, after a slight delay to wait for incoming messages.
-    const modelIds = this.ipywidgets_state.getReferencedModelIds(model_id);
-    //console.log("setStateWhenReferencesAllCreated", model_id, modelIds);
-
-    // Now wait for all the referenced models to get created:
-    for (const id of modelIds) {
-      await this.get_model(id);
-      //console.log("successfuly got ", id);
-    }
-    //     console.log(
-    //       "ok finally got all the models so now setting that fact for ",
-    //       model_id
-    //     );
-    // Getting all the models worked, so finally set state of model_id to ""
-    // in the store.  This informs the CoCalc/React client (widget.tsx) that
-    // we created this model (and everything it references) and it's time
-    // to create the corresponding view.
     this.setWidgetModelIdState(model_id, "");
+    // console.log("create_new-model - FINISHED", { model_id, serialized_state });
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {

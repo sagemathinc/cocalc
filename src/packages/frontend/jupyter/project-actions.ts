@@ -1185,7 +1185,7 @@ export class JupyterActions extends JupyterActions0 {
     // the mesg may contain large buffers.  Only do for low level debugging!
     // dbg(mesg); // EXTREME DANGER!
     // This should be safe:
-    dbg(mesg.header);
+    dbg(JSON.stringify(mesg.header));
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
