@@ -18,7 +18,7 @@ import htmlReactParser, {
   attributesToProps,
   domToReact,
 } from "html-react-parser";
-import { Element, Text } from "domhandler/lib/node";
+import { Element, Text } from "domhandler";
 import stripXSS, { safeAttrValue, whiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
