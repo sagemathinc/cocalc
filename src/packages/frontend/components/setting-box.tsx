@@ -3,58 +3,51 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, CSS } from "@cocalc/frontend/app-framework";
+import { ReactNode, CSSProperties } from "react";
 import { Card, Typography } from "antd";
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 
 interface Props {
   icon?: IconName;
-  title?: string | JSX.Element;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   show_header?: boolean;
   close?: () => void;
-  children?: React.ReactNode;
-  style?: CSS;
-  bodyStyle?: CSS;
+  children?: ReactNode;
+  style?: CSSProperties;
+  bodyStyle?: CSSProperties;
 }
 
-const STYLE: CSS = {
+const STYLE = {
   marginBottom: "20px",
-};
+} as CSSProperties;
 
-export const SettingBox: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    icon,
-    title,
-    show_header = true,
-    close,
-    children,
-    style,
-    bodyStyle,
-  } = props;
-
-  function renderTitle() {
-    if (!show_header) {
-      return;
-    }
-
-    return (
-      <Typography.Title level={4}>
-        {icon && <Icon name={icon} />} {title}
-      </Typography.Title>
-    );
-  }
-
-  function renderExtra() {
-    if (typeof close !== "function") return;
-    return <CloseX2 close={close} />;
-  }
-
+export function SettingBox({
+  icon,
+  title,
+  subtitle,
+  show_header = true,
+  close,
+  children,
+  style,
+  bodyStyle,
+}: Props) {
   return (
     // type inner for the gray background in the header
     <Card
-      title={renderTitle()}
-      extra={renderExtra()}
+      title={
+        show_header ? (
+          <>
+            <Typography.Title level={4}>
+              {icon && <Icon name={icon} />} {title}
+            </Typography.Title>
+            {subtitle}
+            {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}
+          </>
+        ) : undefined
+      }
+      extra={close != null ? <CloseX2 close={close} /> : undefined}
       type="inner"
       style={{ ...STYLE, ...style }}
       bodyStyle={bodyStyle}
@@ -62,4 +55,4 @@ export const SettingBox: React.FC<Props> = React.memo((props: Props) => {
       {children}
     </Card>
   );
-});
+}
