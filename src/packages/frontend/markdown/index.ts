@@ -19,81 +19,12 @@ import emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";
-import mathPlugin from "markdown-it-texmath";
+import mathPlugin from "./math-plugin";
 export { parseHeader } from "./header";
 import Markdown from "./component";
 export { Markdown };
 
-// The markdown-it-texmath plugin is very impressive, but it doesn't parse
-// things like \begin{equation}x^3$\end{equation} without dollar signs.
-// However, that is a basic requirement for cocalc in order to preserve
-// Jupyter classic compatibility.  So we define our own rules, inspired
-// by the dollars rules from the the plugin,
-// and extend the regexps to also recognize these.  We do this with a new
-// object "cocalc", to avoid potential conflicts.
-// IMPORTANT: We remove the math_block_eqno from upstream, since it is ridiculous,
-// and leads to very disturbing behavior and loss of information, e..g,
-//     $$x$$
-//
-//     (a) xyz
-// Gets rendered with the xyz gone.  Horrible and very confusing.  Equation numbers
-// when we do them, should be done as in latex, not with some weird notation that
-// is very surprising.  See https://github.com/sagemathinc/cocalc/issues/5879
 
-// TODO: Note that \begin{math} / \end{math} is the only environment that should
-// be inline math rather than display math.  I did not implement this edge case yet,
-// and instead \begin{math} still gets interpreted as displayed math.  Note also,
-// that \begin{math|displaymath}... also breaks when using mathjax (e.g., it's broken
-// in jupyter upstream), but works with our slate editor and renderer.
-
-mathPlugin.rules["cocalc"] = {
-  inline: [
-    {
-      name: "math_inline_double",
-      rex: /\${2}([^$]*?[^\\])\${2}/gy,
-      tmpl: "<section><eqn>$1</eqn></section>",
-      tag: "$$",
-      displayMode: true,
-      pre: mathPlugin.$_pre,
-      post: mathPlugin.$_post,
-    },
-    {
-      // We modify this from what's included in markdown-it-texmath to allow for
-      // multiple line inline formulas, e.g., "$2+\n3$" should work, but doesn't in upstream.
-      name: "math_inline",
-      rex: /\$((?:[^\$\s\\])|(?:[\S\s]*?[^\\]))\$/gmy,
-      tmpl: "<eq>$1</eq>",
-      tag: "$",
-      outerSpace: false,
-      pre: mathPlugin.$_pre,
-      post: mathPlugin.$_post,
-    },
-    {
-      // using \begin/\end as part of inline markdown...
-      name: "math_inline_double",
-      rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy,
-      tag: "\\",
-      displayMode: true,
-      tmpl: "<section><eqn>$1</eqn></section>",
-      pre: mathPlugin.$_pre,
-      post: mathPlugin.$_post,
-    },
-  ],
-  block: [
-    {
-      name: "math_block",
-      rex: /\${2}([^$]*?[^\\])\${2}/gmy,
-      tmpl: "<section><eqn>$1</eqn></section>",
-      tag: "$$",
-    },
-    {
-      name: "math_block",
-      rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy, // regexp to match \begin{...}...\end{...} environment.
-      tmpl: "<section><eqn>$1</eqn></section>",
-      tag: "\\",
-    },
-  ],
-};
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 
