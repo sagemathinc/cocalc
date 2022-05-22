@@ -44,28 +44,6 @@ export const StaticElement: React.FC<RenderElementProps> = ({
       />
     </span>
   );
-  /*
-  const { value } = element;
-  const { err, __html } = React.useMemo(
-    () => mathToHtml(value, element.type == "math_inline" && !element.display),
-    [value]
-  );
-
-  return err ? (
-    <span
-      {...attributes}
-      style={{
-        backgroundColor: "#fff2f0",
-        border: "1px solid #ffccc7",
-        padding: "5px 10px",
-      }}
-    >
-      {err}
-    </span>
-  ) : (
-    <span {...attributes} dangerouslySetInnerHTML={{ __html }}></span>
-  );
-  */
 };
 
 function wrap(math, isInline) {
@@ -111,7 +89,7 @@ export function stripMathEnvironment(s: string): string {
     if (s.startsWith(`\\begin{${env}}`)) {
       return s.slice(
         `\\begin{${env}}`.length,
-        s.length - `\\end{${env}}`.length - 1
+        s.length - `\\end{${env}}`.length
       );
     }
   }
