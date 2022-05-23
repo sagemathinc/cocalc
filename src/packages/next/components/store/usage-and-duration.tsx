@@ -72,8 +72,8 @@ export function UsageAndDuration(props: Props) {
     // fixes the range to the start/end of day in the timezone of the user
     const [start, end] = range;
     const fixedStart =
-      start != null ? startOfDay(toServerTime(start)) : undefined;
-    let fixedEnd = end != null ? endOfDay(toServerTime(end)) : undefined;
+      start != null ? toServerTime(startOfDay(start)) : undefined;
+    let fixedEnd = end != null ? toServerTime(endOfDay(end)) : undefined;
     if (fixedStart != null && fixedEnd != null && fixedStart < serverTimeDate) {
       const diff = serverTimeDate.getTime() - fixedStart.getTime();
       fixedEnd = new Date(fixedEnd.getTime() + diff);
