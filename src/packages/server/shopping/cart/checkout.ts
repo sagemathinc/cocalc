@@ -17,15 +17,16 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
-import getCart from "./get";
-import purchaseLicense from "@cocalc/server/licenses/purchase";
 import getPool from "@cocalc/database/pool";
+import purchaseLicense from "@cocalc/server/licenses/purchase";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 import {
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
+import { Date0 } from "@cocalc/util/types/store";
+import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
+import getCart from "./get";
 
 export default async function checkout(account_id: string): Promise<void> {
   // Get the list of items in the cart that haven't been purchased
@@ -70,9 +71,36 @@ async function purchaseSiteLicense(item: {
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
 
+/**
+ * We not only preprocess the date range, but also play nice to the user. if the start date is before the current time,
+ * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
+ * then append that period that's already in the past to the end of the range.
+ */
+function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {
+  if (rangeOrig == null) {
+    return [new Date(), undefined];
+  }
+
+  let [start, end]: [Date, Date0] = [
+    rangeOrig?.[0] ? new Date(rangeOrig?.[0]) : new Date(),
+    rangeOrig?.[1] ? new Date(rangeOrig?.[1]) : undefined,
+  ];
+
+  if (start != null && end != null) {
+    const serverTime = new Date();
+    if (start < serverTime) {
+      const diff = serverTime.getTime() - start.getTime();
+      end = new Date(end.getTime() + diff);
+      // we don't care about changing fixedStart, because it's already in the past
+    }
+  }
+  return [start, end];
+}
+
 function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
   const conf = description; // name clash with "desription.description"
   conf.type = conf.type ?? "quota"; // backwards compatibility
+
   switch (conf.type) {
     case "quota":
       const {
@@ -82,7 +110,6 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         user,
         run_limit,
         period,
-        range,
         ram,
         cpu,
         disk,
@@ -90,15 +117,15 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
         uptime,
         boost = false,
       } = conf;
-
+      const rangeQuota = fixRange(conf.range);
       return {
         type, // "quota"
         user,
         upgrade: "custom" as "custom",
         quantity: run_limit,
         subscription: (period == "range" ? "no" : period) as Subscription,
-        start: range?.[0] ? new Date(range?.[0]) : new Date(),
-        end: range?.[1] ? new Date(range?.[1]) : undefined,
+        start: rangeQuota[0],
+        end: rangeQuota[1],
         custom_ram: ram,
         custom_dedicated_ram: 0,
         custom_cpu: cpu,
@@ -119,13 +146,14 @@ function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
           )}`
         );
       }
+      const rangeVM = fixRange(conf.range);
       return {
         type: "vm",
         quantity: 1,
         dedicated_vm: conf.dedicated_vm,
         subscription: "no",
-        start: new Date(conf.range[0]),
-        end: new Date(conf.range[1]),
+        start: rangeVM[0],
+        end: rangeVM[1],
         title,
         description,
       };

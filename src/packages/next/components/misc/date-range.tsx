@@ -1,10 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { DatePicker } from "antd";
 import moment from "moment";
 import { CSSProperties, useState } from "react";
-
-type Date0 = Date | undefined;
-
-export type DateRangeType = [Date0, Date0];
+import { DateRangeType, Date0 } from "@cocalc/util/types/store";
 
 interface Props {
   onChange?: (x: DateRangeType) => void;

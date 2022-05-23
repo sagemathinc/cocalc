@@ -8,9 +8,10 @@ import { Subscription } from "@cocalc/util/licenses/purchase/types";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { Divider, Form, Input, Radio, Space } from "antd";
 import A from "components/misc/A";
-import DateRange, { DateRangeType } from "components/misc/date-range";
+import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
+import { DateRangeType } from "@cocalc/util/types/store";
 
 interface Props {
   showExplanations?: boolean;
@@ -35,7 +36,7 @@ export function UsageAndDuration(props: Props) {
     extraDuration,
   } = props;
 
-  const { toServerTime, serverTimeDate } = useTimeFixer();
+  const { toServerTime } = useTimeFixer();
 
   function renderUsage() {
     if (!showUsage) return;
@@ -74,11 +75,6 @@ export function UsageAndDuration(props: Props) {
     const fixedStart =
       start != null ? toServerTime(startOfDay(start)) : undefined;
     let fixedEnd = end != null ? toServerTime(endOfDay(end)) : undefined;
-    if (fixedStart != null && fixedEnd != null && fixedStart < serverTimeDate) {
-      const diff = serverTimeDate.getTime() - fixedStart.getTime();
-      fixedEnd = new Date(fixedEnd.getTime() + diff);
-      // we don't care about changing fixedStart, because it's already in the past
-    }
     const fixed: DateRangeType = [fixedStart, fixedEnd];
     return fixed;
   }
