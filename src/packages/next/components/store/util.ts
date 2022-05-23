@@ -7,6 +7,7 @@ import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
+import { useMemo } from "react";
 
 import { LicenseTypeInForms } from "./add-box";
 
@@ -70,17 +71,23 @@ export function loadDateRange(range?: DateRange): DateRange {
  * @param serverTime -- milliseconds since epoch from the server
  */
 export function useTimeFixer() {
-  // server time is supposed to be always set, but just in case …
-  const { serverTime: customizeServerTime } = useCustomize();
-  if (customizeServerTime == null) {
-    console.warn("WARNING: customize.serverTime is not set, using Date.now()");
-  }
-  const serverTime = customizeServerTime ?? Date.now();
+  return useMemo(() => {
+    // server time is supposed to be always set, but just in case …
+    const { serverTime: customizeServerTime } = useCustomize();
+    if (customizeServerTime == null) {
+      console.warn(
+        "WARNING: customize.serverTime is not set, using Date.now()"
+      );
+    }
+    const serverTime = customizeServerTime ?? Date.now();
 
-  const offset = Date.now() - serverTime;
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const serverTimeDate = new Date(serverTime);
-  const userTimeDate = new Date();
-  const toServerTime = (date: Date) => new Date(date.getTime() - offset);
-  return { offset, timezone, serverTimeDate, userTimeDate, toServerTime };
+    // important: useMemo, b/c we calculate the offset only *once* when the page loads, not each time the hook is called
+    const offset = Date.now() - serverTime;
+    return {
+      offset,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverTimeDate: new Date(serverTime),
+      toServerTime: (date: Date) => new Date(date.getTime() - offset),
+    };
+  }, []);
 }
