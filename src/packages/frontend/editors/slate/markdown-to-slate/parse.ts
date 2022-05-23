@@ -54,7 +54,7 @@ export function markdown_to_slate(
   // Parse the markdown:
   // const t0 = new Date().valueOf();
   const { tokens, meta, lines, references } = parse_markdown(markdown, no_meta);
-  // window.markdown_parse = { tokens, meta, lines, references };
+  // window.markdown_parse = { tokens, meta, lines, references, stringify };
 
   const doc: Descendant[] = [];
   if (meta != null) {

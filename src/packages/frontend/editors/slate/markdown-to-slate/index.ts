@@ -6,6 +6,7 @@
 export * from "./types";
 
 // The import order here might matters **A LOT**.  Be careful!
+import "./handle-anchor-tags";
 import "./handle-marks";
 import "./handle-close";
 import "./handle-open";
