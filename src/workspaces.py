@@ -463,9 +463,19 @@ def node_version_check() -> None:
             err += '\nIf you are using https://cocalc.com, put ". /cocalc/nvm/nvm.sh" in ~/.bashrc\nto get an appropriate version of node.'
         raise RuntimeError(err)
 
+def npm_version_check() -> None:
+    """
+    Check if the npm utility has at least version 8.
+    """
+    version = os.popen('npm --version').read()
+    if int(version.split('.')[0]) < 8:
+        raise RuntimeError(
+            f"CoCalc requires npm version 8, but you're using npm v{version}."
+        )
 
 def main() -> None:
     node_version_check()
+    npm_version_check()
 
     def packages_arg(parser):
         parser.add_argument(
