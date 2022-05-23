@@ -107,6 +107,13 @@ export interface Client extends EventEmitter {
 
   is_deleted: (filename: string, project_id?: string) => boolean;
   set_deleted: (filename: string, project_id?: string) => void;
+
+  ipywidgetsGetBuffer?: (
+    project_id: string, // id of the project
+    path: string,  // path = name of ipynb file
+    model_id: string, // id of the ipywidgets model
+    buffer_path: string // JSON.stringify(['binary','buffer','path'])
+  ) => ArrayBuffer;
 }
 
 export interface DocType {

@@ -188,10 +188,7 @@ async function get_formatting(): Promise<Capabilities> {
     } else if (tool == ("bib-biber" as FormatTool)) {
       // another special case
       status.push(have("biber"));
-    } else if (
-      tool === ("html-tidy" as FormatTool) ||
-      tool === ("xml-tidy" as FormatTool)
-    ) {
+    } else if (tool === ("xml-tidy" as FormatTool)) {
       // tidy, already covered
     } else {
       status.push(have(tool));

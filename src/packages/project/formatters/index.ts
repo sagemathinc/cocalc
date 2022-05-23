@@ -18,7 +18,6 @@ declare let require: any;
 const { math_escape, math_unescape } = require("@cocalc/util/markdown-utils");
 import { latex_format } from "./latex-format";
 import { python_format } from "./python-format";
-import { html_format } from "./html-format";
 import { xml_format } from "./xml-format";
 import { bib_format } from "./bib-format";
 import { r_format } from "./r-format";
@@ -112,9 +111,6 @@ export async function run_formatter_string(
     case "r":
     case "formatR":
       formatted = await r_format(input, options, logger);
-      break;
-    case "html-tidy":
-      formatted = await html_format(input, options, logger);
       break;
     case "xml-tidy":
       formatted = await xml_format(input, options, logger);

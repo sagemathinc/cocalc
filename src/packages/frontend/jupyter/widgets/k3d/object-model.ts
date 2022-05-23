@@ -49,6 +49,7 @@ export default class ObjectModel extends WidgetModel {
       this
     );
 
+    // console.log("object-model.initialize", args[0].id);
     if (args[0].id != null) {
       objects[args[0].id] = this;
     }

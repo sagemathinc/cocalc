@@ -18,13 +18,16 @@ import htmlReactParser, {
   attributesToProps,
   domToReact,
 } from "html-react-parser";
-import { Element, Text } from "domhandler/lib/node";
+import { Element, Text } from "domhandler";
 import stripXSS, { safeAttrValue, whiteList } from "xss";
 import type { IFilterXSSOptions } from "xss";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import DefaultMath from "@cocalc/frontend/components/math/ssr";
+import { MathJaxConfig } from "@cocalc/util/mathjax-config";
 
 const URL_TAGS = ["src", "href", "data"];
+
+const MATH_SKIP_TAGS = new Set<string>(MathJaxConfig.tex2jax.skipTags);
 
 function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   // - stripIgnoreTagBody - completely get rid of dangerous HTML
@@ -90,7 +93,12 @@ export default function HTML({
   }
   let options: any = {};
   options.replace = (domNode) => {
+    // console.log("domNode = ", domNode);
     if (domNode instanceof Text) {
+      if (hasAncestor(domNode, MATH_SKIP_TAGS)) {
+        // Do NOT convert Text to math inside a pre/code tree environment.
+        return;
+      }
       const { data } = domNode;
       if (MathComponent != null) {
         return <MathComponent data={data} />;
@@ -172,4 +180,11 @@ export default function HTML({
   } else {
     return <div style={style}>{htmlReactParser(value, options)}</div>;
   }
+}
+
+function hasAncestor(domNode, tags: Set<string>): boolean {
+  const { parent } = domNode;
+  if (!(parent instanceof Element)) return false;
+  if (tags.has(parent.name)) return true;
+  return hasAncestor(parent, tags);
 }

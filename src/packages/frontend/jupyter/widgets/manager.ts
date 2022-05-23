@@ -56,6 +56,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   ) => void;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
+  private lastTableChange: number = 0;
 
   // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
@@ -77,22 +78,40 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     // Now process all info currently in the table.
-    const v: any[] = [];
     for (const { model_id, type } of this.ipywidgets_state.keys()) {
-      v.push(this.handle_table_state_change({ model_id, type }));
+      this.handle_table_state_change({ model_id, type });
     }
-    await Promise.all(v);
 
     this.ipywidgets_state.on("change", async (keys) => {
       for (const key of keys) {
         const [, model_id, type] = JSON.parse(key);
-        await this.handle_table_state_change({ model_id, type });
+        // do NOT await this, so all get done in parallel.
+        this.handle_table_state_change({ model_id, type });
       }
     });
   }
 
+  // Wait until there has been no update to the sync table for
+  // at least stableMs milliseconds.  The reason for doing this is
+  // there are often a burst of comm messages to initialize a complicated
+  // widget, involving creating a bunch of models, updating them, sending
+  // buffers, etc.  Each message updates the sync table immediately;
+  // it's important to wait until this stops before allowing
+  // the corresponding views to get created, since otherwise things
+  // get randomly broken (at least, e.g., for k3d).
+  private async waitUntilTableStabilizes(stableMs = 250): Promise<void> {
+    while (true) {
+      const now = new Date().valueOf();
+      if (now - this.lastTableChange >= stableMs) {
+        return;
+      }
+      await delay(stableMs - (now - this.lastTableChange));
+    }
+  }
+
   private async handle_table_state_change({ model_id, type }): Promise<void> {
     // console.log("handle_table_state_change - ", model_id, type);
+    this.lastTableChange = new Date().valueOf();
     try {
       switch (type) {
         case "state":
@@ -122,6 +141,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private async handle_table_model_state_change(
     model_id: string
   ): Promise<void> {
+    if (!this.has_model(model_id)) {
+      // given table a chance to push out the corresponding value update
+      // before we create the model.  Otherwise get_model_state below
+      // can't take into account the value.
+      await this.waitUntilTableStabilizes();
+    }
     const state: ModelState | undefined =
       this.ipywidgets_state.get_model_state(model_id);
     if (state == null) {
@@ -188,18 +213,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   // function; otherwise the state that is getting sync'd around
   // between clients will just forget the buffers that are set
   // via handle_table_model_buffers_change!
-  private setBuffers(model_id: string, state: ModelState): void {
+  private async setBuffers(model_id: string, state: ModelState): Promise<void> {
     const { buffer_paths, buffers } =
-      this.ipywidgets_state.get_model_buffers(model_id);
+      await this.ipywidgets_state.get_model_buffers(model_id);
     if (buffer_paths.length == 0) return; // nothing to do
-    // convert each buffer in buffers to a DataView.
+    // convert each ArrayBuffer in buffers to a DataView.
     const paths: string[][] = [];
     const vals: any[] = [];
     for (let i = 0; i < buffers.length; i++) {
       if (state[buffer_paths[i][0]] == null) {
         continue;
       }
-      vals.push(new DataView(new Uint8Array(buffers[i].data).buffer));
+      vals.push(new DataView(buffers[i]));
       paths.push(buffer_paths[i]);
     }
     put_buffers(state, paths, vals);
@@ -218,7 +243,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     */
     const model = await this.get_model(model_id);
     if (model == null) return;
-    const { buffer_paths } = this.ipywidgets_state.get_model_buffers(model_id);
+    const { buffer_paths } = await this.ipywidgets_state.get_model_buffers(
+      model_id
+    );
     const deserialized_state = model.get_state(true);
     const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
@@ -242,10 +269,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model.trigger("msg:custom", message);
   }
 
-  deserialize_state(
+  async deserialize_state(
     model: base.DOMWidgetModel,
     serialized_state: ModelState
-  ): ModelState {
+  ): Promise<ModelState> {
     // console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
@@ -255,18 +282,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     //     ipywidgets/packages/controls/src/widget_date.ts
     // in particular for when a date is set in the kernel.
 
-    return this._deserialize_state(
+    return await this._deserialize_state(
       model.model_id,
       model.constructor,
       serialized_state
     );
   }
 
-  private _deserialize_state(
+  private async _deserialize_state(
     model_id: string,
     constructor: any,
     serialized_state: ModelState
-  ): ModelState {
+  ): Promise<ModelState> {
     //     console.log("_deserialize_state", {
     //       model_id,
     //       constructor,
@@ -280,7 +307,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // since we do our own model unpacking, due to issues with ordering
     // and RTC.
     const deserialized: ModelState = {};
-    this.setBuffers(model_id, serialized_state);
+    await this.setBuffers(model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
       if (deserialize != null && deserialize !== base.unpack_models) {
@@ -313,7 +340,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         );
         return;
       }
-      const state = this.deserialize_state(model, change);
+      const state = await this.deserialize_state(model, change);
+      // console.log("set_state", state);
       model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
@@ -328,7 +356,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     options,
     serialized_state: any = {}
   ): Promise<base.WidgetModel> {
-    // console.log("_make_model", { options, serialized_state });
+    //     console.log("_make_model", options.model_id, {
+    //       serialized_state,
+    //     });
     const model_id = options.model_id;
     let ModelType: typeof base.WidgetModel;
     try {
@@ -348,7 +378,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );
     }
 
-    const state = this._deserialize_state(
+    const state = await this._deserialize_state(
       model_id,
       ModelType,
       serialized_state
@@ -381,7 +411,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const widget_model = new ModelType(state, modelOptions);
     widget_model.name = options.model_name;
     widget_model.module = options.model_module;
-    // console.log("_make_model -- finished making it!", { state });
+    //     console.log("_make_model ", options.model_id, "-- finished making it!", {
+    //       state,
+    //     });
     return widget_model;
   }
 
@@ -389,12 +421,11 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    // console.log("create_new_model", { model_id, serialized_state });
     if ((await this.get_model(model_id)) != null) {
       // already created
-      this.setWidgetModelIdState(model_id, "");
       return;
     }
+    // console.log("create_new_model - START", { model_id, serialized_state });
 
     if (serialized_state == null) {
       throw Error("serialized_state must be set");
@@ -415,6 +446,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     let model: base.DOMWidgetModel;
+    this.setWidgetModelIdState(model_id, "loading");
     try {
       model = await this.new_model(
         {
@@ -435,9 +467,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
-
-    // Inform CoCalc/React client that we just created this model.
     this.setWidgetModelIdState(model_id, "");
+    // console.log("create_new-model - FINISHED", { model_id, serialized_state });
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {
@@ -464,7 +495,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     data: any
   ): string {
-    //console.log("TODO: process_comm_message_from_browser", model_id, data);
+    // console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
       throw Error("data must not be null");
     }

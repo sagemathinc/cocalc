@@ -34,5 +34,5 @@ export default function DefaultMath({ data }: Props) {
     "\\$",
     "$"
   );
-  return <div dangerouslySetInnerHTML={{ __html }}></div>;
+  return <span dangerouslySetInnerHTML={{ __html }}></span>;
 }

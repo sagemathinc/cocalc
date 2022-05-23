@@ -24,12 +24,6 @@
     ],
     "rows": [
       {
-        "feature": "100% compatibility",
-        "cocalc": true,
-        "mybinder": true,
-        "colab": true
-      },
-      {
         "feature": "Programming languages",
         "cocalc": "Python, Sage, R, Octave, and many more",
         "mybinder": "Python, R, etc. and customizable",
@@ -42,7 +36,7 @@
         "cocalc": true,
         "mybinder": true,
         "colab": true,
-        "datalore": false
+        "datalore": true
       },
       {
         "feature": "File sharing between users",
@@ -73,7 +67,8 @@
         "cocalc": "Linux with around 10K packages",
         "mybinder": "Limited",
         "colab": false,
-        "deepnote": "Linux with around 350 packages"
+        "deepnote": "Linux with around 350 packages",
+        "datalore": "Python3, SQL, Scala, R, and Kotlin kernels; large pre-installed env with top data science packages"
       },
       {
         "feature": "Access",
@@ -86,7 +81,9 @@
       {
         "feature": "Disk space",
         "cocalc": "3GB/project for free",
-        "mybinder": "Ephemeral"
+        "mybinder": "Ephemeral",
+        "colab": "Uses your Google Drive storage",
+        "datalore": "Limit of two simultaneously running notebooks"
       },
       {
         "feature": "Public Google-indexed searchable publishing of files",
@@ -97,17 +94,23 @@
       },
       {
         "feature": "Self hosting",
-        "cocalc": true,
+        "cocalc": {
+          "type": true,
+          "link": "https://github.com/sagemathinc/cocalc-docker#readme"
+        },
         "mybinder": true,
         "colab": false,
-        "datalore": false,
+        "datalore": {
+          "type": true,
+          "link": "https://www.jetbrains.com/datalore/enterprise/"
+        },
         "deepnote": false
       },
       {
         "feature": "Open source",
         "cocalc": {
           "type": false,
-          "note": "No (GPLv3 + noncommercial use clause)"
+          "note": "Partial (AGPLv3 + noncommercial use clause)"
         },
         "mybinder": true,
         "colab": false,
@@ -118,8 +121,8 @@
         "feature": "GPUs",
         "cocalc": { "type": false, "note": "Only when self hosted" },
         "mybinder": "Only when self hosted",
-        "colab": "Yes, for free!",
-        "datalore": false,
+        "colab": "Yes, for free, and even better when paid.",
+        "datalore": "Datalore Professional and when self-hosted",
         "deepnote": true
       }
     ]

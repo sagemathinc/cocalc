@@ -371,20 +371,6 @@ export const ProjectNewForm = rclass<ReactProps>(
       );
     }
 
-    private render_title(): JSX.Element | undefined {
-      if (this.props.current_path != undefined) {
-        return (
-          <span>
-            Create new files in{" "}
-            <PathNavigator
-              project_id={this.props.project_id}
-              style={{ display: "inline" }}
-            />
-          </span>
-        );
-      }
-    }
-
     private show_files(): void {
       this.props.actions.set_active_tab("files");
     }
@@ -395,7 +381,13 @@ export const ProjectNewForm = rclass<ReactProps>(
         <SettingBox
           show_header={this.props.show_header}
           icon={"plus-circle"}
-          title={this.render_title()}
+          title={"Create new files in"}
+          subtitle={
+            <PathNavigator
+              project_id={this.props.project_id}
+              style={{ display: "inline-block", fontSize: "20px" }}
+            />
+          }
           close={this.props.on_close ?? this.show_files.bind(this)}
         >
           <Row key={this.props.default_filename}>

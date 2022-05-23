@@ -16,6 +16,7 @@ import { K3D, ThreeJsProvider } from "k3d/dist/standalone";
 import { DOMWidgetView } from "@jupyter-widgets/base";
 import { chunks, objects, plots } from "./state";
 import { pull, difference } from "lodash";
+import { delay } from "awaiting";
 
 export default class PlotView extends DOMWidgetView {
   private K3DInstance: K3D;
@@ -179,7 +180,7 @@ export default class PlotView extends DOMWidgetView {
         grid: this.model.get("grid"),
         fps: this.model.get("fps"),
         // only initialize autoRendering possibly to true if no camera is known
-        // yet. This enables virtualization, opening other frames, collaboration, etc.
+        // yet. This is needed for virtualization, opening other frames, collaboration, etc.
         // We do re-enable autoRendering below.
         autoRendering:
           this.model.get("auto_rendering") &&
@@ -262,13 +263,24 @@ export default class PlotView extends DOMWidgetView {
     this._setMenuVisibility();
     this._setVoxelPaintColor();
 
-    this.model.get("object_ids").forEach((id) => {
-      this.renderPromises.push(
-        this.K3DInstance.load({
-          // group:null to workaround upstream bug (see NOTES above)
-          objects: [{ group: null, ...objects[id].attributes }],
-        })
-      );
+    this.model.get("object_ids").forEach(async (id) => {
+      while (objects[id] == null) {
+        await delay(100);
+      }
+
+      // group:null to workaround upstream bug (see NOTES above)
+      if (objects[id] == null) {
+        console.log(`plot-view: init - ${id} missing object`);
+        return;
+      }
+      const v = [{ group: null, ...objects[id]?.attributes }];
+      if (!v[0].type) {
+        console.log(`plot-view: init - ${id} missing TYPE`);
+        return;
+      }
+      // console.log(`plot-view: init - loading`, id);
+
+      this.renderPromises.push(this.K3DInstance.load({ objects: v }));
     }, this);
 
     this.cameraChangeId = this.K3DInstance.on(
@@ -504,6 +516,13 @@ export default class PlotView extends DOMWidgetView {
     }, this);
 
     difference(newObjectId, oldObjectId).forEach((id: number) => {
+      // group:null to workaround upstream bug (see NOTES above)
+      if (objects[id] == null) {
+        console.log(`plot-view: difference - ${id} missing`);
+        return;
+        //       } else {
+        //         console.log("plot-view: difference - loading object", id);
+      }
       this.renderPromises.push(
         this.K3DInstance.load({
           objects: [{ group: null, ...objects[id].attributes }],
@@ -514,9 +533,16 @@ export default class PlotView extends DOMWidgetView {
 
   refreshObject(obj, changed) {
     if (this.model.get("object_ids").indexOf(obj.get("id")) !== -1) {
+      const id = obj.get("id");
+      if (objects[id] == null) {
+        console.log(`plot-view: refreshObject - ${id} missing`);
+        return;
+        //       } else {
+        //         console.log("plot-view: refreshObject - refreshing object", id);
+      }
       this.renderPromises.push(
         this.K3DInstance.reload(
-          { group: null, ...objects[obj.get("id")].attributes },
+          { group: null, ...objects[id].attributes },
           changed
         )
       );

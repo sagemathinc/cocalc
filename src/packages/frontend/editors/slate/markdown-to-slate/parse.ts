@@ -66,7 +66,8 @@ export function markdown_to_slate(
       if (cache != null && token.level === 0 && token.map != null) {
         // cache here when token is only one (e.g., fenced code block),
         // and cache in handle-close when parsing a block.
-        cache[stringify(node)] = getSource(token, lines);
+        const markdown = getSource(token, lines);
+        cache[stringify(node)] = markdown;
       }
       doc.push(node);
     }

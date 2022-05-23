@@ -10,6 +10,7 @@ Widget rendering.
 import $ from "jquery";
 import { Map, List, fromJS } from "immutable";
 import { Tabs, Tab } from "../../antd-bootstrap";
+import { Alert } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -20,7 +21,7 @@ import * as pWidget from "@lumino/widgets";
 require("@jupyter-widgets/controls/css/widgets.css");
 import { CellOutputMessages } from "./message";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { A } from "@cocalc/frontend/components";
+import { A, Loading } from "@cocalc/frontend/components";
 import getSupportURL from "@cocalc/frontend/support/url";
 
 interface WidgetProps {
@@ -37,6 +38,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     const { value, actions, name, project_id, directory, trust } = props;
     const frameActions = useNotebookFrameActions();
     const prev_value = usePrevious(value);
+
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const phosphorRef = useRef<HTMLDivElement>(null);
     const reactBoxRef = useRef<HTMLDivElement>(null);
@@ -98,6 +101,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (state === "") {
         // view not yet initialized, but model is now known, so we initialize it:
         init_view(model_id);
+      } else if (state == "loading") {
+        setIsLoading(true);
       } else {
         // unfortunately widget manager has found that this widget isn't supported right now.
         setIsUnsupported(state);
@@ -162,7 +167,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         }
         model.current = await widget_manager.get_model(model_id);
         if (model.current == null || !is_mounted.current) {
-          // no way to render at present; wait for widget_counter to increase and try again.
+          // no way to render at present; we will wait for widgetModelIdState to
+          // change, then try again...
           return;
         }
 
@@ -195,6 +201,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
           setIsUnsupported(`initializing view failed - ${err}`);
         }
       } finally {
+        setIsLoading(false);
         init_view_is_running.current = false;
       }
     }
@@ -259,6 +266,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (widget_manager == null) {
         return;
       }
+      // console.log("now actually creating the view from widget.tsx:")
       try {
         view.current = await widget_manager.create_view(model.current, {});
         if (!is_mounted.current) return;
@@ -456,12 +464,24 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       );
     }
 
-    if (isUnsupported) {
-      return renderUnsupported();
-    }
-
     return (
       <>
+        {!isUnsupported &&
+          widgetModelIdState.get(value.get("model_id")) == null && (
+            <Alert
+              style={{ margin: "15px" }}
+              type="warning"
+              message="You probably need to run some code to create this widget."
+            />
+          )}
+        {isUnsupported && renderUnsupported()}
+        {isLoading && !isUnsupported && (
+          <Loading
+            theme="medium"
+            style={{ margin: "15px" }}
+            text="Loading Widget..."
+          />
+        )}
         {/* This key='phosphor' div's content is managed by phosphor, so don't put any react in it! */}
         <div key="phosphor" ref={phosphorRef} style={{ overflow: "hidden" }} />
         {outputs && (
