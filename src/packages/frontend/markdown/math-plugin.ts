@@ -3,6 +3,8 @@ This is a revamp of https://github.com/goessner/markdown-it-texmath for our purp
 The original license with MIT, and we consider our modified version of it to also
 be MIT licensed.
 
+TODO: move this to a separate package hosted on npmjs.
+
 Original copyright:
  *  Copyright (c) Stefan Goessner - 2017-21. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.

@@ -18,15 +18,16 @@ function handleClose({ token, state, cache }) {
   }
 
   // Currently collecting the contents to parse when we hit the close_type.
+
   if (token.type == state.open_type) {
-    // Hitting same open type *again* (its nested), so increase nesting.
+    // Hitting same open type *again* (it's nested), so increase nesting.
     state.nesting += 1;
   }
 
   if (token.type === state.close_type) {
     // Hit the close_type
     if (state.nesting > 0) {
-      // We're nested, so just go back one.
+      // We're nested, so just go up one.
       state.nesting -= 1;
     } else {
       // Not nested, so done: parse the accumulated array of children

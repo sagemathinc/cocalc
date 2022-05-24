@@ -27,7 +27,7 @@ export function toSlate({ type, children, token }) {
     case "html_block":
       // token.content will be a string like this:
       //    <img src='https://wstein.org/bella-and-william.jpg' width=200px title='my pup' />
-      // easiest way to parse this is with jquery (not by hand).
+      // easiest way to parse this is with jquery style api but via cheerio (not by hand).
       const elt = $(token.content);
       const node = {
         type: "image",
