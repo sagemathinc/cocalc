@@ -95,7 +95,11 @@ function handleClose({ token, state, cache }) {
         state.open_token?.level === 0 &&
         state.open_token?.map != null
       ) {
-        const markdown = getSource(state.open_token, state.lines);
+        const markdown = getSource({
+          start: state.open_token.map[0],
+          end: state.open_token.map[1],
+          lines: state.lines,
+        });
         setCache({ cache, node, markdown });
       }
       return [node];

@@ -102,7 +102,7 @@ const texmath = {
         token.tag = rule.tag;
         token.markup = "";
         token.content = match[1];
-        token.map = [begLine, curline];
+        token.map = [begLine, curline + 1]; // WARNING: this +1 is also fixes an upstream bug.  Getting this right is critical for caching in slate.
         // end token ... superfluous ...
 
         state.parentType = parentType;

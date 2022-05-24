@@ -124,10 +124,11 @@ register(({ token, state, cache }) => {
             token.level == 0 &&
             token.map != null
           ) {
-            const markdown = getSource(
-              { map: [state.details.map[0], token.map[1]] },
-              state.lines
-            );
+            const markdown = getSource({
+              start: state.details.map[0],
+              end: token.map[1],
+              lines: state.lines,
+            });
             setCache({ cache, node, markdown });
           }
         }

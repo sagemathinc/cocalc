@@ -51,7 +51,11 @@ export function handleNoChildren({ token, state, cache }) {
         setCache({
           cache,
           node,
-          markdown: getSource(token, state.lines),
+          markdown: getSource({
+            start: token.map[0],
+            end: token.map[1],
+            lines: state.lines,
+          }),
         });
       }
       return [node];
