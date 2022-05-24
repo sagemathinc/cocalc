@@ -109,7 +109,7 @@ function handleClose({ token, state, cache }) {
           }
         }
         if (markdown) {
-          cache[stringify(node)] = markdown;
+          state.markdown = cache[stringify(node)] = markdown;
         }
       }
       if (type == "bullet_list" || type == "ordered_list") {

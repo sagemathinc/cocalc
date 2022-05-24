@@ -31,6 +31,7 @@ export interface State {
   tight?: boolean;
 
   anchor?: Token; // currnetly handling an anchor tag
+  details?: Token; // currnetly handling an anchor tag
 }
 
 interface Reference {

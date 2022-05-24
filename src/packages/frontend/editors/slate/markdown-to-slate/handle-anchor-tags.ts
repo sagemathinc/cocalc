@@ -3,9 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This is very similar to handle-open and handle-close for handling
-// big block opening and closing tokens.  However, it's just for the
-// special case of html anchor tags.
+/*
+This is very similar to handle-open and handle-close for handling
+big block opening and closing tokens.  However, it's just for the
+special case of html anchor tags.
+
+TODO: With this implementation of our parser, if you do this
+
+```md
+Consider <a>foo
+
+and bar (this is a new block).
+```
+
+then the anchor tag never gets closed hence nothing is emitting in the transition
+to slate.  It would make a LOT more sense to automatically close it at the end of
+its containing block.
+
+*/
+
 
 import { register } from "./register";
 import { Descendant } from "slate";
@@ -13,6 +29,7 @@ import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { parse } from "./parse";
 import stringify from "json-stable-stringify";
+import { ensureTextStartAndEnd } from "./normalize";
 import $ from "cheerio";
 
 // handling open anchor tag
@@ -31,6 +48,8 @@ register(({ token, state }) => {
   state.anchor = token;
   const x = $(token.content);
   state.attrs = [];
+  // todo: we could implement target explicitly, and also could implement style=,
+  // though github doesn't and style is an XSS vector so complicated
   for (const attr of ["href", "title"]) {
     const val = x.attr(attr);
     if (val != null) {
@@ -75,14 +94,7 @@ register(({ token, state, cache }) => {
           }
           markdown += child_state.markdown ?? "";
         }
-        // children array must start and end
-        // with text, or markdown caching won't work.
-        if (children[children.length - 1]?.["text"] == null) {
-          children.push({ text: "" });
-        }
-        if (children[0]?.["text"] == null) {
-          children.unshift({ text: "" });
-        }
+        ensureTextStartAndEnd(children);
         const markdownToSlate = getMarkdownToSlate(type);
         const node = markdownToSlate({
           type,

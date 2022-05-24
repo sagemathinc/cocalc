@@ -1,11 +1,12 @@
-import type { Token } from "./types";
-
-export default function getSource(token: Token, lines: string[]): string {
+export default function getSource(
+  token: { map: [start: number, end: number]; type?: string },
+  lines: string[]
+): string {
   if (token.map == null) {
     throw Error("token.map must be set");
   }
   let [start, end] = token.map;
-  if (token.type.startsWith("math_")) {
+  if (token.type?.startsWith("math_")) {
     // The markdown-it-texmath plugin gets this off by 1 compared to everything else,
     // so we make up for it.  This is, of course, nerve wracking, since if the caching
     // were ever wrong it could result in corrupted markdown when editing.
