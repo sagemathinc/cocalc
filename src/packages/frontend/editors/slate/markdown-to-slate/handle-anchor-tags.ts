@@ -22,13 +22,11 @@ its containing block.
 
 */
 
-
 import { register } from "./register";
 import { Descendant } from "slate";
 import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { parse } from "./parse";
-import stringify from "json-stable-stringify";
 import { ensureTextStartAndEnd } from "./normalize";
 import $ from "cheerio";
 
@@ -87,12 +85,10 @@ register(({ token, state, cache }) => {
           lines: state.lines,
         };
         const children: Descendant[] = [];
-        let markdown = "";
         for (const token2 of state.contents) {
           for (const node of parse(token2, child_state, cache)) {
             children.push(node);
           }
-          markdown += child_state.markdown ?? "";
         }
         ensureTextStartAndEnd(children);
         const markdownToSlate = getMarkdownToSlate(type);
@@ -105,9 +101,6 @@ register(({ token, state, cache }) => {
         if (node == null) {
           // this won't happen, but it's for typescript
           return [];
-        }
-        if (cache != null && markdown) {
-          cache[stringify(node)] = markdown;
         }
 
         delete state.contents;

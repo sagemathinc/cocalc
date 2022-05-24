@@ -10,7 +10,7 @@ import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
 import getSource from "./source";
-import stringify from "json-stable-stringify";
+import { setCache } from "./cache";
 
 export function handleNoChildren({ token, state, cache }) {
   if (token.children != null && token.children.length > 0) {
@@ -48,7 +48,11 @@ export function handleNoChildren({ token, state, cache }) {
     });
     if (node != null) {
       if (cache != null && token.level === 0 && token.map != null) {
-        state.markdown = cache[stringify(node)] = getSource(token, state.lines);
+        setCache({
+          cache,
+          node,
+          markdown: getSource(token, state.lines),
+        });
       }
       return [node];
     } else {

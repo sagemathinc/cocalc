@@ -11,10 +11,10 @@ import { Descendant } from "slate";
 import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { parse } from "./parse";
-import stringify from "json-stable-stringify";
 import { ensureTextStartAndEnd } from "./normalize";
 import $ from "cheerio";
 import getSource from "./source";
+import { setCache } from "./cache";
 
 // This matches things like "<detaiLS    OPEN  >\n", but
 // not "<details foo> <div> ...".
@@ -124,10 +124,11 @@ register(({ token, state, cache }) => {
             token.level == 0 &&
             token.map != null
           ) {
-            cache[stringify(node)] = getSource(
+            const markdown = getSource(
               { map: [state.details.map[0], token.map[1]] },
               state.lines
             );
+            setCache({ cache, node, markdown });
           }
         }
         // End -- refactor to here.

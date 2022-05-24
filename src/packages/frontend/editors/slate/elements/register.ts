@@ -21,7 +21,6 @@ export interface markdownToSlateOptions {
   state: MarkdownParserState;
   children: Node[];
   isEmpty: boolean;
-  markdown?: string;
 }
 
 export interface slateToMarkdownOptions {
