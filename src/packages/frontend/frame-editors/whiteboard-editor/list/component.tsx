@@ -12,11 +12,15 @@ import { State } from "../actions";
 
 import RenderElement from "../elements/render";
 import RenderReadOnlyElement from "../elements/render-static";
+import {
+  search_match,
+  search_split,
+} from "@cocalc/util/misc";
 
 import { fontSizeToZoom } from "../math";
 
 export default function List() {
-  const { project_id, path, desc } = useFrameContext();
+  const { actions, id:frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
   const canvasScale = fontSizeToZoom(desc.get("font_size"));
 
@@ -26,7 +30,17 @@ export default function List() {
 
   const elementsMap = useEditor("elements");
   const elements = useMemo(() => {
-    const v = elementsMap
+    if(elementsMap == null) return null;
+    const search = desc.get('search')?.toLowerCase().trim();
+    let eMap = elementsMap;
+    if(search) {
+      // filter by matches for the search string
+      const v = search_split(search);
+      elements = elements?.filter()
+      v = v.filter((x) => search_match(elementToSearch(x,v)));
+    }
+
+    let v = elementsMap
       ?.valueSeq()
       .filter((x) => x != null && x.get("type") != "edge")
       .toJS();
@@ -37,7 +51,7 @@ export default function List() {
       return 1;
     });
     return v;
-  }, [elementsMap]);
+  }, [elementsMap, desc.get('search')]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `whiteboard-list-${project_id}-${path}-${desc.get("id")}`,
@@ -52,6 +66,7 @@ export default function List() {
       <Search
         placeholder="Search items..."
         style={{ width: "100%", padding: "10px 15px" }}
+        onSearch={(value) => {actions.setSearch(frameId, value)}}
       />
       <div
         style={{

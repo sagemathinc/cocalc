@@ -1016,6 +1016,11 @@ export class Actions extends BaseActions<State> {
     }
     return false;
   }
+
+  // Set the current search string
+  setSearch(id: string, search: string): void {
+    this.set_frame_tree({ id, search });
+  }
 }
 
 export function elementsList(
