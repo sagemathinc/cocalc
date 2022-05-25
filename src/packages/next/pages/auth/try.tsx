@@ -1,11 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import Head from "components/landing/head";
-import basePath from "lib/base-path";
 import Try from "components/auth/try";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import basePath from "lib/base-path";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
 export default function Home({ customize }) {

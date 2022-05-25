@@ -72,7 +72,16 @@ import apiKeyAction from "@cocalc/server/api/manage";
 const logger = getLogger("auth");
 
 // primary strategies -- all other ones are "extra"
-const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
+const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO] as const;
+
+// see next/pages/auth/ROUTING.md for more informatino
+const BLACKLISTED_STRATEGIES = [
+  "sign-in",
+  "sign-up",
+  "try",
+  "verify",
+  "password-reset",
+] as const;
 
 // root for authentication related endpoints -- will be prefixed with the base_path
 const AUTH_BASE = "/auth";
@@ -366,6 +375,11 @@ export class PassportManager {
       const settings = await cb2(this.database.get_all_passport_settings);
       for (const setting of settings) {
         const name = setting.strategy;
+        if (BLACKLISTED_STRATEGIES.includes(name)) {
+          throw new Error(
+            `It is not allowed to name a strategy endpoint "${name}", because it is used by the next.js /auth/* endpoint. See next/pages/auth/ROUTING.md for more information.`
+          );
+        }
         const conf = setting.conf as PassportStrategyDB;
         if (!conf || conf.disabled === true) {
           continue;
@@ -499,7 +513,7 @@ export class PassportManager {
         // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
 
-        const secure = (req.protocol === 'https');
+        const secure = req.protocol === "https";
 
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
