@@ -26,6 +26,22 @@ export function get_blob_url(
   return `${get_server_url(project_id)}/blobs/a.${extension}?sha1=${sha1}`;
 }
 
+// This gets data from something served from src/packages/project/jupyter/http-server.ts
+export function ipywidgetsGetBufferUrl(
+  project_id: string,
+  path: string,
+  model_id: string,
+  buffer_path: string
+): string {
+  return `${get_server_url(
+    project_id
+  )}/ipywidgets-get-buffer?path=${encodeURIComponent(
+    path
+  )}&model_id=${encodeURIComponent(model_id)}&buffer_path=${encodeURIComponent(
+    buffer_path
+  )}`;
+}
+
 export function get_logo_url(project_id: string, kernel: string): string {
   return `${get_server_url(project_id)}/kernelspecs/${kernel}/logo-64x64.png`;
 }

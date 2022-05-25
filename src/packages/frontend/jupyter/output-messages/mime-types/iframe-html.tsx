@@ -1,15 +1,20 @@
 /*
-For full html messages, instead of sanitizing html via html-ssr.tsx, we just put the html in a big iframe.
+For full html messages, by default instead of sanitizing html via html-ssr.tsx, we just
+put the html in a big iframe.
 
 This makes it so, e.g., plotly plots, which are NOT embedded in an iframe, still just work with our
 public nbviewer.
 
 Note that some HTML, e.g., anything embedded in markdown cells, still gets rendered via sanitized html.
+Also if heuristics suggest the html is just math typesetting, e.g., as output by Sage, then
+we also use sanitized html.
 */
 
 import { useEffect, useRef } from "react";
 import register from "./register";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+
+import SanitizedHtml from "./html";
 
 const IframeHtml = ({ value }) => {
   const iframeRef = useRef<any>(null);
@@ -47,4 +52,9 @@ const IframeHtml = ({ value }) => {
   );
 };
 
-register("text/html", 5, IframeHtml);
+register("text/html", 5, ({ value }) => {
+  if (value.includes("PLOTLY") || value.includes("<iframe srcdoc")) {
+    return <IframeHtml value={value} />;
+  }
+  return <SanitizedHtml value={value} />;
+});

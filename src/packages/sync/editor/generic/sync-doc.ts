@@ -133,8 +133,8 @@ export interface UndoState {
 }
 
 export class SyncDoc extends EventEmitter {
-  public project_id: string; // project_id that contains the doc
-  private path: string; // path of the file corresponding to the doc
+  public readonly project_id: string; // project_id that contains the doc
+  public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
 
@@ -2129,7 +2129,9 @@ export class SyncDoc extends EventEmitter {
     this.last_snapshot = x.last_snapshot;
     this.snapshot_interval = x.snapshot_interval;
     this.users = x.users;
+    // @ts-ignore
     this.project_id = x.project_id;
+    // @ts-ignore
     this.path = x.path;
 
     const settings = data.get("settings", Map());

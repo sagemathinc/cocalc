@@ -897,6 +897,16 @@ export class JupyterKernel
     this._actions.process_comm_message_from_kernel(mesg);
   }
 
+  public ipywidgetsGetBuffer(
+    model_id: string,
+    buffer_path: string
+  ): Buffer | undefined {
+    return this._actions.syncdb.ipywidgets_state.getBuffer(
+      model_id,
+      buffer_path
+    );
+  }
+
   public send_comm_message_to_kernel(
     msg_id: string,
     comm_id: string,

@@ -10,9 +10,7 @@ import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta/type";
 import { createReferencesNode } from "../elements/references/type";
-import stringify from "json-stable-stringify";
 import normalize from "./normalize";
-import getSource from "./source";
 import { len } from "@cocalc/util/misc";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
@@ -63,11 +61,6 @@ export function markdown_to_slate(
   const state: State = { marks: {}, nesting: 0, lines };
   for (const token of tokens) {
     for (const node of parse(token, state, cache)) {
-      if (cache != null && token.level === 0 && token.map != null) {
-        // cache here when token is only one (e.g., fenced code block),
-        // and cache in handle-close when parsing a block.
-        cache[stringify(node)] = getSource(token, lines);
-      }
       doc.push(node);
     }
   }

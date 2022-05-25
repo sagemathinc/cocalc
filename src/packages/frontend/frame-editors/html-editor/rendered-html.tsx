@@ -8,48 +8,33 @@ Component that shows rendered HTML.
 */
 
 import { delay } from "awaiting";
-import { is_different, path_split } from "@cocalc/util/misc";
 import { throttle } from "lodash";
 import { React, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";
-import { HTML } from "@cocalc/frontend/components";
 import { EditorState } from "../frame-tree/types";
+import HTML from "@cocalc/frontend/components/html-ssr";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   id: string;
   actions: any;
-  path: string;
-  project_id: string;
   font_size: number;
   value?: string;
   editor_state: EditorState;
 }
 
-function should_memoize(prev, next) {
-  return !is_different(prev, next, [
-    "id",
-    "project_id",
-    "path",
-    "font_size",
-    "value",
-  ]);
-}
-
-export const QuickHTMLPreview: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    id,
-    actions,
-    path,
-    project_id,
-    font_size,
-    value,
-    editor_state,
-  } = props;
-
-  const scroll_ref = React.useRef(null);
+export default function SanitizedPreview({
+  id,
+  actions,
+  font_size,
+  value,
+  editor_state,
+}: Props) {
+  const fileContext = useFileContext();
+  const scrollRef = React.useRef(null);
 
   function on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(scroll_ref.current);
+    const elt = ReactDOM.findDOMNode(scrollRef.current);
     if (elt == null) return;
 
     const scroll = $(elt).scrollTop();
@@ -68,15 +53,9 @@ export const QuickHTMLPreview: React.FC<Props> = React.memo((props: Props) => {
     }
     const scroll: number | undefined = editor_state.get("scroll");
     if (scroll !== undefined) {
-      $(ReactDOM.findDOMNode(scroll_ref.current)).scrollTop(scroll);
+      $(ReactDOM.findDOMNode(scrollRef.current)).scrollTop(scroll);
     }
   }
-
-  function post_hook(elt) {
-    //  make html even more sane for editing inside cocalc (not an iframe)
-    elt.find("link").remove(); // gets rid of external CSS style
-    elt.find("style").remove();
-  } // gets rid of inline CSS style
 
   return (
     <div
@@ -85,7 +64,7 @@ export const QuickHTMLPreview: React.FC<Props> = React.memo((props: Props) => {
         width: "100%",
         fontSize: `${font_size}px`,
       }}
-      ref={scroll_ref}
+      ref={scrollRef}
       onScroll={throttle(() => on_scroll(), 250)}
       className={"cocalc-editor-div"}
     >
@@ -96,14 +75,10 @@ export const QuickHTMLPreview: React.FC<Props> = React.memo((props: Props) => {
           padding: "0 10px",
         }}
       >
-        <HTML
-          value={value}
-          project_id={project_id}
-          file_path={path_split(path).head}
-          safeHTML={true}
-          post_hook={post_hook}
-        />
+        <FileContext.Provider value={{ ...fileContext, noSanitize: false }}>
+          <HTML value={value ?? ""} />
+        </FileContext.Provider>
       </div>
     </div>
   );
-}, should_memoize);
+}

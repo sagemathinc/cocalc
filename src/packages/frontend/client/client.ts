@@ -55,6 +55,12 @@ export interface WebappClient extends EventEmitter {
   prettier: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: (project_id: string) => void;
+  ipywidgetsGetBuffer: (
+    project_id: string,
+    path: string,
+    model_id: string,
+    buffer_path: string
+  ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
   async_call: AsyncCall;
   user_tracking: Function;
@@ -74,7 +80,6 @@ export interface WebappClient extends EventEmitter {
 }
 
 export const WebappClient = null; // webpack + TS es2020 modules need this
-
 
 /*
 Connection events:
@@ -125,6 +130,13 @@ class Client extends EventEmitter implements WebappClient {
   prettier: Function;
   exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
   touch_project: (project_id: string) => void;
+  ipywidgetsGetBuffer: (
+    project_id: string,
+    path: string,
+    model_id: string,
+    buffer_path: string
+  ) => Promise<ArrayBuffer>;
+
   log_error: (any) => void;
   async_call: AsyncCall;
   user_tracking: Function;
@@ -189,6 +201,9 @@ class Client extends EventEmitter implements WebappClient {
 
     this.exec = this.project_client.exec.bind(this.project_client);
     this.touch_project = this.project_client.touch.bind(this.project_client);
+    this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
+      this.project_client
+    );
 
     this.synctable_database = this.sync_client.synctable_database.bind(
       this.sync_client

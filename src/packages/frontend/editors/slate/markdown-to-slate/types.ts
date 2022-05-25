@@ -27,8 +27,10 @@ export interface State {
   contents?: Token[];
   attrs?: string[][];
   block?: boolean;
-  markdown?: string;
   tight?: boolean;
+
+  anchor?: Token; // currnetly handling an anchor tag
+  details?: Token; // currnetly handling an anchor tag
 }
 
 interface Reference {

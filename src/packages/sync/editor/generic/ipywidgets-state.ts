@@ -3,14 +3,26 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+NOTE: Like much of our Jupyter-related code in CoCalc,
+the code in this file is very much run in *both* the
+frontend web browser and backend project server.
+*/
+
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
-import { close, delete_null_fields, len } from "@cocalc/util/misc";
+import {
+  close,
+  delete_null_fields,
+  len,
+  auxFileToOriginal,
+} from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
 import { delay } from "awaiting";
 import { debounce } from "lodash";
+import sha1 from "sha1";
 
 type State = "init" | "ready" | "closed";
 
@@ -21,7 +33,7 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
-const GC_DEBOUNCE_MS = 30000;
+const GC_DEBOUNCE_MS = 10000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -44,6 +56,19 @@ export class IpywidgetsState extends EventEmitter {
   private table_options: any[] = [];
   private create_synctable: Function;
   private gc: Function;
+
+  // TODO: garbage collect this, both on the frontend and backend.
+  // This should be done in conjunction with the main table (with gc
+  // on backend, and with change to null event on the frontend).
+  private buffers: {
+    [model_id: string]: { [path: string]: { buffer: Buffer; hash: string } };
+  } = {};
+  // Similar but used on frontend
+  private arrayBuffers: {
+    [model_id: string]: {
+      [path: string]: { buffer: ArrayBuffer; hash: string };
+    };
+  } = {};
 
   // If capture_output[msg_id] is defined, then
   // all output with that msg_id is captured by the
@@ -69,7 +94,7 @@ export class IpywidgetsState extends EventEmitter {
     }
     this.gc = client.is_project() // no-op if not project
       ? debounce(() => {
-          return; // temporarily disabled since it is still too aggressive
+          // return; // temporarily disabled since it is still too aggressive
           if (this.state == "ready") {
             this.deleteUnused();
           }
@@ -164,27 +189,123 @@ export class IpywidgetsState extends EventEmitter {
     return value;
   }
 
-  public get_model_buffers(model_id: string): {
-    buffer_paths: any[];
-    buffers: any[];
-  } {
-    let value: any = this.get(model_id, "buffers");
+  /*
+  Setting and getting buffers.
+
+  - Setting the model buffers only happens on the backend project.
+    This is done in response to a comm message from the kernel
+    that has content.data.buffer_paths set.
+
+  - Getting the model buffers only happens in the frontend browser.
+    This happens when creating models that support widgets, and often
+    happens in conjunction with deserialization.
+
+    Getting a model buffer for a given path can happen
+    *at any time* after the buffer is created, not just right when
+    it is created like in JupyterLab!  The reason is because a browser
+    can connect or get refreshed at any time, and then they need the
+    buffer to reconstitue the model.  Moreover, a user might only
+    scroll the widget into view in their (virtualized) notebook at any
+    point, and it is only then that point the model gets created.
+    This means that we have to store and garbage collect model
+    buffers, which is a problem I don't think upstream ipywidgets
+    has to solve.
+  */
+  public async get_model_buffers(model_id: string): Promise<{
+    buffer_paths: string[][];
+    buffers: ArrayBuffer[];
+  }> {
+    let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
     }
-    value = value.toJS();
-    if (value == null) {
-      return { buffer_paths: [], buffers: [] };
-    }
-    // value is an array from JSON of paths array to buffers:
+    // value is an array from JSON of paths array to array buffers:
     const buffer_paths: string[][] = [];
-    const buffers: any[] = [];
-    for (const path in value) {
-      buffer_paths.push(JSON.parse(path));
-      buffers.push(value[path]);
+    const buffers: ArrayBuffer[] = [];
+    if (this.arrayBuffers[model_id] == null) {
+      this.arrayBuffers[model_id] = {};
     }
+    const f = async (path: string) => {
+      const hash = value?.get(path);
+      if (hash == null) return;
+      const cur = this.arrayBuffers[model_id][path];
+      if (cur?.hash == hash) {
+        buffer_paths.push(JSON.parse(path));
+        buffers.push(cur.buffer);
+        return;
+      }
+      // async get of the buffer efficiently via HTTP:
+      if (this.client.ipywidgetsGetBuffer == null) {
+        throw Error(
+          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers"
+        );
+      }
+      try {
+        const buffer = await this.client.ipywidgetsGetBuffer(
+          this.syncdoc.project_id,
+          auxFileToOriginal(this.syncdoc.path),
+          model_id,
+          path
+        );
+        this.arrayBuffers[model_id][path] = { buffer, hash };
+        buffer_paths.push(JSON.parse(path));
+        buffers.push(buffer);
+      } catch (err) {
+        console.log(`skipping ${model_id}, ${path} due to ${err}`);
+      }
+    };
+    // Run f in parallel on all of the keys of value:
+    await Promise.all(value.keySeq().toJS().map(f));
     return { buffers, buffer_paths };
   }
+
+  // Used on the backend by the project http server
+  public getBuffer(model_id: string, buffer_path: string): Buffer | undefined {
+    const dbg = this.dbg("getBuffer");
+    dbg("getBuffer", model_id, buffer_path);
+    return this.buffers[model_id]?.[buffer_path]?.buffer;
+  }
+
+  private set_model_buffers(
+    model_id: string,
+    buffer_paths: string[],
+    buffers: Buffer[],
+    fire_change_event: boolean = true
+  ): void {
+    const dbg = this.dbg("set_model_buffers");
+    dbg("buffer_paths = ", buffer_paths);
+
+    const data: { [path: string]: boolean } = {};
+    if (this.buffers[model_id] == null) {
+      this.buffers[model_id] = {};
+    }
+    for (let i = 0; i < buffer_paths.length; i++) {
+      const key = JSON.stringify(buffer_paths[i]);
+      // we set to the sha1 of the buffer not to make getting
+      // the buffer easy, but to make it easy to KNOW if we
+      // even need to get the buffer.
+      const hash = sha1(buffers[i]);
+      data[key] = hash;
+      this.buffers[model_id][key] = { buffer: buffers[i], hash };
+    }
+    this.set(model_id, "buffers", data, fire_change_event);
+  }
+
+  /*
+  Setting model state and value
+
+  - model state -- gets set once right when model is defined by kernel
+  - model "value" -- should be called "update"; gets set with changes to
+    the model state since it was created.
+    (I think an inefficiency with this approach is the entire updated
+    "value" gets broadcast each time anything about it is changed.
+    Fortunately usually value is small.  However, it would be much
+    better to broadcast only the information about what changed, though
+    that is more difficult to implement given our current simple key:value
+    store sync layer.  This tradeoff may be fully worth it for
+    our applications, since large data should be in buffers, and those
+    are efficient.)
+  */
 
   public set_model_value(
     model_id: string,
@@ -192,27 +313,6 @@ export class IpywidgetsState extends EventEmitter {
     fire_change_event: boolean = true
   ): void {
     this.set(model_id, "value", value, fire_change_event);
-  }
-
-  public set_model_buffers(
-    model_id: string,
-    buffer_paths: string[],
-    buffers: any[],
-    fire_change_event: boolean = true
-  ): void {
-    // const dbg = this.dbg("set_model_buffers");
-    // dbg("buffer_paths = ", buffer_paths);
-    // dbg("buffers=", buffers);
-    // TODO: this is inefficient for now since it just sends
-    // the binary data via JSON + websocket.  Instead, I guess we
-    // could use HTTP?
-
-    const data: { [path: string]: any } = {};
-    for (let i = 0; i < buffer_paths.length; i++) {
-      data[JSON.stringify(buffer_paths[i])] = buffers[i];
-    }
-
-    this.set(model_id, "buffers", data, fire_change_event);
   }
 
   public set_model_state(
@@ -284,10 +384,14 @@ export class IpywidgetsState extends EventEmitter {
     }
   }
   public async clear(): Promise<void> {
-    // This is used when we restart the kernel.
+    // This is used when we restart the kernel -- we reset
+    // things so no information about any models is known
+    // and delete all Buffers.
     this.assert_state("ready");
     const dbg = this.dbg("clear");
     dbg();
+
+    this.buffers = {};
     // There's no implemented delete for tables yet, so instead we set the data
     // for everything to null.  All other code related to widgets needs to handle
     // such data appropriately and ignore it.  (An advantage of this over trying to
@@ -328,31 +432,13 @@ export class IpywidgetsState extends EventEmitter {
     await this.table.save();
   }
 
-  private getActiveModelIds(): Set<string> {
-    // First we find the ids of models that are explicitly referenced
-    // in the current version of the Jupyter notebook by iterating through
-    // the output of all cells.
-    const modelIds: Set<string> = new Set();
-    this.syncdoc.get({ type: "cell" }).forEach((cell) => {
-      const output = cell.get("output");
-      if (output != null) {
-        output.forEach((mesg) => {
-          const model_id = mesg.getIn([
-            "data",
-            "application/vnd.jupyter.widget-view+json",
-            "model_id",
-          ]);
-          if (model_id != null) {
-            // same id could of course appear in multiple cells
-            // if there are multiple view of the same model.
-            modelIds.add(model_id);
-          }
-        });
-      }
-    });
-    // Next, for each model we just found, we add in all the ids of models
-    // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
-    // and by output messages.
+  // For each model in init, we add in all the ids of models
+  // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
+  // and by output messages and other things we learn about (e.g., k3d
+  // has its own custom references).
+  public getReferencedModelIds(init: string | Set<string>): Set<string> {
+    const modelIds =
+      typeof init == "string" ? new Set([init]) : new Set<string>(init);
     let before = 0;
     let after = modelIds.size;
     while (before < after) {
@@ -372,6 +458,33 @@ export class IpywidgetsState extends EventEmitter {
     this.includeThirdPartyReferences(modelIds);
 
     return modelIds;
+  }
+
+  // We find the ids of all models that are explicitly referenced
+  // in the current version of the Jupyter notebook by iterating through
+  // the output of all cells, then expanding the result to everything
+  // that these models reference.  This is used as a foundation for
+  // garbage collection.
+  private getActiveModelIds(): Set<string> {
+    const modelIds: Set<string> = new Set();
+    this.syncdoc.get({ type: "cell" }).forEach((cell) => {
+      const output = cell.get("output");
+      if (output != null) {
+        output.forEach((mesg) => {
+          const model_id = mesg.getIn([
+            "data",
+            "application/vnd.jupyter.widget-view+json",
+            "model_id",
+          ]);
+          if (model_id != null) {
+            // same id could of course appear in multiple cells
+            // if there are multiple view of the same model.
+            modelIds.add(model_id);
+          }
+        });
+      }
+    });
+    return this.getReferencedModelIds(modelIds);
   }
 
   private includeThirdPartyReferences(modelIds: Set<string>) {
@@ -401,11 +514,13 @@ export class IpywidgetsState extends EventEmitter {
     // this same approach, and the worst case scenario is just insufficient garbage collection.
     const object_ids = new Set<number>([]);
     for (const model_id of modelIds) {
-      this.get(model_id, "state")
-        ?.get("object_ids")
-        ?.forEach((id) => {
-          object_ids.add(id);
-        });
+      for (const type of ["state", "value"]) {
+        this.get(model_id, type)
+          ?.get("object_ids")
+          ?.forEach((id) => {
+            object_ids.add(id);
+          });
+      }
     }
     if (object_ids.size == 0) {
       // nothing to do -- no such object_ids in any current models.
@@ -445,7 +560,10 @@ export class IpywidgetsState extends EventEmitter {
     msg: CommMessage
   ): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(JSON.stringify(msg));
+    // WARNING: serializing any msg could cause huge server load, e.g., it could contain
+    // a 20MB buffer in it.
+    //dbg(JSON.stringify(msg));  // EXTREME DANGER!
+    dbg(JSON.stringify(msg.header));
     this.assert_state("ready");
 
     const { content } = msg;
@@ -483,10 +601,7 @@ export class IpywidgetsState extends EventEmitter {
     // the other data; otherwise, deserialization on
     // the client side can't work, since it is missing
     // the data it needs.
-    if (
-      content.data.buffer_paths != null &&
-      content.data.buffer_paths.length > 0
-    ) {
+    if (content.data.buffer_paths?.length > 0) {
       // Deal with binary buffers:
       dbg("setting binary buffers");
       this.set_model_buffers(
@@ -521,7 +636,9 @@ export class IpywidgetsState extends EventEmitter {
           delete this.clear_output[model_id];
         }
 
-        this.set_model_value(model_id, state, false);
+        const last_changed =
+          (this.get(model_id, "value")?.get("last_changed") ?? 0) + 1;
+        this.set_model_value(model_id, { ...state, last_changed }, false);
 
         if (state.msg_id != null) {
           const { msg_id } = state;
@@ -552,10 +669,6 @@ export class IpywidgetsState extends EventEmitter {
             }
           }
           delete state.msg_id;
-        }
-
-        if (len(state) > 0) {
-          this.set_model_state(model_id, state, false);
         }
         break;
       case undefined:

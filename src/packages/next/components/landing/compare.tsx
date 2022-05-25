@@ -37,7 +37,10 @@ function cmp(a, b) {
 // undefined = unknown
 // null = "not applicable"
 type SupportType = boolean | undefined | null;
-type Support = SupportType | string | { type?: SupportType; note: string };
+type Support =
+  | SupportType
+  | string
+  | { type?: SupportType; note?: string; link?: string };
 
 interface TableData {
   title: string;
@@ -65,6 +68,7 @@ function ComparisonTable({
   ];
   for (const product of table.products) {
     columns.push({
+      width: `${75 / table.products.length}%`,
       title: (product.link ? (
         <A href={product.link} alt="Link to information about this product">
           {product.name}
@@ -88,18 +92,27 @@ function ComparisonTable({
           return <SupportMarker type={support} />;
         }
         let type: SupportType;
-        let note: string;
+        let note: string | undefined;
+        let link: string | undefined = "";
         if (typeof support == "string") {
           type = true;
           note = support;
         } else {
           type = support.type;
           note = support.note;
+          link = support.link;
         }
         return (
           <>
             <SupportMarker type={type} /> {type !== undefined && <br />}
-            <span style={{ color: "#666", fontSize: "9pt" }}>{note}</span>
+            {note && (
+              <div style={{ color: "#666", fontSize: "9pt" }}>{note}</div>
+            )}
+            {link && (
+              <A style={{ fontSize: "7pt" }} href={link}>
+                {link}
+              </A>
+            )}
           </>
         );
       },
@@ -155,7 +168,7 @@ function SupportMarker({ type }) {
 export function Disclaimer() {
   return (
     <Alert
-      style={{ margin: "30px 10%" }}
+      style={{ margin: "30px auto", maxWidth: "900px" }}
       message=""
       description={
         <span style={{ fontSize: "10pt" }}>

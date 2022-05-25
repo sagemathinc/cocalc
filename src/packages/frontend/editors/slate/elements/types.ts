@@ -24,6 +24,8 @@ import type { Checkbox } from "./checkbox";
 import "./checkbox/editable";
 import type { CodeBlock } from "./code-block";
 import "./code-block/editable";
+import type { Details } from "./details";
+import "./details/editable";
 import type { Emoji } from "./emoji";
 import "./emoji/editable";
 import type { Generic } from "./generic";
@@ -65,6 +67,7 @@ declare module "slate" {
       | Meta
       | References
       | Checkbox
+      | Details
       | Emoji
       | Hashtag
       | HR

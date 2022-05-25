@@ -9,6 +9,7 @@ declare const $: any;
 
 import { MutableRefObject, useEffect, useCallback, useMemo } from "react";
 import { debounce } from "lodash";
+import { useDebounce } from "use-debounce";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { React, useIsMountedRef, useRef } from "@cocalc/frontend/app-framework";
@@ -32,6 +33,8 @@ const IFrameContext = createContext<IFrameContextType>({});
 export const useIFrameContext: () => IFrameContextType = () => {
   return useContext(IFrameContext);
 };
+
+const EXTRA_CELLS = 2;
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -428,6 +431,31 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }, [cells]);
 
+  // allStyles -- the CSS in <style> blocks in text/html outputs
+  // of all cells.  We gather this and place it in a special cell
+  // at the top, since that such css doesn't disappear when the cells
+  // that produced it are scrolled off the screen. See
+  //    https://github.com/sagemathinc/cocalc/issues/5943
+  // We only update allStyles with a debounce of 1s, since it
+  // can be time consuming as it involves a scan of the entire notebook.
+  const [debouncedCells] = useDebounce(cells, 1000);
+  const allStyles = useMemo(() => {
+    if (!use_windowed_list) return "";
+    let value = "";
+    cell_list.forEach((id) => {
+      debouncedCells.getIn([id, "output"])?.forEach((output) => {
+        const html = output.getIn(["data", "text/html"]);
+        if (html?.includes("style")) {
+          // parse out and include style tags
+          for (const x of $("<div>" + html + "</div>").find("style")) {
+            value += x.innerHTML.trim() + "\n\n";
+          }
+        }
+      });
+    });
+    return value;
+  }, [debouncedCells, use_windowed_list]);
+
   const fileContext = useFileContext();
 
   let body;
@@ -439,14 +467,15 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         <Virtuoso
           ref={virtuosoRef}
           onClick={actions != null && complete != null ? on_click : undefined}
-          topItemCount={1}
+          topItemCount={EXTRA_CELLS}
           style={{
             fontSize: `${font_size}px`,
             height: "100%",
             overflowX: "hidden",
           }}
           totalCount={
-            cell_list.size + 1 /* +1 due to the iframe cell at the top */
+            cell_list.size +
+            EXTRA_CELLS /* +EXTRA_CELLS due to the iframe cell and style cell at the top */
           }
           itemContent={(index) => {
             if (index == 0) {
@@ -461,14 +490,26 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
                   iframes here
                 </div>
               );
+            } else if (index == 1) {
+              return (
+                <div
+                  ref={iframeDivRef}
+                  style={{
+                    height: "1px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <style>{allStyles}</style>
+                </div>
+              );
             }
-            const key = cell_list.get(index - 1);
+            const key = cell_list.get(index - EXTRA_CELLS);
             if (key == null) return null;
-            const is_last: boolean = key === cell_list.get(-1);
+            const is_last: boolean = key === cell_list.get(-EXTRA_CELLS);
             return (
               <div style={{ overflow: "hidden" }}>
                 {render_insert_cell(key, "above")}
-                {render_cell(key, false, index - 1)}
+                {render_cell(key, false, index - EXTRA_CELLS)}
                 {is_last ? render_insert_cell(key, "below") : undefined}
               </div>
             );

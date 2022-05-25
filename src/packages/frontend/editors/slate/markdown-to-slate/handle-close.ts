@@ -8,8 +8,8 @@ import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { register } from "./register";
 import { parse } from "./parse";
-import stringify from "json-stable-stringify";
 import getSource from "./source";
+import { setCache } from "./cache";
 
 function handleClose({ token, state, cache }) {
   if (!state.close_type) return;
@@ -18,15 +18,16 @@ function handleClose({ token, state, cache }) {
   }
 
   // Currently collecting the contents to parse when we hit the close_type.
+
   if (token.type == state.open_type) {
-    // Hitting same open type *again* (its nested), so increase nesting.
+    // Hitting same open type *again* (it's nested), so increase nesting.
     state.nesting += 1;
   }
 
   if (token.type === state.close_type) {
     // Hit the close_type
     if (state.nesting > 0) {
-      // We're nested, so just go back one.
+      // We're nested, so just go up one.
       state.nesting -= 1;
     } else {
       // Not nested, so done: parse the accumulated array of children
@@ -46,7 +47,6 @@ function handleClose({ token, state, cache }) {
       // used for tight lists.
 
       state.tight = false;
-      let markdown = "";
       for (const token2 of state.contents) {
         for (const node of parse(token2, child_state, cache)) {
           if (child_state.tight) {
@@ -55,7 +55,6 @@ function handleClose({ token, state, cache }) {
           isEmpty = false;
           children.push(node);
         }
-        markdown += child_state.markdown ?? "";
       }
       // console.log("children = ", JSON.stringify(children), isEmpty);
       if (isEmpty) {
@@ -81,36 +80,8 @@ function handleClose({ token, state, cache }) {
         children,
         state,
         isEmpty,
-        markdown,
         cache,
       });
-      if (cache != null) {
-        if (state.open_token?.level === 0 && state.open_token?.map != null) {
-          markdown = getSource(state.open_token, state.lines);
-        } else {
-          if (markdown) {
-            // ensure it ends in two newlines, since it's a block...
-            // E.g., of when this is needed is
-            // input like this: "> hy\n>\n> y\n".  then put cursor
-            // before second y and hit enter.  Because of caching need
-            // markdown for last y to be "y\n\n", not just "y\n".
-            if (node != null && (node.type == "td" || node.type == "th")) {
-              // inside a table
-              // Note that the information about space is gone
-              // at this point, unfortunately.
-              markdown += " |";
-            } else {
-              // ensure ends with blank line
-              while (!markdown.endsWith("\n\n")) {
-                markdown += "\n";
-              }
-            }
-          }
-        }
-        if (markdown) {
-          cache[stringify(node)] = markdown;
-        }
-      }
       if (type == "bullet_list" || type == "ordered_list") {
         // tight-ness is ONLY used by lists and we only want it to propagate
         // up to the enclosing list.
@@ -118,6 +89,18 @@ function handleClose({ token, state, cache }) {
       }
       if (node == null) {
         return [];
+      }
+      if (
+        cache != null &&
+        state.open_token?.level === 0 &&
+        state.open_token?.map != null
+      ) {
+        const markdown = getSource({
+          start: state.open_token.map[0],
+          end: state.open_token.map[1],
+          lines: state.lines,
+        });
+        setCache({ cache, node, markdown });
       }
       return [node];
     }

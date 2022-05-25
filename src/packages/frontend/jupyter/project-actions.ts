@@ -528,7 +528,7 @@ export class JupyterActions extends JupyterActions0 {
       );
 
       dbg(
-        `found ${v.length} non-running cells, so ensuring kernel is running...`
+        `found ${v.length} non-running cell that should be running, so ensuring kernel is running...`
       );
       this.ensure_backend_kernel_setup();
       try {
@@ -650,6 +650,9 @@ export class JupyterActions extends JupyterActions0 {
         cell.pos = orig_cell.get("pos");
       }
       this.syncdb.set(cell);
+      // This is potentially very verbose -- don't due it unless
+      // doing low level debugging:
+      //dbg(`change (save=${save}): cell='${JSON.stringify(cell)}'`);
       if (save) {
         this.syncdb.save();
       }
@@ -662,6 +665,8 @@ export class JupyterActions extends JupyterActions0 {
       if (this._running_cells != null) {
         delete this._running_cells[id];
       }
+      this.syncdb.save();
+      setTimeout(() => this.syncdb.save(), 100);
     });
 
     if (this.jupyter_kernel == null) {
@@ -1176,7 +1181,11 @@ export class JupyterActions extends JupyterActions0 {
 
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(mesg);
+    // serializing the full message could cause enormous load on the server, since
+    // the mesg may contain large buffers.  Only do for low level debugging!
+    // dbg(mesg); // EXTREME DANGER!
+    // This should be safe:
+    dbg(JSON.stringify(mesg.header));
     if (this.syncdb.ipywidgets_state == null) {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
