@@ -83,12 +83,28 @@
         "datalore": "Python3, SQL, Scala, R, and Kotlin kernels; large pre-installed env with top data science packages"
       },
       {
-        "feature": "Access",
-        "cocalc": "Free and paid",
-        "mybinder": "Free only",
-        "colab": "Free and paid",
-        "datalore": "Free and paid",
-        "deepnote": "Free and paid"
+        "feature": "Paid Plans",
+        "cocalc": {
+          "type": true,
+          "note": " Basic - $2 person/month; Pro - scales linearly depending on the resources you need",
+          "link": "https://cocalc.com/store"
+        },
+        "mybinder": { "type": false, "note": "Free only" },
+        "colab": {
+          "type": true,
+          "note": "Pro - $9.99 person/month; Pro+ - $49.99 person/month",
+          "link": "https://colab.research.google.com/signup/pricing"
+        },
+        "datalore": {
+          "type": true,
+          "note": "Pro - $19.90 person/month; Enterprise - $125 person/month",
+          "link": "https://www.jetbrains.com/datalore/enterprise/"
+        },
+        "deepnote": {
+          "type": true,
+          "note": "Pro - $12 person/month; Enterprise - $99 person / month",
+          "link": "https://deepnote.com/pricing"
+        }
       },
       {
         "feature": "Disk space",
