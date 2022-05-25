@@ -24,14 +24,12 @@ export default async function sendEmail(
   switch (email_backend) {
     case "":
     case "none":
-      return;
+      throw Error(`no email backend configured`);
     case "smtp":
       return await sendViaSMTP(message);
     case "sendgrid":
       return await sendViaSendgrid(message);
     default:
-      throw Error(
-        `no valid email backend configured: ${email_backend}`
-      );
+      throw Error(`no valid email backend configured: ${email_backend}`);
   }
 }
