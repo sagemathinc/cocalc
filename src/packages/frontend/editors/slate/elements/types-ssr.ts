@@ -4,6 +4,7 @@ import "./blockquote";
 import "./break";
 import "./checkbox";
 import "./code-block";
+import "./details";
 import "./emoji";
 import "./generic";
 import "./hashtag";

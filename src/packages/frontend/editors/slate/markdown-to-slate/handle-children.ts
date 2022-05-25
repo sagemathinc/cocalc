@@ -11,13 +11,6 @@ import { State } from "./types";
 function handleChildren({ token, state, cache }) {
   if (!token.children || token.children.length == 0) return;
 
-  // Save the string that produced this array of children.
-  // This can be used (when available) by some elements, e.g.,
-  // paragraphs, to make generation of markdown from slate
-  // much more stable (e.g., so if one person is editing the
-  // source and another person via WYSIWYG, they don't conflict).
-  state.markdown = token.content;
-
   // Parse all the children with own state, partly inherited
   // from us (e.g., the text marks).
   const child_state: State = {
