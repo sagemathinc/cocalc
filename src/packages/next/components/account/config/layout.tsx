@@ -74,7 +74,7 @@ export default function ConfigLayout({ page }: Props) {
             <>
               This is the new config page.{" "}
               <A href={join(basePath, "settings")} external>
-                Use the old page...
+                There is an old page...
               </A>
             </>
           }
