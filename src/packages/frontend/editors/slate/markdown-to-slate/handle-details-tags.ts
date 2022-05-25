@@ -12,26 +12,34 @@ import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { parse } from "./parse";
 import { ensureTextStartAndEnd } from "./normalize";
-import $ from "cheerio";
 import getSource from "./source";
 import { setCache } from "./cache";
+import { getAttrs } from "./util";
 
 // This matches things like "<detaiLS    OPEN  >\n", but
 // not "<details foo> <div> ...".
 const OPEN_TAG = /^\s*<details(\s+open)?\s*>\s*$/i;
+const OPEN_WITH_SUMMARY_TAG =
+  /^\s*<details(\s+open)?\s*>\s*<summary>[\s\S]*<\/summary>\s*$/i;
 // This matches things like '</detaiLS>\n'
 const CLOSE_TAG = /^\s*<\/details\s*>\s*$/i;
 
 register(({ token, state }) => {
   if (state.details != null) return; // already handling a details tag
-  if (!token.type.startsWith("html_") || !OPEN_TAG.test(token.content)) {
+  if (
+    !token.type.startsWith("html_") ||
+    (!OPEN_TAG.test(token.content) &&
+      !OPEN_WITH_SUMMARY_TAG.test(token.content))
+  ) {
     return;
   }
   /*
   There are two possibilities:
 
   - html_inline token with <details> tag. We wait for corresponding </details> inline tag,
-    collecting content as we go (just like for anchor-tags).
+    collecting content as we go (just like for anchor-tags).  Note that details is a block
+    level html tag, so supporting inline deetails isn't really critical, but we do for
+    compatibility.
 
   - html_block token starting with <details>. We then wait for corresponding </details> block.
     this is weird, and is emulating the hack that works in usual markdown with its silly html
@@ -44,6 +52,9 @@ register(({ token, state }) => {
     to work, with the markdown NOT treated as html.  This is consistent with how things behave
     in commonmark, e.g., github, Jupyter, etc., so it is the way to go.
 
+  - html_block of the form <details [open]>...<summary>...</summary>.  Here the contents of
+    summary replaces "Details".
+
   - if its an html_block that is NOT equal to <details>, then we should treat it as plain html
     so we don't make a special details markdown object at all and this code doesn't apply.
   */
@@ -51,17 +62,8 @@ register(({ token, state }) => {
   // starting an anchor tag
   state.contents = [];
   state.details = token;
-  state.attrs = [];
-
-  // TODO -- refactor this with handle-anchor etc.
-  const x = $(token.content);
-  for (const attr of ["open"]) {
-    const val = x.attr(attr);
-    if (val != null) {
-      state.attrs.push([attr, val]);
-    }
-  }
-
+  // TODO/NOTE: we aren't supporting the style attr.
+  state.attrs = getAttrs(token.content, ["open"]);
   state.nesting = 0;
   return [];
 });
@@ -79,7 +81,7 @@ register(({ token, state, cache }) => {
   if (token.type.startsWith("html_")) {
     // possibly change nesting or finish current details element
     const { content } = token;
-    if (OPEN_TAG.test(content)) {
+    if (OPEN_TAG.test(content) || OPEN_WITH_SUMMARY_TAG.test(content)) {
       // increase nesting
       state.nesting += 1;
     } else if (CLOSE_TAG.test(content)) {

@@ -9,6 +9,8 @@ import { Details } from "./index";
 import { useSlate } from "../hooks";
 import { useSetElement } from "../set-element";
 
+import { STYLE } from "./index";
+
 register({
   slateType: "details",
 
@@ -26,7 +28,7 @@ register({
     const details = (
       <details
         ref={ref}
-        style={{ cursor: "pointer" }}
+        style={STYLE}
         open={open}
         onToggle={() => {
           if (ref.current?.open != open) {
@@ -35,6 +37,11 @@ register({
           }
         }}
       >
+        {node.summary /* whiteSpace inherits something weird from some css */ && (
+          <summary contentEditable={false} style={{ whiteSpace: "normal" }}>
+            {node.summary}
+          </summary>
+        )}
         {children}
       </details>
     );
@@ -47,9 +54,9 @@ register({
 
   fromSlate: ({ node, children }) => {
     return `<details${node.open ? " open" : ""}>${
+      node.summary ? "\n  <summary>" + node.summary + "</summary>" : ""
+    }${node.isInline ? "" : "\n\n"}${children.trim()}${
       node.isInline ? "" : "\n\n"
-    }${children.trim()}${node.isInline ? "" : "\n\n"}</details>${
-      node.isInline ? "" : "\n\n"
-    }`;
+    }</details>${node.isInline ? "" : "\n\n"}`;
   },
 });

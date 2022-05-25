@@ -28,7 +28,7 @@ import { State } from "./types";
 import { getMarkdownToSlate } from "../elements/register";
 import { parse } from "./parse";
 import { ensureTextStartAndEnd } from "./normalize";
-import $ from "cheerio";
+import { getAttrs } from "./util";
 
 // handling open anchor tag
 register(({ token, state }) => {
@@ -44,16 +44,10 @@ register(({ token, state }) => {
   // starting an anchor tag
   state.contents = [];
   state.anchor = token;
-  const x = $(token.content);
-  state.attrs = [];
-  // todo: we could implement target explicitly, and also could implement style=,
-  // though github doesn't and style is an XSS vector so complicated
-  for (const attr of ["href", "title"]) {
-    const val = x.attr(attr);
-    if (val != null) {
-      state.attrs.push([attr, val]);
-    }
-  }
+  // todo: we could implement style=,
+  // though github doesn't and style is an XSS attack vector,
+  // so more complicated.
+  state.attrs = getAttrs(token.content, ["href", "title"]);
   state.nesting = 0;
   return [];
 });
