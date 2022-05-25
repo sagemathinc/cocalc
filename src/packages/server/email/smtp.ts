@@ -45,7 +45,7 @@ async function getServer(settings): Promise<Transporter> {
   server = await createTransport({
     host: settings.server,
     port: settings.port,
-    secure: !settings.port || settings.port == "465",
+    secure: settings.secure,
     auth: {
       user: settings.login,
       pass: settings.password,
@@ -59,6 +59,7 @@ interface SMTPSettings {
   server: string;
   login: string;
   password: string;
+  secure: boolean;
   from?: string;
   port?: string;
 }
@@ -79,6 +80,7 @@ async function getEmailServerSettings(
     server: settings.email_smtp_server,
     login: settings.email_smtp_login,
     password: settings.email_smtp_password,
+    secure: settings.email_smtp_secure,
     from: settings.email_smtp_from,
     port: settings.email_smtp_port,
   };
@@ -96,6 +98,7 @@ async function getEmailServerSettings(
         server: settings.password_reset_smtp_server,
         login: settings.password_reset_smtp_login,
         password: settings.password_reset_smtp_password,
+        secure: settings.password_reset_smtp_secure,
         from: settings.password_reset_smtp_from,
         port: settings.password_reset_smtp_port,
       };
