@@ -13,8 +13,10 @@ import { set } from "@cocalc/util/misc";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 import Whiteboard from "./whiteboard";
+import List from "./list/component";
 
 const whiteboardButtons = set([
   "decrease_font_size",
@@ -36,6 +38,12 @@ export const EDITOR_SPEC = {
     component: Whiteboard,
     buttons: whiteboardButtons,
   } as EditorDescription,
+  list: {
+    short: "List",
+    name: "List View",
+    icon: "list" as IconName,
+    component: List,
+  },
   terminal,
   time_travel,
   introspect: {
