@@ -11,7 +11,7 @@ There are only a few exceptions for these next.js pages. **DO NOT ADD ANY MORE**
 - `/auth/password-reset/*`: password reset
 
 Regarding Hub's SSO endpoints, it blacklists the 5 routes from above as names for the SSO strategies.
-Entering them is currenlty only possible directly via the database,
+Entering them is currently only possible directly via the database,
 hence that check happens upon SSO strategy initialization.
 
 ## Backend
