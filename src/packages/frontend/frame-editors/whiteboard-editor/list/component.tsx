@@ -1,26 +1,20 @@
 import { useMemo } from "react";
-
 import { Input } from "antd";
 const { Search } = Input;
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-
 import { useFrameContext } from "../hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { State } from "../actions";
-
 import RenderElement from "../elements/render";
 import RenderReadOnlyElement from "../elements/render-static";
-import {
-  search_match,
-  search_split,
-} from "@cocalc/util/misc";
-
+import { search_match, search_split } from "@cocalc/util/misc";
+import { Element } from "../types";
 import { fontSizeToZoom } from "../math";
 
 export default function List() {
-  const { actions, id:frameId, project_id, path, desc } = useFrameContext();
+  const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
   const canvasScale = fontSizeToZoom(desc.get("font_size"));
 
@@ -29,21 +23,23 @@ export default function List() {
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   const elementsMap = useEditor("elements");
-  const elements = useMemo(() => {
-    if(elementsMap == null) return null;
-    const search = desc.get('search')?.toLowerCase().trim();
-    let eMap = elementsMap;
-    if(search) {
-      // filter by matches for the search string
-      const v = search_split(search);
-      elements = elements?.filter()
-      v = v.filter((x) => search_match(elementToSearch(x,v)));
-    }
+  const elements: undefined | Element[] = useMemo(() => {
+    if (elementsMap == null) return undefined;
 
     let v = elementsMap
-      ?.valueSeq()
+      .valueSeq()
       .filter((x) => x != null && x.get("type") != "edge")
       .toJS();
+
+    const search = desc.get("search")?.toLowerCase().trim();
+    if (search) {
+      // filter by matches for the search string
+      console.log("search", { search, v });
+      const s = search_split(search);
+      v = v.filter((x) => x.str && search_match(x.str.toLowerCase(), s));
+      console.log("after ", { v });
+    }
+
     v?.sort((elt1, elt2) => {
       if (elt1.y < elt2.y) return -1;
       if (elt1.y > elt2.y) return 1;
@@ -51,7 +47,7 @@ export default function List() {
       return 1;
     });
     return v;
-  }, [elementsMap, desc.get('search')]);
+  }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `whiteboard-list-${project_id}-${path}-${desc.get("id")}`,
@@ -66,7 +62,10 @@ export default function List() {
       <Search
         placeholder="Search items..."
         style={{ width: "100%", padding: "10px 15px" }}
-        onSearch={(value) => {actions.setSearch(frameId, value)}}
+        defaultValue={desc.get("search")}
+        onChange={(e) => {
+          actions.setSearch(frameId, e.target.value);
+        }}
       />
       <div
         style={{
