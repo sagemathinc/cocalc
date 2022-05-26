@@ -80,7 +80,16 @@ const safeJsonStringify = require("safe-json-stringify");
 const logger = getLogger("auth");
 
 // primary strategies -- all other ones are "extra"
-const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
+const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO] as const;
+
+// see next/pages/auth/ROUTING.md for more informatino
+const BLACKLISTED_STRATEGIES = [
+  "sign-in",
+  "sign-up",
+  "try",
+  "verify",
+  "password-reset",
+] as const;
 
 // root for authentication related endpoints -- will be prefixed with the base_path
 const AUTH_BASE = "/auth";
@@ -361,6 +370,12 @@ export class PassportManager {
       };
       const settings = await this.database.get_all_passport_settings();
       for (const setting of settings) {
+        const name = setting.strategy;
+        if (BLACKLISTED_STRATEGIES.includes(name as any)) {
+          throw new Error(
+            `It is not allowed to name a strategy endpoint "${name}", because it is used by the next.js /auth/* endpoint. See next/pages/auth/ROUTING.md for more information.`
+          );
+        }
         // backwards compatibility
         const conf = setting.conf as any;
         setting.info = setting.info ?? {};
@@ -604,7 +619,7 @@ export class PassportManager {
     if (this.passports == null) throw Error("strategies not initalized!");
     const inits: Promise<void>[] = [];
     for (const [name, strategy] of Object.entries(this.passports)) {
-      if (PRIMARY_STRATEGIES.indexOf(name) >= 0) {
+      if (PRIMARY_STRATEGIES.indexOf(name as any) >= 0) {
         continue;
       }
       if (strategy.conf.type == null) {
