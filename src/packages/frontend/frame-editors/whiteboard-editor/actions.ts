@@ -62,7 +62,17 @@ export class Actions extends BaseActions<State> {
   private keyHandler?: (event) => void;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "whiteboard" };
+    return {
+      direction: "col",
+      type: "node",
+      pos: 3/4,
+      first: {
+        type: "whiteboard",
+      },
+      second: {
+        type: "list",
+      },
+    };
   }
 
   _init2(): void {

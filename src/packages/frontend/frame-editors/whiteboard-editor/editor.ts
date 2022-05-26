@@ -16,7 +16,7 @@ import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/intros
 import { IconName } from "@cocalc/frontend/components/icon";
 
 import Whiteboard from "./whiteboard";
-import List from "./list/component";
+import Search from "./search";
 
 const whiteboardButtons = set([
   "decrease_font_size",
@@ -39,10 +39,10 @@ export const EDITOR_SPEC = {
     buttons: whiteboardButtons,
   } as EditorDescription,
   list: {
-    short: "List",
-    name: "List View",
-    icon: "list" as IconName,
-    component: List,
+    short: "Search",
+    name: "Search View",
+    icon: "search" as IconName,
+    component: Search,
   },
   terminal,
   time_travel,
