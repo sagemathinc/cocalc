@@ -62,7 +62,17 @@ export class Actions extends BaseActions<State> {
   private keyHandler?: (event) => void;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "whiteboard" };
+    return {
+      direction: "col",
+      type: "node",
+      pos: 3/4,
+      first: {
+        type: "whiteboard",
+      },
+      second: {
+        type: "list",
+      },
+    };
   }
 
   _init2(): void {
@@ -1015,6 +1025,11 @@ export class Actions extends BaseActions<State> {
       }
     }
     return false;
+  }
+
+  // Set the current search string
+  setSearch(id: string, search: string): void {
+    this.set_frame_tree({ id, search });
   }
 }
 
