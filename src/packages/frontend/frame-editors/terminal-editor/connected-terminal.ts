@@ -140,6 +140,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     try {
       this.terminal.loadAddon(webglAddon);
       webglAddon.onContextLoss(() => {
+        // This really does work and properly switches back to canvas.  To convince yourself
+        // of this, open a single terminal, then open another tab with another terminal and
+        // split it about 20+ times. In the console, you'll see that the oldest webGL contexts
+        // go away. That triggers calling this function, and indeed the terminal then falls
+        // back seamlessly to canvas rendering.  Very impressive, xterm.js.
         webglAddon.dispose();
       });
     } catch (err) {
