@@ -135,20 +135,21 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (this.terminal.element == null) {
       throw Error("terminal.element must be defined");
     }
-    // Uncomment this to enable a webgl terminal, with fallback to
-    // canvas if webgl isn't available.  I'm disabling this since it
-    // isn't noticeably faster over the web at least.  Also, I had
-    // it crash on latest chrome and a solid modern laptop, perha due to
-    // https://github.com/xtermjs/xterm.js/issues/2253
-    // Now that #2253 is fixed, let's try this again.
+
+    const webglAddon = new WebglAddon();
     try {
-      const addon = new WebglAddon();
-      addon.onContextLoss(() => {
-        addon.dispose();
+      this.terminal.loadAddon(webglAddon);
+      webglAddon.onContextLoss(() => {
+        webglAddon.dispose();
       });
-      this.terminal.loadAddon(addon);
     } catch (err) {
-      console.log("WebGL Terminal not available; falling back to canvas.");
+      // We have to disable the dispose when it doesn't get used, since it breaks
+      // on cleanup, and the xtermjs api has no way of removing an addon, and
+      // only catching the error on dispose later would mean leaving other things
+      // potentially not cleaned up properly.  I read the code of webglAddon.dispose
+      // and it doesn't do anything if the addon wasn't initialized.
+      webglAddon.dispose = () => {};
+      console.log(`WebGL Terminal not available (using fallback). -- ${err}`);
     }
 
     this.element = this.terminal.element;
