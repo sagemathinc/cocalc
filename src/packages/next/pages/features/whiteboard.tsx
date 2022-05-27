@@ -44,12 +44,18 @@ export default function Whiteboard({ customize }) {
               <div>
                 <h2>A full featured online collaborative whiteboard</h2>
                 <p>
-                  CoCalc{"'"}s collaborative mathematical whiteboard supports an
-                  infinite canvas with
+                  CoCalc{"'"}s{" "}
+                  <A href="https://doc.cocalc.com/whiteboard.html">
+                    collaborative mathematical whiteboards
+                  </A>{" "}
+                  support an infinite canvas with
                 </p>
                 <ul>
                   <li>
-                    <strong>text</strong> with mathematical LaTeX expressions,
+                    <A href="https://doc.cocalc.com/markdown.html">
+                      Rich text collaborative markdown editor
+                    </A>{" "}
+                    with mathematical LaTeX expressions,
                   </li>
                   <li>
                     sticky <strong>notes</strong>,
@@ -58,9 +64,8 @@ export default function Whiteboard({ customize }) {
                     sketching with <strong>pens</strong>,
                   </li>
                   <li>
-                    <A href="/features/jupyter-notebook">Jupyter</A>{" "}
-                    <strong>code cells</strong> with support for tab completion
-                    and interactive widgets,
+                    <A href="/features/jupyter-notebook">Jupyter code cells</A>{" "}
+                    with support for tab completion and interactive widgets,
                   </li>
                   <li>
                     <strong>chat</strong> conversations with collaborators,
@@ -82,10 +87,12 @@ export default function Whiteboard({ customize }) {
             col2={
               <div>
                 <h2>The Whiteboard with Jupyter cells and more!</h2>
-                You can use Jupyter notebook code cells with over a dozen
-                supported kernels, a massive library of pre-installed software,
-                and interactive widgets, with execution ordered determined by a
-                directed graph. You
+                You can{" "}
+                <A href="https://doc.cocalc.com/whiteboard.html#jupyter-cells">
+                  use Jupyter notebook code cells
+                </A>{" "}
+                with over a dozen supported kernels, a massive library of
+                pre-installed software and interactive widgets. You
                 <ul>
                   <li>
                     create <strong>edges</strong> between all objects,
@@ -95,17 +102,17 @@ export default function Whiteboard({ customize }) {
                     sections,
                   </li>
                   <li>
-                    infinitely <strong>split your editor</strong> windows to
-                    view multiple parts of the whiteboard simultaneously,
+                    <strong>split your editor</strong> windows to view multiple
+                    parts of the whiteboard simultaneously,
                   </li>
                   <li>
                     easily navigate with an <strong>overview map</strong> with
                     two preview modes,
                   </li>
                   <li>
-                    every change you make is recorded via browsable{" "}
-                    <strong>TimeTravel</strong> and you can copy/paste from any
-                    point in the history,
+                    every change you and your collaborators make is recorded via
+                    browsable <strong>TimeTravel</strong> and you can copy/paste
+                    from any point in the history,
                   </li>
                   <li>
                     and you can <strong>publish</strong> your whiteboards to{" "}

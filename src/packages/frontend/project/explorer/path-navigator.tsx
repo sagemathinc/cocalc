@@ -38,11 +38,11 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
       // you'll get a runtime warning.
       PathSegmentLink({
         path: "",
-        display: <HomeOutlined />,
+        display: <HomeOutlined style={{ fontSize: style?.fontSize }} />,
         full_name: "",
         key: 0,
         on_click: () => actions?.open_directory("", true, false),
-        active: current_path_depth === -1
+        active: current_path_depth === -1,
       })
     );
 

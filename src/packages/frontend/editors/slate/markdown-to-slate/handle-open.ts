@@ -9,7 +9,7 @@ import { endswith } from "@cocalc/util/misc";
 function handleOpen({ token, state }) {
   if (!endswith(token.type, "_open")) return;
   // Opening for new array of children.  We start collecting them
-  // until hitting a token with close_type (taking into acocunt nesting).
+  // until hitting a token with close_type (taking into account nesting).
   state.contents = [];
   const i = token.type.lastIndexOf("_open");
   state.close_type = token.type.slice(0, i) + "_close";

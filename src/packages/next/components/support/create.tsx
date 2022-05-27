@@ -12,6 +12,7 @@ import { useCustomize } from "lib/customize";
 import { NoZendesk } from "./util";
 import { Type } from "./tickets";
 import SiteName from "components/share/site-name";
+import { MAX_WIDTH } from "lib/config";
 
 function VSpace({ children }) {
   return (
@@ -99,7 +100,7 @@ export default function Create() {
     >
       <div
         style={{
-          maxWidth: "900px",
+          maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",

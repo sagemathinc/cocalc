@@ -7,6 +7,7 @@ import { Customize } from "lib/customize";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import IndexList, { DataSource } from "components/landing/index-list";
+import { MAX_WIDTH } from "lib/config";
 
 const dataSource: DataSource = [
   {
@@ -56,7 +57,7 @@ export default function Help({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",

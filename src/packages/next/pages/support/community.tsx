@@ -8,7 +8,6 @@ import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import IndexList, { DataSource } from "components/landing/index-list";
 import SiteName from "components/share/site-name";
-
 import Discord from "public/info/discord.png";
 import Share from "public/info/share.png";
 import Blog from "public/info/blog.png";
@@ -16,6 +15,7 @@ import Twitter from "public/info/twitter.png";
 import Facebook from "public/info/facebook.png";
 import Github from "public/info/github.png";
 import GitHubDiscussions from "public/info/github-discussions.png";
+import { MAX_WIDTH } from "lib/config";
 
 const imageWidth = "350px";
 
@@ -225,7 +225,7 @@ export default function Connect({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",

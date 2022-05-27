@@ -33,7 +33,7 @@ register({
     if (url != null) {
       const isExternal = url.includes("://");
       props = {
-        href: urlTransform?.(url, 'a') ?? url,
+        href: urlTransform?.(url, "a") ?? url,
         target: isExternal ? "_blank" : undefined,
         rel: isExternal ? "noopener" : undefined,
       };

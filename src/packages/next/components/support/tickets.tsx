@@ -8,6 +8,7 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NoZendesk } from "./util";
 import { useCustomize } from "lib/customize";
+import { MAX_WIDTH } from "lib/config";
 
 export default function Tickets() {
   let { result, error } = useAPI("support/tickets");
@@ -24,7 +25,7 @@ export default function Tickets() {
     >
       <div
         style={{
-          maxWidth: "900px",
+          maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",

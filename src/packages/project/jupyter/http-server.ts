@@ -16,6 +16,7 @@ import { Router } from "express";
 import { exists } from "./async-utils-node";
 import { get_blob_store, BlobStore } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
+import { get_existing_kernel } from "./jupyter";
 import { startswith } from "@cocalc/util/misc";
 import Logger from "@cocalc/backend/logger";
 const winston = Logger("jupyter-http-server");
@@ -30,6 +31,55 @@ function get_kernel(kernel_data, name) {
 }
 
 function jupyter_kernel_info_handler(router): void {
+  router.get(
+    BASE + "ipywidgets-get-buffer",
+    async function (req, res): Promise<void> {
+      try {
+        const { path, model_id, buffer_path } = req.query;
+        const kernel = get_existing_kernel(path);
+        if (kernel == null) {
+          res.status(404).send(`kernel associated to ${path} does not exist`);
+          return;
+        }
+        const buffer = kernel.ipywidgetsGetBuffer(model_id, buffer_path);
+        if (buffer == null) {
+          res
+            .status(404)
+            .send(
+              `buffer associated to model ${model_id} at ${buffer_path} not known`
+            );
+          return;
+        }
+        res.status(200).send(buffer);
+      } catch (err) {
+        res.status(500).send(`Error getting ipywidgets buffer - ${err}`);
+      }
+    }
+  );
+
+  router.get(
+    BASE + "ipywidgets-get-buffer-info",
+    async function (req, res): Promise<void> {
+      try {
+        const { path, model_id, buffer_path } = req.query;
+        const kernel = get_existing_kernel(path);
+        if (kernel == null) {
+          res.status(404).send(`kernel associated to ${path} does not exist`);
+          return;
+        }
+        const buffer = kernel.ipywidgetsGetBuffer(model_id, buffer_path);
+        res.send({
+          path,
+          model_id,
+          buffer_path,
+          buffer_length: buffer?.length,
+        });
+      } catch (err) {
+        res.status(500).send(`Error getting ipywidgets buffer info - ${err}`);
+      }
+    }
+  );
+
   // we are only actually using this to serve up the logo.
   router.get(BASE + "kernelspecs/*", async function (req, res): Promise<void> {
     try {
@@ -61,8 +111,7 @@ function jupyter_kernel_info_handler(router): void {
         throw Error(`no such path '${path}'`);
       }
     } catch (err) {
-      res.send(err); // TODO: set some proper HTML error code
-      return;
+      res.status(500).send(err.toString());
     }
   });
 }

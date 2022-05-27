@@ -4,6 +4,7 @@ import Head from "components/landing/head";
 import { Layout } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
+import { MAX_WIDTH } from "lib/config";
 
 export default function FERPA({ customize }) {
   return (
@@ -17,7 +18,7 @@ export default function FERPA({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",

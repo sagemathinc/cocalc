@@ -24,6 +24,8 @@ import type { Checkbox } from "./checkbox";
 import "./checkbox/editable";
 import type { CodeBlock } from "./code-block";
 import "./code-block/editable";
+import type { Details } from "./details";
+import "./details/editable";
 import type { Emoji } from "./emoji";
 import "./emoji/editable";
 import type { Generic } from "./generic";
@@ -50,6 +52,8 @@ import type { Mention } from "./mention";
 import "./mention/editable";
 import type { Meta } from "./meta";
 import "./meta/editable";
+import type { References } from "./references";
+import "./references/editable";
 import type { Paragraph } from "./paragraph";
 import "./paragraph/editable";
 import type { Table, THead, TBody, TR, TD, TH } from "./table";
@@ -61,7 +65,9 @@ declare module "slate" {
   export interface CustomTypes {
     Element:
       | Meta
+      | References
       | Checkbox
+      | Details
       | Emoji
       | Hashtag
       | HR

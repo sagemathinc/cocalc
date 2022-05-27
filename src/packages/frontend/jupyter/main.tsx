@@ -520,7 +520,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return render_fatal();
   }
   return (
-    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS() }}>
+    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS(), trust }}>
       <div
         style={{
           display: "flex",

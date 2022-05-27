@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.90.1",
+  "version": "1.95.0",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -24,7 +24,7 @@
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
-    "build": "./production-build.py"
+    "build": "rm -rf dist && ./production-build.py"
   },
   "repository": {
     "type": "git",
@@ -52,8 +52,8 @@
     "@cocalc/assets": "^1.7.0",
     "@cocalc/backend": "^1.17.0",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/frontend": "^1.57.1",
-    "@cocalc/util": "^1.44.1",
+    "@cocalc/frontend": "^1.61.0",
+    "@cocalc/util": "^1.47.3",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^27.4.1",
     "@types/jquery": "^3.5.5",
@@ -121,7 +121,7 @@
     "uglify-js": "^3.14.1",
     "url-loader": "^4.1.1",
     "util": "^0.12.3",
-    "webpack": "^5.72.0",
+    "webpack": "^5.72.1",
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^4.9.2",
     "webpack-dev-middleware": "^5.3.1",

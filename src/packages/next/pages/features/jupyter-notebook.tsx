@@ -86,17 +86,25 @@ export default function JupyterNotebook({ customize }) {
                     distributing and collecting files as well as grading.
                   </li>
                   <li>
+                    The{" "}
+                    <A href="/features/whiteboard">
+                      Jupyter collaborative whiteboard
+                    </A>{" "}
+                    supports presentations that mix Jupyter cells, mathematical
+                    notation, and sketching with a pen and other tools.
+                  </li>
+                  <li>
                     CoCalc{"'"}s Jupyter Notebooks fully support{" "}
-                    <strong>automatic grading</strong>! The teacher{"'"}s notebook
-                    contains exercise cells for students and test cells, some of
-                    which students can also run to get immediate feedback. Once
-                    collected, you tell CoCalc to automatically run the full
-                    test suite across all student notebooks and tabulate the
-                    results. Learn more about{" "}
                     <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-                      NBGrader
+                      <strong>
+                        very flexible automatic grading via nbgrader
+                      </strong>
                     </A>
-                    .
+                    ! The teacher{"'"}s notebook contains exercise cells for
+                    students and test cells, some of which students can also run
+                    to get immediate feedback. Once collected, you tell CoCalc
+                    to automatically run the full test suite across all student
+                    notebooks and tabulate the results.
                   </li>
                 </ul>
 
@@ -105,7 +113,7 @@ export default function JupyterNotebook({ customize }) {
                   Python environments,{" "}
                   <A href="http://www.sagemath.org/">SageMath</A>,{" "}
                   <A href="http://www.r-project.org/">R Statistical Software</A>
-                  , <A href="/features/julia">Julia</A> and many more.{" "}
+                  Octave, <A href="/features/julia">Julia</A> and many more.{" "}
                 </p>
               </div>
             }
@@ -129,11 +137,18 @@ export default function JupyterNotebook({ customize }) {
               notified about the presence of collaborators.
             </p>
             <p>
-              Even sliders, menus and knobs of{" "}
+              Edit text between code cells using{" "}
+              <A href="https://doc.cocalc.com/markdown.html">
+                markdown or our collaborative rich text editor
+              </A>
+              .
+            </p>
+            <p>
+              We have extended ipywidgets so that sliders, menus and knobs of{" "}
               <A href="https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20Basics.html">
                 interactive widgets
               </A>{" "}
-              are synchronized among all collaborators.
+              are also fully synchronized among all collaborators.
             </p>
             <p>
               Additionally, the status and results of all computations in the
@@ -141,8 +156,8 @@ export default function JupyterNotebook({ customize }) {
               the session runs remotely in CoCalc's cluster.
             </p>
             <p>
-              Together, everyone involved experiences the document in exactly
-              the same way.
+              Together, everyone involved experiences the notebook in the same
+              way.
             </p>
           </Info>
 
@@ -296,9 +311,10 @@ export default function JupyterNotebook({ customize }) {
               <A href="https://doc.cocalc.com/jupyter.html#alternatives-plain-jupyter-server-and-jupyterlab-server">
                 fully supports running
               </A>{" "}
-              standard JupyterLab and Jupyter Classic notebook servers from any
-              CoCalc project! You can still use all libraries and extension that
-              might rely on specifics of one of those implementations. Moreover,{" "}
+              standard JupyterLab (with realtime collaboration enabled) and
+              Jupyter Classic notebook servers from any CoCalc project! You can
+              still use all libraries and extension that might rely on specifics
+              of one of those implementations. Moreover,{" "}
               <strong>
                 you can fully use your CoCalc project via the powerful
                 JupyterLab interface!

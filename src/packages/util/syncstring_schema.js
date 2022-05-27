@@ -15,8 +15,7 @@ schema.syncstrings = {
     string_id: {
       type: "sha1",
       pg_type: "CHAR(40)",
-      desc:
-        "id of this synchronized string -- sha1 hash of (project_id and path)",
+      desc: "id of this synchronized string -- sha1 hash of (project_id and path)",
     },
     project_id: {
       type: "uuid",
@@ -24,13 +23,11 @@ schema.syncstrings = {
     },
     last_active: {
       type: "timestamp",
-      desc:
-        'when a user most-recently "cared" about this syncstring (syncstring will be automatically opened in running project if last_active is sufficiently recent)',
+      desc: 'when a user most-recently "cared" about this syncstring (syncstring will be automatically opened in running project if last_active is sufficiently recent)',
     },
     last_file_change: {
       type: "timestamp",
-      desc:
-        "when file on disk last changed not due to save (used by Jupyter sync)",
+      desc: "when file on disk last changed not due to save (used by Jupyter sync)",
     },
     path: {
       type: "string",
@@ -38,60 +35,50 @@ schema.syncstrings = {
     },
     deleted: {
       type: "boolean",
-      desc:
-        "DEPRECATED (remove this field in a few months from March 2020, when no client is using it)",
+      desc: "DEPRECATED (remove this field in a few months from March 2020, when no client is using it)",
     },
     init: {
       type: "map",
-      desc:
-        "{time:timestamp, error:?} - info about what happened when project tried to initialize this string",
+      desc: "{time:timestamp, error:?} - info about what happened when project tried to initialize this string",
       date: ["time"],
     },
     save: {
       type: "map",
-      desc:
-        "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), expected_hash:?, error:['' or 'error message']}",
+      desc: "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), expected_hash:?, error:['' or 'error message']}",
     },
     read_only: {
       type: "boolean",
-      desc:
-        "true or false, depending on whether this syncstring is readonly or can be edited",
+      desc: "true or false, depending on whether this syncstring is readonly or can be edited",
     },
     users: {
       type: "array",
       pg_type: "UUID[]",
-      desc:
-        "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors.",
+      desc: "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors.",
     },
     last_snapshot: {
       type: "timestamp",
-      desc:
-        "timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.",
+      desc: "timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.",
     },
     snapshot_interval: {
       type: "integer",
-      desc:
-        "If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.",
+      desc: "If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.",
     },
     archived: {
       type: "uuid",
-      desc:
-        "if set, then syncstring patches array have been archived in the blob with given uuid.",
+      desc: "if set, then syncstring patches array have been archived in the blob with given uuid.",
     },
     doctype: {
       type: "string",
-      desc:
-        "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}",
+      desc: "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}",
     },
     settings: {
       type: "map",
-      desc:
-        "Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).",
+      desc: "Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).",
     },
     huge: {
       type: "boolean",
       desc: "If true, this syncstring contains too many or too large patches to be processed. Hence if this is set, it won't be processed. TODO: implement a better archiving mechanism and then process such 'huge' syncstrings.",
-    }
+    },
   },
 
   pg_indexes: ["last_active", "archived"],
@@ -122,17 +109,20 @@ schema.syncstrings = {
         project_id: true,
       },
       check_hook(db, obj, account_id, project_id, cb) {
-        return db._syncstrings_check(obj, account_id, project_id, function (
-          err
-        ) {
-          if (!err) {
-            // only calls cb once patch is unarchived, since new sync
-            // rewrite doesn't use changefeed on database.
-            db.unarchive_patches({ string_id: obj.string_id, cb });
-          } else {
-            cb(err);
+        return db._syncstrings_check(
+          obj,
+          account_id,
+          project_id,
+          function (err) {
+            if (!err) {
+              // only calls cb once patch is unarchived, since new sync
+              // rewrite doesn't use changefeed on database.
+              db.unarchive_patches({ string_id: obj.string_id, cb });
+            } else {
+              cb(err);
+            }
           }
-        });
+        );
       },
     },
 
@@ -278,34 +268,28 @@ schema.patches = {
     },
     user_id: {
       type: "integer",
-      desc:
-        "a nonnegative integer; this is the index into the syncstrings.users array of account_id's",
+      desc: "a nonnegative integer; this is the index into the syncstrings.users array of account_id's",
     },
     patch: {
       type: "string",
       pg_type: "TEXT", // that's what it is in the database now...
-      desc:
-        "JSON string that parses to a patch, which transforms the previous version of the syncstring to this version",
+      desc: "JSON string that parses to a patch, which transforms the previous version of the syncstring to this version",
     },
     snapshot: {
       type: "string",
-      desc:
-        "Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.",
+      desc: "Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.",
     },
     sent: {
       type: "timestamp",
-      desc:
-        "Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.",
+      desc: "Optional approximate time at which patch was **actually** sent to the server, which is approximately when it was really made available to other users.  In case of offline editing, patches from days ago might get inserted into the stream, and this makes it possible for the client to know and behave accordingly.  If this is not set then patch was sent about the same time it was created.",
     },
     prev: {
       type: "timestamp",
-      desc:
-        "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied.",
+      desc: "Optional field to indicate patch dependence; if given, don't apply this patch until the patch with timestamp prev has been applied.",
     },
     format: {
       type: "integer",
-      desc:
-        "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects;",
+      desc: "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects;",
     },
   },
   user_query: {
@@ -510,8 +494,7 @@ schema.eval_inputs = {
     },
     input: {
       type: "map",
-      desc:
-        "For example it could be {program:'sage' or 'sh', input:{code:'...', data:'...', preparse:?, event:'execute_code', output_uuid:?, id:....}}",
+      desc: "For example it could be {program:'sage' or 'sh', input:{code:'...', data:'...', preparse:?, event:'execute_code', output_uuid:?, id:....}}",
     },
   },
   user_query: {
@@ -626,23 +609,22 @@ schema.eval_outputs.project_query = schema.eval_outputs.user_query;
 
 schema.ipywidgets = {
   primary_key: ["string_id", "model_id", "type"],
-  durability: "soft", // actually only used as ephemeral table in project right now...
-  // but persisting to the database could be interesting (e.g.,
-  // so last state of widgets appears properly on share server?)
+  durability: "soft", // only used as ephemeral table in project. This will
+  // not be stored in the database ever.  Even if we want to persist widget
+  // info, we would persist it as metadata in the ipynb file (say), and
+  // definitely not in our database.
   fields: {
     string_id: {
-      pg_type: "CHAR(40)",
-      desc:
-        "id of the syncdoc that this widget is associated to (the Jupyter notebook).",
+      type: "string",
+      desc: "id of the syncdoc that this widget is associated to (the Jupyter notebook).",
     },
     model_id: {
-      pg_type: "CHAR(32)",
+      type: "string",
       desc: "the id of the comm that this is data about",
     },
     type: {
-      pg_type: "CHAR(5)",
-      desc:
-        "type of info associated to this comm: 'state' or 'value' or 'outpu'",
+      type: "string",
+      desc: "type of info associated to this entry in the table:  'value' | 'state' | 'buffers' | 'message'",
     },
     data: {
       type: "map",

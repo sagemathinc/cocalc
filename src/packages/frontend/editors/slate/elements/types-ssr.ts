@@ -4,6 +4,7 @@ import "./blockquote";
 import "./break";
 import "./checkbox";
 import "./code-block";
+import "./details";
 import "./emoji";
 import "./generic";
 import "./hashtag";
@@ -17,6 +18,7 @@ import "./list/list-item";
 import "./math";
 import "./mention";
 import "./meta";
+import "./references";
 import "./paragraph";
 import "./table";
 

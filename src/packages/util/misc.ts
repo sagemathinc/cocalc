@@ -85,7 +85,11 @@ export function path_split(path: string): SplittedPath {
   return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
 }
 
-export function capitalize(s: string): string {
+// NOTE: as of right now, there is definitely some code somewhere
+// in cocalc that calls this sometimes with s undefined, and
+// typescript doesn't catch it, hence allowing s to be undefined.
+export function capitalize(s?: string): string {
+  if (!s) return "";
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -679,6 +683,16 @@ export function aux_file(path: string, ext: string): string {
   } else {
     return "." + s.tail;
   }
+}
+
+export function auxFileToOriginal(path: string): string {
+  const { head, tail } = path_split(path);
+  const i = tail.lastIndexOf(".");
+  const filename = tail.slice(1, i);
+  if (!head) {
+    return filename;
+  }
+  return head + "/" + filename;
 }
 
 /*
@@ -2129,7 +2143,7 @@ export function jupyter_language_to_name(lang: string): string {
   } else if (lang === "sage" || exports.startswith(lang, "sage-")) {
     return "SageMath";
   } else {
-    return lang.charAt(0).toUpperCase() + lang.slice(1);
+    return capitalize(lang);
   }
 }
 

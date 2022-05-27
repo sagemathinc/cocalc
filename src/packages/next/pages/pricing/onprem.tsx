@@ -6,6 +6,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { MAX_WIDTH } from "lib/config";
 
 export default function OnPrem({ customize }) {
   return (
@@ -19,7 +20,7 @@ export default function OnPrem({ customize }) {
       >
         <div
           style={{
-            maxWidth: "900px",
+            maxWidth: MAX_WIDTH,
             margin: "15px auto",
             padding: "15px",
             backgroundColor: "white",

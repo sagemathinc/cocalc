@@ -24,25 +24,20 @@
     ],
     "rows": [
       {
-        "feature": "100% compatibility",
-        "cocalc": true,
-        "mybinder": true,
-        "colab": true
-      },
-      {
         "feature": "Programming languages",
         "cocalc": "Python, Sage, R, Octave, and many more",
         "mybinder": "Python, R, etc. and customizable",
         "colab": "Python 3",
         "datalore": "Python 3",
-        "deepnote": "Python 3, ...?"
+        "deepnote": "Python 3, Quip"
       },
       {
         "feature": "IPython Widgets",
         "cocalc": true,
         "mybinder": true,
         "colab": true,
-        "datalore": false
+        "datalore": true,
+        "deepnote": true
       },
       {
         "feature": "File sharing between users",
@@ -55,8 +50,12 @@
       {
         "feature": "Realtime collaboration: multiple people use the same notebook together",
         "cocalc": true,
-        "colab": false,
-        "mybinder": "Possible via extension to JupyterLab.",
+        "colab": {
+          "type": false,
+          "note": "Colab used to have realtime sync, but it ended in 2017, when Google terminated their realtime API product.",
+          "link": "https://workspaceupdates.googleblog.com/2017/11/committed-to-storage-apis-retiring.html"
+        },
+        "mybinder": "Possible via experimental extension to JupyterLab.",
         "datalore": true,
         "deepnote": true
       },
@@ -70,23 +69,69 @@
       },
       {
         "feature": "Large preinstalled software environment",
-        "cocalc": "Linux with around 10K packages",
+        "cocalc": {
+          "type": true,
+          "note": "1500+ Python libraries preinstalled; extensive R, Julia, Octave, and other packages.",
+          "link": "https://cocalc.com/software/python"
+        },
         "mybinder": "Limited",
-        "colab": false,
-        "deepnote": "Linux with around 350 packages"
+        "deepnote": {
+          "type": true,
+          "note": "27 featured Python packages",
+          "link": "https://docs.deepnote.com/environment/pre-installed-packages"
+        },
+        "datalore": "Python3, SQL, Scala, R, and Kotlin kernels; large pre-installed env with top data science packages"
       },
       {
-        "feature": "Access",
-        "cocalc": "Free and paid",
-        "mybinder": "Free only",
-        "colab": "Free and paid",
-        "datalore": "Free and paid",
-        "deepnote": "Free and paid"
+        "feature": "Paid Plans",
+        "cocalc": {
+          "type": true,
+          "note": " Basic - $2 person/month; Pro - scales linearly depending on the resources you need",
+          "link": "https://cocalc.com/store"
+        },
+        "mybinder": { "type": false, "note": "Free only" },
+        "colab": {
+          "type": true,
+          "note": "Pro - $9.99 person/month; Pro+ - $49.99 person/month",
+          "link": "https://colab.research.google.com/signup/pricing"
+        },
+        "datalore": {
+          "type": true,
+          "note": "Pro - $19.90 person/month; Enterprise - $125 person/month",
+          "link": "https://www.jetbrains.com/datalore/enterprise/"
+        },
+        "deepnote": {
+          "type": true,
+          "note": "Pro - $12 person/month; Enterprise - $99 person / month; plus an additional hourly fee for more powerful compute resources at about 7x the market rate",
+          "link": "https://deepnote.com/pricing"
+        }
       },
       {
         "feature": "Disk space",
         "cocalc": "3GB/project for free",
-        "mybinder": "Ephemeral"
+        "mybinder": "Ephemeral",
+        "colab": "Uses your Google Drive storage",
+        "datalore": "Limit of two simultaneously running notebooks",
+        "deepnote": "5GB for free"
+      },
+      {
+        "feature": "Memory",
+        "cocalc": "1GB/project for free",
+        "datalore": "Limit of two simultaneously running notebooks",
+        "deepnote": "several GB for free"
+      },
+      {
+        "feature": "Idle timeout",
+        "cocalc": "30 minutes for free; pay for more",
+        "deepnote": "15 minutes for free; pay for more"
+      },
+      {
+        "feature": "Network access",
+        "cocalc": "Only for non-free projects (due to abuse)",
+        "colab": true,
+        "datalore": true,
+        "mybinder": true,
+        "deepnote": true
       },
       {
         "feature": "Public Google-indexed searchable publishing of files",
@@ -97,29 +142,44 @@
       },
       {
         "feature": "Self hosting",
-        "cocalc": true,
+        "cocalc": {
+          "type": true,
+          "link": "https://github.com/sagemathinc/cocalc-docker#readme"
+        },
         "mybinder": true,
         "colab": false,
-        "datalore": false,
+        "datalore": {
+          "type": true,
+          "link": "https://www.jetbrains.com/datalore/enterprise/"
+        },
         "deepnote": false
       },
       {
         "feature": "Open source",
         "cocalc": {
           "type": false,
-          "note": "No (GPLv3 + noncommercial use clause)"
+          "note": "Partial (AGPLv3 + noncommercial use clause)",
+          "link": "https://github.com/sagemathinc/cocalc"
         },
         "mybinder": true,
-        "colab": false,
+        "colab": {
+          "type": false,
+          "note": "Some components are open",
+          "link": "https://github.com/googlecolab"
+        },
         "datalore": false,
-        "deepnote": false
+        "deepnote": {
+          "type": false,
+          "note": "Some of their modifications to upstreams projects are open source",
+          "link": "https://github.com/deepnote"
+        }
       },
       {
         "feature": "GPUs",
         "cocalc": { "type": false, "note": "Only when self hosted" },
         "mybinder": "Only when self hosted",
-        "colab": "Yes, for free!",
-        "datalore": false,
+        "colab": "Yes, for free, and even better when paid.",
+        "datalore": "Datalore Professional and when self-hosted",
         "deepnote": true
       }
     ]

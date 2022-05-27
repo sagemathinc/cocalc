@@ -54,7 +54,6 @@ export type Syntax =
   | "latexindent"
   | "bib-biber"
   | "xml-tidy"
-  | "html-tidy"
   | "DOES_NOT_EXIST";
 
 export type Parser = Syntax;
@@ -71,7 +70,6 @@ export type Tool =
   | "latexindent"
   | "gofmt"
   | "xml-tidy"
-  | "html-tidy"
   | "rustfmt"
   | "bib-biber"
   | "prettier" // always available
@@ -81,6 +79,7 @@ export type Tool =
   | "json" // via prettier
   | "yaml" // via prettier
   | "markdown" // via prettier
+  | "html" // via prettier
   | "zig"
   | "DOES_NOT_EXIST"; // use this for testing;
 
@@ -186,8 +185,7 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   rustfmt: "rustfmt",
   bibtex: "bib-biber",
   xml: "xml-tidy",
-  html: "html-tidy",
-  // html: "DOES_NOT_EXIST"
+  html: "html", // via prettier
 } as Config);
 
 export const parser2tool = syntax2tool;

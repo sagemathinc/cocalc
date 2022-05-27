@@ -18,7 +18,11 @@ export async function projects_that_need_to_be_started(
   limit = 10
 ): Promise<string[]> {
   const result = await database.async_query({
-    query: `SELECT project_id FROM projects WHERE (run_quota ->> 'always_running' = 'true' OR (settings ->> 'always_running')::TEXT = '1') AND (state ->> 'state' IN ('archived', 'closed', 'opened') OR state IS NULL) LIMIT ${limit}`,
+    query: `SELECT project_id FROM projects
+      WHERE deleted IS NOT TRUE
+        AND (run_quota ->> 'always_running' = 'true' OR (settings ->> 'always_running')::TEXT = '1')
+        AND (state ->> 'state' IN ('archived', 'closed', 'opened') OR state IS NULL)
+      LIMIT ${limit}`,
   });
   const projects: string[] = [];
   for (const row of result.rows) {

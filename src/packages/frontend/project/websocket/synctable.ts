@@ -269,7 +269,12 @@ function key(opts: Options): string {
   )}-${JSON.stringify(opts.options)}`;
 }
 
-export async function synctable_project(opts: Options): Promise<SyncTable> {
+// NOTE: This function can be called by a LOT of different things at once whenever
+// waiting to connect to a project.  The "await once" inside it creates
+// a listener on SyncTableChannel, and there is a limit on the number of
+// those you can create without raising a limit (that was appearing in the
+// console log a lot).  Thus our use of reuseInFlight to prevent this.
+async function synctable_project0(opts: Options): Promise<SyncTable> {
   const k = key(opts);
   // console.log("key = ", k);
   let t;
@@ -284,3 +289,8 @@ export async function synctable_project(opts: Options): Promise<SyncTable> {
   }
   return t.synctable;
 }
+
+export const synctable_project = reuseInFlight(synctable_project0, {
+  createKey: (args) =>
+    JSON.stringify([args[0].project_id, args[0].query, args[0].options]),
+});

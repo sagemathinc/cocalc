@@ -11,32 +11,63 @@ import {
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { Comm } from "./comm";
-import { copy, is_array, len, uuid } from "@cocalc/util/misc";
+import { copy, is_array, is_object, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
+import { size } from "lodash";
+import { delay } from "awaiting";
+
+/*
+NOTES: Third party custom widgets:
+
+Notes here, but they need to be async imported in the loadClass function, so
+they only get loaded when used, as they can be very large.
+
+pythreejs: fails
+
+ipyvolume: fails
+
+bqplot: sort of works.
+simple examples don't really use widgets, but the big notebook
+linked at https://github.com/bqplot/bqplot does
+This actually currently half way works. The plot appears, but
+things instantly get squished, and buttons don't work.  But it's close.
+To develop it, I switched to import "bqplot" instead of "bqplot/dist",
+and also (!) had to install the exact same random version of d3 that
+is needed by bqplot (since webpack grabs it rather than the one in bqplot).
+Also, it's necessary to install raw-loader into packages/frontend to
+do such dev work.
+
+matplotlib:
+This just silently fails when I've tried it.
+There's also warning by webpack about a map file missing. They are harmless.
+
+*/
+
+const MAX_DEREF_WAIT_MS = 1000 * 15;
 
 export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
-  private widget_model_ids_add: Function;
-  private incomplete_model_ids: Set<string> = new Set();
+  private setWidgetModelIdState: (
+    model_id: string,
+    state: string | null // '' = created; 'module_name'=unsupported; null=not created.
+  ) => void;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
+  private lastTableChange: number = 0;
 
-  // widget_model_ids_add gets called after each model is created.
+  // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
   // can render will try again.
-  constructor(
-    ipywidgets_state: IpywidgetsState,
-    widget_model_ids_add: Function
-  ) {
+  constructor(ipywidgets_state: IpywidgetsState, setWidgetModelIdState) {
     super();
     this.ipywidgets_state = ipywidgets_state;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
-    this.widget_model_ids_add = widget_model_ids_add;
+    this.setWidgetModelIdState = setWidgetModelIdState;
     this.init_ipywidgets_state();
   }
 
@@ -47,19 +78,41 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     // Now process all info currently in the table.
-    this.handle_table_state_change(this.ipywidgets_state.keys());
+    for (const { model_id, type } of this.ipywidgets_state.keys()) {
+      this.handle_table_state_change({ model_id, type });
+    }
 
-    this.ipywidgets_state.on(
-      "change",
-      this.handle_table_state_change.bind(this)
-    );
+    this.ipywidgets_state.on("change", async (keys) => {
+      for (const key of keys) {
+        const [, model_id, type] = JSON.parse(key);
+        // do NOT await this, so all get done in parallel.
+        this.handle_table_state_change({ model_id, type });
+      }
+    });
   }
 
-  private async handle_table_state_change(keys): Promise<void> {
-    // console.log("handle_table_state_change", keys);
-    for (const key of keys) {
-      const [, model_id, type] = JSON.parse(key);
-      // console.log("handle_table_state_change - one key", key, model_id, type);
+  // Wait until there has been no update to the sync table for
+  // at least stableMs milliseconds.  The reason for doing this is
+  // there are often a burst of comm messages to initialize a complicated
+  // widget, involving creating a bunch of models, updating them, sending
+  // buffers, etc.  Each message updates the sync table immediately;
+  // it's important to wait until this stops before allowing
+  // the corresponding views to get created, since otherwise things
+  // get randomly broken (at least, e.g., for k3d).
+  private async waitUntilTableStabilizes(stableMs = 250): Promise<void> {
+    while (true) {
+      const now = new Date().valueOf();
+      if (now - this.lastTableChange >= stableMs) {
+        return;
+      }
+      await delay(stableMs - (now - this.lastTableChange));
+    }
+  }
+
+  private async handle_table_state_change({ model_id, type }): Promise<void> {
+    // console.log("handle_table_state_change - ", model_id, type);
+    this.lastTableChange = new Date().valueOf();
+    try {
       switch (type) {
         case "state":
           await this.handle_table_model_state_change(model_id);
@@ -70,28 +123,32 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         case "buffers":
           await this.handle_table_model_buffers_change(model_id);
           break;
+        case "message":
+          this.handle_table_model_message_change(model_id);
+          break;
         default:
           throw Error(`unknown state type '${type}'`);
       }
-    }
-    while (this.incomplete_model_ids.size > 0) {
-      const size_before = this.incomplete_model_ids.size;
-      for (const model_id of this.incomplete_model_ids) {
-        await this.handle_table_model_state_change(model_id);
-      }
-      if (this.incomplete_model_ids.size >= size_before) {
-        // no shrink -- avoid infinite loop; will try after next change.
-        return;
-      }
+    } catch (err) {
+      console.warn(
+        "issue handling table state change",
+        { model_id, type },
+        err
+      );
     }
   }
 
   private async handle_table_model_state_change(
     model_id: string
   ): Promise<void> {
-    const state: ModelState | undefined = this.ipywidgets_state.get_model_state(
-      model_id
-    );
+    if (!this.has_model(model_id)) {
+      // given table a chance to push out the corresponding value update
+      // before we create the model.  Otherwise get_model_state below
+      // can't take into account the value.
+      await this.waitUntilTableStabilizes();
+    }
+    const state: ModelState | undefined =
+      this.ipywidgets_state.get_model_state(model_id);
     if (state == null) {
       // nothing to do...
       return;
@@ -151,29 +208,72 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     this.state_lock.delete(model_id);
   }
 
+  // Mutate state to account for any buffers.  We have to do
+  // this any time we update the model via the update_model
+  // function; otherwise the state that is getting sync'd around
+  // between clients will just forget the buffers that are set
+  // via handle_table_model_buffers_change!
+  private async setBuffers(model_id: string, state: ModelState): Promise<void> {
+    const { buffer_paths, buffers } =
+      await this.ipywidgets_state.get_model_buffers(model_id);
+    if (buffer_paths.length == 0) return; // nothing to do
+    // convert each ArrayBuffer in buffers to a DataView.
+    const paths: string[][] = [];
+    const vals: any[] = [];
+    for (let i = 0; i < buffers.length; i++) {
+      if (state[buffer_paths[i][0]] == null) {
+        continue;
+      }
+      vals.push(new DataView(buffers[i]));
+      paths.push(buffer_paths[i]);
+    }
+    put_buffers(state, paths, vals);
+  }
+
   private async handle_table_model_buffers_change(
     model_id: string
   ): Promise<void> {
-    // console.log(`handle_table_model_buffers_change -- ${model_id}`);
-    const { buffer_paths, buffers } = this.ipywidgets_state.get_model_buffers(
+    /*
+    The data structures currently don't store which buffers changed, so we're
+    updating all of them before, which is of course wildly inefficient.
+
+    We definitely do have to serialize, then pass to update_model, so that
+    the widget can properly deserialize again, as I learned with k3d, which
+    processes everything.
+    */
+    const model = await this.get_model(model_id);
+    if (model == null) return;
+    const { buffer_paths } = await this.ipywidgets_state.get_model_buffers(
       model_id
     );
-    if (buffer_paths.length == 0) return; // nothing to do
-    // convert each buffer in buffers to a DataView.
-    let i: number = 0;
-    for (const buffer of buffers) {
-      buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
-      i += 1;
+    const deserialized_state = model.get_state(true);
+    const serializers = (model.constructor as any).serializers;
+    const change: { [key: string]: any } = {};
+    for (const paths of buffer_paths) {
+      const key = paths[0];
+      change[key] =
+        serializers[key]?.serialize(deserialized_state[key]) ??
+        deserialized_state[key];
     }
-    const model = await this.get_model(model_id);
-    if (model != null) {
-      const state = model.get_state(true);
-      base.put_buffers(state, buffer_paths, buffers);
-      model.set_state(state);
-    }
+    this.update_model(model_id, change);
   }
 
-  deserialize_state(model: base.DOMWidgetModel, state: ModelState): ModelState {
+  private async handle_table_model_message_change(
+    model_id: string
+  ): Promise<void> {
+    const message = this.ipywidgets_state.get_message(model_id);
+    if (size(message) == 0) return; // temporary until we have delete functionality
+    // console.log("handle_table_model_message_change", message);
+    const model = await this.get_model(model_id);
+    if (model == null) return;
+    model.trigger("msg:custom", message);
+  }
+
+  async deserialize_state(
+    model: base.DOMWidgetModel,
+    serialized_state: ModelState
+  ): Promise<ModelState> {
+    // console.log("deserialize_state", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -181,38 +281,42 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // This is used in an interesting way for the date picker, see:
     //     ipywidgets/packages/controls/src/widget_date.ts
     // in particular for when a date is set in the kernel.
-    const serializers = (model.constructor as any).serializers;
 
-    if (serializers == null) return state;
+    return await this._deserialize_state(
+      model.model_id,
+      model.constructor,
+      serialized_state
+    );
+  }
 
-    // These two have unpack_model in them, which we already do
-    // differently, and we have to fight against that.  Instead,
-    // we just delete them entirely.  This delete really happens
-    // only once, since serialize is a static class member.
-    // Triggered by things like setting value in kernel of DatePicker,
-    // or using ipyvolume.
-    delete serializers.source;
-    delete serializers.target;
+  private async _deserialize_state(
+    model_id: string,
+    constructor: any,
+    serialized_state: ModelState
+  ): Promise<ModelState> {
+    //     console.log("_deserialize_state", {
+    //       model_id,
+    //       constructor,
+    //       serialized_state,
+    //     });
+    const { serializers } = constructor;
 
+    if (serializers == null) return serialized_state;
+
+    // We skip deserialize if the deserialize function is unpack_model,
+    // since we do our own model unpacking, due to issues with ordering
+    // and RTC.
     const deserialized: ModelState = {};
-    for (const k in state) {
-      // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
-      // the layout and style deserializers are unpack_model, which
-      // blows up everything and leads to an infinite loop, since
-      // we use a completely different unpack approach.  So we have
-      // to cross our fingers that nothing those keys can be ignored,
-      // and also that they are the only ones that use unpack_model.
-      if (
-        k !== "layout" &&
-        k !== "style" &&
-        serializers[k] &&
-        serializers[k].deserialize
-      ) {
-        deserialized[k] = serializers[k].deserialize(state[k]);
+    await this.setBuffers(model_id, serialized_state);
+    for (const k in serialized_state) {
+      const deserialize = serializers[k]?.deserialize;
+      if (deserialize != null && deserialize !== base.unpack_models) {
+        deserialized[k] = deserialize(serialized_state[k]);
       } else {
-        deserialized[k] = state[k];
+        deserialized[k] = serialized_state[k];
       }
     }
+
     return deserialized;
   }
 
@@ -223,6 +327,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const model: base.DOMWidgetModel | undefined = await this.get_model(
       model_id
     );
+    // console.log("update_model", { model, change });
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, change);
       if (change.last_changed != null) {
@@ -235,77 +340,148 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         );
         return;
       }
-      model.set_state(this.deserialize_state(model, change));
+      const state = await this.deserialize_state(model, change);
+      // console.log("set_state", state);
+      model.set_state(state);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
   }
 
-  private async create_new_model(model_id: string, state: any): Promise<void> {
+  // I rewrote _make_model based on an old version I found (instead of master),
+  // since I figured that was more likely to work with the rest of the code and
+  // with widgets-in-the-wild, since the released ipywidgets that all widgets target
+  // it kind of massively different than what is in master.
+  async _make_model(
+    options,
+    serialized_state: any = {}
+  ): Promise<base.WidgetModel> {
+    //     console.log("_make_model", options.model_id, {
+    //       serialized_state,
+    //     });
+    const model_id = options.model_id;
+    let ModelType: typeof base.WidgetModel;
+    try {
+      ModelType = await this.loadClass(
+        options.model_name,
+        options.model_module,
+        options.model_module_version
+      );
+    } catch (error) {
+      console.warn("Could not load widget module");
+      throw error;
+    }
+
+    if (!ModelType) {
+      throw new Error(
+        `Cannot find model module ${options.model_module}@${options.model_module_version}, ${options.model_name}`
+      );
+    }
+
+    const state = await this._deserialize_state(
+      model_id,
+      ModelType,
+      serialized_state
+    );
+
+    // TODO: this is silly, of course.  I will rewrite this when I better
+    // understand what is going on.
+    const start = new Date().valueOf();
+    let d = 1;
+    while (true) {
+      const isDereferenced = await this.dereference_model_links(state);
+      if (isDereferenced) break;
+      const now = new Date().valueOf();
+      if (now - start > MAX_DEREF_WAIT_MS) {
+        throw Error(`unable to dereference model links - "${model_id}"`);
+      }
+      if (now - start < 3000) {
+        await delay(d);
+        d *= 1.2;
+      } else {
+        await once(this.ipywidgets_state, "change");
+      }
+    }
+
+    const modelOptions = {
+      widget_manager: this,
+      model_id: model_id,
+      comm: options.comm,
+    };
+    const widget_model = new ModelType(state, modelOptions);
+    widget_model.name = options.model_name;
+    widget_model.module = options.model_module;
+    //     console.log("_make_model ", options.model_id, "-- finished making it!", {
+    //       state,
+    //     });
+    return widget_model;
+  }
+
+  private async create_new_model(
+    model_id: string,
+    serialized_state: any
+  ): Promise<void> {
     if ((await this.get_model(model_id)) != null) {
-      // already created -- shouldn't happen?
+      // already created
       return;
     }
+    // console.log("create_new_model - START", { model_id, serialized_state });
 
-    if (state == null) {
-      throw Error("state must be set");
+    if (serialized_state == null) {
+      throw Error("serialized_state must be set");
     }
 
-    const model_name: string | undefined = state._model_name;
+    const model_name: string | undefined = serialized_state._model_name;
     if (model_name == null) {
       throw Error("_model_name must be defined");
     }
-    const model_module: string | undefined = state._model_module;
+    const model_module: string | undefined = serialized_state._model_module;
     if (model_module == null) {
       throw Error("_model_module must be defined");
     }
     const model_module_version: string | undefined =
-      state._model_module_version;
+      serialized_state._model_module_version;
     if (model_module_version == null) {
       throw Error("_model_module_version must be defined");
     }
 
-    const success = await this.dereference_model_links(state);
-
-    if (!success) {
-      //console.log(model_id, "failed to dereference fully");
-      this.incomplete_model_ids.add(model_id);
+    let model: base.DOMWidgetModel;
+    this.setWidgetModelIdState(model_id, "loading");
+    try {
+      model = await this.new_model(
+        {
+          model_module,
+          model_name,
+          model_id,
+          model_module_version,
+        },
+        serialized_state
+      );
+    } catch (err) {
+      console.warn(
+        `ipywidgets -- ${model_module}.${model_name} not supported: ${err}`
+      );
+      this.setWidgetModelIdState(model_id, `${model_module}.${model_name}`);
       return;
-    } else {
-      //console.log(model_id, "successful full dereference");
-      this.incomplete_model_ids.delete(model_id);
     }
 
-    const model: base.DOMWidgetModel = await this.new_model({
-      model_module,
-      model_name,
-      model_id,
-      model_module_version,
-    });
-
-    // Initialize the model
-    state = this.deserialize_state(model, state);
-    model.set(state);
-
-    // Start listing to model changes.
+    // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
-
-    // Inform CoCalc/React client that we just created this model.
-    this.widget_model_ids_add(model_id);
+    this.setWidgetModelIdState(model_id, "");
+    // console.log("create_new-model - FINISHED", { model_id, serialized_state });
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {
     throw Error("display_view not implemented");
   }
 
-  // Create a comm -- THIS IS NOT USED AT ALL
+  // Create a comm -- I think THIS IS NOT USED AT ALL...?
   async _create_comm(
     target_name: string,
     model_id: string,
-    data?: any,
-    metadata?: any
+    _data?: any,
+    _metadata?: any
   ): Promise<Comm> {
-    console.log(`_create_comm(${target_name}, ${model_id}`, data, metadata);
     const comm = new Comm(
       target_name,
       model_id,
@@ -319,7 +495,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     data: any
   ): string {
-    //console.log("TODO: process_comm_message_from_browser", model_id, data);
+    // console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
       throw Error("data must not be null");
     }
@@ -360,20 +536,26 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // increment sequence number.
     changed.last_changed =
       Math.max(
-        last_changed ? last_changed : 0,
-        this.last_changed[model_id] != null
-          ? this.last_changed[model_id].last_changed
-          : 0
+        last_changed ?? 0,
+        this.last_changed[model_id]?.last_changed ?? 0
       ) + 1;
     this.last_changed[model_id] = changed;
     // console.log("handle_model_change (frontend) -- actually saving", changed);
     this.ipywidgets_state.set_model_value(model_id, changed, true);
     this.ipywidgets_state.save();
+
+    //     const serialized_changed = this.serialize_state(model, changed);
+    //     console.log("handle_model_change (frontend) -- actually saving", {
+    //       changed,
+    //       serialized_changed,
+    //     });
+    //     this.ipywidgets_state.set_model_value(model_id, serialized_changed, true);
+    //     this.ipywidgets_state.save();
   }
 
   // Get the currently-registered comms.
   async _get_comm_info(): Promise<any> {
-    console.log(`TODO: _get_comm_info`);
+    // console.log(`TODO: _get_comm_info`);
     throw Error("_get_comm_info not implemented");
     //return {};
   }
@@ -388,7 +570,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    // console.log("loadClass", className, moduleName, moduleVersion);
+    // console.log("loadClass", { className, moduleName, moduleVersion });
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
@@ -400,6 +582,21 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       }
     } else if (moduleName === "@jupyter-widgets/output") {
       module = react_output;
+    } else if (moduleName === "k3d") {
+      // NOTE: I completely rewrote the entire k3d widget interface...
+      module = await import("./k3d");
+    } else if (moduleName === "jupyter-matplotlib") {
+      //module = await import("jupyter-matplotlib");
+      throw Error(`custom widgets: ${moduleName} not installed`);
+    } else if (moduleName === "jupyter-threejs") {
+      //module = await import("jupyter-threejs");
+      throw Error(`custom widgets: ${moduleName} not installed`);
+    } else if (moduleName === "ipyvolume") {
+      //module = await import("ipyvolume/dist");
+      throw Error(`custom widgets: ${moduleName} not installed`);
+    } else if (moduleName === "bqplot") {
+      //module = await import("bqplot/dist");
+      throw Error(`custom widgets: ${moduleName} not installed`);
     } else if (this.loader !== undefined) {
       console.warn(
         `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
@@ -431,7 +628,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v7-4.md#model-state
 
   TODO: there's no way I can see how to tell which values will be references,
-  so we just search from everything for now, at least as a string (layout, style) or
+  so we just search  everything for now, at least as a string (layout, style) or
   array of strings (children, axes, buttons).  I wish I knew that those 5 were the
   only keys to consider...  I'm also worried because what if some random value
   just happens to look like a reference?
@@ -451,6 +648,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async dereference_model_links(state): Promise<boolean> {
+    // console.log("dereference_model_links", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
@@ -480,8 +678,62 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
             }
           }
         }
+      } else if (is_object(val)) {
+        for (const key in val) {
+          const z = val[key];
+          if (typeof z == "string" && z.slice(0, 10) == "IPY_MODEL_") {
+            const model = await this.dereference_model_link(z);
+            if (model != null) {
+              val[key] = model;
+            } else {
+              return false;
+            }
+          }
+        }
       }
     }
+    // console.log("dereference_model_links", "AFTER (success)", state);
     return true;
+  }
+}
+
+import { WidgetModel } from "@jupyter-widgets/base";
+// We do our own sync, but backbone calls this.
+WidgetModel.prototype.sync = () => {};
+// WidgetModel.prototype.sync = (method, model, options) => {
+//   console.log("WidgetModel.sync ", { method, model, options });
+// };
+
+// We modify the upstream version from
+// ipywidgets/packages/base/src/utils.ts
+// to be non-fatal, so it's more flexible wrt to our realtime sync setup.
+export function put_buffers(
+  state,
+  buffer_paths: (string | number)[][],
+  buffers: any[]
+): void {
+  for (let i = 0; i < buffer_paths.length; i++) {
+    const buffer_path = buffer_paths[i];
+    // make sure the buffers are DataViews
+    let buffer = buffers[i];
+    if (!(buffer instanceof DataView)) {
+      buffer = new DataView(
+        buffer instanceof ArrayBuffer ? buffer : buffer.buffer
+      );
+    }
+    // say we want to set state[x][y][z] = buffer
+    let obj = state as any;
+    // we first get obj = state[x][y]
+    for (let j = 0; j < buffer_path.length - 1; j++) {
+      if (obj[buffer_path[j]] == null) {
+        // doesn't exist, so create it.  This makes things work in
+        // possibly more random order, rather than crashing.  I hit this,
+        // e.g., when defining animations for k3d.
+        obj[buffer_path[j]] = {};
+      }
+      obj = obj[buffer_path[j]];
+    }
+    // and then set: obj[z] = buffer
+    obj[buffer_path[buffer_path.length - 1]] = buffer;
   }
 }

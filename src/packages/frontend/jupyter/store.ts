@@ -87,7 +87,7 @@ export interface JupyterStoreState {
   kernels_by_language?: OrderedMap<string, List<string>>;
   default_kernel?: string;
   closestKernel?: Kernel;
-  widget_model_ids: Set<string>;
+  widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   connection_file?: string;
   kernel_error?: string;
@@ -99,7 +99,7 @@ export const initial_jupyter_store_state: {
 } = {
   check_select_kernel_init: false,
   show_kernel_selector: false,
-  widget_model_ids: Set(),
+  widgetModelIdState: Map(),
   cell_list: List(),
   cells: Map(),
 };

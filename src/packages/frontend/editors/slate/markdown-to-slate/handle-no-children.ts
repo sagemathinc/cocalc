@@ -9,8 +9,10 @@ import { replace_all } from "@cocalc/util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
+import getSource from "./source";
+import { setCache } from "./cache";
 
-export function handleNoChildren({ token, state }) {
+export function handleNoChildren({ token, state, cache }) {
   if (token.children != null && token.children.length > 0) {
     throw Error(
       `handleNoChildren -- the token must not have children ${JSON.stringify(
@@ -45,6 +47,17 @@ export function handleNoChildren({ token, state }) {
       isEmpty: false,
     });
     if (node != null) {
+      if (cache != null && token.level === 0 && token.map != null) {
+        setCache({
+          cache,
+          node,
+          markdown: getSource({
+            start: token.map[0],
+            end: token.map[1],
+            lines: state.lines,
+          }),
+        });
+      }
       return [node];
     } else {
       // node == undefied/null means that we want no node
