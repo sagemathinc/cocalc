@@ -55,6 +55,7 @@
     "@lumino/widgets": "^1.31.1",
     "@react-hook/hover": "^4.0.0",
     "@types/pdfjs-dist": "^2.10.378",
+    "@unified-latex/unified-latex-util-parse": "^1.0.11",
     "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",

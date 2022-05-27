@@ -30,7 +30,13 @@ register({
     } else {
       x = children;
     }
-    return React.createElement(`h${level}`, attributes, x);
+    return React.createElement(
+      `h${level}`,
+      element.align != null // @ts-ignore
+        ? { ...attributes, style: { textAlign: element.align } }
+        : attributes,
+      x
+    );
   },
 
   fromSlate: ({ node, children }) => {
