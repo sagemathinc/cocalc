@@ -1,8 +1,6 @@
 import { EditableMarkdown } from "../slate/editable-markdown";
 import sourceToSlate from "./latex-to-slate/parse";
-//import slateToSource from "./slate-to-latex";
-import { slate_to_markdown as slateToSource } from "../slate/slate-to-markdown";
-//import { markdown_to_slate as sourceToSlate } from "../slate/markdown-to-slate";
+import slateToSource from "./slate-to-latex";
 
 export default function EditableLatex(props) {
   return (

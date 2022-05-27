@@ -1,17 +1,30 @@
 import { parse } from "@cocalc/frontend/node_modules/@unified-latex/unified-latex-util-parse";
 import normalize from "../../slate/markdown-to-slate/normalize";
 import { stripMathEnvironment } from "../../slate/elements/math";
+import { createMetaNode } from "../../slate/elements/meta/type";
 
-export default function latexToSlate(source: string) {
+export default function latexToSlate(
+  source: string,
+  _no_meta?: boolean,
+  cache?: { [node: string]: string }
+) {
   const node = parse(source);
   window.latex = { node, parse };
-  return normalize(toSlate(node, { source }) ?? []);
+  const state = { source, node, cache };
+  const doc = normalize(toSlate(node, state) ?? []);
+  delete state.cache;
+  const meta = createMetaNode(JSON.stringify(state));
+  doc.unshift(meta);
+  return doc;
 }
 
 function toSlate(node, state) {
   const { source } = state;
   if (node == null) {
     return;
+  }
+  function getSource(node): string {
+    return source.slice(node.position.start.offset, node.position.end.offset);
   }
 
   if (Array.isArray(node)) {
@@ -111,19 +124,14 @@ function toSlate(node, state) {
       return [
         {
           type: "math_block",
-          value: state.source
-            .slice(node.position.start.offset, node.position.end.offset)
-            .slice(2, -2),
+          value: getSource(node).slice(2, -2),
           isVoid: true,
           children: [{ text: "" }],
         },
       ];
 
     case "inlinemath":
-      value = state.source.slice(
-        node.position.start.offset,
-        node.position.end.offset
-      );
+      value = getSource(node);
       if (value.startsWith("\\(")) {
         value = value.slice(2, -2);
       } else {
@@ -143,9 +151,7 @@ function toSlate(node, state) {
 
     case "mathenv":
       // todo node.env.content
-      value = stripMathEnvironment(
-        state.source.slice(node.position.start.offset, node.position.end.offset)
-      );
+      value = stripMathEnvironment(getSource(node));
       if (node.env?.content == "displaymath") {
         return [
           {
@@ -218,6 +224,9 @@ function toSlate(node, state) {
         case "author":
           state.author = node;
           return;
+        case "date":
+          state.date = node;
+          return;
         case "textbf":
           let text = "";
           for (const x of node.args[0]?.content ?? []) {
@@ -240,6 +249,7 @@ function toSlate(node, state) {
                 title.align = "center";
                 title.noToggle = true;
                 v.push(title);
+                break;
               }
             }
           }
@@ -252,39 +262,40 @@ function toSlate(node, state) {
                 author.align = "center";
                 author.noToggle = true;
                 v.push(author);
+                break;
               }
             }
           }
-          v.push({
-            type: "heading",
-            level: 3,
-            align: "center",
-            noToggle: true,
-            children: [{ text: new Date().toLocaleDateString() }],
-          });
+          if (state.date == null) {
+            v.push({
+              type: "heading",
+              level: 3,
+              align: "center",
+              noToggle: true,
+              children: [{ text: new Date().toLocaleDateString() }],
+            });
+          } else {
+            const x = toSlate(state.date.args, { source });
+            if (x != null) {
+              for (const y of x) {
+                y.type = "heading";
+                y.level = 3;
+                y.align = "center";
+                y.noToggle = true;
+                v.push(y);
+                break;
+              }
+            }
+          }
           return v;
 
         default:
-          if (
-            node.position != null &&
-            node.position.start != null &&
-            node.position.end != null
-          ) {
-            value = state.source.slice(
-              node.position.start.offset,
-              node.position.end.offset
-            );
+          if (node.position?.start != null && node.position?.end != null) {
+            value = getSource(node);
             for (const arg of node.args ?? []) {
               for (const c of arg.content) {
-                if (
-                  c.position != null &&
-                  c.position.start != null &&
-                  c.position.end != null
-                ) {
-                  const t = state.source.slice(
-                    c.position.start.offset,
-                    c.position.end.offset
-                  );
+                if (c.position?.start != null && c.position?.end != null) {
+                  const t = getSource(c);
                   if (t) {
                     value += `${arg.openMark}${t}${arg.closeMark}`;
                   }
