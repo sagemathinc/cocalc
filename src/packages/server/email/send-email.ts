@@ -9,29 +9,27 @@ or throw an exception if none is properly configured.
 */
 
 import type { Message } from "./message";
-import getPool from "@cocalc/database/pool";
 import sendViaSMTP from "./smtp";
 import sendViaSendgrid from "./sendgrid";
 import sendEmailThrottle from "./throttle";
+import { getServerSettings } from "../settings/server-settings";
 
 export default async function sendEmail(
   message: Message,
   account_id?: string // account that we are sending this email *on behalf of*, if any (used for throttling).
 ): Promise<void> {
-  const pool = getPool("long");
   await sendEmailThrottle(account_id);
-  const { rows } = await pool.query(
-    "SELECT value FROM server_settings WHERE name='email_backend'"
-  );
-  if (rows.length == 0) {
-    throw Error("no email backend is configured");
-  }
-  const { value } = rows[0];
-  if (value == "smtp") {
-    await sendViaSMTP(message);
-  } else if (value == "sendgrid") {
-    await sendViaSendgrid(message);
-  } else {
-    throw Error("no valid email backend configured");
+
+  const { email_backend } = await getServerSettings();
+  switch (email_backend) {
+    case "":
+    case "none":
+      throw Error(`no email backend configured`);
+    case "smtp":
+      return await sendViaSMTP(message);
+    case "sendgrid":
+      return await sendViaSendgrid(message);
+    default:
+      throw Error(`no valid email backend configured: ${email_backend}`);
   }
 }
