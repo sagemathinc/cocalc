@@ -22,7 +22,7 @@ register({
       return <b>{children}</b>;
     }
     let x;
-    if (ReactEditor.isUsingWindowing(editor)) {
+    if (!element.noToggle && ReactEditor.isUsingWindowing(editor)) {
       x = [
         <HeadingToggle element={element} key="toggle" />,
         <span key="children">{children}</span>,

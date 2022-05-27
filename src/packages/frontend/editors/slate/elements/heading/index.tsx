@@ -11,6 +11,7 @@ export interface Heading extends SlateElement {
   type: "heading";
   level: number;
   align?: "left" | "center" | "right";
+  noToggle?: boolean;
 }
 
 register({
