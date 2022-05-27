@@ -47,7 +47,7 @@ export function parse(token: Token, state: State, cache?): Descendant[] {
 export function markdown_to_slate(
   markdown: string,
   no_meta?: boolean,
-  cache?
+  cache?: { [node: string]: string }
 ): Descendant[] {
   // Parse the markdown:
   // const t0 = new Date().valueOf();

@@ -21,6 +21,7 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { pdf_path } from "./util";
 import { IS_IOS, IS_IPAD } from "../../feature";
+import { EditableLaTeX } from "@cocalc/frontend/editors/slatex";
 
 export const pdfjs_buttons = set([
   "print",
@@ -108,6 +109,22 @@ const EDITOR_SPEC = {
   settings: SETTINGS_SPEC,
 
   time_travel,
+
+  slatex: {
+    short: "Rich",
+    name: "Rich LaTeX Editor",
+    icon: "pencil",
+    component: EditableLaTeX,
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "save",
+      "time_travel",
+      "undo",
+      "redo",
+      "sync",
+    ]),
+  } as EditorDescription,
 };
 
 // See https://github.com/sagemathinc/cocalc/issues/5114
