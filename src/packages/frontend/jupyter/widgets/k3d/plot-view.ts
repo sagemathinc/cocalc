@@ -91,8 +91,10 @@ export default class PlotView extends DOMWidgetView {
     // Remove the screenshot and snapshot functions, since neither
     // work in CoCalc.  We do plan to basically make an analogue of
     // "snapshot" available via publishing publicly, but our own way.
-    this.K3DInstance.gui.children[0].children[0].domElement.remove();
-    this.K3DInstance.gui.children[0].children[1].domElement.remove();
+    this.K3DInstance.gui.children[0].children[0].domElement.className +=
+      " hidden";
+    this.K3DInstance.gui.children[0].children[1].domElement.className +=
+      " hidden";
   }
 
   _init() {
