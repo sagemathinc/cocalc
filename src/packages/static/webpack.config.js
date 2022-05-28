@@ -198,6 +198,11 @@ module.exports = {
       path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
+      path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend/node_modules/k3d/node_modules"
+      ),
     ],
     preferRelative: false /* do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {

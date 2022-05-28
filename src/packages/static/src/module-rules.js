@@ -115,10 +115,6 @@ module.exports = function (PRODMODE) {
         },
       ],
     },
-    {
-      test: /\.txt$/,
-      use: [{ loader: "raw-loader" }],
-    },
     { test: /\.hbs$/, loader: "handlebars-loader" },
     {
       test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
@@ -168,6 +164,14 @@ module.exports = function (PRODMODE) {
       test: /\.(j|t)s$/,
       enforce: "pre",
       use: ["source-map-loader"],
+    },
+    {
+      resourceQuery: /raw/,
+      type: "asset/source",
+    },
+    {
+      test: /\.(glsl|txt)/,
+      type: "asset/source",
     },
   ];
 };

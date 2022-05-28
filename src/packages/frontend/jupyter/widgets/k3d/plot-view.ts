@@ -12,7 +12,7 @@ NOTES:
 
 */
 
-import { K3D, ThreeJsProvider } from "k3d/dist/standalone";
+import { K3D, ThreeJsProvider } from "k3d";
 import { DOMWidgetView } from "@jupyter-widgets/base";
 import { chunks, objects, plots } from "./state";
 import { pull, difference } from "lodash";
@@ -85,6 +85,14 @@ export default class PlotView extends DOMWidgetView {
     for (const name in this.listeners) {
       this.model.off(name, this.listeners[name] as any, this);
     }
+  }
+
+  modifyMenuForCoCalc() {
+    // Remove the screenshot and snapshot functions, since neither
+    // work in CoCalc.  We do plan to basically make an analogue of
+    // "snapshot" available via publishing publicly, but our own way.
+    this.K3DInstance.gui.children[0].children[0].domElement.remove();
+    this.K3DInstance.gui.children[0].children[1].domElement.remove();
   }
 
   _init() {
@@ -202,6 +210,7 @@ export default class PlotView extends DOMWidgetView {
         // it interferes with restoring the camera position.
         setTimeout(() => this._setAutoRendering(), 0);
       }
+      this.modifyMenuForCoCalc();
     } catch (err) {
       console.log(`WARNING: Issue creating K3DInstance -- ${err}`);
       return;
