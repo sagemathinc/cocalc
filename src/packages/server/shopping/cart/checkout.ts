@@ -71,29 +71,19 @@ async function purchaseSiteLicense(item: {
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
 
-/**
- * We not only preprocess the date range, but also play nice to the user. if the start date is before the current time,
- * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
- * then append that period that's already in the past to the end of the range.
- */
+
+// make sure start/end is properly defined
+// later, when actually saving the range to the database, we will maybe append a portion of the start which is in the past
 function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {
   if (rangeOrig == null) {
     return [new Date(), undefined];
   }
 
-  let [start, end]: [Date, Date0] = [
+  const [start, end]: [Date, Date0] = [
     rangeOrig?.[0] ? new Date(rangeOrig?.[0]) : new Date(),
     rangeOrig?.[1] ? new Date(rangeOrig?.[1]) : undefined,
   ];
 
-  if (start != null && end != null) {
-    const serverTime = new Date();
-    if (start < serverTime) {
-      const diff = serverTime.getTime() - start.getTime();
-      end = new Date(end.getTime() + diff);
-      // we don't care about changing fixedStart, because it's already in the past
-    }
-  }
   return [start, end];
 }
 

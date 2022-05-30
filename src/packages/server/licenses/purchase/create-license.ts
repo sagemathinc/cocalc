@@ -8,7 +8,28 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { v4 as uuid } from "uuid";
 import { getLogger } from "@cocalc/backend/logger";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
+import { Date0 } from "@cocalc/util/types/store";
 const logger = getLogger("createLicense");
+
+type DateRange = [Date0 | undefined, Date0 | undefined];
+
+/**
+ * We play nice to the user. if the start date is before the current time,
+ * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
+ * then append that period that's already in the past to the end of the range.
+ */
+function adjustRange([start, end]: DateRange): DateRange {
+  if (start == null || end == null) {
+    return [start, end];
+  }
+  const serverTime = new Date();
+  if (start < serverTime) {
+    const diff = serverTime.getTime() - start.getTime();
+    end = new Date(end.getTime() + diff);
+    // we don't care about changing fixedStart, because it's already in the past
+  }
+  return [start, end];
+}
 
 // ATTN: for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
 // this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
@@ -20,6 +41,11 @@ export default async function createLicense(
   const license_id = await getUUID(database, info);
   logger.debug("creating a license...", license_id, info);
 
+  const [start, end] =
+    info.type !== "disk"
+      ? adjustRange([info.start, info.end])
+      : [info.start, undefined];
+
   const values: { [key: string]: any } = {
     "id::UUID": license_id,
     "info::JSONB": {
@@ -28,7 +54,7 @@ export default async function createLicense(
     "activates::TIMESTAMP":
       info.subscription != "no"
         ? new Date(new Date().valueOf() - 60000) // one minute in past to avoid any funny confusion.
-        : info.start,
+        : start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
     "quota::JSONB": await getQuota(info, license_id),
@@ -37,8 +63,8 @@ export default async function createLicense(
     "run_limit::INTEGER": info.quantity,
   };
 
-  if (info.type !== "disk" && info.end != null) {
-    values["expires::TIMESTAMP"] = info.end;
+  if (info.type !== "disk" && end != null) {
+    values["expires::TIMESTAMP"] = end;
   }
 
   await database.async_query({
