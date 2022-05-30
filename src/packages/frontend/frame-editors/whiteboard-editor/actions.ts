@@ -19,6 +19,7 @@ import {
   Element,
   ElementsMap,
   ElementType,
+  PagesMap,
   Point,
   Rect,
   Placement,
@@ -52,6 +53,7 @@ import { pasteFromInternalClipboard } from "./tools/clipboard";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
+  pages?: PagesMap;
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
 }
 
@@ -65,7 +67,7 @@ export class Actions extends BaseActions<State> {
     return {
       direction: "col",
       type: "node",
-      pos: 3/4,
+      pos: 3 / 4,
       first: {
         type: "whiteboard",
       },
@@ -80,24 +82,53 @@ export class Actions extends BaseActions<State> {
     this._syncstring.on("change", (keys) => {
       const elements0 = this.store.get("elements");
       let elements = elements0 ?? ImmutableMap({});
+      let pages: PagesMap = (this.store.get("pages") ??
+        ImmutableMap({})) as PagesMap;
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
           const element = this._syncstring.get_one(key);
+          const oldElement = elements.get(id);
           if (!element) {
             // there is a delete.
+            const page = oldElement?.get("page") ?? 1;
+            let elementsOnPage = pages.get(page);
+            if (elementsOnPage !== undefined) {
+              elementsOnPage = elementsOnPage.delete(id);
+              pages = pages.set(page, elementsOnPage);
+            }
             elements = elements.delete(id);
           } else if (!element.get("type")) {
             // no valid type field - discard
             this._syncstring.delete({ id });
+            elements = elements.delete(id);
+            const page = oldElement?.get("page") ?? 1;
+            let elementsOnPage = pages.get(page);
+            if (elementsOnPage !== undefined) {
+              elementsOnPage = elementsOnPage.delete(id);
+              pages = pages.set(page, elementsOnPage);
+            }
           } else {
+            // create or change an element
             // @ts-ignore
             elements = elements.set(id, element);
+            const oldPage = oldElement?.get("page") ?? 1;
+            const newPage = element.get("page") ?? 1;
+            const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
+            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+            if (oldPage != newPage) {
+              // change page, so delete from the old page
+              let elementsOnOldPage = pages.get(oldPage);
+              if (elementsOnOldPage !== undefined) {
+                elementsOnOldPage = elementsOnOldPage.delete(id);
+                pages = pages.set(oldPage, elementsOnOldPage);
+              }
+            }
           }
         }
       });
       if (elements !== elements0) {
-        this.setState({ elements });
+        this.setState({ elements, pages });
       }
     });
   }
@@ -169,7 +200,7 @@ export class Actions extends BaseActions<State> {
       delete element.w;
       delete element.h;
     }
-    return this.createElement(element, commit).id;
+    return this.createElement(undefined, element, commit).id;
   }
 
   setElement({
@@ -272,7 +303,11 @@ export class Actions extends BaseActions<State> {
     return getPageSpan(elements, margin);
   }
 
-  createElement(obj: Partial<Element>, commit: boolean = true): Element {
+  createElement(
+    frameId: string | undefined,
+    obj: Partial<Element>,
+    commit: boolean = true
+  ): Element {
     if (obj.id == null || this.store.getIn(["elements", obj.id])) {
       obj.id = this.createId(); // ensure a new id is used, if needed.
     }
@@ -282,6 +317,10 @@ export class Actions extends BaseActions<State> {
     }
     if ((obj.w == null || obj.h == null) && obj.type) {
       setDefaultSize(obj);
+    }
+    if (obj.page == null) {
+      obj.page =
+        frameId == null ? 1 : this._get_frame_node(frameId)?.get("page") ?? 1;
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -531,12 +570,17 @@ export class Actions extends BaseActions<State> {
   }
 
   // returns created element or null if from or to don't exist...
-  createEdge(from: string, to: string, data?: Data): Element | undefined {
+  createEdge(
+    frameId: string,
+    from: string,
+    to: string,
+    data?: Data
+  ): Element | undefined {
     if (from == to) {
       // no loops
       return;
     }
-    return this.createElement({
+    return this.createElement(frameId, {
       x: 0,
       y: 0,
       w: 0,
@@ -554,7 +598,11 @@ export class Actions extends BaseActions<State> {
   // Also ensures all are not locked.
   // Also, any groups are remapped to new groups, to avoid "expanding" existing groups.
   // Returns the ids of the inserted elements.
-  insertElements(elements: Element[], center?: Point): string[] {
+  insertElements(
+    frameId: string | undefined,
+    elements: Element[],
+    center?: Point
+  ): string[] {
     elements = cloneDeep(elements); // we will mutate it a lot
     if (center != null) {
       centerRectsAt(elements, center);
@@ -580,6 +628,8 @@ export class Actions extends BaseActions<State> {
     }
     // We adjust any edges below, discarding any that aren't
     // part of what is being pasted.
+    const page =
+      frameId != null ? this._get_frame_node(frameId)?.get("page") ?? 1 : 1;
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -590,7 +640,8 @@ export class Actions extends BaseActions<State> {
         if (to == null) continue;
         element.data.to = to;
       }
-      this.createElement(element, false);
+      element.page = page; // should all get inserted on the current page.
+      this.createElement(frameId, element, false);
     }
     this.syncstring_commit();
     return ids;
@@ -742,7 +793,7 @@ export class Actions extends BaseActions<State> {
         target = centerOfRect(viewport);
       }
     }
-    const ids = this.insertElements(pastedElements, target);
+    const ids = this.insertElements(frameId, pastedElements, target);
     if (frameId != null) {
       this.setSelectionMulti(frameId, ids);
     }
@@ -752,6 +803,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
+    this.setPage(frameId, element.page ?? 1);
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1030,6 +1082,20 @@ export class Actions extends BaseActions<State> {
   // Set the current search string
   setSearch(id: string, search: string): void {
     this.set_frame_tree({ id, search });
+  }
+
+  newPage(frameId: string): void {
+    const page = (this._get_frame_node(frameId)?.get("pages") ?? 1) + 1;
+    const element = this.createElement(frameId, {
+      type: "text",
+      str: `# Page ${page}`,
+      x: 0,
+      y: 0,
+      page,
+    });
+    this.setPages(frameId, page);
+    this.setPage(frameId, page);
+    this.centerElement(element.id, frameId);
   }
 }
 

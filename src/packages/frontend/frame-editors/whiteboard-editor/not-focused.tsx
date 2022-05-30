@@ -117,7 +117,7 @@ function edge(id, frame) {
   if (from != null) {
     const elt = getElement("edge", frame.desc.get("edgeId"));
     if (from != id) {
-      frame.actions.createEdge(from, id, elt.data);
+      frame.actions.createEdge(frame.id, from, id, elt.data);
     }
     frame.actions.clearEdgeCreateStart(frame.id);
   } else {

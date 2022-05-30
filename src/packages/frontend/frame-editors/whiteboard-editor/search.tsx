@@ -42,6 +42,8 @@ export default function Search() {
     }
 
     v?.sort((elt1, elt2) => {
+      if ((elt1.page ?? 1) < (elt2.page ?? 1)) return -1;
+      if ((elt1.page ?? 1) > (elt2.page ?? 1)) return 1;
       if (elt1.y < elt2.y) return -1;
       if (elt1.y > elt2.y) return 1;
       if (elt1.x <= elt2.x) return -1;

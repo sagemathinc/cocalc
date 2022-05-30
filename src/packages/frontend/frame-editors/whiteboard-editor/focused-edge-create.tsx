@@ -79,6 +79,7 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
             );
             if (newId) {
               actions.createEdge(
+                id,
                 element.id,
                 newId,
                 getParams("edge", desc.get("edgeId"))

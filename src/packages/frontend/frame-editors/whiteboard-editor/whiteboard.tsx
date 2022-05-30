@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State, elementsList } from "./actions";
@@ -26,6 +26,7 @@ interface Props {
 }
 
 export default function Whiteboard({
+  actions,
   path,
   project_id,
   font_size,
@@ -37,10 +38,27 @@ export default function Whiteboard({
   const is_loaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
 
+  const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
-  const elements = useMemo(() => {
-    return elementsList(elementsMap);
-  }, [elementsMap]);
+
+  const elementsOnPage = useMemo(() => {
+    return elementsList(pagesMap?.get(desc.get("page") ?? 1)) ?? [];
+  }, [pagesMap?.get(desc.get("page") ?? 1)]);
+
+  useEffect(() => {
+    let page = desc.get("page") ?? 1;
+    let pages = 1;
+    pagesMap?.forEach((_, n) => {
+      pages = Math.max(pages, n);
+    });
+    if (pages != desc.get("pages")) {
+      actions.setPages(desc.get("id"), pages);
+    }
+    if (page != desc.get("page")) {
+      actions.setPage(desc.get("id"), page);
+    }
+  }, [pagesMap]);
+
   const cursorsMap = useEditor("cursors");
   const cursors = useMemo(() => {
     const cursors: { [id: string]: { [account_id: string]: any[] } } = {};
@@ -60,7 +78,7 @@ export default function Whiteboard({
   const evtToDataRef = useRef<Function | null>(null);
   const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
 
-  if (!is_loaded || elements == null) {
+  if (!is_loaded || elementsOnPage == null) {
     return (
       <div
         style={{
@@ -100,7 +118,7 @@ export default function Whiteboard({
           )}
           <NavigationPanel
             fontSize={font_size}
-            elements={elements}
+            elements={elementsOnPage}
             elementsMap={elementsMap}
             whiteboardDivRef={whiteboardDivRef}
           />
@@ -108,7 +126,7 @@ export default function Whiteboard({
       )}
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
-          elements={elements}
+          elements={elementsOnPage}
           elementsMap={elementsMap}
           font_size={font_size}
           selection={

@@ -5,6 +5,7 @@ import { IconName } from "@cocalc/frontend/components/icon";
 import { ElementType, Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "./defaults";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../math";
+import { Actions } from "../actions";
 
 export type ConfigParams =
   | "fontFamily"
@@ -26,6 +27,7 @@ interface ToolDescription {
   type?: ElementType; // this should equal the key below
   size?: (Element) => { w: number; h: number };
   select?: boolean; // if true, select and set to edit on create
+  onClick?: (actions: Actions, frameId:string) => void;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -133,6 +135,13 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["color", "radius"]),
     key: "f",
     type: "frame",
+  },
+  page: {
+    icon: "plus-square",
+    tip: "New Page",
+    onClick: (actions, frameId) => {
+      actions.newPage(frameId);
+    },
   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape", key:"s" },
 };

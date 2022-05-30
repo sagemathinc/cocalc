@@ -927,7 +927,7 @@ export default function Canvas({
     };
 
     // create element
-    const { id } = frame.actions.createElement(element, true);
+    const { id } = frame.actions.createElement(frame.id, element, true);
 
     // in some cases, select it
     if (selectedTool && TOOLS[selectedTool]?.select) {
@@ -1030,6 +1030,7 @@ export default function Canvas({
 
           // The zMin - 1 is to put it UNDER everything so far.
           const { id } = frame.actions.createElement(
+            frame.id,
             { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
           );
@@ -1105,6 +1106,7 @@ export default function Canvas({
         }
 
         frame.actions.createElement(
+          frame.id,
           {
             x: xMin,
             y: yMin,
@@ -1390,6 +1392,7 @@ export default function Canvas({
                 }
 
                 const ids = frame.actions.insertElements(
+                  frame.id,
                   pastedElements,
                   target
                 );
