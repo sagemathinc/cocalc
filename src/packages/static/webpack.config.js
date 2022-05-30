@@ -173,6 +173,17 @@ module.exports = {
         __dirname,
         "node_modules/entities/lib/maps"
       ),
+      // This is needed due to k3d's snapshot.js making assumptions
+      // about how npm works, which are violated for us, about where fflate
+      // ends up getting installed. Due to hoisting they aren't right.
+      // We don't even actually use snapshot.js, since we disable that
+      // functionality in k3d.  However, it's possible this will break,
+      // in which case, track down where fflate is installed and update this.
+      "./../../../node_modules/fflate/umd/index": path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend/node_modules/fflate/umd/index"
+      ),
     },
     // So we can require('file') instead of require('file.tsx'):
     extensions: [
@@ -198,6 +209,11 @@ module.exports = {
       path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
+      path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend/node_modules/k3d/node_modules"
+      ),
     ],
     preferRelative: false /* do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {

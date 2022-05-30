@@ -1,5 +1,5 @@
 import { DOMWidgetModel } from "@jupyter-widgets/base";
-import { version } from "k3d/dist/standalone";
+import { version } from "k3d";
 
 export default class PlotModel extends DOMWidgetModel {
   defaults() {

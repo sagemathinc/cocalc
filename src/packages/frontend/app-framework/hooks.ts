@@ -7,7 +7,6 @@
 
 declare const window: any;
 
-import { delay } from "awaiting";
 export {
   useState,
   useCallback,
@@ -21,6 +20,8 @@ export { useAsyncEffect };
 export { useSelector } from "react-redux";
 import { useRef, useEffect, useState } from "react";
 export { useFrameContext } from "../frame-editors/frame-tree/frame-context";
+import useDelayedRender from "./delayed-render-hook";
+export { useDelayedRender };
 
 import useIsMountedRef from "./is-mounted-hook";
 export { useIsMountedRef };
@@ -50,17 +51,6 @@ export function useForceUpdate() {
   }
 
 */
-
-export function useDelayedRender(delay_ms: number) {
-  const [render, set_render] = useState<boolean>(delay_ms <= 0);
-  useAsyncEffect(async (is_mounted) => {
-    if (delay_ms == 0) return;
-    await delay(delay_ms);
-    if (!is_mounted()) return;
-    set_render(true);
-  }, []);
-  return render;
-}
 
 function getWindowDimensions() {
   const { innerWidth: width, innerHeight: height } = window;

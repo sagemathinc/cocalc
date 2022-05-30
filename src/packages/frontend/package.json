@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.61.0",
+  "version": "1.61.3",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -41,7 +41,7 @@
   ],
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
-    "@cocalc/assets": "^1.7.0",
+    "@cocalc/assets": "^1.7.1",
     "@cocalc/cdn": "^1.12.0",
     "@cocalc/hub": "^1.68.0",
     "@cocalc/local-storage-lru": "^2.1.1",
@@ -96,7 +96,7 @@
     "js-cookie": "^2.2.1",
     "json-stable-stringify": "^1.0.1",
     "jsonic": "^1.0.1",
-    "k3d": "^2.13.0",
+    "k3d": "^2.14.1",
     "katex": "^0.15.0",
     "langs": "^2.0.0",
     "lodash": "^4.17.21",
@@ -148,7 +148,7 @@
     "shell-escape": "^0.2.0",
     "slate": "^0.73.0",
     "superb": "^3.0.0",
-    "three": "^0.78.0",
+    "three-ancient": "npm:three@^0.78.0",
     "timeago": "^1.6.3",
     "tslib": "^2.3.1",
     "underscore": "^1.12.1",
