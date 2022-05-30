@@ -71,9 +71,10 @@ export function loadDateRange(range?: DateRange): DateRange {
  * @param serverTime -- milliseconds since epoch from the server
  */
 export function useTimeFixer() {
+  const { serverTime: customizeServerTime } = useCustomize();
+
   return useMemo(() => {
     // server time is supposed to be always set, but just in case …
-    const { serverTime: customizeServerTime } = useCustomize();
     if (customizeServerTime == null) {
       console.warn(
         "WARNING: customize.serverTime is not set, using Date.now()"
