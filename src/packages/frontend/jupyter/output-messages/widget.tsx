@@ -14,6 +14,7 @@ import { Alert } from "antd";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
 import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
 
 import { JupyterActions } from "../browser-actions";
@@ -35,6 +36,7 @@ interface WidgetProps {
 
 export const Widget: React.FC<WidgetProps> = React.memo(
   (props: WidgetProps) => {
+    const render = useDelayedRender(1000); // use to delay for 1s before telling user they might need to run some code.
     const { value, actions, name, project_id, directory, trust } = props;
     const frameActions = useNotebookFrameActions();
     const prev_value = usePrevious(value);
@@ -467,13 +469,16 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     return (
       <>
         {!isUnsupported &&
-          widgetModelIdState.get(value.get("model_id")) == null && (
+          widgetModelIdState.get(value.get("model_id")) == null &&
+          (render ? (
             <Alert
               style={{ margin: "15px" }}
               type="warning"
-              message="You probably need to run some code to create this widget."
+              message="You probably need to run some code to see this widget."
             />
-          )}
+          ) : (
+            <span></span>
+          ))}
         {isUnsupported && renderUnsupported()}
         {isLoading && !isUnsupported && (
           <Loading

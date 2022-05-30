@@ -30,12 +30,12 @@ _loading_threejs_callbacks = []
 
 VERSION = '73'
 
-window.THREE = require("three")
+window.THREE = require("three-ancient")
 
-require("../node_modules/three/examples/js/controls/OrbitControls")
-require("../node_modules/three/examples/js/renderers/CanvasRenderer")
-require("../node_modules/three/examples/js/renderers/Projector")
-Detector = require("../node_modules/three/examples/js/Detector")
+require("../node_modules/three-ancient/examples/js/controls/OrbitControls")
+require("../node_modules/three-ancient/examples/js/renderers/CanvasRenderer")
+require("../node_modules/three-ancient/examples/js/renderers/Projector")
+Detector = require("../node_modules/three-ancient/examples/js/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}

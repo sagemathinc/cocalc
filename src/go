@@ -1,0 +1,2 @@
+cd packages/hub/
+unset DATA COCALC_ROOT BASE_PATH && PORT=5500 PGUSER='smc' PGHOST=`pwd`/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=production NODE_OPTIONS='--max_old_space_size=16000' npx cocalc-hub-server --mode=single-user --all --hostname=localhost

@@ -19,7 +19,6 @@ import {
   useRef,
 } from "../../app-framework";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 interface Props {
   actions: any;
@@ -44,8 +43,6 @@ const COMMAND_STYLE = {
 } as CSS;
 
 export const TerminalFrame: React.FC<Props> = React.memo((props) => {
-  const divRef = useRef<any>(null);
-  usePinchToZoom({ target: divRef });
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
@@ -133,7 +130,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
       terminalRef.current.set_font_size(props.font_size);
       measure_size();
     }
-  }, 300);
+  }, 200);
 
   useEffect(set_font_size, [props.font_size]);
 
@@ -178,7 +175,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     <div className={"smc-vfill"}>
       {render_command()}
       <div
-        ref={divRef}
         className={"smc-vfill"}
         style={{ backgroundColor, padding: "0 0 0 4px" }}
         onClick={() => {
@@ -187,7 +183,11 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
           terminalRef.current?.focus();
         }}
       >
-        <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
+        <div
+          className={"smc-vfill cocalc-xtermjs"}
+          ref={terminalDOMRef}
+          style={{ background: "#eee" }}
+        />
       </div>
     </div>
   );
