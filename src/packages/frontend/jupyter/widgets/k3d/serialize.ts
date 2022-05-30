@@ -2,7 +2,7 @@ import { unzlibSync, zlibSync } from "fflate";
 import { isNumber, invert } from "lodash";
 
 // This probably **has** to be the one from the core library to interop properly:
-import { Float16Array } from "k3d/dist/standalone";
+import { Float16Array } from "k3d";
 
 const typesToArray = {
   int8: Int8Array,

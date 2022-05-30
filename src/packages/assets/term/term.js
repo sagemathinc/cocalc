@@ -138,7 +138,8 @@
     EventEmitter.call(this);
 
     var options;
-    if (typeof cols === "object") {
+    // Yes, we have to check for null! See https://github.com/sagemathinc/cocalc/issues/5961
+    if (cols != null && typeof cols === "object") {
       options = cols;
       cols = options.cols;
       rows = options.rows;
