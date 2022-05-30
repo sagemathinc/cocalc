@@ -22,7 +22,9 @@ export const GCE_COSTS = {
 
 // Our price = GCE price times this.  We charge LESS than Google VM's, due to our gamble
 // on having multiple users on a node at once.
-const COST_MULTIPLIER = 0.75;
+// 2022-06: price increase "version 2", from 0.75 → 0.8 to compensate for 15% higher GCE prices
+//          and there is also a minimum of 3gb storage (the free base quota) now.
+const COST_MULTIPLIER = 0.8;
 // We gamble that projects are packed at least twice as densely on non-member
 // nodes (it's often worse).
 const NONMEMBER_DENSITY = 2;
@@ -50,7 +52,17 @@ const ALWAYS_RUNNING_FACTOR = 2;
 // Another gamble implicit in this is that pre's are available.  When they
 // aren't, cocalc.com switches to uses MUCH more expensive non-preemptibles.
 
-export const CUSTOM_COST = {
+interface CostMap {
+  ram: number;
+  dedicated_ram: number;
+  cpu: number;
+  dedicated_cpu: number;
+  disk: number;
+  always_running: number;
+  member: number;
+}
+
+export const CUSTOM_COST: CostMap = {
   ram:
     (COST_MULTIPLIER * GCE_COSTS.ram) / ACADEMIC_DISCOUNT / NONMEMBER_DENSITY,
   dedicated_ram:
@@ -68,17 +80,17 @@ export const CUSTOM_COST = {
   member: NONMEMBER_DENSITY,
 } as const;
 
-export const BASIC = {
+export const BASIC: CostMap = {
   ram: 1,
   cpu: 1,
-  disk: 1,
+  disk: 3,
   dedicated_ram: 0,
   dedicated_cpu: 0,
   always_running: 0,
   member: 1,
 } as const;
 
-export const STANDARD = {
+export const STANDARD: CostMap = {
   ram: 2,
   cpu: 2,
   dedicated_ram: 0,
@@ -88,7 +100,7 @@ export const STANDARD = {
   member: 1,
 } as const;
 
-export const MAX = {
+export const MAX: CostMap = {
   ram: 16,
   cpu: 3,
   dedicated_ram: 8,
@@ -100,7 +112,7 @@ export const MAX = {
 
 export const MIN_QUOTE = 100;
 
-export const COSTS: {
+interface CostsStructure {
   user_discount: { [user in User]: number };
   sub_discount: { [sub in Subscription]: number };
   online_discount: number;
@@ -111,7 +123,9 @@ export const COSTS: {
   basic: { [key in CustomUpgrades]: number };
   standard: { [key in CustomUpgrades]: number };
   max: { [key in CustomUpgrades]: number };
-} = {
+}
+
+export const COSTS: CostsStructure = {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
   sub_discount: { no: 1, monthly: 0.9, yearly: 0.85 },
   online_discount: 0.75,

@@ -17,7 +17,8 @@ import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 // 20220425: keeping version "1" when introducing "boost" (appending an uppercase "B")
 //           and dedicated resources (they are explicitly listed and define their own "stripeID")
 //           i.e. starting with "dVW" or "dD", which is distinct from starting with "a[idle]"
-const VERSION = 1;
+// 20220601: price increases, due to inflation, etc.
+const VERSION = 2;
 
 export function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
