@@ -280,6 +280,24 @@ const EditorContent: React.FC<EditorContentProps> = ({
       >
         <div
           style={{
+            display: "flex",
+            width: `${chat_width * 100}%`,
+            position: "relative",
+          }}
+        >
+          <Explorer
+            name={project_redux_name(project_id)}
+            project_id={project_id}
+            actions={redux.getProjectActions(project_id)}
+          />
+        </div>
+        <DragBar
+          editor_container_ref={editor_container_ref}
+          project_id={project_id}
+          path={path}
+        />
+        <div
+          style={{
             flex: 1,
             overflow: "hidden",
             height: "100%",
@@ -295,7 +313,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
         />
         <div
           style={{
-            flexBasis: `${chat_width * 100}%`,
+            width: `${chat_width * 100}%`,
             position: "relative",
           }}
         >

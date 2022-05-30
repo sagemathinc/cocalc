@@ -33,6 +33,7 @@ export const FIXED_PROJECT_TABS = {
     icon: "folder-open",
     tooltip: "Browse files",
     no_anonymous: false,
+    toggle: true,
   },
   new: {
     label: "New",
@@ -253,6 +254,8 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
+  const toggle = !!FIXED_PROJECT_TABS[name!]?.toggle;
+
   const displayed_label: JSX.Element = render_displayed_label({ path, label });
 
   const color = is_selected
@@ -278,6 +281,12 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           display: "flex",
         }}
       >
+        {toggle && (
+          <Icon
+            style={{ fontSize: "18px", marginRight: "4px" }}
+            name="caret-down"
+          />
+        )}
         <div style={{ paddingRight: "2px", fontSize: "10pt" }}>
           <Icon style={icon_style} name={icon} />
         </div>
