@@ -22,6 +22,7 @@ import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 import { useFrameContext } from "../../hooks";
 import useResizeObserver from "use-resize-observer";
 import { debounce } from "lodash";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 const EXTRA_HEIGHT = 30;
 const MIN_HEIGHT = 78;
@@ -45,8 +46,12 @@ export default function Code({
   const [editFocus, setEditFocus] = useEditFocus(false);
   const { actions, project_id, path } = useFrameContext();
   const [mode, setMode] = useState<any>(codemirrorMode("py"));
+  const isMountedRef = useIsMountedRef();
   useAsyncEffect(async () => {
-    setMode(await getMode({ project_id, path }));
+    const mode = await getMode({ project_id, path });
+    if (isMountedRef.current) {
+      setMode(mode);
+    }
   }, []);
 
   const renderInput = () => {

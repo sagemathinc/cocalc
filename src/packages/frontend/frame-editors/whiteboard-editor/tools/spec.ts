@@ -27,7 +27,7 @@ interface ToolDescription {
   type?: ElementType; // this should equal the key below
   size?: (Element) => { w: number; h: number };
   select?: boolean; // if true, select and set to edit on create
-  onClick?: (actions: Actions, frameId:string) => void;
+  onClick?: (actions: Actions, frameId: string) => void;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -136,11 +136,22 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "f",
     type: "frame",
   },
-  page: {
-    icon: "plus-square",
-    tip: "New Page",
-    onClick: (actions, frameId) => {
-      actions.newPage(frameId);
+  pages: {
+    icon: "files",
+    tip: "Show Pages",
+    onClick: (actions) => {
+      setTimeout(() => {
+        actions.show_focused_frame_of_type("pages", "col", false, 0.8);
+      }, 0);
+    },
+  },
+  search: {
+    icon: "search",
+    tip: "Show Search",
+    onClick: (actions) => {
+      setTimeout(() => {
+        actions.show_focused_frame_of_type("search", "col", false, 0.8);
+      }, 0);
     },
   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape", key:"s" },

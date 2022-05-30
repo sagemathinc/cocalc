@@ -17,6 +17,7 @@ import { IconName } from "@cocalc/frontend/components/icon";
 
 import Whiteboard from "./whiteboard";
 import Search from "./search";
+import Pages from "./pages";
 
 const whiteboardButtons = set([
   "decrease_font_size",
@@ -38,11 +39,17 @@ export const EDITOR_SPEC = {
     component: Whiteboard,
     buttons: whiteboardButtons,
   } as EditorDescription,
-  list: {
+  search: {
     short: "Search",
     name: "Search View",
     icon: "search" as IconName,
     component: Search,
+  },
+  pages: {
+    short: "Pages",
+    name: "Page View",
+    icon: "files" as IconName,
+    component: Pages,
   },
   terminal,
   time_travel,

@@ -72,7 +72,7 @@ export class Actions extends BaseActions<State> {
         type: "whiteboard",
       },
       second: {
-        type: "list",
+        type: "search",
       },
     };
   }
@@ -95,7 +95,11 @@ export class Actions extends BaseActions<State> {
             let elementsOnPage = pages.get(page);
             if (elementsOnPage !== undefined) {
               elementsOnPage = elementsOnPage.delete(id);
-              pages = pages.set(page, elementsOnPage);
+              if (elementsOnPage.size == 0) {
+                pages = pages.delete(page);
+              } else {
+                pages = pages.set(page, elementsOnPage);
+              }
             }
             elements = elements.delete(id);
           } else if (!element.get("type")) {
@@ -106,7 +110,11 @@ export class Actions extends BaseActions<State> {
             let elementsOnPage = pages.get(page);
             if (elementsOnPage !== undefined) {
               elementsOnPage = elementsOnPage.delete(id);
-              pages = pages.set(page, elementsOnPage);
+              if (elementsOnPage.size == 0) {
+                pages = pages.delete(page);
+              } else {
+                pages = pages.set(page, elementsOnPage);
+              }
             }
           } else {
             // create or change an element
@@ -117,11 +125,15 @@ export class Actions extends BaseActions<State> {
             const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
             pages = pages.set(newPage, elementsOnNewPage.set(id, element));
             if (oldPage != newPage) {
-              // change page, so delete from the old page
+              // change page, so delete element from the old page
               let elementsOnOldPage = pages.get(oldPage);
               if (elementsOnOldPage !== undefined) {
                 elementsOnOldPage = elementsOnOldPage.delete(id);
-                pages = pages.set(oldPage, elementsOnOldPage);
+                if (elementsOnOldPage.size == 0) {
+                  pages = pages.delete(oldPage);
+                } else {
+                  pages = pages.set(oldPage, elementsOnOldPage);
+                }
               }
             }
           }
@@ -536,7 +548,7 @@ export class Actions extends BaseActions<State> {
 
   // The viewport = exactly the part of the canvas that is VISIBLE to the user
   // in data coordinates, of course, like everything here.
-  saveViewport(id: string, viewport: Rect): void {
+  saveViewport(id: string, viewport: Rect | null): void {
     this.set_frame_tree({ id, viewport });
   }
 

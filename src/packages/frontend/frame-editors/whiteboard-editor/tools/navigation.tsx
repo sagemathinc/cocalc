@@ -7,6 +7,7 @@ high level map view.
 */
 
 import {
+  CSSProperties,
   MutableRefObject,
   ReactNode,
   useCallback,
@@ -204,7 +205,7 @@ export default function Navigation({
         }}
       >
         {showMap && (
-          <Map
+          <Overview
             elements={elements}
             width={width}
             height={height}
@@ -260,15 +261,27 @@ function Tool({ tool, zoomSlider }) {
   );
 }
 
-function Map({
+interface MapProps {
+  elements: Element[];
+  elementsMap?: ElementsMap;
+  width: number;
+  height: number;
+  resize?: { x: number; y: number };
+  setResize?: (resize: { x: number; y: number }) => void;
+  navMap?: "preview" | "map";
+  style?: CSSProperties;
+}
+
+export function Overview({
   elements,
   elementsMap,
   width,
   height,
   resize,
   setResize,
-  navMap,
-}) {
+  navMap = "map",
+  style,
+}: MapProps) {
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
@@ -279,6 +292,7 @@ function Map({
       style={{
         width: `${width}px`,
         height: `${height}px`,
+        ...style,
       }}
       className="smc-vfill"
     >
@@ -291,17 +305,18 @@ function Map({
         scale={scale}
       />
       <Draggable
+        disabled={resize == null}
         position={{ x: 0, y: 0 }}
         bounds={{
           right: Math.max(0, width - MAP_WIDTH),
           bottom: Math.max(0, height - MAP_HEIGHT / 2),
         }}
         onDrag={(_, data) => {
-          setResize({ x: -data.x, y: -data.y });
+          setResize?.({ x: -data.x, y: -data.y });
         }}
         onStop={(_, data) => {
           setTimeout(() => {
-            setResize({ x: 0, y: 0 });
+            setResize?.({ x: 0, y: 0 });
             actions.set_frame_tree({
               id,
               navWidth: width - data.x,
@@ -319,7 +334,8 @@ function Map({
             cursor: "nwse-resize",
             background: "white",
             color: "#888",
-            visibility: resize.x || resize.y ? "hidden" : undefined,
+            visibility:
+              resize == null || resize.x || resize.y ? "hidden" : undefined,
           }}
           name="square"
         />
