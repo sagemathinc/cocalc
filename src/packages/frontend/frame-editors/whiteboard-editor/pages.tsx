@@ -53,12 +53,11 @@ export default function Pages() {
 
   const pages = desc.get("pages") ?? 1;
 
-  console.log("height = ", height);
   const STYLE = {
     cursor: "pointer",
-    width: `${width - 2 * HMARGIN}px`,
+    width: `${width - 3 * HMARGIN}px`,
     height: `${height}px`,
-    margin: `${VMARGIN}px ${HMARGIN}px`,
+    margin: `${VMARGIN}px ${2 * HMARGIN}px ${VMARGIN}px ${HMARGIN}px`,
     position: "relative",
     overflow: "hidden",
     background: "white",

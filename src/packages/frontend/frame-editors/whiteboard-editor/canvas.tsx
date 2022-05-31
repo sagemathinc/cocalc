@@ -806,7 +806,7 @@ export default function Canvas({
                 type: "frame",
                 data: { color: "#888", radius: 0.5 },
                 style: {
-                  background: "rgb(200,200,200,0.2)",
+                  background: "rgba(200,200,200,0.2)",
                 },
               },
               true

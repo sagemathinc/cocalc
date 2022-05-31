@@ -73,9 +73,9 @@ export function getPageSpan(
     if (!init) {
       init = true;
       xMin = element.x ?? 0;
-      xMax = element.x ?? 0;
+      xMax = (element.x ?? 0) + (element.w ?? DEFAULT_WIDTH);
       yMin = element.y ?? 0;
-      yMax = element.y ?? 0;
+      yMax = (element.y ?? 0) + (element.h ?? DEFAULT_HEIGHT);
       zMin = element.z ?? 0;
       zMax = element.z ?? 0;
     }
@@ -490,7 +490,8 @@ export function moveUntilNotIntersectingAnything(
     return;
   }
   let cnt = 0;
-  while (cnt < 1000) { // no matter what, we aren't going to infinite loop!
+  while (cnt < 1000) {
+    // no matter what, we aren't going to infinite loop!
     cnt += 1;
     const before = { x: rect.x, y: rect.y };
     for (const r of rects) {

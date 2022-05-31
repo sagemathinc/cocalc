@@ -41,13 +41,13 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   search: {
     short: "Search",
-    name: "Search View",
+    name: "Search",
     icon: "search" as IconName,
     component: Search,
   },
   pages: {
     short: "Pages",
-    name: "Page View",
+    name: "Pages",
     icon: "files" as IconName,
     component: Pages,
   },

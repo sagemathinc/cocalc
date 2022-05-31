@@ -206,6 +206,7 @@ export default function Navigation({
       >
         {showMap && (
           <Overview
+            margin={15}
             elements={elements}
             width={width}
             height={height}
@@ -270,6 +271,7 @@ interface MapProps {
   setResize?: (resize: { x: number; y: number }) => void;
   navMap?: "preview" | "map";
   style?: CSSProperties;
+  margin?: number;
 }
 
 export function Overview({
@@ -281,11 +283,12 @@ export function Overview({
   setResize,
   navMap = "map",
   style,
+  margin = 15,
 }: MapProps) {
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
-  const xDiff = xMax - xMin;
-  const yDiff = yMax - yMin;
+  const xDiff = xMax - xMin + 2 * margin;
+  const yDiff = yMax - yMin + 2 * margin;
   const scale = Math.min(width / xDiff, height / yDiff);
   return (
     <div
@@ -299,7 +302,7 @@ export function Overview({
       <Canvas
         isNavigator
         previewMode={navMap == "preview"}
-        margin={20 + 10 / scale}
+        margin={margin * scale}
         elements={elements}
         elementsMap={elementsMap}
         scale={scale}

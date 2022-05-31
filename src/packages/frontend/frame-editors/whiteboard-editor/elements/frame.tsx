@@ -18,7 +18,7 @@ export default function Frame({ element, focused, canvasScale }: Props) {
         }`,
         borderRadius: "3px",
         boxShadow: "1px 3px 5px #ccc",
-        background: "rgb(200,200,200,0.05)",
+        background: "rgba(200, 200, 200, 0.3)",
       }}
     ></div>
   );
