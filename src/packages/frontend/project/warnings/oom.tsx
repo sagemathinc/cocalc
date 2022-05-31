@@ -3,22 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button } from "../../antd-bootstrap";
-import { useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
-import { A, Icon } from "../../components";
+import { Alert, Button } from "@cocalc/frontend/antd-bootstrap";
+import {
+  useEffect,
+  useMemo,
+  useRedux,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Icon } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { join } from "path";
 import { ALERT_STYLE } from "./common";
-import * as LS from "../../misc/local-storage-typed";
 
 const OOM_ALERT_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,
   ...{ fontSize: "11pt", padding: "15px" },
-};
+} as const;
 
 const OOM_INFO_PAGE = "https://doc.cocalc.com/howto/low-memory.html";
 
 // to test this, set the oom_kills value for your dev project directly in the DB:
 // 1. reset:         UPDATE projects SET status = jsonb_set(status, '{oom_kills}', '0'::JSONB) WHERE project_id='  ... UUID of your cc-in-cc project ... ';
 // 2. single event:  UPDATE projects SET status = jsonb_set(status, '{oom_kills}', '1'::JSONB) WHERE project_id='  ... UUID of your cc-in-cc project ... ';
+// click close button to hide banner, then
 // 3. several more:  UPDATE projects SET status = jsonb_set(status, '{oom_kills}', '5'::JSONB) WHERE project_id='  ... UUID of your cc-in-cc project ... ';
 // 4. reset:         UPDATE projects SET status = jsonb_set(status, '{oom_kills}', '0'::JSONB) WHERE project_id='  ... UUID of your cc-in-cc project ... ';
 export const OOMWarning: React.FC<{ project_id: string }> = ({
@@ -28,6 +37,11 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   const [oom_dismissed, set_oom_dismissed] = useState<number>(0);
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  // any licenses applied to project? → if yes, boost license
+  const hasLicenseUpgrades = useMemo(() => {
+    const licenses = project?.get("site_license")?.keySeq().toJS() ?? [];
+    return licenses.length > 0;
+  }, [project?.get("site_license")]);
 
   // Load start_ts and oom_dismissed from local storage first time only.
   useEffect(() => {
@@ -58,7 +72,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
     project == null ||
     project.getIn(["state", "state"]) != "running"
   ) {
-    // never show a warning if project not loaded or commercial not set or project not running:
+    // never show a warning if project not loaded or commercial not set or project not running
     return null;
   }
 
@@ -76,12 +90,8 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
       return null;
     }
   }
-  let cur_oom_dismissed: number;
-  if (start_ts != cur_start_ts) {
-    cur_oom_dismissed = 0;
-  } else {
-    cur_oom_dismissed = oom_dismissed;
-  }
+
+  const cur_oom_dismissed = start_ts != cur_start_ts ? 0 : oom_dismissed;
 
   // first time message is different from later ones
   let style: undefined | "info" | "danger";
@@ -90,14 +100,14 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
     if (cur_oom_kills > 1) {
       msg = (
         <span>
-          WARNING: Several programs in your project just crashed because they
-          ran out of memory.
+          WARNING: Several programs in your project crashed, because they ran
+          out of memory.
         </span>
       );
     } else {
       msg = (
         <span>
-          WARNING: A program in your project just crashed because it ran out of
+          WARNING: A program in your project crashed, because it ran out of
           memory.
         </span>
       );
@@ -106,11 +116,21 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   } else {
     msg = (
       <span>
-        WARNING: Another program in your project has crashed because it ran out
+        WARNING: Yet again a program in your project crashed, because it ran out
         of memory.
       </span>
     );
     style = "danger";
+  }
+
+  function renderUpgrade() {
+    if (hasLicenseUpgrades) {
+      const boostUrl = join(appBasePath, "/store/boost");
+      return <A href={boostUrl}>boost memory quota</A>;
+    } else {
+      const slUrl = join(appBasePath, "/store/site-license");
+      return <A href={slUrl}>upgrade memory quota</A>;
+    }
   }
 
   return (
@@ -118,7 +138,8 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
       <div style={{ display: "flex" }}>
         <div style={{ flex: "1" }}>
           <Icon name="exclamation-triangle" /> {msg} Try{" "}
-          <A href={OOM_INFO_PAGE}>some common solutions</A> to avoid this.
+          <A href={OOM_INFO_PAGE}>some common solutions</A> to avoid this or{" "}
+          {renderUpgrade()}.
         </div>
         <div style={{ flex: "0" }}>
           <Button

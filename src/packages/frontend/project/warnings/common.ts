@@ -6,6 +6,8 @@
 import { CSSProperties } from "react";
 
 export const ALERT_STYLE: CSSProperties = Object.freeze({
-  margin: "5px",
+  margin: "0px",
+  border: "none",
+  padding: "10px",
   fontSize: "13pt",
 });

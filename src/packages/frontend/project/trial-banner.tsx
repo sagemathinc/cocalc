@@ -6,9 +6,8 @@
 import {
   CSS,
   React,
-  redux,
-  useState,
   useMemo,
+  useState,
   useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -20,6 +19,8 @@ import {
 } from "@cocalc/frontend/site-licenses/input";
 import { Alert } from "antd";
 import humanizeList from "humanize-list";
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { allow_project_to_run } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
 
@@ -175,18 +176,10 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
     function renderMessage(): JSX.Element | undefined {
       const buy_and_upgrade = (
         <>
-          <a
-            style={a_style}
-            onClick={() => {
-              redux.getActions("page").set_active_tab("account");
-              const account_actions = redux.getActions("account");
-              account_actions.set_show_purchase_form(true);
-              account_actions.set_active_tab("licenses");
-            }}
-          >
-            <u>buy a license</u> (starting at about $3/month)
-          </a>{" "}
-          and then{" "}
+          <A style={a_style} href={join(appBasePath, "/store/site-license")}>
+            <u>buy a license</u>
+          </A>{" "}
+          (starting at about $3/month) and then{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             <u>apply it to this project</u>
           </a>
