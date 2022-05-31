@@ -37,6 +37,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   const [oom_dismissed, set_oom_dismissed] = useState<number>(0);
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
+
   // any licenses applied to project? → if yes, boost license
   const hasLicenseUpgrades = useMemo(() => {
     const licenses = project?.get("site_license")?.keySeq().toJS() ?? [];

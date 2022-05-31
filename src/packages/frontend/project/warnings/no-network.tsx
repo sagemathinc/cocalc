@@ -8,6 +8,7 @@ import { plural } from "@cocalc/util/misc";
 import { A, Icon, Space } from "../../components";
 import { Options, project_warning_opts } from "./util";
 import { PolicyPricingPageUrl } from "../../customize";
+import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
   let suggestion;
@@ -41,7 +42,7 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
       suggestion = (
         <span>
           <Space />
-          <A href={url}>Licenses start at about $3/month...</A>
+          <A href={url}>Licenses start at about {LICENSE_MIN_PRICE}/month...</A>
         </span>
       );
     }

@@ -23,6 +23,7 @@ import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { allow_project_to_run } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
+import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -179,7 +180,7 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
           <A style={a_style} href={join(appBasePath, "/store/site-license")}>
             <u>buy a license</u>
           </A>{" "}
-          (starting at about $3/month) and then{" "}
+          (starting at about {LICENSE_MIN_PRICE}/month) and then{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             <u>apply it to this project</u>
           </a>
@@ -231,17 +232,19 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
     }
 
     function renderLearnMore(color): JSX.Element {
-      const style = {
+      const a_style_more = {
         ...a_style,
         ...{ fontWeight: "bold" as "bold", color: color },
       };
       return (
         <>
           {" – "}
-          <A href={DOC_TRIAL} style={style}>
-            <u>more info</u>
-          </A>
-          {"..."}
+          <span style={{ fontSize: style.fontSize }}>
+            <A href={DOC_TRIAL} style={a_style_more}>
+              <u>more info</u>
+            </A>
+            {"..."}
+          </span>
         </>
       );
     }
