@@ -59,7 +59,8 @@ export default function Pages() {
   const STYLE = {
     cursor: "pointer",
     width: `${width - 2 * HMARGIN}px`,
-    margin: `${VMARGIN}px auto`,
+    margin: "0 auto",
+    padding: `${VMARGIN}px 0`,
     position: "relative",
     overflow: "hidden",
   } as CSSProperties;
@@ -72,7 +73,7 @@ export default function Pages() {
           height: "100%",
           marginBottom: "10px",
         }}
-        totalCount={pages + 2}
+        totalCount={pages + 1}
         increaseViewportBy={1.5 * height}
         itemContent={(index) => {
           if (index == (pages ?? 1)) {
@@ -99,9 +100,6 @@ export default function Pages() {
                 <div style={{ fontSize: "20px" }}>New Page</div>
               </div>
             );
-          } else if (index == pages + 1) {
-            // extra breathing room
-            return <div style={{ height: `${height}px` }}></div>;
           }
           const elementsOnPage = elementsList(pagesMap?.get(index + 1)) ?? [];
           if (elementsOnPage == null) {

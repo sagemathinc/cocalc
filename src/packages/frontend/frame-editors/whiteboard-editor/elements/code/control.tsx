@@ -22,7 +22,7 @@ export default function CodeControlBar({ element }: Props) {
         display: "inline-block",
         boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
         position: "absolute",
-        top: 0,
+        top: "-34px",
         right: "5px",
         zIndex: 2,
       }}

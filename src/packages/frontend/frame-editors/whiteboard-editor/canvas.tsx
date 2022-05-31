@@ -372,6 +372,12 @@ export default function Canvas({
     h: number;
   } | null>(null);
 
+  useEffect(() => {
+    // clear selection rect when changing pages.
+    setSelectRect(null);
+    frame.actions.clearSelection(frame.id);
+  }, [frame.desc.get("page")]);
+
   const [edgePreview, setEdgePreview] = useState<Point | null>(null);
 
   const penCanvasRef = useRef<any>(null);
