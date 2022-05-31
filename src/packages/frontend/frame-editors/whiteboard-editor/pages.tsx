@@ -3,7 +3,7 @@
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { useFrameContext, usePageInfo } from "./hooks";
+import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Overview } from "./tools/navigation";
@@ -23,8 +23,8 @@ export default function Pages() {
   const isLoaded = useEditor("is_loaded");
   //const readOnly = useEditor("read_only");
   const pagesMap = useEditor("pages");
-  usePageInfo(pagesMap);
   const elementsMap = useEditor("elements");
+  const pages = pagesMap?.size ?? 1;
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `whiteboard-pages-${project_id}-${path}-${desc.get("id")}`,
@@ -45,18 +45,20 @@ export default function Pages() {
     if (desc.get("viewport") != null) {
       actions.saveViewport(frameId, null);
     }
+    if (desc.get("pages") != null) {
+      // do NOT want info about current page or pages to come
+      // from desc.
+      actions.setPages(frameId, null);
+    }
   }, [desc]);
 
   if (!isLoaded) {
     return <Loading theme="medium" />;
   }
 
-  const pages = desc.get("pages") ?? 1;
-
   const STYLE = {
     cursor: "pointer",
     width: `${width - 2 * HMARGIN}px`,
-    height: `${height + 30}px`,
     margin: `${VMARGIN}px auto`,
     position: "relative",
     overflow: "hidden",
@@ -119,7 +121,6 @@ export default function Pages() {
                 elements={elementsOnPage}
                 elementsMap={elementsMap}
                 width={width - 2 * HMARGIN}
-                height={height}
                 navMap={"map"}
                 style={{
                   pointerEvents: "none",
@@ -127,6 +128,7 @@ export default function Pages() {
                   border: "1px solid #ccc",
                   borderRadius: "5px",
                 }}
+                maxScale={2}
               />
               <div
                 style={{

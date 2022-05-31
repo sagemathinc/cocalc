@@ -206,7 +206,7 @@ export default function Navigation({
       >
         {showMap && (
           <Overview
-            margin={15}
+            margin={5}
             elements={elements}
             width={width}
             height={height}
@@ -214,6 +214,7 @@ export default function Navigation({
             setResize={setResize}
             navMap={navMap}
             elementsMap={elementsMap}
+            maxScale={2}
           />
         )}
         <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
@@ -265,13 +266,15 @@ function Tool({ tool, zoomSlider }) {
 interface MapProps {
   elements: Element[];
   elementsMap?: ElementsMap;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   resize?: { x: number; y: number };
   setResize?: (resize: { x: number; y: number }) => void;
   navMap?: "preview" | "map";
   style?: CSSProperties;
   margin?: number;
+  minScale?: number;
+  maxScale?: number;
 }
 
 export function Overview({
@@ -284,12 +287,35 @@ export function Overview({
   navMap = "map",
   style,
   margin = 15,
+  minScale,
+  maxScale,
 }: MapProps) {
   const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin + 2 * margin;
   const yDiff = yMax - yMin + 2 * margin;
-  const scale = Math.min(width / xDiff, height / yDiff);
+  let scale;
+  if (height == null) {
+    if (width == null) {
+      width = 100;
+    }
+    scale = width / xDiff;
+    height = yDiff * scale;
+  } else if (width == null) {
+    if (height == null) {
+      height = 100;
+    }
+    scale = height / yDiff;
+    width = xDiff * scale;
+  } else {
+    scale = Math.min(width / xDiff, height / yDiff);
+  }
+  if (minScale && scale < minScale) {
+    scale = minScale;
+  }
+  if (maxScale && scale > maxScale) {
+    scale = maxScale;
+  }
   return (
     <div
       style={{
@@ -322,8 +348,8 @@ export function Overview({
             setResize?.({ x: 0, y: 0 });
             actions.set_frame_tree({
               id,
-              navWidth: width - data.x,
-              navHeight: height - data.y,
+              navWidth: (width ?? 100) - data.x,
+              navHeight: (height ?? 100) - data.y,
             });
           }, 0);
         }}
