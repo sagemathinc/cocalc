@@ -141,14 +141,13 @@ export class Actions extends BaseActions<State> {
       });
 
       // ensure any missing pages are represented
-      // We could delete this when there is a page config object, though it is reassuring
-      // to know that any gaps are filled in.
-      const maxPages = pages.keySeq().max();
-      if (maxPages != null) {
-        for (let i = 1; i < maxPages; i++) {
-          if (pages.get(i) == null) {
-            pages = pages.set(i, ImmutableMap({}));
-          }
+      // We could delete this when there is a page config object, though it is VERY
+      // good to know that any gaps are filled in, so we can rely on pages.size being
+      // the number of pages, which is assumed in the pages.tsx code.
+      const maxPage = pages.keySeq().max() ?? 1;
+      for (let i = 1; i <= maxPage; i++) {
+        if (pages.get(i) == null) {
+          pages = pages.set(i, ImmutableMap({}));
         }
       }
 
@@ -1113,7 +1112,7 @@ export class Actions extends BaseActions<State> {
     const page = (this._get_frame_node(frameId)?.get("pages") ?? 1) + 1;
     const element = this.createElement(frameId, {
       type: "text",
-      str: `# Page ${page}`,
+      str: "# New Page",
       x: 0,
       y: 0,
       page,

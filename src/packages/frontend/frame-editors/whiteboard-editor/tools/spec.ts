@@ -136,21 +136,21 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "f",
     type: "frame",
   },
-  pages: {
-    icon: "files",
-    tip: "Show Pages",
-    onClick: (actions) => {
-      setTimeout(() => {
-        actions.show_focused_frame_of_type("pages", "col", false, 0.8);
-      }, 0);
-    },
-  },
   search: {
     icon: "search",
-    tip: "Show Search",
+    tip: "Search",
     onClick: (actions) => {
       setTimeout(() => {
         actions.show_focused_frame_of_type("search", "col", false, 0.8);
+      }, 0);
+    },
+  },
+  pages: {
+    icon: "files",
+    tip: "Pages",
+    onClick: (actions) => {
+      setTimeout(() => {
+        actions.show_focused_frame_of_type("pages", "col", false, 0.8);
       }, 0);
     },
   },

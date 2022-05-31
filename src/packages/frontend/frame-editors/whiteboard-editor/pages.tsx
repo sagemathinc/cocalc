@@ -1,5 +1,6 @@
 /* Shows an overview of all pages in the whiteboard */
 
+import { Button, Popover } from "antd";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
@@ -12,7 +13,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import useResizeObserver from "use-resize-observer";
 
 const VMARGIN = 20;
-const HMARGIN = 35;
+const HMARGIN = 15;
 
 export default function Pages() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -79,25 +80,33 @@ export default function Pages() {
           if (index == (pages ?? 1)) {
             // Add a new page
             return (
-              <div
-                style={{
-                  ...STYLE,
-                  textAlign: "center",
-                  color: "#888",
-                }}
-                onClick={() => {
-                  const id = actions.show_focused_frame_of_type("whiteboard");
-                  actions.newPage(id);
-                  setTimeout(() => {
-                    // after the click
-                    actions.show_focused_frame_of_type("whiteboard");
-                  }, 0);
-                }}
-              >
-                <div style={{ fontSize: `${width / 3}px` }}>
-                  <Icon name="plus-circle" />
-                </div>
-                <div style={{ fontSize: "20px" }}>New Page</div>
+              <div style={{ ...STYLE, textAlign: "center" }}>
+                <Popover
+                  title={"Create a new page"}
+                  content={
+                    <div style={{ maxWidth: "400px" }}>
+                      Each page is an independent infinite whiteboard canvas.
+                      Click this button to create a new page. Easily jump
+                      between pages by clicking on a page here.
+                    </div>
+                  }
+                >
+                  <Button
+                    shape="round"
+                    size="large"
+                    onClick={() => {
+                      const id =
+                        actions.show_focused_frame_of_type("whiteboard");
+                      actions.newPage(id);
+                      setTimeout(() => {
+                        // after the click
+                        actions.show_focused_frame_of_type("whiteboard");
+                      }, 0);
+                    }}
+                  >
+                    <Icon name="plus-circle" /> New
+                  </Button>
+                </Popover>
               </div>
             );
           }
