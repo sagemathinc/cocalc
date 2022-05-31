@@ -11,8 +11,8 @@ import { State, elementsList } from "./actions";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useResizeObserver from "use-resize-observer";
 
-const VMARGIN = 8;
-const HMARGIN = 15;
+const VMARGIN = 20;
+const HMARGIN = 35;
 
 export default function Pages() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -55,20 +55,15 @@ export default function Pages() {
 
   const STYLE = {
     cursor: "pointer",
-    width: `${width - 3 * HMARGIN}px`,
-    height: `${height}px`,
-    margin: `${VMARGIN}px ${2 * HMARGIN}px ${VMARGIN}px ${HMARGIN}px`,
+    width: `${width - 2 * HMARGIN}px`,
+    height: `${height + 30}px`,
+    margin: `${VMARGIN}px auto`,
     position: "relative",
     overflow: "hidden",
-    background: "white",
   } as CSSProperties;
 
   return (
-    <div
-      className="smc-vfill"
-      ref={divRef}
-      style={{ background: "rgb(82, 86, 89)" }}
-    >
+    <div className="smc-vfill" ref={divRef} style={{ background: "#eee" }}>
       <Virtuoso
         style={{
           width: "100%",
@@ -119,25 +114,28 @@ export default function Pages() {
               }}
               style={{ ...STYLE }}
             >
+              <Overview
+                margin={15}
+                elements={elementsOnPage}
+                elementsMap={elementsMap}
+                width={width - 2 * HMARGIN}
+                height={height}
+                navMap={"map"}
+                style={{
+                  pointerEvents: "none",
+                  background: "white",
+                  border: "1px solid #ccc",
+                  borderRadius: "5px",
+                }}
+              />
               <div
                 style={{
                   textAlign: "center",
-                  background: "rgb(82, 86, 89)",
-                  color: "white",
-                  fontSize: "10px",
+                  fontSize: "10pt",
                 }}
               >
-                Page {index + 1}
+                {index + 1}
               </div>
-              <Overview
-                margin={50}
-                elements={elementsOnPage}
-                elementsMap={elementsMap}
-                width={width}
-                height={height}
-                navMap={"map"}
-                style={{ pointerEvents: "none" }}
-              />
             </div>
           );
         }}
