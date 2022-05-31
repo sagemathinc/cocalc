@@ -139,6 +139,19 @@ export class Actions extends BaseActions<State> {
           }
         }
       });
+
+      // ensure any missing pages are represented
+      // We could delete this when there is a page config object, though it is reassuring
+      // to know that any gaps are filled in.
+      const maxPages = pages.keySeq().max();
+      if (maxPages != null) {
+        for (let i = 1; i < maxPages; i++) {
+          if (pages.get(i) == null) {
+            pages = pages.set(i, ImmutableMap({}));
+          }
+        }
+      }
+
       if (elements !== elements0) {
         this.setState({ elements, pages });
       }
