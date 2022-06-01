@@ -180,7 +180,7 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
           <A style={a_style} href={join(appBasePath, "/store/site-license")}>
             <u>buy a license</u>
           </A>{" "}
-          (starting at about {LICENSE_MIN_PRICE}/month) and then{" "}
+          (starting at {LICENSE_MIN_PRICE}) and then{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             <u>apply it to this project</u>
           </a>

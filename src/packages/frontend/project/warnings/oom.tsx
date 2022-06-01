@@ -19,7 +19,7 @@ import { ALERT_STYLE } from "./common";
 
 const OOM_ALERT_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,
-  ...{ fontSize: "11pt", padding: "15px" },
+  ...{ fontSize: "11pt", padding: "10px" },
 } as const;
 
 const OOM_INFO_PAGE = "https://doc.cocalc.com/howto/low-memory.html";
@@ -127,22 +127,41 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   function renderUpgrade() {
     if (hasLicenseUpgrades) {
       const boostUrl = join(appBasePath, "/store/boost");
-      return <A href={boostUrl}>boost memory quota</A>;
+      return (
+        <A href={boostUrl} style={{ fontWeight: "bold" }}>
+          boost memory quota
+        </A>
+      );
     } else {
       const slUrl = join(appBasePath, "/store/site-license");
-      return <A href={slUrl}>upgrade memory quota</A>;
+      return (
+        <A href={slUrl} style={{ fontWeight: "bold" }}>
+          upgrade memory quota
+        </A>
+      );
     }
   }
 
   return (
     <Alert bsStyle={style} style={OOM_ALERT_STYLE}>
       <div style={{ display: "flex" }}>
+        <div
+          style={{
+            flex: "0",
+            fontSize: "150%",
+            margin: "auto",
+            paddingRight: "10px",
+          }}
+        >
+          <Icon name="exclamation-triangle" />
+        </div>
         <div style={{ flex: "1" }}>
-          <Icon name="exclamation-triangle" /> {msg} Try{" "}
-          <A href={OOM_INFO_PAGE}>some common solutions</A> to avoid this or{" "}
+          {msg}
+          <br />
+          Try <A href={OOM_INFO_PAGE}>some common solutions</A> to avoid this or{" "}
           {renderUpgrade()}.
         </div>
-        <div style={{ flex: "0" }}>
+        <div style={{ flex: "0", margin: "auto" }}>
           <Button
             onClick={() => click(cur_start_ts, cur_oom_kills)}
             style={{ float: "right" }}

@@ -42,7 +42,7 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
       suggestion = (
         <span>
           <Space />
-          <A href={url}>Licenses start at about {LICENSE_MIN_PRICE}/month...</A>
+          <A href={url}>Licenses start at {LICENSE_MIN_PRICE}...</A>
         </span>
       );
     }
