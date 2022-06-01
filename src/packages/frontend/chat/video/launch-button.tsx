@@ -1,17 +1,15 @@
-import { useInterval } from 'react-interval-hook';
+import { useInterval } from "react-interval-hook";
 import { debounce } from "lodash";
-
 import {
   React,
   useState,
   useTypedRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
-
+import { Popconfirm } from "antd";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
@@ -84,7 +82,9 @@ export const VideoChatButton: React.FC<Props> = ({
       if (num_users_chatting < VIDEO_CHAT_LIMIT) {
         return (
           <span>
-            Click to <b>join</b> this video chatroom.
+            Click to{" "}
+            {num_users_chatting == 0 ? "start a new " : "join the current"}{" "}
+            video chat.
           </span>
         );
       } else {
@@ -106,19 +106,14 @@ export const VideoChatButton: React.FC<Props> = ({
     );
   }
 
-  function render_label() {
-    if (label) {
-      return <span style={{ marginLeft: "5px" }}>{label}</span>;
-    }
-  }
-
-  const num_users_chatting = video_chat.current.num_users_chatting();
+  const num_users_chatting: number =
+    video_chat.current.num_users_chatting() ?? 0;
   const style: React.CSSProperties = { cursor: "pointer" };
   if (num_users_chatting > 0) {
     style.color = "#c9302c";
   }
 
-  const icon = (
+  const body = (
     <Tip
       title={<span>Open Video Chat</span>}
       tip={render_tip(num_users_chatting)}
@@ -126,24 +121,27 @@ export const VideoChatButton: React.FC<Props> = ({
       delayShow={1000}
     >
       <Icon name="video-camera" />
-      {num_users_chatting ? (
+      {num_users_chatting > 0 && (
         <span style={{ marginLeft: "5px" }}>{num_users_chatting}</span>
-      ) : undefined}
-      {render_label()}
+      )}
+      {label && <span style={{ marginLeft: "5px" }}>{label}...</span>}
     </Tip>
   );
 
-  if (button) {
-    return (
-      <Button onClick={click_video_button} style={style}>
-        {icon}
-      </Button>
-    );
-  } else {
-    return (
-      <span style={{ ...style, height: "30px" }} onClick={click_video_button}>
-        {icon}
-      </span>
-    );
-  }
+  return (
+    <Popconfirm
+      title={`${
+        num_users_chatting ? "Join the current" : "Start a new"
+      } video chat session?`}
+      onConfirm={click_video_button}
+      okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
+      cancelText="Cancel"
+    >
+      {button ? (
+        <Button style={style}>{body}</Button>
+      ) : (
+        <span style={{ ...style, height: "30px" }}>{body}</span>
+      )}
+    </Popconfirm>
+  );
 };
