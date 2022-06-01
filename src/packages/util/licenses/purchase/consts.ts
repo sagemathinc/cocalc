@@ -18,7 +18,7 @@ export const GCE_COSTS = {
   cpu: 5, // for pre-emptibles
   disk: 0.04, // per GB/month
   non_pre_factor: 3.5, // Roughly Google's factor for non-preemptible's
-};
+} as const;
 
 // Our price = GCE price times this.  We charge LESS than Google VM's, due to our gamble
 // on having multiple users on a node at once.
