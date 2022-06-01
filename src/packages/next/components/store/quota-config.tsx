@@ -49,10 +49,10 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         extra={
           showExplanations ? (
             <>
-              Each project using this license can use up to this many GB's of
-              RAM. Note that RAM may be limited if many other users are using
-              the same host, though member hosting significantly reduces
-              competition for RAM. We also offer{" "}
+              Each project can use up to this much of RAM. Note that RAM may be
+              limited, if many other users are using the same host – though
+              member hosting significantly reduces competition for RAM. We
+              recommend at least 2G! Beyond that, we also offer{" "}
               <A href={"/store/dedicated?type=vm"}>
                 dedicated virtual machines
               </A>{" "}
@@ -130,8 +130,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <>
               Extra disk space lets you store a larger number of files.
               Snapshots and file edit history is included at no additional
-              charge. Each licensed project receives this amount of extra
-              storage space. We also offer much larger{" "}
+              charge. Each project receives at least {defaultDisk}G of storage
+              space. We also offer much larger{" "}
               <A href={"/store/dedicated?type=disk"}>dedicated disks</A>.
             </>
           ) : undefined
