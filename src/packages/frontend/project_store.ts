@@ -14,32 +14,38 @@ if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   wrapped_editors = require("./editors/react-wrapper");
 }
-import * as immutable from "immutable";
-import * as misc from "@cocalc/util/misc";
-import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  AppRedux,
+  project_redux_name,
+  redux,
+  Store,
+  Table,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { derive_rmd_output_filename } from "@cocalc/frontend/frame-editors/rmd-editor/utils";
+import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
+import {
+  Listings,
+  listings,
+} from "@cocalc/frontend/project/websocket/listings";
+import {
+  FILE_ACTIONS,
+  ProjectActions,
+  QUERIES,
+} from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
   isMainConfiguration,
-} from "./project_configuration";
-import { derive_rmd_output_filename } from "./frame-editors/rmd-editor/utils";
-import {
-  project_redux_name,
-  Table,
-  redux,
-  Store,
-  AppRedux,
-  TypedMap,
-} from "./app-framework";
-
-import { ProjectConfiguration } from "./project_configuration";
-import { ProjectLogMap } from "./project/history/types";
-import { alert_message } from "./alerts";
-import { Listings, listings } from "./project/websocket/listings";
+  ProjectConfiguration,
+} from "@cocalc/frontend/project_configuration";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
+import * as misc from "@cocalc/util/misc";
+import * as immutable from "immutable";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
-const MASKED_FILENAMES = ["__pycache__"];
+const MASKED_FILENAMES = ["__pycache__"] as const;
 
 const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
@@ -50,9 +56,9 @@ const MASKED_FILE_EXTENSIONS = {
   ),
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
-  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"],
+  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files", "NODOT_cache"],
   sage: ["sage.py"],
-};
+} as const;
 
 export type ModalInfo = TypedMap<{
   title: string | JSX.Element;
