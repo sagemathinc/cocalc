@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Input } from "antd";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
@@ -22,6 +22,16 @@ export default function Search() {
   const readOnly = useEditor("read_only");
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
+  useEffect(() => {
+    // ensure we don't have page info about search yet; otherwise,
+    // splitting frame can have left over page state, hence show page
+    // selector in title bar.  That said, we will likely support page
+    // state info here at some point.
+    if (desc.get("pages") != null) {
+      actions.setPages(frameId, null);
+    }
+  }, [desc]);
+
   const elementsMap = useEditor("elements");
   const elements: undefined | Element[] = useMemo(() => {
     if (elementsMap == null) return undefined;
@@ -42,6 +52,8 @@ export default function Search() {
     }
 
     v?.sort((elt1, elt2) => {
+      if ((elt1.page ?? 1) < (elt2.page ?? 1)) return -1;
+      if ((elt1.page ?? 1) > (elt2.page ?? 1)) return 1;
       if (elt1.y < elt2.y) return -1;
       if (elt1.y > elt2.y) return 1;
       if (elt1.x <= elt2.x) return -1;
@@ -51,7 +63,7 @@ export default function Search() {
   }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `whiteboard-list-${project_id}-${path}-${desc.get("id")}`,
+    cacheId: `whiteboard-search-${project_id}-${path}-${desc.get("id")}`,
   });
 
   if (!isLoaded) {
@@ -82,6 +94,7 @@ export default function Search() {
             transformOrigin: "top left",
             marginBottom: "10px",
           }}
+          increaseViewportBy={500}
           totalCount={(elements?.length ?? 0) + 1}
           itemContent={(index) => {
             if (index >= (elements?.length ?? 0)) {

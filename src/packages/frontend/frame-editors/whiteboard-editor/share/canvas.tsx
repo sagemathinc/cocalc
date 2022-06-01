@@ -48,8 +48,8 @@ export default function Canvas({ elements }: Props) {
   const navButtons = (
     <div
       style={{
-        textAlign: "center",
-        margin: "-10px 0 10px 0",
+        float: "right",
+        marginTop: "5px",
       }}
     >
       <div
@@ -99,8 +99,6 @@ export default function Canvas({ elements }: Props) {
   );
   return (
     <div>
-      {navButtons}
-
       <div
         ref={canvasRef}
         style={{
@@ -154,6 +152,7 @@ export default function Canvas({ elements }: Props) {
           })}
         </div>
       </div>
+      {navButtons}
     </div>
   );
 }

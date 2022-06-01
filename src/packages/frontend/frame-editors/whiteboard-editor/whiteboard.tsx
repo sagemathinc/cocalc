@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Actions, State, elementsList } from "./actions";
+import { State, elementsList } from "./actions";
 import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
@@ -13,34 +13,25 @@ import TimerPanel from "./tools/timer";
 import FramePanel from "./tools/frame";
 import EdgePanel from "./tools/edge";
 import NavigationPanel from "./tools/navigation";
-import { useFrameContext } from "./hooks";
+import { useFrameContext, usePageInfo } from "./hooks";
 import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
 
-interface Props {
-  actions: Actions;
-  path: string;
-  project_id: string;
-  font_size?: number;
-  desc;
-}
-
-export default function Whiteboard({
-  path,
-  project_id,
-  font_size,
-  desc,
-}: Props) {
-  const { isFocused } = useFrameContext();
+export default function Whiteboard() {
+  const { isFocused, path, project_id, desc, font_size } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
-
+  const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
-  const elements = useMemo(() => {
-    return elementsList(elementsMap);
-  }, [elementsMap]);
+
+  const elementsOnPage = useMemo(() => {
+    return elementsList(pagesMap?.get(desc.get("page") ?? 1)) ?? [];
+  }, [pagesMap?.get(desc.get("page") ?? 1)]);
+
+  usePageInfo(pagesMap);
+
   const cursorsMap = useEditor("cursors");
   const cursors = useMemo(() => {
     const cursors: { [id: string]: { [account_id: string]: any[] } } = {};
@@ -60,7 +51,7 @@ export default function Whiteboard({
   const evtToDataRef = useRef<Function | null>(null);
   const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
 
-  if (!is_loaded || elements == null) {
+  if (!is_loaded || elementsOnPage == null) {
     return (
       <div
         style={{
@@ -100,7 +91,7 @@ export default function Whiteboard({
           )}
           <NavigationPanel
             fontSize={font_size}
-            elements={elements}
+            elements={elementsOnPage}
             elementsMap={elementsMap}
             whiteboardDivRef={whiteboardDivRef}
           />
@@ -108,7 +99,7 @@ export default function Whiteboard({
       )}
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
-          elements={elements}
+          elements={elementsOnPage}
           elementsMap={elementsMap}
           font_size={font_size}
           selection={

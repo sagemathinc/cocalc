@@ -372,6 +372,12 @@ export default function Canvas({
     h: number;
   } | null>(null);
 
+  useEffect(() => {
+    // clear selection rect when changing pages.
+    setSelectRect(null);
+    frame.actions.clearSelection(frame.id);
+  }, [frame.desc.get("page")]);
+
   const [edgePreview, setEdgePreview] = useState<Point | null>(null);
 
   const penCanvasRef = useRef<any>(null);
@@ -806,7 +812,7 @@ export default function Canvas({
                 type: "frame",
                 data: { color: "#888", radius: 0.5 },
                 style: {
-                  background: "rgb(200,200,200,0.2)",
+                  background: "rgba(200,200,200,0.2)",
                 },
               },
               true
@@ -927,7 +933,7 @@ export default function Canvas({
     };
 
     // create element
-    const { id } = frame.actions.createElement(element, true);
+    const { id } = frame.actions.createElement(frame.id, element, true);
 
     // in some cases, select it
     if (selectedTool && TOOLS[selectedTool]?.select) {
@@ -1030,6 +1036,7 @@ export default function Canvas({
 
           // The zMin - 1 is to put it UNDER everything so far.
           const { id } = frame.actions.createElement(
+            frame.id,
             { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
           );
@@ -1105,6 +1112,7 @@ export default function Canvas({
         }
 
         frame.actions.createElement(
+          frame.id,
           {
             x: xMin,
             y: yMin,
@@ -1390,6 +1398,7 @@ export default function Canvas({
                 }
 
                 const ids = frame.actions.insertElements(
+                  frame.id,
                   pastedElements,
                   target
                 );

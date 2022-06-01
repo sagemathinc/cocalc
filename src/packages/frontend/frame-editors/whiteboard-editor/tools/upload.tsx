@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function Upload({ children, evtToDataRef, readOnly }: Props) {
-  const { actions, path, project_id } = useFrameContext();
+  const { actions, path, project_id, id: frameId } = useFrameContext();
   const dropzoneRef = useRef<Dropzone>(null);
 
   if (readOnly) {
@@ -42,7 +42,7 @@ export default function Upload({ children, evtToDataRef, readOnly }: Props) {
         // is an image
         str = `<img src="${filename}" style="object-fit:cover"/>`;
       }
-      actions.createElement({
+      actions.createElement(frameId, {
         ...location,
         type: "text",
         str,

@@ -387,6 +387,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             path: path,
             actions: editor_actions,
             desc,
+            font_size: desc.get("font_size") ?? font_size,
             isFocused: active_id == desc.get("id"),
           }}
         >
