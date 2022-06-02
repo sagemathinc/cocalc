@@ -201,8 +201,11 @@ export class Actions extends BaseActions<State> {
     // so it avoids intersecting other frames.  E.g., if a note is
     // in a frame, we should get another note possibly in the frame
     // that is adjacent.
+    const page = element.page ?? 1;
     const filter =
-      element.type == "frame" ? undefined : (elt) => elt.get("type") != "frame";
+      element.type == "frame"
+        ? undefined
+        : (elt) => elt.get("type") != "frame" && (elt.get("page") ?? 1) == page;
     const elements = this.getElements(filter);
     const p = placement.toLowerCase();
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
