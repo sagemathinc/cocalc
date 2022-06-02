@@ -5,7 +5,7 @@
 
 import { Col, Row } from "react-bootstrap";
 import { ProjectActions } from "../../project_actions";
-import { ProjectNewForm } from "./project-new-form";
+import NewFilePage  from "./new-file-page";
 
 interface Props {
   name: string;
@@ -17,7 +17,7 @@ export function ProjectNew({ name, project_id, actions }: Props): JSX.Element {
   return (
     <Row style={{ marginTop: "15px" }}>
       <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
-        <ProjectNewForm project_id={project_id} name={name} actions={actions} />
+        <NewFilePage project_id={project_id} name={name} actions={actions} />
       </Col>
     </Row>
   );
