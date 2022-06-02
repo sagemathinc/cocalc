@@ -27,7 +27,7 @@ export default function Search({ allowEmpty }: Props) {
       <Input.Search
         autoFocus={allowEmpty}
         style={{ maxWidth: "60ex" }}
-        placeholder="Search all configuration options..."
+        placeholder="Search all configuration options (use /re/ for regexp)..."
         onSearch={onSearch}
         enterButton
         allowClear

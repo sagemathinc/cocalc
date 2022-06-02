@@ -906,46 +906,100 @@ export function map_diff(
 }
 
 // Like the split method, but quoted terms are grouped
-// together for an exact search.
-export function search_split(search: string): string[] {
-  const terms: string[] = [];
+// together for an exact search.  Terms that start and end in
+// a forward slash '/' are converted to regular expressions.
+export function search_split(
+  search: string,
+  allowRegexp: boolean = true,
+  regexpOptions: string = "i"
+): (string | RegExp)[] {
+  search = search.trim();
+  if (
+    allowRegexp &&
+    search.length > 2 &&
+    search[0] == "/" &&
+    search[search.length - 1] == "/"
+  ) {
+    // in case when entire search is clearly meant to be a regular expression,
+    // we directly try for that first.  This is one thing that is documented
+    // to work regarding regular expressions, and a search like '/a b/' with
+    // whitespace in it would work.  That wouldn't work below unless you explicitly
+    // put quotes around it.
+    const t = stringOrRegExp(search, regexpOptions);
+    if (typeof t != "string") {
+      return [t];
+    }
+  }
+
+  // Now we split on whitespace, allowing for quotes, and get all the search
+  // terms and possible regexps.
+  const terms: (string | RegExp)[] = [];
   const v = search.split('"');
   const { length } = v;
   for (let i = 0; i < v.length; i++) {
     let element = v[i];
     element = element.trim();
-    if (element.length !== 0) {
-      // the even elements lack quotation
-      // if there are an even number of elements that means there is an unclosed quote,
-      // so the last element shouldn't be grouped.
-      if (i % 2 === 0 || (i === length - 1 && length % 2 === 0)) {
-        terms.push(...Array.from(element.split(" ") || []));
-      } else {
-        terms.push(element);
+    if (element.length == 0) continue;
+    if (i % 2 === 0 || (i === length - 1 && length % 2 === 0)) {
+      // The even elements lack quotation
+      // if there are an even number of elements that means there is
+      // an unclosed quote, so the last element shouldn't be grouped.
+      for (const s of split(element)) {
+        terms.push(allowRegexp ? stringOrRegExp(s, regexpOptions) : s);
       }
+    } else {
+      terms.push(
+        allowRegexp ? stringOrRegExp(element, regexpOptions) : element
+      );
     }
   }
   return terms;
 }
 
+// Convert a string that starts and ends in / to a regexp,
+// if it is a VALID regular expression.  Otherwise, returns
+// string.
+function stringOrRegExp(s: string, options: string): string | RegExp {
+  if (s.length < 2 || s[0] != "/" || s[s.length - 1] != "/") return s;
+  try {
+    return new RegExp(s.slice(1, -1), options);
+  } catch (_err) {
+    // if there is an error, then we just use the string itself
+    // in the search.  We assume anybody using regexp's in a search
+    // is reasonably sophisticated, so they don't need hand holding
+    // error messages (CodeMirror doesn't give any indication when
+    // a regexp is invalid).
+    return s;
+  }
+}
+
 // s = lower case string
-// v = array of terms as output by search_split above
-export function search_match(s: string, v: string[]): boolean {
+// v = array of search terms as output by search_split above
+export function search_match(s: string, v: (string | RegExp)[]): boolean {
   if (typeof s != "string" || !is_array(v)) {
     // be safe against non Typescript clients
     return false;
   }
   for (let x of v) {
-    if (x[0] == "-") {
-      // negate since first character is a -.  In this case,
-      // it is NOT a match if it is there.
-      const y = x.slice(1);
-      if (y.length > 0 && s.indexOf(y) !== -1) {
-        return false;
+    if (typeof x == "string") {
+      if (x[0] == "-") {
+        // negate since first character is a -.  In this case,
+        // it is NOT a match if it is there.
+        const y = x.slice(1);
+        if (y.length > 0 && s.includes(y)) {
+          // is there, so not a match
+          return false;
+        }
+      } else {
+        if (!s.includes(x)) {
+          // not there, so not a match
+          return false;
+        }
       }
     } else {
-      // normal search - not a match if not there.
-      if (s.indexOf(x) === -1) {
+      // regular expression instead of string
+      if (!x.test?.(s)) {
+        // regexp doesn't match, so not a match
         return false;
       }
     }

@@ -62,15 +62,10 @@ export function update_visible(
   });
 
   const search0 = get_search(local_view_state, relevant_tags);
-  const search: string[] = [];
-  if (search0) {
-    for (let x of search_split(search0.toLowerCase())) {
-      x = x.trim();
-      if (x) {
-        search.push(x);
-      }
-    }
-  }
+  const search: string[] = search_split(
+    search0.toLowerCase(),
+    false
+  ) as string[];
 
   const new_counts = {
     done: 0,
