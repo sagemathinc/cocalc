@@ -97,11 +97,20 @@ export default function AskNewFilename({ project_id }: Props) {
   };
 
   return (
-    <Row style={{ marginBottom: "10px" }}>
-      <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
+    <div style={{ marginBottom: "10px" }}>
+      <div
+        style={{
+          margin: "auto",
+          maxWidth: "500px",
+          border: "1px solid #ccc",
+          padding: "15px",
+          borderRadius: "5px",
+          background: "#f8f8f8",
+        }}
+      >
         <ControlLabel>
           Enter name for new {filename()}{" "}
-          {ext_selection == "/" ? "folder" : "file"}:
+          {ext_selection == "/" ? "folder" : "file"}
         </ControlLabel>
         <Form>
           <SearchInput
@@ -148,7 +157,7 @@ export default function AskNewFilename({ project_id }: Props) {
             </Col>
           </Row>
         </Form>
-      </Col>
-    </Row>
+      </div>
+    </div>
   );
 }
