@@ -9,18 +9,15 @@ it's sort of complicated to just switch to throttle.  Do so.
 
 */
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "../webapp-client";
-
-const misc = require("@cocalc/util/misc");
-
-const { callback2, once } = require("@cocalc/util/async-utils");
-
+import * as misc from "@cocalc/util/misc";
+import { callback2, once } from "@cocalc/util/async-utils";
 import { Actions } from "../app-framework";
-
-const immutable = require("immutable");
-
+import * as immutable from "immutable";
 import { FileUseState, FileUseStore } from "./store";
-const { sha1 } = require("@cocalc/util/schema").client_db;
+import { client_db } from "@cocalc/util/schema";
+const { sha1 } = client_db;
 
 const DEFAULT_CHAT_TTL_S = 5;
 const DEFAULT_FILE_TTL_S = 45;
@@ -100,6 +97,15 @@ export class FileUseActions<T = FileUseState> extends Actions<
     fix_path: boolean = true,
     timestamp: Date | undefined = undefined
   ): Promise<void> {
+    if (
+      !path.endsWith(".sage-chat") &&
+      !redux.getProjectStore(project_id)?.getIn(["open_files", path])
+    ) {
+      // We only mark the file if the tab is also actually open, e.g.,
+      // so a background auxiliary document doesn't get marked.
+      //    https://github.com/sagemathinc/cocalc/issues/5970
+      return;
+    }
     //     console.log("mark_file", {
     //       project_id,
     //       path,
