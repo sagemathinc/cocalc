@@ -15,6 +15,7 @@ import { createContext, useContext } from "react";
 import { Actions } from "../code-editor/actions";
 import { Map } from "immutable";
 import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 
 export interface IFrameContext {
   id: string;
@@ -23,6 +24,7 @@ export interface IFrameContext {
   actions: Actions;
   desc: Map<string, any>; // frame tree description for this particular frame, e.g., things like scroll, font size, etc.
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
+  font_size: number;
 }
 
 export const defaultFrameContext = {
@@ -32,6 +34,7 @@ export const defaultFrameContext = {
   actions: {} as unknown as Actions, // why is there a default context... we always set it?
   desc: Map<string, any>(),
   isFocused: false,
+  font_size: DEFAULT_FONT_SIZE,
 } as const;
 
 export const FrameContext = createContext<IFrameContext>(defaultFrameContext);

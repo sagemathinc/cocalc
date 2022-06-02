@@ -17,7 +17,12 @@ export default function ProjectList({ visible_projects }: Props) {
       totalCount={visible_projects.length + 1}
       itemContent={(index) => {
         if (index == visible_projects.length) {
-          return <LoadAllProjects />;
+          return (
+            // div is needed to avoid height 0 when projects already loaded.
+            <div style={{ minHeight: "1px" }}>
+              <LoadAllProjects />
+            </div>
+          );
         }
         const project_id = visible_projects[index];
         if (project_id == null) {

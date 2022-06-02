@@ -194,7 +194,7 @@ function is_prev_message_sender(
 
 // NOTE: I removed search including send name, since that would
 // be slower and of questionable value.
-function search_matches(message: MessageMap, search_terms: string[]): boolean {
+function search_matches(message: MessageMap, search_terms): boolean {
   const first = message.get("history", List()).first();
   if (first == null) return false;
   return search_match(first.get("content", "").toLowerCase(), search_terms);
