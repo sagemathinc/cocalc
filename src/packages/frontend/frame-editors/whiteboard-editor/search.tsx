@@ -74,7 +74,7 @@ export default function Search() {
     <div className="smc-vfill">
       <Input.Search
         allowClear
-        placeholder="Search..."
+        placeholder="Search  (use /re/ for regexp)..."
         style={{ width: "100%", padding: "10px 15px" }}
         defaultValue={desc.get("search")}
         onChange={debounce((e) => {
