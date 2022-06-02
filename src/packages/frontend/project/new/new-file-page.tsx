@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
-import { default_filename as default_filename_alg } from "@cocalc/frontend/account";
+import { default_filename } from "@cocalc/frontend/account";
 import {
   Col,
   Row,
@@ -18,10 +18,10 @@ import {
 import {
   ErrorDisplay,
   Icon,
+  Loading,
   Tip,
   SettingBox,
 } from "@cocalc/frontend/components";
-import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { FileUpload } from "@cocalc/frontend/file-upload";
 import { NewFileButton } from "./new-file-button";
@@ -29,37 +29,24 @@ import { NewFileDropdown } from "./new-file-dropdown";
 import { FileTypeSelector } from "./file-type-selector";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { PathNavigator } from "../explorer/path-navigator";
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;
-  actions: ProjectActions;
-  on_close?: () => void;
-  on_create_file?: () => void;
-  on_create_folder?: () => void;
-  show_header?: boolean;
-  default_filename?: string;
-  name: string;
 }
 
-export default function NewFilePage(props: Props) {
-  const { project_id, show_header = true } = props;
-  function defaultFilename(): string {
-    return default_filename_alg(undefined, project_id);
-  }
-
-  useEffect(() => {
-    setFilename(props.default_filename ?? "");
-  }, [props.default_filename]);
-
+export default function NewFilePage({ project_id }: Props) {
+  const actions = useActions({ project_id });
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
-
   const current_path = useTypedRedux({ project_id }, "current_path");
-  const defaultFilename0 = useTypedRedux({ project_id }, "default_filename");
+  const filename0 = useTypedRedux({ project_id }, "default_filename");
   const [filename, setFilename] = useState<string>(
-    defaultFilename0 ?? defaultFilename()
+    filename0 ? filename0 : default_filename(undefined, project_id)
   );
-
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error"
@@ -74,7 +61,11 @@ export default function NewFilePage(props: Props) {
     "get_total_project_quotas",
   ]);
 
-  function createFile(ext?: string): void {
+  if (actions == null) {
+    return <Loading theme="medium" />;
+  }
+
+  const createFile = (ext?: string) => {
     if (!filename) {
       return;
     }
@@ -85,15 +76,14 @@ export default function NewFilePage(props: Props) {
       filename_ext && ext && filename_ext != ext
         ? filename.slice(0, filename.length - filename_ext.length - 1)
         : filename;
-    props.actions.create_file({
+    actions.create_file({
       name,
       ext,
       current_path,
     });
-    props.on_create_file?.();
-  }
+  };
 
-  function submit(ext?: string): void {
+  const submit = (ext?: string) => {
     if (!filename) {
       // empty filename
       return;
@@ -107,9 +97,9 @@ export default function NewFilePage(props: Props) {
     } else {
       setExtensionWarning(true);
     }
-  }
+  };
 
-  function renderError(): JSX.Element {
+  const renderError = () => {
     let message;
     const error = file_creation_error;
     if (error === "not running") {
@@ -121,13 +111,13 @@ export default function NewFilePage(props: Props) {
       <ErrorDisplay
         error={message}
         onClose={(): void => {
-          props.actions.setState({ file_creation_error: "" });
+          actions.setState({ file_creation_error: "" });
         }}
       />
     );
-  }
+  };
 
-  function blocked(): string {
+  const blocked = () => {
     if (project_map == null) {
       return "";
     }
@@ -136,18 +126,17 @@ export default function NewFilePage(props: Props) {
     } else {
       return " (access blocked -- see project settings)";
     }
-  }
+  };
 
-  function createFolder(): void {
-    props.actions.create_folder({
+  const createFolder = () => {
+    actions.create_folder({
       name: filename,
       current_path,
       switch_over: true,
     });
-    props.on_create_folder?.();
-  }
+  };
 
-  function renderNoExtensionAlert(): JSX.Element {
+  const renderNoExtensionAlert = () => {
     return (
       <Alert
         bsStyle="warning"
@@ -178,9 +167,9 @@ export default function NewFilePage(props: Props) {
         </ButtonToolbar>
       </Alert>
     );
-  }
+  };
 
-  function renderUpload(): JSX.Element {
+  const renderUpload = () => {
     return (
       <>
         <Row style={{ marginTop: "20px" }}>
@@ -195,7 +184,7 @@ export default function NewFilePage(props: Props) {
             <FileUpload
               dropzone_handler={{
                 complete: (): void => {
-                  props.actions.fetch_directory_listing();
+                  actions.fetch_directory_listing();
                 },
               }}
               project_id={project_id}
@@ -223,10 +212,7 @@ export default function NewFilePage(props: Props) {
           <Col sm={3}>
             <Row>
               <Col sm={12}>
-                <Button
-                  onClick={props.on_close ?? showFiles}
-                  className={"pull-right"}
-                >
+                <Button onClick={showFiles} className={"pull-right"}>
                   Close
                 </Button>
               </Col>
@@ -235,9 +221,9 @@ export default function NewFilePage(props: Props) {
         </Row>
       </>
     );
-  }
+  };
 
-  function renderCreate(): JSX.Element {
+  const renderCreate = () => {
     let desc: string;
     if (filename.endsWith("/")) {
       desc = "folder";
@@ -265,20 +251,14 @@ export default function NewFilePage(props: Props) {
         </Button>
       </Tip>
     );
-  }
+  };
 
-  function renderFilenameForm(): JSX.Element {
+  const renderFilenameForm = () => {
     const onChange = (e): void => {
       if (extensionWarning) {
         setExtensionWarning(false);
       } else {
         setFilename(e.target.value);
-      }
-    };
-
-    const onKey = (e: React.KeyboardEvent<FormControl>): void => {
-      if (e.keyCode === 27) {
-        props.on_close?.();
       }
     };
 
@@ -297,21 +277,20 @@ export default function NewFilePage(props: Props) {
             disabled={extensionWarning}
             placeholder={"Name your file, folder, or a URL to download from..."}
             onChange={onChange}
-            onKeyDown={onKey}
           />
         </FormGroup>
       </form>
     );
-  }
+  };
 
-  function showFiles(): void {
-    props.actions.set_active_tab("files");
-  }
+  const showFiles = () => {
+    actions.set_active_tab("files");
+  };
 
   //key is so autofocus works below
   return (
     <SettingBox
-      show_header={show_header}
+      show_header
       icon={"plus-circle"}
       title={"Create new files in"}
       subtitle={
@@ -320,7 +299,7 @@ export default function NewFilePage(props: Props) {
           style={{ display: "inline-block", fontSize: "20px" }}
         />
       }
-      close={props.on_close ?? showFiles}
+      close={showFiles}
     >
       <Row key={"new-file-row"}>
         <Col sm={12}>
