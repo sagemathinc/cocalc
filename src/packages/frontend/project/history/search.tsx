@@ -65,7 +65,7 @@ export const LogSearch: React.FC<Props> = ({
     <SearchInput
       autoFocus={true}
       autoSelect={true}
-      placeholder="Search log..."
+      placeholder="Search (use /re/ for regexp)..."
       value={search}
       on_change={on_change}
       on_submit={open_selected}

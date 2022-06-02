@@ -1553,15 +1553,23 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number
       if (is_active) {
+        // Below we use step=-1 and do not set min/max so that
+        // the up/down buttons are switched from usual, which makes
+        // sense for page numbers.
         content = (
           <>
             <InputNumber
               style={{ width: "9ex", height: "30px" }}
-              min={1}
-              max={props.pages}
+              step={-1}
               value={props.page}
               onChange={(page) => {
                 if (!page) return;
+                if (page <= 1) {
+                  page = 1;
+                }
+                if (typeof props.pages == "number" && page >= props.pages) {
+                  page = props.pages;
+                }
                 props.actions.setPage(props.id, page);
               }}
             />{" "}

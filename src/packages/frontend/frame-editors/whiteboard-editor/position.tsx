@@ -13,8 +13,8 @@ interface Props {
 export default function Position({ children, x, y, z, w, h, style }: Props) {
   const posStyle: CSSProperties = {
     position: "absolute",
-    left: x,
-    top: y,
+    left: isFinite(x) ? x : 0, // just be a bit overly robust so things don't get lost in case of corrupt data...
+    top: isFinite(y) ? y : 0,
     width: `${w}px`,
     height: `${h}px`,
     zIndex: z,

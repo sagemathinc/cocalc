@@ -72,7 +72,7 @@ export default function FileUseViewer({
       <span key="search_box" className="smc-file-use-notifications-search">
         <SearchInput
           autoFocus={true}
-          placeholder="Search..."
+          placeholder="Search (use /re/ for regexp)..."
           default_value={search}
           on_change={(value) => {
             setSearch(value);
