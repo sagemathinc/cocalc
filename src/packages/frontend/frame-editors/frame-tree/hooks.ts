@@ -6,8 +6,8 @@ import { React, redux } from "../../app-framework";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 
 // this doesn't react to font size changes. maybe at some point we want to...
-function base_font_size() {
-  const account = redux.getStore("account");
+export function baseFontSize() {
+  const account = redux?.getStore("account");
   if (account != null) {
     return account.get("font_size", DEFAULT_FONT_SIZE);
   } else {
@@ -25,9 +25,8 @@ function base_font_size() {
 //    transformOrigin: "center 0", // or "0 0"
 //  }
 export function use_font_size_scaling(font_size: number): number {
-  const [font_size_prev, set_font_size_prev] = React.useState<number>(
-    DEFAULT_FONT_SIZE
-  );
+  const [font_size_prev, set_font_size_prev] =
+    React.useState<number>(DEFAULT_FONT_SIZE);
   const [scaling, set_scaling] = React.useState<number>(1);
 
   if (font_size != font_size_prev) {
@@ -36,7 +35,7 @@ export function use_font_size_scaling(font_size: number): number {
     return scaling;
   }
 
-  const base = base_font_size();
+  const base = baseFontSize();
   set_scaling((font_size != null ? font_size : base) / base);
   return scaling;
 }

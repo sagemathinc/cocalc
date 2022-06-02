@@ -11,7 +11,6 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import * as immutable from "immutable";
 import { useInterval } from "react-interval-hook";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
-import { VisibleMDLG } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import {
   AppRedux,
@@ -210,41 +209,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_first_steps(): Rendered {
-    return; // See https://github.com/sagemathinc/cocalc/issues/3138
-    /*
-    const name = "first_steps";
-    if (public_view) {
-      return;
-    }
-    if (!library[name]) {
-      return;
-    }
-    let setting: string | undefined;
-    if (other_settings !== undefined) {
-      setting = (other_settings as any).get(name)
-    }
-    if (!setting) {
-      return;
-    }
-    if (current_path !== "") {
-      return;
-    } // only show in $HOME
-    if (
-      file_map[name] != null
-        ? file_map[name].isdir
-        : undefined
-    ) {
-      return;
-    } // don't show if we have it ...
-    if (file_search[0] === TERM_MODE_CHAR) {
-      return;
-    }
-
-    return <FirstSteps actions={actions} redux={redux} />;
-    */
-  }
-
   function render_terminal_mode(): Rendered {
     if (file_search[0] === TERM_MODE_CHAR) {
       return <TerminalModeDisplay />;
@@ -272,7 +236,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         {listing.length > 0 && <Row className="smc-vfill">{render_rows()}</Row>}
         {render_no_files()}
       </Col>
-      <VisibleMDLG>{render_first_steps()}</VisibleMDLG>
     </>
   );
 };

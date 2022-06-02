@@ -2643,7 +2643,7 @@ export class Actions<
   }
 
   // Set ordered list of all pages in the document
-  setPages(id: string, pages: string[] | number): void {
+  setPages(id: string, pages: string[] | number | null): void {
     this.set_frame_tree({ id, pages });
   }
 }

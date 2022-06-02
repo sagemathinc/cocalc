@@ -140,7 +140,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
   function render_search() {
     return (
       <SearchInput
-        placeholder={"Find messages..."}
+        placeholder={"Search messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce((search) => actions.setState({ search }), 500)}
         style={{ margin: 0 }}

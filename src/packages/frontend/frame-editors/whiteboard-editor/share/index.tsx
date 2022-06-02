@@ -13,6 +13,11 @@ interface Props {
 }
 
 export default function ShareServerWhiteBoard({ content }: Props) {
-  const elements = parseSyncdbFile(content);
-  return <Canvas elements={elements} />;
+  const pages = parseSyncdbFile(content);
+  const v: JSX.Element[] = [];
+  for (const page of pages) {
+    v.push(<Canvas elements={page} />);
+    v.push(<div style={{ height: "100px" }}></div>);
+  }
+  return <div>{v}</div>;
 }

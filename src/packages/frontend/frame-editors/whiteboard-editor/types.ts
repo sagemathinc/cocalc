@@ -99,6 +99,7 @@ export interface Element extends Rect {
   id: string;
   type: ElementType;
   z: number; // zIndex
+  page?: number; // the page that this element is on; default value is 1
   data?: Data; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
   group?: string; // group id if object is part of a group
@@ -115,6 +116,9 @@ export type ElementMap = TypedMap<Element>;
 
 // An immutable map from id to Element as a map.
 export type ElementsMap = iMap<string, ElementMap>;
+
+// Immutable map from page number to the ElementsMap that has all the elements on a given page.
+export type PagesMap = iMap<number, ElementsMap>;
 
 // Copied from what Antd does for tooltips: https://ant.design/components/tooltip/
 export type Placement =

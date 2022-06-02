@@ -62,7 +62,7 @@ export default function Panel({ selectedTool, readOnly }: Props) {
 
 function ToolButton({ tool, isSelected }) {
   const { actions, id } = useFrameContext();
-  const { icon, tip, key } = TOOLS[tool];
+  const { icon, tip, key, onClick } = TOOLS[tool];
   return (
     <Tooltip
       placement="right"
@@ -79,7 +79,11 @@ function ToolButton({ tool, isSelected }) {
       <Button
         type="text"
         onClick={() => {
-          actions.setSelectedTool(id, tool);
+          if (onClick) {
+            onClick(actions, id);
+          } else {
+            actions.setSelectedTool(id, tool);
+          }
         }}
         style={isSelected ? { color: "#fff", background: SELECTED } : undefined}
       >

@@ -56,7 +56,7 @@ export const ProjectsSearch: React.FC<Props> = ({
         set_search(value);
         debounce_set_search(value);
       }}
-      placeholder="Search for projects..."
+      placeholder="Search for projects (use /re/ for regexp)..."
       on_submit={(_, opts) => on_submit?.(!opts.ctrl_down)}
     />
   );

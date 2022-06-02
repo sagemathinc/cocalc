@@ -44,6 +44,8 @@ export function createSearchDecorate(search): ([Node, Path]) => Match[] {
   };
 }
 
+// TODO: It would be nice to make this regular expression aware!
+
 function searchText(node: Text, path: Path, search: string): Match[] {
   const matches: Match[] = [];
 
