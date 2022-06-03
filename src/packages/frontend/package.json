@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.63.2",
+  "version": "1.63.3",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
