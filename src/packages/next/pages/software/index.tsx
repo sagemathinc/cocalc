@@ -9,6 +9,10 @@ import pythonScreenshot from "/public/features/frame-editor-python.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import JuliaJupyter from "/public/software/julia-jupyter.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+import PythonLogo from "/public/features/python-logo.svg";
+import Rlogo from "/public/features/r-logo.svg";
+import octaveLogo from "/public/features/octave-logo.svg";
+import juliaLogo from "public/features/julia-logo.svg";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 
@@ -43,7 +47,7 @@ const dataSource = [
   {
     link: "/software/python",
     title: "Python Libraries",
-    logo: "python",
+    logo: PythonLogo,
     image: pythonScreenshot,
     description: (
       <>
@@ -56,7 +60,7 @@ const dataSource = [
   {
     link: "/software/r",
     title: "R Statistical Software Packages",
-    logo: "r",
+    logo: Rlogo,
     image: RJupyter,
     description: (
       <>
@@ -68,7 +72,7 @@ const dataSource = [
   {
     link: "/software/julia",
     title: "Julia Packages",
-    logo: "julia",
+    logo: juliaLogo,
     image: JuliaJupyter,
     description: (
       <>
@@ -80,7 +84,7 @@ const dataSource = [
   {
     link: "/software/octave",
     title: "Octave Packages",
-    logo: "octave",
+    logo: octaveLogo,
     image: octaveJupyter,
     description: (
       <>

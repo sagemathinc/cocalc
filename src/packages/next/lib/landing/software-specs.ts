@@ -138,7 +138,8 @@ async function getSoftwareSpec(): Promise<SoftwareSpec> {
 // this is for the server side getServerSideProps function
 export async function withCustomizedAndSoftwareSpec(
   context,
-  lang: LanguageName | "executables"
+  lang: LanguageName | "executables",
+  executableInfo?: string
 ) {
   const [customize, spec] = await Promise.all([
     withCustomize({ context }),
@@ -157,5 +158,11 @@ export async function withCustomizedAndSoftwareSpec(
     customize.props.inventory = inventory;
     customize.props.components = components;
   }
+
+  if (executableInfo != null) {
+    const { inventory } = await getSoftwareInfo();
+    customize.props.extra = inventory.executables?.[executableInfo];
+  }
+
   return customize;
 }

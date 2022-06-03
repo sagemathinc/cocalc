@@ -3,6 +3,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
+import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
@@ -20,9 +21,10 @@ interface Props {
   spec: SoftwareSpec["octave"];
   inventory: ComputeInventory["octave"];
   components: ComputeComponents["octave"];
+  extra?: string;
 }
 export default function Octave(props: Props) {
-  const { customize, spec, inventory, components } = props;
+  const { customize, spec, inventory, components, extra } = props;
 
   function renderBox() {
     return (
@@ -78,6 +80,7 @@ export default function Octave(props: Props) {
           </h1>
           {renderInfo()}
           {renderBox()}
+          <SoftwareInfo info={extra} />
           <SoftwareLibraries
             spec={spec}
             inventory={inventory}
@@ -92,5 +95,9 @@ export default function Octave(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "octave");
+  return await withCustomizedAndSoftwareSpec(
+    context,
+    "octave",
+    "/usr/local/bin/octave"
+  );
 }

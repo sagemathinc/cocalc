@@ -24,7 +24,14 @@ export default function Executables(props: Props) {
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
           Executables in CoCalc
         </h1>
-        <div style={{ width: "50%", float: "right", paddingBottom: "15px" }}>
+        <div
+          style={{
+            width: "50%",
+            float: "right",
+            paddingBottom: "15px",
+            paddingLeft: "15px",
+          }}
+        >
           <Image
             src={executablesScreenshot}
             alt="Terminal showing listing executables in CoCalc"

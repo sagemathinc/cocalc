@@ -9,7 +9,7 @@ const { Text } = Typography;
 const INFO_STYLE: React.CSSProperties = {
   overflow: "auto",
   maxHeight: "10em",
-  maxWidth: "30vw",
+  maxWidth: "40vw",
   backgroundColor: "rgba(150, 150, 150, 0.1)",
   fontSize: "10px",
   border: "none",
