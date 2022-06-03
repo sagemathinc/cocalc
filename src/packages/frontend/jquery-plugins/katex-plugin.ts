@@ -43,8 +43,16 @@ function katex_plugin(elt, preProcess): void {
   //    <script type="math/tex">x^2</script>
   //    <script type="math/tex; mode=display">x^2</script>
   if (preProcess) {
-    tex2jax.PreProcess(elt[0]);
+    for (const e of elt) {
+      // Note that tex2jax.PreProcess of course has some hard-to-decipher heuristics.  E.g., it works on
+      //    $$&lt; X$$
+      // but doesn't detect this as math:
+      //    $$&lt;X$$
+      // I guess there is a reason for that, but I have no idea what it is.
+      tex2jax.PreProcess(e);
+    }
   }
+  // console.log("katex_plugin", elt.html());
 
   const always_use_mathjax: boolean =
     redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;

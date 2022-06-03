@@ -93,6 +93,7 @@ export default function HTML({
   }
   let options: any = {};
   options.replace = (domNode) => {
+    // console.log("domNode = ", domNode);
     if (!/^[a-zA-Z]+[0-9]?$/.test(domNode.name)) {
       // Without this, if user gives html input that is a malformed tag then all of React
       // completely crashes, which is not desirable for us.  On the other hand, I prefer not
@@ -101,7 +102,6 @@ export default function HTML({
       //   https://github.com/remarkablemark/html-react-parser/issues/60#issuecomment-398588573
       return React.createElement(React.Fragment);
     }
-    // console.log("domNode = ", domNode);
     if (domNode instanceof Text) {
       if (hasAncestor(domNode, MATH_SKIP_TAGS)) {
         // Do NOT convert Text to math inside a pre/code tree environment.
