@@ -770,7 +770,7 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  copy(frameId: string) {
+  private getSelectedElements(frameId: string): undefined | Element[] {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     const selection = node.get("selection");
@@ -784,6 +784,21 @@ export class Actions extends BaseActions<State> {
         elements.push(element);
       }
     }
+    return elements;
+  }
+
+  cut(frameId: string) {
+    const elements = this.getSelectedElements(frameId);
+    if (!elements) return;
+    extendToIncludeEdges(elements, this.getElements());
+    copyToClipboard(elements);
+    this.deleteElements(elements);
+    this.clearSelection(frameId);
+  }
+
+  copy(frameId: string) {
+    const elements = this.getSelectedElements(frameId);
+    if (!elements) return;
     extendToIncludeEdges(elements, this.getElements());
     copyToClipboard(elements);
   }

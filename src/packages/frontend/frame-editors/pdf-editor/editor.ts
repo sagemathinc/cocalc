@@ -22,6 +22,7 @@ const pdfjs_buttons = set([
   "increase_font_size",
   "zoom_page_width",
   "zoom_page_height",
+  "set_zoom",
 ]);
 
 export const EDITOR_SPEC = {

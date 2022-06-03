@@ -14,7 +14,7 @@ import { webapp_client } from "../webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { callback2, once } from "@cocalc/util/async-utils";
 import { Actions } from "../app-framework";
-import * as immutable from "immutable";
+import { fromJS } from "immutable";
 import { FileUseState, FileUseStore } from "./store";
 import { client_db } from "@cocalc/util/schema";
 const { sha1 } = client_db;
@@ -53,9 +53,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
     this.setState({
       errors: this.get_store()
         .get_errors()
-        .push(
-          immutable.Map({ time: webapp_client.server_time(), err: `${err}` })
-        ),
+        .push(fromJS({ time: webapp_client.server_time(), err: `${err}` })),
     });
   }
 
