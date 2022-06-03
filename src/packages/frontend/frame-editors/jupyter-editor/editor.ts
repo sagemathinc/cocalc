@@ -18,7 +18,8 @@ import JSONIPynb from "./json-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
-const SNIPPET_ICON_NAME = require("@cocalc/frontend/assistant/common").ICON_NAME;
+const SNIPPET_ICON_NAME =
+  require("@cocalc/frontend/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {
@@ -29,6 +30,7 @@ export const EDITOR_SPEC = {
     component: CellNotebook,
     buttons: set([
       "print",
+      "set_zoom",
       "decrease_font_size",
       "increase_font_size",
       "save",

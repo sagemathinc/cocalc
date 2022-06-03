@@ -23,7 +23,7 @@ import { PayCourseFee } from "../../billing/pay-course-fee";
 import { MiniTerminal } from "./mini-terminal";
 import { CustomSoftwareReset } from "../../custom-software/reset-bar";
 import { FileListing } from "./file-listing";
-import { AskNewFilename } from "../ask-filename";
+import AskNewFilename from "../ask-filename";
 import { MainConfiguration, Available } from "../../project_configuration";
 import { PathNavigator } from "./path-navigator";
 import { MiscSideButtons } from "./misc-side-buttons";
@@ -103,7 +103,6 @@ interface ReduxProps {
   selected_file_index?: number;
   file_creation_error?: string;
   ext_selection?: string;
-  new_filename?: string;
   displayed_listing: {
     listing: ListingItem[];
     error: any;
@@ -169,7 +168,6 @@ export const Explorer = rclass(
           selected_file_index: rtypes.number,
           file_creation_error: rtypes.string,
           ext_selection: rtypes.string,
-          new_filename: rtypes.string,
           displayed_listing: rtypes.object,
           new_name: rtypes.string,
           library: rtypes.object,
@@ -771,13 +769,7 @@ export const Explorer = rclass(
             {this.render_activity()}
             {this.render_control_row(public_view, visible_listing)}
             {this.props.ext_selection != null && (
-              <AskNewFilename
-                actions={this.props.actions}
-                current_path={this.props.current_path}
-                ext_selection={this.props.ext_selection}
-                new_filename={this.props.new_filename}
-                other_settings={this.props.other_settings}
-              />
+              <AskNewFilename project_id={this.props.project_id} />
             )}
             <div style={FLEX_ROW_STYLE}>
               <div

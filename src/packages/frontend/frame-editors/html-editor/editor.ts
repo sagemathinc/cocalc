@@ -53,6 +53,7 @@ const EDITOR_SPEC = {
       "reload",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
     ]),
   } as EditorDescription,
 
@@ -65,6 +66,7 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "save",
       "time_travel",
       "reload",

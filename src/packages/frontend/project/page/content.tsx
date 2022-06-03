@@ -135,9 +135,7 @@ export const TabContent: React.FC<TabContentProps> = ({
     case "new":
       return (
         <ProjectNew
-          name={name}
           project_id={project_id}
-          actions={redux.getProjectActions(project_id)}
         />
       );
     case "log":

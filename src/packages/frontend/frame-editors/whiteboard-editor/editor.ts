@@ -21,12 +21,13 @@ import Pages from "./pages";
 
 const whiteboardButtons = set([
   "decrease_font_size",
-  "increase_font_size",
+  "increase_font_size", // we do NOT include "set_zoom", since it's based on account font_size, but we base 100% on font size 14.
   "zoom_page_width",
   "save",
   "time_travel",
   "undo",
   "redo",
+  "cut",
   "copy",
   "paste",
 ]);
@@ -44,6 +45,7 @@ export const EDITOR_SPEC = {
     name: "Search",
     icon: "search" as IconName,
     component: Search,
+    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   },
   pages: {
     short: "Pages",
@@ -58,7 +60,7 @@ export const EDITOR_SPEC = {
     name: "Introspection",
     icon: "info",
     component: Introspect,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
 };
 

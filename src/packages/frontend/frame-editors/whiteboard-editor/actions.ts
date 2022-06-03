@@ -201,8 +201,11 @@ export class Actions extends BaseActions<State> {
     // so it avoids intersecting other frames.  E.g., if a note is
     // in a frame, we should get another note possibly in the frame
     // that is adjacent.
+    const page = element.page ?? 1;
     const filter =
-      element.type == "frame" ? undefined : (elt) => elt.get("type") != "frame";
+      element.type == "frame"
+        ? undefined
+        : (elt) => elt.get("type") != "frame" && (elt.get("page") ?? 1) == page;
     const elements = this.getElements(filter);
     const p = placement.toLowerCase();
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
@@ -440,7 +443,7 @@ export class Actions extends BaseActions<State> {
     } else if (type == "only") {
       selection = [id];
     }
-    this.setEditFocus(frameId, size(selection) == 1);
+    this.setEditFocus(frameId, type == "only" && size(selection) == 1);
     this.set_frame_tree({ id: frameId, selection });
   }
 
@@ -767,7 +770,7 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  copy(frameId: string) {
+  private getSelectedElements(frameId: string): undefined | Element[] {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     const selection = node.get("selection");
@@ -781,6 +784,21 @@ export class Actions extends BaseActions<State> {
         elements.push(element);
       }
     }
+    return elements;
+  }
+
+  cut(frameId: string) {
+    const elements = this.getSelectedElements(frameId);
+    if (!elements) return;
+    extendToIncludeEdges(elements, this.getElements());
+    copyToClipboard(elements);
+    this.deleteElements(elements);
+    this.clearSelection(frameId);
+  }
+
+  copy(frameId: string) {
+    const elements = this.getSelectedElements(frameId);
+    if (!elements) return;
     extendToIncludeEdges(elements, this.getElements());
     copyToClipboard(elements);
   }

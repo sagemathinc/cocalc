@@ -27,6 +27,7 @@ export const pdfjs_buttons = set([
   "download",
   "decrease_font_size",
   "increase_font_size",
+  "set_zoom",
   "zoom_page_width",
   "zoom_page_height",
   "sync",

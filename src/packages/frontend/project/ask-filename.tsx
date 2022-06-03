@@ -3,55 +3,61 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
-const { file_options } = require("../editor");
-const {
+import { useEffect } from "react";
+import { file_options } from "@cocalc/frontend/editor-tmp";
+import {
   Col,
   Row,
   ButtonToolbar,
   ControlLabel,
   Button,
   Form,
-} = require("react-bootstrap");
-import { SearchInput, SelectorInput, Icon } from "../components";
-const { IS_TOUCH } = require("../feature");
-import { NewFilenameFamilies, NewFilenames } from "@cocalc/frontend/project/utils";
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  SearchInput,
+  SelectorInput,
+  Icon,
+  Loading,
+} from "@cocalc/frontend/components";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import {
+  NewFilenameFamilies,
+  NewFilenames,
+} from "@cocalc/frontend/project/utils";
 import { FileSpec } from "../file-associations";
 import { NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
-  actions: any;
-  ext_selection: string; // if it is '/' then make a folder instead
-  current_path: string;
-  new_filename?: string;
-  other_settings: any;
+  project_id: string;
 }
 
-export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    actions,
-    ext_selection,
-    current_path,
-    new_filename,
-    other_settings,
-  } = props;
-
+export default function AskNewFilename({ project_id }: Props) {
+  const actions = useActions({ project_id });
+  const ext_selection = useTypedRedux({ project_id }, "ext_selection");
+  const current_path = useTypedRedux({ project_id }, "current_path");
+  const other_settings = useTypedRedux("account", "other_settings");
+  const new_filename = useTypedRedux({ project_id }, "new_filename");
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn != null ? rfn : NewFilenames.default_family;
 
-  React.useEffect(() => {
+  useEffect(() => {
     shuffle();
   }, [rfn]);
 
-  function cancel(): void {
+  if (actions == null || new_filename == null) {
+    return <Loading />;
+  }
+
+  const cancel = () => {
     actions.ask_filename(undefined);
-  }
+  };
 
-  function shuffle(): void {
+  const shuffle = () => {
     actions.ask_filename(ext_selection);
-  }
+  };
 
-  function create(name, focus): void {
+  const create = (name, focus) => {
     actions.ask_filename(undefined);
     if (ext_selection == "/") {
       actions.create_folder({
@@ -67,37 +73,44 @@ export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
         switch_over: focus,
       });
     }
-  }
+  };
 
-  function submit(val: string, opts: any): void {
+  const submit = (val: string, opts: any) => {
     create(val, !opts.ctrl_down);
-  }
+  };
 
-  function create_click(): void {
+  const create_click = () => {
     create(new_filename, true);
-  }
+  };
 
-  function change(val: string): void {
+  const change = (val: string) => {
     actions.setState({ new_filename: val });
-  }
+  };
 
-  function filename(): string {
+  const filename = () => {
     const data: FileSpec = file_options(`foo.${ext_selection}`);
     return data.name;
-  }
+  };
 
-  function change_family(family: string): void {
+  const change_family = (family: string) => {
     actions.set_new_filename_family(family);
-  }
-
-  if (new_filename == null) return <div>Loading …</div>;
+  };
 
   return (
-    <Row style={{ marginBottom: "10px" }}>
-      <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
+    <div style={{ marginBottom: "10px" }}>
+      <div
+        style={{
+          margin: "auto",
+          maxWidth: "500px",
+          border: "1px solid #ccc",
+          padding: "15px",
+          borderRadius: "5px",
+          background: "#f8f8f8",
+        }}
+      >
         <ControlLabel>
           Enter name for new {filename()}{" "}
-          {ext_selection == "/" ? "folder" : "file"}:
+          {ext_selection == "/" ? "folder" : "file"}
         </ControlLabel>
         <Form>
           <SearchInput
@@ -144,7 +157,7 @@ export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
             </Col>
           </Row>
         </Form>
-      </Col>
-    </Row>
+      </div>
+    </div>
   );
-});
+}
