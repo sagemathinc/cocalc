@@ -116,6 +116,7 @@
     "octicons": "^3.5.0",
     "onecolor": "^3.1.0",
     "pdfjs-dist": "^2.13.216",
+    "peggy": "^2.0.1",
     "pegjs": "^0.10.0",
     "pica": "^7.1.0",
     "project-name-generator": "^2.1.6",

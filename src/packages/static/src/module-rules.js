@@ -173,5 +173,9 @@ module.exports = function (PRODMODE) {
       test: /\.(glsl|txt)/,
       type: "asset/source",
     },
+    {
+      test: /\.pegjs$/,
+      loader: "peggy-loader",
+    },
   ];
 };
