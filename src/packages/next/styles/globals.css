@@ -31,3 +31,31 @@ This is also in packages/frontend/index.sass
 .katex-html {
   white-space: pre-wrap;
 }
+
+/* To match the app and let  us uniformly change all the font colors with slate.
+    Antd hard codes the colors of the heading tags. */
+
+h1 {
+  font-size: 250%;
+  color: inherit;
+}
+h2 {
+  font-size: 200%;
+  color: inherit;
+}
+h3 {
+  font-size: 170%;
+  color: inherit;
+}
+h4 {
+  font-size: 150%;
+  color: inherit;
+}
+h5 {
+  font-size: 130%;
+  color: inherit;
+}
+h6 {
+  font-size: 110%;
+  color: inherit;
+}
