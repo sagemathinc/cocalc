@@ -4,9 +4,8 @@
  */
 
 import { Map } from "immutable";
-const { IS_TOUCH } = require("../feature");
-
-import { Avatar } from "../account/avatar/avatar";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { is_different, path_split } from "@cocalc/util/misc";
 import {
   is_editing,
@@ -15,17 +14,20 @@ import {
   sender_is_viewer,
 } from "./utils";
 import { Markdown } from "./markdown";
-
-import { redux, React, useMemo, useRef, useState } from "../app-framework";
-import { Icon, Space, TimeAgo, Tip } from "../components";
-import { Button } from "../antd-bootstrap";
+import {
+  redux,
+  React,
+  useMemo,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Row, Col } from "antd";
 import { get_user_name } from "./chat-log";
-
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import { ChatInput } from "./input";
 import { ChatActions } from "./actions";
-
 import { Time } from "./time";
 import { Name } from "./name";
 
