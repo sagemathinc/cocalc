@@ -6,15 +6,32 @@
 import { macros } from "@cocalc/frontend/jquery-plugins/math-katex";
 import katex from "katex";
 
+import { parse } from "@unified-latex/unified-latex-util-parse";
+import { convertToHtml } from "@cocalc/frontend/node_modules/@unified-latex/unified-latex-to-hast";
+
 export default function mathToHtml(
-  math: string, // latex expression
+  math: string, // latex
   isInline: boolean,
   _ignore: Set<string> | undefined = undefined // used internally to avoid infinite recursion.
 ): { __html: string; err?: string } {
   if (!math.trim()) {
     // don't let it be empty, since then it is not possible to see/select.
+    // TODO: this should really only be done in Editable mode, but right now it will happen everywhere, which is weird.
     math = "\\LaTeX";
   }
+
+  if (math.startsWith("\\begin")) {
+    // Possibly a non-math environment, which we process using latexjs instead of katex/mathjax.
+    const i = math.indexOf("{");
+    const j = math.indexOf("}");
+    const env = math.slice(i + 1, j);
+    if (!env.includes("math") && env != "equation") {
+      const output = parse(math);
+      const html = convertToHtml(output);
+      return { __html: html };
+    }
+  }
+
   let err: string | undefined = undefined;
   let html: string | undefined = undefined;
   try {

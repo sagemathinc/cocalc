@@ -173,6 +173,12 @@ module.exports = {
         __dirname,
         "node_modules/entities/lib/maps"
       ),
+      // Problems for some reason with @unified-latex:
+      "@unified-latex": path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend/node_modules/@unified-latex"
+      ),
       // This is needed due to k3d's snapshot.js making assumptions
       // about how npm works, which are violated for us, about where fflate
       // ends up getting installed. Due to hoisting they aren't right.

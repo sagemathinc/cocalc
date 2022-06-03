@@ -41,6 +41,11 @@ module.exports = {
       "node_modules",
       "react-dom"
     );
+    config.resolve.alias["@unified-latex"] = resolve(
+      __dirname,
+      "node_modules",
+      "@cocalc/frontend/node_modules/@unified-latex"
+    );
     config.ignoreWarnings = [
       // This yargs warning is caused by node-zendesk in the @cocalc/server package
       // being a generally bad citizen.  Things seem to work fine (we barely use the
