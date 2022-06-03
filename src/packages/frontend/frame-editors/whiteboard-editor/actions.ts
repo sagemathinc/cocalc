@@ -443,7 +443,7 @@ export class Actions extends BaseActions<State> {
     } else if (type == "only") {
       selection = [id];
     }
-    this.setEditFocus(frameId, size(selection) == 1);
+    this.setEditFocus(frameId, type == "only" && size(selection) == 1);
     this.set_frame_tree({ id: frameId, selection });
   }
 

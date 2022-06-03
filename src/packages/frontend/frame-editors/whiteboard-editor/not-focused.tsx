@@ -77,7 +77,6 @@ export default function NotFocused({
           height: "100%",
           cursor: selectable ? "pointer" : undefined,
         }}
-        onClick={onClick}
       >
         {children}
         {edgeStart && <div style={HINT}>Select target of edge</div>}
@@ -103,7 +102,7 @@ async function select(id, e, frame) {
   e?.stopPropagation();
   // The below must happen in next render loop, or react complains
   // about state change on unmounted component, since the action
-  // causees an unmount.
+  // causes an unmount.
   await delay(0);
   frame.actions.setSelection(
     frame.id,
