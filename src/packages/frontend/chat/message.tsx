@@ -3,20 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CSSProperties } from "react";
 import { Map } from "immutable";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { is_different, path_split } from "@cocalc/util/misc";
 import {
   is_editing,
   message_colors,
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { Markdown } from "./markdown";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   redux,
-  React,
   useMemo,
   useRef,
   useState,
@@ -52,19 +51,7 @@ interface Props {
   scroll_into_view: () => void; // call to scroll this message into view
 }
 
-function areEqual(prevProps, nextProps): boolean {
-  return !is_different(prevProps, nextProps, [
-    "message",
-    "user_map",
-    "font_size",
-    "show_avatar",
-    "include_avatar_col",
-    "is_prev_sender",
-    "is_next_sender",
-  ]);
-}
-
-export const Message: React.FC<Props> = React.memo((props) => {
+export default function Message(props: Props) {
   const [edited_message, set_edited_message] = useState(
     newest_content(props.message)
   );
@@ -219,7 +206,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
 
   function avatar_column() {
     let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
-    let style: React.CSSProperties = {};
+    let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
@@ -274,7 +261,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
       borderRadius = "5px 5px 10px 10px";
     }
 
-    const message_style: React.CSSProperties = {
+    const message_style: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
@@ -304,17 +291,10 @@ export const Message: React.FC<Props> = React.memo((props) => {
               <Time message={props.message} edit={edit_message} />
             </span>
           )}
-          {!isEditing ? (
-            <Markdown
-              value={value}
-              project_id={props.project_id}
-              file_path={
-                props.path != null ? path_split(props.path).head : undefined
-              }
-              className={message_class}
-            />
-          ) : undefined}
-          {isEditing ? render_input() : undefined}
+          {!isEditing && (
+            <StaticMarkdown value={value} className={message_class} />
+          )}
+          {isEditing && render_input()}
           <span>
             {props.message.get("history").size > 1 ||
             props.message.get("editing").size > 0
@@ -394,7 +374,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
   }
   return <Row>{cols}</Row>;
-}, areEqual);
+}
 
 // Used for exporting chat to markdown file
 export function message_to_markdown(message): string {

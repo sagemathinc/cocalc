@@ -3,22 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// standard non-CoCalc libraries
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-
-// CoCalc libraries
-import { history_path, path_split } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "../misc";
-import { SaveButton } from "../frame-editors/frame-tree/save-button";
-
-// have to rewrite buttons like SaveButton in antd before we can
-// switch to antd buttons.
+import { history_path } from "@cocalc/util/misc";
+import { sanitize_html_safe } from "@cocalc/frontend/misc";
+import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-
 import { ChatInput } from "./input";
 import { mark_chat_as_read_if_unseen, INPUT_HEIGHT } from "./utils";
-
 import {
   React,
   redux,
@@ -26,13 +18,12 @@ import {
   useEffect,
   useRef,
   useRedux,
-} from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../components";
-import { Col, Row, Well } from "../antd-bootstrap";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "@cocalc/frontend/components";
+import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import { ChatLog } from "./chat-log";
-
 import { VideoChatButton } from "./video/launch-button";
-import { Markdown } from "./markdown";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -123,7 +114,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_preview_message(): JSX.Element | undefined {
     if (input.length == 0 || preview.length == 0) return;
     const value = sanitize_html_safe(preview);
-    const file_path = path != null ? path_split(path).head : undefined;
 
     return (
       <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -143,10 +133,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             >
               <Icon name="times" />
             </div>
-            <Markdown
+            <StaticMarkdown
               value={value}
-              project_id={project_id}
-              file_path={file_path}
             />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)

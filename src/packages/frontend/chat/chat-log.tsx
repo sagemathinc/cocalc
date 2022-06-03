@@ -9,14 +9,18 @@ Render all the messages in the chat.
 
 import React, { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { List, Map } from "immutable";
-import { useActions, useRedux, useTypedRedux } from "../app-framework";
-import { Alert } from "../antd-bootstrap";
-import { Message } from "./message";
+import {
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import Message from "./message";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { Avatar } from "../account/avatar/avatar";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 
 type MessageMap = Map<string, any>;
 

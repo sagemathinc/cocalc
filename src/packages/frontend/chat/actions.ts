@@ -4,12 +4,10 @@
  */
 
 import { fromJS } from "immutable";
-
 import { SyncDB } from "@cocalc/sync/editor/db";
-import { user_tracking } from "../user-tracking";
-
-import { Actions } from "../app-framework";
-import { webapp_client } from "../webapp-client";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
+import { Actions } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ChatState, ChatStore } from "./store";
 import { get_sorted_dates } from "./chat-log";
 import { message_to_markdown } from "./message";
