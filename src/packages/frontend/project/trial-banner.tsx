@@ -6,9 +6,8 @@
 import {
   CSS,
   React,
-  redux,
-  useState,
   useMemo,
+  useState,
   useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -20,8 +19,11 @@ import {
 } from "@cocalc/frontend/site-licenses/input";
 import { Alert } from "antd";
 import humanizeList from "humanize-list";
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { allow_project_to_run } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
+import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -175,18 +177,10 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
     function renderMessage(): JSX.Element | undefined {
       const buy_and_upgrade = (
         <>
-          <a
-            style={a_style}
-            onClick={() => {
-              redux.getActions("page").set_active_tab("account");
-              const account_actions = redux.getActions("account");
-              account_actions.set_show_purchase_form(true);
-              account_actions.set_active_tab("licenses");
-            }}
-          >
-            <u>buy a license</u> (starting at about $3/month)
-          </a>{" "}
-          and then{" "}
+          <A style={a_style} href={join(appBasePath, "/store/site-license")}>
+            <u>buy a license</u>
+          </A>{" "}
+          (starting at {LICENSE_MIN_PRICE}) and then{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             <u>apply it to this project</u>
           </a>
@@ -238,17 +232,19 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
     }
 
     function renderLearnMore(color): JSX.Element {
-      const style = {
+      const a_style_more = {
         ...a_style,
         ...{ fontWeight: "bold" as "bold", color: color },
       };
       return (
         <>
           {" – "}
-          <A href={DOC_TRIAL} style={style}>
-            <u>more info</u>
-          </A>
-          {"..."}
+          <span style={{ fontSize: style.fontSize }}>
+            <A href={DOC_TRIAL} style={a_style_more}>
+              <u>more info</u>
+            </A>
+            {"..."}
+          </span>
         </>
       );
     }
