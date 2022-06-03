@@ -76,8 +76,11 @@ const MIN_POSSIBLE_MEMORY: Limit = Object.freeze({
 
 // lower bound for the RAM "limit"
 // in particular, we make sure member projects are above the free quota
+// 20220601: for years we gave away 1.5x the default quota for members, even if we only sold a 1gb upgade.
+//           We stopped doing this as part of a price increase, and instead configure exactly what we sell.
+//           We also enahanced the OOM banner with note about upgrading the project or boosting a license.
 const MIN_MEMORY_LIMIT: Limit = Object.freeze({
-  member: 1.5 * DEFAULT_QUOTAS.memory,
+  member: DEFAULT_QUOTAS.memory,
   nonmember: DEFAULT_QUOTAS.memory,
 });
 
