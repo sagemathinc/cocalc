@@ -102,6 +102,7 @@
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
     "pdfjs-dist": "^2.13.216",
+    "peggy-loader": "^0.5.6",
     "prettier": "^2.6.2",
     "raw-loader": "^4.0.2",
     "react-helmet": "^6.1.0",

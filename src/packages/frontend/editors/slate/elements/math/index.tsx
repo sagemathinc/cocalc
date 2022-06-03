@@ -47,6 +47,9 @@ export const StaticElement: React.FC<RenderElementProps> = ({
 };
 
 function wrap(math, isInline) {
+  if (math.startsWith("\\")) {
+    return math;
+  }
   math = "$" + math + "$";
   if (!isInline) {
     math = "$" + math + "$";

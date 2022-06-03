@@ -17,6 +17,7 @@ import { latexMathToHtmlOrError } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
 import { replaceMathBracketDelims } from "./util";
+import LaTeX from "@cocalc/frontend/components/latex/latex";
 
 interface Props {
   data: string;
@@ -25,18 +26,29 @@ interface Props {
 
 export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
-  data = replaceMathBracketDelims(data);
-  const [text, math] = remove_math(math_escape(data));
+  const dataWithStandardDelims = replaceMathBracketDelims(data);
+  const [text, math] = remove_math(math_escape(dataWithStandardDelims));
 
   useEffect(() => {
     // be no-op when math.length == 0.
     if (ref.current == null) return;
     // There was an error during attemptKatex below, so will fallback to the old
     // katex + mathjaxv2 via an old jquery plugin.
-    ref.current.innerHTML = data;
+    ref.current.innerHTML = dataWithStandardDelims;
     // @ts-ignore
     $(ref.current).katex({ preProcess: true }); // this also calls mathjax as a fallback.
-  }, [data]);
+  }, [dataWithStandardDelims]);
+
+  if (data.startsWith("\\begin")) {
+    // Possibly a non-math environment, which we process using latexjs instead of katex/mathjax.
+    const i = data.indexOf("{");
+    const j = data.indexOf("}");
+    const env = data.slice(i + 1, j);
+    if (!env.includes("math") && env != "equation") {
+      // TODO: obviously need to handle each bit of math along the way separately, etc.
+      return <LaTeX value={data} />;
+    }
+  }
 
   if (math.length == 0) {
     // no math and the input is text, so return as is. Definitely do NOT wrap in a span.
@@ -48,10 +60,10 @@ export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
     inMarkdown &&
     redux.getStore("account")?.getIn(["other_settings", "katex"])
   ) {
-    const __html = attemptKatex(text, math);
-    if (__html != null) {
+    const html = attemptKatex(text, math);
+    if (typeof html == "string") {
       // no error -- using katex is allowed and fully worked.
-      return <span dangerouslySetInnerHTML={{ __html }}></span>;
+      return <span dangerouslySetInnerHTML={{ __html: html as string }}></span>;
     }
   }
 
