@@ -21,7 +21,7 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
 import { Row, Col } from "antd";
 import { get_user_name } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
@@ -84,27 +84,22 @@ export default function Message(props: Props) {
 
   const submitMentionsRef = useRef<Function>();
 
-  function render_toggle_history() {
+  function renderToggleHistory() {
     const verb = show_history ? "Hide" : "Show";
     return (
-      <span>
-        <Space />
-        <span
-          className="small"
-          style={{
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-          onClick={() => toggle_history_chat(!show_history)}
+      <Button
+        style={{ marginLeft: "5px" }}
+        type="text"
+        size="small"
+        onClick={() => toggle_history_chat(!show_history)}
+      >
+        <Tip
+          title="Message History"
+          tip={`${verb} history of editing of this message.  Any collaborator can edit any message.`}
         >
-          <Tip
-            title="Message History"
-            tip={`${verb} history of editing of this message.`}
-          >
-            <Icon name="history" /> {verb} History
-          </Tip>
-        </span>
-      </span>
+          <Icon name="history" /> {verb} History
+        </Tip>
+      </Button>
     );
   }
 
@@ -182,7 +177,7 @@ export default function Message(props: Props) {
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
             <Space />
-            <Button onClick={on_send} bsStyle="success">
+            <Button onClick={on_send} type="primary">
               Save (shift+enter)
             </Button>
           </span>
@@ -301,7 +296,7 @@ export default function Message(props: Props) {
               ? editing_status(isEditing)
               : undefined}
             {props.message.get("history").size > 1
-              ? render_toggle_history()
+              ? renderToggleHistory()
               : undefined}
           </span>
         </div>

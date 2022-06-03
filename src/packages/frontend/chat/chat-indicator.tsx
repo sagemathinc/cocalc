@@ -9,7 +9,7 @@ import { redux, useTypedRedux, useMemo } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon, Tip, Space } from "@cocalc/frontend/components";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
-import { VideoChatButton } from "./video/launch-button";
+import VideoChatButton from "./video/launch-button";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",

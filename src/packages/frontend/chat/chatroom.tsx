@@ -19,10 +19,16 @@ import {
   useRef,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "@cocalc/frontend/components";
+import {
+  Icon,
+  Loading,
+  Tip,
+  SearchInput,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import { ChatLog } from "./chat-log";
-import { VideoChatButton } from "./video/launch-button";
+import VideoChatButton from "./video/launch-button";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const PREVIEW_STYLE: React.CSSProperties = {
@@ -133,9 +139,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             >
               <Icon name="times" />
             </div>
-            <StaticMarkdown
-              value={value}
-            />
+            <StaticMarkdown value={value} />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)
             </div>
