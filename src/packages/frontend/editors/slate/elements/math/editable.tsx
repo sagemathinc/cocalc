@@ -8,7 +8,6 @@ import { register, RenderElementProps } from "../register";
 import { useSlate } from "../hooks";
 import { SlateMath } from "./math-widget";
 import { useSetElement } from "../set-element";
-import { isMathFormula } from "@cocalc/frontend/components/math/util";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -41,7 +40,6 @@ register({
   slateType: "math_inline",
   Element,
   fromSlate: ({ node }) => {
-    // if (!isMathFormula(node.value)) return node.value;
     const delim = node.value.trim().startsWith("\\begin{")
       ? ""
       : node.display
@@ -57,7 +55,7 @@ register({
   fromSlate: ({ node }) => {
     const value = node.value.trim();
     let start, end;
-    if (value.startsWith("\\begin{") || !isMathFormula(value)) {
+    if (value.startsWith("\\begin{") || node.isLaTeX) {
       start = "";
       end = "\n\n";
     } else {

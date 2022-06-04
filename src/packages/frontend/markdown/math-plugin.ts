@@ -129,18 +129,6 @@ const texmath = {
     cocalc: {
       inline: [
         {
-          // using a latex macro inline without any surrounding math delimeters,
-          // e.g., \ref{label:foo} or \textbf{bar}.  Macro must have at least one
-          // argument and no braces are allowed in arguments.
-          name: "latex_inline",
-          rex: /(\\[a-zA-Z]+({.*})+)/gy,
-          tag: "",
-          displayMode: false,
-          pre,
-          post,
-        },
-
-        {
           name: "math_inline_double",
           rex: /\${2}([^$]*?[^\\])\${2}/gy,
           tag: "$$",
@@ -176,12 +164,23 @@ const texmath = {
           pre,
           post,
         },
+        {
+          // using a latex macro inline without any surrounding math delimeters,
+          // e.g., \ref{label:foo} or \textbf{bar}.  Macro must have at least one
+          // argument and no braces are allowed in arguments.
+          name: "latex_inline",
+          rex: /(\\[a-zA-Z]+({.*})+)/gy,
+          tag: "",
+          displayMode: false,
+          pre,
+          post,
+        },
       ],
       block: [
         // A latex block starts with \macroname{ and ends with a blank line.
         // This is similar to html blocks in markdown, in that they (usually) can't contain blank
         // lines, since blank lines officially terminate them.
-        // Must be first since there can be math in the latex block itself, of course.
+        // Must be before $'s below since there can be math in the latex block itself, of course.
         {
           name: "latex_block",
           rex: /(\\[a-zA-Z]+{[\s\S]*?((\r*\n){2}|$))/gy,
@@ -195,11 +194,12 @@ const texmath = {
           rex: /\${2}([^$]*?[^\\])\${2}/gmy,
           tag: "$$",
         },
-        {
-          name: "math_block",
-          rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy, // regexp to match \begin{...}...\end{...} environment.
-          tag: "\\",
-        },
+        // don't need this due to latex_block above.
+        //         {
+        //           name: "math_block",
+        //           rex: /(\\(?:begin)(\{[a-z]*\*?\})[\s\S]*?\\(?:end)\2)/gmy, // regexp to match \begin{...}...\end{...} environment.
+        //           tag: "\\",
+        //         },
       ],
     },
   },

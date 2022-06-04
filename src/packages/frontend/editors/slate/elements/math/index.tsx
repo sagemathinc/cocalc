@@ -84,15 +84,14 @@ register({
   slateType: ["math_block", "latex_block"],
   StaticElement,
   toSlate: ({ token }) => {
+    const content = token.content.trim();
+    const isLaTeX = token.type == "latex_block" && !isMathEnvironment(content);
     return {
       type: "math_block",
-      value:
-        token.type == "latex_block"
-          ? token.content.trim()
-          : stripMathEnvironment(token.content).trim(),
+      value: isLaTeX ? content : stripMathEnvironment(content),
       isVoid: true,
       children: [{ text: "" }],
-      isLaTeX: token.type == "latex_block",
+      isLaTeX,
     } as Element;
   },
 });
@@ -109,4 +108,26 @@ export function stripMathEnvironment(s: string): string {
     }
   }
   return s;
+}
+
+const MATH_ENVS = new Set(
+  "equation*|equation|align*|align|alignat*|alignat|gather*|gather|multline*|multline|flalign*|flalign|split|math|displaymath".split(
+    "|"
+  )
+);
+
+// s is assumed to have been trim()'d
+function isMathEnvironment(s: string) {
+  if (!s.startsWith("\\")) return true;
+  if (!s.startsWith("\\begin{")) {
+    return false;
+  } else {
+    const i = s.indexOf("{");
+    const j = s.indexOf("}");
+    if (i == -1 || j == -1) return false;
+    const env = s.slice(i + 1, j);
+    if (!MATH_ENVS.has(env)) return false;
+    if (!s.endsWith(`\\end{${env}}`)) return false;
+  }
+  return true;
 }
