@@ -9,7 +9,7 @@ A constraint of this component is that it should easily render in the next.js
 application.
 */
 
-import React from "react";
+import { CSSProperties } from "react";
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
@@ -17,10 +17,11 @@ import Leaf from "./leaf";
 
 interface Props {
   value: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
+  className?: string;
 }
 
-export default function StaticMarkdown({ value, style }: Props) {
+export default function StaticMarkdown({ value, style, className }: Props) {
   // Convert markdown to our slate JSON object representation.
   const slate = markdownToSlate(value);
   const v: JSX.Element[] = [];
@@ -30,7 +31,11 @@ export default function StaticMarkdown({ value, style }: Props) {
     v.push(<RenderElement key={n} element={element} />);
     n += 1;
   }
-  return <div style={{ width: "100%", ...style }}>{v}</div>;
+  return (
+    <div style={{ width: "100%", ...style }} className={className}>
+      {v}
+    </div>
+  );
 }
 
 function RenderElement({ element }) {
