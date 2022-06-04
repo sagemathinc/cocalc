@@ -19,16 +19,21 @@ import { Descendant } from "slate";
 interface Props {
   slate: Descendant[];
   style?: CSSProperties;
+  className?: string;
 }
 
-export default function RenderStatic({ slate, style }: Props) {
+export default function RenderStatic({ slate, style, className }: Props) {
   const v: JSX.Element[] = [];
   let n = 0;
   for (const element of slate) {
     v.push(<RenderElement key={n} element={element} />);
     n += 1;
   }
-  return <div style={{ width: "100%", ...style }}>{v}</div>;
+  return (
+    <div style={{ width: "100%", ...style }} className={className}>
+      {v}
+    </div>
+  );
 }
 
 function RenderElement({ element }) {

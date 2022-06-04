@@ -9,8 +9,7 @@ import {
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
-import { Popconfirm } from "antd";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Popconfirm } from "antd";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?
@@ -23,12 +22,12 @@ interface Props {
   button?: boolean;
 }
 
-export const VideoChatButton: React.FC<Props> = ({
+export default function VideoChatButton({
   project_id,
   path,
   label,
   button,
-}) => {
+}: Props) {
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
   const file_use = useTypedRedux("file_use", "file_use");
@@ -144,4 +143,4 @@ export const VideoChatButton: React.FC<Props> = ({
       )}
     </Popconfirm>
   );
-};
+}

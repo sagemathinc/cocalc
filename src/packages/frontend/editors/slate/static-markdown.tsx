@@ -9,16 +9,18 @@ A constraint of this component is that it should easily render in the next.js
 application.
 */
 
+import { CSSProperties } from "react";
 import RenderStatic from "./render-static";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 
 interface Props {
   value: string;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
+  className?: string;
 }
 
-export default function StaticMarkdown({ value, style }: Props) {
+export default function StaticMarkdown({ value, style, className }: Props) {
   // Convert markdown to our slate JSON object representation.
   const slate = markdownToSlate(value);
-  return <RenderStatic slate={slate} style={style} />;
+  return <RenderStatic slate={slate} style={style} className={className} />;
 }
