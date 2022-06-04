@@ -23,7 +23,6 @@ interface Props {
   inMarkdown?: boolean;
 }
 
-
 export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
   data = replaceMathBracketDelims(data);
@@ -36,7 +35,7 @@ export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
     // katex + mathjaxv2 via an old jquery plugin.
     ref.current.innerHTML = data;
     // @ts-ignore
-    $(ref.current).katex({ preProcess: true });
+    $(ref.current).katex({ preProcess: true }); // this also calls mathjax as a fallback.
   }, [data]);
 
   if (math.length == 0) {
