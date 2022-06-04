@@ -122,12 +122,24 @@ const texmath = {
   },
 
   // used for enable/disable math rendering by `markdown-it`
-  inlineRuleNames: ["math_inline", "math_inline_double"],
-  blockRuleNames: ["math_block"],
+  inlineRuleNames: ["math_inline", "math_inline_double", "latex_inline"],
+  blockRuleNames: ["math_block", "latex_block"],
 
   rules: {
     cocalc: {
       inline: [
+        {
+          // using a latex macro inline without any surrounding math delimeters,
+          // e.g., \ref{label:foo} or \textbf{bar}.  Macro must have at least one
+          // argument and no braces are allowed in arguments.
+          name: "latex_inline",
+          rex: /(\\[a-zA-Z]+({.*})+)/gy,
+          tag: "",
+          displayMode: false,
+          pre,
+          post,
+        },
+
         {
           name: "math_inline_double",
           rex: /\${2}([^$]*?[^\\])\${2}/gy,
@@ -166,6 +178,18 @@ const texmath = {
         },
       ],
       block: [
+        // A latex block starts with \macroname{ and ends with a blank line.
+        // This is similar to html blocks in markdown, in that they (usually) can't contain blank
+        // lines, since blank lines officially terminate them.
+        // Must be first since there can be math in the latex block itself, of course.
+        {
+          name: "latex_block",
+          rex: /(\\[a-zA-Z]+{[\s\S]*?((\r*\n){2}|$))/gy,
+          tag: "",
+          displayMode: true,
+          pre,
+          post,
+        },
         {
           name: "math_block",
           rex: /\${2}([^$]*?[^\\])\${2}/gmy,

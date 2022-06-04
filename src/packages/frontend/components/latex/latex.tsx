@@ -1,4 +1,5 @@
 import latexToSlate from "./to-slate";
+import RenderStatic from "@cocalc/frontend/editors/slate/render-static";
 
 type State = any;
 
@@ -8,6 +9,6 @@ interface Props {
 }
 
 export default function LaTeX({ value }: Props) {
-  const p = latexToSlate(value);
-  return <pre>{JSON.stringify(p, undefined, 2)}</pre>;
+  const slate = latexToSlate(value);
+  return <RenderStatic slate={slate} />;
 }

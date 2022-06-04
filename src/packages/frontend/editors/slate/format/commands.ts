@@ -451,6 +451,7 @@ function transformToEquation(editor: Editor, display: boolean): void {
       value,
       isVoid: true,
       children: [{ text: "" }],
+      isLaTeX: false,
     };
   } else {
     node = {
@@ -459,6 +460,7 @@ function transformToEquation(editor: Editor, display: boolean): void {
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
+      isLaTeX: false,
     };
   }
   Transforms.insertFragment(editor, [node]);

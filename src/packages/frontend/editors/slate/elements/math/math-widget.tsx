@@ -24,10 +24,11 @@ interface Props {
   value: string;
   isInline: boolean;
   onChange?: (string) => void;
+  isLaTeX: boolean;
 }
 
 export const SlateMath: React.FC<Props> = React.memo(
-  ({ value, onChange, isInline }) => {
+  ({ value, onChange, isInline, isLaTeX }) => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const frameContext = useFrameContext();
 
@@ -74,7 +75,11 @@ export const SlateMath: React.FC<Props> = React.memo(
           {/* any below since we are abusing the StaticElement component a bit */}
           <StaticElement
             element={
-              { value, type: isInline ? "math_inline" : "math_block" } as any
+              {
+                value,
+                type: isInline ? "math_inline" : "math_block",
+                isLaTeX,
+              } as any
             }
             children={undefined}
             attributes={{} as any}
@@ -107,8 +112,8 @@ export const SlateMath: React.FC<Props> = React.memo(
               }
         }
       >
-        {renderEditMode()}
         {renderLaTeX()}
+        {renderEditMode()}
       </span>
     );
   }

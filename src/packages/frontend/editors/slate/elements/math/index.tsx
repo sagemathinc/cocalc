@@ -13,6 +13,7 @@ export interface DisplayMath extends SlateElement {
   type: "math_block";
   value: string;
   isVoid: true;
+  isLaTeX: boolean;
 }
 
 export interface InlineMath extends SlateElement {
@@ -21,6 +22,7 @@ export interface InlineMath extends SlateElement {
   display?: boolean; // inline but acts as displayed math
   isVoid: true;
   isInline: true;
+  isLaTeX: false;
 }
 
 export const StaticElement: React.FC<RenderElementProps> = ({
@@ -36,20 +38,22 @@ export const StaticElement: React.FC<RenderElementProps> = ({
   return (
     <span {...attributes}>
       <C
-        data={wrap(
-          element.value,
-          element.type == "math_inline" && !element.display
-        )}
+        data={
+          element.isLaTeX
+            ? element.value
+            : wrap(
+                element.value,
+                element.type == "math_inline" && !element.display
+              )
+        }
         inMarkdown
+        isLaTeX={element.isLaTeX}
       />
     </span>
   );
 };
 
 function wrap(math, isInline) {
-  if (math.startsWith("\\")) {
-    return math;
-  }
   math = "$" + math + "$";
   if (!isInline) {
     math = "$" + math + "$";
@@ -58,29 +62,37 @@ function wrap(math, isInline) {
 }
 
 register({
-  slateType: ["math_inline", "math_inline_double"],
+  slateType: ["math_inline", "math_inline_double", "latex_inline"],
   StaticElement,
   toSlate: ({ token }) => {
     return {
       type: "math_inline",
-      value: stripMathEnvironment(token.content),
+      value:
+        token.type == "latex_inline"
+          ? token.content
+          : stripMathEnvironment(token.content),
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
       display: token.type == "math_inline_double",
+      isLaTeX: token.type == "latex_inline",
     } as Element;
   },
 });
 
 register({
-  slateType: ["math_block", "math_block_eqno"],
+  slateType: ["math_block", "latex_block"],
   StaticElement,
   toSlate: ({ token }) => {
     return {
       type: "math_block",
-      value: stripMathEnvironment(token.content).trim(),
+      value:
+        token.type == "latex_block"
+          ? token.content.trim()
+          : stripMathEnvironment(token.content).trim(),
       isVoid: true,
       children: [{ text: "" }],
+      isLaTeX: token.type == "latex_block",
     } as Element;
   },
 });

@@ -30,7 +30,11 @@ interface IFileContext {
 
   // data = the math string we're rendering, including the delims that gets us to math mode.
   // isMarkdown = true if we're in markdown, so less delims are allowed than in html.
-  MathComponent?: React.FC<{ data: string; inMarkdown?: boolean }>;
+  MathComponent?: React.FC<{
+    data: string;
+    inMarkdown?: boolean;
+    isLaTeX?: boolean;
+  }>;
 
   // If given, then when an anchor (A) tag is clicked
   // on, the given function is called.

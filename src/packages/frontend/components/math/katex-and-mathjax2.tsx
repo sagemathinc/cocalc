@@ -22,9 +22,16 @@ import LaTeX from "@cocalc/frontend/components/latex/latex";
 interface Props {
   data: string;
   inMarkdown?: boolean;
+  isLaTeX?: boolean;
 }
 
-export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
+export default function KaTeXAndMathJaxV2({
+  data,
+  inMarkdown,
+  isLaTeX,
+}: Props) {
+  // console.log("KaTeXAndMathJaxV2", { data, inMarkdown, isLaTeX });
+
   const ref = useRef<any>(null);
 
   useEffect(() => {
@@ -37,16 +44,13 @@ export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
     $(ref.current).katex({ preProcess: true }); // this also calls mathjax as a fallback.
   }, [data]);
 
-  if (inMarkdown && data.startsWith("\\begin")) {
-    // Possibly a non-math environment, which we process using latexjs instead of katex/mathjax.
+  if (isLaTeX) {
+    // A non-math latex chunk of code, which we process using a different
+    // parser than katex/mathjax.  We ONLY do this in the context of markdown,
+    // where we are sure that the data has been identified as latex.
     // TODO: technically need to handle each bit of math along the way separately, etc.
     // However, when in markdown, only math gets passed in anyways.
-    const i = data.indexOf("{");
-    const j = data.indexOf("}");
-    const env = data.slice(i + 1, j);
-    if (!env.includes("math") && env != "equation") {
-      return <LaTeX value={data} />;
-    }
+    return <LaTeX value={data} />;
   }
 
   const dataWithStandardDelims = replaceMathBracketDelims(data);

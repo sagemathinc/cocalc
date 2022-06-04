@@ -3,9 +3,10 @@ import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/ma
 
 export default function latexToSlate(source: string) {
   const node = parse(source);
-  console.log("node = ", { source, node });
   const state = { source, node };
-  return toSlate(node, state) ?? [];
+  const slate = toSlate(node, state) ?? [];
+  // console.log("latexToSlate", { node, slate });
+  return slate;
 }
 
 function toSlate(node, state) {
@@ -225,6 +226,9 @@ function toSlate(node, state) {
             } else if (x.type == "whitespace") {
               text += " ";
             }
+          }
+          if (state.children == null) {
+            state.children = [];
           }
           state.children.push({ text, bold: true });
           return;
