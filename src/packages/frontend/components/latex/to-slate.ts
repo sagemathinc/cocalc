@@ -1,8 +1,8 @@
-const parser = require("./latex.pegjs");
+import { parse } from "@unified-latex/unified-latex-util-parse";
 import { stripMathEnvironment } from "@cocalc/frontend/editors/slate/elements/math";
 
 export default function latexToSlate(source: string) {
-  const node = parser.parse(source);
+  const node = parse(source);
   console.log("node = ", { source, node });
   const state = { source, node };
   return toSlate(node, state) ?? [];

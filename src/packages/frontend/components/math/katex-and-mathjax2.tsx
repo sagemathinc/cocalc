@@ -26,29 +26,31 @@ interface Props {
 
 export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
-  const dataWithStandardDelims = replaceMathBracketDelims(data);
-  const [text, math] = remove_math(math_escape(dataWithStandardDelims));
 
   useEffect(() => {
     // be no-op when math.length == 0.
     if (ref.current == null) return;
     // There was an error during attemptKatex below, so will fallback to the old
     // katex + mathjaxv2 via an old jquery plugin.
-    ref.current.innerHTML = dataWithStandardDelims;
+    ref.current.innerHTML = data;
     // @ts-ignore
     $(ref.current).katex({ preProcess: true }); // this also calls mathjax as a fallback.
-  }, [dataWithStandardDelims]);
+  }, [data]);
 
-  if (data.startsWith("\\begin")) {
+  if (inMarkdown && data.startsWith("\\begin")) {
     // Possibly a non-math environment, which we process using latexjs instead of katex/mathjax.
+    // TODO: technically need to handle each bit of math along the way separately, etc.
+    // However, when in markdown, only math gets passed in anyways.
     const i = data.indexOf("{");
     const j = data.indexOf("}");
     const env = data.slice(i + 1, j);
     if (!env.includes("math") && env != "equation") {
-      // TODO: obviously need to handle each bit of math along the way separately, etc.
       return <LaTeX value={data} />;
     }
   }
+
+  const dataWithStandardDelims = replaceMathBracketDelims(data);
+  const [text, math] = remove_math(math_escape(dataWithStandardDelims));
 
   if (math.length == 0) {
     // no math and the input is text, so return as is. Definitely do NOT wrap in a span.

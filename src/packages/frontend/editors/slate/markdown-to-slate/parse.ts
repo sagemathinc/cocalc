@@ -13,7 +13,11 @@ import { createReferencesNode } from "../elements/references/type";
 import normalize from "./normalize";
 import { len } from "@cocalc/util/misc";
 
-export function parse(token: Token, state: State, cache?): Descendant[] {
+export function parse(
+  token: Token,
+  state: State,
+  cache?: { [node: string]: string }
+): Descendant[] {
   // console.log("parse", JSON.stringify({ token, state }));
 
   if (token.type == "image") {

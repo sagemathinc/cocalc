@@ -22,7 +22,7 @@ register({
       return <b>{children}</b>;
     }
     let x;
-    if (ReactEditor.isUsingWindowing(editor)) {
+    if (!element.noToggle && ReactEditor.isUsingWindowing(editor)) {
       x = [
         <HeadingToggle element={element} key="toggle" />,
         <span key="children">{children}</span>,
@@ -30,7 +30,13 @@ register({
     } else {
       x = children;
     }
-    return React.createElement(`h${level}`, attributes, x);
+    return React.createElement(
+      `h${level}`,
+      element.align != null // @ts-ignore
+        ? { ...attributes, style: { textAlign: element.align } }
+        : attributes,
+      x
+    );
   },
 
   fromSlate: ({ node, children }) => {

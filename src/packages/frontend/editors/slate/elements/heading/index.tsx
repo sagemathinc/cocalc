@@ -10,6 +10,8 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 export interface Heading extends SlateElement {
   type: "heading";
   level: number;
+  align?: "left" | "center" | "right";
+  noToggle?: boolean;
 }
 
 register({
@@ -37,7 +39,11 @@ register({
     }
     const { level } = element;
     const id = toId(toText(element));
-    return React.createElement(`h${level}`, { id, ...attributes }, children);
+    return React.createElement(
+      `h${level}`,
+      { id, ...attributes, style: { textAlign: element.align } },
+      children
+    );
   },
 });
 
