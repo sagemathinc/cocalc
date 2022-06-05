@@ -602,7 +602,7 @@ function isExactlyInBlocksOfType(
 }
 
 // Toggle whether or not the selection is quoted.
-function formatQuote(editor): void {
+export function formatQuote(editor): void {
   const at = getSelection(editor);
 
   // The selected text *might* be exactly contained

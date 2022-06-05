@@ -37,7 +37,7 @@ import { slateDiff } from "../slate-diff";
 import { getRules } from "../elements";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
-import { formatHeading, setSelectionAndFocus } from "./commands";
+import { formatHeading, formatQuote, setSelectionAndFocus } from "./commands";
 
 export const withInsertText = (editor) => {
   const { insertText: insertText0 } = editor;
@@ -162,6 +162,9 @@ function markdownAutoformatAt(
         // in a withoutNormalizing block, so we return some code to
         // run afterwards.
         return () => editor.deleteBackward("word");
+      case ">":
+        formatQuote(editor);
+        return () => editor.deleteBackward("word");
     }
   }
 
@@ -201,10 +204,14 @@ function markdownAutoformatAt(
 
   text = text.slice(start + 1).trim();
   if (text.length == 0) return false;
+  if (start > 0 || pos > 0) {
+    // force inline
+    text = "&nbsp;" + text;
+  }
 
   // make a copy to avoid any caching issues (??).
   const doc = [...(markdown_to_slate(text, true) as any)];
-  // console.log(`autoformat '${text}' = \n`, JSON.stringify(doc, undefined, 2));
+  console.log(`autoformat '${text}' = \n`, JSON.stringify(doc, undefined, 2));
 
   if (
     doc.length == 1 &&
@@ -232,10 +239,12 @@ function markdownAutoformatAt(
   if (isInline) {
     const children = doc[0].children;
     if (start != -1) {
-      if (children[0]["text"] === "") {
-        // In case the first node in children is empty text, remove that,
+      if (children[0]["text"].trim() === "") {
+        // In case the first node in children is whitespace text, remove that,
         // since otherwise it will get normalized away after doing this,
         // and that throws the cursor computation off below, causing a crash.
+        // Also, we put a blank space in above to force things to be inline,
+        // so we want this.
         children.shift();
       }
       // Add text from before starting point back, since we excluded it above.
@@ -243,7 +252,8 @@ function markdownAutoformatAt(
       first.text = node.text.slice(0, start + 1);
       children.unshift(first);
     }
-    // Add a space at the end.
+    // Add a space at the end?
+    // NO: This is annoying and we often end up with two spaces.
     if (
       len(children[children.length - 1]) == 1 &&
       children[children.length - 1]["text"] != null
