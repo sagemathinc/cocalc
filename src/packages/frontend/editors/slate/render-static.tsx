@@ -30,7 +30,17 @@ export default function RenderStatic({ slate, style, className }: Props) {
     n += 1;
   }
   return (
-    <div style={{ width: "100%", ...style }} className={className}>
+    <div
+      style={{
+        width: "100%",
+        // outline, whitespace and wordWrap are for consistency with slate-react/components/editable.tsx
+        outline: "none",
+        whiteSpace: "pre-wrap",
+        wordWrap: "break-word",
+        ...style,
+      }}
+      className={className}
+    >
       {v}
     </div>
   );
