@@ -34,6 +34,7 @@ interface IFileContext {
     data: string;
     inMarkdown?: boolean;
     isLaTeX?: boolean;
+    isInline?: boolean;
   }>;
 
   // If given, then when an anchor (A) tag is clicked

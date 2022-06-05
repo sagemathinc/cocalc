@@ -48,6 +48,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
         }
         inMarkdown
         isLaTeX={element.isLaTeX}
+        isInline={element.type == "math_inline"}
       />
     </span>
   );

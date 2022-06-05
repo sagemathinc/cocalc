@@ -71,11 +71,11 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
 export default function HTML({
   value,
   style,
-  inline,
+  isInline,
 }: {
   value: string;
   style?: React.CSSProperties;
-  inline?: boolean;
+  isInline?: boolean;
 }) {
   const { urlTransform, AnchorTagComponent, noSanitize, MathComponent } =
     useFileContext();
@@ -183,7 +183,7 @@ export default function HTML({
       }
     }
   };
-  if (inline) {
+  if (isInline) {
     return <span style={style}>{htmlReactParser(value, options)}</span>;
   } else {
     return <div style={style}>{htmlReactParser(value, options)}</div>;

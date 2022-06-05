@@ -6,9 +6,21 @@ type State = any;
 interface Props {
   value: string;
   state?: State;
+  isInline?: boolean;
 }
 
-export default function LaTeX({ value }: Props) {
+export function LaTeX({ value }: Props) {
   const slate = latexToSlate(value);
   return <RenderStatic slate={slate} />;
+}
+
+import { convertToHtml } from "@unified-latex/unified-latex-to-hast";
+import { parse } from "@unified-latex/unified-latex-util-parse";
+import HTML from "@cocalc/frontend/components/html-ssr";
+
+export default function LaTeXViaHTML({ value, isInline }: Props) {
+  // console.log("LaTeX: ", { isInline, value });
+  const latexAst = parse(value);
+  const htmlString = convertToHtml(latexAst);
+  return <HTML value={htmlString} isInline={isInline} />;
 }

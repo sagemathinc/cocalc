@@ -23,14 +23,16 @@ interface Props {
   data: string;
   inMarkdown?: boolean;
   isLaTeX?: boolean;
+  isInline?: boolean;
 }
 
 export default function KaTeXAndMathJaxV2({
   data,
   inMarkdown,
   isLaTeX,
+  isInline,
 }: Props) {
-  // console.log("KaTeXAndMathJaxV2", { data, inMarkdown, isLaTeX });
+  // console.log("KaTeXAndMathJaxV2", { data, inMarkdown, isLaTeX, isInline });
 
   const ref = useRef<any>(null);
 
@@ -50,7 +52,7 @@ export default function KaTeXAndMathJaxV2({
     // where we are sure that the data has been identified as latex.
     // TODO: technically need to handle each bit of math along the way separately, etc.
     // However, when in markdown, only math gets passed in anyways.
-    return <LaTeX value={data} />;
+    return <LaTeX value={data} isInline={isInline} />;
   }
 
   const dataWithStandardDelims = replaceMathBracketDelims(data);

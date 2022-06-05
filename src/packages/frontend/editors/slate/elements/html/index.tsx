@@ -26,7 +26,7 @@ const StaticElement = ({ attributes, element }) => {
   if (element.type == "html_inline") {
     return (
       <span {...attributes} style={{ display: "inline" }}>
-        <HTML inline value={html} />
+        <HTML isInline={element.isInline} value={html} />
       </span>
     );
   } else {
