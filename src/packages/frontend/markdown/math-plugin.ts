@@ -169,7 +169,7 @@ const texmath = {
           // e.g., \ref{label:foo} or \textbf{bar}.  Macro must have at least one
           // argument and no braces are allowed in arguments.
           name: "latex_inline",
-          rex: /(\\[a-zA-Z]+({.*})+)/gy,
+          rex: /(\\[a-zA-Z]+(({|\[).*(}|\]))+)/gy,
           tag: "",
           displayMode: false,
           pre,
@@ -183,7 +183,7 @@ const texmath = {
         // Must be before $'s below since there can be math in the latex block itself, of course.
         {
           name: "latex_block",
-          rex: /(\\[a-zA-Z]+{[\s\S]*?((\r*\n){2}|$))/gy,
+          rex: /(\\[a-zA-Z]+({|\[)[\s\S]*?((\r*\n){2}|$))/gy,
           tag: "",
           displayMode: true,
           pre,
