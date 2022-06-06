@@ -49,12 +49,15 @@ export default function NotFocused({
     },
     [selectable, edgeCreate, id, frame, readOnly]
   );
+
+  const disableDrag = readOnly || !(selectable && !element.locked);
+
   return (
     <Draggable
       position={{ x: 0, y: 0 }}
       cancel={".nodrag"}
       scale={canvasScale}
-      disabled={readOnly || !(selectable && !element.locked)}
+      disabled={disableDrag}
       onStop={(e, data) => {
         if (data.x || data.y) {
           frame.actions.moveElements([element], data);
@@ -77,6 +80,7 @@ export default function NotFocused({
           height: "100%",
           cursor: selectable ? "pointer" : undefined,
         }}
+        onClick={disableDrag ? onClick : undefined}
       >
         {children}
         {edgeStart && <div style={HINT}>Select target of edge</div>}
