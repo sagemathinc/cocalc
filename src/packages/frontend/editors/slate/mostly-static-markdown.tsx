@@ -45,6 +45,7 @@ import { slate_to_markdown as slateToMarkdown } from "./slate-to-markdown";
 import Leaf from "./leaf";
 import Hashtag from "./elements/hashtag/component";
 import Highlighter from "react-highlight-words";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   value: string;
@@ -63,6 +64,8 @@ export default function MostlyStaticMarkdown({
   toggleHashtag,
   searchWords,
 }: Props) {
+  const fileContext = useFileContext();
+  fileContext.latexState = {}; // so there is a global state for all latex that gets rendered below:
   // Convert markdown to our slate JSON object representation.
   const syncCacheRef = useRef<any>({});
   const valueRef = useRef<string>(value);

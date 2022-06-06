@@ -6,19 +6,18 @@ import { Element, Text } from "domhandler";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import DefaultMath from "@cocalc/frontend/components/math/ssr";
 
-type State = any;
-
 interface Props {
   value: string;
-  state?: State;
   isInline?: boolean;
   style?: CSSProperties;
 }
 
-export default function LaTeX({ value, isInline, style, state = {} }: Props) {
-  const { MathComponent } = useFileContext();
+export default function LaTeX({ value, isInline, style }: Props) {
+  const { MathComponent, latexState } = useFileContext();
+  const state = latexState ?? {};
 
   // console.log("LaTeX: ", { isInline, value });
+  // https://siefkenj.github.io/latex-parser-playground/
   const ast = parse(value);
   const html = convertToHtml(ast);
 
@@ -28,14 +27,19 @@ export default function LaTeX({ value, isInline, style, state = {} }: Props) {
       if (!(node instanceof Element)) return;
       const { attribs, children, name, type } = node;
       if (type != "tag") return;
+
+      const classes =
+        attribs?.["class"] != null
+          ? new Set(attribs["class"].split(" "))
+          : new Set([]);
+
       if (
-        (attribs["class"] == "display-math" ||
-          attribs["class"] == "inline-math") &&
+        (classes.has("display-math") || classes.has("inline-math")) &&
         children[0] instanceof Text &&
         children[0].data
       ) {
         let data = "$" + children[0].data + "$";
-        if (attribs["class"] == "display-math") {
+        if (classes.has("display-math")) {
           data = "$" + data + "$";
         }
         if (MathComponent != null) {
@@ -43,11 +47,41 @@ export default function LaTeX({ value, isInline, style, state = {} }: Props) {
         }
         return <DefaultMath data={data} />;
       }
+
+      if (classes.has("macro")) {
+        if (classes.has("macro-label") && children[0] instanceof Text) {
+          // create a label
+          if (state.refs == null) {
+            state.refs = {};
+          }
+          let value = "";
+          if (state.level == null) {
+            // not in a section
+            value = "";
+          } else if (state.level == "section") {
+            value = `${state.section}`;
+          } else if (state.level == "subsection") {
+            value = `${state.section}.${state.subsection}`;
+          } else if (state.level == "subsubsection") {
+            value = `${state.section}.${state.subsection}.${state.subsubsection}`;
+          } else {
+            // TODO...
+            value = `${state.section}.${state.subsection}.${state.subsubsection}`;
+          }
+
+          state.refs[children[0].data] = value;
+          return <span></span>;
+        } else if (classes.has("macro-ref") && children[0] instanceof Text) {
+          // reference a label
+          return <span>{state.refs?.[children[0].data] ?? <b>??</b>}</span>;
+        }
+      }
+
       if (
         attribs["class"] != "starred" &&
         (name == "h3" || name == "h4" || name == "h5")
       ) {
-        const env =
+        const level =
           name == "h3"
             ? "section"
             : name == "h4"
@@ -56,11 +90,12 @@ export default function LaTeX({ value, isInline, style, state = {} }: Props) {
             ? "subsubsection"
             : "";
         // these come from chapter/section/subsection/subsection in unified-latex
+        state.level = level;
         if (state.section == null) {
           state.section = 0;
           state.subsection = state.subsubsection = 1;
         }
-        if (env == "section") {
+        if (level == "section") {
           state.section += 1;
           state.subsection = 0;
           state.subsubsection = 0;
@@ -69,7 +104,7 @@ export default function LaTeX({ value, isInline, style, state = {} }: Props) {
               {state.section} {domToReact(children, options)}
             </h3>
           );
-        } else if (env == "subsection") {
+        } else if (level == "subsection") {
           state.subsection += 1;
           state.subsubsection = 0;
           return (
@@ -77,7 +112,7 @@ export default function LaTeX({ value, isInline, style, state = {} }: Props) {
               {state.section}.{state.subsection} {domToReact(children, options)}
             </h4>
           );
-        } else if (env == "subsubsection") {
+        } else if (level == "subsubsection") {
           state.subsubsection += 1;
           return (
             <h4>

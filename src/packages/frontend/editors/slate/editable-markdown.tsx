@@ -49,20 +49,15 @@ import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentio
 import { createMention } from "./elements/mention/editable";
 import { Mention } from "./elements/mention/index";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
-
 import { useSearch, SearchHook } from "./search";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
-
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { resetSelection } from "./control";
-
 import { markdown_to_html } from "@cocalc/frontend/markdown";
-
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
-
 import { delay } from "awaiting";
-
 import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimode";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 import type { SlateEditor } from "./types";
 export type { SlateEditor };
@@ -172,6 +167,11 @@ export function EditableMarkdown({
   sourceToSlate = markdown_to_slate,
   slateToSource = slate_to_markdown,
 }: Props) {
+  // TODO: reset global latex state.  Note that this really needs to
+  // get set periodically to reflect state of the entire document.
+  const fileContext = useFileContext();
+  fileContext.latexState = {};
+
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
   const id = id0 ?? "";

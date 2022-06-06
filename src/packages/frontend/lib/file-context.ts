@@ -54,6 +54,9 @@ interface IFileContext {
   // to force it to reload.  This is, e.g., useful for R markdown, where each time it
   // updates, the images may change, by their names don't, so we have to break the browser cache.
   reloadImages?: boolean;
+
+  // Global state related to rendering latex in @cocalc/frontend/components/latex/latex.tsx
+  latexState?: any;
 }
 
 export const FileContext = createContext<IFileContext>({});

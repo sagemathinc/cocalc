@@ -15,6 +15,7 @@ import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import Leaf from "./leaf";
 import { Descendant } from "slate";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   slate: Descendant[];
@@ -23,6 +24,8 @@ interface Props {
 }
 
 export default function RenderStatic({ slate, style, className }: Props) {
+  const fileContext = useFileContext();
+  fileContext.latexState = {}; // so there is a global state for all latex that gets rendered below:
   const v: JSX.Element[] = [];
   let n = 0;
   for (const element of slate) {
