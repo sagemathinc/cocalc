@@ -1,16 +1,20 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { DatePicker } from "antd";
 import moment from "moment";
 import { CSSProperties, useState } from "react";
-
-type Date0 = Date | undefined;
+import { DateRangeType, Date0 } from "@cocalc/util/types/store";
 
 interface Props {
-  onChange?: (x: [Date0, Date0]) => void;
+  onChange?: (x: DateRangeType) => void;
   style?: CSSProperties;
   noPast?: boolean; // if true, don't allow dates in the past
   maxDaysInFuture?: number; // don't allow dates this far in the future from now
   disabled?: boolean;
-  initialValues?: [Date0, Date0];
+  initialValues?: DateRangeType;
 }
 
 export default function DateRange({
@@ -21,7 +25,7 @@ export default function DateRange({
   disabled = false,
   initialValues = [undefined, undefined],
 }: Props) {
-  const [dateRange, setDateRange] = useState<[Date0, Date0]>(initialValues);
+  const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
   return (
     <div style={style}>
       <DatePicker.RangePicker

@@ -5,11 +5,11 @@
 
 import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
-import { redux, useTypedRedux, useMemo } from "../app-framework";
+import { redux, useTypedRedux, useMemo } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon, Tip, Space } from "../components";
-import { UsersViewing } from "../account/avatar/users-viewing";
-import { VideoChatButton } from "./video/launch-button";
+import { Icon, Tip, Space } from "@cocalc/frontend/components";
+import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import VideoChatButton from "./video/launch-button";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",

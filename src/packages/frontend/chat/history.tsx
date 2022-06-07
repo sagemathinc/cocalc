@@ -7,7 +7,8 @@ import { List, Map } from "immutable";
 import { trunc_middle } from "@cocalc/util/misc";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
-import { Markdown, TimeAgo } from "@cocalc/frontend/components";
+import { TimeAgo } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 export function HistoryTitle() {
   return (
@@ -57,7 +58,7 @@ export function History({ history, user_map }: HistoryProps) {
     v.push(
       <Well key={index} style={{ marginBottom: "0px" }}>
         <div style={{ marginBottom: "-10px", wordWrap: "break-word" }}>
-          <Markdown value={value} />
+          <StaticMarkdown value={value} />
         </div>
         <div className="small">
           {value.trim() == "" ? "Message deleted " : "Last edit "}
