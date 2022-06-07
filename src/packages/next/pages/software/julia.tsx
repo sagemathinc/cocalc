@@ -3,6 +3,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
+import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
@@ -20,10 +21,11 @@ interface Props {
   spec: SoftwareSpec["julia"];
   inventory: ComputeInventory["julia"];
   components: ComputeComponents["julia"];
+  execInfo?: { [key: string]: string };
 }
 
 export default function Julia(props: Props) {
-  const { customize, spec, inventory, components } = props;
+  const { customize, spec, inventory, components, execInfo } = props;
 
   function renderIntro() {
     return (
@@ -88,6 +90,7 @@ export default function Julia(props: Props) {
           </h1>
           {renderIntro()}
           {renderInfoBox()}
+          <SoftwareInfo info={execInfo} />
           <SoftwareLibraries
             spec={spec}
             inventory={inventory}
@@ -102,5 +105,7 @@ export default function Julia(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "julia");
+  return await withCustomizedAndSoftwareSpec(context, "julia", [
+    "/ext/bin/julia",
+  ]);
 }

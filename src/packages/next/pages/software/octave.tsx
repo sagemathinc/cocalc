@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -21,10 +26,10 @@ interface Props {
   spec: SoftwareSpec["octave"];
   inventory: ComputeInventory["octave"];
   components: ComputeComponents["octave"];
-  extra?: string;
+  execInfo?: { [key: string]: string };
 }
 export default function Octave(props: Props) {
-  const { customize, spec, inventory, components, extra } = props;
+  const { customize, spec, inventory, components, execInfo } = props;
 
   function renderBox() {
     return (
@@ -80,7 +85,7 @@ export default function Octave(props: Props) {
           </h1>
           {renderInfo()}
           {renderBox()}
-          <SoftwareInfo info={extra} />
+          <SoftwareInfo info={execInfo} />
           <SoftwareLibraries
             spec={spec}
             inventory={inventory}
@@ -95,9 +100,7 @@ export default function Octave(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(
-    context,
-    "octave",
-    "/usr/local/bin/octave"
-  );
+  return await withCustomizedAndSoftwareSpec(context, "octave", [
+    "/usr/local/bin/octave",
+  ]);
 }
