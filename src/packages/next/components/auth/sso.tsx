@@ -10,6 +10,8 @@ import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
 
 const { Link: AntdLink } = Typography;
 
+import styles from "./sso.module.css";
+
 interface SSOProps {
   strategies?: Strategy[];
   size?: number;
@@ -123,47 +125,57 @@ export function StrategyAvatar(props: AvatarProps) {
     margin: "0 2px",
   } as CSSProperties;
 
-  const iconImg = icon?.includes("://") ? (
-    <img
-      src={icon}
-      style={{
-        height: `${size - 2}px`,
-        width: `${size - 2}px`,
-        marginLeft: "2.5px",
-        objectFit: "contain",
-      }}
-    />
-  ) : (
-    <Icon name={icon as any} style={{ ...STYLE, backgroundColor }} />
-  );
-
-  const avatar = <Avatar shape="square" size={size} src={iconImg} gap={1} />;
+  function renderIconImg() {
+    if (icon?.includes("://")) {
+      return (
+        <img
+          src={icon}
+          style={{
+            height: `${size - 2}px`,
+            width: `${size - 2}px`,
+            marginLeft: "2.5px",
+            objectFit: "contain",
+          }}
+        />
+      );
+    } else {
+      return <Icon name={icon as any} style={{ ...STYLE, backgroundColor }} />;
+    }
+  }
 
   function renderAvatar() {
+    const avatar = (
+      <Avatar
+        shape="square"
+        size={size}
+        src={renderIconImg()}
+        gap={1}
+        className={styles.icon}
+      />
+    );
+
     if (noLink) {
       return avatar;
     } else {
-      return (
-        <a href={ssoHREF} style={{ margin: "0 2.5px", cursor: "pointer" }}>
-          {avatar}
-        </a>
-      );
+      return <a href={ssoHREF}>{avatar}</a>;
     }
+  }
+
+  function renderIcon() {
+    if (icon?.includes("://")) return "";
+    return (
+      <Icon
+        name={icon as any}
+        style={{ fontSize: "14pt", marginRight: "10px" }}
+      />
+    );
   }
 
   return (
     <Tooltip
       title={
         <>
-          {icon?.includes("://") ? (
-            ""
-          ) : (
-            <Icon
-              name={icon as any}
-              style={{ fontSize: "14pt", marginRight: "10px" }}
-            />
-          )}{" "}
-          {toolTip ?? <>Use your {display} account.</>}
+          {renderIcon()} {toolTip ?? <>Use your {display} account.</>}
         </>
       }
       color={backgroundColor}
