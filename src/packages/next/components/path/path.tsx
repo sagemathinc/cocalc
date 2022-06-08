@@ -27,25 +27,29 @@ import {
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export default function PublicPath({
-  id,
-  path,
-  project_id,
-  projectTitle,
-  relativePath,
-  description,
-  counter,
-  compute_image,
-  license,
-  contents,
-  error,
-  customize,
-  disabled,
-  unlisted,
-  authenticated,
-}) {
+export default function PublicPath(props) {
+  const {
+    id,
+    path,
+    project_id,
+    projectTitle,
+    relativePath,
+    description,
+    counter,
+    compute_image,
+    license,
+    contents,
+    error,
+    customize,
+    disabled,
+    unlisted,
+    authenticated,
+  } = props;
+
   useCounter(id);
+
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
+
   if (error != null) {
     return (
       <div>
