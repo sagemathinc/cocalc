@@ -27,7 +27,7 @@ export namespace QueryParams {
     return {};
   }
 
-  export function get(p: string) {
+  export function get(p: string): string | string[] | null | undefined {
     return get_all()[p];
   }
 

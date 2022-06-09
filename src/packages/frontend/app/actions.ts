@@ -268,7 +268,6 @@ export class PageActions extends Actions<PageState> {
       return;
     }
     this.setState({ fullscreen });
-    update_params();
   }
 
   set_get_api_key(val) {
@@ -293,7 +292,6 @@ export class PageActions extends Actions<PageState> {
 
     // Save state and update URL.
     this.setState({ session });
-    update_params();
 
     // Make new session manager, but only register it if we have
     // an actual session name!

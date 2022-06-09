@@ -55,7 +55,7 @@ function params(): string {
   const page = redux.getStore("page");
   const current = QueryParams.get_all();
   if (page != null) {
-    for (let param of ["fullscreen", "session", "get_api_key", "test"]) {
+    for (let param of ["get_api_key", "test"]) {
       const val = page.get(param);
       if (val) {
         current[param] = val;
@@ -88,7 +88,7 @@ export function update_params() {
 export function set_url(url: string) {
   last_url = url;
   const query_params = params();
-  const full_url = join(appBasePath, url + query_params);
+  const full_url = join(appBasePath, url + query_params + location.hash);
   if (full_url === last_full_url) {
     // nothing to do
     return;

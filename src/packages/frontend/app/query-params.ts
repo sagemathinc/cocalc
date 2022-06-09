@@ -10,6 +10,11 @@ import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";
 import { parse_target } from "../history";
 import { target } from "@cocalc/frontend/client/handle-hash-url";
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function init_query_params(): void {
   const actions = redux.getActions("page");
@@ -44,9 +49,30 @@ export function init_query_params(): void {
   // as "no session" (also no session for kiosk mode).
   // Note that we never have a session in kiosk mode, since you can't
   // access the other files.
-  const session =
-    COCALC_FULLSCREEN === "kiosk"
-      ? ""
-      : QueryParams.get("session") ?? "default";
-  actions.set_session(session);
+  // If click on link with ?session=, then you get no session, e.g,. this
+  // is used for doing a pop-out of a single file.  Should have no impact
+  // on sessions at all.
+  if (COCALC_FULLSCREEN === "kiosk") {
+    actions.set_session(""); // no session
+  } else {
+    const key = `session${appBasePath}`;
+    const querySession = QueryParams.get("session");
+    let session: any = querySession ?? get_local_storage(key) ?? "default";
+
+    if (typeof session != "string") {
+      // should never happen, but of course it could since user could put anything in URL query params
+      // We just reset to default in this case.
+      session = "default";
+    }
+    actions.set_session(session);
+    if (session) {
+      // So when you don't give session= param in this browser in the future
+      // it defaults to the one you did use (or "default").
+      set_local_storage(key, session);
+    }
+  }
+  // Do not need or want it in our URL once we've consumed it.  Critical to
+  // not have session in the URL, so we can share url's without infected
+  // other user's session.
+  QueryParams.remove("session");
 }
