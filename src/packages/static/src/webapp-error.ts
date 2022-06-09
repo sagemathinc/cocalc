@@ -97,6 +97,10 @@ function isWhitelisted({ error }): boolean {
       // get automatically fixed when we upgrade to codemirror 6.
       return true;
     }
+    if(error?.stack?.includes("Possible side-effect in debug-evaluate")) {
+      // https://github.com/sagemathinc/cocalc/issues/5963
+      return true;
+    }
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.
