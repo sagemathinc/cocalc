@@ -533,8 +533,8 @@ export class Actions extends BaseActions<State> {
     return this._syncstring?.in_undo_mode();
   }
 
-  fitToScreen(id: string, state: boolean = true): void {
-    this.set_frame_tree({ id, fitToScreen: state ? true : undefined });
+  fitToScreen(frameId, state: boolean = true): void {
+    this.set_frame_tree({ id: frameId, fitToScreen: state ? true : undefined });
   }
 
   toggleMapType(id: string): void {
@@ -1128,6 +1128,27 @@ export class Actions extends BaseActions<State> {
     this.setPages(frameId, page);
     this.setPage(frameId, page);
     this.centerElement(element.id, frameId);
+  }
+
+  async programmatical_goto_line(
+    line: string | number,
+    _cursor?: boolean,
+    _focus?: boolean,
+    frameId?: string // if given scroll this particular frame
+  ) {
+    // NOTE: This function is a bit different in that it is often called before
+    // the sync stuff is initialized. So unlike most functions above, we
+    // have to be explicit about that.
+    if (!(await this.wait_until_syncdoc_ready())) {
+      return;
+    }
+    if (frameId == null) {
+      frameId = this.show_focused_frame_of_type("whiteboard");
+    }
+
+    const elementId = `${line}`;
+    this.centerElement(elementId, frameId);
+    this.set_font_size(frameId, DEFAULT_FONT_SIZE);
   }
 }
 

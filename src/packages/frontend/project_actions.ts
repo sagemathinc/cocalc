@@ -521,6 +521,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // this is important, because e.g. the store has a "visible" field, which stays undefined
             // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
             this.show_file(path);
+            // If a line location is set, we also jump there.
+            const line = store.get("open_files").getIn([path, "line"]);
+            if (line != null) {
+              this.goto_line(path, line, true, true);
+            }
           })();
         } else {
           this.show_file(path);
@@ -823,8 +828,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // If the given path is open, and editor supports going to line,
-  // moves to the given line.
-  // Otherwise, does nothing.
+  // moves to the given line.  Otherwise, does nothing.
   public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
@@ -835,9 +839,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         typeof editor.programmatical_goto_line === "function"
       ) {
         editor.programmatical_goto_line(line);
+        // TODO: For an old non-react editor (basically just sage worksheets at this point!)
+        // we have to just use this flaky hack, since we are going to toss all this
+        // code soon.  This is needed since if editor is just *loading*, should wait until it
+        // finishes before actually jumping to line, but that's not implemented in editor.coffee.
+        setTimeout(() => {
+          editor.programmatical_goto_line(line);
+        }, 1000);
+        setTimeout(() => {
+          editor.programmatical_goto_line(line);
+        }, 2000);
       }
     } else {
-      if (typeof a.programmatical_goto_line === "function") {
+      if (a.programmatical_goto_line != null) {
         a.programmatical_goto_line(line, cursor, focus);
       }
     }

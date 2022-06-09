@@ -356,6 +356,27 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   public async close_introspect(): Promise<void> {
     this.close_recently_focused_frame_of_type("introspect");
   }
+
+  async programmatical_goto_line(
+    line: string | number,
+    _cursor?: boolean,
+    _focus?: boolean,
+    frameId?: string // if given scroll this particular frame
+  ) {
+    if (
+      !(await this.wait_until_syncdoc_ready(this.jupyter_actions.syncdb))
+    ) {
+      return;
+    }
+    if (frameId == null) {
+      frameId = this.show_focused_frame_of_type("jupyter_cell_notebook");
+    }
+
+    const cellId = `${line}`;
+    const actions = this.get_frame_actions(frameId);
+    if (actions == null) return;
+    actions.set_cur_id(cellId);
+  }
 }
 
 export { JupyterEditorActions as Actions };

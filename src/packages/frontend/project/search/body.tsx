@@ -14,7 +14,6 @@ import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
 import { Icon, Loading, SearchInput, Space } from "../../components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
 import { useTypedRedux, useActions } from "../../app-framework";
-import { delay } from "awaiting";
 
 const DESC_STYLE: React.CSSProperties = {
   color: "#666",
@@ -279,14 +278,8 @@ const ProjectSearchResultLine: React.FC<{
     await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
+      line:line_number,
     });
-    await delay(200);
-    actions?.goto_line(path, line_number, true, true);
-    // We really have to try again, since there
-    // is no telling how long until the editor
-    // is sufficiently initialized for this to work.
-    await delay(1000);
-    actions?.goto_line(path, line_number, true, true);
   }
 
   return (

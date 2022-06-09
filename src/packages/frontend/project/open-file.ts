@@ -26,6 +26,7 @@ import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -36,6 +37,7 @@ export async function open_file(
   actions: ProjectActions,
   opts: {
     path: string;
+    line?: number | string;
     foreground?: boolean;
     foreground_project?: boolean;
     chat?: any;
@@ -55,6 +57,7 @@ export async function open_file(
 
   opts = defaults(opts, {
     path: required,
+    line: undefined,
     foreground: true,
     foreground_project: true,
     chat: undefined,
@@ -95,7 +98,8 @@ export async function open_file(
   }
 
   let open_files = store.get("open_files");
-  if (!open_files.has(opts.path)) {
+  const notAlreadyOpened = !open_files.has(opts.path);
+  if (notAlreadyOpened) {
     // Make the visible tab appear ASAP, even though
     // some stuff that may await below needs to happen.
     // E.g., if the user elects not to start the project, or
@@ -104,6 +108,16 @@ export async function open_file(
     // usually.
     if (!actions.open_files) return; // closed
     actions.open_files.set(opts.path, "component", {});
+  }
+
+  if (opts.line == null && notAlreadyOpened) {
+    // If you just opened a file and line is set in the query string, go to
+    // that line.
+    const line = QueryParams.get("line");
+    if (typeof line == "string") {
+      //opts.line = /^[0-9]+$/.test(line) ? parseInt(line) : line;
+      opts.line = line;
+    }
   }
 
   if (
@@ -170,10 +184,6 @@ export async function open_file(
     // Check if have capability to open this file.  Important
     // to only do this if not public, since again, if public we
     // are not even using the project (it is all client side).
-    // NOTE: I think this is wrong; we should always open any file
-    // and instead of saying "can't open it", instead just fall
-    // back to a codemirror text editor...   After all, that's what
-    // we already do with all uknown file types.
     const can_open_file = await store.can_open_file_ext(ext, actions);
     if (is_closed()) return;
     if (!can_open_file) {
@@ -205,6 +215,7 @@ export async function open_file(
   }
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
+    // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
     await open_sagenb_worksheet({ ...opts, project_id: actions.project_id });
     return;
   }
@@ -227,7 +238,7 @@ export async function open_file(
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
   });
-  if (!open_files.has(opts.path) || file_info.is_public !== is_public) {
+  if (notAlreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 
     if (was_public != null && was_public !== is_public) {
@@ -238,6 +249,9 @@ export async function open_file(
     // Add it to open files
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
+    if (opts.line != null) {
+      actions.open_files.set(opts.path, "line", opts.line);
+    }
 
     if (opts.chat) {
       init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
@@ -287,6 +301,13 @@ export async function open_file(
         }
       }
     }
+  }
+
+  if (opts.line != null && !notAlreadyOpened) {
+    // when file already opened we have to explicitly do this, since
+    // it doesn't happen in response to foregrounding the file the
+    // first time.
+    actions.goto_line(opts.path, opts.line, true, true);
   }
 }
 
@@ -446,3 +467,4 @@ function get_side_chat_state(
     opts.chat = false;
   }
 }
+

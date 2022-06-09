@@ -169,6 +169,8 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   // Get the given version of the document.
   public get_doc(version: Date): any {
     if (this.syncdoc == null) return;
+    const state = this.syncdoc.get_state();
+    if (state != "ready") return;
     return this.syncdoc.version(version);
   }
 
@@ -326,6 +328,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     await actions.open_file({ path, foreground: true });
     return path;
   }
+
+  // We have not implemented any way to do programmatical_goto_line this for time travel yet.
+  // It will be very interesting and useful, because it will allow for
+  // linking to a specific line/cell at a **specific point in time**.
+  // async programmatical_goto_line() {}
 }
 
 export { TimeTravelActions as Actions };
