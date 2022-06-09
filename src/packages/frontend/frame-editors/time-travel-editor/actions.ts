@@ -86,13 +86,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return { type: "time_travel" };
   }
 
-  /*
-  private jupyter_classic(): boolean {
-    const store = this.redux.getStore("account");
-    if (store == null) return false; // can't happen
-    return !!store.getIn(["editor_settings", "jupyter_classic"]);
-  }*/
-
   private async init_syncdoc(): Promise<void> {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
     this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
@@ -111,7 +104,32 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   }
 
+  private hack_to_ensure_syncdoc_is_really_working() {
+    // This is a hack to make sure the syncdoc is working.
+    // Time travel history can be opened as several subframes next to
+    // a file and also as a separate tab (by shift clicking on the
+    // time travel button). Things get really complicated and sometimes
+    // the syncdoc gets closed by one thing, and the syncdoc that
+    // timetravel ends up with thinks it is ready, but it doesn't
+    // work.  Definitely that could be fixed, but it's difficult to
+    // track down.  So for now, I'm doing a quick test that the
+    // syncdoc is definitely working, and if it isn't, just recreate it.
+    // This is obviously much preferable to a crash.
+    try {
+      this.syncdoc.all_versions();
+    } catch (err) {
+      // console.log(err);
+      if (this.syncdoc != null) {
+        this.syncdoc.close();
+        delete this.syncdoc;
+      }
+      this.init_syncdoc();
+    }
+  }
+
   public init_frame_tree(versions?: List<Date>): void {
+    this.hack_to_ensure_syncdoc_is_really_working();
+
     if (versions == null) {
       if (this.syncdoc == null || this.syncdoc.get_state() != "ready") return;
       versions = List<Date>(this.syncdoc.all_versions());
