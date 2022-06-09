@@ -7,6 +7,7 @@
 Whiteboard FRAME Editor Actions
 */
 
+import FragmentId from "@cocalc/frontend/misc/fragment-id";
 import { Map as ImmutableMap } from "immutable";
 import { FrameTree } from "../frame-tree/types";
 import {
@@ -386,8 +387,19 @@ export class Actions extends BaseActions<State> {
     }
   }
 
+  private setFragmentIdToPage(frameId: string): void {
+    const node = this._get_frame_node(frameId);
+    const page = node?.get("page");
+    if (page != null) {
+      FragmentId.set({ page });
+    } else {
+      FragmentId.clear();
+    }
+  }
+
   clearSelection(frameId: string): void {
     this.set_frame_tree({ id: frameId, selection: [], editFocus: false });
+    this.setFragmentIdToPage(frameId);
   }
 
   // Sets the selection to either a single element or a list
@@ -408,43 +420,51 @@ export class Actions extends BaseActions<State> {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
-    if (expandGroups) {
-      const elements = this.store.get("elements");
-      if (elements == null) return;
-      const group = elements.getIn([id, "group"]);
-      if (group) {
-        const ids = this.getGroup(group).map((e) => e.id);
-        if (ids.length > 1) {
-          if (type == "toggle") {
-            type = selection.includes(id) ? "remove" : "add";
+    try {
+      if (expandGroups) {
+        const elements = this.store.get("elements");
+        if (elements == null) return;
+        const group = elements.getIn([id, "group"]);
+        if (group) {
+          const ids = this.getGroup(group).map((e) => e.id);
+          if (ids.length > 1) {
+            if (type == "toggle") {
+              type = selection.includes(id) ? "remove" : "add";
+            }
+            this.setSelectionMulti(frameId, ids, type, false);
+            return;
           }
-          this.setSelectionMulti(frameId, ids, type, false);
-          return;
+          // expanding the group did nothing
         }
-        // expanding the group did nothing
+        // not in a group
       }
-      // not in a group
-    }
 
-    if (type == "toggle") {
-      const i = selection.indexOf(id);
-      if (i == -1) {
+      if (type == "toggle") {
+        const i = selection.indexOf(id);
+        if (i == -1) {
+          selection.push(id);
+        } else {
+          selection.splice(i, 1);
+        }
+      } else if (type == "add") {
+        if (selection.includes(id)) return;
         selection.push(id);
-      } else {
+      } else if (type == "remove") {
+        const i = selection.indexOf(id);
+        if (i == -1) return;
         selection.splice(i, 1);
+      } else if (type == "only") {
+        selection = [id];
       }
-    } else if (type == "add") {
-      if (selection.includes(id)) return;
-      selection.push(id);
-    } else if (type == "remove") {
-      const i = selection.indexOf(id);
-      if (i == -1) return;
-      selection.splice(i, 1);
-    } else if (type == "only") {
-      selection = [id];
+      this.setEditFocus(frameId, type == "only" && size(selection) == 1);
+      this.set_frame_tree({ id: frameId, selection });
+    } finally {
+      if (size(selection) == 0) {
+        this.setFragmentIdToPage(frameId);
+      } else {
+        FragmentId.set({ id: selection[0] });
+      }
     }
-    this.setEditFocus(frameId, type == "only" && size(selection) == 1);
-    this.set_frame_tree({ id: frameId, selection });
   }
 
   public setSelectionMulti(

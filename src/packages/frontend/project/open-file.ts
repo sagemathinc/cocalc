@@ -26,7 +26,6 @@ import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -37,7 +36,8 @@ export async function open_file(
   actions: ProjectActions,
   opts: {
     path: string;
-    line?: number | string;
+    line?: number; // mainly backward compat for now
+    fragmentId?: string; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
     foreground?: boolean;
     foreground_project?: boolean;
     chat?: any;
@@ -58,6 +58,7 @@ export async function open_file(
   opts = defaults(opts, {
     path: required,
     line: undefined,
+    fragmentId: undefined,
     foreground: true,
     foreground_project: true,
     chat: undefined,
@@ -68,6 +69,11 @@ export async function open_file(
     anchor: undefined,
   });
   opts.path = normalize(opts.path);
+
+  if (opts.line != null && !opts.fragmentId) {
+    // backward compat
+    opts.fragmentId = `line=${opts.line}`;
+  }
 
   const is_kiosk = () =>
     !opts.ignore_kiosk &&
@@ -98,8 +104,8 @@ export async function open_file(
   }
 
   let open_files = store.get("open_files");
-  const notAlreadyOpened = !open_files.has(opts.path);
-  if (notAlreadyOpened) {
+  const alreadyOpened = open_files.has(opts.path);
+  if (!alreadyOpened) {
     // Make the visible tab appear ASAP, even though
     // some stuff that may await below needs to happen.
     // E.g., if the user elects not to start the project, or
@@ -110,14 +116,10 @@ export async function open_file(
     actions.open_files.set(opts.path, "component", {});
   }
 
-  if (opts.line == null && notAlreadyOpened) {
-    // If you just opened a file and line is set in the query string, go to
-    // that line.
-    const line = QueryParams.get("line");
-    if (typeof line == "string") {
-      //opts.line = /^[0-9]+$/.test(line) ? parseInt(line) : line;
-      opts.line = line;
-    }
+  if (opts.fragmentId == null && !alreadyOpened && location.hash) {
+    // If you just opened a file and location.hash is set, go to
+    // that location.
+    opts.fragmentId = location.hash;
   }
 
   if (
@@ -238,7 +240,7 @@ export async function open_file(
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
   });
-  if (notAlreadyOpened || file_info.is_public !== is_public) {
+  if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 
     if (was_public != null && was_public !== is_public) {
@@ -249,10 +251,6 @@ export async function open_file(
     // Add it to open files
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
-    if (opts.line != null) {
-      actions.open_files.set(opts.path, "line", opts.line);
-    }
-
     if (opts.chat) {
       init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
       // ONLY do this *after* initializing actions/store for side chat:
@@ -261,6 +259,8 @@ export async function open_file(
 
     redux.getActions("page").save_session();
   }
+
+  actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
@@ -303,11 +303,11 @@ export async function open_file(
     }
   }
 
-  if (opts.line != null && !notAlreadyOpened) {
+  if (alreadyOpened && opts.fragmentId) {
     // when file already opened we have to explicitly do this, since
     // it doesn't happen in response to foregrounding the file the
     // first time.
-    actions.goto_line(opts.path, opts.line, true, true);
+    actions.gotoFragment(opts.path, opts.fragmentId);
   }
 }
 
@@ -467,4 +467,3 @@ function get_side_chat_state(
     opts.chat = false;
   }
 }
-

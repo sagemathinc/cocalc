@@ -521,10 +521,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // this is important, because e.g. the store has a "visible" field, which stays undefined
             // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
             this.show_file(path);
-            // If a line location is set, we also jump there.
-            const line = store.get("open_files").getIn([path, "line"]);
-            if (line != null) {
-              this.goto_line(path, line, true, true);
+            // If a fragment identifier is set, we also jump there.
+            const fragmentId = store
+              .get("open_files")
+              .getIn([path, "fragmentId"]);
+            if (fragmentId) {
+              this.gotoFragment(path, fragmentId);
             }
           })();
         } else {
@@ -827,11 +829,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // Moves to the given fragment if the gotoFragment action is implemented and accepted,
+  // and the file actions exist already (e.g. file was opened).
+  // Otherwise, silently does nothing.  Has a fallback for now for fragmentId='line=[number]'.
+  public gotoFragment(path: string, fragmentId: string): void {
+    console.log("gotoFragment", { path, fragmentId });
+    if (!fragmentId) return;
+    const actions: any = redux.getEditorActions(this.project_id, path);
+    if (actions?.gotoFragment != null) {
+      actions.gotoFragment(fragmentId);
+      return;
+    }
+    if (fragmentId.startsWith("line=")) {
+      // regexp grabs first number: https://stackoverflow.com/questions/1623221/how-to-find-a-number-in-a-string-using-javascript
+      const s = fragmentId.match(/\d+/)?.[0];
+      if (s) {
+        const line = parseInt(s);
+        this.goto_line(path, line, true, true);
+        return;
+      }
+    }
+  }
+
   // If the given path is open, and editor supports going to line,
   // moves to the given line.  Otherwise, does nothing.
   public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
-    const a: any = redux.getEditorActions(this.project_id, path);
-    if (a == null) {
+    const actions: any = redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
       // try non-react editor
       const editor = get_editor(this.project_id, path);
       if (
@@ -850,10 +874,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           editor.programmatical_goto_line(line);
         }, 2000);
       }
-    } else {
-      if (a.programmatical_goto_line != null) {
-        a.programmatical_goto_line(line, cursor, focus);
-      }
+    } else if (actions.programmatical_goto_line != null) {
+      actions.programmatical_goto_line(line, cursor, focus);
     }
   }
 

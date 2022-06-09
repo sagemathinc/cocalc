@@ -116,7 +116,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     // syncdoc is definitely working, and if it isn't, just recreate it.
     // This is obviously much preferable to a crash.
     try {
-      this.syncdoc.all_versions();
+      (this.syncdoc as any).all_versions();
     } catch (err) {
       // console.log(err);
       if (this.syncdoc != null) {
