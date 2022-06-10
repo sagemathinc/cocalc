@@ -4,10 +4,10 @@
  */
 
 /*
-Whiteboard FRAME Editor Actions
+Whiteboard frame Editor Actions
 */
 
-import FragmentId from "@cocalc/frontend/misc/fragment-id";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Map as ImmutableMap } from "immutable";
 import { FrameTree } from "../frame-tree/types";
 import {
@@ -51,6 +51,7 @@ import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
+import { delay } from "awaiting";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
@@ -389,15 +390,18 @@ export class Actions extends BaseActions<State> {
 
   private setFragmentIdToPage(frameId: string): void {
     const node = this._get_frame_node(frameId);
+    if (node?.get("type") != "whiteboard") return;
     const page = node?.get("page");
     if (page != null) {
-      FragmentId.set({ page });
+      Fragment.set({ page });
     } else {
-      FragmentId.clear();
+      Fragment.clear();
     }
   }
 
   clearSelection(frameId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null || node.get("selection").size == 0) return;
     this.set_frame_tree({ id: frameId, selection: [], editFocus: false });
     this.setFragmentIdToPage(frameId);
   }
@@ -459,10 +463,11 @@ export class Actions extends BaseActions<State> {
       this.setEditFocus(frameId, type == "only" && size(selection) == 1);
       this.set_frame_tree({ id: frameId, selection });
     } finally {
+      if (node.get("type") != "whiteboard") return;
       if (size(selection) == 0) {
         this.setFragmentIdToPage(frameId);
       } else {
-        FragmentId.set({ id: selection[0] });
+        Fragment.set({ id: selection[0] });
       }
     }
   }
@@ -588,8 +593,12 @@ export class Actions extends BaseActions<State> {
   }
 
   // define this, so icon shows up at top
-  zoom_page_width(id: string): void {
-    this.fitToScreen(id);
+  zoom_page_width(frameId: string): void {
+    this.fitToScreen(frameId);
+  }
+
+  zoom100(frameId: string) {
+    this.set_font_size(frameId, DEFAULT_FONT_SIZE);
   }
 
   // maybe this should NOT be in localStorage somehow... we need
@@ -855,7 +864,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
-    this.setPage(frameId, element.page ?? 1);
+    super.setPage(frameId, element.page ?? 1);
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1168,7 +1177,39 @@ export class Actions extends BaseActions<State> {
 
     const elementId = `${line}`;
     this.centerElement(elementId, frameId);
-    this.set_font_size(frameId, DEFAULT_FONT_SIZE);
+    this.zoom100(frameId);
+  }
+
+  setPage(
+    frameId: string,
+    page: string | number,
+  ): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    super.setPage(frameId, page);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
+  async gotoFragment(fragmentId: FragmentId) {
+    if (!(await this.wait_until_syncdoc_ready())) {
+      return;
+    }
+    const frameId = this.show_focused_frame_of_type("whiteboard");
+    if (fragmentId["page"] != null) {
+      this.setPage(frameId, parseInt(fragmentId["page"]));
+      // TODO: we need to change things so the initial
+      // fragment to go to is passed in to the init, so
+      // can be used **instead of** restoring from desc:
+      await delay(100);
+      this.fitToScreen(frameId);
+      return;
+    }
+    if (fragmentId["id"] != null) {
+      this.centerElement(fragmentId["id"], frameId);
+      this.zoom100(frameId);
+      return;
+    }
   }
 }
 

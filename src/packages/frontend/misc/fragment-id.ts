@@ -1,5 +1,5 @@
 /*
-URI fragments
+URI fragments identifier management
 
 The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 */
@@ -20,27 +20,30 @@ interface Page {
   page: string;
 }
 
-type FragmentId = Line | Id | Page | string;
+export type FragmentId = Line | Id | Page | string;
 
 namespace FragmentId {
   export function set(fragmentId: FragmentId): void {
+    const url = new URL(location.href);
     if (typeof fragmentId == "string") {
-      location.hash = fragmentId;
+      url.hash = fragmentId;
     } else {
       const v: string[] = [];
       for (const key in fragmentId) {
         v.push(`${key}=${fragmentId[key]}`);
       }
-      location.hash = v.join("&");
+      url.hash = v.join("&");
     }
+    history.replaceState({}, "", url.href);
   }
 
   export function get(): FragmentId {
     const fragmentId: any = {};
-    if (!location.hash.includes("=")) {
-      return location.hash;
+    const hash = location.hash.slice(1);
+    if (!hash.includes("=")) {
+      return hash;
     }
-    for (const x of location.hash.split("&")) {
+    for (const x of hash.split("&")) {
       const v = x.split("=");
       if (v.length == 2) {
         fragmentId[v[0]] = v[1];

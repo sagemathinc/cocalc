@@ -48,6 +48,8 @@ import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IconName } from "./components";
+import { default_filename } from "./account";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -317,26 +319,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_panel("show_library", show);
   }
 
-  set_url_to_path(current_path): void {
+  set_url_to_path(current_path, hash?: string): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
     }
-    this.push_state(`files/${current_path}`);
+    this.push_state(`files/${current_path}`, hash);
   }
 
   _url_in_project(local_url): string {
     return `/projects/${this.project_id}/${misc.encode_path(local_url)}`;
   }
 
-  push_state(local_url?: string): void {
+  push_state(local_url?: string, hash?: string): void {
     if (local_url == null) {
-      local_url = this._last_history_state;
-    }
-    if (local_url == null) {
-      local_url = `files/`;
+      local_url = this._last_history_state ?? "files/";
     }
     this._last_history_state = local_url;
-    set_url(this._url_in_project(local_url));
+    set_url(this._url_in_project(local_url), hash);
   }
 
   move_file_tab(opts: { old_index: number; new_index: number }): void {
@@ -416,14 +415,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
-
     const change: any = { active_project_tab: key };
     switch (key) {
       case "files":
         if (opts.change_history) {
-          this.set_url_to_path(
-            store.get("current_path") != null ? store.get("current_path") : ""
-          );
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         if (opts.update_file_listing) {
           this.fetch_directory_listing();
@@ -432,32 +428,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
-          this.push_state(`new/${store.get("current_path")}`);
+          this.push_state(`new/${store.get("current_path")}`, "");
         }
-        const new_fn = require("./account").default_filename(
-          opts.new_ext,
-          this.project_id
-        );
+        const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
       case "log":
         if (opts.change_history) {
-          this.push_state("log");
+          this.push_state("log", "");
         }
         break;
       case "search":
         if (opts.change_history) {
-          this.push_state(`search/${store.get("current_path")}`);
+          this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
       case "settings":
         if (opts.change_history) {
-          this.push_state("settings");
+          this.push_state("settings", "");
         }
         break;
       case "info":
         if (opts.change_history) {
-          this.push_state("info");
+          this.push_state("info", "");
         }
         break;
       default:
@@ -832,7 +825,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Moves to the given fragment if the gotoFragment action is implemented and accepted,
   // and the file actions exist already (e.g. file was opened).
   // Otherwise, silently does nothing.  Has a fallback for now for fragmentId='line=[number]'.
-  public gotoFragment(path: string, fragmentId: string): void {
+  public gotoFragment(path: string, fragmentId: FragmentId): void {
     // console.log("gotoFragment", { path, fragmentId });
     if (!fragmentId) return;
     const actions: any = redux.getEditorActions(this.project_id, path);
@@ -840,14 +833,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       actions.gotoFragment(fragmentId);
       return;
     }
-    if (fragmentId.startsWith("line=")) {
-      // regexp grabs first number: https://stackoverflow.com/questions/1623221/how-to-find-a-number-in-a-string-using-javascript
-      const s = fragmentId.match(/\d+/)?.[0];
-      if (s) {
-        const line = parseInt(s);
-        this.goto_line(path, line, true, true);
-        return;
-      }
+    // a fallback for now.
+    if (fragmentId["line"] != null) {
+      this.goto_line(path, fragmentId["line"], true, true);
+      return;
     }
   }
 
@@ -2729,7 +2718,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     foreground = true,
     ignore_kiosk = false,
     change_history = true,
-    anchor: string = ""
+    fragmentId?: FragmentId
   ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
@@ -2783,7 +2772,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             foreground_project: foreground,
             ignore_kiosk,
             change_history,
-            anchor,
+            fragmentId,
           });
         }
         break;

@@ -109,7 +109,12 @@ export default function Search() {
             return (
               <div
                 onClick={() => {
-                  actions.centerElement(element.id);
+                  const frameId =
+                    actions.show_focused_frame_of_type("whiteboard");
+                  if (frameId) {
+                    actions.centerElement(element.id, frameId);
+                    actions.zoom100(frameId);
+                  }
                 }}
                 style={{
                   cursor: "pointer",

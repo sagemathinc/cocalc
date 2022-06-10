@@ -5,8 +5,6 @@
 
 /*
 Session management
-
-Initially only the simplest possible client-side implementation.
 */
 
 import { throttle } from "underscore";

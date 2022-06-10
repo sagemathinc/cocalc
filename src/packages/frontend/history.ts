@@ -45,6 +45,7 @@ The URI schema handled by the single page app is as follows:
 import { redux } from "./app-framework";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -78,10 +79,13 @@ export function update_params() {
 }
 
 // the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
-export function set_url(url: string) {
+export function set_url(url: string, hash?: string) {
   last_url = url;
   const query_params = params();
-  const full_url = join(appBasePath, url + query_params + location.hash);
+  const full_url = join(
+    appBasePath,
+    url + query_params + (hash ?? location.hash)
+  );
   if (full_url === last_full_url) {
     // nothing to do
     return;
@@ -113,7 +117,8 @@ export function load_target(
             segments.slice(1).join("/"),
             true,
             ignore_kiosk,
-            change_history
+            change_history,
+            Fragment.get()
           );
       } else {
         redux.getActions("page").set_active_tab("projects", change_history);

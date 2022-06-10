@@ -5,7 +5,7 @@
 
 // Implement the open_file actions for opening one single file in a project.
 
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 import {
   defaults,
   endswith,
@@ -19,13 +19,13 @@ import {
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { editor_id } from "./utils";
 import { redux } from "../app-framework";
 import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -37,7 +37,7 @@ export async function open_file(
   opts: {
     path: string;
     line?: number; // mainly backward compat for now
-    fragmentId?: string; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
+    fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
     foreground?: boolean;
     foreground_project?: boolean;
     chat?: any;
@@ -45,9 +45,6 @@ export async function open_file(
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
-    // anchor -- if given, try to jump to scroll to this id in the editor, after it
-    // renders and is put in the foreground (ignored if foreground not true)
-    anchor?: string;
   }
 ): Promise<void> {
   if (endswith(opts.path, "/")) {
@@ -66,7 +63,6 @@ export async function open_file(
     ignore_kiosk: false,
     new_browser_window: false,
     change_history: true,
-    anchor: undefined,
   });
   opts.path = normalize(opts.path);
 
@@ -80,9 +76,9 @@ export async function open_file(
     (redux.getStore("page") as any).get("fullscreen") === "kiosk";
 
   if (opts.new_browser_window) {
-    // options other than path are ignored in this case.
-    // TODO: do not ignore anchor option.
-    // if there is no path, we open the entire project and want to show the tabs – unless in kiosk mode
+    // TODO: options other than path are ignored right now.
+    // if there is no path, we open the entire project and want
+    // to show the tabs – unless in kiosk mode
     const fullscreen = is_kiosk() ? "kiosk" : opts.path ? "default" : "";
     actions.open_in_new_browser_window(opts.path, fullscreen);
     return;
@@ -268,39 +264,6 @@ export async function open_file(
     actions.set_active_tab(tab, {
       change_history: opts.change_history,
     });
-    if (opts.anchor) {
-      // Scroll the *visible* one into view.  NOTE: it's possible
-      // that several notebooks (say) are all open in background tabs
-      // and all have the same anchor tag in them; we only want to
-      // try to scroll the visible one or ones.
-      // We also have no reliable way to know if the editor has
-      // fully loaded yet, so we just try until the tag appears
-      // up to 15s.  Someday, we will have to make it so editors
-      // somehow clearly indicate when they are done loading, and
-      // we can use that to do this right.
-      const start: number = new Date().valueOf();
-      const id = editor_id(actions.project_id, opts.path);
-      while (new Date().valueOf() - start.valueOf() <= 15000) {
-        await delay(100);
-        const store = actions.get_store();
-        if (store == undefined) break;
-        if (tab != store.get("active_project_tab")) break;
-        const e = $("#" + id).find("#" + opts.anchor);
-        if (e.length > 0) {
-          // We iterate through all of them in this visible editor.
-          // Because of easy editor splitting we could easily have multiple
-          // copies of the same id, and we move them all into view.
-          // Change this to break after the first one if this annoys people;
-          // it's not clear what the "right" design is.
-          for (const x of e) {
-            x.scrollIntoView();
-          }
-          break;
-        } else {
-          await delay(100);
-        }
-      }
-    }
   }
 
   if (alreadyOpened && opts.fragmentId) {
