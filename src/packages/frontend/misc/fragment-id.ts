@@ -20,19 +20,26 @@ interface Page {
   page: string;
 }
 
-type FragmentId = Line | Id | Page;
+type FragmentId = Line | Id | Page | string;
 
 namespace FragmentId {
   export function set(fragmentId: FragmentId): void {
-    const v: string[] = [];
-    for (const key in fragmentId) {
-      v.push(`${key}=${fragmentId[key]}`);
+    if (typeof fragmentId == "string") {
+      location.hash = fragmentId;
+    } else {
+      const v: string[] = [];
+      for (const key in fragmentId) {
+        v.push(`${key}=${fragmentId[key]}`);
+      }
+      location.hash = v.join("&");
     }
-    location.hash = v.join("&");
   }
 
   export function get(): FragmentId {
     const fragmentId: any = {};
+    if (!location.hash.includes("=")) {
+      return location.hash;
+    }
     for (const x of location.hash.split("&")) {
       const v = x.split("=");
       if (v.length == 2) {
