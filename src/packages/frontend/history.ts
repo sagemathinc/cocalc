@@ -43,8 +43,6 @@ The URI schema handled by the single page app is as follows:
 */
 
 import { redux } from "./app-framework";
-import { QueryParams } from "./misc/query-params";
-import { stringify } from "query-string";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
@@ -53,24 +51,18 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 // the "managed" params that are explicitly listed in the code below).
 function params(): string {
   const page = redux.getStore("page");
-  const current = QueryParams.get_all();
+  const u = new URL(location.href);
   if (page != null) {
-    for (let param of ["get_api_key", "test"]) {
+    for (const param of ["get_api_key", "test"]) {
       const val = page.get(param);
       if (val) {
-        current[param] = val;
+        u.searchParams.set(param, val);
       } else {
-        delete current[param];
+        u.searchParams.delete(param);
       }
     }
   }
-
-  const s = stringify(current);
-  if (s) {
-    return "?" + s;
-  } else {
-    return "";
-  }
+  return u.search;
 }
 
 // The last explicitly set url.
@@ -85,6 +77,7 @@ export function update_params() {
   }
 }
 
+// the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
 export function set_url(url: string) {
   last_url = url;
   const query_params = params();
@@ -94,7 +87,7 @@ export function set_url(url: string) {
     return;
   }
   last_full_url = full_url;
-  window.history.pushState("", "", full_url);
+  history.pushState({}, "", full_url);
 }
 
 // Now load any specific page/project/previous state

@@ -4,7 +4,7 @@
  */
 
 import { parse_target } from "../history";
-import { target } from "@cocalc/frontend/client/handle-hash-url";
+import target from "@cocalc/frontend/client/handle-target";
 import { redux, Store, TypedMap } from "../app-framework";
 
 type TopTab =

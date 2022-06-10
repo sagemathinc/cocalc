@@ -833,7 +833,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // and the file actions exist already (e.g. file was opened).
   // Otherwise, silently does nothing.  Has a fallback for now for fragmentId='line=[number]'.
   public gotoFragment(path: string, fragmentId: string): void {
-    console.log("gotoFragment", { path, fragmentId });
+    // console.log("gotoFragment", { path, fragmentId });
     if (!fragmentId) return;
     const actions: any = redux.getEditorActions(this.project_id, path);
     if (actions?.gotoFragment != null) {

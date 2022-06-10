@@ -9,7 +9,7 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";
 import { parse_target } from "../history";
-import { target } from "@cocalc/frontend/client/handle-hash-url";
+import target from "@cocalc/frontend/client/handle-target";
 import {
   get_local_storage,
   set_local_storage,
@@ -35,6 +35,8 @@ export function init_query_params(): void {
     }
   } else if (COCALC_FULLSCREEN === "default") {
     actions.set_fullscreen("default");
+    // We no longer need fullscreen in the query parameter:
+    QueryParams.remove("fullscreen");
   }
 
   const get_api_key_query_value = QueryParams.get("get_api_key");

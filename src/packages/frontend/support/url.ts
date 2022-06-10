@@ -14,7 +14,7 @@ export interface Options {
 
 export default function getURL(options: Options = {}) {
   if (!options.url) {
-    // do not use window.location.href, since that has # and query params
+    // do not use window.location.href, since that might have extra params and anchors
     // which mess things up and don't help.
     options.url = window.location.origin + window.location.pathname;
   }

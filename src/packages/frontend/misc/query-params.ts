@@ -7,70 +7,35 @@
 Convenience functions for working with the query parameters in the URL.
 */
 
-import * as query_string from "query-string";
+// Import this to ensure that the query params have been restored.
+import "@cocalc/frontend/client/handle-target";
 
 export namespace QueryParams {
-  export type Params = query_string.ParsedQuery<string>;
-  const location = (window as any).location;
-
-  export function get_all(): Params {
-    if (location == null) return {};
-    // fallback for situations where the url is temporarily like …/app#projects/…?…
-    if (location.hash?.length > 0 && location.search?.length == 0) {
-      const i = location.hash.indexOf("?");
-      if (i > 0) {
-        return query_string.parse(location.hash.slice(i));
-      }
-    } else {
-      return query_string.parse(location.search);
-    }
-    return {};
-  }
-
-  export function get(p: string): string | string[] | null | undefined {
-    return get_all()[p];
+  export function get(p: string): string | null {
+    return new URL(location.href).searchParams.get(p);
   }
 
   // Remove the given query parameter from the URL
   export function remove(p: string | string[]): void {
-    if (location == null) return;
-    const parsed = query_string.parse(location.search);
+    const url = new URL(location.href);
     if (typeof p != "string") {
       for (const x of p) {
-        delete parsed[x];
+        url.searchParams.delete(x);
       }
     } else {
-      delete parsed[p];
+      url.searchParams.delete(p);
     }
-    set_query_params(parsed);
+    history.pushState({}, "", url.href);
   }
 
   // val = undefined means to remove it, since won't be represented in query param anyways.
-  export function set(
-    p: string,
-    val: string | string[] | null | undefined
-  ): void {
-    const parsed = query_string.parse(location.search);
-    if (val === undefined) {
-      // we don't really have to special case this, but I think this is clearer code.
-      delete parsed[p];
+  export function set(p: string, val: string | null | undefined): void {
+    const url = new URL(location.href);
+    if (val == null) {
+      url.searchParams.delete(p);
     } else {
-      parsed[p] = val;
+      url.searchParams.set(p, val);
     }
-    set_query_params(parsed);
-  }
-
-  function set_query_params(parsed): void {
-    const search = query_string.stringify(parsed);
-    const i = window.location.href.indexOf("?");
-    if (i !== -1) {
-      window.history.pushState(
-        "",
-        "",
-        window.location.href.slice(0, i + 1) + search
-      );
-    } else {
-      window.history.pushState("", "", window.location.href + "?" + search);
-    }
+    history.pushState({}, "", url.href);
   }
 }
