@@ -1180,10 +1180,7 @@ export class Actions extends BaseActions<State> {
     this.zoom100(frameId);
   }
 
-  setPage(
-    frameId: string,
-    page: string | number,
-  ): void {
+  setPage(frameId: string, page: string | number): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     super.setPage(frameId, page);
@@ -1201,6 +1198,7 @@ export class Actions extends BaseActions<State> {
       // TODO: we need to change things so the initial
       // fragment to go to is passed in to the init, so
       // can be used **instead of** restoring from desc:
+      this.fitToScreen(frameId);
       await delay(100);
       this.fitToScreen(frameId);
       return;

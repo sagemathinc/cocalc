@@ -8,7 +8,6 @@
 import { callback } from "awaiting";
 import {
   defaults,
-  endswith,
   filename_extension,
   filename_extension_notilde,
   meta_file,
@@ -25,7 +24,7 @@ import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -47,7 +46,7 @@ export async function open_file(
     change_history?: boolean;
   }
 ): Promise<void> {
-  if (endswith(opts.path, "/")) {
+  if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
     return;
   }
@@ -68,7 +67,7 @@ export async function open_file(
 
   if (opts.line != null && !opts.fragmentId) {
     // backward compat
-    opts.fragmentId = `line=${opts.line}`;
+    opts.fragmentId = { line: opts.line };
   }
 
   const is_kiosk = () =>
@@ -112,10 +111,10 @@ export async function open_file(
     return;
   }
 
-  if (opts.fragmentId == null && !alreadyOpened && location.hash) {
+  if (opts.fragmentId == null && !alreadyOpened && location.hash.slice(1)) {
     // If you just opened a file and location.hash is set, go to
     // that location.
-    opts.fragmentId = location.hash;
+    opts.fragmentId = Fragment.decode(location.hash);
   }
 
   if (

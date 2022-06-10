@@ -15,8 +15,17 @@ import { join } from "path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 type jQueryAPI = Function;
+
+type LoadTargetFunction = (
+  target: string,
+  switchTo: boolean,
+  a: boolean,
+  b: boolean,
+  fragmentId?: FragmentId
+) => void;
 
 interface Options {
   $: jQueryAPI; // something with jquery api -- might be cheerio or jQuery itself.
@@ -24,21 +33,15 @@ interface Options {
   projectId?: string;
   filePath?: string;
   projectActions?: {
-    load_target: (
-      target: string,
-      switchTo: boolean,
-      a: boolean,
-      b: boolean,
-      anchor: string
-    ) => void;
+    load_target: LoadTargetFunction;
   };
 }
 
 function loadTarget(
   target: string,
   switchTo: boolean,
-  anchor: string,
-  projectActions: { load_target: Function }
+  fragmentId: FragmentId | undefined,
+  projectActions: { load_target: LoadTargetFunction }
 ): void {
   // get rid of "?something" in "path/file.ext?something"
   const i = target.lastIndexOf("/");
@@ -46,9 +49,8 @@ function loadTarget(
     const j = target.slice(i).indexOf("?");
     if (j >= 0) target = target.slice(0, i + j);
   }
-  projectActions.load_target(target, switchTo, false, true, anchor);
+  projectActions.load_target(target, switchTo, false, true, fragmentId);
 }
-
 
 function processAnchorTag(y: any, opts: Options): void {
   let href = y?.attr("href");
@@ -69,11 +71,7 @@ function processAnchorTag(y: any, opts: Options): void {
     return; // do nothing
   }
   const { projectActions } = opts;
-  if (
-    projectActions &&
-    isCoCalcURL(href) &&
-    href.includes("/projects/")
-  ) {
+  if (projectActions && isCoCalcURL(href) && href.includes("/projects/")) {
     // CASE: Link inside a specific browser tab.
     // target starts with cloud URL or is absolute, and has /projects/ in it,
     // so we open the link directly inside this browser tab.

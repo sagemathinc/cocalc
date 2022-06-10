@@ -49,7 +49,7 @@ import { download_file, open_new_tab, open_popup_window } from "./misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IconName } from "./components";
 import { default_filename } from "./account";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -829,6 +829,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // console.log("gotoFragment", { path, fragmentId });
     if (!fragmentId) return;
     const actions: any = redux.getEditorActions(this.project_id, path);
+    Fragment.set(fragmentId);
     if (actions?.gotoFragment != null) {
       actions.gotoFragment(fragmentId);
       return;
@@ -2727,13 +2728,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const main_segment = segments[0];
     switch (main_segment) {
       case "files":
-        if (target[target.length - 1] === "/" || full_path === "") {
+        if (target.endsWith("/") || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
           this.open_directory(parent_path, change_history);
           return;
         }
         const store = this.get_store();
-        if (store == undefined) {
+        if (store == null) {
           return; // project closed already
         }
         let { item, err } = store.get_item_in_path(last, parent_path);
@@ -2744,7 +2745,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: parent_path,
             });
             const store = this.get_store();
-            if (store == undefined) {
+            if (store == null) {
               // project closed
               return;
             }

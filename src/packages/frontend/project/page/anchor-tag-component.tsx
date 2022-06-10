@@ -2,13 +2,14 @@ import { A } from "@cocalc/frontend/components";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { redux } from "@cocalc/frontend/app-framework";
 import { join } from "path";
-import { splitFirst, path_split } from "@cocalc/util/misc";
+import { path_split } from "@cocalc/util/misc";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 function loadTarget(
   project_id: string,
   target: string,
   switchTo: boolean,
-  anchor: string
+  fragmentId?: FragmentId
 ): void {
   // get rid of "?something" in "path/file.ext?something"
   const i = target.lastIndexOf("/");
@@ -23,7 +24,7 @@ function loadTarget(
   // open file in project
   redux
     .getProjectActions(project_id)
-    .load_target(target, switchTo, false, true, anchor);
+    .load_target(target, switchTo, false, true, fragmentId);
   if (switchTo) {
     // show project if switchTo
     redux.getActions("page").set_active_tab(project_id);
@@ -48,13 +49,14 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
           target={"_blank"}
           rel={"noopener" /* only used in case of fallback */}
           onClick={(e) => {
-            const { project_id, page, target, anchor } = parseCoCalcURL(href);
+            const { project_id, page, target, fragmentId } =
+              parseCoCalcURL(href);
             if (project_id != null && target != null) {
               loadTarget(
                 project_id,
                 decodeURI(target),
                 !((e as any).which === 2 || e.ctrlKey || e.metaKey),
-                anchor ?? ""
+                fragmentId
               );
               e.preventDefault();
               e.stopPropagation();
@@ -92,7 +94,9 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
       return (
         <a
           onClick={(e) => {
-            const [hrefPlain, anchor] = splitFirst(href, "#");
+            const url = new URL("http://dummy/" + href);
+            const fragmentId = Fragment.decode(url.hash);
+            const hrefPlain = url.pathname.slice(1);
             loadTarget(
               project_id,
               join(
@@ -101,7 +105,7 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
                 decodeURI(hrefPlain)
               ),
               !((e as any).which === 2 || e.ctrlKey || e.metaKey),
-              anchor ?? ""
+              fragmentId
             );
             e.preventDefault();
             e.stopPropagation();

@@ -4,6 +4,10 @@ URI fragments identifier management
 The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 */
 
+interface Anchor {
+  anchor: string;
+}
+
 // a specific line in a document
 interface Line {
   line: number;
@@ -20,29 +24,42 @@ interface Page {
   page: string;
 }
 
-export type FragmentId = Line | Id | Page | string;
+export type FragmentId = Line | Id | Page | Anchor;
 
 namespace FragmentId {
   export function set(fragmentId: FragmentId): void {
     const url = new URL(location.href);
-    if (typeof fragmentId == "string") {
-      url.hash = fragmentId;
-    } else {
-      const v: string[] = [];
-      for (const key in fragmentId) {
-        v.push(`${key}=${fragmentId[key]}`);
-      }
-      url.hash = v.join("&");
-    }
+    url.hash = encode(fragmentId);
     history.replaceState({}, "", url.href);
   }
 
   export function get(): FragmentId {
-    const fragmentId: any = {};
-    const hash = location.hash.slice(1);
-    if (!hash.includes("=")) {
-      return hash;
+    return decode(location.hash.slice(1));
+  }
+
+  export function clear() {
+    location.hash = "";
+  }
+
+  export function encode(fragmentId: FragmentId): string {
+    if (fragmentId["anchor"] != null) {
+      return fragmentId["anchor"];
     }
+    const v: string[] = [];
+    for (const key in fragmentId) {
+      v.push(`${key}=${fragmentId[key]}`);
+    }
+    return v.join("&");
+  }
+
+  export function decode(hash: string): FragmentId {
+    if (hash[0] == "#") {
+      hash = hash.slice(1);
+    }
+    if (!hash.includes("=")) {
+      return { anchor: hash };
+    }
+    const fragmentId: any = {};
     for (const x of hash.split("&")) {
       const v = x.split("=");
       if (v.length == 2) {
@@ -50,10 +67,6 @@ namespace FragmentId {
       }
     }
     return fragmentId as FragmentId;
-  }
-
-  export function clear() {
-    location.hash = "";
   }
 }
 
