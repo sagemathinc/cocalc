@@ -5,11 +5,11 @@
 
 /* Code related to the history and URL in the browser bar.
 
-The URI schema is as follows:
-     Overall help:
-        https://cocalc.com/help
+The URI schema handled by the single page app is as follows:
      Overall settings:
         https://cocalc.com/settings
+     Admin only page:
+        https://cocalc.com/admin
      Account settings (default):
         https://cocalc.com/settings/account
      Billing:
