@@ -1,9 +1,15 @@
+import { ReactNode } from "react";
 import { A } from "@cocalc/frontend/components";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { redux } from "@cocalc/frontend/app-framework";
 import { join } from "path";
 import { path_split } from "@cocalc/util/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { Popover } from "antd";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { filename_extension } from "@cocalc/util/misc";
+import { file_associations } from "../../file-associations";
+import { Icon, IconName } from "../../components";
 
 function loadTarget(
   project_id: string,
@@ -42,38 +48,206 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
       // CASE: Link inside a specific browser tab.
       // target starts with cloud URL or is absolute, and has /projects/ in it,
       // so we open the link directly inside this browser tab.
-      return (
+
+      const open = (e) => {
+        const { project_id, page, target, fragmentId } = parseCoCalcURL(href);
+        if (project_id != null && target != null) {
+          e.preventDefault();
+          loadTarget(
+            project_id,
+            decodeURI(target),
+            !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
+            fragmentId
+          );
+          return;
+        } else if (page) {
+          // opening a different top level page, e.g., all projects or account settings or something.
+          e.preventDefault();
+          redux.getActions("page").set_active_tab(page);
+          return;
+        }
+        // this will fall back to default.
+      };
+
+      let message: ReactNode | undefined = undefined;
+      let heading: ReactNode | undefined = undefined;
+      let targetPath: string | undefined = undefined;
+      let icon: IconName | undefined = undefined;
+      const {
+        project_id: target_project_id,
+        target,
+        fragmentId,
+      } = parseCoCalcURL(href);
+      if (target && target_project_id) {
+        const replaceChildren =
+          href == children?.[0]?.props?.element?.text ||
+          decodeURI(href) == children?.[0]?.props?.element?.text;
+
+        if (target == "files" || target == "files/") {
+          if (replaceChildren) {
+            children = <>Files</>;
+          }
+          icon = "folder-open";
+          heading = "Files";
+          message = (
+            <>
+              Browse files in{" "}
+              {project_id == target_project_id ? (
+                "this project"
+              ) : (
+                <ProjectTitle project_id={target_project_id} />
+              )}
+              .
+            </>
+          );
+        } else if (target.startsWith("files/")) {
+          targetPath = decodeURI(target).slice("files/".length);
+          const filename = path_split(targetPath).tail;
+          if (project_id == target_project_id) {
+            message = (
+              <>
+                Open <a onClick={open}>{filename}</a> in this project
+                {fragmentId ? ` at ${Fragment.encode(fragmentId)}` : ""}
+              </>
+            );
+          } else {
+            message = (
+              <>
+                Open <a onClick={open}>{filename}</a> in the project{" "}
+                <ProjectTitle project_id={target_project_id} />
+                {fragmentId ? ` at ${Fragment.encode(fragmentId)}` : ""}
+              </>
+            );
+          }
+          if (replaceChildren) {
+            children = <>{targetPath}</>;
+          }
+          const ext = filename_extension(targetPath);
+          const x = file_associations[ext];
+          icon = x.icon;
+          heading = <a onClick={open}>{targetPath}</a>;
+        } else if (target.startsWith("settings")) {
+          if (replaceChildren) {
+            children = <>Settings</>;
+          }
+          icon = "wrench";
+          heading = "Project Settings";
+          message = (
+            <>
+              Open project settings in{" "}
+              {project_id == target_project_id ? (
+                "this project"
+              ) : (
+                <ProjectTitle project_id={target_project_id} />
+              )}
+              .
+            </>
+          );
+        } else if (target.startsWith("log")) {
+          if (replaceChildren) {
+            children = <>Log</>;
+          }
+          icon = "history";
+          heading = "Project Log";
+          message = (
+            <>
+              Open project log in{" "}
+              {project_id == target_project_id ? (
+                "this project"
+              ) : (
+                <ProjectTitle project_id={target_project_id} />
+              )}
+              .
+            </>
+          );
+        } else if (target.startsWith("search")) {
+          if (replaceChildren) {
+            children = <>Find</>;
+          }
+          icon = "search";
+          heading = "Search in Files";
+          message = (
+            <>
+              Search through files in{" "}
+              {project_id == target_project_id ? (
+                "this project"
+              ) : (
+                <ProjectTitle project_id={target_project_id} />
+              )}
+              .
+            </>
+          );
+        } else if (target.startsWith("new")) {
+          targetPath = decodeURI(target).slice("new/".length);
+          if (replaceChildren) {
+            children = <>New</>;
+          }
+          icon = "plus-circle";
+          heading = "Create New File";
+          message = (
+            <>
+              Create a new file in{" "}
+              {project_id == target_project_id ? (
+                "this project"
+              ) : (
+                <ProjectTitle project_id={target_project_id} />
+              )}{" "}
+              in the{" "}
+              {targetPath ? <>directory "{targetPath}"</> : "home directory"}.
+            </>
+          );
+        }
+      }
+
+      const link = (
         <a
           title={title}
           href={href}
           target={"_blank"}
           rel={"noopener" /* only used in case of fallback */}
-          onClick={(e) => {
-            const { project_id, page, target, fragmentId } =
-              parseCoCalcURL(href);
-            if (project_id != null && target != null) {
-              loadTarget(
-                project_id,
-                decodeURI(target),
-                !((e as any).which === 2 || e.ctrlKey || e.metaKey),
-                fragmentId
-              );
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            } else if (page) {
-              // opening a different top level page, e.g., all projects or account settings or something.
-              redux.getActions("page").set_active_tab(page);
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            }
-            // this will fall back to default.
-          }}
+          onClick={open}
+          onMouseDown={
+            (e) =>
+              e.stopPropagation() /* this is so clicking links in something that is drag-n-droppable doesn't trigger dragging */
+          }
         >
+          {icon ? <Icon name={icon} style={{ marginRight: "5px" }} /> : ""}
           {children}
         </a>
       );
+      if (message || heading) {
+        // refactor with cocalc/src/packages/frontend/frame-editors/frame-tree/path.tsx
+        return (
+          <Popover
+            title={
+              <b
+                style={{ maxWidth: "400px" }}
+                onMouseDown={
+                  (e) => e.stopPropagation() /* see comment in link above */
+                }
+              >
+                {icon ? (
+                  <Icon name={icon} style={{ marginRight: "5px" }} />
+                ) : (
+                  ""
+                )}
+                {heading}
+              </b>
+            }
+            content={
+              <div
+                style={{ maxWidth: "400px" }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {message}
+              </div>
+            }
+          >
+            {link}
+          </Popover>
+        );
+      }
+      return link;
     }
     if (href?.includes("://")) {
       // external non-cocalc URL. We open in a new tab.  Also stop prop so doesn't focus element that is clicked on.

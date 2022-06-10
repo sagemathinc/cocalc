@@ -36,7 +36,7 @@ namespace FragmentId {
     history.replaceState({}, "", url.href);
   }, 100);
 
-  export function get(): FragmentId {
+  export function get(): FragmentId | undefined {
     return decode(location.hash.slice(1));
   }
 
@@ -59,10 +59,11 @@ namespace FragmentId {
     return v.join("&");
   }
 
-  export function decode(hash: string): FragmentId {
+  export function decode(hash: string): FragmentId | undefined {
     if (hash[0] == "#") {
       hash = hash.slice(1);
     }
+    if (!hash) return undefined;
     if (!hash.includes("=")) {
       return { anchor: hash };
     }
