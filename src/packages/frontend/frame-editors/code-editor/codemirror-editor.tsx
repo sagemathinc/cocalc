@@ -68,6 +68,8 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   const [has_cm, set_has_cm] = useState<boolean>(false);
 
   const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+  const propsRef = useRef<Props>(props);
+  propsRef.current = props;
   const styleActiveLineRef = useRef<boolean>(false);
   const textareaRef = useRef<any>(null);
   const divRef = useRef<any>(null);
@@ -190,31 +192,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     // that's how we can bring back this frame (with given id) very efficiently.
     $(cmRef.current.getWrapperElement()).remove();
     cmRef.current = undefined;
-  }
-
-  function cm_cursor(): void {
-    if (!props.is_current) {
-      // not in focus, so any cursor movement is not to be broadcast.
-      return;
-    }
-    if (cmRef.current == null) {
-      // not yet done initializing/mounting or already unmounting,
-      // so nothing to do.
-      return;
-    }
-    // side_effect is whether or not the cursor move is being
-    // caused by an  external setValueNoJump, so just a side
-    // effect of something another user did.
-    const side_effect = (cmRef.current as any)._setValueNoJump;
-    if (side_effect) {
-      // cursor movement is a side effect of upstream change, so ignore.
-      return;
-    }
-    const locs = cmRef.current
-      .getDoc()
-      .listSelections()
-      .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
-    editor_actions()?.set_cursor_locs(locs);
   }
 
   // Save the UI state of the CM (not the actual content) -- scroll position, selections, etc.
@@ -387,8 +364,26 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       save_syncstring();
     });
 
-    cm.on("cursorActivity", () => {
-      cm_cursor();
+    cm.on("cursorActivity", (cm) => {
+      if (!propsRef.current.is_current) {
+        // not in focus, so any cursor movement is not to be broadcast.
+        return;
+      }
+      // side_effect is whether or not the cursor move is being
+      // caused by an  external setValueNoJump, so just a side
+      // effect of something another user did.
+      const side_effect = (cm as any)._setValueNoJump;
+      if (side_effect) {
+        // cursor movement is a side effect of upstream change, so ignore.
+        return;
+      }
+      const locs = cm
+        .getDoc()
+        .listSelections()
+        .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
+
+      const actions = editor_actions();
+      actions?.set_cursor_locs(locs);
       throttled_save_editor_state();
     });
 

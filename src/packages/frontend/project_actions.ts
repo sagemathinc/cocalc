@@ -827,7 +827,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Otherwise, silently does nothing.  Has a fallback for now for fragmentId='line=[number]'.
   public gotoFragment(path: string, fragmentId: FragmentId): void {
     // console.log("gotoFragment", { path, fragmentId });
-    if (!fragmentId) return;
+    if (typeof fragmentId != "object") {
+      console.warn("gotoFragment -- invalid fragmentId object: ", fragmentId);
+      return;
+    }
     const actions: any = redux.getEditorActions(this.project_id, path);
     Fragment.set(fragmentId);
     if (actions?.gotoFragment != null) {

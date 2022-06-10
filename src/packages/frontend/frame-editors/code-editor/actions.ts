@@ -61,7 +61,7 @@ import {
   get_local_storage,
   delete_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   ext2syntax,
   syntax2tool,
@@ -1031,9 +1031,12 @@ export class Actions<
     }
   }
 
-  // Set the location of all of OUR cursors.  This is entirely
-  // so the information can propogate to other users via the syncstring.
+  // Set the location of all of OUR cursors.  This serves many purposes:
+  //  -- propogate to other users via the syncstring.
+  //  -- setting uri fragment page= at top of browser, so URL link is useful
+  //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
+    // console.log("set_cursor_locs", JSON.stringify(locs));
     if (!this._syncstring) {
       return; // not currently valid.
     }
@@ -1045,6 +1048,9 @@ export class Actions<
     if ((this as any).handle_cursor_move !== undefined) {
       // give derived classes a chance to handle cursor movement.
       (this as any).handle_cursor_move(locs);
+    }
+    if (typeof locs[0]?.y == "number") {
+      Fragment.set({ line: locs[0].y + 1 });
     }
   }
 
@@ -1592,7 +1598,7 @@ export class Actions<
     line: string | number,
     cursor?: boolean,
     focus?: boolean,
-    id?: string, // if given scroll this particular frame
+    frameId?: string, // if given scroll the frame with this id
     ch?: number // specific character in line
   ): Promise<void> {
     // console.log("programmatical_goto_line", { line, cursor, focus, id, ch });
@@ -1629,28 +1635,14 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined =
-      id == null ? this._get_most_recent_cm_id() : id;
-    if (cm_id && this._get_frame_node(cm_id) != null) {
-      // cm_id defines a frame in the main frame tree associated
-      // to this file (rather than a frame in some other frame tree).
-      const full_id: string | undefined = this.store.getIn([
-        "local_view_state",
-        "full_id",
-      ]);
-      if (full_id && full_id != cm_id) {
-        this.unset_frame_full();
-        // have to wait for cm to get created and registered.
-        await delay(1);
-        if (this._state == "closed") return;
-      }
-    }
 
     // ensure a cm frame exists.
-    this.show_recently_focused_frame_of_type("cm");
+    if (frameId == null) {
+      frameId = this.show_recently_focused_frame_of_type("cm");
+    }
     // this gets a CM editor, which will eventually
     // exist because there's a cm frame.
-    let cm = this._get_cm(cm_id);
+    let cm = this._get_cm(frameId);
     // This is ugly -- react will render the frame with the
     // editor in it, and after that happens the CodeMirror
     // editor that was created gets registered, and finally
@@ -1659,24 +1651,17 @@ export class Actions<
     // of crappy code is OK here, since it's just for moving the
     // buffer to a line.
     for (let i = 0; cm == null && i < 10; i++) {
-      cm = this._get_cm(cm_id);
-      await delay(25);
+      cm = this._get_cm(frameId);
+      if (cm == null) {
+        await delay(25);
+      }
       if (this._state == "closed") return;
+    }
+    if (cm == null) {
+      // still failed -- give up.
+      return;
     }
 
-    if (cm == null) {
-      // this case can only happen in derived classes with non-cm editors.
-      this.split_frame("col", this._get_active_id(), "cm");
-      // Have to wait until the codemirror editor is created and registered, which
-      // is caused by component mounting.
-      await delay(1);
-      if (this._state == "closed") return;
-      cm = this._recent_cm();
-      if (cm == null) {
-        // still failed -- give up.
-        return;
-      }
-    }
     const doc = cm.getDoc();
     if (line > doc.lineCount()) {
       line = doc.lineCount();

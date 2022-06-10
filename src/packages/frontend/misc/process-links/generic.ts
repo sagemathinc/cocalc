@@ -15,7 +15,7 @@ import { join } from "path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 type jQueryAPI = Function;
 
@@ -62,9 +62,8 @@ function processAnchorTag(y: any, opts: Options): void {
     href = opts.urlTransform(href, "a") ?? href;
     y.attr("href", href);
   }
-  if (href[0] === "#") {
-    // CASE: internal link on same document. We have to do some ugly stuff here, since
-    // background tabs may result in multiple copies of the same id (with most not visible).
+  if (href.startsWith("#")) {
+    // CASE: internal URI fragment pointing to something in this same document.
     href = y[0].baseURI + href; // will get handled below.
   }
   if (href.startsWith("mailto:")) {
@@ -78,20 +77,22 @@ function processAnchorTag(y: any, opts: Options): void {
     // WARNING: there are cases that could be wrong via this heuristic, e.g.,
     // a raw link that happens to have /projects/ in it -- deal with them someday...
     y.click(function (e): boolean {
-      let anchor;
+      let fragmentId;
       const url = href;
       const i = url.indexOf("/projects/");
       let target = url.slice(i + "/projects/".length);
       const v = target.split("#");
       if (v.length > 1) {
-        [target, anchor] = v;
+        let hash;
+        [target, hash] = v;
+        fragmentId = Fragment.decode(hash);
       } else {
-        anchor = undefined;
+        fragmentId = undefined;
       }
       loadTarget(
         decodeURI(target),
         !(e.which === 2 || e.ctrlKey || e.metaKey),
-        anchor,
+        fragmentId,
         projectActions
       );
       return false;
@@ -104,13 +105,15 @@ function processAnchorTag(y: any, opts: Options): void {
     // does not start with http
     // internal link
     y.click(function (e): boolean {
-      let anchor;
+      let fragmentId;
       let target = href;
       const v = target.split("#");
       if (v.length > 1) {
-        [target, anchor] = v;
+        let hash;
+        [target, hash] = v;
+        fragmentId = Fragment.decode(hash);
       } else {
-        anchor = undefined;
+        fragmentId = undefined;
       }
       // if DEBUG then console.log "target", target
       if (target.indexOf("/projects/") === 0) {
@@ -139,7 +142,7 @@ function processAnchorTag(y: any, opts: Options): void {
       loadTarget(
         target,
         !(e.which === 2 || e.ctrlKey || e.metaKey),
-        anchor,
+        fragmentId,
         projectActions
       );
       return false;

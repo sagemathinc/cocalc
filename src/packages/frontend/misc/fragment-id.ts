@@ -4,6 +4,8 @@ URI fragments identifier management
 The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 */
 
+import { debounce } from "lodash";
+
 interface Anchor {
   anchor: string;
 }
@@ -27,11 +29,12 @@ interface Page {
 export type FragmentId = Line | Id | Page | Anchor;
 
 namespace FragmentId {
-  export function set(fragmentId: FragmentId): void {
+  // set is debounced so you can call it as frequently as you want...
+  export const set = debounce((fragmentId: FragmentId) => {
     const url = new URL(location.href);
     url.hash = encode(fragmentId);
     history.replaceState({}, "", url.href);
-  }
+  }, 100);
 
   export function get(): FragmentId {
     return decode(location.hash.slice(1));
@@ -42,6 +45,10 @@ namespace FragmentId {
   }
 
   export function encode(fragmentId: FragmentId): string {
+    if (typeof fragmentId != "object") {
+      console.warn("encode -- invalid fragmentId object: ", fragmentId);
+      throw Error(`attempt to encode invalid fragmentId -- "${fragmentId}"`);
+    }
     if (fragmentId["anchor"] != null) {
       return fragmentId["anchor"];
     }
