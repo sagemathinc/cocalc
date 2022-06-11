@@ -45,7 +45,7 @@ export interface JupyterStoreState {
   edit_cell_metadata: any;
   raw_ipynb: any;
   backend_kernel_info: KernelInfo;
-  cell_list: List<string>; // list of id's of the cells
+  cell_list: List<string>; // list of id's of the cells, in order by pos.
   cells: Map<string, Cell>; // map from string id to cell; the structure of a cell is complicated...
   cur_id: string;
   error?: string;

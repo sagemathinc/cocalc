@@ -51,7 +51,6 @@ import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
-import { delay } from "awaiting";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
@@ -1189,22 +1188,16 @@ export class Actions extends BaseActions<State> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
-    if (!(await this.wait_until_syncdoc_ready())) {
-      return;
-    }
-    const frameId = this.show_focused_frame_of_type("whiteboard");
-    if (fragmentId["page"] != null) {
-      this.setPage(frameId, parseInt(fragmentId["page"]));
-      // TODO: we need to change things so the initial
-      // fragment to go to is passed in to the init, so
-      // can be used **instead of** restoring from desc:
-      this.fitToScreen(frameId);
-      await delay(100);
+    const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
+    if (!frameId) return;
+    const { id, page } = fragmentId as any;
+    if (page != null) {
+      this.setPage(frameId, parseInt(page));
       this.fitToScreen(frameId);
       return;
     }
-    if (fragmentId["id"] != null) {
-      this.centerElement(fragmentId["id"], frameId);
+    if (id != null) {
+      this.centerElement(id, frameId);
       this.zoom100(frameId);
       return;
     }

@@ -2668,4 +2668,30 @@ export class Actions<
   setPages(id: string, pages: string[] | number | null): void {
     this.set_frame_tree({ id, pages });
   }
+
+  // returns '' if will never be ready; otherwise, returns frame id.
+  // This is useful for implementing gotoFragment, which often gets
+  // called immediately the moment a file is opened, but before
+  // things are initialized... and also gets called when the frame
+  // needed to show it isn't available.  This helper function makes
+  // that all easier.
+  protected async waitUntilFrameReady({
+    syncdoc,
+    type = "cm",
+  }: {
+    syncdoc?;
+    type: string;
+  }): Promise<string> {
+    const state = (syncdoc ?? this._syncstring).get_state();
+    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+      return "";
+    }
+    const frameId = this.show_focused_frame_of_type(type);
+    if (state != "ready" && frameId) {
+      // TODO: temporary hack until we have gotoFragment
+      // as part of constructor!
+      await delay(200);
+    }
+    return frameId;
+  }
 }
