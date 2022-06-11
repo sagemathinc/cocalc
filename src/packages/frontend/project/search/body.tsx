@@ -10,10 +10,19 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
-import { Icon, Loading, SearchInput, Space } from "../../components";
+import {
+  Alert,
+  Row,
+  Col,
+  Button,
+  Checkbox,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
+import { Icon, Loading, SearchInput, Space } from "@cocalc/frontend/components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
-import { useTypedRedux, useActions } from "../../app-framework";
+import { useTypedRedux, useActions } from "@cocalc/frontend/app-framework";
+import { filename_extension } from "@cocalc/util/misc";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
 const DESC_STYLE: React.CSSProperties = {
   color: "#666",
@@ -271,6 +280,7 @@ const ProjectSearchResultLine: React.FC<{
   most_recent_path: string;
 }> = ({ project_id, filename, description, line_number, most_recent_path }) => {
   const actions = useActions({ project_id });
+  const icon = file_associations[filename_extension(filename)]?.icon ?? "file";
 
   async function click_filename(e): Promise<void> {
     e.preventDefault();
@@ -285,6 +295,7 @@ const ProjectSearchResultLine: React.FC<{
   return (
     <div style={{ wordWrap: "break-word" }}>
       <a onClick={click_filename} href="">
+        <Icon name={icon} style={{ marginRight: "5px" }} />{" "}
         <strong>{filename}</strong>
       </a>
       <pre style={DESC_STYLE}>{description}</pre>

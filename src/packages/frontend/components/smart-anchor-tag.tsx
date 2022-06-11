@@ -171,7 +171,7 @@ function CoCalcURL({ href, title, children, project_id }) {
       }
       const ext = filename_extension(targetPath);
       const x = file_associations[ext];
-      icon = x.icon;
+      icon = x?.icon ?? "file";
       heading = <a onClick={open}>{targetPath}</a>;
     } else if (target.startsWith("settings")) {
       if (replaceChildren) {
