@@ -2860,6 +2860,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // called when project page is hidden
   async hide(): Promise<void> {
+    Fragment.clear();
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");

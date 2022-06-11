@@ -30,7 +30,7 @@ export type FragmentId = Line | Id | Page | Anchor;
 
 namespace FragmentId {
   // set is debounced so you can call it as frequently as you want...
-  export const set = debounce((fragmentId: FragmentId) => {
+  export const set = debounce((fragmentId: FragmentId | undefined) => {
     const url = new URL(location.href);
     url.hash = encode(fragmentId);
     history.replaceState({}, "", url.href);
@@ -41,10 +41,11 @@ namespace FragmentId {
   }
 
   export function clear() {
-    location.hash = "";
+    set(undefined);
   }
 
-  export function encode(fragmentId: FragmentId): string {
+  export function encode(fragmentId: FragmentId | undefined): string {
+    if (fragmentId == null) return "";
     if (typeof fragmentId != "object") {
       console.warn("encode -- invalid fragmentId object: ", fragmentId);
       throw Error(`attempt to encode invalid fragmentId -- "${fragmentId}"`);

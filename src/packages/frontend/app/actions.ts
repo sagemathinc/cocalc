@@ -32,7 +32,7 @@ export class PageActions extends Actions<PageState> {
   public set_active_key_handler(
     handler?: (e) => void,
     project_id?: string,
-    path?: string  // IMPORTANT: This is the path for the tab! E.g., if setting keyboard handler for a frame, make sure to pass path for the tab. This is a terrible and confusing design and needs to be redone, probably via a hook!
+    path?: string // IMPORTANT: This is the path for the tab! E.g., if setting keyboard handler for a frame, make sure to pass path for the tab. This is a terrible and confusing design and needs to be redone, probably via a hook!
   ): void {
     if (project_id != null) {
       if (
@@ -135,14 +135,11 @@ export class PageActions extends Actions<PageState> {
     const prev_key = this.redux.getStore("page").get("active_top_tab");
     this.setState({ active_top_tab: key });
 
-    if (
-      (prev_key != null ? prev_key.length : undefined) === 36 &&
-      prev_key !== key
-    ) {
-      // fire hide actions on project we are switching from.
+    if (prev_key !== key && prev_key?.length == 36) {
+      // fire hide action on project we are switching from.
       redux.getProjectActions(prev_key)?.hide();
     }
-    if ((key != null ? key.length : undefined) === 36) {
+    if (key?.length == 36) {
       // fire show action on project we are switching to
       redux.getProjectActions(key)?.show();
     }

@@ -103,11 +103,12 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
         } else if (target.startsWith("files/")) {
           targetPath = decodeURI(target).slice("files/".length);
           const filename = path_split(targetPath).tail;
+          const hash = fragmentId ? `#${Fragment.encode(fragmentId)}` : "";
           if (project_id == target_project_id) {
             message = (
               <>
                 Open <a onClick={open}>{filename}</a> in this project
-                {fragmentId ? ` at ${Fragment.encode(fragmentId)}` : ""}
+                {fragmentId ? ` at ${hash}` : ""}
               </>
             );
           } else {
@@ -115,12 +116,17 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
               <>
                 Open <a onClick={open}>{filename}</a> in the project{" "}
                 <ProjectTitle project_id={target_project_id} />
-                {fragmentId ? ` at ${Fragment.encode(fragmentId)}` : ""}
+                {fragmentId ? ` at ${hash}` : ""}
               </>
             );
           }
           if (replaceChildren) {
-            children = <>{targetPath}</>;
+            children = (
+              <>
+                {targetPath}
+                {hash}
+              </>
+            );
           }
           const ext = filename_extension(targetPath);
           const x = file_associations[ext];
