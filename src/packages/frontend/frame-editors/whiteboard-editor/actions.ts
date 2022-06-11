@@ -397,10 +397,12 @@ export class Actions extends BaseActions<State> {
     const node = this._get_frame_node(frameId);
     if (node?.get("type") != "whiteboard") return;
     const page = node?.get("page");
-    if (page != null) {
-      Fragment.set({ page });
-    } else {
-      Fragment.clear();
+    if (this.store.get("visible")) {
+      if (page != null) {
+        Fragment.set({ page });
+      } else {
+        Fragment.clear();
+      }
     }
   }
 
@@ -469,10 +471,13 @@ export class Actions extends BaseActions<State> {
       this.set_frame_tree({ id: frameId, selection });
     } finally {
       if (node.get("type") != "whiteboard") return;
-      if (size(selection) == 0) {
-        this.setFragmentIdToPage(frameId);
-      } else {
-        Fragment.set({ id: selection[0] });
+
+      if (this.store.get("visible")) {
+        if (size(selection) == 0) {
+          this.setFragmentIdToPage(frameId);
+        } else {
+          Fragment.set({ id: selection[0] });
+        }
       }
     }
   }

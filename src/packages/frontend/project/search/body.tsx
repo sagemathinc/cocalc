@@ -278,7 +278,7 @@ const ProjectSearchResultLine: React.FC<{
     await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
-      line: line_number,
+      fragmentId: { line: line_number },
     });
   }
 
@@ -286,8 +286,8 @@ const ProjectSearchResultLine: React.FC<{
     <div style={{ wordWrap: "break-word" }}>
       <a onClick={click_filename} href="">
         <strong>{filename}</strong>
-        <pre style={DESC_STYLE}>{description}</pre>
       </a>
+      <pre style={DESC_STYLE}>{description}</pre>
     </div>
   );
 };

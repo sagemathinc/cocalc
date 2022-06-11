@@ -101,6 +101,10 @@ export class OpenFiles {
     }
   }
 
+  public get(path: string, key: string): any {
+    return this.store.getIn(["open_files", path, key]);
+  }
+
   // Move whatever path is currently at old_index so that after the
   // move it is as new_index.  This is NOT a swap -- it just pulls
   // the path out then sticks it in a new place, shifting everything

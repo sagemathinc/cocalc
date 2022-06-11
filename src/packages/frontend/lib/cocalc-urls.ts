@@ -42,8 +42,12 @@ export function parseCoCalcURL(href?: string): {
   const url = new URL("http://dummy/" + href); // using new URL is a safer way to parse url's
   const fragmentId = Fragment.decode(url.hash.slice(1));
   const query = url.search;
-  const pathname = url.pathname.slice(1);
+  let pathname = url.pathname.slice(1);
   const i = pathname.indexOf("/");
+  if (pathname.startsWith("settings")) {
+    // annoyingly, 'account' is what it is called in src/packages/frontend/app/actions.ts
+    pathname = "account";
+  }
   if (i == -1) {
     return { page: pathname, fragmentId, query };
   }

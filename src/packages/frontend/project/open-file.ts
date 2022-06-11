@@ -46,6 +46,8 @@ export async function open_file(
     change_history?: boolean;
   }
 ): Promise<void> {
+  // console.log("open_file", opts);
+
   if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
     return;
@@ -90,8 +92,10 @@ export async function open_file(
 
   let open_files = store.get("open_files");
   const alreadyOpened = open_files.has(opts.path);
+
   if (!alreadyOpened) {
-    // Make the visible tab appear ASAP, even though
+    // Make the visible tab itself appear ASAP (just the tab at the top,
+    // not the file contents), even though
     // some stuff that may await below needs to happen.
     // E.g., if the user elects not to start the project, or
     // we have to resolve a symlink instead, then we *fix*
@@ -101,7 +105,7 @@ export async function open_file(
     actions.open_files.set(opts.path, "component", {});
   }
 
-  // intercept any requests if in kiosk mode
+  // intercept any requests to open files with an error when in kiosk mode
   if (is_kiosk() && !alreadyOpened) {
     alert_message({
       type: "error",
@@ -111,9 +115,16 @@ export async function open_file(
     return;
   }
 
-  if (opts.fragmentId == null && !alreadyOpened && location.hash.slice(1)) {
-    // If you just opened a file and location.hash is set, go to
-    // that location.
+  if (
+    opts.fragmentId == null &&
+    !alreadyOpened &&
+    location.hash.slice(1) &&
+    opts.foreground
+  ) {
+    // If you just opened a file and location.hash is set and in foreground, go to
+    // that location.  Do NOT do this if opts.foreground not set, e.g,. when restoring
+    // session, because then all background files are configured to open with that
+    // fragment.
     opts.fragmentId = Fragment.decode(location.hash);
   }
 
@@ -200,7 +211,7 @@ export async function open_file(
     // Wait for the project to start opening (only do this if not public -- public users don't
     // know anything about the state of the project).
     try {
-      await callback(actions._ensure_project_is_open);
+      await callback(actions._ensure_project_is_open.bind(actions));
     } catch (err) {
       actions.set_activity({
         id: uuid(),

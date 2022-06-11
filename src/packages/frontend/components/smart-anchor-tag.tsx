@@ -8,11 +8,6 @@ In all cases, we also stop mousedown propagation so clicking
 on this link doesn't trigger drag and drop / select of container
 element, if enabled (e.g., for links in sticky notes in the
 whiteboard).
-
-TODO: we do nothing special with links to admin, settings, notifications, etc.
-pages -- they just open in a new tab. But this is just a TODO. Note that
-settings is mostly deprecated, notifications is rarely used, and admin is very
-special...
 */
 
 import { ReactNode } from "react";
@@ -43,22 +38,21 @@ export default function SmartAnchorTag({
   project_id,
   path,
 }: Options) {
-  if (isCoCalcURL(href) && href?.includes("/projects/")) {
-    return (
+  let body;
+  if (isCoCalcURL(href)) {
+    body = (
       <CoCalcURL project_id={project_id} href={href} title={title}>
         {children}
       </CoCalcURL>
     );
-  }
-  if (href?.includes("://")) {
-    return (
+  } else if (href?.includes("://")) {
+    body = (
       <NonCoCalcURL href={href} title={title}>
         {children}
       </NonCoCalcURL>
     );
-  }
-  if (href) {
-    return (
+  } else if (href) {
+    body = (
       <InternalRelativeLink
         project_id={project_id}
         path={path}
@@ -68,9 +62,21 @@ export default function SmartAnchorTag({
         {children}
       </InternalRelativeLink>
     );
+  } else {
+    // Fallback: no href target at all, so no special handling needed...
+    body = <a title={title}>{children}</a>;
   }
-  // Fallback: no href target at all, so no special handling needed...
-  return <a title={title}>{children}</a>;
+  return (
+    <span
+      onMouseDown={(e) =>
+        // This is so clicking links in something that is drag-n-droppable
+        // doesn't trigger dragging:
+        e.stopPropagation()
+      }
+    >
+      {body}
+    </span>
+  );
 }
 
 // href starts with cocalc URL or is absolute,
@@ -85,9 +91,10 @@ export default function SmartAnchorTag({
 function CoCalcURL({ href, title, children, project_id }) {
   const open = (e) => {
     const { project_id, page, target, fragmentId } = parseCoCalcURL(href);
-    if (project_id != null && target != null) {
+    if (project_id && target) {
       e.preventDefault();
       loadTarget(
+        page,
         project_id,
         decodeURI(target),
         !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
@@ -100,7 +107,7 @@ function CoCalcURL({ href, title, children, project_id }) {
       redux.getActions("page").set_active_tab(page);
       return;
     }
-    // this will fall back to default.
+    // fall back to default.
   };
 
   let message: ReactNode | undefined = undefined;
@@ -246,10 +253,6 @@ function CoCalcURL({ href, title, children, project_id }) {
       target={"_blank"}
       rel={"noopener" /* only used in case of fallback */}
       onClick={open}
-      onMouseDown={
-        (e) =>
-          e.stopPropagation() /* this is so clicking links in something that is drag-n-droppable doesn't trigger dragging */
-      }
     >
       {icon ? <Icon name={icon} style={{ marginRight: "5px" }} /> : ""}
       {children}
@@ -260,24 +263,12 @@ function CoCalcURL({ href, title, children, project_id }) {
     return (
       <Popover
         title={
-          <b
-            style={{ maxWidth: "400px" }}
-            onMouseDown={
-              (e) => e.stopPropagation() /* see comment in link above */
-            }
-          >
+          <b style={{ maxWidth: "400px" }}>
             {icon ? <Icon name={icon} style={{ marginRight: "5px" }} /> : ""}
             {heading}
           </b>
         }
-        content={
-          <div
-            style={{ maxWidth: "400px" }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            {message}
-          </div>
-        }
+        content={<div style={{ maxWidth: "400px" }}>{message}</div>}
       >
         {link}
       </Popover>
@@ -294,7 +285,6 @@ function CoCalcURL({ href, title, children, project_id }) {
 function NonCoCalcURL({ href, title, children }) {
   return (
     <A
-      onMouseDown={(e) => e.stopPropagation()}
       href={href}
       title={title}
       onClick={(e) => {
@@ -311,7 +301,6 @@ function NonCoCalcURL({ href, title, children }) {
 function InternalRelativeLink({ project_id, path, href, title, children }) {
   return (
     <a
-      onMouseDown={(e) => e.stopPropagation()}
       href={href}
       onClick={(e) => {
         e.preventDefault();
@@ -333,6 +322,7 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
           );
         }
         loadTarget(
+          "projects",
           project_id,
           target,
           !((e as any).which === 2 || e.ctrlKey || e.metaKey),
@@ -347,27 +337,28 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
 }
 
 function loadTarget(
+  page: string | undefined,
   project_id: string,
   target: string,
   switchTo: boolean,
   fragmentId?: FragmentId
 ): void {
-  // get rid of "?something" in "path/file.ext?something"
-  const i = target.lastIndexOf("/");
-  if (i > 0) {
-    const j = target.slice(i).indexOf("?");
-    if (j >= 0) target = target.slice(0, i + j);
-  }
-  // open project
-  redux
-    .getActions("projects")
-    .open_project({ switch_to: switchTo, project_id });
-  // open file in project
-  redux
-    .getProjectActions(project_id)
-    .load_target(target, switchTo, false, true, fragmentId);
-  if (switchTo) {
-    // show project if switchTo
-    redux.getActions("page").set_active_tab(project_id);
+  if (page == "projects") {
+    // open project:
+    redux
+      .getActions("projects")
+      .open_project({ switch_to: switchTo, project_id });
+    // open the file in the project
+    redux
+      .getProjectActions(project_id)
+      .load_target(target, switchTo, false, true, fragmentId);
+    if (switchTo) {
+      // show project if switchTo
+      redux.getActions("page").set_active_tab(project_id);
+    }
+  } else if (page && switchTo) {
+    // not opening anything involving projects, e.g., opening
+    // admin or settings or something else.
+    redux.getActions("page").set_active_tab(page);
   }
 }

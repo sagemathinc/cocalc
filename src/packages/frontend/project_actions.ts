@@ -409,9 +409,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // already active -- nothing further to do
       return;
     }
+    if (prev_active_project_tab) {
+      // do not keep fragment from tab that is being hidden
+      Fragment.clear();
+    }
     if (
       prev_active_project_tab !== key &&
-      misc.startswith(prev_active_project_tab, "editor-")
+      prev_active_project_tab.startsWith("editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
@@ -828,20 +832,45 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public gotoFragment(path: string, fragmentId: FragmentId): void {
     // console.log("gotoFragment", { path, fragmentId });
     if (typeof fragmentId != "object") {
-      console.warn("gotoFragment -- invalid fragmentId object: ", fragmentId);
+      console.warn(`gotoFragment -- invalid fragmentId: "${fragmentId}"`);
       return;
     }
     const actions: any = redux.getEditorActions(this.project_id, path);
-    Fragment.set(fragmentId);
-    if (actions?.gotoFragment != null) {
-      actions.gotoFragment(fragmentId);
-      return;
+
+    const store = this.get_store();
+    if (
+      store != null &&
+      path == misc.tab_to_path(store.get("active_project_tab")) &&
+      this.isProjectTabVisible()
+    ) {
+      // Clear the fragmentId from the "todo" state, so we won't try to use
+      // this next time we display the file:
+      this.open_files?.set(path, "fragmentId", undefined);
+      // The file is actually visible, so we can try to scroll to the fragment.
+      // set the fragment in the URL if the file is in the foreground
+      Fragment.set(fragmentId);
+      if (actions?.gotoFragment != null) {
+        actions.gotoFragment(fragmentId);
+        return;
+      }
+      // a fallback for now.
+      if (fragmentId["line"] != null) {
+        this.goto_line(path, fragmentId["line"], true, true);
+        return;
+      }
+    } else {
+      // File is NOT currently visible, so going to the fragment is likely
+      // to break for many editors.  e.g., codemirror background editor just
+      // does nothing since it has no DOM measurements...
+      // Instead we record the fragment we want to be at, and when the
+      // tab is next shown, it will move there.
+      this.open_files?.set(path, "fragmentId", fragmentId);
     }
-    // a fallback for now.
-    if (fragmentId["line"] != null) {
-      this.goto_line(path, fragmentId["line"], true, true);
-      return;
-    }
+  }
+
+  // Returns true if this project is the currently selected top nav.
+  public isProjectTabVisible(): boolean {
+    return this.redux.getStore("page").get("active_top_tab") == this.project_id;
   }
 
   // If the given path is open, and editor supports going to line,
@@ -880,7 +909,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const editor = get_editor(this.project_id, path);
       if (editor != null) editor.show();
     } else {
-      if (typeof a.show === "function") a.show();
+      a.show?.();
+    }
+    const fragmentId = this.open_files?.get(path, "fragmentId");
+    if (fragmentId) {
+      // have to wait for next render so that local store is updated and
+      // also any rendering and measurement happens with the editor.
+      setTimeout(() => {
+        this.gotoFragment(path, fragmentId);
+      }, 0);
     }
   }
 

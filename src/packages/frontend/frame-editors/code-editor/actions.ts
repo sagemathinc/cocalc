@@ -1049,7 +1049,7 @@ export class Actions<
       // give derived classes a chance to handle cursor movement.
       (this as any).handle_cursor_move(locs);
     }
-    if (typeof locs[0]?.y == "number") {
+    if (this.store.get("visible") && typeof locs[0]?.y == "number") {
       Fragment.set({ line: locs[0].y + 1 });
     }
   }
@@ -1601,7 +1601,6 @@ export class Actions<
     frameId?: string, // if given scroll the frame with this id
     ch?: number // specific character in line
   ): Promise<void> {
-    // console.log("programmatical_goto_line", { line, cursor, focus, id, ch });
     if (!(await this.wait_until_syncdoc_ready())) {
       return;
     }
