@@ -35,6 +35,13 @@ export default function ConfigureName({ project_id, path }: Props) {
     }
   }
 
+    // if user presses the Esc key, we set choosingName to false and don't save
+  async function keyup(e) {
+    if (e.key === "Escape") {
+      setChoosingName(false);
+    }
+  }
+
   return (
     <div style={{ margin: "15px 0" }}>
       <h4>Name{name ? `: ${name}` : ""}</h4>
@@ -45,7 +52,7 @@ export default function ConfigureName({ project_id, path }: Props) {
       </span>
       {!name && !choosingName ? (
         <Button
-          style={{ marginLeft: "15px" }}
+          style={{ marginLeft: "0px" }}
           onClick={() => setChoosingName(true)}
         >
           Choose a name...
@@ -54,6 +61,7 @@ export default function ConfigureName({ project_id, path }: Props) {
         <span>
           <Input
             onPressEnter={save}
+            onKeyUp={keyup}
             onBlur={save}
             onChange={(e) => {
               if (e.target.value != name) {
