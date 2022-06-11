@@ -3,6 +3,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
+import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
@@ -20,10 +21,11 @@ interface Props {
   spec: SoftwareSpec["R"];
   inventory: ComputeInventory["R"];
   components: ComputeComponents["R"];
+  execInfo?: { [key: string]: string };
 }
 
 export default function R(props: Props) {
-  const { customize, spec, inventory, components } = props;
+  const { customize, spec, inventory, components, execInfo } = props;
 
   function renderEnvs() {
     const envs: JSX.Element[] = [];
@@ -98,6 +100,7 @@ export default function R(props: Props) {
           {renderBox()}
           <h2>R Statistical Software Environments</h2>
           <ul>{renderEnvs()}</ul>
+          <SoftwareInfo info={execInfo} showHeader={false} />
           <SoftwareLibraries
             spec={spec}
             inventory={inventory}
@@ -112,5 +115,8 @@ export default function R(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "R");
+  return await withCustomizedAndSoftwareSpec(context, "R", [
+    "/usr/bin/R",
+    "/usr/local/bin/R-sage",
+  ]);
 }

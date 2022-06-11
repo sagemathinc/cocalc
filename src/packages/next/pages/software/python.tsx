@@ -3,6 +3,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
+import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
@@ -20,10 +21,11 @@ interface Props {
   spec: SoftwareSpec["python"];
   inventory: ComputeInventory["python"];
   components: ComputeComponents["python"];
+  execInfo?: { [key: string]: string };
 }
 
 export default function Software(props: Props) {
-  const { customize, spec, inventory, components } = props;
+  const { customize, spec, inventory, components, execInfo } = props;
 
   function renderEnvs() {
     const envs: JSX.Element[] = [];
@@ -99,6 +101,7 @@ export default function Software(props: Props) {
           <A href="/features/python">Python Environments</A>
         </h2>
         <ul>{renderEnvs()}</ul>
+        <SoftwareInfo info={execInfo} showHeader={false} />
       </div>
     );
   }
@@ -128,5 +131,11 @@ export default function Software(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "python");
+  return await withCustomizedAndSoftwareSpec(context, "python", [
+    "/usr/bin/python3",
+    "/ext/anaconda2020.02/bin/python",
+    "/ext/anaconda2021.11/bin/python",
+    "/ext/bin/python3-sage",
+    "/usr/bin/python2",
+  ]);
 }
