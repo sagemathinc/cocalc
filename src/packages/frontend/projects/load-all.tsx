@@ -44,7 +44,7 @@ export const LoadAllProjects: React.FC = React.memo(() => {
         }}
       >
         <Button disabled={loading} onClick={load} bsSize="large">
-          {loading ? <Loading /> : "Load any older projects..."}
+          {loading ? <Loading /> : "Show all projects..."}
         </Button>
       </div>
     );
