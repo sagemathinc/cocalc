@@ -253,6 +253,7 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
       // external non-cocalc URL. We open in a new tab.  Also stop prop so doesn't focus element that is clicked on.
       return (
         <A
+          onMouseDown={(e) => e.stopPropagation()}
           href={href}
           title={title}
           onClick={(e) => {
@@ -264,26 +265,36 @@ export default function getAnchorTagComponent({ project_id, path }: Options) {
       );
     }
     if (href) {
-      // Internal relative link in the same project
+      // Internal relative link in the same project or even document (e.g., for a URI fragment)
       return (
         <a
+          onMouseDown={(e) => e.stopPropagation()}
+          href={href}
           onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const url = new URL("http://dummy/" + href);
             const fragmentId = Fragment.decode(url.hash);
             const hrefPlain = url.pathname.slice(1);
-            loadTarget(
-              project_id,
-              join(
+            let target;
+            if (!hrefPlain) {
+              // within the same file
+              target = join("files", path);
+            } else {
+              // different file in the same project, with link being relative
+              // to current path.
+              target = join(
                 "files",
                 path ? path_split(path).head : "",
                 decodeURI(hrefPlain)
-              ),
+              );
+            }
+            loadTarget(
+              project_id,
+              target,
               !((e as any).which === 2 || e.ctrlKey || e.metaKey),
               fragmentId
             );
-            e.preventDefault();
-            e.stopPropagation();
-            return;
           }}
           title={title}
         >

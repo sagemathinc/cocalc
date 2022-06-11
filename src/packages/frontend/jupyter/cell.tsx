@@ -268,7 +268,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     if (props.is_selected) {
       color1 = color2 = "#e3f2fd";
     } else {
-      color1 = color2 = "white";
+      color1 = color2 = "transparent";
     }
   }
   const style: React.CSSProperties = {

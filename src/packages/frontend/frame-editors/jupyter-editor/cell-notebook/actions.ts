@@ -676,6 +676,8 @@ export class NotebookFrameActions {
       delta
     );
     this.set_cur_id(id);
+    this.scroll("cell visible force");
+    setTimeout(() => this.scroll("cell visible force"), 0);
     return id;
   }
 

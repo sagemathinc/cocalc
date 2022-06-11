@@ -277,12 +277,18 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  private createId(): string {
+  // create a new valid id.  If id is given, will try to use
+  // it if it isn't currently in use.
+  private createId(id?: string): string {
     const elements = this.store.get("elements");
-    while (true) {
-      const id = uuid().slice(0, 8);
-      if (!elements?.has(id)) return id;
+    if (elements == null) {
+      // fallback for weird edge case.
+      return uuid().slice(0, 8);
     }
+    while (!id || elements.has(id)) {
+      id = uuid().slice(0, 8);
+    }
+    return id;
   }
 
   private getGroupIds(): Set<string> {
@@ -400,7 +406,7 @@ export class Actions extends BaseActions<State> {
 
   clearSelection(frameId: string): void {
     const node = this._get_frame_node(frameId);
-    if (node == null || node.get("selection").size == 0) return;
+    if (node == null || (node.get("selection")?.size ?? 0) == 0) return;
     this.set_frame_tree({ id: frameId, selection: [], editFocus: false });
     this.setFragmentIdToPage(frameId);
   }
@@ -657,7 +663,10 @@ export class Actions extends BaseActions<State> {
     const idMap: { [id: string]: string } = {};
     const groupMap: { [id: string]: string } = {};
     for (const element of elements) {
-      const newId = this.createId();
+      // Note that we try to use the existing id if available, in order to keep
+      // object id's stable under cut/paste, which is useful for making links
+      // more robust.
+      const newId = this.createId(element.id);
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;

@@ -359,14 +359,18 @@ export function commands(
     "insert cell above": {
       m: "Insert cell above",
       k: [{ mode: "escape", which: 65 }],
-      f: () => frame_actions.insert_cell(-1),
+      f: () => {
+        frame_actions.insert_cell(-1);
+      },
     },
 
     "insert cell below": {
       i: "plus",
       m: "Insert cell below",
       k: [{ mode: "escape", which: 66 }],
-      f: () => frame_actions.insert_cell(1),
+      f: () => {
+        frame_actions.insert_cell(1);
+      },
     },
 
     "insert image": {
@@ -675,7 +679,7 @@ export function commands(
 
     "scroll notebook down": {
       k: [{ mode: "escape", which: 32 }],
-        f: () => frame_actions.scroll("list down"),
+      f: () => frame_actions.scroll("list down"),
     },
 
     "scroll notebook up": {
