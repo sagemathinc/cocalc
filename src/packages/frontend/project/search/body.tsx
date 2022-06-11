@@ -10,11 +10,19 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
-import { Icon, Loading, SearchInput, Space } from "../../components";
+import {
+  Alert,
+  Row,
+  Col,
+  Button,
+  Checkbox,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
+import { Icon, Loading, SearchInput, Space } from "@cocalc/frontend/components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
-import { useTypedRedux, useActions } from "../../app-framework";
-import { delay } from "awaiting";
+import { useTypedRedux, useActions } from "@cocalc/frontend/app-framework";
+import { filename_extension } from "@cocalc/util/misc";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
 const DESC_STYLE: React.CSSProperties = {
   color: "#666",
@@ -35,7 +43,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
     return user_input.trim() != "";
   }
 
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
 
   return (
     <Well>
@@ -97,7 +105,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
 const ProjectSearchInput: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
 
   return (
@@ -198,7 +206,7 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
 const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
   const info_visible = useTypedRedux({ project_id }, "info_visible");
   const search_error = useTypedRedux({ project_id }, "search_error");
   const search_results = useTypedRedux({ project_id }, "search_results");
@@ -234,7 +242,7 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
   }
   return (
     <div style={{ wordWrap: "break-word" }}>
-      <span style={{ color: "#666" }}>
+      <div style={{ color: "#666", marginTop: "10px" }}>
         <a
           onClick={() => actions?.set_active_tab("files")}
           style={{ cursor: "pointer" }}
@@ -242,7 +250,7 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
           Navigate to a different folder
         </a>{" "}
         to search in it.
-      </span>
+      </div>
 
       <h4>
         Results of searching in {output_path()} for "{most_recent_search}"
@@ -271,7 +279,8 @@ const ProjectSearchResultLine: React.FC<{
   line_number: number;
   most_recent_path: string;
 }> = ({ project_id, filename, description, line_number, most_recent_path }) => {
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
+  const icon = file_associations[filename_extension(filename)]?.icon ?? "file";
 
   async function click_filename(e): Promise<void> {
     e.preventDefault();
@@ -279,22 +288,17 @@ const ProjectSearchResultLine: React.FC<{
     await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
+      fragmentId: { line: line_number },
     });
-    await delay(200);
-    actions?.goto_line(path, line_number, true, true);
-    // We really have to try again, since there
-    // is no telling how long until the editor
-    // is sufficiently initialized for this to work.
-    await delay(1000);
-    actions?.goto_line(path, line_number, true, true);
   }
 
   return (
     <div style={{ wordWrap: "break-word" }}>
       <a onClick={click_filename} href="">
+        <Icon name={icon} style={{ marginRight: "5px" }} />{" "}
         <strong>{filename}</strong>
-        <pre style={DESC_STYLE}>{description}</pre>
       </a>
+      <pre style={DESC_STYLE}>{description}</pre>
     </div>
   );
 };

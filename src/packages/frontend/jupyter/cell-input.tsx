@@ -25,10 +25,6 @@ import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
-
-// TODO: plan to switch to this soon!
-// import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 function attachmentTransform(

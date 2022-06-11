@@ -38,7 +38,6 @@ register({
         rel: isExternal ? "noopener" : undefined,
       };
     }
-
     return (
       <a {...attributes} {...props} title={title}>
         {children}

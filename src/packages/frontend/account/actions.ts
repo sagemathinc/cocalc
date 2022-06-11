@@ -10,9 +10,7 @@ import { alert_message } from "../alerts";
 import { show_announce_start, show_announce_end } from "./dates";
 import { AccountState } from "./types";
 import { AccountClient } from "../client/account";
-import {
-  encode_path,
-} from "@cocalc/util/misc";
+import { encode_path } from "@cocalc/util/misc";
 import { define, required } from "@cocalc/util/fill";
 import { set_url } from "../history";
 import { track_conversion } from "../misc";
@@ -221,7 +219,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     }
     // success
     // TODO: can we automatically log them in?  Should we?  Seems dangerous.
-    window.history.pushState("", document.title, window.location.pathname);
+    history.pushState({}, "", location.href);
     this.setState({ reset_key: "", reset_password_error: "" });
   }
 
@@ -253,9 +251,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // left in the DOM, which could lead to a vulnerability
     // or bleed into the next login somehow.
     $(window).off("beforeunload", this.redux.getActions("page").check_unload);
-    window.location.hash = "";
-    // redirect to sign in page
-    window.location.href = join(appBasePath, sign_in ? "app" : "/");
+    // redirect to sign in page if sign_in is true; otherwise, the landing page:
+    window.location.href = join(appBasePath, sign_in ? "auth/sign-in" : "/");
   }
 
   push_state(url?: string): void {

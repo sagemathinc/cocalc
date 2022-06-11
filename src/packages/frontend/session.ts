@@ -5,8 +5,6 @@
 
 /*
 Session management
-
-Initially only the simplest possible client-side implementation.
 */
 
 import { throttle } from "underscore";
@@ -17,7 +15,7 @@ import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "@cocalc/util/async-utils";
 import * as LS from "./misc/local-storage-typed";
 import { bind_methods } from "@cocalc/util/misc";
-import { target } from "@cocalc/frontend/client/handle-hash-url";
+import target from "@cocalc/frontend/client/handle-target";
 import { load_target } from "./history";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 

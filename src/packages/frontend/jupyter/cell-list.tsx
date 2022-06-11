@@ -211,7 +211,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       // Handle "cell visible" and "cell top"
       const cell = $(node).find(`#${cur_id}`);
       if (cell.length == 0) return;
-      if (scroll == "cell visible") {
+      if (scroll.startsWith("cell visible")) {
         cell.scrollintoview();
       } else if (scroll == "cell top") {
         // Make it so the top of the cell is at the top of
@@ -244,26 +244,68 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       // between windowed and non-windowed mode.
       return;
     }
+
     if (scroll.startsWith("cell")) {
       // find index of cur_id cell.
       const cellList = actions?.store.get("cell_list");
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;
-      if (scroll == "cell visible") {
-        virtuosoRef.current?.scrollIntoView({ index: index + 1 });
+      if (scroll == "cell visible force") {
+        virtuosoRef.current?.scrollIntoView({
+          index: index + EXTRA_CELLS,
+        });
+      } else if (scroll == "cell visible") {
+        // We ONLY scroll if the cell is not in the visible
+        // range -- otherwise if the cell is halfway off the screen...
+        // TODO: this is really just a stupid hack that doesn't fully work,
+        // and I will have to implement something better.
+        const n = index + EXTRA_CELLS;
+        if (
+          n < virtuosoRangeRef.current.startIndex ||
+          n > virtuosoRangeRef.current.endIndex
+        ) {
+          virtuosoRef.current?.scrollIntoView({
+            index: n,
+          });
+          // don't do the requestAnimationFrame hack as below here
+          // because that actually moves between top and bottom.
+        }
       } else if (scroll == "cell top") {
-        virtuosoRef.current?.scrollToIndex({ index: index + 1 });
+        virtuosoRef.current?.scrollToIndex({
+          index: index + EXTRA_CELLS,
+        });
+        // hack which seems necessary for jupyter at least.
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_CELLS,
+          })
+        );
       }
     } else if (scroll.startsWith("list")) {
       if (scroll == "list up") {
         const index = virtuosoRangeRef.current?.startIndex;
-        virtuosoRef.current?.scrollToIndex({ index: index + 1, align: "end" });
+        virtuosoRef.current?.scrollToIndex({
+          index: index + EXTRA_CELLS,
+          align: "end",
+        });
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_CELLS,
+            align: "end",
+          })
+        );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
         virtuosoRef.current?.scrollToIndex({
-          index: index + 1,
+          index: index + EXTRA_CELLS,
           align: "start",
         });
+        requestAnimationFrame(() =>
+          virtuosoRef.current?.scrollToIndex({
+            index: index + EXTRA_CELLS,
+            align: "start",
+          })
+        );
       }
     }
   }
@@ -407,15 +449,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       return;
     }
-    // index + 1 because of iframe
-    // the offset+1 is I think compensating for a bug maybe in virtuoso or our use of it.
+    // index + EXTRA_CELLS because of iframe and style cells
+    // the offset+1 is I think compensating for a bug maybe in
+    // virtuoso or our use of it.
     virtuosoRef.current?.scrollToIndex({
-      index: index + 1,
+      index: index + EXTRA_CELLS,
       offset: offset + 1,
     });
     requestAnimationFrame(() => {
       virtuosoRef.current?.scrollToIndex({
-        index: index + 1,
+        index: index + EXTRA_CELLS,
         offset: offset + 1,
       });
     });
@@ -505,7 +548,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             }
             const key = cell_list.get(index - EXTRA_CELLS);
             if (key == null) return null;
-            const is_last: boolean = key === cell_list.get(-EXTRA_CELLS);
+            const is_last: boolean = key === cell_list.get(-1);
             return (
               <div style={{ overflow: "hidden" }}>
                 {render_insert_cell(key, "above")}

@@ -61,7 +61,7 @@ import {
   get_local_storage,
   delete_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   ext2syntax,
   syntax2tool,
@@ -1031,9 +1031,12 @@ export class Actions<
     }
   }
 
-  // Set the location of all of OUR cursors.  This is entirely
-  // so the information can propogate to other users via the syncstring.
+  // Set the location of all of OUR cursors.  This serves many purposes:
+  //  -- propogate to other users via the syncstring.
+  //  -- setting uri fragment page= at top of browser, so URL link is useful
+  //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
+    // console.log("set_cursor_locs", JSON.stringify(locs));
     if (!this._syncstring) {
       return; // not currently valid.
     }
@@ -1045,6 +1048,9 @@ export class Actions<
     if ((this as any).handle_cursor_move !== undefined) {
       // give derived classes a chance to handle cursor movement.
       (this as any).handle_cursor_move(locs);
+    }
+    if (this.store.get("visible") && typeof locs[0]?.y == "number") {
+      Fragment.set({ line: locs[0].y + 1 });
     }
   }
 
@@ -1561,28 +1567,60 @@ export class Actions<
     this._cm_exec(id, "indentAuto");
   }
 
+  // Waits until syncdoc is ready. If it will never be
+  // ready, e.g., is closed, then returns false.
+  async wait_until_syncdoc_ready(syncdoc?): Promise<boolean> {
+    if (syncdoc == null) {
+      syncdoc = this._syncstring;
+    }
+    if (syncdoc == null || syncdoc.is_fake) {
+      // give up -- don't even have a syncdoc...
+      // A derived class that doesn't use a syncdoc
+      // might overload programmatical_goto_line to make
+      // sense for whatever it works with.
+      return false;
+    }
+    const state = syncdoc.get_state();
+    if (state == "closed") return false;
+    if (state == "init") {
+      await once(syncdoc, "ready");
+      if (this._state == "closed") return false;
+    }
+    return true;
+  }
+
   // used when clicking on other user avatar,
   // in the latex editor, etc.
   // If cursor is given, moves the cursor to the line too.
+  // *NOTE: This function can be called before
+  // the syncstring is initialized and will still work fine!*
   async programmatical_goto_line(
-    line: number,
+    line: string | number,
     cursor?: boolean,
     focus?: boolean,
-    id?: string, // if given scroll this particular frame
+    frameId?: string, // if given scroll the frame with this id
     ch?: number // specific character in line
   ): Promise<void> {
-    if (this._syncstring == null || this._syncstring.is_fake) {
-      // give up -- don't even have a syncstring...
-      // A derived class that doesn't use a syncstring
-      // might overload programmatical_goto_line to make
-      // sense for whatever it works with.
+    if (!(await this.wait_until_syncdoc_ready())) {
       return;
     }
-    const state = this._syncstring.get_state();
-    if (state == "closed") return;
-    if (state == "init") {
-      await once(this._syncstring, "ready");
-      if (this._state == "closed") return;
+
+    // This implentation of goto_line only supports integer line numbers.
+    // However, derived classes may support id's or other types of more general "lines".
+    try {
+      if (typeof line == "string") {
+        line = parseInt(line);
+        if (!isFinite(line)) {
+          throw Error();
+        }
+      }
+    } catch (_err) {
+      console.log(`WARNING: can't go to non-integer line ${line}`);
+      return;
+    }
+
+    if (typeof line != "number") {
+      throw Error("impossible");
     }
 
     if (line <= 0) {
@@ -1596,24 +1634,14 @@ export class Actions<
       */
       line = 1;
     }
-    const cm_id: string | undefined =
-      id == null ? this._get_most_recent_cm_id() : id;
-    if (cm_id && this._get_frame_node(cm_id) != null) {
-      // cm_id defines a frame in the main frame tree associated
-      // to this file (rather than a frame in some other frame tree).
-      const full_id: string | undefined = this.store.getIn([
-        "local_view_state",
-        "full_id",
-      ]);
-      if (full_id && full_id != cm_id) {
-        this.unset_frame_full();
-        // have to wait for cm to get created and registered.
-        await delay(1);
-        if (this._state == "closed") return;
-      }
-    }
 
-    let cm = this._get_cm(cm_id);
+    // ensure a cm frame exists.
+    if (frameId == null) {
+      frameId = this.show_recently_focused_frame_of_type("cm");
+    }
+    // this gets a CM editor, which will eventually
+    // exist because there's a cm frame.
+    let cm = this._get_cm(frameId);
     // This is ugly -- react will render the frame with the
     // editor in it, and after that happens the CodeMirror
     // editor that was created gets registered, and finally
@@ -1622,24 +1650,17 @@ export class Actions<
     // of crappy code is OK here, since it's just for moving the
     // buffer to a line.
     for (let i = 0; cm == null && i < 10; i++) {
-      cm = this._get_cm(cm_id);
-      await delay(25);
+      cm = this._get_cm(frameId);
+      if (cm == null) {
+        await delay(25);
+      }
       if (this._state == "closed") return;
+    }
+    if (cm == null) {
+      // still failed -- give up.
+      return;
     }
 
-    if (cm == null) {
-      // this case can only happen in derived classes with non-cm editors.
-      this.split_frame("col", this._get_active_id(), "cm");
-      // Have to wait until the codemirror editor is created and registered, which
-      // is caused by component mounting.
-      await delay(1);
-      if (this._state == "closed") return;
-      cm = this._recent_cm();
-      if (cm == null) {
-        // still failed -- give up.
-        return;
-      }
-    }
     const doc = cm.getDoc();
     if (line > doc.lineCount()) {
       line = doc.lineCount();
@@ -2645,5 +2666,31 @@ export class Actions<
   // Set ordered list of all pages in the document
   setPages(id: string, pages: string[] | number | null): void {
     this.set_frame_tree({ id, pages });
+  }
+
+  // returns '' if will never be ready; otherwise, returns frame id.
+  // This is useful for implementing gotoFragment, which often gets
+  // called immediately the moment a file is opened, but before
+  // things are initialized... and also gets called when the frame
+  // needed to show it isn't available.  This helper function makes
+  // that all easier.
+  protected async waitUntilFrameReady({
+    syncdoc,
+    type = "cm",
+  }: {
+    syncdoc?;
+    type: string;
+  }): Promise<string> {
+    const state = (syncdoc ?? this._syncstring).get_state();
+    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+      return "";
+    }
+    const frameId = this.show_focused_frame_of_type(type);
+    if (state != "ready" && frameId) {
+      // TODO: temporary hack until we have gotoFragment
+      // as part of constructor!
+      await delay(200);
+    }
+    return frameId;
   }
 }
