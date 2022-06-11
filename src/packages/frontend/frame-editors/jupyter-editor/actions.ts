@@ -14,11 +14,15 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
-
 import {
   create_jupyter_actions,
   close_jupyter_actions,
 } from "./jupyter-actions";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
+import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
+import { JupyterActions } from "../../jupyter/browser-actions";
+import { NotebookFrameActions } from "./cell-notebook/actions";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -26,10 +30,6 @@ export interface JupyterEditorState extends CodeEditorState {
     url?: string;
   };
 }
-
-import { JupyterActions } from "../../jupyter/browser-actions";
-
-import { NotebookFrameActions } from "./cell-notebook/actions";
 
 export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
@@ -355,6 +355,73 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   // Close the most recently focused introspect frame, if there is one.
   public async close_introspect(): Promise<void> {
     this.close_recently_focused_frame_of_type("introspect");
+  }
+
+  async gotoFragment(fragmentId: FragmentId) {
+    const frameId = await this.waitUntilFrameReady({
+      type: "jupyter_cell_notebook",
+      syncdoc: this.jupyter_actions.syncdb,
+    });
+    if (!frameId) return;
+    const { id, anchor } = fragmentId as any;
+
+    const goto = (cellId: string) => {
+      const actions = this.get_frame_actions(frameId);
+      if (actions == null) return;
+      actions.set_cur_id(cellId);
+      actions.scroll("cell top");
+    };
+
+    if (id) {
+      goto(id);
+      return;
+    }
+
+    if (anchor) {
+      // In html, the anchor refers to the unique element in the global document with
+      // id equal to that.
+      // There may be an actual element in markdown of some cell with the id equal to
+      // anchor, which would have to be some HTML, since markdown doesn't have a notion
+      // of id.
+      // Most likely there is a markdown section heading that programatically gets
+      // an id (see src/packages/frontend/jupyter/heading-tag.tsx).  Of course, our
+      // notebook cells need not be in the DOM at all due to virtualization, so we
+      // parrse and search the actual cell data directly.
+      const cells = this.jupyter_actions.store.get("cells");
+      for (const cellId of this.jupyter_actions.store.get("cell_list")) {
+        const cell = cells.get(cellId);
+        if (cell?.get("cell_type") == "markdown") {
+          const input = cell.get("input");
+          const slate = markdown_to_slate(input);
+          for (const block of slate) {
+            if (block["type"] == "heading") {
+              if (toFragmentId(block["children"] ?? []) == anchor) {
+                // found it!
+                goto(cellId);
+                return;
+              }
+            }
+          }
+          // We didn't find it as a heading, so now check for id's of inline or
+          // block level html.  Here we're just going to do something that
+          // isn't always right, but is easy and may result in false positive
+          // (or negative).  Also, note that if the markdown block is really
+          // large the actual tag with the given id might not be visible.
+          // Another significant issue related to all this is that we sanitize
+          // away any ids from the html anyways, so there aren't ids in the DOM
+          // from html blocks or inline html!
+          if (
+            input.includes(`id=${anchor}`) ||
+            input.includes(`id="${anchor}"`) ||
+            input.includes(`id='${anchor}'`)
+          ) {
+            goto(cellId);
+            return;
+          }
+        }
+      }
+      return;
+    }
   }
 }
 

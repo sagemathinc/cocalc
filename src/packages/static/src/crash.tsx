@@ -3,6 +3,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import A from "./link";
 import supportURL from "@cocalc/frontend/support/url";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const STYLE = {
   display: "none",
@@ -10,14 +11,15 @@ const STYLE = {
   position: "absolute",
   overflow: "scroll",
   height: "90vh",
-  width: "70vw",
+  width: "60vw",
   top: "5vh",
-  left: "15vw",
-  border: "1px solid #dc3545",
-  padding: "20px",
+  left: "20vw",
+  border: "1px solid #aaaaaa",
+  boxShadow: "10px 10px 10px lightgrey",
+  padding: "30px",
   borderRadius: "5px",
   fontSize: "12pt",
-  backgroundColor: "#fafafa",
+  backgroundColor: "white",
   color: "#444",
 } as React.CSSProperties;
 
@@ -28,10 +30,36 @@ export default function Crash() {
     type: "question",
     hideExtra: true,
   });
+  const dismiss = () => {
+    // Yes, this is a very non-react way to do this.  This is a
+    // port of something else that didn't use React.
+    const crash = document.getElementById("cocalc-react-crash");
+    if (crash == null) return;
+    crash.style.display = "none";
+  };
+
   return (
     <div id="cocalc-react-crash" style={STYLE}>
-      <h1 style={{ textAlign: "center" }}>
-        <i className="fa fa-robot">&nbsp;</i> CoCalc Crashed
+      <Icon
+        name="close-circle-two-tone"
+        style={{
+          fontSize: "24px",
+          position: "absolute",
+          right: "4px",
+          top: "5px",
+        }}
+        onClick={dismiss}
+      />
+      <h1
+        style={{
+          textAlign: "center",
+          color: "white",
+          background: "crimson",
+          padding: "15px",
+        }}
+      >
+        <Icon name="robot" />
+        &nbsp; CoCalc Crashed
       </h1>
 
       <hr />
@@ -64,18 +92,8 @@ export default function Crash() {
 
           <li>
             <p style={{ fontWeight: "bold", fontSize: "115%" }}>
-              <a
-                onClick={() => {
-                  // Yes, this is a very non-react way to do this.  This is a
-                  // port of something else that didn't use React.
-                  const crash = document.getElementById("cocalc-react-crash");
-                  if (crash == null) return;
-                  crash.style.display = "none";
-                }}
-              >
-                Dismiss this error
-              </a>{" "}
-              and continue using CoCalc.
+              <a onClick={dismiss}>Dismiss this error</a> and continue using
+              CoCalc.
             </p>
           </li>
         </ul>

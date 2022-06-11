@@ -4,7 +4,7 @@
  */
 
 import { QueryParams } from "../misc/query-params";
-import { target } from "@cocalc/frontend/client/handle-hash-url";
+import target from "@cocalc/frontend/client/handle-target";
 
 declare var $: any;
 

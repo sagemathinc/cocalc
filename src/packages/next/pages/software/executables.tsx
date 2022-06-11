@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
 import ExecutablesTable from "components/landing/executables-table";
 import Footer from "components/landing/footer";
@@ -24,7 +29,14 @@ export default function Executables(props: Props) {
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
           Executables in CoCalc
         </h1>
-        <div style={{ width: "50%", float: "right", paddingBottom: "15px" }}>
+        <div
+          style={{
+            width: "50%",
+            float: "right",
+            paddingBottom: "15px",
+            paddingLeft: "15px",
+          }}
+        >
           <Image
             src={executablesScreenshot}
             alt="Terminal showing listing executables in CoCalc"

@@ -4,23 +4,26 @@
    This redirect is *undone* in @cocalc/frontend/client/handle-hash-url.ts
 */
 
-import { parse } from "url";
 import { join } from "path";
 import { Router } from "express";
 import basePath from "@cocalc/backend/base-path";
+import { getLogger } from "@cocalc/hub/logger";
 
 // All top level page "entry points" in the webapp must be listed here.
 // Should be consistent with what is handled in @cocalc/frontend/history.ts
 // and @cocalc/frontend/app/actions.ts
-const ROUTES = ["admin", "help", "projects", "settings", "notifications"];
+const ROUTES = ["admin", "projects", "settings", "notifications"];
 
 export default function init(router: Router) {
+  const winston = getLogger("app-redirect");
   const v: string[] = [];
   for (const path of ROUTES) {
     v.push(`/${path}*`);
   }
   router.get(v, (req, res) => {
-    const q = parse(req.url, true).search || ""; // gives exactly "?key=value,key=..."
-    res.redirect(join(basePath, "static/app.html#") + req.path.slice(1) + q);
+    winston.debug(req.url);
+    const url = new URL("http://host");
+    url.searchParams.set("target", req.url);
+    res.redirect(join(basePath, "static/app.html") + url.search);
   });
 }

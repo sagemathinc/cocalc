@@ -31,29 +31,39 @@ export default async function handle(options: Options): Promise<void> {
   }
 }
 
-async function handleRequest({
-  id, // id of a public_path
-  path, // full path in the project to requested file or directory
-  req,
-  res,
-  download,
-  next,
-}: Options): Promise<void> {
+async function handleRequest(opts: Options): Promise<void> {
+  const {
+    id, // id of a public_path
+    path: pathEncoded, // full path in the project to requested file or directory
+    req,
+    res,
+    download,
+    next,
+  } = opts;
+
   if (!isSha1Hash(id)) {
     throw Error(`id=${id} is not a sha1 hash`);
   }
+
+  // store the URI decoded string from pathEncoded in path
+  // BUGFIX: https://github.com/sagemathinc/cocalc/issues/5928
+  // This does not work with file names containing a percent sign, because next.js itself does decode the path as well.
+  const path = decodeURIComponent(pathEncoded);
+
+  // the above must come before this check (since dots could be somehow encoded)
   if (path.includes("..")) {
     throw Error(`path (="${path}") must not include ".."`);
   }
+
   let { fsPath, projectPath } = await pathFromID(id);
+
   if (!path.startsWith(projectPath)) {
-    // The projectPath absolutely must be an initial
-    // segment of the requested path.  We do NOT just
-    // use a relative path *inside* the share, because
-    // the share might be a file itself and then the
-    // MIME type wouldn't be a function of the URL.
-    throw Error(`path (="${path}") must start with "${projectPath}" ".."`);
+    // The projectPath absolutely must be an initial segment of the requested path.
+    // We do NOT just use a relative path *inside* the share, because the share might be a file itself
+    // and then the MIME type wouldn't be a function of the URL.
+    throw Error(`path (="${path}") must start with "${projectPath}"`);
   }
+
   let url = path.slice(projectPath.length);
   const target = join(fsPath, url);
 

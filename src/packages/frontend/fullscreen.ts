@@ -7,12 +7,13 @@
    kiosk-mode upon /app?fullscreen=kiosk
 */
 
+// Import this to ensure that the query params have been restored.
+import "@cocalc/frontend/client/handle-target";
+
 import { QueryParams } from "./misc/query-params";
-
-import "./misc/window-globals";
-
 export const COCALC_FULLSCREEN = QueryParams.get("fullscreen");
 export const COCALC_MINIMAL = COCALC_FULLSCREEN === "kiosk";
+
 if (COCALC_MINIMAL) {
   console.log("CoCalc Kiosk Mode");
 }

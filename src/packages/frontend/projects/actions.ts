@@ -29,6 +29,7 @@ import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
 import { StudentProjectFunctionality } from "../course/configuration/customize-student-project-functionality";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -330,7 +331,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   public async open_project(opts: {
     project_id: string; //  id of the project to open
     target?: string; // The file path to open
-    anchor?: string; //  if given, an anchor tag in the editor that is opened.
+    fragmentId?: FragmentId; //  if given, an uri fragment in the editor that is opened.
     switch_to?: boolean; // (default: true) Whether or not to foreground it
     ignore_kiosk?: boolean; // Ignore ?fullscreen=kiosk
     change_history?: boolean; // (default: true) Whether or not to alter browser history
@@ -339,7 +340,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     opts = defaults(opts, {
       project_id: undefined,
       target: undefined,
-      anchor: undefined,
+      fragmentId: undefined,
       switch_to: true,
       ignore_kiosk: false,
       change_history: true,
@@ -373,7 +374,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         opts.switch_to,
         opts.ignore_kiosk,
         opts.change_history,
-        opts.anchor
+        opts.fragmentId
       );
     }
     if (opts.restore_session) {
@@ -405,7 +406,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     switch_to?: boolean,
     ignore_kiosk?: boolean,
     change_history?: boolean,
-    anchor?: string
+    fragmentId?: FragmentId
   ): Promise<void> {
     if (!target || target.length === 0) {
       redux.getActions("page").set_active_tab("projects");
@@ -418,7 +419,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       await this.open_project({
         project_id,
         target: t,
-        anchor,
+        fragmentId,
         switch_to,
         ignore_kiosk,
         change_history,

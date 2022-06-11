@@ -17,7 +17,7 @@ import {
   useRef,
   useTypedRedux,
 } from "../../app-framework";
-import { Button } from "../../antd-bootstrap";
+import { Button } from "antd";
 import { Icon, Loading } from "../../components";
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
@@ -136,12 +136,8 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     }
     return (
       <div style={{ textAlign: "center", padding: "15px" }}>
-        <Button
-          bsStyle={"info"}
-          onClick={load_all}
-          disabled={project_log_all != undefined}
-        >
-          Load older log entries
+        <Button onClick={load_all} disabled={project_log_all != undefined}>
+          Show all log entries...
         </Button>
       </div>
     );
