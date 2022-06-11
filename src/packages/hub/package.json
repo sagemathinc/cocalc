@@ -36,7 +36,7 @@
     "@types/nodemailer": "^6.4.4",
     "@types/react": "^17.0.33",
     "@types/uuid": "^8.3.1",
-    "async": "^1.5.2",
+    "async": "^2.6.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "basic-auth": "^2.0.1",
