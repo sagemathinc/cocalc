@@ -20,6 +20,7 @@ import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 export interface EditorFunctions {
   set_cursor?: (pos: { x?: number; y?: number }) => void;
@@ -64,7 +65,7 @@ interface Props {
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
-  submitMentionsRef?: any;
+  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
   saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.

@@ -43,7 +43,7 @@ import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
 import { debounce } from "lodash";
 import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
-
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { EditorFunctions } from "./multimode";
 
 // This code depends on codemirror being initialized.
@@ -75,7 +75,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  submitMentionsRef?: MutableRefObject<() => string>;
+  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
@@ -361,13 +361,18 @@ export function MarkdownInput({
     }
 
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = () => {
+      submitMentionsRef.current = (fragmentId?: FragmentId) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set if enableMentions is set."
           );
         }
-        const mentions: { account_id: string; description: string }[] = [];
+        const fragment_id = Fragment.encode(fragmentId);
+        const mentions: {
+          account_id: string;
+          description: string;
+          fragment_id: string;
+        }[] = [];
         if (cm.current == null) return;
         // Get lines here, since we modify the doc as we go below.
         const doc = (cm.current.getDoc() as any).linkedDoc();
@@ -395,7 +400,7 @@ export function MarkdownInput({
           )}</span>`;
           const description = trunc(cm.current.getLine(from.line).trim(), 160);
           doc.replaceRange(text, from, to);
-          mentions.push({ account_id, description });
+          mentions.push({ account_id, description, fragment_id });
         }
         submit_mentions(project_id, path, mentions);
         return doc.getValue();

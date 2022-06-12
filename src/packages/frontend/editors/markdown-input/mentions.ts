@@ -10,19 +10,20 @@ import { webapp_client } from "../../webapp-client";
 export async function submit_mentions(
   project_id: string,
   path: string,
-  mentions: { account_id: string; description: string }[]
+  mentions: { account_id: string; description: string; fragment_id?: string }[]
 ): Promise<void> {
   const source = redux.getStore("account")?.get("account_id");
   if (source == null) {
     return;
   }
-  for (const { account_id, description } of mentions) {
+  for (const { account_id, description, fragment_id } of mentions) {
     try {
       await webapp_client.query_client.query({
         query: {
           mentions: {
             project_id,
             path: original_path(path),
+            fragment_id,
             target: account_id,
             priority: 2,
             description,
