@@ -3,8 +3,7 @@ export interface Key {
   path: string;
   time: Date;
   target: string;
+  fragment_id?: string;
 }
 
-
 export type Action = "ignore" | "notify" | "email" | "nothing";
-

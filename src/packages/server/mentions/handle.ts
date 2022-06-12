@@ -35,13 +35,14 @@ export default async function init(): Promise<void> {
 async function handleAllMentions(): Promise<void> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT time, project_id, path, source, target, description FROM mentions WHERE action IS null"
+    "SELECT time, project_id, path, source, target, description, fragment_id FROM mentions WHERE action IS null"
   );
   for (const row of rows) {
-    const { time, project_id, path, source, target, description } = row;
+    const { time, project_id, path, source, target, description, fragment_id } =
+      row;
     try {
       await handleMention(
-        { project_id, path, time, target },
+        { project_id, path, time, target, fragment_id },
         source,
         description ?? ""
       );

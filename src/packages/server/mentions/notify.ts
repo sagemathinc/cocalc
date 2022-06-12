@@ -33,7 +33,11 @@ export default async function sendNotificationIfPossible(
       ? `<br/><blockquote>${description}</blockquote>`
       : "";
   const subject = `[${trunc(projectTitle, 40)}] ${key.path}`;
-  const url = `${await siteURL()}/projects/${key.project_id}/files/${key.path}`;
+  const url = `${await siteURL()}/projects/${key.project_id}/files/${key.path}${
+    key.fragment_id
+      ? (key.fragment_id.startsWith("#") ? "" : "#") + key.fragment_id
+      : ""
+  }`;
   const html = `
 ${sourceName} mentioned you in
 <a href="${url}">a chat at ${key.path} in ${projectTitle}</a>.
