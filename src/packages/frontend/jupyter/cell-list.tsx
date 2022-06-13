@@ -503,7 +503,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   let body;
 
-  const iframeDivRef = useRef<any>(null);
+  const iframeDivRef = useRef<HTMLDivElement>(null);
+  const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   if (use_windowed_list) {
     body = (
       <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
@@ -520,6 +521,22 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             cell_list.size +
             EXTRA_CELLS /* +EXTRA_CELLS due to the iframe cell and style cell at the top */
           }
+          itemSize={(el) => {
+            // We capture measured heights -- see big coment above the
+            // the DivTempHeight component below for why this is needed
+            // for Jupyter notebooks (but not most things).
+            const h = el.getBoundingClientRect().height;
+            // WARNING: This uses perhaps an internal implementation detail of
+            //  virtuoso, which I hope they don't change, which is that the index of
+            // the elements whose height we're measuring is in the data-item-index
+            // attribute.
+            const data = el.getAttribute("data-item-index");
+            if (data != null) {
+              const index = parseInt(data);
+              virtuosoHeightsRef.current[index] = h;
+            }
+            return h;
+          }}
           itemContent={(index) => {
             if (index == 0) {
               return (
@@ -549,12 +566,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             const key = cell_list.get(index - EXTRA_CELLS);
             if (key == null) return null;
             const is_last: boolean = key === cell_list.get(-1);
+            const h = virtuosoHeightsRef.current[index];
             return (
-              <div style={{ overflow: "hidden" }}>
+              <DivTempHeight height={h ? `${h}px` : undefined}>
                 {render_insert_cell(key, "above")}
                 {render_cell(key, false, index - EXTRA_CELLS)}
                 {is_last ? render_insert_cell(key, "below") : undefined}
-              </div>
+              </DivTempHeight>
             );
           }}
           rangeChanged={(visibleRange) => {
@@ -614,3 +632,41 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     </FileContext.Provider>
   );
 };
+
+/*
+DivTempHeight:
+
+This component renders a div with an specified height
+then **after the render  is committed to the screen** immediately
+removes the height style. This is needed because when codemirror
+editors are getting rendered, they have small initially, then
+full height only after the first render... and that causes
+a major problem with virtuoso.  To reproduce without this:
+
+1. Create a notebook whose first cell has a large amount of code,
+so its spans several page, and with a couple more smaller cells.
+2. Scroll the first one off the screen entirely.
+3. Scroll back up -- as soon as the large cell scrolls into view
+there's a horrible jump to the middle of it.  This is because
+the big div is temporarily tiny, and virtuoso does NOT use
+absolute positioning, and when the div gets big again, everything
+gets pushed down.
+
+The easiest hack to deal with this, seems to be to record
+the last measured height, then set it for the initial render
+of each item, then remove it.
+*/
+function DivTempHeight({ children, height }) {
+  const divRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (divRef.current != null) {
+      divRef.current.style.minHeight = "";
+    }
+  });
+
+  return (
+    <div ref={divRef} style={{ overflow: "hidden", minHeight: height }}>
+      {children}
+    </div>
+  );
+}
