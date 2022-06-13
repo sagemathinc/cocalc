@@ -6,7 +6,8 @@ import { callback } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/project/logger";
 import { hubPortFile } from "@cocalc/project/data";
-const { enable_mesg, unlock_socket } = require("@cocalc/backend/misc_node");
+const { unlock_socket } = require("@cocalc/backend/misc_node");
+import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { options } from "@cocalc/project/init-program";
 import { secretToken } from "@cocalc/project/servers/secret-token";
 const client = require("@cocalc/project/client");
@@ -59,7 +60,7 @@ async function handleConnection(socket) {
 
   socket.id = uuid.v4();
   socket.heartbeat = new Date(); // obviously working now
-  enable_mesg(socket);
+  enableMessagingProtocol(socket);
 
   socket.on("mesg", (type, mesg) => {
     client.client?.active_socket(socket); // record that this socket is active now.

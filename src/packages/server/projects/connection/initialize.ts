@@ -11,13 +11,11 @@ import handleMessage from "./handle-message";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:initialize");
 
-// misc_node is still in coffeescript :-(
-//import { ... } from "@cocalc/backend/misc_node";
-const { enable_mesg } = require("@cocalc/backend/misc_node");
+import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
 
 export default function initialize(project_id: string, socket): void {
   logger.info("initializing socket");
-  enable_mesg(socket, "connection_to_a_local_hub");
+  enableMessagingProtocol(socket, "connection_to_a_local_hub");
 
   socket.on("mesg", (type, mesg) => {
     switch (type) {
