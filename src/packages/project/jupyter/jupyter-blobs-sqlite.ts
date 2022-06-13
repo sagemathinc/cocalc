@@ -4,7 +4,7 @@
  */
 
 /*
-Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http server.
+Jupyter's blob store (based on sqlite), which hooks into the raw http server.
 */
 
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";

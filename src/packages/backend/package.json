@@ -36,7 +36,6 @@
     "lru-cache": "^6.0.0",
     "password-hash": "^1.2.2",
     "shell-escape": "^0.2.0",
-    "sqlite3": "^5.0.2",
     "supports-color": "^9.0.2",
     "temp": "^0.9.4",
     "underscore": "^1.12.1"
