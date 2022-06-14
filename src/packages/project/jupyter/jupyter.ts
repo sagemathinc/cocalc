@@ -35,8 +35,7 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-
-const {
+import {
   merge,
   copy,
   deep_copy,
@@ -45,8 +44,7 @@ const {
   uuid,
   len,
   is_array,
-} = require("@cocalc/util/misc");
-
+} from "@cocalc/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 const { key_value_store } = require("@cocalc/util/key-value-store");

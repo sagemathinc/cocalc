@@ -7,7 +7,7 @@
 Compute sales tax for a given customer in WA state.
 */
 
-const { sales_tax } = require("@cocalc/backend/misc_node");
+import sales_tax from "@cocalc/util/stripe/sales-tax";
 import getConn from "./connection";
 
 export async function stripe_sales_tax(

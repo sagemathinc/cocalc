@@ -254,7 +254,7 @@ export function startswith(s: any, x: string | string[]): boolean {
     return false;
   }
   if (typeof x === "string") {
-    return s.indexOf(x) === 0;
+    return s.startsWith(x);
   }
   for (const v of x) {
     if (s.indexOf(v) === 0) {
@@ -268,7 +268,7 @@ export function endswith(s: any, t: any): boolean {
   if (typeof s != "string" || typeof t != "string") {
     return false;
   }
-  return s.slice(s.length - t.length) === t;
+  return s.endsWith(t);
 }
 
 import { v4 as v4uuid } from "uuid";

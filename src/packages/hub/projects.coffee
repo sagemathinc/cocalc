@@ -105,10 +105,3 @@ class Project
         opts.project_id = @project_id
         @local_hub.write_file(opts)
 
-    terminate_session: (opts) =>
-        opts = defaults opts,
-            session_uuid : required
-            cb           : undefined
-        @dbg("terminate_session")
-        opts.project_id = @project_id
-        @local_hub.terminate_session(opts)

@@ -8,6 +8,9 @@ top of the list, so restoring the scroll position doesn't involve any async
 nonsense at all!  It's much more robust than other approaches.
 
 (This isn't long but took a lot of work to write, with many rewrites!)
+
+LICENSE: I hereby license this particular file under the MIT License, the same as
+the upstream Virtuoso project:  https://github.com/petyosi/react-virtuoso/blob/master/LICENSE
 */
 import LRU from "lru-cache";
 import { useCallback, useMemo, useRef } from "react";
