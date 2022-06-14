@@ -312,25 +312,6 @@ exports.forward_remote_port_to_localhost = (opts) ->
             clearInterval(kill_no_output_timer)
             clearInterval(kill_no_activity_timer)
 
-
-exports.process_kill = (pid, signal) ->
-    winston = getLogger('process_kill')
-    switch signal
-        when 2
-            signal = 'SIGINT'
-        when 3
-            signal = 'SIGQUIT'
-        when 9
-            signal = 'SIGKILL'
-        else
-            winston.debug("BUG -- process_kill: only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
-            return
-    try
-        process.kill(pid, signal)
-    catch e
-        # it's normal to get an exception when sending a signal... to a process that doesn't exist.
-
-
 exports.abspath = require('./misc/abspath').default
 
 ensure_containing_directory_exists = require('./misc/ensure-containing-directory-exists').default

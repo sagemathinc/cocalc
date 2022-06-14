@@ -15,7 +15,7 @@ const {
   write_file_to_project,
 } = require("@cocalc/project/read_write_files");
 const { print_to_pdf } = require("@cocalc/project/print_to_pdf");
-const { process_kill } = require("@cocalc/backend/misc_node");
+import processKill from "@cocalc/backend/misc/process-kill";
 const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
@@ -70,7 +70,7 @@ export default function handleMessage(socket, mesg: Message) {
       return;
 
     case "send_signal":
-      process_kill(mesg.pid, mesg.signal);
+      processKill(mesg.pid, mesg.signal);
       if (mesg.id != null) {
         // send back confirmation that a signal was sent
         socket.write_mesg("json", message.signal_sent({ id: mesg.id }));

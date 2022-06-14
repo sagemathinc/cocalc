@@ -13,8 +13,8 @@ TODO:
 
 import { spawn, SpawnOptions } from "child_process";
 import { callback } from "awaiting";
-const { abspath } = require("@cocalc/backend/misc_node");
-const { path_split } = require("@cocalc/util/misc");
+import abspath from "@cocalc/backend/misc/abspath";
+import { path_split } from "@cocalc/util/misc";
 import { clone } from "underscore";
 
 const x11_channels = {};

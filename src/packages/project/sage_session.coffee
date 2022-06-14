@@ -20,6 +20,7 @@ port_manager = require('./port_manager')
 common = require('./common')
 blobs  = require('./blobs')
 
+processKill = require("@cocalc/backend/misc/process-kill").default;
 
 {required, defaults} = misc
 
@@ -175,7 +176,7 @@ class SageSession
 
     close: () =>
         if @_socket?
-            misc_node.process_kill(@_socket.pid, 9)
+            processKill(@_socket.pid, 9)
         @_socket?.end()
         delete @_socket
         for id, cb of @_output_cb
@@ -260,7 +261,7 @@ class SageSession
             when 'signal'
                 if @_socket?
                     dbg("sending signal #{opts.input.signal} to process #{@_socket.pid}")
-                    misc_node.process_kill(@_socket.pid, opts.input.signal)
+                    processKill(@_socket.pid, opts.input.signal)
                 opts.cb?({})
             when 'restart'
                 dbg("restarting sage session")
