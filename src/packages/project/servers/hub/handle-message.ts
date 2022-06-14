@@ -70,7 +70,23 @@ export default function handleMessage(socket, mesg: Message) {
       return;
 
     case "send_signal":
-      processKill(mesg.pid, mesg.signal);
+      if (
+        mesg.pid &&
+        (mesg.signal == 2 || mesg.signal == 3 || mesg.signal == 9)
+      ) {
+        processKill(mesg.pid, mesg.signal);
+      } else {
+        if (mesg.id) {
+          socket.write_mesg(
+            "json",
+            message.error({
+              id: mesg.id,
+              error: "invalid pid or signal (must be 2,3,9)",
+            })
+          );
+        }
+        return;
+      }
       if (mesg.id != null) {
         // send back confirmation that a signal was sent
         socket.write_mesg("json", message.signal_sent({ id: mesg.id }));
