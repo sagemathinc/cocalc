@@ -331,55 +331,14 @@ exports.process_kill = (pid, signal) ->
         # it's normal to get an exception when sending a signal... to a process that doesn't exist.
 
 
-# Any non-absolute path is assumed to be relative to the user's home directory.
-# This function converts such a path to an absolute path.
-exports.abspath = abspath = (path) ->
-    if path.length == 0
-        return process.env.HOME
-    if path[0] == '/'
-        return path  # already an absolute path
-    p = process.env.HOME + '/' + path
-    p = p.replace(/\/\.\//g,'/')    # get rid of /./, which is the same as /...
-    return p
+exports.abspath = require('./misc/abspath').default
+
+ensure_containing_directory_exists = require('./misc/ensure-containing-directory-exists').default
+exports.ensure_containing_directory_exists = (path, cb) ->
+    try
+        await ensure_containing_directory_exists(path)
+    catch err
+        cb(err)
 
 
-
-# Other path related functions...
-
-# Make sure that that the directory containing the file indicated by
-# the path exists and has restrictive permissions.
-ensure_containing_directory_exists = (path, cb) ->   # cb(err)
-    path = abspath(path)
-    dir = misc.path_split(path).head  # containing path
-
-    fs.exists dir, (exists) ->
-        if exists
-            cb?()
-        else
-            async.series([
-                (cb) ->
-                    if dir != ''
-                        # recursively make sure the entire chain of directories exists.
-                        ensure_containing_directory_exists(dir, cb)
-                    else
-                        cb()
-                (cb) ->
-                    fs.mkdir(dir, 0o700, cb)
-            ], (err) ->
-                if err?.code == 'EEXIST'
-                    cb?()
-                else
-                    cb?(err)
-            )
-
-exports.ensure_containing_directory_exists = ensure_containing_directory_exists
-
-# like in sage, a quick way to save/load JSON-able objects to disk; blocking and not compressed.
-exports.saveSync = (obj, filename) ->
-    fs.writeFileSync(filename, JSON.stringify(obj))
-
-exports.loadSync = (filename) ->
-    JSON.parse(fs.readFileSync(filename).toString())
-
-exports.sales_tax = require('@cocalc/util/stripe/sales-tax').default;
 
