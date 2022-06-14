@@ -10,8 +10,7 @@ MOTIVATION: Sage jmol.
 */
 
 import { BlobStoreInterface } from "./project-interface";
-
-const misc = require("@cocalc/util/misc"); // TODO: import type
+import { replace_all } from "@cocalc/util/misc";
 
 export function is_likely_iframe(content: string): boolean {
   if (!content) {
@@ -19,7 +18,7 @@ export function is_likely_iframe(content: string): boolean {
   }
   content = content.slice(0, 100).trim().toLowerCase();
   return (
-    misc.startswith(content, "<iframe") ||
+    content.startsWith("<iframe") ||
     content.indexOf("<!doctype html>") >= 0 ||
     (content.indexOf("<html>") >= 0 && content.indexOf("<head>") >= 0) ||
     // special case "altair" inline html -- https://github.com/sagemathinc/cocalc/issues/4468
@@ -61,7 +60,7 @@ const entity_map = {
 var unescape = function (s: string) {
   for (const k in entity_map) {
     const v = entity_map[k];
-    s = misc.replace_all(s, v, k);
+    s = replace_all(s, v, k);
   }
   return s;
 };

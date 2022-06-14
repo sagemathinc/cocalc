@@ -25,9 +25,10 @@ import genericFormat from "./generic-format";
 import { clang_format } from "./clang-format";
 import { gofmt } from "./gofmt";
 import { rust_format } from "./rust-format";
-const misc = require("@cocalc/util/misc");
-const { make_patch } = require("@cocalc/sync/editor/generic/util");
-const { remove_math, replace_math } = require("@cocalc/util/mathjax-utils"); // from project Jupyter
+import { filename_extension } from "@cocalc/util/misc";
+import { make_patch } from "@cocalc/sync/editor/generic/util";
+// mathjax-utils is from upstream project Jupyter
+import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { get_prettier } from "./prettier-lib";
 import { once } from "@cocalc/util/async-utils";
 import { Syntax as FormatterSyntax } from "@cocalc/util/code-formatter";
@@ -119,7 +120,7 @@ export async function run_formatter_string(
       formatted = await bib_format(input, options, logger);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path != null ? path : "");
+      const ext = filename_extension(path != null ? path : "");
       formatted = await clang_format(input, ext, options, logger);
       break;
     case "gofmt":

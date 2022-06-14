@@ -28,12 +28,17 @@ OutputHandler emits two events:
 
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
+import {
+  close,
+  defaults,
+  required,
+  server_time,
+  len,
+  to_json,
+  is_object,
+} from "@cocalc/util/misc";
 
-// using require because this file is used in smc-project and import is messed up...
-const misc = require("@cocalc/util/misc");
-const { close, defaults, required } = misc;
-
-const now = () => misc.server_time() - 0;
+const now = () => server_time().valueOf() - 0;
 
 export class OutputHandler extends EventEmitter {
   private _opts: any;
@@ -167,7 +172,7 @@ export class OutputHandler extends EventEmitter {
     delete mesg.source;
     for (const k in mesg) {
       const v = mesg[k];
-      if (misc.is_object(v) && misc.len(v) === 0) {
+      if (is_object(v) && len(v) === 0) {
         delete mesg[k];
       }
     }
@@ -217,7 +222,7 @@ export class OutputHandler extends EventEmitter {
     // delete useless fields
     this._clean_mesg(mesg);
 
-    if (misc.len(mesg) === 0) {
+    if (len(mesg) === 0) {
       // don't even bother saving this message; nothing useful here.
       return;
     }
@@ -286,7 +291,7 @@ export class OutputHandler extends EventEmitter {
     if (value != null) {
       let x = value;
       if (this._opts.cell.output) {
-        const n = `${misc.len(this._opts.cell.output) - 1}`;
+        const n = `${len(this._opts.cell.output) - 1}`;
         if (
           get_password != null &&
           this._opts.cell.output[n] &&
@@ -322,7 +327,7 @@ export class OutputHandler extends EventEmitter {
     } else {
       // No idea what to do with this...
       if (typeof this._opts.dbg === "function") {
-        this._opts.dbg(`Unknown PAYLOAD: ${misc.to_json(payload)}`);
+        this._opts.dbg(`Unknown PAYLOAD: ${to_json(payload)}`);
       }
     }
   };

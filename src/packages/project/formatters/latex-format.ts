@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { writeFile, unlink } = require("fs");
-const tmp = require("tmp");
-const { callback } = require("awaiting");
-const { spawn } = require("child_process");
-const { replace_all } = require("@cocalc/util/misc");
+import { writeFile, unlink } from "fs";
+import { file } from "tmp";
+import { callback } from "awaiting";
+import { spawn } from "child_process";
+import { replace_all } from "@cocalc/util/misc";
 
 interface ParserOptions {
   parser: string;
@@ -24,7 +24,7 @@ export async function latex_format(
   options: ParserOptions
 ): Promise<string> {
   // create input temp file
-  const input_path: string = await callback(tmp.file, { postfix: ".tex" });
+  const input_path: string = await callback(file, { postfix: ".tex" });
   try {
     await callback(writeFile, input_path, input);
     // spawn the latexindent script.
