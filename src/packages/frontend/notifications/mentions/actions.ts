@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Actions } from "../../app-framework";
+import { Actions } from "@cocalc/frontend/app-framework";
 import { MentionsState } from "./store";
 import { MentionInfo, MentionFilter } from "./types";
 
 import { once } from "@cocalc/util/async-utils";
 
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export class MentionsActions extends Actions<MentionsState> {
   update_state = (mentions): void => {

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { AppRedux } from "../../app-framework";
+import { AppRedux } from "@cocalc/frontend/app-framework";
 import { MentionsStore, MentionsState } from "./store";
 import { MentionsActions } from "./actions";
 import { MentionsTable } from "./table";

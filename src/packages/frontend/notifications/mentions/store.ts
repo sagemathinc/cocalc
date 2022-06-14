@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Store } from "../../app-framework";
+import { Store } from "@cocalc/frontend/app-framework";
 import { MentionsMap, MentionFilter } from "./types";
 
 export interface MentionsState {

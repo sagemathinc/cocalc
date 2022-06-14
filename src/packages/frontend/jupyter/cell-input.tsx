@@ -260,6 +260,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
+          enableMentions={true}
           cacheId={`${props.id}${frameActions.current?.frame_id}`}
           value={props.cell.get("input") ?? ""}
           height="auto"

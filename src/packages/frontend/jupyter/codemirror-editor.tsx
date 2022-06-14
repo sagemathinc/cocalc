@@ -124,7 +124,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const cm_change = useRef<any>(null);
   const cm_is_focused = useRef<boolean>(false);
   const vim_mode = useRef<boolean>(false);
-  const cm_ref = React.createRef<HTMLPreElement>();
+  const cm_ref = React.createRef<HTMLTextAreaElement>();
 
   const key = useRef<string | null>(null);
 
@@ -194,10 +194,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
   }, [is_focused]);
 
+  // This is an attempt to make code editing somewhat work at non 100% scale
+  // for the whiteboard.  It's only used there, and is a miracle it partly
+  // works at all...  I wonder if CodeMirror 6 would be better?
   const [containerHeight, setContainerHeight] = useState<string | undefined>(
     undefined
   );
-  const divRef = useRef<any>();
+  const innerDivRef = useRef<any>();
   useEffect(() => {
     if (canvasScale == null || canvasScale <= 1) return;
     // Used to support embedding cells in a css scaled div, e.g., which
@@ -205,12 +208,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     // does not and will probably never support any CSS transforms:
     //    https://github.com/codemirror/CodeMirror/issues/2443
     const doUpdate = () => {
-      if (divRef.current != null) {
-        const sizer = $(divRef.current).find(".CodeMirror-sizer");
+      if (innerDivRef.current != null) {
+        const sizer = $(innerDivRef.current).find(".CodeMirror-sizer");
         const height = sizer.height();
         if (height) {
           setContainerHeight(`${height / canvasScale + 6}px`);
-          divRef.current.scrollTop = 0;
+          innerDivRef.current.scrollTop = 0;
         }
       }
     };
@@ -718,22 +721,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   return (
-    <div style={{ width: "100%", overflow: "auto" }}>
+    <div style={{ width: "100%", overflow: "hidden" }}>
       {render_cursors()}
       <div
-        ref={divRef}
+        ref={innerDivRef}
         style={{ ...FOCUSED_STYLE, height: containerHeight, ...style }}
       >
-        <pre
-          ref={cm_ref}
-          style={{
-            width: "100%",
-            backgroundColor: "#fff",
-            minHeight: "25px",
-          }}
-        >
-          {value}
-        </pre>
+        <textarea ref={cm_ref} />
       </div>
       {render_complete()}
     </div>

@@ -1202,6 +1202,7 @@ export class Actions extends BaseActions<State> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
+    // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
     if (!frameId) return;
     const { id, page } = fragmentId as any;

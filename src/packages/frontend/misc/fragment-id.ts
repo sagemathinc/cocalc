@@ -6,18 +6,22 @@ The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 
 import { debounce } from "lodash";
 
-interface Anchor {
+interface Chat {
+  chat?: boolean; // if true, fragment refers to message in side chat for the named path.
+}
+
+interface Anchor extends Chat {
   anchor: string;
 }
 
 // a specific line in a document
-interface Line {
+interface Line extends Chat {
   line: number;
 }
 
 // an id of an element or cell, e.g., in a whiteboard or Jupyter notebook.
 // These ids are assumed globally unique, so no page is specified.
-interface Id {
+interface Id extends Chat {
   id: string;
 }
 
@@ -60,8 +64,8 @@ namespace FragmentId {
     return v.join("&");
   }
 
-  export function decode(hash: string): FragmentId | undefined {
-    if (hash[0] == "#") {
+  export function decode(hash?: string): FragmentId | undefined {
+    if (hash?.[0] == "#") {
       hash = hash.slice(1);
     }
     if (!hash) return undefined;

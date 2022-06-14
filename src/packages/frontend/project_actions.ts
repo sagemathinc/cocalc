@@ -836,9 +836,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const actions: any = redux.getEditorActions(this.project_id, path);
-
     const store = this.get_store();
+    // We ONLY actually goto the fragment if the file is the active one
+    // in the active project and the actions for that file have been created.
+    // Otherwise, we just save the fragment for later when the file is opened
+    // and this.show_file gets called, thus triggering all this again.
     if (
+      actions != null &&
       store != null &&
       path == misc.tab_to_path(store.get("active_project_tab")) &&
       this.isProjectTabVisible()
@@ -849,7 +853,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // The file is actually visible, so we can try to scroll to the fragment.
       // set the fragment in the URL if the file is in the foreground
       Fragment.set(fragmentId);
-      if (actions?.gotoFragment != null) {
+      if (actions.gotoFragment != null) {
         actions.gotoFragment(fragmentId);
         return;
       }
