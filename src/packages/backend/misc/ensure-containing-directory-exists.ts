@@ -1,7 +1,7 @@
-import abspath from "./abspath";
 import { path_split } from "@cocalc/util/misc";
-import { exists, mkdir } from "fs";
-import { callback } from "awaiting";
+import { constants as fsc } from "fs";
+import { access, mkdir } from "fs/promises";
+import abspath from "./abspath";
 
 // Make sure that that the directory containing the file indicated by
 // the path exists and has restrictive permissions.
@@ -12,23 +12,21 @@ export default async function ensureContainingDirectoryExists(
   const containingDirectory = path_split(path).head; // containing path
   if (!containingDirectory) return;
 
-  if (await callback(exists, containingDirectory)) {
+  try {
+    await access(containingDirectory, fsc.R_OK | fsc.W_OK);
     // it exists, yeah!
     return;
-  }
-  // Doesn't exist, so create, via recursion: make sure the containing
-  // directory of the containing directory exists!
-  await ensureContainingDirectoryExists(containingDirectory);
-
-  // Now make our directory itself:
-  try {
-    await callback(mkdir, containingDirectory, 0o700);
   } catch (err) {
-    if (err?.code === "EEXIST") {
-      // no problem -- it exists.
-      return;
-    } else {
-      throw err;
+    // Doesn't exist, so create, via recursion:
+    try {
+      await mkdir(containingDirectory, { mode: 0o700, recursive: true });
+    } catch (err) {
+      if (err?.code === "EEXIST") {
+        // no problem -- it exists.
+        return;
+      } else {
+        throw err;
+      }
     }
   }
 }
