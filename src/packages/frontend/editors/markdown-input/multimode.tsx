@@ -21,6 +21,10 @@ import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+
+// NOTE: on mobile there is very little suppport for "editor" = "slate", but
+// very good support for "markdown", hence the default below.
 
 export interface EditorFunctions {
   set_cursor?: (pos: { x?: number; y?: number }) => void;
@@ -169,7 +173,7 @@ export default function MultiMarkdownInput({
       getCache()?.mode ??
       defaultMode ??
       localStorage[LOCAL_STORAGE_KEY] ??
-      "editor"
+      (IS_MOBILE ? "markdown" : "editor")
   );
 
   useEffect(() => {

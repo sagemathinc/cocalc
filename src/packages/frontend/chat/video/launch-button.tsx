@@ -6,7 +6,7 @@ import {
   useTypedRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Tip } from "@cocalc/frontend/components";
+import { Icon, Tip, VisibleMDLG } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
 import { Button, Popconfirm } from "antd";
@@ -123,7 +123,9 @@ export default function VideoChatButton({
       {num_users_chatting > 0 && (
         <span style={{ marginLeft: "5px" }}>{num_users_chatting}</span>
       )}
-      {label && <span style={{ marginLeft: "5px" }}>{label}...</span>}
+      <VisibleMDLG>
+        <span style={{ marginLeft: "5px" }}>{label}...</span>
+      </VisibleMDLG>
     </Tip>
   );
 

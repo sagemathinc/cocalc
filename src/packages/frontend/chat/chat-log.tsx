@@ -7,6 +7,7 @@
 Render all the messages in the chat.
 */
 
+import { VisibleMDLG } from "@cocalc/frontend/components";
 import React, { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { List, Map, Set as immutableSet } from "immutable";
 import {
@@ -174,15 +175,17 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     return (
       <>
         {visibleHashtags.size > 0 && (
-          <HashtagBar
-            actions={{
-              set_hashtag_state: (tag, state) => {
-                actions.setHashtagState(tag, state);
-              },
-            }}
-            selected_hashtags={selectedHashtags0}
-            hashtags={visibleHashtags}
-          />
+          <VisibleMDLG>
+            <HashtagBar
+              actions={{
+                set_hashtag_state: (tag, state) => {
+                  actions.setHashtagState(tag, state);
+                },
+              }}
+              selected_hashtags={selectedHashtags0}
+              hashtags={visibleHashtags}
+            />
+          </VisibleMDLG>
         )}
         {render_not_showing()}
         <Virtuoso
