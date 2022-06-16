@@ -38,6 +38,9 @@ synctable2 = require('@cocalc/sync/table')
 syncdb2    = require('@cocalc/sync/editor/db')
 schema     = require('@cocalc/util/schema')
 
+ensureContainingDirectoryExists = require('@cocalc/backend/misc/ensure-containing-directory-exists').default
+writeFile = require("fs/promises").writeFile;
+
 sage_session = require('./sage_session')
 
 jupyter = require('./jupyter/jupyter')
@@ -380,19 +383,16 @@ class exports.Client extends EventEmitter
             return
         @_file_io_lock[path] = now
         dbg("@_file_io_lock = #{misc.to_json(@_file_io_lock)}")
-        async.series([
-            (cb) =>
-                misc_node.ensure_containing_directory_exists(path, cb)
-            (cb) =>
-                fs.writeFile(path, opts.data, cb)
-        ], (err) =>
-            delete @_file_io_lock[path]
-            if err
-                dbg("error -- #{err}")
-            else
-                dbg("success")
+        try
+            await ensureContainingDirectoryExists(path)
+            await writeFile(path, opts.data)
+            dbg("success")
+            opts.cb()
+        catch err
+            dbg("error -- #{err}")
             opts.cb(err)
-        )
+        finally
+            delete @_file_io_lock[path]
 
     # Read file as a string from disk.
     # If file is currently being written or read in this process,

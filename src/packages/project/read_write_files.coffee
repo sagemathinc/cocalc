@@ -15,6 +15,8 @@ misc_node = require('@cocalc/backend/misc_node')
 misc      = require('@cocalc/util/misc')
 
 common    = require('./common')
+ensureContainingDirectoryExists = require('@cocalc/backend/misc/ensure-containing-directory-exists').default
+writeFile = require("fs/promises").writeFile;
 
 ###############################################
 # Read and write individual files
@@ -111,19 +113,11 @@ exports.write_file_to_project = (socket, mesg) ->
     write_file = (type, value) ->
         if type == 'blob' and value.uuid == data_uuid
             socket.removeListener('mesg', write_file)
-            async.series([
-                (cb) ->
-                    misc_node.ensure_containing_directory_exists(path, cb)
-                (cb) ->
-                    #dbg('writing the file')
-                    fs.writeFile(path, value.blob, cb)
-            ], (err) ->
-                if err
-                    #dbg("error writing file -- #{err}")
-                    socket.write_mesg 'json', message.error(id:mesg.id, error:err)
-                else
-                    #dbg("wrote file '#{path}' fine")
-                    socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
-            )
+            try
+                await ensureContainingDirectoryExists(path)
+                await writeFile(path, value.blob)
+                socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
+            catch err
+                socket.write_mesg 'json', message.error(id:mesg.id, error:err)
     socket.on('mesg', write_file)
 
