@@ -28,7 +28,12 @@ register({
 
   StaticElement: ({ attributes, children, element }) => {
     if (element.type != "paragraph") throw Error("bug");
-    return <p {...attributes}>{children}</p>;
+    // textIndent: 0 is needed due to task lists -- see slate/elements/list/list-item.tsx
+    return (
+      <p {...attributes}>
+        <span style={{ textIndent: 0 }}>{children}</span>
+      </p>
+    );
   },
 
   sizeEstimator({ node, fontSize }): number {
