@@ -7,10 +7,10 @@
 Hashtag bar for selecting which tasks are shown by tags
 */
 
+import { CSSProperties } from "react";
 import { cmp, trunc } from "@cocalc/util/misc";
 import { Tag } from "antd";
 const { CheckableTag } = Tag;
-import { CSS, React } from "../../app-framework";
 import {
   HashtagsOfVisibleTasks,
   HashtagState,
@@ -18,7 +18,7 @@ import {
 } from "./types";
 import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 
-const STYLE: CSS = { ...GENERIC_STYLE, ...{ margin: "5px" } };
+const STYLE: CSSProperties = { ...GENERIC_STYLE, ...{ margin: "5px" } };
 
 interface Actions {
   set_hashtag_state: (tag: string, state?: HashtagState) => void;
@@ -30,67 +30,69 @@ interface HashtagProps {
   state?: HashtagState;
 }
 
-const Hashtag: React.FC<HashtagProps> = React.memo(
-  ({ actions, tag, state }) => {
-    function click() {
-      switch (state) {
-        case 1:
-          // this would switch to negation state; but that's annoying and confusing
-          // in that it is a change from current ui, so let's not do this for now.
-          // User *can* now type -#foo in search box at least.
-          //actions.set_hashtag_state(tag, -1)
-          actions.set_hashtag_state(tag);
-          break;
-        case -1:
-          actions.set_hashtag_state(tag);
-          break;
-        default:
-          actions.set_hashtag_state(tag, 1);
-          break;
-      }
+function Hashtag({ actions, tag, state }: HashtagProps) {
+  function click() {
+    switch (state) {
+      case 1:
+        // this would switch to negation state; but that's annoying and confusing
+        // in that it is a change from current ui, so let's not do this for now.
+        // User *can* now type -#foo in search box at least.
+        //actions.set_hashtag_state(tag, -1)
+        actions.set_hashtag_state(tag);
+        break;
+      case -1:
+        actions.set_hashtag_state(tag);
+        break;
+      default:
+        actions.set_hashtag_state(tag, 1);
+        break;
     }
-    return (
-      <CheckableTag
-        style={{ fontSize: "9pt" }}
-        checked={state == 1 || state == -1}
-        onChange={click}
-      >
-        #{trunc(tag, 40)}
-      </CheckableTag>
-    );
   }
-);
+  return (
+    <CheckableTag
+      style={{ fontSize: "9pt" }}
+      checked={state == 1 || state == -1}
+      onChange={click}
+    >
+      #{trunc(tag, 40)}
+    </CheckableTag>
+  );
+}
 
 interface Props {
   actions: Actions;
   hashtags?: HashtagsOfVisibleTasks;
   selected_hashtags?: SelectedHashtags;
+  style?: CSSProperties;
 }
 
-export const HashtagBar: React.FC<Props> = React.memo(
-  ({ actions, hashtags, selected_hashtags }) => {
-    function render_hashtag(tag: string): JSX.Element {
-      return (
-        <Hashtag
-          key={tag}
-          actions={actions}
-          tag={tag}
-          state={selected_hashtags?.get(tag)}
-        />
-      );
-    }
-
-    function render_hashtags(): JSX.Element[] {
-      const v: [string, JSX.Element][] = [];
-      hashtags?.forEach((tag) => {
-        v.push([tag, render_hashtag(tag)]);
-      });
-      v.sort((a, b) => cmp(a[0], b[0]));
-      return v.map((x) => x[1]);
-    }
-
-    if (hashtags == null) return <></>;
-
-    return <div style={STYLE}>{render_hashtags()}</div>;
+export function HashtagBar({
+  actions,
+  hashtags,
+  selected_hashtags,
+  style,
+}: Props) {
+  function render_hashtag(tag: string): JSX.Element {
+    return (
+      <Hashtag
+        key={tag}
+        actions={actions}
+        tag={tag}
+        state={selected_hashtags?.get(tag)}
+      />
+    );
   }
-);
+
+  function render_hashtags(): JSX.Element[] {
+    const v: [string, JSX.Element][] = [];
+    hashtags?.forEach((tag) => {
+      v.push([tag, render_hashtag(tag)]);
+    });
+    v.sort((a, b) => cmp(a[0], b[0]));
+    return v.map((x) => x[1]);
+  }
+
+  if (hashtags == null) return <></>;
+
+  return <div style={{ ...STYLE, ...style }}>{render_hashtags()}</div>;
+}
