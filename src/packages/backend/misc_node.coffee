@@ -314,12 +314,5 @@ exports.forward_remote_port_to_localhost = (opts) ->
 
 exports.abspath = require('./misc/abspath').default
 
-ensure_containing_directory_exists = require('./misc/ensure-containing-directory-exists').default
-exports.ensure_containing_directory_exists = (path, cb) ->
-    try
-        await ensure_containing_directory_exists(path)
-    catch err
-        cb(err)
-
 
 

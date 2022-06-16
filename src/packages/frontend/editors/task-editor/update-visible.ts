@@ -9,8 +9,13 @@ Update which tasks and hashtags are visible, and their order.
 
 import { List, Map, Set, fromJS } from "immutable";
 
-import { cmp, parse_hashtags, search_split } from "@cocalc/util/misc";
-import { search_matches, get_search } from "./search";
+import {
+  cmp,
+  parse_hashtags,
+  search_match,
+  search_split,
+} from "@cocalc/util/misc";
+import { get_search } from "./search";
 import { SORT_INFO, HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { Counts, LocalTaskStateMap, LocalViewStateMap, TaskMap } from "./types";
 
@@ -62,10 +67,7 @@ export function update_visible(
   });
 
   const search0 = get_search(local_view_state, relevant_tags);
-  const search: string[] = search_split(
-    search0.toLowerCase(),
-    false
-  ) as string[];
+  const search: (string | RegExp)[] = search_split(search0.toLowerCase());
 
   const new_counts = {
     done: 0,
@@ -107,7 +109,7 @@ export function update_visible(
 
     const desc = task.get("desc") ?? "";
     let visible: boolean;
-    if (search_matches(search, desc) || editing_desc) {
+    if (search_match(desc, search) || editing_desc) {
       visible = true; // tag of a currently visible task
       if (id === current_task_id) {
         current_is_visible = true;
@@ -151,14 +153,14 @@ export function update_visible(
   const t: string[] = [];
   for (const x of search) {
     if (x[0] !== "#" && x[0] !== "-") {
-      t.push(x);
+      t.push(`${x}`);
     }
   }
   const search_terms = Set(t);
   const t2: string[] = [];
   for (const x of search) {
     if (x[0] !== "#") {
-      t2.push(x);
+      t2.push(`${x}`);
     }
   }
   const nonhash_search = List(t2);
