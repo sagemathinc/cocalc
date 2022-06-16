@@ -16,13 +16,16 @@ import {
   HashtagState,
   SelectedHashtags,
 } from "./types";
-import { TaskActions } from "./actions";
 import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 
 const STYLE: CSS = { ...GENERIC_STYLE, ...{ margin: "5px" } };
 
+interface Actions {
+  set_hashtag_state: (tag: string, state?: HashtagState) => void;
+}
+
 interface HashtagProps {
-  actions: TaskActions;
+  actions: Actions;
   tag: string;
   state?: HashtagState;
 }
@@ -59,7 +62,7 @@ const Hashtag: React.FC<HashtagProps> = React.memo(
 );
 
 interface Props {
-  actions: TaskActions;
+  actions: Actions;
   hashtags?: HashtagsOfVisibleTasks;
   selected_hashtags?: SelectedHashtags;
 }
