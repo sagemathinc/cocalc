@@ -15,8 +15,10 @@ import {
   moveCursorToBeginningOfBlock,
 } from "../control";
 import { containingBlock } from "../slate-util";
+import { markdownAutoformat } from "../format/auto-format";
 
 register({ key: "Enter" }, ({ editor }) => {
+  markdownAutoformat(editor);
   const fragment = editor.getFragment();
   const x = fragment?.[0];
 
