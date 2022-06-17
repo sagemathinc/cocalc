@@ -15,18 +15,16 @@ import WhiteboardImage from "/public/features/whiteboard-sage.png";
 export default function Whiteboard({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Mathematical Whiteboard" />
+      <Head title="Collaborative Mathematical Whiteboard" />
       <Layout>
         <Header page="features" subPage="whiteboard" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
+              startup={"Whiteboard"}
               title={
-                <h1>
-                  Online Collaborative Whiteboards for Mathematics and
-                  Computation
-                </h1>
+                "Online Collaborative Whiteboards for Mathematics and Computation"
               }
               subtitle={
                 <>
@@ -36,6 +34,7 @@ export default function Whiteboard({ customize }) {
                 </>
               }
               image={WhiteboardImage}
+              alt={"Collaborative Mathematical Whiteboard"}
             />
           </div>
 
