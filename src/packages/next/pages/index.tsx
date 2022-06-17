@@ -154,7 +154,8 @@ export default function Home({ customize }) {
                     <br />
                     <br />
                     <A href="https://about.cocalc.com">
-                      Learn All About CoCalc's Mission, Developers and Features...
+                      Learn All About CoCalc's Mission, Developers and
+                      Features...
                     </A>
                   </div>
                 )}

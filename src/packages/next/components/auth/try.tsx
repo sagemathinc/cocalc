@@ -80,7 +80,7 @@ function Try0({ minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         {error && <Alert type="error" message={error} showIcon />}
-        Try {siteName} <b>without</b>{" "}
+        Use {siteName} right now <b>without</b>{" "}
         <A href="/auth/sign-up" external={!!minimal}>
           creating an account
         </A>{" "}

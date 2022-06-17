@@ -124,7 +124,7 @@ export default function VideoChatButton({
         <span style={{ marginLeft: "5px" }}>{num_users_chatting}</span>
       )}
       <VisibleMDLG>
-        <span style={{ marginLeft: "5px" }}>{label}...</span>
+        <span style={{ marginLeft: "5px" }}>{label}</span>
       </VisibleMDLG>
     </Tip>
   );

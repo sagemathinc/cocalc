@@ -35,8 +35,8 @@ export default function EditOptions({
           <div style={{ float: "right", cursor: "pointer" }} onClick={onClose}>
             <Icon name="times-circle" />
           </div>
-          <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
-          <b>{join(path, relativePath)}</b>?
+          <Icon style={{ marginRight: "10px" }} name="pencil" /> Edit{" "}
+          <b>{join(path, relativePath)}</b>
         </>
       }
     >

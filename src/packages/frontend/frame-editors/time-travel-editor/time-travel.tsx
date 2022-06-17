@@ -9,7 +9,13 @@ import { Checkbox, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
 
-import { Component, Rendered, rclass, rtypes } from "../../app-framework";
+import {
+  Component,
+  Rendered,
+  rclass,
+  rtypes,
+  redux,
+} from "../../app-framework";
 import { Loading } from "../../components";
 
 import { TimeTravelActions } from "./actions";
@@ -403,6 +409,10 @@ class TimeTravel extends Component<Props> {
   }
 
   private render_export(): Rendered {
+    if (redux.getStore("page").get("fullscreen") == "kiosk") {
+      // doesn't make sense in kiosk mode.
+      return;
+    }
     return <Export actions={this.props.actions} />;
   }
 

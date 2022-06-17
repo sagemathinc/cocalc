@@ -7,6 +7,8 @@ import editURL from "lib/share/edit-url";
 import shareURL from "lib/share/share-url";
 import A from "components/misc/A";
 import ConfigurePublicPath from "components/share/configure-public-path";
+import Embed from "components/app/embed";
+import { join } from "path";
 
 export default function OpenDirectly({
   project_id,
@@ -27,6 +29,14 @@ export default function OpenDirectly({
   });
   return (
     <div>
+      <Embed
+        project_id={project_id}
+        path={join(path, relativePath)}
+        style={{
+          marginBottom: "30px",
+        }}
+      />
+      <hr />
       You are signed in as a collaborator on{" "}
       <A href={editURL({ type: "collaborator", project_id })} external>
         the project
@@ -35,10 +45,12 @@ export default function OpenDirectly({
       <A href={url} external>
         this shared document,
       </A>{" "}
-      so you can easily{" "}
+      so you can{" "}
       <A href={url} external>
-        open it directly.
-      </A>
+        open it directly in its project
+      </A>{" "}
+      or just edit the file above (or both, since we support realtime
+      collaboration).
       <br />
       {!relativePath ? (
         <>
