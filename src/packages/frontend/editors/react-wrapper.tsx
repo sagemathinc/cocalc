@@ -104,7 +104,7 @@ export function register_nonreact_editor(opts: {
   is_public?: boolean;
 }): void {
   // Circle import issue -- since editor imports react-wrapper:
-  const { file_options } = require("../editor");
+  const { file_options } = require("@cocalc/frontend/editor");
   const { register_file_editor } = require("../project-file");
 
   // Do this to make it crystal clear which extensions still

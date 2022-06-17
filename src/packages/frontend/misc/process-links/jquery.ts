@@ -22,7 +22,7 @@ interface Options {
 }
 
 // @ts-ignore
-$.fn.process_smc_links = function (opts: Options) {
+$.fn?.process_smc_links = function (opts: Options) {
   // @ts-ignore
   processLinks(this, {
     urlTransform: opts?.href_transform,

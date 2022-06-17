@@ -12,7 +12,7 @@ function handleTarget(): string {
   // See src/packages/hub/servers/app/app-redirect.ts where if
   // there is a path after the base url, we redirect to static/app.html
   // and put that path in a query param called 'target'.
-  const u = new URL(location.href);
+  const u = new URL(document.location.href);
   let t = u.searchParams.get("target") ?? "";
   // We use the URL object and a fake host to parse things, since it's much
   // more secure/robust than parsing it directly.

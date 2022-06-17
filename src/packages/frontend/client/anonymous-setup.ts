@@ -24,7 +24,7 @@ setup there if the user isn't already (likely) signed in.
 Also do NOT make true if has_remember_me is set, since then probably
 the user has an account.
 */
-let project_invite_query_param = QueryParams.get(PROJECT_INVITE_QUERY_PARAM);
+let project_invite_query_param = QueryParams?.get(PROJECT_INVITE_QUERY_PARAM);
 export function should_do_anonymous_setup(): boolean {
   const anonymous_query_param = QueryParams.get("anonymous");
   return (

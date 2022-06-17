@@ -162,7 +162,7 @@ export async function get_insert_image_opts_from_user(
   return opts;
 }
 
-CodeMirror.defineExtension("insert_image", async function (): Promise<void> {
+CodeMirror.defineExtension?.("insert_image", async function (): Promise<void> {
   // @ts-ignore
   const cm = this;
   let opts: Options | undefined = undefined;

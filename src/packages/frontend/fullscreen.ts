@@ -11,7 +11,7 @@
 import "@cocalc/frontend/client/handle-target";
 
 import { QueryParams } from "./misc/query-params";
-export const COCALC_FULLSCREEN = QueryParams.get("fullscreen");
+export const COCALC_FULLSCREEN = QueryParams?.get("fullscreen");
 export const COCALC_MINIMAL = COCALC_FULLSCREEN === "kiosk";
 
 if (COCALC_MINIMAL) {

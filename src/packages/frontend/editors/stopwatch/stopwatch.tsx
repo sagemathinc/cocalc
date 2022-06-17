@@ -33,8 +33,8 @@ function assertNever(x: never): never {
 interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
-  countdown?: number; // if given, this is a countdown timer, counting down from this many seconds.
   clickButton: (str: string) => void;
+  countdown?: number; // if given, this is a countdown timer, counting down from this many seconds.
   setLabel?: (str: string) => void;
   setCountdown?: (time: number) => void; // time in seconds
   compact?: boolean;

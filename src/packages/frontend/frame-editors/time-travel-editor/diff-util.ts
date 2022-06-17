@@ -8,7 +8,6 @@
 import { patch_make } from "@cocalc/sync/editor/generic/util";
 import { StringCharMapping } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
-require("./style.sass");
 
 interface LineDiff {
   lines: string[];

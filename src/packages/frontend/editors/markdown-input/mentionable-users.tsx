@@ -12,10 +12,10 @@ import { Avatar } from "../../account/avatar/avatar";
 export function mentionableUsers(project_id: string, search?: string): Item[] {
   const users = redux
     .getStore("projects")
-    .getIn(["project_map", project_id, "users"]);
+    ?.getIn(["project_map", project_id, "users"]);
   const last_active = redux
     .getStore("projects")
-    .getIn(["project_map", project_id, "last_active"]);
+    ?.getIn(["project_map", project_id, "last_active"]);
   if (users == null || last_active == null) return []; // e.g., for an admin
   const my_account_id = redux.getStore("account").get("account_id");
   const project_users: {

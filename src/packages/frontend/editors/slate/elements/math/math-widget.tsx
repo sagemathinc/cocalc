@@ -3,9 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Katex support -- NOTE: this import of katex is pretty LARGE.
-import "katex/dist/katex.min.css";
-
 // Everything else.
 import {
   React,

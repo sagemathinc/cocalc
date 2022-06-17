@@ -13,7 +13,6 @@ IMPORTANT: You must import the entire module **and** separately import
 the type; otherwise the code in the module to register it is not run.
 */
 
-import "./elements.css";
 import "./types-ssr";
 
 import type { BlockQuote } from "./blockquote";

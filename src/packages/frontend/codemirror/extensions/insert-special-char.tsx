@@ -64,7 +64,7 @@ function insert_special_char(mode: string, opts: Options): string {
   return opts.char;
 }
 
-CodeMirror.defineExtension("insert_special_char", async function (): Promise<
+CodeMirror.defineExtension?.("insert_special_char", async function (): Promise<
   void
 > {
   // @ts-ignore

@@ -17,7 +17,6 @@ import { redux, ProjectActions } from "../../app-framework";
 import { debounce } from "lodash";
 import { aux_file } from "@cocalc/util/misc";
 import { Terminal as XTerminal } from "xterm";
-import "xterm/css/xterm.css";
 
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";

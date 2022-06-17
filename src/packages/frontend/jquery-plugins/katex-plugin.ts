@@ -84,8 +84,6 @@ function katex_plugin(elt, preProcess): void {
         try {
           if (renderToString == null) {
             ({ renderToString } = (await import("katex")).default);
-            // @ts-ignore -- see https : //github.com/vaadin/flow/issues/6335
-            import("katex/dist/katex.min.css");
           }
           const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);

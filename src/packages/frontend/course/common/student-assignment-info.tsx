@@ -18,7 +18,7 @@ import {
   Space,
   Tip,
 } from "@cocalc/frontend/components";
-import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
+import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input/component";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { to_json } from "@cocalc/util/misc";
 import { Col, Row } from "antd";

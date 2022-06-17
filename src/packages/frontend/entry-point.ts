@@ -9,6 +9,22 @@
 
 import { COCALC_MINIMAL } from "./fullscreen";
 
+// **** These css/etc imports must be loaded to support use of CodeMirror
+// and our ancient jQuery-based editors.  We also put them all here
+// since they can't be imported by nextjs.
+
+import "./codemirror/css";
+import "xterm/css/xterm.css";
+import "./editors/init-old-jquery-templates";
+import "./editors/slate/elements/elements.css";
+import "./frame-editors/lean-editor/_lean.sass";
+import "./frame-editors/time-travel-editor/style.sass";
+// Katex support -- NOTE: this import of katex css is pretty LARGE.
+import "katex/dist/katex.min.css";
+import "react-dropzone-component/styles/filepicker.css";
+
+// **** END critical early imports
+
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
 

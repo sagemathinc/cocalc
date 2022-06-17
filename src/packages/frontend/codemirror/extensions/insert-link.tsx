@@ -144,7 +144,7 @@ export async function get_insert_link_opts_from_user(
   });
 }
 
-CodeMirror.defineExtension("insert_link", async function () {
+CodeMirror.defineExtension?.("insert_link", async function () {
   // @ts-ignore
   const cm = this;
 

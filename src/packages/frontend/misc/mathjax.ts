@@ -9,9 +9,7 @@
 
 import loadMathJax from "@cocalc/frontend/misc/load-mathjax";
 import { defaults } from "@cocalc/util/misc";
-
-export const jQuery = $;
-declare var $: any;
+import $ from "jquery";
 
 // this queue is used, when starting up or when it isn't configured (yet)
 const mathjax_queue: any[] = [];
@@ -45,7 +43,7 @@ function mathjax_typeset(el): void {
   }
 }
 
-$.fn.extend({
+$.fn?.extend({
   mathjax(
     opts: {
       tex?: string;
@@ -62,6 +60,7 @@ $.fn.extend({
       hide_when_rendering: false, // if true, entire element will get hidden until mathjax is rendered
       cb: undefined, // if defined, gets called as cb(t) for *every* element t in the jquery set!
     });
+    // @ts-ignore
     return this.each(function () {
       let element, html;
       // @ts-ignore

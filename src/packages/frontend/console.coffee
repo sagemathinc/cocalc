@@ -21,7 +21,7 @@ misc             = require('@cocalc/util/misc')
 
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
-{getStudentProjectFunctionality} = require('@cocalc/frontend/course/')
+{getStudentProjectFunctionality} = require('@cocalc/frontend/course')
 
 {delay} = require('awaiting')
 

@@ -12,7 +12,7 @@ import {
   CSS,
   useRedux,
   useTypedRedux,
-} from "@cocalc/frontend//app-framework";
+} from "@cocalc/frontend/app-framework";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import * as misc from "@cocalc/util/misc";
 import { isIconName, Icon, Loading } from "@cocalc/frontend/components";

@@ -3,7 +3,6 @@ require("codemirror/addon/selection/active-line.js");
 require("codemirror/addon/comment/comment.js");
 
 require("codemirror/addon/dialog/dialog.js");
-require("codemirror/addon/dialog/dialog.css");
 
 require("codemirror/addon/display/placeholder.js");
 
@@ -22,7 +21,6 @@ require("codemirror/addon/runmode/runmode.js");
 require("codemirror/addon/fold/brace-fold.js");
 require("codemirror/addon/fold/foldcode.js");
 require("codemirror/addon/fold/foldgutter.js");
-require("codemirror/addon/fold/foldgutter.css");
 
 require("codemirror/addon/fold/markdown-fold.js");
 require("codemirror/addon/fold/comment-fold.js");

@@ -7,15 +7,6 @@ $ = window.$
 
 # Do this first, before any templates are initialized (e.g., elsewhere too).
 
-templates_html = \
-  require("./console.html").default +
-  require("./editor.html").default +
-  require("./jupyter.html").default +
-  require("./sagews/interact.html").default +
-  require("./sagews/3d.html").default +
-  require("./sagews/d3.html").default;
-$("body").append(templates_html);
-
 templates = $("#webapp-editor-templates")
 
 { init_buttonbars } = require("./editors/editor-button-bar")

@@ -8,7 +8,6 @@ Register the LEAN theorem prover editor
 */
 
 import { register_file_editor } from "../frame-tree/register";
-require("./_lean.sass");
 
 register_file_editor({
   ext: "lean",

@@ -66,3 +66,6 @@ require("./mode/mediawiki/mediawiki.css");
 // impact of some of the above themes... (namely idea and darcula
 // at time of writing).
 require("./addon/show-hint.css");
+
+require("codemirror/addon/dialog/dialog.css");
+require("codemirror/addon/fold/foldgutter.css");

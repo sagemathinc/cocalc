@@ -7,5 +7,10 @@ require("./codemirror");
 require("./modes");
 require("./addons");
 require("./keymaps");
-require("./css");
+
+// We instead load this in the webpack app entry point, so that we can
+// also load this stuff via next.js (eventually?) which has some significant
+// constraints on when and where CSS is loaded.
+//require("./css");
+
 require("./extensions");
