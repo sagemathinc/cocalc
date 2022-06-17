@@ -321,6 +321,12 @@ export class PageActions extends Actions<PageState> {
       // never confirm close if get_api_key is set.
       return;
     }
+    if (redux.getStore("page").get("fullscreen") === "kiosk") {
+      // never confirm close in kiosk mode, since that should be
+      // responsibility of containing page, and it's confusing where
+      // the dialog is even coming from.
+      return;
+    }
     // Returns a defined string if the user should confirm exiting the site.
     const s = redux.getStore("account");
     if (
