@@ -25,6 +25,79 @@ import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
 import JupyterNasa from "/public/features/cocalc-jupyter-share-nasa.png";
 
 export default function JupyterNotebook({ customize }) {
+  function pitchNoSetup() {
+    return (
+      <div>
+        <h2>
+          No software setup: <small>100% online</small>
+        </h2>
+        <p>
+          CoCalc is an online web service where you can{" "}
+          <strong>
+            run <A href="http://jupyter.org/">Jupyter notebooks</A> right inside
+            your browser
+          </strong>
+          . You can privately share your notebook with your{" "}
+          <A href="https://doc.cocalc.com/project-settings.html#about-collaborators">
+            project collaborators
+          </A>{" "}
+          – all changes are{" "}
+          <A href="#a-realtimesync">
+            <strong>synchronized in real-time</strong>
+          </A>
+          .
+        </p>
+        <p>
+          You no longer have to worry about setting up your Python environment,
+          installing/updating/maintaining your libraries, or backing up files.
+          CoCalc manages everything for you!{" "}
+        </p>
+      </div>
+    );
+  }
+
+  function pitchTeaching() {
+    return (
+      <div>
+        <h2>Jupyter Notebooks made for teaching!</h2>
+        <ul>
+          <li>
+            A sophisticated{" "}
+            <strong>
+              <A href="/features/teaching">course management system</A>
+            </strong>{" "}
+            keeps track of all notebooks of all students. It manages
+            distributing and collecting files as well as grading.
+          </li>
+          <li>
+            The{" "}
+            <A href="/features/whiteboard">Jupyter collaborative whiteboard</A>{" "}
+            supports presentations that mix Jupyter cells, mathematical
+            notation, and sketching with a pen and other tools.
+          </li>
+          <li>
+            CoCalc{"'"}s Jupyter Notebooks fully support{" "}
+            <A href="https://doc.cocalc.com/teaching-nbgrader.html">
+              <strong>very flexible automatic grading via nbgrader</strong>
+            </A>
+            ! The teacher{"'"}s notebook contains exercise cells for students
+            and test cells, some of which students can also run to get immediate
+            feedback. Once collected, you tell CoCalc to automatically run the
+            full test suite across all student notebooks and tabulate the
+            results.
+          </li>
+        </ul>
+
+        <p>
+          CoCalc supports many kernels right out of the box: several Python
+          environments, <A href="http://www.sagemath.org/">SageMath</A>,{" "}
+          <A href="http://www.r-project.org/">R Statistical Software</A>
+          Octave, <A href="/features/julia">Julia</A> and many more.{" "}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Head title="Online Jupyter Notebooks" />
@@ -39,86 +112,13 @@ export default function JupyterNotebook({ customize }) {
               subtitle={
                 "CoCalc's own collaborative, fully compatible and supercharged notebooks."
               }
+              subtitleBelow={true}
               image={JupyterTF}
               alt={"Using Pandas and Tensorflow in a Jupyter notebook"}
             />
           </div>
 
-          <Pitch
-            col1={
-              <div>
-                <h2>
-                  No software setup: <small>100% online</small>
-                </h2>
-                <p>
-                  CoCalc is an online web service where you can{" "}
-                  <strong>
-                    run <A href="http://jupyter.org/">Jupyter notebooks</A>{" "}
-                    right inside your browser
-                  </strong>
-                  . You can privately share your notebook with your{" "}
-                  <A href="https://doc.cocalc.com/project-settings.html#about-collaborators">
-                    project collaborators
-                  </A>{" "}
-                  – all changes are{" "}
-                  <A href="#a-realtimesync">
-                    <strong>synchronized in real-time</strong>
-                  </A>
-                  .
-                </p>
-                <p>
-                  You no longer have to worry about setting up your Python
-                  environment, installing/updating/maintaining your libraries,
-                  or backing up files. CoCalc manages everything for you!{" "}
-                </p>
-              </div>
-            }
-            col2={
-              <div>
-                <h2>Jupyter Notebooks made for teaching!</h2>
-                <ul>
-                  <li>
-                    A sophisticated{" "}
-                    <strong>
-                      <A href="/features/teaching">course management system</A>
-                    </strong>{" "}
-                    keeps track of all notebooks of all students. It manages
-                    distributing and collecting files as well as grading.
-                  </li>
-                  <li>
-                    The{" "}
-                    <A href="/features/whiteboard">
-                      Jupyter collaborative whiteboard
-                    </A>{" "}
-                    supports presentations that mix Jupyter cells, mathematical
-                    notation, and sketching with a pen and other tools.
-                  </li>
-                  <li>
-                    CoCalc{"'"}s Jupyter Notebooks fully support{" "}
-                    <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-                      <strong>
-                        very flexible automatic grading via nbgrader
-                      </strong>
-                    </A>
-                    ! The teacher{"'"}s notebook contains exercise cells for
-                    students and test cells, some of which students can also run
-                    to get immediate feedback. Once collected, you tell CoCalc
-                    to automatically run the full test suite across all student
-                    notebooks and tabulate the results.
-                  </li>
-                </ul>
-
-                <p>
-                  CoCalc supports many kernels right out of the box: several
-                  Python environments,{" "}
-                  <A href="http://www.sagemath.org/">SageMath</A>,{" "}
-                  <A href="http://www.r-project.org/">R Statistical Software</A>
-                  Octave, <A href="/features/julia">Julia</A> and many more.{" "}
-                </p>
-              </div>
-            }
-            ext="ipynb"
-          />
+          <Pitch col1={pitchTeaching()} col2={pitchNoSetup()} ext="ipynb" />
 
           <SignIn startup="Jupyter" />
 

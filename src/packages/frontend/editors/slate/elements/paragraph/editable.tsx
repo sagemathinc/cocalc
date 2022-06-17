@@ -33,15 +33,25 @@ register({
       );
     }
 
+    // Below the textIndent: 0 is needed due to task lists -- see slate/elements/list/list-item.tsx
+
     if (hasImageAsChild(element)) {
       // We use a div in this case, since our image renderer resize functionality
       // (via the re-resizer packages) uses divs, and divs are not allowed inside
       // of paragraphs.
-      return <div {...attributes}>{children}</div>;
+      return (
+        <div {...attributes}>
+          <span style={{ textIndent: 0 }}>{children}</span>
+        </div>
+      );
     }
 
     // Normal paragraph rendering.
-    return <p {...attributes}>{children}</p>;
+    return (
+      <p {...attributes}>
+        <span style={{ textIndent: 0 }}>{children}</span>
+      </p>
+    );
 
     /*
     // I wish I could just use a div instead of a p because

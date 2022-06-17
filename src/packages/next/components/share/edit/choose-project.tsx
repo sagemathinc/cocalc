@@ -18,12 +18,15 @@ import CreateProject from "components/project/create";
 import SelectProject from "components/project/select";
 import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
+import Embed from "components/app/embed";
+import SiteName from "components/share/site-name";
 
 export default function ChooseProject({
   id,
   src_project_id,
   path,
   relativePath,
+  isDir,
   image,
   description,
 }) {
@@ -208,8 +211,14 @@ export default function ChooseProject({
                   shape="round"
                 >
                   <Icon name="paper-plane" /> Open your copy of "
-                  {join(path, relativePath)}"...
+                  {join(path, relativePath)}" in the <SiteName /> app...
                 </Button>
+                {!isDir && (
+                  <Embed
+                    project_id={project.project_id}
+                    path={join(path, relativePath)}
+                  />
+                )}
               </>
             )}
           </div>

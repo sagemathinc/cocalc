@@ -110,7 +110,8 @@ function EditText({
       // to change the height, resize wouldn't bet triggered without this clause.
       if (
         readOnly ||
-        (actions.in_undo_mode() && element.str == getValueRef.current?.())
+        (actions.in_undo_mode() && element.str == getValueRef.current?.()) ||
+        element.rotate // auto resize for rotated text doesn't work at all (it's actively very bad, so best to just diable it).
       ) {
         return;
       }

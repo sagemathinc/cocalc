@@ -204,6 +204,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
+  const fullscreen: undefined | "default" | "kiosk" = useRedux(
+    "page",
+    "fullscreen"
+  );
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -1331,6 +1335,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_file_menu(): Rendered {
+    // We don't show this menu in kiosk mode, where none of the options make sense,
+    // because they are all file management, which should be handled a different way.
+    if (fullscreen == "kiosk") return;
+    // Also, instructors can disable this for students:
     if (student_project_functionality.disableActions) return;
     const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];

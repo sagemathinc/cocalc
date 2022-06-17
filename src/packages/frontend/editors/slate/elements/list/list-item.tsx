@@ -30,7 +30,8 @@ register({
       );
     }
     // NOTE: It is very important to set textIndent back to 0 just in case
-    // this list item is a child of a task list item.
+    // this list item is a child of a task list item.  We also have to
+    // deal with this in the paragraph element renderer.
     return (
       <li {...attributes} style={{ textIndent: 0 }}>
         {children}

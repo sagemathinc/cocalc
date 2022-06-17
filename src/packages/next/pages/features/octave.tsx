@@ -39,6 +39,7 @@ export default function Octave({ customize }) {
                   many teaching purposes you can use Octave instead of MATLAB.
                 </>
               }
+              subtitleBelow={true}
               image={octaveJupyter}
               alt="Plotting a Sombrero in a Jupyter notebook using Octave"
             />

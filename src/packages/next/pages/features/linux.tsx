@@ -1,22 +1,22 @@
+import { Icon } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import Header from "components/landing/header";
+import Code from "components/landing/code";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Code from "components/landing/code";
+import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-import logo from "public/features/linux-logo.svg";
+import jupyterBash from "public/features/cocalc-jupyter-bash.png";
 import shellScript from "public/features/cocalc-shell-script-run.png";
 import terminalCollab from "public/features/cocalc-terminal-collab.gif";
-import jupyterBash from "public/features/cocalc-jupyter-bash.png";
+import logo from "public/features/linux-logo.svg";
 import postgres from "public/features/terminal-jupyter-postgresql.png";
 
 export default function Linux({ customize }) {
@@ -34,6 +34,7 @@ export default function Linux({ customize }) {
               subtitle={
                 "Learn Linux and Bash Scripting without messing up your own computer."
               }
+              subtitleBelow={true}
               image={shellScript}
               alt={"Running a bash script to count in Linux"}
             />

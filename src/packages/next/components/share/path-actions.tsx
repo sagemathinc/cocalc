@@ -74,6 +74,7 @@ export default function PathActions({
       <Edit
         key="edit"
         id={id}
+        isDir={isDir}
         path={path}
         relativePath={relativePath}
         image={image}

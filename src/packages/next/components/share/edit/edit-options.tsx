@@ -21,6 +21,7 @@ export default function EditOptions({
   id,
   path,
   relativePath,
+  isDir,
   project_id,
   image,
   onClose,
@@ -35,8 +36,8 @@ export default function EditOptions({
           <div style={{ float: "right", cursor: "pointer" }} onClick={onClose}>
             <Icon name="times-circle" />
           </div>
-          <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
-          <b>{join(path, relativePath)}</b>?
+          <Icon style={{ marginRight: "10px" }} name="pencil" /> Edit{" "}
+          <b>{join(path, relativePath)}</b>
         </>
       }
     >
@@ -45,6 +46,7 @@ export default function EditOptions({
           id={id}
           path={path}
           relativePath={relativePath}
+          isDir={isDir}
           project_id={project_id}
           image={image}
           description={description}
@@ -60,6 +62,7 @@ function SignedInOptions({
   id,
   path,
   relativePath,
+  isDir,
   project_id,
   image,
   description,
@@ -71,6 +74,7 @@ function SignedInOptions({
       project_id={project_id}
       path={path}
       relativePath={relativePath}
+      isDir={isDir}
     />
   ) : (
     <ChooseProject
@@ -78,6 +82,7 @@ function SignedInOptions({
       src_project_id={project_id}
       path={path}
       relativePath={relativePath}
+      isDir={isDir}
       image={image}
       description={description ? description : path ? path : relativePath}
     />

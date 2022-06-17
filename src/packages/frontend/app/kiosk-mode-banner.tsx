@@ -14,8 +14,16 @@ export const KioskModeBanner: React.FC = () => {
       <div>
         <img src={cocalc_logo_white} />
       </div>
-      <div className={"message ready"}>
-        <SiteName /> is ready.
+      <div
+        className={"message ready"}
+        style={{
+          margin: "auto",
+          textAlign: "center",
+          fontSize: "36px",
+          color: "#888",
+        }}
+      >
+        <SiteName />
       </div>
     </div>
   );
