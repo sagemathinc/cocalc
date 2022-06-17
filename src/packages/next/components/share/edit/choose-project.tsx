@@ -26,6 +26,7 @@ export default function ChooseProject({
   src_project_id,
   path,
   relativePath,
+  isDir,
   image,
   description,
 }) {
@@ -210,13 +211,14 @@ export default function ChooseProject({
                   shape="round"
                 >
                   <Icon name="paper-plane" /> Open your copy of "
-                  {join(path, relativePath)}" in the <SiteName /> app, or use it
-                  below...
+                  {join(path, relativePath)}" in the <SiteName /> app...
                 </Button>
-                <Embed
-                  project_id={project.project_id}
-                  path={join(path, relativePath)}
-                />
+                {!isDir && (
+                  <Embed
+                    project_id={project.project_id}
+                    path={join(path, relativePath)}
+                  />
+                )}
               </>
             )}
           </div>

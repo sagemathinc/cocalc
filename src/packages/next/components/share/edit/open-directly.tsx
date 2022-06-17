@@ -13,12 +13,14 @@ import { join } from "path";
 export default function OpenDirectly({
   project_id,
   path,
+  isDir,
   id,
   relativePath,
 }: {
   id: string;
   project_id: string;
   path: string;
+  isDir?: boolean;
   relativePath: string;
 }) {
   const url = editURL({
@@ -29,14 +31,18 @@ export default function OpenDirectly({
   });
   return (
     <div>
-      <Embed
-        project_id={project_id}
-        path={join(path, relativePath)}
-        style={{
-          marginBottom: "30px",
-        }}
-      />
-      <hr />
+      {!isDir && (
+        <>
+          <Embed
+            project_id={project_id}
+            path={join(path, relativePath)}
+            style={{
+              marginBottom: "30px",
+            }}
+          />
+          <hr />
+        </>
+      )}
       You are signed in as a collaborator on{" "}
       <A href={editURL({ type: "collaborator", project_id })} external>
         the project
@@ -47,10 +53,8 @@ export default function OpenDirectly({
       </A>{" "}
       so you can{" "}
       <A href={url} external>
-        open it directly in its project
-      </A>{" "}
-      or just edit the file above (or both, since we support realtime
-      collaboration).
+        open it directly in its project.
+      </A>
       <br />
       {!relativePath ? (
         <>

@@ -32,6 +32,7 @@ export interface Props {
   id: string;
   path: string;
   relativePath: string;
+  isDir?: boolean;
   project_id: string;
   image?: string;
   description?: string;
@@ -41,6 +42,7 @@ export default function Edit({
   id,
   path,
   relativePath,
+  isDir,
   project_id,
   image,
   description,
@@ -66,6 +68,7 @@ export default function Edit({
           id={id}
           path={path}
           relativePath={relativePath}
+          isDir={isDir}
           project_id={project_id}
           image={image}
           description={description}
