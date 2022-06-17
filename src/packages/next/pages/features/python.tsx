@@ -49,6 +49,7 @@ export default function Octave({ customize }) {
                   </div>
                 </>
               }
+              subtitleBelow={true}
               image={FrameEditorPython}
             />
           </div>
