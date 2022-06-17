@@ -4,6 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import editURL from "lib/share/edit-url";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
+import { join } from "path";
 
 interface Props {
   project_id: string;
@@ -13,7 +14,10 @@ interface Props {
   style?: CSSProperties;
 }
 export default function Embed({ project_id, path, style }: Props) {
-  const src = `${basePath}/projects/${project_id}/files/${path}?fullscreen=kiosk`;
+  const src = join(
+    basePath,
+    `projects/${project_id}/files/${path}?fullscreen=kiosk`
+  );
   return (
     <div
       style={{
