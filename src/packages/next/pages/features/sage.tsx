@@ -47,6 +47,7 @@ export default function Sage({ customize }) {
                   <A href="/features/r-statistical-software">R</A>.
                 </>
               }
+              subtitleBelow={true}
               image={sageScreenshot}
               alt={"Using Sage in a Worksheet"}
             />
