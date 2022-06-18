@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Divider } from "antd";
+import { useState } from "react";
+import { Alert, Badge, Button, Divider } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -21,32 +22,39 @@ import {
   SHARE_AUTHENTICATED_ICON,
   SHARE_AUTHENTICATED_EXPLANATION,
 } from "@cocalc/util/consts/ui";
+import apiPost from "lib/api/post";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { useRouter } from "next/router";
 
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export default function PublicPath(props) {
-  const {
-    id,
-    path,
-    project_id,
-    projectTitle,
-    relativePath,
-    description,
-    counter,
-    compute_image,
-    license,
-    contents,
-    error,
-    customize,
-    disabled,
-    unlisted,
-    authenticated,
-  } = props;
-
+export default function PublicPath({
+  id,
+  path,
+  project_id,
+  projectTitle,
+  relativePath,
+  description,
+  counter,
+  compute_image,
+  license,
+  contents,
+  error,
+  customize,
+  disabled,
+  unlisted,
+  authenticated,
+  numStars: numStars0,
+  isStarred: isStarred0,
+}) {
   useCounter(id);
+  const [numStars, setNumStars] = useState<number>(numStars0);
+  const [isStarred, setIsStarred] = useState<boolean | null>(isStarred0);
+  const [signingUp, setSigningUp] = useState<boolean>(false);
+  const router = useRouter();
 
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
 
@@ -101,9 +109,82 @@ export default function PublicPath(props) {
     }
   }
 
+  async function star() {
+    setIsStarred(true);
+    setNumStars(numStars + 1);
+    // Actually do the api call after changing state, so it is
+    // maximally snappy.  Also, being absolutely certain that star/unstar
+    // actually worked is not important.
+    await apiPost("/public-paths/star", { id });
+  }
+
+  async function unstar() {
+    setIsStarred(false);
+    setNumStars(numStars - 1);
+    await apiPost("/public-paths/unstar", { id });
+  }
+
+  function renderStar() {
+    const badge = (
+      <Badge
+        count={numStars}
+        style={{
+          marginLeft: "10px",
+          backgroundColor: "#eee",
+          color: "black",
+          minWidth: "30px",
+          marginTop: "-2.5px",
+        }}
+      />
+    );
+    if (isStarred == null) {
+      return (
+        <Button
+          onClick={() => {
+            setSigningUp(!signingUp);
+          }}
+          title={"Sign in to star"}
+        >
+          <Icon name="star" /> Star {badge}
+        </Button>
+      );
+    }
+    if (isStarred == true) {
+      return (
+        <Button onClick={unstar}>
+          <Icon name="star-filled" style={{ color: "#eac54f" }} /> Starred{" "}
+          {badge}
+        </Button>
+      );
+    }
+    return (
+      <Button onClick={star}>
+        <Icon name="star" /> Star {badge}
+      </Button>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
+        <div style={{ float: "right" }}>{renderStar()}</div>
+        {signingUp && (
+          <Alert
+            style={{ margin: "0 auto", maxWidth: "400px" }}
+            type="warning"
+            message={
+              <InPlaceSignInOrUp
+                title="Star Shared Files"
+                why="to star this"
+                onSuccess={() => {
+                  star();
+                  setSigningUp(false);
+                  router.reload();
+                }}
+              />
+            }
+          />
+        )}
         <b>Path: </b>
         <LinkedPath
           path={path}

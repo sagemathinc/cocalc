@@ -10,6 +10,10 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
+import {
+  numStars as getNumStars,
+  isStarred as getIsStarred,
+} from "@cocalc/server/public-paths/star";
 
 export default async function getPublicPathInfo(
   id: string,
@@ -39,8 +43,7 @@ export default async function getPublicPathInfo(
   }
 
   const { disabled, authenticated } = rows[0];
-  const account_id =
-    disabled || authenticated ? await getAccountId(req) : undefined;
+  const account_id = await getAccountId(req);
 
   if (disabled) {
     // Share is disabled, so account_id must be a collaborator on the project.
@@ -62,6 +65,11 @@ export default async function getPublicPathInfo(
     }
   }
 
+  // get star information: number of stars, and if use is signed in, whether or not they stared this.
+  const numStars = await getNumStars(id);
+
+  const isStarred = account_id ? await getIsStarred(id, account_id) : null;
+
   let contents;
   try {
     contents = await getContents(
@@ -73,5 +81,14 @@ export default async function getPublicPathInfo(
   }
   const projectTitle = (await getProjectInfo(rows[0].project_id)).title;
 
-  return { id, ...rows[0], contents, relativePath, projectTitle, basePath };
+  return {
+    id,
+    ...rows[0],
+    contents,
+    relativePath,
+    projectTitle,
+    basePath,
+    numStars,
+    isStarred,
+  };
 }
