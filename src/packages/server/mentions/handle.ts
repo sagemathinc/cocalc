@@ -83,12 +83,12 @@ async function handleMention(
 async function determineAction(key: Key): Promise<Action> {
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${parseInt(
+    `SELECT COUNT(*)::INT FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${parseInt(
       minEmailInterval
     )}'`,
     [key.project_id, key.path, key.target]
   );
-  const count: number = parseInt(rows[0]?.count ?? 0);
+  const count: number = rows[0]?.count ?? 0;
   if (count >= maxPerInterval) {
     return "ignore";
   }

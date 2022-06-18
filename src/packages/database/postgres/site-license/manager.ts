@@ -17,7 +17,7 @@ export async function site_license_is_manager(
       await query({
         db,
         query:
-          "SELECT COUNT(*) FROM site_licenses WHERE id=$1 AND $2 = ANY(managers)",
+          "SELECT COUNT(*)::INT FROM site_licenses WHERE id=$1 AND $2 = ANY(managers)",
         one: true,
         params: [license_id, account_id],
       })

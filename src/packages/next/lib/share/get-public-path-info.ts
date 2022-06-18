@@ -10,6 +10,7 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
+import { isStarred as getIsStarred } from "@cocalc/server/public-paths/star";
 
 export default async function getPublicPathInfo(
   id: string,
@@ -31,7 +32,10 @@ export default async function getPublicPathInfo(
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
-    "SELECT project_id, path, description, counter, compute_image, license, disabled, unlisted, authenticated FROM public_paths WHERE vhost IS NULL AND id=$1",
+    `SELECT project_id, path, description, counter, compute_image, license, disabled, unlisted, authenticated,
+    counter::INT,
+    (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
+    FROM public_paths WHERE vhost IS NULL AND id=$1`,
     [id]
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
@@ -39,8 +43,7 @@ export default async function getPublicPathInfo(
   }
 
   const { disabled, authenticated } = rows[0];
-  const account_id =
-    disabled || authenticated ? await getAccountId(req) : undefined;
+  const account_id = await getAccountId(req);
 
   if (disabled) {
     // Share is disabled, so account_id must be a collaborator on the project.
@@ -62,6 +65,9 @@ export default async function getPublicPathInfo(
     }
   }
 
+  // if user is signed in, whether or not they stared this.
+  const isStarred = account_id ? await getIsStarred(id, account_id) : null;
+
   let contents;
   try {
     contents = await getContents(
@@ -73,5 +79,13 @@ export default async function getPublicPathInfo(
   }
   const projectTitle = (await getProjectInfo(rows[0].project_id)).title;
 
-  return { id, ...rows[0], contents, relativePath, projectTitle, basePath };
+  return {
+    id,
+    ...rows[0],
+    contents,
+    relativePath,
+    projectTitle,
+    basePath,
+    isStarred,
+  };
 }

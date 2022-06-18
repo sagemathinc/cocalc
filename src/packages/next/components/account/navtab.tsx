@@ -135,6 +135,11 @@ export default function AccountNavTab({ style }: Props) {
             </A>
           </Menu.Item>
         )}
+        {!is_anonymous && (
+          <Menu.Item key="stars" icon={<Icon name="star-filled" />}>
+            <A href={"/stars"}>Stars</A>
+          </Menu.Item>
+        )}
       </Menu.ItemGroup>
       {is_admin && (
         <>
