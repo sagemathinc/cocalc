@@ -18,6 +18,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
 import getAccountId from "lib/account/get-account";
+import A from "components/misc/A";
 
 const PAGE_SIZE = 100;
 
@@ -63,12 +64,16 @@ export default function All({ page, publicPaths, customize }) {
     <Customize value={customize}>
       <Layout title={`Page ${page} of public files`}>
         <div>
+          <div style={{ float: "right", width: "250px" }}>
+            <GoogleSearch />
+          </div>
           <h1>
             Browse Publicly Shared Documents on <SiteName />
-            <div style={{ float: "right", width: "200px" }}>
-              <GoogleSearch />
-            </div>
           </h1>
+          Browse everything that has been shared below. Star items to easily
+          find them in <A href="/stars">your list later</A>.
+          <br />
+          <br />
           {pager}
           <br />
           <PublicPaths publicPaths={publicPaths} />
@@ -85,9 +90,7 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT id, path, description, ${timeInSeconds(
-      "last_edited"
-    )},
+    `SELECT id, path, description, ${timeInSeconds("last_edited")},
     counter::INT,
      (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
     FROM public_paths
