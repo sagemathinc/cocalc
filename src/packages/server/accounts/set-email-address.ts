@@ -63,7 +63,7 @@ export default async function setEmailAddress(
   // Is the email address available?
   if (
     (
-      await pool.query("SELECT COUNT(*) FROM accounts WHERE email_address=$1", [
+      await pool.query("SELECT COUNT(*)::INT FROM accounts WHERE email_address=$1", [
         email_address,
       ])
     ).rows[0].count > 0

@@ -6,10 +6,10 @@ async function checkPathExists(public_path_id: string): Promise<void> {
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) FROM public_paths WHERE id=$1",
+    "SELECT COUNT(*)::INT FROM public_paths WHERE id=$1",
     [public_path_id]
   );
-  if (!rows[0].count) {
+  if (rows[0].count == 0) {
     throw Error(`no public path with id ${public_path_id}`);
   }
 }
@@ -38,13 +38,26 @@ export async function unstar(
   );
 }
 
+// see https://stackoverflow.com/questions/66389300/postgres-cast-count-as-integer for why ::int is needed; it's due to BigInt.
 export async function numStars(public_path_id: string): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM public_path_stars WHERE public_path_id=$1",
+    "SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=$1",
     [public_path_id]
   );
   return rows[0].count ?? 0;
+}
+
+export async function isStarred(
+  public_path_id: string,
+  account_id: string
+): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=$1 AND account_id=$2",
+    [public_path_id, account_id]
+  );
+  return rows[0].count > 0;
 }
 
 export async function getStars(

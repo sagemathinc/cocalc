@@ -203,7 +203,7 @@ Table({
           }
           // It's a valid name, so next check that it is unique
           db._query({
-            query: "SELECT COUNT(*) FROM public_paths",
+            query: "SELECT COUNT(*)::INT FROM public_paths",
             where: {
               "project_id = $::UUID": project_id,
               "path != $::TEXT": obj["path"],
