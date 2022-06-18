@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Badge, Button, Divider } from "antd";
+import { Alert, Button, Divider } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -17,6 +17,7 @@ import { Layout } from "components/share/layout";
 import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import Badge from "components/misc/badge";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   SHARE_AUTHENTICATED_ICON,
@@ -47,11 +48,11 @@ export default function PublicPath({
   disabled,
   unlisted,
   authenticated,
-  numStars: numStars0,
+  stars,
   isStarred: isStarred0,
 }) {
   useCounter(id);
-  const [numStars, setNumStars] = useState<number>(numStars0);
+  const [numStars, setNumStars] = useState<number>(stars);
   const [isStarred, setIsStarred] = useState<boolean | null>(isStarred0);
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
@@ -130,9 +131,6 @@ export default function PublicPath({
         count={numStars}
         style={{
           marginLeft: "10px",
-          backgroundColor: "#eee",
-          color: "black",
-          minWidth: "30px",
           marginTop: "-2.5px",
         }}
       />
@@ -200,7 +198,7 @@ export default function PublicPath({
         )}
         {counter && (
           <>
-            <b>Views:</b> {counter}
+            <b>Views:</b> <Badge count={counter} />
             <br />
           </>
         )}

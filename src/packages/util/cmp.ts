@@ -66,8 +66,19 @@ export function timestamp_cmp(a, b, field): number {
   return -cmp_Date(a[field], b[field]);
 }
 
-export function field_cmp(field): (a, b) => number {
-  return (a, b) => cmp(a[field], b[field]);
+export function field_cmp(field: string | string[]): (a, b) => number {
+  if (typeof field == "string") {
+    return (a, b) => cmp(a[field], b[field]);
+  } else {
+    // array of strings
+    return (a, b) => {
+      for (const f of field) {
+        const c = cmp(a[f], b[f]);
+        if (c) return c;
+      }
+      return 0;
+    };
+  }
 }
 
 export function all_fields_equal<T extends { [K: string]: any }>(

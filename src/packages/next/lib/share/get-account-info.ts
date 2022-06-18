@@ -73,6 +73,8 @@ async function getPublicPaths(
   // We sort from most recently edited.
   const query = `SELECT public_paths.id as id, public_paths.path as path, public_paths.description as description,
   public_paths.disabled as disabled, public_paths.unlisted as unlisted, public_paths.vhost as vhost, public_paths.authenticated as authenticated,
+  (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=public_paths.id) AS stars,
+  public_paths.counter::INT AS counter,
   ${timeInSeconds(
     "public_paths.last_edited",
     "last_edited"

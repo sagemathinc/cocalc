@@ -5,8 +5,8 @@
 
 /*
 This is simply a list of *all* publicly shared files/directories,
-with a simple page.  It is entirely meant to be walked by crawlers
-such as Google, and only exists for that purpose.
+with a simple page.  It is mainly meant to be walked by crawlers
+such as Google and for people to browse.
 */
 
 import Link from "next/link";
@@ -19,7 +19,7 @@ import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
 import getAccountId from "lib/account/get-account";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 100;
 
 function getPage(obj): number {
   let { page } = obj ?? {};
@@ -85,13 +85,16 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT id, path, description, ${timeInSeconds("last_edited")}
+    `SELECT id, path, description, ${timeInSeconds(
+      "last_edited"
+    )},
+    counter::INT,
+     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
     FROM public_paths
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
     ORDER BY last_edited DESC LIMIT $2 OFFSET $3`,
     [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
-
   return await withCustomize({ context, props: { page, publicPaths: rows } });
 }

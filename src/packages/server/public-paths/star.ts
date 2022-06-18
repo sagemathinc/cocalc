@@ -70,3 +70,25 @@ export async function getStars(
   );
   return rows;
 }
+
+/*
+// commented out since might not need it.
+// Do a global query of all stars by everybody and return a map from
+// public paths to how many times they have been stared, for all paths
+// with at least 1 star.  This is cached for a bit.
+// TODO: This does not scale indefinitely, but is an easy way to get started.
+// This will obviously (hopefully!) have to get rewritten at some point in the future.
+export async function globalStarCounts(): Promise<{
+  [public_path_id: string]: number;
+}> {
+  const pool = getPool("medium");
+  const { rows } = await pool.query(
+    "select public_path_id, count(*)::INT from public_path_stars group by public_path_id"
+  );
+  const v: { [public_path_id: string]: number } = {};
+  for (const row of rows) {
+    v[row.public_path_id] = row.count;
+  }
+  return v;
+}
+*/
