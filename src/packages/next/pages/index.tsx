@@ -142,6 +142,11 @@ export default function Home({ customize }) {
                 )}
                 {customize.onCoCalcCom && (
                   <div style={{ marginTop: "15px" }}>
+                    <A href="https://about.cocalc.com">
+                      Mission and Features of CoCalc
+                    </A>
+                    <br />
+                    <br />
                     <iframe
                       width="210"
                       height="300"
@@ -152,16 +157,21 @@ export default function Home({ customize }) {
                       allowFullScreen
                     ></iframe>
                     <br />
-                    <br />
-                    <A href="https://about.cocalc.com">
-                      Learn All About CoCalc's Mission, Developers and
-                      Features...
-                    </A>
                   </div>
                 )}
               </div>
             }
             image={splashImage ? splashImage : screenshot}
+            aboveImage={
+              customize.shareServer ? (
+                <h3 style={{ textAlign: "center" }}>
+                  <A href="/share/public_paths/page/1">
+                    Explore notebooks and other documents that people have made
+                    using {siteName}!
+                  </A>
+                </h3>
+              ) : undefined
+            }
             alt={"Screenshot showing CoCalc in action!"}
             indexInfo={indexInfo}
           />
