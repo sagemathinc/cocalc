@@ -5,6 +5,7 @@ The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 */
 
 import { debounce } from "lodash";
+import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 
 interface Chat {
   chat?: boolean; // if true, fragment refers to message in side chat for the named path.
@@ -35,6 +36,7 @@ export type FragmentId = Line | Id | Page | Anchor;
 namespace FragmentId {
   // set is debounced so you can call it as frequently as you want...
   export const set = debounce((fragmentId: FragmentId | undefined) => {
+    if (IS_EMBEDDED) return; // no op in embed mode.
     const url = new URL(location.href);
     url.hash = encode(fragmentId);
     history.replaceState({}, "", url.href);

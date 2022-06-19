@@ -13,28 +13,23 @@ console.log("Embed mode");
 // Load/initialize Redux-based react functionality
 
 import "@cocalc/frontend/client/client";
-import { render } from "./render";
+//import { render } from "./render";
 
-export async function init() {
-  await render();
-}
-
-/*
-import { redux } from "./app-framework";
+import { redux } from "../app-framework";
 // Various jquery plugins:
-import "./jquery-plugins";
+import "../jquery-plugins";
 // Another jquery plugin:
-import "./misc/process-links/jquery";
+import "../misc/process-links/jquery";
 
 // Initialize app stores, actions, etc.
-import { init as initAccount } from "./account";
-import { init as initApp } from "./app/init";
-import { init as initProjects } from "./projects";
-import { init as initCustomSoftware } from "./custom-software/init";
-import { init as initFileUse } from "./file-use/init";
-import { init as initWebHooks } from "./webapp-hooks";
-import { init as initMarkdown } from "./markdown/markdown-input/main";
-import { init as initCrashBanner } from "./crash-banner";
+import { init as initAccount } from "../account";
+import { init as initApp } from "../app/init";
+import { init as initProjects } from "../projects";
+import { init as initCustomSoftware } from "../custom-software/init";
+import { init as initFileUse } from "../file-use/init";
+import { init as initWebHooks } from "../webapp-hooks";
+import { init as initMarkdown } from "../markdown/markdown-input/main";
+import { init as initCrashBanner } from "../crash-banner";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -42,9 +37,9 @@ import { init as initCrashBanner } from "./crash-banner";
 import "codemirror";
 
 // Should be loaded last
-import { init as initLast } from "./last";
+import { init as initLast } from "../last";
 
-import { render } from "./app/render";
+import { render } from "../app/render";
 
 export async function init() {
   initAccount(redux);
@@ -63,4 +58,3 @@ export async function init() {
     initCrashBanner();
   }
 }
-*/
