@@ -17,7 +17,8 @@
 }
 
 .cocalc-fade-in {
-  animation: cocalc-fadein 2s;
+  animation-duration: 3s;
+  animation-name: cocalc-fadein;
 }
 
 @keyframes cocalc-fadein {

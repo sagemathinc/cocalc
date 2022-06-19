@@ -19,7 +19,7 @@ module.exports = function (registerPlugin, PRODMODE, title) {
       filename: "embed.html",
       template: "src/app.html",
       hash: PRODMODE,
-      chunks: ["load", "embed"],
+      chunks: ["embed"],
     })
   );
 };

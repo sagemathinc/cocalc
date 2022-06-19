@@ -32,13 +32,15 @@ function handleTarget(): string {
       target = "settings";
     }
   }
-  // Write the full url for the given target, preserving any search and fragment parts of the url.
-  const fullUrl =
-    document.location.origin +
-    join(appBasePath, encode_path(target)) +
-    url.search +
-    u.hash;
-  history.pushState({}, "", fullUrl);
+  if (!IS_EMBEDDED) {
+    // Write the full url for the given target, preserving any search and fragment parts of the url.
+    const fullUrl =
+      document.location.origin +
+      join(appBasePath, encode_path(target)) +
+      url.search +
+      u.hash;
+    history.pushState({}, "", fullUrl);
+  }
   return target;
 }
 
