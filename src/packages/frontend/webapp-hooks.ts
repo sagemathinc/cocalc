@@ -93,9 +93,10 @@ export function init() {
           });
         }
       };
+      // give it time to possibly resolve itself.
       setTimeout(f, 15000);
     }
-  }); // give it time to possibly resolve itself.  SMELL: confused about what is going on here...
+  });
 
   // Check if user has a has_remember_me cookie (regardless if it is valid or not)
   // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).

@@ -16,7 +16,7 @@ interface Props {
 export default function Embed({ project_id, path, style }: Props) {
   const src = join(
     basePath,
-    `projects/${project_id}/files/${path}?fullscreen=kiosk`
+    `static/embed.html?target=projects/${project_id}/files/${path}`
   );
   return (
     <div
