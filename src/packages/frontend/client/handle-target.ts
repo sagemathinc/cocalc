@@ -8,6 +8,10 @@ import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { encode_path } from "@cocalc/util/misc";
 
+export const IS_EMBEDDED = new URL(location.href).pathname.endsWith(
+  "embed.html"
+);
+
 function handleTarget(): string {
   // See src/packages/hub/servers/app/app-redirect.ts where if
   // there is a path after the base url, we redirect to static/app.html
