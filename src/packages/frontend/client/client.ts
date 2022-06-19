@@ -22,6 +22,7 @@ import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
+import { setup_global_cocalc } from "./console";
 
 export type AsyncCall = (opts: object) => Promise<any>;
 
@@ -249,7 +250,7 @@ class Client extends EventEmitter implements WebappClient {
 
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
-    require("./console").setup_global_cocalc(this);
+    setup_global_cocalc(this);
   }
 
   private init_prom_client(): void {

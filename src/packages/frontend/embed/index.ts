@@ -11,8 +11,16 @@ This is for editing exactly one file.
 console.log("Embed mode");
 
 // Load/initialize Redux-based react functionality
-import { redux } from "./app-framework";
 
+import "@cocalc/frontend/client/client";
+import { render } from "./render";
+
+export async function init() {
+  await render();
+}
+
+/*
+import { redux } from "./app-framework";
 // Various jquery plugins:
 import "./jquery-plugins";
 // Another jquery plugin:
@@ -55,3 +63,4 @@ export async function init() {
     initCrashBanner();
   }
 }
+*/
