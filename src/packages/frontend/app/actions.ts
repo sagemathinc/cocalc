@@ -265,6 +265,11 @@ export class PageActions extends Actions<PageState> {
       return;
     }
     this.setState({ fullscreen });
+    if (fullscreen) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
   }
 
   set_get_api_key(val) {
