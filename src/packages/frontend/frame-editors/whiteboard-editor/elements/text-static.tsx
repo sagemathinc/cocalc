@@ -1,6 +1,7 @@
 import { CSSProperties } from "react";
 import { Element } from "../types";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { DEFAULT_FONT_SIZE, DEFAULT_FONT_FAMILY } from "../tools/defaults";
 
 interface Props {
   element: Element;
@@ -30,8 +31,9 @@ export function getStyle(
 ) {
   return {
     color: element.data?.color ?? defaults?.color,
-    fontSize: element.data?.fontSize ?? defaults?.fontSize,
-    fontFamily: element.data?.fontFamily ?? defaults?.fontFamily,
+    fontSize: element.data?.fontSize ?? defaults?.fontSize ?? DEFAULT_FONT_SIZE,
+    fontFamily:
+      element.data?.fontFamily ?? defaults?.fontFamily ?? DEFAULT_FONT_FAMILY,
     background: element.data?.background ?? defaults?.background,
   };
 }

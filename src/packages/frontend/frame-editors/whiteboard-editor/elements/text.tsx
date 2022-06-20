@@ -130,6 +130,7 @@ function EditText({
       });
     };
   }, [canvasScale, element.id, editFocus, readOnly]);
+
   useEffect(() => {
     resizeRef.current?.();
   }, [resize]);

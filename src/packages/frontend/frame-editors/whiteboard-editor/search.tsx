@@ -88,10 +88,6 @@ export default function Search() {
       >
         <Virtuoso
           style={{
-            width: `${100 / canvasScale}%`,
-            height: `${100 / canvasScale}%`,
-            transform: `scale(${canvasScale})`,
-            transformOrigin: "top left",
             marginBottom: "10px",
           }}
           increaseViewportBy={500}
@@ -99,7 +95,7 @@ export default function Search() {
           itemContent={(index) => {
             if (index >= (elements?.length ?? 0)) {
               // extra space to not feel cramped.
-              return <div style={{ height: "100px" }}></div>;
+              return <div style={{ height: `${50 / canvasScale}px` }}></div>;
             }
             const element = elements?.[index];
             if (element == null) {
@@ -108,31 +104,36 @@ export default function Search() {
             }
             return (
               <div
-                onClick={() => {
-                  const frameId =
-                    actions.show_focused_frame_of_type("whiteboard");
-                  if (frameId) {
-                    actions.centerElement(element.id, frameId);
-                    actions.zoom100(frameId);
-                  }
-                }}
                 style={{
-                  cursor: "pointer",
-                  height: `${(element.h ?? 0) + 20}px`,
-                  margin: "5px 15px",
-                  position: "relative",
-                  padding: "5px",
-                  border: "1px solid #eee",
+                  height: `${((element.h ?? 0) + 20) * canvasScale}px`,
+                  margin: "5px",
                   overflow: "hidden",
-                  width: `${(element.w ?? 0) + 5}px`,
                 }}
               >
-                <div style={{ pointerEvents: "none" }}>
-                  <RenderElt
-                    element={element}
-                    canvasScale={canvasScale}
-                    readOnly={readOnly}
-                  />
+                <div
+                  onClick={() => {
+                    const frameId =
+                      actions.show_focused_frame_of_type("whiteboard");
+                    if (frameId) {
+                      actions.centerElement(element.id, frameId);
+                      actions.zoom100(frameId);
+                    }
+                  }}
+                  style={{
+                    transform: `scale(${canvasScale})`,
+                    transformOrigin: "top left",
+                    cursor: "pointer",
+                    position: "relative",
+                    width: `${(element.w ?? 0) + 5}px`,
+                  }}
+                >
+                  <div style={{ pointerEvents: "none" }}>
+                    <RenderElt
+                      element={element}
+                      canvasScale={canvasScale}
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
               </div>
             );
