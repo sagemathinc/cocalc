@@ -18,8 +18,8 @@
 
 .cocalc-fade-in {
   opacity: 0;
-  animation-delay: 2s; /* only show animation if loading takes at least 2 seconds */
-  animation-duration: 2s;
+  /* animation-delay: 2s; */ /* only show animation if loading takes at least 2 seconds */
+  animation-duration: 4s;
   animation-name: cocalc-fadein;
 }
 

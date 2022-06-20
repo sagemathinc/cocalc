@@ -268,7 +268,9 @@ export class PageActions extends Actions<PageState> {
     if (fullscreen) {
       document.documentElement.requestFullscreen();
     } else {
-      document.exitFullscreen();
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
     }
   }
 
