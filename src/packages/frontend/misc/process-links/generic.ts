@@ -70,7 +70,7 @@ function processAnchorTag(y: any, opts: Options): void {
     return; // do nothing
   }
   const { projectActions } = opts;
-  if (projectActions && isCoCalcURL(href) && (href.includes("/projects/") || href.endsWith("/settings"))) {
+  if (projectActions && isCoCalcURL(href) && href.includes("/projects/")) {
     // CASE: Link inside a specific browser tab.
     // target starts with cloud URL or is absolute, and has /projects/ in it,
     // so we open the link directly inside this browser tab.
