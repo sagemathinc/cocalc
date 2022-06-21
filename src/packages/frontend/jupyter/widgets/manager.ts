@@ -69,6 +69,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
     this.setWidgetModelIdState = setWidgetModelIdState;
     this.init_ipywidgets_state();
+    window.x = this;
   }
 
   private async init_ipywidgets_state(): Promise<void> {
@@ -125,6 +126,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           break;
         case "message":
           this.handle_table_model_message_change(model_id);
+          break;
+        case "message_to_kernel":
+          // only kernel handles this.
           break;
         default:
           throw Error(`unknown state type '${type}'`);
@@ -262,11 +266,34 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string
   ): Promise<void> {
     const message = this.ipywidgets_state.get_message(model_id);
+    console.log("message = ", message, size(message));
     if (size(message) == 0) return; // temporary until we have delete functionality
     // console.log("handle_table_model_message_change", message);
-    const model = await this.get_model(model_id);
-    if (model == null) return;
-    model.trigger("msg:custom", message);
+    let d = 50;
+    for (let i = 0; i < 100; i++) {
+      const model = await this.get_model(model_id);
+      if (model != null) {
+        model.trigger("msg:custom", message);
+        return;
+      }
+      await delay(d);
+      d *= 1.2;
+    }
+    console.log(
+      "handle_table_model_message_change: unable to deliver message since model doesn't exist.",
+      { message, model_id }
+    );
+  }
+
+  private async handle_custom_message_from_model_to_kernel(
+    model_id: string,
+    message: object
+  ): Promise<void> {
+    console.log("handle_custom_message_from_model_to_kernel", {
+      model_id,
+      message,
+    });
+    this.ipywidgets_state.sendMessageToKernel(model_id, message);
   }
 
   async deserialize_state(
@@ -467,6 +494,16 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
     // Start listening to model changes.
     model.on("change", this.handle_model_change.bind(this));
+
+    model.on("msg:custom", (message) => {
+      this.handle_custom_message_from_model_to_kernel(model_id, message);
+    });
+
+    // DEBUG For low level debugging, we can listen to all events from the model:
+    //     model.on("all", (...evt) => {
+    //       console.log("received event from model", evt);
+    //     });
+
     this.setWidgetModelIdState(model_id, "");
     // console.log("create_new-model - FINISHED", { model_id, serialized_state });
   }
@@ -482,6 +519,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     _data?: any,
     _metadata?: any
   ): Promise<Comm> {
+    console.log("TODO: _create_comm");
     const comm = new Comm(
       target_name,
       model_id,
@@ -495,7 +533,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     data: any
   ): string {
-    // console.log("TODO: process_comm_message_from_browser", model_id, data);
+    console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
       throw Error("data must not be null");
     }
@@ -586,8 +624,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       // NOTE: I completely rewrote the entire k3d widget interface...
       module = await import("./k3d");
     } else if (moduleName === "jupyter-matplotlib") {
-      //module = await import("jupyter-matplotlib");
-      throw Error(`custom widgets: ${moduleName} not installed`);
+      module = await import("jupyter-matplotlib");
     } else if (moduleName === "jupyter-threejs") {
       //module = await import("jupyter-threejs");
       throw Error(`custom widgets: ${moduleName} not installed`);

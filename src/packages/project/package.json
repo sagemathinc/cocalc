@@ -91,7 +91,8 @@
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
-    "build": "npx tsc && npx coffee -m -c -o dist/ .",
+    "build": "npx tsc && npm run coffee",
+    "coffee": "npx coffee -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",

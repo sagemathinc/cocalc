@@ -102,7 +102,7 @@ class exports.Client extends EventEmitter
             kucalc.init(@)
 
     # use to define a logging function that is cleanly used internally
-    dbg: (f, trunc=1000) =>
+    dbg: (f, trunc=10000) =>
         if DEBUG and @_winston
             return (m...) =>
                 switch m.length

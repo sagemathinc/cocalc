@@ -296,6 +296,7 @@ const IconSpec = {
   fire: FireOutlined,
   firefox: { IconFont: "firefox" },
   flash: ThunderboltOutlined,
+  "floppy-o": SaveOutlined, // used by matplotlib widget
   "flow-chart": { IconFont: "flow-chart" },
   folder: FolderOutlined,
   "folder-open": FolderOpenOutlined,
@@ -649,10 +650,23 @@ if (typeof $ != "undefined") {
       // @ts-ignore
       const that = $(this);
       for (const elt of that.find(".fa")) {
+        let style: CSS | undefined = undefined;
+        if (elt.className.includes("fa-fw")) {
+          // could break if subset of some other icon name, but doesn't seem to be.
+          // this is "fixed width" in font awesome:
+          style = { width: "1.28571429em", textAlign: "center" };
+        }
         for (const cls of elt.className.split(/\s+/)) {
+          if (cls == "fa-fw") {
+            continue;
+          }
           if (cls.startsWith("fa-")) {
             ReactDOM.render(
-              <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />,
+              <Icon
+                style={style}
+                name={cls.slice(3)}
+                spin={cls == "fa-cocalc-ring"}
+              />,
               elt
             );
             break;

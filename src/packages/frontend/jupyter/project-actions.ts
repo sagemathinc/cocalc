@@ -124,7 +124,7 @@ export class JupyterActions extends JupyterActions0 {
       5;
       cells = cells.toJS();
     }
-    dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
+    //dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
 
     this.sync_exec_state = underscore.debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = underscore.debounce(
@@ -400,13 +400,13 @@ export class JupyterActions extends JupyterActions0 {
   //    Only one client -- the project itself -- will run this code.
   manager_on_cell_change = (id: any, new_cell: any, old_cell: any) => {
     const dbg = this.dbg(`manager_on_cell_change(id='${id}')`);
-    dbg(
-      `new_cell='${misc.to_json(
-        new_cell != null ? new_cell.toJS() : undefined
-      )}',old_cell='${misc.to_json(
-        old_cell != null ? old_cell.toJS() : undefined
-      )}')`
-    );
+//     dbg(
+//       `new_cell='${misc.to_json(
+//         new_cell != null ? new_cell.toJS() : undefined
+//       )}',old_cell='${misc.to_json(
+//         old_cell != null ? old_cell.toJS() : undefined
+//       )}')`
+//     );
 
     if (
       (new_cell != null ? new_cell.get("state") : undefined) === "start" &&
@@ -1173,6 +1173,13 @@ export class JupyterActions extends JupyterActions0 {
           data
         );
         */
+      } else if (type == "message_to_kernel") {
+        const content =
+          this.syncdb.ipywidgets_state.getLastMessageToKernel(model_id);
+        this.jupyter_kernel.send_comm_message_to_kernel(misc.uuid(), model_id, {
+          method: "custom",
+          content,
+        });
       } else {
         throw Error(`invalid synctable state -- unknown type '${type}'`);
       }
@@ -1183,7 +1190,9 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // serializing the full message could cause enormous load on the server, since
     // the mesg may contain large buffers.  Only do for low level debugging!
-    // dbg(mesg); // EXTREME DANGER!
+    // EXTREME DANGER!
+    const TYPESCRIPT_ERROR_ON_PURPOSE_TO_REMIND_ME = false;
+    dbg(JSON.stringify(mesg));
     // This should be safe:
     dbg(JSON.stringify(mesg.header));
     if (this.syncdb.ipywidgets_state == null) {

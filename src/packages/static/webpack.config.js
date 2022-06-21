@@ -159,6 +159,12 @@ module.exports = {
   module: {
     rules: require("./src/module-rules")(PRODMODE),
   },
+  ignoreWarnings: [
+    {
+      // The .map files are missing from jupyter-matplotlib, which causes several warnings.
+      module: /.*jupyter-matplotlib\/.*/,
+    },
+  ],
   resolve: {
     alias: {
       // @cocalc/frontend  alias so we can write `require("@cocalc/frontend/...")`

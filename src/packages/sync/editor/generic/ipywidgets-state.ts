@@ -28,6 +28,13 @@ type State = "init" | "ready" | "closed";
 
 type Value = { [key: string]: any };
 
+type TableType =
+  | "value"
+  | "state"
+  | "buffers"
+  | "message" // message to browser
+  | "message_to_kernel";
+
 // When there is no activity for this much time, them we
 // do some garbage collection.  This is only done in the
 // backend project, and not by frontend browser clients.
@@ -326,7 +333,7 @@ export class IpywidgetsState extends EventEmitter {
   // Do any setting of the underlying table through this function.
   public set(
     model_id: string,
-    type: "value" | "state" | "buffers" | "message",
+    type: TableType,
     data: any,
     fire_change_event: boolean = true
   ): void {
@@ -350,7 +357,7 @@ export class IpywidgetsState extends EventEmitter {
       // already set, but overwrite
       // when they change.
       merge = "deep";
-    } else if (type == "message") {
+    } else if (type == "message" || type == 'message_to_kernel') {
       merge = "none";
     } else {
       merge = "deep";
@@ -768,6 +775,14 @@ export class IpywidgetsState extends EventEmitter {
     // Actually, delete is not implemented for synctable, so for
     // now we just set it to an empty message.
     this.set(model_id, "message", {}, fire_change_event);
+  }
+
+  public sendMessageToKernel(model_id: string, message: object) {
+    this.set(model_id, "message_to_kernel", message, true);
+  }
+
+  public getLastMessageToKernel(model_id): object {
+    return this.get(model_id, "message_to_kernel")?.toJS();
   }
 
   public get_message(model_id: string) {
