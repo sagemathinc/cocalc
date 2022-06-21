@@ -423,6 +423,7 @@ class Configure extends Component<Props, State> {
     return <Button onClick={this.props.close}>Close</Button>;
   }
 
+  /*
   private render_needs_network_access(parent_is_public: boolean): Rendered {
     const url =
       this.props.public == null || this.props.public.disabled
@@ -451,6 +452,7 @@ class Configure extends Component<Props, State> {
       </Alert>
     );
   }
+  */
 
   private render_share_server_disabled(): Rendered {
     return (
