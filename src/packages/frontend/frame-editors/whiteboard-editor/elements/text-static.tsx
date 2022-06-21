@@ -29,11 +29,16 @@ export function getStyle(
     background?: string;
   }
 ) {
+  let fontFamily =
+    element.data?.fontFamily ?? defaults?.fontFamily ?? DEFAULT_FONT_FAMILY;
+  if (fontFamily == "Sans") {
+    // for historical reasons, mainly -- see packages/frontend/editors/editor-button-bar.ts too
+    fontFamily = "sans-serif";
+  }
   return {
     color: element.data?.color ?? defaults?.color,
     fontSize: element.data?.fontSize ?? defaults?.fontSize ?? DEFAULT_FONT_SIZE,
-    fontFamily:
-      element.data?.fontFamily ?? defaults?.fontFamily ?? DEFAULT_FONT_FAMILY,
+    fontFamily,
     background: element.data?.background ?? defaults?.background,
   };
 }
