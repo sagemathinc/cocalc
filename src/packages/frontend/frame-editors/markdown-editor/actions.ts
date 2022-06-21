@@ -57,7 +57,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
     this._syncstring.on(
       "change",
-      debounce(this.updateTableOfContents.bind(this), 2000)
+      debounce(this.updateTableOfContents.bind(this), 1500)
     );
   }
 

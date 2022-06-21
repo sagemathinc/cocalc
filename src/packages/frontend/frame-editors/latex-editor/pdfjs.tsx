@@ -262,12 +262,12 @@ export function PDFJS({
       if (
         isMounted.current &&
         err != null && // err can be null!!
-        err.toString().indexOf("Missing") != -1
+        err.toString()?.indexOf("Missing") != -1
       ) {
         setMissing(true);
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {
-          // try again, since there is functionality for updating the pdf
+          // try again, since there is function
           actions.update_pdf(new Date().valueOf(), true);
         }
       }
@@ -420,7 +420,7 @@ export function PDFJS({
     let index;
     if (typeof page == "string") {
       // a little complicated in case of string page labels
-      index = desc.get("pages")?.indexOf(page);
+      index = desc.get("pages")?.indexOf?.(page);
       if (index == -1 || index == null) return;
     } else {
       index = page - 1;

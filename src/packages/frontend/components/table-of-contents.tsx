@@ -13,7 +13,7 @@ export interface TableOfContentsEntry {
   value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: IconName; // default "minus" (a dash)
-  number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4].
+  number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4]; omitted if not given.
   extra?: any; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
 }
 
