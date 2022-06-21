@@ -141,7 +141,15 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Search",
     onClick: (actions) => {
       setTimeout(() => {
-        actions.show_focused_frame_of_type("search", "col", false, 0.8);
+        const id = actions.show_focused_frame_of_type(
+          "search",
+          "col",
+          false,
+          0.8
+        );
+        if (id != null) {
+          actions.set_frame_tree({ id, font_size: 10 });
+        }
       }, 0);
     },
   },

@@ -8,7 +8,7 @@ Whiteboard frame Editor Actions
 */
 
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { Map as ImmutableMap } from "immutable";
+import { Map as ImmutableMap, fromJS } from "immutable";
 import { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
@@ -44,18 +44,25 @@ import {
   MAX_FONT_SIZE,
 } from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { cloneDeep, size } from "lodash";
+import { cloneDeep, debounce, size } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
 import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
+import {
+  TableOfContentsEntryList,
+  TableOfContentsEntry,
+} from "@cocalc/frontend/components";
+import parseTableOfContents from "./table-of-contents";
+import { delay } from "awaiting";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
   pages?: PagesMap;
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
+  contents?: TableOfContentsEntryList; // table of contents data.
 }
 
 export class Actions extends BaseActions<State> {
@@ -145,6 +152,11 @@ export class Actions extends BaseActions<State> {
       if (elements !== elements0) {
         this.setState({ elements, pages });
       }
+
+      this._syncstring.on(
+        "change",
+        debounce(this.updateTableOfContents.bind(this), 1500)
+      );
     });
   }
 
@@ -1216,6 +1228,44 @@ export class Actions extends BaseActions<State> {
       this.zoom100(frameId);
       return;
     }
+  }
+
+  public async show_table_of_contents(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "whiteboard_table_of_contents",
+      "col",
+      true,
+      0.2
+    );
+    // the click to select TOC focuses the active id back on the notebook
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public updateTableOfContents(force: boolean = false): void {
+    if (this._state == "closed" || this._syncstring == null) {
+      // no need since not initialized yet or already closed.
+      return;
+    }
+    if (
+      !force &&
+      !this.get_matching_frame({ type: "whiteboard_table_of_contents" })
+    ) {
+      // There is no table of contents frame so don't update that info.
+      return;
+    }
+    const elements = this.store.get("elements");
+    if (elements == null) return;
+
+    const contents = fromJS(parseTableOfContents(elements));
+    this.setState({ contents });
+  }
+
+  public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
+    this.gotoFragment({ id: entry.id });
   }
 }
 

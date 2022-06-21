@@ -8,10 +8,10 @@ import { Loading } from "@cocalc/frontend/components";
 import { State } from "./actions";
 import RenderElement from "./elements/render";
 import RenderReadOnlyElement from "./elements/render-static";
-import { search_match, search_split } from "@cocalc/util/misc";
 import { Element } from "./types";
 import { fontSizeToZoom } from "./math";
 import { debounce } from "lodash";
+import sortedElements from "./sorted-elements";
 
 export default function Search() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -35,31 +35,8 @@ export default function Search() {
   const elementsMap = useEditor("elements");
   const elements: undefined | Element[] = useMemo(() => {
     if (elementsMap == null) return undefined;
-
-    // We only include elements with a str attribute for now,
-    // e.g., notes, code, text.  If change to use more, need
-    // to filter type to note be "edge".
-    let v = elementsMap
-      .valueSeq()
-      .filter((x) => x != null && x.get("str"))
-      .toJS();
-
     const search = desc.get("search")?.toLowerCase().trim();
-    if (search) {
-      // filter by matches for the str attribute for now.
-      const s = search_split(search);
-      v = v.filter((x) => x.str && search_match(x.str.toLowerCase(), s));
-    }
-
-    v?.sort((elt1, elt2) => {
-      if ((elt1.page ?? 1) < (elt2.page ?? 1)) return -1;
-      if ((elt1.page ?? 1) > (elt2.page ?? 1)) return 1;
-      if (elt1.y < elt2.y) return -1;
-      if (elt1.y > elt2.y) return 1;
-      if (elt1.x <= elt2.x) return -1;
-      return 1;
-    });
-    return v;
+    return sortedElements(elementsMap, search);
   }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({

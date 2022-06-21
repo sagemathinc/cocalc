@@ -26,12 +26,15 @@ const markdown_it = new MarkdownIt(OPTIONS);
 
 // NOTE: headings can't be nested in markdown, which makes parsing much easier.
 
-export function parseTableOfContents(markdown: string): Entry[] {
+export function parseTableOfContents(
+  markdown: string,
+  state?: { number: number[] }
+): Entry[] {
   markdown = parseHeader(markdown).body;
   let id = 0;
   const entries: Entry[] = [];
   let entry: Entry | undefined = undefined;
-  let number: number[] = [0];
+  let number: number[] = state?.number ?? [0];
   const [text, math] = remove_math(markdown);
   function parse(tokens: Token[]): void {
     for (const token of tokens) {
@@ -65,5 +68,8 @@ export function parseTableOfContents(markdown: string): Entry[] {
     }
   }
   parse(markdown_it.parse(text, {}));
+  if (state != null) {
+    state.number = number;
+  }
   return entries;
 }

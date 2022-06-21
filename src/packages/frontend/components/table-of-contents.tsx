@@ -39,7 +39,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
       return (
         <div
           style={{
-            marginTop: level == 1 ? "1em" : level == 2 ? "0.5em" : undefined,
+            /*marginTop: level == 1 ? "1em" : level == 2 ? "0.5em" : undefined,*/
             fontSize,
             whiteSpace: "nowrap",
             fontWeight: level == 1 ? "bold" : undefined,
