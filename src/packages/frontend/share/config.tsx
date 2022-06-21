@@ -170,7 +170,8 @@ class Configure extends Component<Props, State> {
   }
 
   private render_public_listed_option(state: string): Rendered {
-    if (!this.props.is_commercial || this.props.has_network_access) {
+    // We are always allowing public sharing now.
+    if (true || !this.props.is_commercial || this.props.has_network_access) {
       return (
         <Radio
           name="sharing_options"
@@ -473,9 +474,10 @@ class Configure extends Component<Props, State> {
     if (!this.props.share_server) {
       return this.render_share_server_disabled();
     }
-    if (this.props.is_commercial && !this.props.has_network_access) {
-      return this.render_needs_network_access(parent_is_public);
-    }
+    // We are again allowing sharing without network.
+    //     if (this.props.is_commercial && !this.props.has_network_access) {
+    //       return this.render_needs_network_access(parent_is_public);
+    //     }
 
     return (
       <div>
