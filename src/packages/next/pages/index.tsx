@@ -164,12 +164,15 @@ export default function Home({ customize }) {
             image={splashImage ? splashImage : screenshot}
             aboveImage={
               customize.shareServer ? (
-                <h3 style={{ textAlign: "center" }}>
-                  <A href="/share/public_paths/page/1">
-                    Explore notebooks and other documents that people have made
-                    using {siteName}!
-                  </A>
-                </h3>
+                <div>
+                  <h3 style={{ textAlign: "center" }}>
+                    <A href="/share/public_paths/page/1">
+                      Explore notebooks and other documents that people have
+                      made using {siteName}!
+                    </A>
+                  </h3>
+
+                </div>
               ) : undefined
             }
             alt={"Screenshot showing CoCalc in action!"}

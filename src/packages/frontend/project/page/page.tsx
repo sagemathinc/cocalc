@@ -370,7 +370,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <OOMWarning project_id={project_id} />
       <SoftwareEnvUpgrade project_id={project_id} />
       <TrialBanner project_id={project_id} />
-      {!fullscreen && render_file_tabs()}
+      {(!fullscreen || fullscreen == "project") && render_file_tabs()}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       {render_editor_tabs()}

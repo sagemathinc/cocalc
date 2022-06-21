@@ -259,12 +259,17 @@ export class PageActions extends Actions<PageState> {
   }
 
   set_fullscreen(fullscreen) {
-    // val = 'default', 'kiosk', undefined
+    // val = 'default', 'kiosk', 'project', undefined
     // if kiosk is ever set, disable toggling back
     if (redux.getStore("page").get("fullscreen") === "kiosk") {
       return;
     }
     this.setState({ fullscreen });
+    if (fullscreen == "project") {
+      // this removes top row for embedding purposes and thus doesn't need
+      // full browser fullscreen.
+      return;
+    }
     if (fullscreen) {
       document.documentElement.requestFullscreen();
     } else {
@@ -328,8 +333,9 @@ export class PageActions extends Actions<PageState> {
       // never confirm close if get_api_key is set.
       return;
     }
-    if (redux.getStore("page").get("fullscreen") === "kiosk") {
-      // never confirm close in kiosk mode, since that should be
+    const fullscreen = redux.getStore("page").get("fullscreen");
+    if (fullscreen == "kiosk" || fullscreen == "project") {
+      // never confirm close in kiosk or project embed mode, since that should be
       // responsibility of containing page, and it's confusing where
       // the dialog is even coming from.
       return;

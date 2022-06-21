@@ -37,6 +37,8 @@ export function init_query_params(): void {
     actions.set_fullscreen("default");
     // We no longer need fullscreen in the query parameter:
     QueryParams.remove("fullscreen");
+  } else if (COCALC_FULLSCREEN === "project") {
+    actions.set_fullscreen("project");
   }
 
   const get_api_key_query_value = QueryParams.get("get_api_key");

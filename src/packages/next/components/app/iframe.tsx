@@ -1,33 +1,33 @@
 import { Button, Popover } from "antd";
-import { CSSProperties, useState } from "react";
-import basePath from "lib/base-path";
 import { Icon } from "@cocalc/frontend/components/icon";
-import editURL from "lib/share/edit-url";
-import A from "components/misc/A";
+import { CSSProperties, useRef, useState } from "react";
 import SiteName from "components/share/site-name";
-import { join } from "path";
+import A from "components/misc/A";
 import { trunc_middle } from "@cocalc/util/misc";
 
 interface Props {
-  project_id: string;
-  path: string;
-  width?: string;
-  height?: string;
+  src: string;
+  appURL?: string;
+  path?: string;
   style?: CSSProperties;
   fullscreen?: boolean;
 }
-export default function Embed({
-  project_id,
+
+export default function IFrame({
+  src: src0,
+  appURL,
   path,
   style,
   fullscreen: fullscreen0,
 }: Props) {
   const [fullscreen, setFullscreen] = useState<boolean>(!!fullscreen0);
+  const [reload, setReload] = useState<number>(0);
+  const iframeRef = useRef<any>(null);
+  const url = new URL("http://example.com" + src0);
+  url.search += (url.search ? "&" : "") + `reload=${reload}`;
+  const src = url.pathname + url.search + url.hash;
+  console.log("src = ", { src });
 
-  const src = join(
-    basePath,
-    `static/embed.html?target=projects/${project_id}/files/${path}`
-  );
   return (
     <div
       style={
@@ -55,34 +55,46 @@ export default function Embed({
     >
       <div>
         <div style={{ display: "flex" }}>
+          <Button
+            title="Reload this"
+            size="small"
+            type="text"
+            onClick={() => {
+              setReload(reload + 1);
+              //iframeRef.current?.contentWindow.location.reload();
+            }}
+          >
+            <Icon name={"reload"} />
+          </Button>
           <div
             style={{
               flex: 1,
+              textAlign: "center",
               paddingTop: "2.5px",
               paddingLeft: fullscreen ? "15px" : undefined,
             }}
           >
-            <Popover
-              title="Open in the App"
-              content={
-                <div style={{maxWidth:'350px'}}>
-                  Open {path} in the <SiteName /> app for more options and to
-                  see your other files...
-                </div>
-              }
-            >
-              <Icon name="external-link" style={{ marginRight: "5px" }} />
-              <A
-                href={editURL({ type: "collaborator", project_id, path })}
-                external
+            {appURL && (
+              <Popover
+                title="Open in the App"
+                content={
+                  <div style={{ maxWidth: "350px" }}>
+                    Open {path} in the <SiteName /> app for more options and to
+                    see your other files...
+                  </div>
+                }
               >
-                {trunc_middle(path, 50)}
-              </A>
-            </Popover>
+                <A href={appURL} external>
+                  <Icon name="external-link" style={{ marginRight: "5px" }} />
+                  {path ? trunc_middle(path, 50) : ""}
+                </A>
+              </Popover>
+            )}
           </div>
           <Button
             size="small"
             type="text"
+            title="Full screen"
             onClick={() => {
               if (!fullscreen) {
                 document.documentElement.requestFullscreen();
@@ -99,7 +111,13 @@ export default function Embed({
         </div>
       </div>
       <hr style={{ width: "100%" }} />
-      <iframe src={src} width={"100%"} height={"100%"} frameBorder="0" />
+      <iframe
+        ref={iframeRef}
+        src={src}
+        width={"100%"}
+        height={"100%"}
+        frameBorder="0"
+      />
     </div>
   );
 }

@@ -56,7 +56,7 @@ export class ChatStore extends Store<ChatState> {
       saved_position: undefined,
       search: "",
       selectedHashtags: fromJS({}),
-      add_collab: true,
+      add_collab: false,
       is_saving: false,
       has_uncommitted_changes: false,
       has_unsaved_changes: false,
