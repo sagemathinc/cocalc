@@ -10,8 +10,10 @@ export default function parseTableOfContents(
   const state: any = {};
   for (const element of sortedElements(elementsMap)) {
     if (element.str) {
+      let n = 0;
       for (const entry of parseMarkdownTOC(element.str, state)) {
-        entry.id = element.id;
+        n += 1;
+        entry.id = `${n}-${element.id}`;
         entries.push(entry);
       }
     }

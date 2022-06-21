@@ -1265,7 +1265,7 @@ export class Actions extends BaseActions<State> {
   }
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
-    this.gotoFragment({ id: entry.id });
+    this.gotoFragment({ id: entry.id.split('-')[1] });
   }
 }
 
