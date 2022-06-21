@@ -14,19 +14,21 @@ import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import { join } from "path";
 import basePath from "lib/base-path";
-
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+import Path from "components/app/path";
 
 const topLinkStyle = { marginRight: "20px" };
 
 export default function Home({ customize }) {
   const {
+    shareServer,
     siteName,
     siteDescription,
     organizationName,
     organizationURL,
     splashImage,
     indexInfo,
+    sandboxProjectId,
   } = customize;
   return (
     <Customize value={customize}>
@@ -161,19 +163,34 @@ export default function Home({ customize }) {
                 )}
               </div>
             }
-            image={splashImage ? splashImage : screenshot}
+            image={
+              sandboxProjectId
+                ? undefined
+                : splashImage
+                ? splashImage
+                : screenshot
+            }
             aboveImage={
-              customize.shareServer ? (
-                <div>
+              <>
+                {sandboxProjectId && (
+                  <div style={{ marginBottom: "30px" }}>
+                    <h3 style={{ textAlign: "center", color: "#666" }}>
+                      The Public {siteName} Sandbox
+                    </h3>
+                    <Path
+                      style={{ marginRight: "30px", marginBottom: "15px" }}
+                      project_id={sandboxProjectId}
+                    />
+                  </div>
+                )}
+                {shareServer && (
                   <h3 style={{ textAlign: "center" }}>
                     <A href="/share/public_paths/page/1">
-                      Explore notebooks and other documents that people have
-                      made using {siteName}!
+                      Explore what people have made using {siteName}!
                     </A>
                   </h3>
-
-                </div>
-              ) : undefined
+                )}
+              </>
             }
             alt={"Screenshot showing CoCalc in action!"}
             indexInfo={indexInfo}

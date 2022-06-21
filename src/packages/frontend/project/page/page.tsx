@@ -148,10 +148,6 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
   function render_chat_indicator(
     shrink_fixed_tabs: boolean
   ): JSX.Element | undefined {
-    if (is_anonymous) {
-      // anonymous users have no possibility to chat
-      return;
-    }
     if (!active_project_tab?.startsWith("editor-")) {
       // TODO: This is the place in the code where we could support project-wide
       // side chat, or side chats for each individual Files/Search, etc. page.

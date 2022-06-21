@@ -26,7 +26,6 @@ export default function IFrame({
   const url = new URL("http://example.com" + src0);
   url.search += (url.search ? "&" : "") + `reload=${reload}`;
   const src = url.pathname + url.search + url.hash;
-  console.log("src = ", { src });
 
   return (
     <div
