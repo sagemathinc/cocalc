@@ -357,7 +357,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
     const project_actions = redux.getProjectActions(opts.project_id);
-    const relation = store.get_my_group(opts.project_id);
+    let relation = store.get_my_group(opts.project_id);
+    if (relation == "public" && webapp_client.account_id) {
+      // try adding ourselves, e.g., maybe project is a sandbox.
+      try {
+        await webapp_client.project_collaborators.add_collaborator({
+          project_id: opts.project_id,
+          account_id: webapp_client.account_id,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
     if (relation == null || ["public", "admin"].includes(relation)) {
       this.fetch_public_project_title(opts.project_id);
     }

@@ -38,7 +38,7 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { AccessErrors } from "./access-errors";
 import { ListingItem } from "./types";
-
+import { VisibleMDLG } from "@cocalc/frontend/components";
 import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -628,14 +628,16 @@ export const Explorer = rclass(
               >
                 <UsersViewing project_id={this.props.project_id} />
               </div>
-              <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
-                <MiniTerminal
-                  current_path={this.props.current_path}
-                  project_id={this.props.project_id}
-                  actions={this.props.actions}
-                  show_close_x={false}
-                />
-              </div>
+              <VisibleMDLG>
+                <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
+                  <MiniTerminal
+                    current_path={this.props.current_path}
+                    project_id={this.props.project_id}
+                    actions={this.props.actions}
+                    show_close_x={false}
+                  />
+                </div>
+              </VisibleMDLG>
             </>
           )}
         </div>

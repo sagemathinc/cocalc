@@ -69,8 +69,8 @@ export default function Sandbox({ project }: Props) {
         <div>
           <p>
             If you make this project a public sandbox project, then you can
-            share any URL in your project and when somebody visits that URL
-            they will automatically be added as a collaborator to your project.
+            share any URL in your project and when somebody visits that URL they
+            will automatically be added as a collaborator to your project.
           </p>
           <p>
             Only do this if you have <b>very minimal security requirements</b>{" "}

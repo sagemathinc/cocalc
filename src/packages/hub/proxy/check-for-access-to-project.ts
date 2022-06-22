@@ -43,7 +43,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
   // not cached, so we have to determine access.
   let access: boolean;
   const dbg = (m) => {
-    winston.debug(`${type} access to ${project_id}: ${m}`);
+    winston.debug(`(${type} access to ${project_id}): ${m}`);
   };
 
   try {
@@ -67,6 +67,16 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
         project_id,
         account_id,
       });
+      if (!access) {
+        // if the project is a sandbox project, we add the user as a collaborator
+        // and grant access.
+        if (await isSandboxProject(project_id)) {
+          dbg("granting sandbox access");
+          await addUserToProject({ project_id, account_id });
+          access = true;
+        }
+      }
+
       if (access) {
         // Record that user is going to actively access
         // this project.  This is important since it resets
@@ -75,13 +85,6 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
           account_id,
           project_id,
         });
-      } else {
-        // if the project is a sandbox project, we add user as a collaborator
-        // and grant access.
-        if (await isSandboxProject(project_id)) {
-          await addUserToProject({ project_id, account_id });
-          access = true;
-        }
       }
     } else if (type == "read") {
       access = await callback2(user_has_read_access_to_project, {
@@ -96,6 +99,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
     dbg(`error trying to determine access; denying for now -- ${err}`);
     access = false;
   }
+  dbg(`determined that access=${access}`);
 
   if (access) {
     yesCache.set(key, access);
