@@ -5,14 +5,15 @@
 
 // endpoints for various health checks
 
+import { numRecentErrors } from "@cocalc/database/postgres/record-connect-error";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { seconds2hms } from "@cocalc/util/misc";
 import debug from "debug";
-const L = debug("hub:healthcheck");
-import { Router, Response } from "express";
+import { Response, Router } from "express";
 import { createServer } from "net";
 import { isFloat } from "validator";
-import { seconds2hms } from "@cocalc/util/misc";
 import { database_is_working } from "./hub_register";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
+const L = debug("hub:healthcheck");
 
 interface HealthcheckData {
   code: 200 | 404;
@@ -174,6 +175,29 @@ function check_uptime(): Check {
   }
 }
 
+// if there are that many or more errors in the past timespan, the hub has a problem
+// this also happens if the DB is down
+const DB_ERRORS_SINCE_MIN = parseInt(
+  process.env.COCALC_DB_ERRORS_SINCE_MIN ?? "10"
+);
+const DB_ERRORS_THRESHOLD = parseInt(
+  process.env.COCALC_DB_ERRORS_THRESHOLD ?? "2"
+);
+
+function frequent_db_errors(): Check {
+  const since_min = DB_ERRORS_SINCE_MIN;
+  const threshold = DB_ERRORS_THRESHOLD;
+  const num = numRecentErrors(60 * since_min);
+  const above = num >= threshold;
+  const status = above
+    ? `above ${threshold} – problem`
+    : num > 0
+    ? `below ${threshold} – still fine`
+    : `all good`;
+  const msg = `${num} recent db errors in the past ${since_min} minutes – ${status}`;
+  return { status: msg, abort: above };
+}
+
 // same note as above for process_alive()
 async function process_health_check(
   db: PostgreSQL,
@@ -181,7 +205,12 @@ async function process_health_check(
 ): Promise<HealthcheckData> {
   let any_abort = false;
   let txt = "healthchecks:\n";
-  for (const test of [() => check_concurrent(db), check_uptime, ...extra]) {
+  for (const test of [
+    () => check_concurrent(db),
+    check_uptime,
+    frequent_db_errors,
+    ...extra,
+  ]) {
     const { status, abort } = await test();
     txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
     any_abort = any_abort || abort === true;

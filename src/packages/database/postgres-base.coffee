@@ -30,6 +30,8 @@ escapeString = require('sql-string-escape')
 validator = require('validator')
 {callback2} = require('@cocalc/util/async-utils')
 
+recordConnectError = require('./postgres/record-connect-error')
+
 LRU = require('lru-cache')
 
 pg      = require('pg')
@@ -179,6 +181,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if not err
                     @_state = 'connected'
                     @emit('connect')
+                else
+                    @_record_connect_error()
+
+    _record_connect_error: () =>
+        recordConnectError.record()
 
     disconnect: () =>
         if @_clients?
