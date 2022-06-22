@@ -7,6 +7,9 @@ const {
   user_has_read_access_to_project,
 } = require("../access");
 import generateHash from "@cocalc/server/auth/hash";
+import addUserToProject from "@cocalc/server/projects/add-user-to-project";
+import isSandboxProject from "@cocalc/server/projects/is-sandbox";
+
 const winston = getLogger("proxy: has-access");
 
 interface Options {
@@ -72,6 +75,13 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
           account_id,
           project_id,
         });
+      } else {
+        // if the project is a sandbox project, we add user as a collaborator
+        // and grant access.
+        if (await isSandboxProject(project_id)) {
+          await addUserToProject({ project_id, account_id });
+          access = true;
+        }
       }
     } else if (type == "read") {
       access = await callback2(user_has_read_access_to_project, {

@@ -962,6 +962,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.set_project_hide(account_id, project_id, !hide);
   }
 
+  public async set_project_sandbox(
+    project_id: string,
+    sandbox: boolean
+  ): Promise<void> {
+    await this.projects_table_set({
+      project_id,
+      sandbox,
+    });
+    await this.project_log(project_id, { event: "sandbox_project", sandbox });
+  }
+
   public async delete_project(project_id: string): Promise<void> {
     await this.clear_project_upgrades(project_id);
     await this.projects_table_set({

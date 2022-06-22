@@ -64,6 +64,7 @@ Table({
           compute_image: FALLBACK_COMPUTE_IMAGE,
           created: null,
           env: null,
+          sandbox: null,
         },
       },
       set: {
@@ -82,6 +83,7 @@ Table({
           course: true,
           site_license: true,
           env: true,
+          sandbox: true,
         },
         required_fields: {
           project_id: true,
@@ -255,7 +257,7 @@ Table({
     },
     compute_image: {
       type: "string",
-      desc: `Specify the name of the underlying (kucalc) compute image.`,
+      desc: "Specify the name of the underlying (kucalc) compute image.",
     },
     addons: {
       type: "map",
@@ -273,6 +275,10 @@ Table({
     env: {
       type: "map",
       desc: "Additional environment variables (TS: {[key:string]:string})",
+    },
+    sandbox: {
+      type: "boolean",
+      desc: "If set to true, then any user who attempts to access this project is automatically added as a collaborator to it.   Only the project owner can change this setting.",
     },
   },
 });
