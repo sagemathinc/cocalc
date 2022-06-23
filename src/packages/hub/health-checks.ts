@@ -5,15 +5,16 @@
 
 // endpoints for various health checks
 
+import getLogger from "@cocalc/backend/logger";
 import { numRecentErrors } from "@cocalc/database/postgres/record-connect-error";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { seconds2hms } from "@cocalc/util/misc";
-import debug from "debug";
-import { Response, Router } from "express";
-import { createServer } from "net";
+import express, { Response } from "express";
+import { createServer, Server } from "net";
 import { isFloat } from "validator";
 import { database_is_working } from "./hub_register";
-const L = debug("hub:healthcheck");
+const logger = getLogger("hub:healthcheck");
+const { debug: L } = logger;
 
 interface HealthcheckData {
   code: 200 | 404;
@@ -29,7 +30,7 @@ function init_self_terminate(): {
   shutdown?: number; // when to shutdown (causes a failed health check)
   drain?: number; // when to start draining, causes a proxy server to no longer send traffic
 } {
-  const D = L.extend("init_self_terminate");
+  const D = logger.extend("init_self_terminate").debug;
   const startup = Date.now();
   const conf = process.env.COCALC_HUB_SELF_TERMINATE;
   if (conf == null) {
@@ -80,7 +81,7 @@ export function set_agent_endpoint(port: number, host: string) {
   agent_host = host;
 }
 
-let agent_check_server: any;
+let agent_check_server: Server | undefined;
 
 // HAProxy agent-check TCP endpoint
 // https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#5.2-agent-check
@@ -114,7 +115,6 @@ export interface Check {
 }
 
 interface Opts {
-  router: Router;
   db: PostgreSQL;
   extra?: (() => Promise<Check>)[]; // additional health checks
 }
@@ -211,17 +211,24 @@ async function process_health_check(
     frequent_db_errors,
     ...extra,
   ]) {
-    const { status, abort } = await test();
-    txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
-    any_abort = any_abort || abort === true;
+    try {
+      const { status, abort } = await test();
+      txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
+      any_abort = any_abort || abort === true;
+      L(`process_health_check: ${status} – ${abort === true ? "FAIL" : "OK"}`);
+    } catch (err) {
+      L(`process_health_check ERRROR: ${err}`);
+    }
   }
   const code = any_abort ? 404 : 200;
   return { code, txt };
 }
 
-export async function setup_health_checks(opts: Opts): Promise<void> {
-  const { router, db, extra } = opts;
+export async function setup_health_checks(opts: Opts): Promise<express.Router> {
+  const { db, extra } = opts;
   setup_agent_check();
+
+  const router = express.Router();
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
   router.get("/alive", (_, res: Response) => {
@@ -270,4 +277,6 @@ export async function setup_health_checks(opts: Opts): Promise<void> {
     res.type("txt");
     res.send(`${db.concurrent()}`);
   });
+
+  return router;
 }

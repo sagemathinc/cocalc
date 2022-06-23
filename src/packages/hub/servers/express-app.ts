@@ -2,33 +2,32 @@
 The main hub express app.
 */
 
-import express from "express";
-import cookieParser from "cookie-parser";
-import compression from "compression";
-import ms from "ms";
-import { parse as parseURL } from "url";
-import { join } from "path";
-
-import { initAnalytics } from "../analytics";
-import { getLogger } from "../logger";
-import { setup_health_checks as setupHealthChecks } from "../health-checks";
-import { path as STATIC_PATH } from "@cocalc/static";
 import { path as WEBAPP_PATH } from "@cocalc/assets";
-import { path as CDN_PATH } from "@cocalc/cdn";
-import { database } from "./database";
 import basePath from "@cocalc/backend/base-path";
-import initMetrics from "./app/metrics";
-import initAPI from "./app/api";
-import initBlobs from "./app/blobs";
-import initSetCookies from "./app/set-cookies";
-import initCustomize from "./app/customize";
-import initStats from "./app/stats";
-import initAppRedirect from "./app/app-redirect";
-import initNext from "./app/next";
+import { path as CDN_PATH } from "@cocalc/cdn";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
-import initRobots from "./robots";
+import { path as STATIC_PATH } from "@cocalc/static";
+import compression from "compression";
+import cookieParser from "cookie-parser";
+import express from "express";
+import ms from "ms";
+import { join } from "path";
+import { parse as parseURL } from "url";
+import { initAnalytics } from "../analytics";
+import { setup_health_checks as setupHealthChecks } from "../health-checks";
+import { getLogger } from "../logger";
 import initProxy from "../proxy";
+import initAPI from "./app/api";
+import initAppRedirect from "./app/app-redirect";
+import initBlobs from "./app/blobs";
+import initCustomize from "./app/customize";
+import initMetrics from "./app/metrics";
+import initNext from "./app/next";
+import initSetCookies from "./app/set-cookies";
+import initStats from "./app/stats";
+import { database } from "./database";
 import initHttpServer from "./http";
+import initRobots from "./robots";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -52,6 +51,15 @@ export default async function init(opts: Options): Promise<{
 
   // Create an express application
   const app = express();
+
+
+  // healthchecks are for internal use, no basePath prefix
+  // they also have to come first, since e.g. the vhost depends
+  // on the DB, which could be down
+  const healthRouter = await setupHealthChecks({ db: database });
+  app.use(healthRouter);
+
+  // now, we build the router for all other endpoints
   const router = express.Router();
 
   // This must go very early - we handle virtual hosts, like wstein.org
@@ -97,9 +105,6 @@ export default async function init(opts: Options): Promise<{
 
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
-
-  // setup all healthcheck endpoints
-  await setupHealthChecks({ router, db: database });
 
   initAPI(router, opts.projectControl);
 
