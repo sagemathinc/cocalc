@@ -21,7 +21,7 @@ import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
-import initMetrics from "./app/metrics";
+import { setupInstrumentation, initMetricsEndpoint } from "./app/metrics";
 import initNext from "./app/next";
 import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
@@ -52,12 +52,14 @@ export default async function init(opts: Options): Promise<{
   // Create an express application
   const app = express();
 
-
   // healthchecks are for internal use, no basePath prefix
   // they also have to come first, since e.g. the vhost depends
   // on the DB, which could be down
-  const healthRouter = await setupHealthChecks({ db: database });
-  app.use(healthRouter);
+  const basicEndpoints = express.Router();
+  await setupHealthChecks({ router: basicEndpoints, db: database });
+  app.use(basicEndpoints);
+  // also, for the same reasons as above, setup the /metrics endpoint
+  initMetricsEndpoint(basicEndpoints);
 
   // now, we build the router for all other endpoints
   const router = express.Router();
@@ -76,9 +78,8 @@ export default async function init(opts: Options): Promise<{
 
   app.use(cookieParser());
 
-  // Install custom middleware to track response time metrics via prometheus, and
-  // also serve them up at /metrics.
-  initMetrics(router);
+  // Install custom middleware to track response time metrics via prometheus
+  setupInstrumentation(router);
 
   // see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
   app.enable("trust proxy");

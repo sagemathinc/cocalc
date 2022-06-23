@@ -30,8 +30,6 @@ escapeString = require('sql-string-escape')
 validator = require('validator')
 {callback2} = require('@cocalc/util/async-utils')
 
-recordConnectError = require('./postgres/record-connect-error')
-
 LRU = require('lru-cache')
 
 pg      = require('pg')
@@ -181,11 +179,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if not err
                     @_state = 'connected'
                     @emit('connect')
-                else
-                    @_record_connect_error()
-
-    _record_connect_error: () =>
-        recordConnectError.record()
 
     disconnect: () =>
         if @_clients?
@@ -459,8 +452,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if not @is_connected()
             dbg = @_dbg("_query")
             dbg("connecting first...")
+            # 2022-06: below there was {max_time: 45000} set with the note
+            # "don't try forever; queries could pile up."
+            # but I think this is rather harmful, since the hub could stop
+            # trying to connect to the database altogether.
+            # Rather, hub/health-checks::checkDBConnectivity will
+            # mark the hub as being bad if it can't connect to the database.
             @connect
-                max_time : 45000    # don't try forever; queries could pile up.
                 cb       : (err) =>
                     if err
                         dbg("FAILED to connect -- #{err}")

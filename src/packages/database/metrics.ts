@@ -1,8 +1,8 @@
-import { Counter, Histogram } from "prom-client";
+import { Counter, Gauge, Histogram } from "prom-client";
 
 const PREFIX = "cocalc_database_";
 
-export function newCounter(name: string, help, labelNames = []) {
+export function newCounter(name: string, help, labelNames: string[] = []) {
   // a prometheus counter -- https://github.com/siimon/prom-client#counter
   // use it like counter.labels(labelA, labelB).inc([positive number or default is 1])
   if (!name.endsWith("_total")) {
@@ -11,6 +11,14 @@ export function newCounter(name: string, help, labelNames = []) {
     );
   }
   return new Counter({
+    name: PREFIX + name,
+    help,
+    labelNames,
+  });
+}
+
+export function newGauge(name: string, help, labelNames: string[] = []) {
+  return new Gauge({
     name: PREFIX + name,
     help,
     labelNames,
