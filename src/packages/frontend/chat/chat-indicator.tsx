@@ -14,6 +14,7 @@ import VideoChatButton from "./video/launch-button";
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
+  paddingTop: "2.5px",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {

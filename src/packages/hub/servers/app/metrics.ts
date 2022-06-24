@@ -41,9 +41,11 @@ function metrics(req, res, next) {
   next();
 }
 
-export default function initMetrics(router: Router) {
+export function setupInstrumentation(router: Router) {
   router.use(metrics);
+}
 
+export function initMetricsEndpoint(router: Router) {
   router.get("/metrics", async (_req, res) => {
     res.header("Content-Type", "text/plain");
     res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");

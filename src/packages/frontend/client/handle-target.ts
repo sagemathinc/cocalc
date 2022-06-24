@@ -8,6 +8,10 @@ import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { encode_path } from "@cocalc/util/misc";
 
+export const IS_EMBEDDED = new URL(location.href).pathname.endsWith(
+  "embed.html"
+);
+
 function handleTarget(): string {
   // See src/packages/hub/servers/app/app-redirect.ts where if
   // there is a path after the base url, we redirect to static/app.html
@@ -28,13 +32,15 @@ function handleTarget(): string {
       target = "settings";
     }
   }
-  // Write the full url for the given target, preserving any search and fragment parts of the url.
-  const fullUrl =
-    document.location.origin +
-    join(appBasePath, encode_path(target)) +
-    url.search +
-    u.hash;
-  history.pushState({}, "", fullUrl);
+  if (!IS_EMBEDDED) {
+    // Write the full url for the given target, preserving any search and fragment parts of the url.
+    const fullUrl =
+      document.location.origin +
+      join(appBasePath, encode_path(target)) +
+      url.search +
+      u.hash;
+    history.pushState({}, "", fullUrl);
+  }
   return target;
 }
 

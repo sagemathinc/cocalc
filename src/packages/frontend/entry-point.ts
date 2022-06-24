@@ -22,8 +22,6 @@ import "./launch/actions";
 
 // Various jquery plugins:
 import "./jquery-plugins";
-// Another jquery plugin:
-import "./misc/process-links/jquery";
 
 // Initialize app stores, actions, etc.
 import { init as initAccount } from "./account";

@@ -48,7 +48,8 @@ export type SiteSettingsKeys =
   | "email_signup"
   | "anonymous_signup"
   | "share_server"
-  | "landing_pages";
+  | "landing_pages"
+  | "sandbox_project_id";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -420,5 +421,10 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
     show: only_cocalc_com,
     cocalc_only: true,
+  },
+  sandbox_project_id: {
+    name: "Sandbox Project ID",
+    desc: "The project_id of a sandbox project for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
+    default: "",
   },
 } as const;

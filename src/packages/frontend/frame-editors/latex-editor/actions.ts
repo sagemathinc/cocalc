@@ -13,7 +13,7 @@ const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
-import { union } from "lodash";
+import { debounce, union } from "lodash";
 import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map } from "immutable";
 import { once } from "@cocalc/util/async-utils";
@@ -56,6 +56,11 @@ import {
 } from "@cocalc/util/misc";
 import { IBuildSpecs } from "./build";
 import { open_new_tab } from "../../misc";
+import { parseTableOfContents } from "./table-of-contents";
+import {
+  TableOfContentsEntryList,
+  TableOfContentsEntry,
+} from "@cocalc/frontend/components";
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;
@@ -85,6 +90,7 @@ interface LatexEditorState extends CodeEditorState {
   // pythontex_error: boolean;  // true, if pythontex processing had an issue
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
+  contents?: TableOfContentsEntryList; // table of contents data.
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -130,6 +136,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (!this.knitr) {
         this.output_directory = this.output_directory_path();
       }
+      this._syncstring.on(
+        "change",
+        debounce(this.updateTableOfContents.bind(this), 1500)
+      );
     }
   }
 
@@ -520,13 +530,19 @@ export class Actions extends BaseActions<LatexEditorState> {
       return { type: "cm" };
     } else {
       return {
-        direction: "col",
         type: "node",
+        direction: "col",
         first: {
           direction: "row",
           type: "node",
           first: { type: "cm" },
-          second: { type: "error" },
+          second: {
+            type: "node",
+            direction: "col",
+            first: { type: "latex_table_of_contents" },
+            second: { type: "error" },
+            pos: 0.3,
+          },
           pos: 0.7,
         },
         second: {
@@ -1418,5 +1434,44 @@ export class Actions extends BaseActions<LatexEditorState> {
     id = await super.switch_to_file(path, id);
     this.update_gutters_soon();
     return id;
+  }
+
+  public async show_table_of_contents(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "latex_table_of_contents",
+      "col",
+      true,
+      1 / 3
+    );
+    // the click to select TOC focuses the active id back on the notebook
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public updateTableOfContents(force: boolean = false): void {
+    if (this._state == "closed" || this._syncstring == null) {
+      // no need since not initialized yet or already closed.
+      return;
+    }
+    if (
+      !force &&
+      !this.get_matching_frame({ type: "latex_table_of_contents" })
+    ) {
+      // There is no table of contents frame so don't update that info.
+      return;
+    }
+    const contents = fromJS(
+      parseTableOfContents(this._syncstring.to_str() ?? "")
+    );
+    this.setState({ contents });
+  }
+
+  public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
+    const id = this.show_focused_frame_of_type("cm");
+    if (id == null) return;
+    this.programmatical_goto_line(parseInt(entry.id), true, true, id);
   }
 }

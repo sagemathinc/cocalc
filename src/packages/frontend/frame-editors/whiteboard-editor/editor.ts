@@ -14,6 +14,7 @@ import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor"
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
 import { IconName } from "@cocalc/frontend/components/icon";
+import { TableOfContents } from "../markdown-editor/table-of-contents";
 
 import Whiteboard from "./whiteboard";
 import Search from "./search";
@@ -30,6 +31,7 @@ const whiteboardButtons = set([
   "cut",
   "copy",
   "paste",
+  "show_table_of_contents",
 ]);
 
 export const EDITOR_SPEC = {
@@ -61,6 +63,13 @@ export const EDITOR_SPEC = {
     icon: "info",
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+  } as EditorDescription,
+  whiteboard_table_of_contents: {
+    short: "Contents",
+    name: "Table of Contents",
+    icon: "align-right",
+    component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 };
 

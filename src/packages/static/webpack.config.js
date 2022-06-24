@@ -144,6 +144,7 @@ module.exports = {
   entry: {
     load: "./src/load.tsx",
     app: "./src/webapp-cocalc.js",
+    embed: "./src/webapp-embed.js",
   },
   /* Why chunkhash below, rather than contenthash? This says contenthash is a special
      thing for css and other text files only (??):

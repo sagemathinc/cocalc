@@ -18,15 +18,13 @@ import CreateProject from "components/project/create";
 import SelectProject from "components/project/select";
 import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Embed from "components/app/embed";
-import SiteName from "components/share/site-name";
+import Path from "components/app/path";
 
 export default function ChooseProject({
   id,
   src_project_id,
   path,
   relativePath,
-  isDir,
   image,
   description,
 }) {
@@ -193,32 +191,12 @@ export default function ChooseProject({
                 ) : (
                   ""
                 )}
-                <br />
-                <Button
-                  href={editURL({
-                    type: "collaborator",
-                    project_id: project.project_id,
-                    path: targetPath,
-                  })}
-                  target="_blank"
-                  size="large"
-                  type="primary"
-                  style={{
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    margin: "15px 0",
-                  }}
-                  shape="round"
-                >
-                  <Icon name="paper-plane" /> Open your copy of "
-                  {join(path, relativePath)}" in the <SiteName /> app...
-                </Button>
-                {!isDir && (
-                  <Embed
-                    project_id={project.project_id}
-                    path={join(path, relativePath)}
-                  />
-                )}
+                <br/>
+                <br/>
+                <Path
+                  project_id={project.project_id}
+                  path={join(path, relativePath)}
+                />
               </>
             )}
           </div>

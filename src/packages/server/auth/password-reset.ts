@@ -10,10 +10,10 @@ export async function recentAttempts(
 ): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) FROM password_reset_attempts WHERE email_address=$1 AND ip_address=$2 AND time >= NOW() - INTERVAL '10 min'",
+    "SELECT COUNT(*)::INT FROM password_reset_attempts WHERE email_address=$1 AND ip_address=$2 AND time >= NOW() - INTERVAL '10 min'",
     [email_address, ip_address]
   );
-  return parseInt(rows[0].count);
+  return rows[0].count;
 }
 
 export async function createReset(

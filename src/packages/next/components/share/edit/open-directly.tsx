@@ -7,20 +7,18 @@ import editURL from "lib/share/edit-url";
 import shareURL from "lib/share/share-url";
 import A from "components/misc/A";
 import ConfigurePublicPath from "components/share/configure-public-path";
-import Embed from "components/app/embed";
+import Path from "components/app/path";
 import { join } from "path";
 
 export default function OpenDirectly({
   project_id,
   path,
-  isDir,
   id,
   relativePath,
 }: {
   id: string;
   project_id: string;
   path: string;
-  isDir?: boolean;
   relativePath: string;
 }) {
   const url = editURL({
@@ -31,18 +29,14 @@ export default function OpenDirectly({
   });
   return (
     <div>
-      {!isDir && (
-        <>
-          <Embed
-            project_id={project_id}
-            path={join(path, relativePath)}
-            style={{
-              marginBottom: "30px",
-            }}
-          />
-          <hr />
-        </>
-      )}
+      <Path
+        project_id={project_id}
+        path={join(path, relativePath)}
+        style={{
+          marginBottom: "30px",
+        }}
+      />
+      <hr />
       You are signed in as a collaborator on{" "}
       <A href={editURL({ type: "collaborator", project_id })} external>
         the project

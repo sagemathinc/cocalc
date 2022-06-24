@@ -8,7 +8,18 @@ module.exports = function (registerPlugin, PRODMODE, title) {
       filename: "app.html",
       template: "src/app.html",
       hash: PRODMODE,
+      chunks: ["load", "app"],
+    })
+  );
+
+  registerPlugin(
+    "HTML -- generates the embed.html file",
+    new HtmlWebpackPlugin({
+      title,
+      filename: "embed.html",
+      template: "src/app.html",
+      hash: PRODMODE,
+      chunks: ["load", "embed"],
     })
   );
 };
-

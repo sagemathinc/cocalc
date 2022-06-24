@@ -27,7 +27,7 @@ export interface PageState {
   connection_status: ConnectionStatus;
   connection_quality: "good" | "bad" | "flaky";
   new_version?: TypedMap<{ version: number; min_version: number }>;
-  fullscreen?: "default" | "kiosk";
+  fullscreen?: "default" | "kiosk" | "project";
   test?: string; // test query in the URL
   cookie_warning: boolean;
   local_storage_warning: boolean;

@@ -38,8 +38,12 @@ export default function SmartAnchorTag({
   project_id,
   path,
 }: Options) {
+  // compare logic here with frontend/misc/process-links/generic.ts
   let body;
-  if (isCoCalcURL(href)) {
+  if (
+    isCoCalcURL(href) && // TODO: dumb heuristic, like in /process-links/generic.ts
+    (href?.includes("/projects/") || href?.endsWith("/settings"))
+  ) {
     body = (
       <CoCalcURL project_id={project_id} href={href} title={title}>
         {children}

@@ -6,6 +6,7 @@
 import { PostgreSQL } from "./types";
 import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
+import isSandbox from "@cocalc/server/projects/is-sandbox";
 
 const GROUPS = ["owner", "collaborator"] as const;
 
@@ -98,7 +99,8 @@ async function verify_write_access_to_projects(
         project_id,
         account_id,
         groups: GROUPS,
-      }))
+      }))&&
+      !(await isSandbox(project_id))
     ) {
       throw Error(
         `user ${account_id} does not have write access to project ${project_id}`

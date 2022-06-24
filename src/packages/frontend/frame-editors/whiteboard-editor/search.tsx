@@ -8,10 +8,10 @@ import { Loading } from "@cocalc/frontend/components";
 import { State } from "./actions";
 import RenderElement from "./elements/render";
 import RenderReadOnlyElement from "./elements/render-static";
-import { search_match, search_split } from "@cocalc/util/misc";
 import { Element } from "./types";
 import { fontSizeToZoom } from "./math";
 import { debounce } from "lodash";
+import sortedElements from "./sorted-elements";
 
 export default function Search() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -35,31 +35,8 @@ export default function Search() {
   const elementsMap = useEditor("elements");
   const elements: undefined | Element[] = useMemo(() => {
     if (elementsMap == null) return undefined;
-
-    // We only include elements with a str attribute for now,
-    // e.g., notes, code, text.  If change to use more, need
-    // to filter type to note be "edge".
-    let v = elementsMap
-      .valueSeq()
-      .filter((x) => x != null && x.get("str"))
-      .toJS();
-
     const search = desc.get("search")?.toLowerCase().trim();
-    if (search) {
-      // filter by matches for the str attribute for now.
-      const s = search_split(search);
-      v = v.filter((x) => x.str && search_match(x.str.toLowerCase(), s));
-    }
-
-    v?.sort((elt1, elt2) => {
-      if ((elt1.page ?? 1) < (elt2.page ?? 1)) return -1;
-      if ((elt1.page ?? 1) > (elt2.page ?? 1)) return 1;
-      if (elt1.y < elt2.y) return -1;
-      if (elt1.y > elt2.y) return 1;
-      if (elt1.x <= elt2.x) return -1;
-      return 1;
-    });
-    return v;
+    return sortedElements(elementsMap, search);
   }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -88,10 +65,6 @@ export default function Search() {
       >
         <Virtuoso
           style={{
-            width: `${100 / canvasScale}%`,
-            height: `${100 / canvasScale}%`,
-            transform: `scale(${canvasScale})`,
-            transformOrigin: "top left",
             marginBottom: "10px",
           }}
           increaseViewportBy={500}
@@ -99,7 +72,7 @@ export default function Search() {
           itemContent={(index) => {
             if (index >= (elements?.length ?? 0)) {
               // extra space to not feel cramped.
-              return <div style={{ height: "100px" }}></div>;
+              return <div style={{ height: `${50 / canvasScale}px` }}></div>;
             }
             const element = elements?.[index];
             if (element == null) {
@@ -108,31 +81,36 @@ export default function Search() {
             }
             return (
               <div
-                onClick={() => {
-                  const frameId =
-                    actions.show_focused_frame_of_type("whiteboard");
-                  if (frameId) {
-                    actions.centerElement(element.id, frameId);
-                    actions.zoom100(frameId);
-                  }
-                }}
                 style={{
-                  cursor: "pointer",
-                  height: `${(element.h ?? 0) + 20}px`,
-                  margin: "5px 15px",
-                  position: "relative",
-                  padding: "5px",
-                  border: "1px solid #eee",
+                  height: `${((element.h ?? 0) + 20) * canvasScale}px`,
+                  margin: "5px",
                   overflow: "hidden",
-                  width: `${(element.w ?? 0) + 5}px`,
                 }}
               >
-                <div style={{ pointerEvents: "none" }}>
-                  <RenderElt
-                    element={element}
-                    canvasScale={canvasScale}
-                    readOnly={readOnly}
-                  />
+                <div
+                  onClick={() => {
+                    const frameId =
+                      actions.show_focused_frame_of_type("whiteboard");
+                    if (frameId) {
+                      actions.centerElement(element.id, frameId);
+                      actions.zoom100(frameId);
+                    }
+                  }}
+                  style={{
+                    transform: `scale(${canvasScale})`,
+                    transformOrigin: "top left",
+                    cursor: "pointer",
+                    position: "relative",
+                    width: `${(element.w ?? 0) + 5}px`,
+                  }}
+                >
+                  <div style={{ pointerEvents: "none" }}>
+                    <RenderElt
+                      element={element}
+                      canvasScale={canvasScale}
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
               </div>
             );

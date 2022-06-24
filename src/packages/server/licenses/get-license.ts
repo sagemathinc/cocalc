@@ -18,7 +18,7 @@ export async function isManager(
   }
   const pool = getPool("short");
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM site_licenses WHERE id=$1 AND $2=ANY(managers)",
+    "SELECT COUNT(*)::INT AS count FROM site_licenses WHERE id=$1 AND $2=ANY(managers)",
     [license_id, account_id]
   );
   return rows[0].count > 0;

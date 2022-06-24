@@ -7,8 +7,9 @@
 // https://www.postgresql.org/docs/10/sql-set.html
 
 import { Client } from "pg";
-import debug from "debug";
-const L = debug("hub:pg:query_params");
+import { getLogger } from "@cocalc/backend/logger";
+
+const L = getLogger("db:set-pg-params").debug;
 
 interface Opts {
   client: Client;

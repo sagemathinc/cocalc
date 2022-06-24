@@ -46,6 +46,7 @@ import { redux } from "./app-framework";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -80,6 +81,10 @@ export function update_params() {
 
 // the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
 export function set_url(url: string, hash?: string) {
+  if (IS_EMBEDDED) {
+    // no need to mess with url in embedded mode.
+    return;
+  }
   last_url = url;
   const query_params = params();
   const full_url = join(

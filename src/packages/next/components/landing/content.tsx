@@ -22,6 +22,7 @@ interface Props {
   caption?: string;
   description?: ReactNode;
   image?: string | StaticImageData;
+  aboveImage?: ReactNode;
   indexInfo?: string;
   logo?: ReactNode | string | StaticImageData;
   startup?: ReactNode;
@@ -47,6 +48,7 @@ export default function Content(props: Props) {
     caption,
     description,
     image,
+    aboveImage,
     indexInfo,
     logo,
     startup,
@@ -118,6 +120,7 @@ export default function Content(props: Props) {
           </div>
         </Col>
         <Col sm={14} xs={24}>
+          {aboveImage != null ? aboveImage : undefined}
           {image && (
             <>
               <Image

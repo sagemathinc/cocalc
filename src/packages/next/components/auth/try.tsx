@@ -68,7 +68,7 @@ function Try0({ minimal, onSuccess }: Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px 30px 15px" }}>
+    <div style={{ padding: "0 15px 15px 15px" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
@@ -80,13 +80,9 @@ function Try0({ minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         {error && <Alert type="error" message={error} showIcon />}
-        Use {siteName} right now <b>without</b>{" "}
+        Try {siteName} <b>without</b>{" "}
         <A href="/auth/sign-up" external={!!minimal}>
           creating an account
-        </A>{" "}
-        or{" "}
-        <A href="/auth/sign-in" external={!!minimal}>
-          signing in
         </A>
         !
         <Button
@@ -98,7 +94,7 @@ function Try0({ minimal, onSuccess }: Props) {
           onClick={createAnonymousAccount}
         >
           {state == "creating" ? (
-            <Loading>Creating Anonymous Account...</Loading>
+            <Loading>Configuring Anonymous Access...</Loading>
           ) : (
             <>Use {siteName} Anonymously</>
           )}

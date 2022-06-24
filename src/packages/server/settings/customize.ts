@@ -38,6 +38,7 @@ export interface Customize {
   imprint_html?: string;
   policies_html?: string;
   reCaptchaKey?: string;
+  sandboxProjectId?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -119,6 +120,9 @@ export default async function getCustomize(): Promise<Customize> {
 
     // obviously only the public key here too!
     reCaptchaKey: settings.re_captcha_v3_publishable_key,
+
+    // a sandbox project
+    sandboxProjectId: settings.sandbox_project_id,
   } as Customize;
 
   return cachedCustomize;

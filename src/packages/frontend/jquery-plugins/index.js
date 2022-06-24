@@ -10,3 +10,4 @@ import "./math-katex";
 import "./katex-plugin";
 import "./images";
 import "./codemirror";
+import "../misc/process-links/jquery";
