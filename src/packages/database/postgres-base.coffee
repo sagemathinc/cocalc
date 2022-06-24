@@ -157,6 +157,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_connecting?
             dbg('already trying to connect')
             @_connecting.push(opts.cb)
+            # keep several times the db-concurrent-warn limit of callbacks
+            max_connecting = 5 * @_concurrent_warn
+            while @_connecting.length > max_connecting
+                @_connecting.shift()
+                dbg("WARNING: still no DB available, dropping old callbacks (limit: #{max_connecting})")
             return
         dbg('will try to connect')
         @_state = 'init'
