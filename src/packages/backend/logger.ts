@@ -7,13 +7,16 @@ This is an implementation of basically how winston works for us,
 but using the vastly simpler super-popular debug module.
 */
 
+// setting env var must come *BEFORE* debug is loaded the first time
+process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
+// otherwise, maybe stuff like this works: (debug as any).inspectOpts["hideDate"] = true;
+
 import debug, { Debugger } from "debug";
 import { mkdirSync, createWriteStream } from "fs";
 import { format } from "util";
 import { dirname, join } from "path";
 import { logs } from "./data";
 
-process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 const COCALC = debug("cocalc");
 
 function myFormat(...args): string {

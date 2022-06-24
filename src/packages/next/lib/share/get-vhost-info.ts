@@ -46,17 +46,28 @@ export default async function getVirtualHostInfo(
   const query =
     "SELECT project_id, path, auth FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
   // logger.debug('query = ', query);
-  const { rows } = await pool.query(query, [vhost]);
-  if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
-    // logger.debug("no valid virtual vhost=%s", vhost);
-    cache.set(vhost, null);
+  
+  try {
+    const { rows } = await pool.query(query, [vhost]);
+
+    if (
+      rows.length == 0 ||
+      rows[0].project_id == null ||
+      rows[0].path == null
+    ) {
+      // logger.debug("no valid virtual vhost=%s", vhost);
+      cache.set(vhost, null);
+      return null;
+    }
+    if (rows.length > 1) {
+      logger.warn("WARNING: multiple virtual host entries for vhost=%s", vhost);
+    }
+    const { project_id, path, auth } = rows[0]; // is a weird data type, which is why we don't just return it.
+    const r = { project_id, path, auth };
+    cache.set(vhost, r);
+    return r;
+  } catch (err) {
+    logger.error(`error querying for vhost ${vhost}`, err);
     return null;
   }
-  if (rows.length > 1) {
-    logger.warn("WARNING: multiple virtual host entries for vhost=%s", vhost);
-  }
-  const { project_id, path, auth } = rows[0]; // is a weird data type, which is why we don't just return it.
-  const r = { project_id, path, auth };
-  cache.set(vhost, r);
-  return r;
 }

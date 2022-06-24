@@ -5,14 +5,23 @@
 
 // endpoints for various health checks
 
-import debug from "debug";
-const L = debug("hub:healthcheck");
-import { Router, Response } from "express";
-import { createServer } from "net";
-import { isFloat } from "validator";
-import { seconds2hms } from "@cocalc/util/misc";
-import { database_is_working } from "./hub_register";
+import getLogger from "@cocalc/backend/logger";
+const { new_counter } = require("@cocalc/hub/metrics-recorder");
+import { howLongDisconnectedMins } from "@cocalc/database/postgres/record-connect-error";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { seconds2hms } from "@cocalc/util/misc";
+import express, { Response } from "express";
+import { createServer, Server } from "net";
+import { isFloat } from "validator";
+import { database_is_working } from "./hub_register";
+const logger = getLogger("hub:healthcheck");
+const { debug: L } = logger;
+
+const HEALTHCHECKS = new_counter(
+  "healthchecks_total",
+  "test healthcheck counter",
+  ["status"]
+);
 
 interface HealthcheckData {
   code: 200 | 404;
@@ -28,7 +37,7 @@ function init_self_terminate(): {
   shutdown?: number; // when to shutdown (causes a failed health check)
   drain?: number; // when to start draining, causes a proxy server to no longer send traffic
 } {
-  const D = L.extend("init_self_terminate");
+  const D = logger.extend("init_self_terminate").debug;
   const startup = Date.now();
   const conf = process.env.COCALC_HUB_SELF_TERMINATE;
   if (conf == null) {
@@ -79,7 +88,7 @@ export function set_agent_endpoint(port: number, host: string) {
   agent_host = host;
 }
 
-let agent_check_server: any;
+let agent_check_server: Server | undefined;
 
 // HAProxy agent-check TCP endpoint
 // https://cbonte.github.io/haproxy-dconv/2.0/configuration.html#5.2-agent-check
@@ -113,8 +122,8 @@ export interface Check {
 }
 
 interface Opts {
-  router: Router;
   db: PostgreSQL;
+  router: express.Router;
   extra?: (() => Promise<Check>)[]; // additional health checks
 }
 
@@ -137,7 +146,7 @@ export function process_alive(): HealthcheckData {
   return { txt, code };
 }
 
-function check_concurrent(db: PostgreSQL): Check {
+function checkConcurrent(db: PostgreSQL): Check {
   const c = db.concurrent();
   if (c >= db._concurrent_warn) {
     return {
@@ -149,7 +158,7 @@ function check_concurrent(db: PostgreSQL): Check {
   }
 }
 
-function check_uptime(): Check {
+function checkUptime(): Check {
   const now = Date.now();
   const uptime = seconds2hms((now - startup) / 1000);
   if (shutdown != null && drain != null) {
@@ -174,6 +183,29 @@ function check_uptime(): Check {
   }
 }
 
+// if there are is no connection to the database for that many minutes,
+// declare the hub unhealthy
+const DB_ERRORS_THRESHOLD_MIN = parseInt(
+  process.env.COCALC_DB_ERRORS_THRESHOLD_MIN ?? "5"
+);
+
+function checkDBConnectivity(): Check {
+  if (DB_ERRORS_THRESHOLD_MIN <= 0) {
+    return { status: "db connectivity check disabled" };
+  }
+  const num = howLongDisconnectedMins();
+  if (num == null) {
+    return { status: "no DB connection problems", abort: false };
+  }
+  // round num to 2 decimal places
+  const numStr = num.toFixed(2);
+  const above = num >= DB_ERRORS_THRESHOLD_MIN;
+  const status = above
+    ? `DB problems for ${numStr} >= ${DB_ERRORS_THRESHOLD_MIN} mins`
+    : `DB problems for ${numStr} < ${DB_ERRORS_THRESHOLD_MIN} mins`;
+  return { status, abort: above };
+}
+
 // same note as above for process_alive()
 async function process_health_check(
   db: PostgreSQL,
@@ -181,17 +213,30 @@ async function process_health_check(
 ): Promise<HealthcheckData> {
   let any_abort = false;
   let txt = "healthchecks:\n";
-  for (const test of [() => check_concurrent(db), check_uptime, ...extra]) {
-    const { status, abort } = await test();
-    txt += `${status} – ${abort === true ? "FAIL" : "OK"}\n`;
-    any_abort = any_abort || abort === true;
+  for (const test of [
+    () => checkConcurrent(db),
+    checkUptime,
+    checkDBConnectivity,
+    ...extra,
+  ]) {
+    try {
+      const { status, abort = false } = await test();
+      const statusTxt = abort ? "FAIL" : "OK";
+      txt += `${status} – ${statusTxt}\n`;
+      any_abort = any_abort || abort;
+      L(`process_health_check: ${status} – ${statusTxt}`);
+    } catch (err) {
+      L(`process_health_check ERRROR: ${err}`);
+      HEALTHCHECKS.labels("ERROR").inc();
+    }
   }
   const code = any_abort ? 404 : 200;
+  HEALTHCHECKS.labels(any_abort ? "FAIL" : "OK").inc();
   return { code, txt };
 }
 
 export async function setup_health_checks(opts: Opts): Promise<void> {
-  const { router, db, extra } = opts;
+  const { db, extra, router } = opts;
   setup_agent_check();
 
   // used by HAPROXY for testing that this hub is OK to receive traffic
