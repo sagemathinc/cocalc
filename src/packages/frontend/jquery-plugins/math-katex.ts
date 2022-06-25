@@ -25,4 +25,5 @@ export const macros = {
   "\\Zp": "\\ZZ_{#1}",
   "\\Qp": "\\QQ_{#1}",
   "\\Zmod": "\\ZZ/#1\\ZZ",
+  "\\mbox": "\\text", // see https://github.com/sagemathinc/cocalc/issues/6019
 } as const;
