@@ -31,7 +31,12 @@ export default function init({
 
   // It is now safe to change the primusOpts below, and this
   // doesn't require changing anything anywhere else.
-  const primusOpts = { pathname: join(base_path, "hub") };
+  // See https://github.com/primus/primus#getting-started
+  const primusOpts = {
+    pathname: join(base_path, "hub"),
+    maxLength: 2 * 10485760, // 20MB - twice the default
+    compression: true,
+  };
   const primus_server = new Primus(httpServer, primusOpts);
   logger.info(`listening on ${primusOpts.pathname}`);
 
@@ -43,7 +48,7 @@ export default function init({
       conn,
       logger,
       database,
-      compute_server:projectControl,
+      compute_server: projectControl,
       host,
       port,
       personal: isPersonal,

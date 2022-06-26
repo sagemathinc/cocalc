@@ -432,7 +432,13 @@ export class HubClient {
       await delay(d);
       d = Math.max(3000, d * 1.3);
     }
-    const conn = (this.conn = new window.Primus());
+    const conn = (this.conn = new window.Primus({
+      reconnect: {
+        max: 30000,
+        min: 500,
+        retries: 1000,
+      },
+    }));
 
     conn.on("open", () => {
       this.connected = true;

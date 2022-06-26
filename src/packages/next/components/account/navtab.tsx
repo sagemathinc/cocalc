@@ -36,13 +36,8 @@ export default function AccountNavTab({ style }: Props) {
               Signed into {siteName} as
               <br />
               <b>
-                {is_anonymous && <>Anonymous User</>}
-                {!is_anonymous && (
-                  <>
-                    {first_name} {last_name}
-                    {name ? ` (@${name})` : ""}
-                  </>
-                )}
+                {first_name} {last_name}
+                {name ? ` (@${name})` : ""}
               </b>
             </A>
           </Menu.Item>

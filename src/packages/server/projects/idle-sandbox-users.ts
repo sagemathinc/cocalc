@@ -32,7 +32,7 @@ export default async function idleSandboxUsers(
     const active = new Date(last_active?.[account_id] ?? 0).valueOf();
     if (!active) {
       addToLastActive.push(account_id);
-    } else if (active <= cutoff) {
+    } else if (active <= cutoff && users[account_id]?.["group"] != "owner") {
       idleUsers.push(account_id);
     }
   }

@@ -48,15 +48,13 @@ export default function Home({ customize }) {
             >
               Signed in as{" "}
               <A href="/config">
-                {customize.account.is_anonymous
-                  ? "Anonymous User"
-                  : `${customize.account.first_name} ${
-                      customize.account.last_name
-                    } ${
-                      customize.account.name
-                        ? "(@" + customize.account.name + ")"
-                        : ""
-                    }`}
+                {`${customize.account.first_name} ${
+                  customize.account.last_name
+                } ${
+                  customize.account.name
+                    ? "(@" + customize.account.name + ")"
+                    : ""
+                }`}
               </A>
               <div style={{ fontSize: "10pt", margin: "15px 0" }}>
                 {customize.account != null && (
