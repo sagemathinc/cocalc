@@ -2178,10 +2178,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  private checkForSandboxError(message): boolean {
+    const projectsStore = this.redux.getStore("projects");
+    if (projectsStore.isSandbox(this.project_id)) {
+      const group = projectsStore.get_my_group(this.project_id);
+      if (group != "owner" && group != "admin") {
+        alert_message({
+          type: "error",
+          message,
+        });
+      }
+      return true;
+    }
+    return false;
+  }
+
   public async delete_files(opts: { paths: string[] }): Promise<void> {
     let mesg;
     opts = defaults(opts, { paths: required });
     if (opts.paths.length === 0) {
+      return;
+    }
+
+    if (
+      this.checkForSandboxError(
+        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+      )
+    ) {
       return;
     }
 
@@ -2471,6 +2494,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       authenticated?: boolean;
     }
   ) {
+    if (
+      this.checkForSandboxError(
+        "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+      )
+    ) {
+      return;
+    }
+
     const store = this.get_store();
     if (!store) {
       return;
