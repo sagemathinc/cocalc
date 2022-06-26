@@ -47,7 +47,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
         >
           <span
             style={{
-              width: level == 1 ? "35px" : level == 2 ? "50px" : "65px",
+              width: level == 1 ? "15px" : level == 2 ? "25px" : "35px",
               display: "inline-block",
             }}
           >
