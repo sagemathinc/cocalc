@@ -21,48 +21,59 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
-import { HiddenXS, Icon, Tip } from "../../components";
+import { HiddenXS, Icon, IconName, Tip } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { IS_SAFARI } from "../../feature";
 import CloseX from "./close-x";
 
-export const FIXED_PROJECT_TABS = {
+type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
+
+type FixedTabs = {
+  [name in FixedTab]: {
+    label: string;
+    icon: IconName;
+    tooltip: string;
+    noAnonymous?: boolean;
+  };
+};
+
+export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
     label: "Files",
     icon: "folder-open",
     tooltip: "Browse files",
-    no_anonymous: false,
+    noAnonymous: false,
   },
   new: {
     label: "New",
     icon: "plus-circle",
     tooltip: "Create new file, folder, worksheet or terminal",
-    no_anonymous: false,
+    noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
     tooltip: "Log of project activity",
-    no_anonymous: false,
+    noAnonymous: false,
   },
   search: {
     label: "Find",
     icon: "search",
     tooltip: "Search files in the project",
-    no_anonymous: false,
+    noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: "Project settings and controls",
-    no_anonymous: true,
+    noAnonymous: true,
   },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     tooltip: "Running processes, resource usage, …",
-    no_anonymous: true,
+    noAnonymous: true,
   },
 } as const;
 
@@ -84,7 +95,7 @@ interface PropsPath extends Props0 {
 }
 interface PropsName extends Props0 {
   path?: undefined;
-  name: keyof typeof FIXED_PROJECT_TABS;
+  name: FixedTab;
 }
 type Props = PropsPath | PropsName;
 

@@ -204,7 +204,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     let name: keyof typeof FIXED_PROJECT_TABS;
     for (name in FIXED_PROJECT_TABS) {
       const v = FIXED_PROJECT_TABS[name];
-      if (is_anonymous && v.no_anonymous) {
+      if (is_anonymous && v.noAnonymous) {
         continue;
       }
       const tab = (
