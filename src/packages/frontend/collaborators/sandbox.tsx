@@ -70,7 +70,10 @@ export default function Sandbox({ project }: Props) {
           <p>
             If you make this project a public sandbox project, then you can
             share any URL in your project and when somebody visits that URL they
-            will automatically be added as a collaborator to your project.
+            will automatically be added as a collaborator to your project. All
+            collaborators who are not the owner will be removed if they are not
+            active for about 10 minutes. Any trial, member hosting, and network
+            banners are also not visible.
           </p>
           <p>
             Only do this if you have <b>very minimal security requirements</b>{" "}
