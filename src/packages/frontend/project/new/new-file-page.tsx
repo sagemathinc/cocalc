@@ -246,7 +246,7 @@ export default function NewFilePage({ project_id }: Props) {
         title={`Create ${desc}`}
         tip={`Create ${desc}.  You can also press return.`}
       >
-        <Button disabled={filename.trim() == ""} onClick={submit}>
+        <Button disabled={filename.trim() == ""} onClick={() => submit()}>
           Create {desc}
         </Button>
       </Tip>
@@ -370,7 +370,7 @@ export default function NewFilePage({ project_id }: Props) {
               <NewFileButton
                 icon={"cloud"}
                 name={`Download from Internet ${blocked()}`}
-                on_click={createFile}
+                on_click={() => createFile()}
                 loading={downloading_file}
               />
             </Tip>
