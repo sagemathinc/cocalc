@@ -178,6 +178,7 @@ export default function Home({ customize }) {
                     <Path
                       style={{ marginRight: "30px", marginBottom: "15px" }}
                       project_id={sandboxProjectId}
+                      description="Public Sandbox"
                     />
                   </div>
                 )}

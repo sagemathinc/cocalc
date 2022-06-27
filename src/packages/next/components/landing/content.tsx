@@ -8,6 +8,8 @@ import SignIn from "components/landing/sign-in";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { ReactNode } from "react";
 import Image from "./image";
+import useCustomize from "lib/use-customize";
+import Path from "components/app/path";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -55,6 +57,7 @@ export default function Content(props: Props) {
     subtitle,
     subtitleBelow = false,
   } = props;
+  const { sandboxProjectId, siteName } = useCustomize();
 
   function renderIndexInfo() {
     if (!indexInfo) return;
@@ -120,7 +123,17 @@ export default function Content(props: Props) {
           </div>
         </Col>
         <Col sm={14} xs={24}>
-          {aboveImage != null ? aboveImage : undefined}
+          {aboveImage != null
+            ? aboveImage
+            : sandboxProjectId && (
+                <div style={{ margin: "15px" }}>
+                  <Path
+                    style={{ marginBottom: "15px" }}
+                    project_id={sandboxProjectId}
+                    description="Public Sandbox"
+                  />
+                </div>
+              )}
           {image && (
             <>
               <Image

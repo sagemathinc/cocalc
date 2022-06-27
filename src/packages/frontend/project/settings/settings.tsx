@@ -132,12 +132,11 @@ export const ProjectSettings = rclass<ReactProps>(
         return <Loading />;
       }
       let project =
-        this.props.project_map.get(this.props.project_id) ||
-        this.state.admin_project;
+        this.props.project_map.get(this.props.project_id);
       if (
-        project.get("sandbox") &&
         this.props.group != "admin" &&
-        this.props.group != "owner"
+        this.props.group != "owner" &&
+        project?.get("sandbox")
       ) {
         return (
           <AntdAlert

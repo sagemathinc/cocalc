@@ -18,6 +18,7 @@ interface Props {
   style?: CSSProperties;
   fullscreen?: boolean;
   embed?: boolean;
+  description?: string;
 }
 
 export default function Path({
@@ -26,8 +27,10 @@ export default function Path({
   style,
   fullscreen,
   embed,
+  description,
 }: Props) {
   const { account, anonymousSignup } = useCustomize();
+
   if (!account) {
     return (
       <Alert
@@ -35,7 +38,7 @@ export default function Path({
         style={style}
         message={
           <div>
-            <InPlaceSignInOrUp title="To use the sandbox..." />
+            <InPlaceSignInOrUp title={`To use ${description ?? "this"}...`} />
             {anonymousSignup && <OpenAnonymously />}
           </div>
         }
@@ -59,6 +62,7 @@ export default function Path({
       path={path}
       style={style}
       fullscreen={fullscreen}
+      description={description}
     />
   );
 }
