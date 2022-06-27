@@ -193,6 +193,34 @@ message({
   state_error: undefined,
 }); // error if there was one transitioning to this state
 
+//###########################################
+// Sage session management; executing code
+//############################################
+
+// hub --> sage_server&console_server, etc. and browser --> hub
+message({
+  event: "start_session",
+  type: required, // "sage", "console";  later this could be "R", "octave", etc.
+  // TODO: project_id should be required
+  project_id: undefined, // the project that this session will start in
+  session_uuid: undefined, // set by the hub -- client setting this will be ignored.
+  params: undefined, // extra parameters that control the type of session
+  id: undefined,
+  limits: undefined,
+});
+
+// hub --> browser
+message({
+  event: "session_started",
+  id: undefined,
+  session_uuid: undefined,
+  limits: undefined,
+  data_channel: undefined,
+}); // The data_channel is a single UTF-16
+// character; this is used for
+// efficiently sending and receiving
+// non-JSON data (except channel
+// '\u0000', which is JSON).
 
 // Output resulting from evaluating code that is displayed by the browser.
 // sage_server --> local hub --> hubs --> clients
