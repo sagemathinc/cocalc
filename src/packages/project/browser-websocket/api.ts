@@ -48,7 +48,8 @@ export function init_websocket_api(primus: any): void {
     winston.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
     spark.on("request", async function (data, done) {
-      winston.debug("primus-api", "request", typeof data, JSON.stringify(data));
+      winston.debug("primus-api", "request", JSON.stringify(data), "REQUEST");
+      const t0 = new Date().valueOf();
       try {
         const resp = await handle_api_call(data, primus);
         //winston.debug("primus-api", "response", resp);
@@ -60,6 +61,12 @@ export function init_websocket_api(primus: any): void {
         // console.trace(); winston.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
       }
+      winston.debug(
+        "primus-api",
+        "request",
+        JSON.stringify(data),
+        `FINISHED: time=${new Date().valueOf() - t0}ms`
+      );
     });
   });
 
