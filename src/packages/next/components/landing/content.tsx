@@ -57,7 +57,7 @@ export default function Content(props: Props) {
     subtitle,
     subtitleBelow = false,
   } = props;
-  const { sandboxProjectId, siteName } = useCustomize();
+  const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
     if (!indexInfo) return;
