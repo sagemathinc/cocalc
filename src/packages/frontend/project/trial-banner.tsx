@@ -72,7 +72,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     [project_map, project_id]
   );
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const isSandbox = project_map.getIn([project_id, "sandbox"]);
+  const isSandbox = project_map?.getIn([project_id, "sandbox"]);
 
   // note: closing this is currently disabled.
   const free_warning_closed = useTypedRedux(
