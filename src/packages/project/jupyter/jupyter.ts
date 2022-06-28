@@ -234,7 +234,7 @@ export class JupyterKernel
     _jupyter_kernels[this._path] = this;
     const dbg = this.dbg("constructor");
     dbg();
-    process.on("exit", this.close);
+    process.on("exit", this.close.bind(this));
     this.setMaxListeners(100);
   }
 

@@ -36,11 +36,14 @@ import { rename_file, move_files } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import { Mesg } from "@cocalc/frontend/project/websocket/types";
+import { reuseInFlight } from "async-await-utils/hof";
 
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("websocket-api");
 
-export function init_websocket_api(primus: any): void {
+let primus: any = undefined;
+export function init_websocket_api(_primus: any): void {
+  primus = _primus;
   primus.plugin("responder", require("primus-responder"));
 
   primus.on("connection", function (spark) {
@@ -51,7 +54,7 @@ export function init_websocket_api(primus: any): void {
       winston.debug("primus-api", "request", JSON.stringify(data), "REQUEST");
       const t0 = new Date().valueOf();
       try {
-        const resp = await handle_api_call(data, primus);
+        const resp = await handleApiCall(data);
         //winston.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
@@ -81,7 +84,7 @@ export function init_websocket_api(primus: any): void {
 import { run_formatter, run_formatter_string } from "../formatters";
 const theClient = require("@cocalc/project/client");
 
-async function handle_api_call(data: Mesg, primus: any): Promise<any> {
+async function handleApiCall0(data: Mesg): Promise<any> {
   const { client } = theClient;
   switch (data.cmd) {
     case "listing":
@@ -164,6 +167,7 @@ async function handle_api_call(data: Mesg, primus: any): Promise<any> {
       );
   }
 }
+const handleApiCall = reuseInFlight(handleApiCall0);
 
 /* implementation of the api calls */
 
