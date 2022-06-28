@@ -16,10 +16,13 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 import Path from "components/app/path";
+import PublicPaths from "components/share/public-paths";
+import getAccountId from "lib/account/get-account";
+import getPool, { timeInSeconds } from "@cocalc/database/pool";
 
 const topLinkStyle = { marginRight: "20px" };
 
-export default function Home({ customize }) {
+export default function Home({ customize, publicPaths }) {
   const {
     shareServer,
     siteName,
@@ -176,18 +179,25 @@ export default function Home({ customize }) {
                       The Public {siteName} Sandbox
                     </h3>
                     <Path
-                      style={{ marginRight: "30px", marginBottom: "15px" }}
+                      style={{ marginRight: "15px", marginBottom: "15px" }}
                       project_id={sandboxProjectId}
                       description="Public Sandbox"
                     />
                   </div>
                 )}
                 {shareServer && (
-                  <h3 style={{ textAlign: "center" }}>
-                    <A href="/share/public_paths/page/1">
-                      Explore what people have made using {siteName}!
-                    </A>
-                  </h3>
+                  <>
+                    <h3 style={{ textAlign: "center" }}>
+                      <A href="/share/public_paths/page/1">
+                        Explore what people have shared using {siteName}!
+                      </A>
+                    </h3>
+                    {publicPaths && (
+                      <div style={{ maxHeight: "60vh", overflow: "auto", marginRight:'15px' }}>
+                        <PublicPaths publicPaths={publicPaths} />
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             }
@@ -202,5 +212,30 @@ export default function Home({ customize }) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomize({ context }, { name: true });
+  const isAuthenticated = (await getAccountId(context.req)) != null;
+  const pool = getPool("long");
+  const { rows } = await pool.query(
+    "select value from server_settings where name='share_server'"
+  );
+  let publicPaths;
+  if (rows.length > 0 && rows[0].value == "yes") {
+    const { rows } = await pool.query(
+      `SELECT id, path, description, ${timeInSeconds("last_edited")},
+    counter::INT,
+     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
+    FROM public_paths
+    WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
+    ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
+    ORDER BY last_edited DESC LIMIT $2`,
+      [isAuthenticated, 150]
+    );
+    publicPaths = rows;
+  } else {
+    publicPaths = null;
+  }
+
+  return await withCustomize(
+    { context, props: { publicPaths } },
+    { name: true }
+  );
 }
