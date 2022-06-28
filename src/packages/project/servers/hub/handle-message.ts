@@ -24,7 +24,14 @@ import writeTextFileToProject from "./write-text-file-to-project";
 const winston = getLogger("handle-message-from-hub");
 
 export default function handleMessage(socket, mesg: Message) {
-  winston.debug("received ", mesg);
+  winston.debug("received a message", {
+    event: mesg.event,
+    id: mesg.id,
+    "...": "...",
+  });
+  // We can't just log this in general, since it can be big.
+  // So only uncomment this for low level debugging, unfortunately.
+  // winston.debug("received ", mesg);
 
   if (client.client?.handle_mesg(mesg, socket)) {
     return;

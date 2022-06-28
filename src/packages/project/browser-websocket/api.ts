@@ -124,7 +124,7 @@ async function handle_api_call(data: Mesg, primus: any): Promise<any> {
     case "jupyter_nbconvert":
       return await jupyter_nbconvert(data.opts);
     case "jupyter_run_notebook":
-      return await jupyter_run_notebook(client, winston, data.opts);
+      return await jupyter_run_notebook(winston, data.opts);
     case "lean_channel":
       return await lean_channel(client, primus, winston, data.path);
     case "x11_channel":
