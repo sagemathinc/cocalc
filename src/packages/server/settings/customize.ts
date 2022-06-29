@@ -123,6 +123,9 @@ export default async function getCustomize(): Promise<Customize> {
 
     // a sandbox project
     sandboxProjectId: settings.sandbox_project_id,
+
+    // GitHub proxy project
+    githubProjectId: settings.github_project_id,
   } as Customize;
 
   return cachedCustomize;

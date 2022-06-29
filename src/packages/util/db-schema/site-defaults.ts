@@ -49,7 +49,8 @@ export type SiteSettingsKeys =
   | "anonymous_signup"
   | "share_server"
   | "landing_pages"
-  | "sandbox_project_id";
+  | "sandbox_project_id"
+  | "github_project_id";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -425,6 +426,11 @@ export const site_settings_conf: SiteSettings = {
   sandbox_project_id: {
     name: "Sandbox Project ID",
     desc: "The project_id of a sandbox project for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
+    default: "",
+  },
+  github_project_id: {
+    name: "GitHub Project ID",
+    desc: "If this is set to a project_id, then the share server will proxy GitHub URL's.  For example, when a user visits https://cocalc.com/github/sagemathinc/cocalc a public_path_id is created for the GitHub repo https://cocalc.com/github/sagemathinc/cocalc and the user sees a rendered version that they can browse.  They can then star the repo, edit it in cocalc, etc.  This extends your CoCalc server to provide similar functionality to what nbviewer.org provides.",
     default: "",
   },
 } as const;
