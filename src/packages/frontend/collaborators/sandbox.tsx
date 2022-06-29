@@ -23,15 +23,19 @@ import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "../webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
+import { Map } from "immutable";
 
 interface Props {
-  project;
+  project?: Map<string, any>;
 }
 
 export default function Sandbox({ project }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
 
-  if (project.getIn(["users", webapp_client.account_id, "group"]) != "owner") {
+  if (
+    project == null ||
+    project.getIn(["users", webapp_client.account_id, "group"]) != "owner"
+  ) {
     // only owners can configure this settings.
     // TODO: right now we are only enforcing this via the UI on the frontend.
     // This isn't a huge issue, since a sandbox project is a free-for-all afterall.
@@ -51,7 +55,7 @@ export default function Sandbox({ project }: Props) {
           style={{ width: "20px" }}
           name={expanded ? "caret-down" : "caret-right"}
         />{" "}
-        {project.get("sandbox") ? (
+        {project?.get("sandbox") ? (
           <b>This is a Public Sandbox Project...</b>
         ) : (
           "Make this a public sandbox project..."
@@ -64,7 +68,7 @@ export default function Sandbox({ project }: Props) {
   }
 
   function render_link() {
-    if (!project.get("sandbox")) {
+    if (!project?.get("sandbox")) {
       return (
         <div>
           <p>
@@ -89,7 +93,7 @@ export default function Sandbox({ project }: Props) {
           value={`${document.location.origin}${join(
             appBasePath,
             "projects"
-          )}/${project.get("project_id")}`}
+          )}/${project?.get("project_id")}`}
           style={{ width: "100%", marginBottom: "15px" }}
         />
         <p>
