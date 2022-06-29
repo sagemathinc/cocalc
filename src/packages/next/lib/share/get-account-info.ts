@@ -78,7 +78,7 @@ async function getPublicPaths(
   ${timeInSeconds(
     "public_paths.last_edited",
     "last_edited"
-  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}'  ORDER BY public_paths.last_edited DESC`;
+  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}'  ORDER BY stars DESC, public_paths.last_edited DESC`;
   const { rows } = await pool.query(query);
   // If there are any disabled or unlisted public_paths, we also get the id of the requestor so we can filter them out.
   return await filterNonPublicAndNotAuthenticated(rows, account_id, req);

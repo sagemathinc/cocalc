@@ -193,7 +193,13 @@ export default function Home({ customize, publicPaths }) {
                       </A>
                     </h3>
                     {publicPaths && (
-                      <div style={{ maxHeight: "60vh", overflow: "auto", marginRight:'15px' }}>
+                      <div
+                        style={{
+                          maxHeight: "60vh",
+                          overflow: "auto",
+                          marginRight: "15px",
+                        }}
+                      >
                         <PublicPaths publicPaths={publicPaths} />
                       </div>
                     )}
@@ -226,7 +232,7 @@ export async function getServerSideProps(context) {
     FROM public_paths
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
-    ORDER BY last_edited DESC LIMIT $2`,
+    ORDER BY stars DESC,last_edited DESC LIMIT $2`,
       [isAuthenticated, 150]
     );
     publicPaths = rows;

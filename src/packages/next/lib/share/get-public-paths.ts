@@ -28,7 +28,7 @@ export default async function getPublicPaths(
     )}, disabled, unlisted, authenticated,
     counter::INT,
      (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
-    FROM public_paths WHERE project_id=$1 ORDER BY last_edited DESC`,
+    FROM public_paths WHERE project_id=$1 ORDER BY stars DESC, last_edited DESC`,
     [project_id]
   );
 
