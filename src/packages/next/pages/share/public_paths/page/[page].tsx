@@ -96,7 +96,7 @@ export async function getServerSideProps(context) {
     FROM public_paths
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
-    ORDER BY last_edited DESC LIMIT $2 OFFSET $3`,
+    ORDER BY stars DESC, last_edited DESC LIMIT $2 OFFSET $3`,
     [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
   return await withCustomize({ context, props: { page, publicPaths: rows } });
