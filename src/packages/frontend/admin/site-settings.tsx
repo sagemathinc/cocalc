@@ -3,7 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, FormGroup, FormControl, Well } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Button,
+  FormGroup,
+  FormControl,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "../alerts";
 import humanizeList from "humanize-list";
 import {
@@ -19,7 +24,7 @@ import {
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
-
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { upgrades } from "@cocalc/util/upgrade-spec";
@@ -517,7 +522,7 @@ class SiteSettingsComponent extends Component<
       <>
         <strong>{conf.name}</strong>
         <br />
-        <span style={{ fontSize: "90%" }}>{conf.desc}</span>
+        <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
       </>
     );
 
@@ -699,7 +704,7 @@ class SiteSettingsComponent extends Component<
           however, some might require restarting the server. If the box
           containing a setting is red, that means the value that you entered is
           invalid. Also, the form below are not very nice since it is not user
-          facing; we plan to implement a nicer interface soon.
+          facing; we plan to implement a nicer interface someday.
         </i>
       </div>
     );

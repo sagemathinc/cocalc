@@ -49,8 +49,7 @@ export type SiteSettingsKeys =
   | "anonymous_signup"
   | "share_server"
   | "landing_pages"
-  | "sandbox_project_id"
-  | "github_project_id";
+  | "sandbox_project_id";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -145,11 +144,13 @@ export type KucalcValues = typeof KUCALC_VALID_VALS[number];
 const help_email_name = "Help email";
 const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
 
+// You can use markdown in the descriptions below!
+
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. cocalc.universe.edu.  Does NOT include the basePath.  It optionally can start with http:// (for non SSL) and end in a :number for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
     //valid: valid_dns_name,
   },
@@ -307,13 +308,13 @@ export const site_settings_conf: SiteSettings = {
   },
   google_analytics: {
     name: "Google Analytics",
-    desc: `The Google Analyitcs tag for tracking usage of your site`,
+    desc: `The Google Analyitcs tag for tracking usage of your site.`,
     default: "",
     show: only_cocalc_com,
   },
   commercial: {
     name: "Commercial",
-    desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
+    desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. **IMPORTANT:** *You must restart your server after changing this setting for it to take effect.*",
     default: "no",
     valid: only_booleans,
     to_val: (val, conf: { [key in SiteSettingsKeys]: string }) => {
@@ -353,7 +354,7 @@ export const site_settings_conf: SiteSettings = {
   },
   default_quotas: {
     name: "Default Quotas",
-    desc: "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
+    desc: "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's `quota.ts` code",
     default: "{}",
     show: only_onprem,
   },
@@ -373,7 +374,7 @@ export const site_settings_conf: SiteSettings = {
   },
   iframe_comm_hosts: {
     name: "IFrame communication hosts",
-    desc: "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
+    desc: "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching `[a-zA-Z0-9.-]+`",
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,
@@ -409,7 +410,7 @@ export const site_settings_conf: SiteSettings = {
   },
   share_server: {
     name: "Allow public file sharing",
-    desc: "Users are allowed to publicly share files on the public share server (https://yourserver/share).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
+    desc: "Users are allowed to publicly share files on the public share server (`https://yourserver/share`).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -425,12 +426,7 @@ export const site_settings_conf: SiteSettings = {
   },
   sandbox_project_id: {
     name: "Sandbox Project ID",
-    desc: "The project_id of a sandbox project for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
-    default: "",
-  },
-  github_project_id: {
-    name: "GitHub Project ID",
-    desc: "If this is set to a project_id, then the share server will proxy GitHub URL's.  For example, when a user visits https://cocalc.com/github/sagemathinc/cocalc a public_path_id is created for the GitHub repo https://cocalc.com/github/sagemathinc/cocalc and the user sees a rendered version that they can browse.  They can then star the repo, edit it in cocalc, etc.  This extends your CoCalc server to provide similar functionality to what nbviewer.org provides.",
+    desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
   },
 } as const;

@@ -7,6 +7,8 @@
 // They are only visible and editable for admins and services.
 // In particular, this includes the email backend config, Stripe, etc.
 
+// You can use markdown in the descriptions below and it is rendered properly!
+
 import {
   Config,
   is_email_enabled,
@@ -78,7 +80,11 @@ export type SiteSettingsExtrasKeys =
   | "zendesk_heading"
   | "zendesk_token"
   | "zendesk_username"
-  | "zendesk_uri";
+  | "zendesk_uri"
+  | "github_heading"
+  | "github_project_id"
+  | "github_username"
+  | "github_token";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -86,7 +92,7 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 export const EXTRAS: SettingsExtras = {
   pii_retention: {
     name: "PII Retention",
-    desc: "How long to keep personally identifiable information (deletes certain database entries)",
+    desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII.",
     default: "never",
     // values must be understood by packages/hub/utils.ts pii_expire
     valid: [
@@ -127,7 +133,7 @@ export const EXTRAS: SettingsExtras = {
   re_captcha_v3_heading: {
     // this is cosmetic, otherwise it looks weird.
     name: "reCaptcha v3 Keys",
-    desc: "You get these from https://www.google.com/recaptcha/intro/v3.html",
+    desc: "You get these from https://www.google.com/recaptcha/intro/v3.html .  They make it so it is more difficult for robots to create accounts on your server.  Users never have to explicitly solve a captcha.",
     default: "",
     show: only_commercial,
     type: "header",
@@ -154,21 +160,45 @@ export const EXTRAS: SettingsExtras = {
   },
   zendesk_token: {
     name: "Zendesk Token",
-    desc: "This is the API Token in Zendesk in their Admin --> API page",
+    desc: "This is the API Token in Zendesk; see their Admin --> API page.",
     default: "",
     password: true,
     show: () => true,
   },
   zendesk_username: {
     name: "Zendesk Username",
-    desc: 'This is the username for Zendesk.  E.g., for cocalc.com it is "support-agent@cocalc.com"',
+    desc: "This is the username for Zendesk.  E.g., for `cocalc.com` it is `support-agent@cocalc.com`",
     default: "",
     show: () => true,
   },
   zendesk_uri: {
     name: "Zendesk Uri",
-    desc: 'This is the Uri for your Zendesk server.  E.g., for cocalc.com it is "https://sagemathcloud.zendesk.com/api/v2"',
+    desc: "This is the Uri for your Zendesk server.  E.g., for `cocalc.com` it is https://sagemathcloud.zendesk.com/api/v2",
     default: "",
+    show: () => true,
+  },
+  github_heading: {
+    name: "GitHub API Configuration",
+    desc: "CoCalc can mirror content from  GitHub at `https://yoursite.com/github/[url to github]`. This is just like what https://nbviewer.org does.",
+    default: "",
+    type: "header",
+  },
+  github_project_id: {
+    name: "GitHub Project ID",
+    desc: "If this is set to a `project_id` (a UUID v4 of a project on your server), then the share server will proxy GitHub URL's.  For example, when a user visits https://yoursite.com/github/sagemathinc/cocalc they see a rendered version.  They can star the repo from cocalc, edit it in cocalc, etc.  This extends your CoCalc server to provide similar functionality to what nbviewer.org provides.  Optionally set a GitHub username and personal access token below to massively increase GitHub's API rate limits.",
+    default: "",
+  },
+  github_username: {
+    name: "GitHub Username",
+    desc: "This is a username for a GitHub Account.",
+    default: "",
+    show: () => true,
+  },
+  github_token: {
+    name: "GitHub Token",
+    desc: "This is a Personal Access token for the above GitHub account.  You can get one at https://github.com/settings/tokens -- you do not have to enable any scopes -- it used only to increase rate limits from 60/hour to 5000/hour.",
+    default: "",
+    password: true,
     show: () => true,
   },
   email_section: {
