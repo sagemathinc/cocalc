@@ -27,11 +27,6 @@ import apiPost from "lib/api/post";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { useRouter } from "next/router";
 
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
 export default function PublicPath({
   id,
   path,

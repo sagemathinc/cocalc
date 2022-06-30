@@ -4,9 +4,9 @@
  */
 
 import { FileInfo, PathContents } from "lib/share/get-contents";
-import { rawText, contents, defaultBranch } from "./api";
+import { rawText, contents, defaultBranch, repos } from "./api";
 import { join } from "path";
-
+import { field_cmp } from "@cocalc/util/cmp";
 /*
 export interface PathContents {
   isdir?: boolean;
@@ -19,6 +19,7 @@ export interface PathContents {
 
 export interface FileInfo {
   name: string;
+  url?: string;
   error?: Error;
   isdir?: boolean;
   size?: number;
@@ -33,7 +34,14 @@ export default async function getContents(
   githubRepo: string,
   segments: string[]
 ): Promise<PathContents> {
-  console.log("getContents", { githubOrg, githubRepo, segments });
+  if (!githubRepo) {
+    // get all repos attached to an org
+    const listing = await repos(githubOrg);
+    listing.sort(field_cmp('mtime'));
+    listing.reverse();
+    return { listing };
+  }
+
   switch (segments[0]) {
     case undefined:
     case "tree":

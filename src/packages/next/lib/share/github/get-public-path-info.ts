@@ -17,6 +17,24 @@ export default async function getPublicPathInfoGithub(
   segments: string[],
   req
 ) {
+  const relativePath = join(...segments);
+
+  if (!githubRepo) {
+    // only getting the repos for a single org.
+    let contents;
+    try {
+      contents = await getContents(id, githubOrg, "", []);
+    } catch (error) {
+      return { relativePath, error: error.toString() };
+    }
+    const projectTitle = `Repositories owned by ${githubOrg}`;
+
+    return {
+      contents,
+      relativePath,
+      projectTitle,
+    };
+  }
   if (typeof id != "string" || id.length != 40) {
     throw Error("invalid id");
   }
@@ -33,7 +51,6 @@ export default async function getPublicPathInfoGithub(
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
     throw Error("not found or invalid");
   }
-  const relativePath = join(...segments);
 
   const account_id = await getAccountId(req);
 

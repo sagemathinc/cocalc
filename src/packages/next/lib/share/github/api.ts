@@ -145,3 +145,23 @@ export async function defaultBranch(
 ): Promise<string> {
   return (await api(`repos/${githubOrg}/${githubRepo}`)).default_branch;
 }
+
+// Return all the repositories in a GitHub organization or user:
+export async function repos(githubOrg: string): Promise<{ name: string }[]> {
+  let result;
+  try {
+    result = await api(`orgs/${githubOrg}/repos`);
+  } catch (err) {
+    result = await api(`users/${githubOrg}/repos`);
+  }
+  return result
+    .filter((repo) => !repo.private)
+    .map((repo) => {
+      return {
+        isdir: true,
+        name: repo.name,
+        mtime: new Date(repo.updated_at).valueOf(),
+        url: `/github/${githubOrg}/${repo.name}`,
+      };
+    });
+}

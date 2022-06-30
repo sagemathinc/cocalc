@@ -14,8 +14,8 @@ import {
 import { field_cmp } from "@cocalc/util/misc";
 
 interface Props {
-  id: string;
-  relativePath: string;
+  id?: string;
+  relativePath?: string;
   listing: FileInfo[];
   showHidden?: boolean;
 }
