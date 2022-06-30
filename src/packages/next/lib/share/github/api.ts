@@ -31,6 +31,7 @@ Get at https://github.com/settings/tokens
 import fetch, { Headers } from "node-fetch";
 import { encode } from "base-64";
 import { join } from "path";
+import getPool from "@cocalc/database/pool";
 
 // We don't allow just fetching content that is arbitrarily large, since that could cause
 // the server to just run out of memory.  However, we want this to reasonably big.
@@ -71,14 +72,33 @@ interface GithubFile {
   encoding: string;
 }
 
+async function credentials(): Promise<{
+  github_username?: string;
+  github_token?: string;
+}> {
+  const pool = getPool("long");
+  const { rows } = await pool.query(
+    "SELECT name, value FROM server_settings WHERE name='github_username' OR name='github_token'"
+  );
+  let result: { github_username?: string; github_token?: string } = {};
+  for (const row of rows) {
+    result[row.name] = row.value;
+  }
+  return result;
+}
+
 async function api(path: string): Promise<any> {
   const url = `https://api.github.com/${path}`;
-  const headers = new Headers({
-    Authorization: "Basic " + encode(`${username}:${password}`),
-    "Content-Type": "application/json",
-  });
-  const response: any = await (await fetch(url, { headers })).json();
-  console.log({ url, headers, response });
+  const options: any = {};
+  const { github_username, github_token } = await credentials();
+  if (github_username && github_token) {
+    options.headers = new Headers({
+      Authorization: "Basic " + encode(`${github_username}:${github_token}`),
+      "Content-Type": "application/json",
+    });
+  }
+  const response: any = await (await fetch(url, options)).json();
+  console.log({ url, response });
   if (response.message) {
     throw Error(`${response.message}  (see ${response.documentation_url})`);
   }
