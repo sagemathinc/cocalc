@@ -71,9 +71,18 @@ interface GithubFile {
   encoding: string;
 }
 
-interface GithubError {
-  message: string;
-  documentation_url: string;
+async function api(path: string): Promise<any> {
+  const url = `https://api.github.com/${path}`;
+  const headers = new Headers({
+    Authorization: "Basic " + encode(`${username}:${password}`),
+    "Content-Type": "application/json",
+  });
+  const response: any = await (await fetch(url, { headers })).json();
+  console.log({ url, headers, response });
+  if (response.message) {
+    throw Error(`${response.message}  (see ${response.documentation_url})`);
+  }
+  return response;
 }
 
 // Use the github api to get the contents of a path on github.
@@ -87,7 +96,7 @@ export async function contents(
   githubOrg: string,
   githubRepo: string,
   segments: string[]
-): Promise<GithubFile | GithubFile[] | GithubError> {
+): Promise<GithubFile[]> {
   let ref, path;
   if (segments.length == 0) {
     ref = ""; // the default;
@@ -97,14 +106,22 @@ export async function contents(
     ref = segments[1];
     path = join(...segments.slice(2));
   }
-  const url = `https://api.github.com/repos/${githubOrg}/${githubRepo}/contents/${path}${
-    ref ? "?ref=" + ref : ""
-  }`;
-  const headers = new Headers({
-    Authorization: "Basic " + encode(`${username}:${password}`),
-    "Content-Type": "application/json",
-  });
-  console.log({ url, headers });
-  const result = await (await fetch(url, { headers })).json();
+  const result = await api(
+    `repos/${githubOrg}/${githubRepo}/contents/${path}${
+      ref ? "?ref=" + ref : ""
+    }`
+  );
+  if (result.name != null) {
+    throw Error(
+      "only use contents to get directory listing, not to get file contents"
+    );
+  }
   return result;
+}
+
+export async function defaultBranch(
+  githubOrg: string,
+  githubRepo: string
+): Promise<string> {
+  return (await api(`repos/${githubOrg}/${githubRepo}`)).default_branch;
 }

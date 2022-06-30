@@ -64,9 +64,12 @@ function columns(id, relativePath) {
       render: (name, record) => {
         return (
           <Link
-            href={`/share/public_paths/${id}/${encodeURIComponent(
-              join(relativePath, name)
-            )}`}
+            href={
+              record.url ??
+              `/share/public_paths/${id}/${encodeURIComponent(
+                join(relativePath, name)
+              )}`
+            }
           >
             <a style={{ width: "100%", display: "inline-block" }}>
               {record.isdir ? <b>{name}</b> : name}
