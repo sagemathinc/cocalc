@@ -11,6 +11,7 @@ import {
   human_readable_size as humanReadableSize,
   plural,
 } from "@cocalc/util/misc";
+import { field_cmp } from "@cocalc/util/misc";
 
 interface Props {
   id: string;
@@ -73,12 +74,7 @@ function columns(id, relativePath) {
           </Link>
         );
       },
-    },
-    {
-      title: "Date Modified",
-      dataIndex: "mtime",
-      key: "mtime",
-      render: (mtime) => `${new Date(mtime).toLocaleString()}`,
+      sorter: field_cmp("name"),
     },
     {
       title: "Size",
@@ -86,6 +82,15 @@ function columns(id, relativePath) {
       key: "size",
       render: (size, record) => renderSize(size, record.isdir),
       align: "right" as any,
+      sorter: field_cmp("size"),
+    },
+    {
+      title: "Last Modified",
+      dataIndex: "mtime",
+      key: "mtime",
+      align: "right" as any,
+      render: (mtime) => (mtime ? `${new Date(mtime).toLocaleString()}` : ""),
+      sorter: field_cmp("mtime"),
     },
   ];
 }

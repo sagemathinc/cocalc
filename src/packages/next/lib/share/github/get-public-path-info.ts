@@ -13,7 +13,7 @@ import getContents from "./get-contents";
 export default async function getPublicPathInfoGithub(
   id: string,
   githubOrg: string,
-  githubProject: string,
+  githubRepo: string,
   segments: string[],
   req
 ) {
@@ -42,11 +42,11 @@ export default async function getPublicPathInfoGithub(
 
   let contents;
   try {
-    contents = await getContents(id, githubOrg, githubProject, segments);
+    contents = await getContents(id, githubOrg, githubRepo, segments);
   } catch (error) {
     return { id, ...rows[0], relativePath, error: error.toString() };
   }
-  const projectTitle = `Title of github repo at ${githubOrg} / ${githubProject}`;
+  const projectTitle = `Title of github repo at ${githubOrg} / ${githubRepo}`;
 
   return {
     id,

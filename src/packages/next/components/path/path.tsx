@@ -169,6 +169,15 @@ export default function PublicPath({
             }
           />
         )}
+        {description?.trim() && (
+          <SanitizedMarkdown
+            style={{ marginBottom: "-1em" } /* -1em to undo it being a paragraph */}
+            value={description}
+          />
+        )}
+        <b>Project:</b>{" "}
+        <ProjectLink project_id={project_id} title={projectTitle} />
+        <br />
         <b>Path: </b>
         <LinkedPath
           path={path}
@@ -177,19 +186,18 @@ export default function PublicPath({
           isDir={contents?.isdir}
         />
         <br />
-        {description?.trim() && (
-          <>
-            <b>Description:</b> <SanitizedMarkdown value={description} />
-          </>
-        )}
         {counter && (
           <>
             <b>Views:</b> <Badge count={counter} />
             <br />
           </>
         )}
-        <b>License:</b> <License license={license} />
-        <br />
+        {license && (
+          <>
+            <b>License:</b> <License license={license} />
+            <br />
+          </>
+        )}
         {visibility()}
         {compute_image && (
           <>
@@ -197,9 +205,6 @@ export default function PublicPath({
             <br />
           </>
         )}
-        <b>Project:</b>{" "}
-        <ProjectLink project_id={project_id} title={projectTitle} />
-        <br />
         <PathActions
           id={id}
           path={path}

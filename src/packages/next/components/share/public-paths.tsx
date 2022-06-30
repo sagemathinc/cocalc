@@ -119,7 +119,7 @@ const COLUMNS0: any[] = [
     sorter: field_cmp("description"),
   },
   {
-    title: "Date Modified",
+    title: "Last Modified",
     dataIndex: "last_edited",
     key: "last_edited",
     render: (last_edited) => <LastEdited last_edited={last_edited} />,

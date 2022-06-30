@@ -73,6 +73,7 @@
     "antd-img-crop": "^4.2.0",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
+    "base-64": "^1.0.0",
     "basic-auth": "^2.0.1",
     "cookies": "^0.8.0",
     "express": "^4.17.1",

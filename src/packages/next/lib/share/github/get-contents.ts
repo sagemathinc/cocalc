@@ -4,8 +4,7 @@
  */
 
 import { PathContents } from "lib/share/get-contents";
-import fetch from "node-fetch";
-import { join } from "path";
+import { rawText, contents } from "./api";
 
 /*
 export interface PathContents {
@@ -17,30 +16,45 @@ export interface PathContents {
   truncated?: string;
 }
 
-*/
+export interface FileInfo {
+  name: string;
+  error?: Error;
+  isdir?: boolean;
+  size?: number;
+  mtime?: number;
+}
 
-// We don't allow just fetching content that is arbitrarily large, since that could cause
-// the server to just run out of memory.  However, we want this to reasonably big.
-const MAX_SIZE_BYTES = 25000000; // 25MB
+*/
 
 export default async function getContents(
   _id: string,
   githubOrg: string,
-  githubProject: string,
+  githubRepo: string,
   segments: string[]
 ): Promise<PathContents> {
-  const url = rawURL(githubOrg, githubProject, segments);
-  console.log({ url });
-  const content = await (await fetch(url, { size: MAX_SIZE_BYTES })).text();
-  return { content };
-}
-
-function rawURL(
-  githubOrg: string,
-  githubProject: string,
-  segments: string[]
-): string {
-  return `https://raw.githubusercontent.com/${githubOrg}/${githubProject}/${join(
-    ...segments.slice(1)
-  )}`;
+  switch (segments[0]) {
+    case undefined:
+    case "tree":
+      // directory listing
+      const response = await contents(githubOrg, githubRepo, segments);
+      console.log(response);
+      if (response.message) {
+        throw Error(`${response.message}  (see ${response.documentation_url})`);
+      }
+      if (response.name != null) {
+        // it's a file rather than a directory
+        throw Error("not implemented");
+      }
+      const listing: FileInfo[] = [];
+      for (const file of response) {
+        listing.push({ name: file.name, size: file.size });
+      }
+      return { isdir: true, listing };
+      break;
+    case "blob":
+      const content = await rawText(githubOrg, githubRepo, segments);
+      return { content, size: content.length };
+    default:
+      throw Error("not implemented");
+  }
 }

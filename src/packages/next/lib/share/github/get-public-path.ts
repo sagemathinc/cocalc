@@ -5,13 +5,13 @@ import { join } from "path";
 
 export default async function getGithubPublicPathId(
   githubOrg: string,
-  githubProject: string,
+  githubRepo: string,
   githubProjectId?: string
 ): Promise<string> {
   if (!githubProjectId) {
     githubProjectId = await getGithubProjectId();
   }
-  const path = join(githubOrg, githubProject);
+  const path = join(githubOrg, githubRepo);
   const pool = getPool("long");
   const { rows } = await pool.query(
     "SELECT id FROM public_paths WHERE project_id=$1 AND path=$2",
@@ -24,8 +24,13 @@ export default async function getGithubPublicPathId(
   // TODO -- should we check that this is a valid github url?  If so, what's the fastest way to do so?
   const id = sha1(githubProjectId + path);
   await pool.query(
-    "INSERT INTO public_paths (id, project_id, path, last_edited, last_saved, created) VALUES($1, $2, $3, NOW(), NOW(), NOW())",
-    [id, githubProjectId, path]
+    "INSERT INTO public_paths (id, project_id, path, last_edited, last_saved, created, description) VALUES($1, $2, $3, NOW(), NOW(), NOW(), $4)",
+    [
+      id,
+      githubProjectId,
+      path,
+      `GitHub repository https://github.com/${githubOrg}/${githubRepo}`,
+    ]
   );
   return id;
 }
