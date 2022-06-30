@@ -59,20 +59,6 @@ export default function PublicPath({
 
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
 
-  if (error != null) {
-    return (
-      <div>
-        There was a problem loading "{relativePath}" in{" "}
-        <Link href={`/share/public_paths/${id}`}>
-          <a>{path}.</a>
-        </Link>
-        <br />
-        <br />
-        {error}
-      </div>
-    );
-  }
-
   function visibility_explanation() {
     if (disabled) {
       return (
@@ -225,6 +211,25 @@ export default function PublicPath({
           description={description}
         />
         <Divider />
+        {error != null && (
+          <Alert
+            showIcon
+            type="error"
+            style={{ maxWidth: "700px", margin: "30px auto" }}
+            message="Error loading file"
+            description={
+              <div>
+                There was a problem loading "{relativePath}" in{" "}
+                <Link href={`/share/public_paths/${id}`}>
+                  <a>{path}.</a>
+                </Link>
+                <br />
+                <br />
+                {error}
+              </div>
+            }
+          />
+        )}
         {contents != null && (
           <PathContents
             id={id}

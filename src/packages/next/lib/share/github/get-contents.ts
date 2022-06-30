@@ -4,6 +4,8 @@
  */
 
 import { PathContents } from "lib/share/get-contents";
+import fetch from "node-fetch";
+import { join } from "path";
 
 /*
 export interface PathContents {
@@ -17,18 +19,28 @@ export interface PathContents {
 
 */
 
+// We don't allow just fetching content that is arbitrarily large, since that could cause
+// the server to just run out of memory.  However, we want this to reasonably big.
+const MAX_SIZE_BYTES = 25000000; // 25MB
+
 export default async function getContents(
-  id: string,
+  _id: string,
   githubOrg: string,
   githubProject: string,
   segments: string[]
 ): Promise<PathContents> {
-  return {
-    content: `Hello **GitHub**! - \n\`\`\`js\n${JSON.stringify({
-      id,
-      githubOrg,
-      githubProject,
-      segments,
-    },undefined,2)}\n\`\`\``,
-  };
+  const url = rawURL(githubOrg, githubProject, segments);
+  console.log({ url });
+  const content = await (await fetch(url, { size: MAX_SIZE_BYTES })).text();
+  return { content };
+}
+
+function rawURL(
+  githubOrg: string,
+  githubProject: string,
+  segments: string[]
+): string {
+  return `https://raw.githubusercontent.com/${githubOrg}/${githubProject}/${join(
+    ...segments.slice(1)
+  )}`;
 }
