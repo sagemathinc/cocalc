@@ -23,6 +23,7 @@ import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { webapp_client } from "../webapp-client";
 import { BASE_URL } from "../misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import * as sha1 from "sha1";
 
 export type NewFilenameTypes =
   | "iso"
@@ -209,9 +210,6 @@ export class NewFilenames {
     }
   }
 }
-
-const sha1 = require("sha1");
-
 export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
 }

@@ -7,6 +7,7 @@ a nice "homepage" for that user or organization.
 
 import getPool from "@cocalc/database/pool";
 import getOwner from "./owner";
+import getGithubProjectId from "lib/share/github/project";
 
 // Throws an exception if there is no project with this name.
 // TODO: take into account redirects for when name is changed.
@@ -14,6 +15,10 @@ export default async function getProjectId(
   owner: string,
   project: string
 ): Promise<string> {
+  if (owner == "github") {
+    return await getGithubProjectId();
+  }
+
   const { owner_id } = await getOwner(owner);
   const pool = getPool("long"); // map from owner/project --> project_id unlikely to change and when it does, stale data is ok.
 

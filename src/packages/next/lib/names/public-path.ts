@@ -10,13 +10,19 @@ a nice "homepage" for that user or organization.
 import getPool from "@cocalc/database/pool";
 import getProjectId from "./project";
 import { getOwnerName } from "lib/names/owner";
+import getGithubPublicPathId from "lib/share/github/get-public-path";
 
 export default async function getPublicPathId(
   owner: string,
   project: string,
-  public_path: string
+  public_path: string // this is the *name* of the public_path, not the entire actual path, i.e., the first segment.
 ): Promise<string> {
   const project_id = await getProjectId(owner, project);
+  // special case -- we get or create it in case of github
+  if (owner == "github") {
+    // here "project" for github is actually the github organization
+    return await getGithubPublicPathId(project, public_path, project_id);
+  }
   const pool = getPool("long");
   const result = await pool.query(
     "SELECT id FROM public_paths WHERE LOWER(name)=$1 AND project_id=$2",
