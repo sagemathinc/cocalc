@@ -3,31 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "@cocalc/database/pool";
-import basePath from "lib/base-path";
-import { isStarred as getIsStarred } from "@cocalc/server/public-paths/star";
-import getAccountId from "lib/account/get-account";
-import { join } from "path";
 import getContents from "./get-contents";
+import { join } from "path";
 
-export default async function getPublicPathInfoGithub(
-  id: string,
-  githubOrg: string,
-  githubRepo: string,
-  segments: string[],
-  req
-) {
-  const relativePath = join(...segments);
+export default async function getPublicPathInfoGithub(url: string) {
+  const segments = url.split("/");
+  const githubOrg = segments[1];
+  if (!githubOrg) {
+    throw Error(`invalid url ${url} -- must include github organization`);
+  }
+  const githubRepo = segments[2];
+  const relativePath = join(...segments.slice(3));
 
   if (!githubRepo) {
     // only getting the repos for a single org.
-    let contents;
-    try {
-      contents = await getContents(id, githubOrg, "", []);
-    } catch (error) {
-      return { relativePath, error: error.toString() };
-    }
-    const projectTitle = `Repositories owned by ${githubOrg}`;
+    const contents = await getContents(githubOrg, "", []);
+    const projectTitle = `GitHub Repositories owned by ${githubOrg}`;
 
     return {
       contents,
@@ -36,44 +27,14 @@ export default async function getPublicPathInfoGithub(
       githubOrg,
     };
   }
-  if (typeof id != "string" || id.length != 40) {
-    throw Error("invalid id");
-  }
 
-  const pool = getPool("short");
-
-  // Get the database entry that describes the public path
-  const { rows } = await pool.query(
-    `SELECT project_id, path, description, counter::INT,
-    (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
-    FROM public_paths WHERE id=$1`,
-    [id]
-  );
-  if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
-    throw Error("not found or invalid");
-  }
-
-  const account_id = await getAccountId(req);
-
-  // if user is signed in, whether or not they stared this.
-  const isStarred = account_id ? await getIsStarred(id, account_id) : null;
-
-  let contents;
-  try {
-    contents = await getContents(id, githubOrg, githubRepo, segments);
-  } catch (error) {
-    return { id, ...rows[0], relativePath, error: error.toString() };
-  }
-  const projectTitle = `Title of github repo at ${githubOrg} / ${githubRepo}`;
+  const contents = await getContents(githubOrg, githubRepo, segments.slice(3));
+  const projectTitle = `GitHub repository ${githubOrg} / ${githubRepo}`;
 
   return {
-    id,
-    ...rows[0],
     contents,
     relativePath,
     projectTitle,
-    basePath,
-    isStarred,
     githubOrg,
     githubRepo,
   };

@@ -7,29 +7,8 @@ import { FileInfo, PathContents } from "lib/share/get-contents";
 import { rawText, contents, defaultBranch, repos } from "./api";
 import { join } from "path";
 import { field_cmp } from "@cocalc/util/cmp";
-/*
-export interface PathContents {
-  isdir?: boolean;
-  listing?: FileInfo[];
-  content?: string;
-  size?: number;
-  mtime?: number;
-  truncated?: string;
-}
-
-export interface FileInfo {
-  name: string;
-  url?: string;
-  error?: Error;
-  isdir?: boolean;
-  size?: number;
-  mtime?: number;
-}
-
-*/
 
 export default async function getContents(
-  _id: string,
   githubOrg: string,
   githubRepo: string,
   segments: string[]
@@ -37,7 +16,7 @@ export default async function getContents(
   if (!githubRepo) {
     // get all repos attached to an org
     const listing = await repos(githubOrg);
-    listing.sort(field_cmp('mtime'));
+    listing.sort(field_cmp("mtime"));
     listing.reverse();
     return { listing };
   }

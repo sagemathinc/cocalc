@@ -165,3 +165,11 @@ export async function repos(githubOrg: string): Promise<{ name: string }[]> {
       };
     });
 }
+
+export async function fileInGist(gistId: string): Promise<string> {
+  const info = await api(`gists/${gistId}`);
+  for (const filename in info.files) {
+    return filename;
+  }
+  throw Error("no files in the gist");
+}

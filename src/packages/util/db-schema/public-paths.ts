@@ -131,6 +131,10 @@ Table({
       type: "string",
       desc: "Site license to apply to projects editing a copy of this.",
     },
+    url: {
+      type: "string",
+      desc: "If given, use this relative URL to open this share. ONLY set this for proxy urls!  For example: 'gist/darribas/4121857' or 'github/cocalc/sagemathinc' or 'url/wstein.org/Tables/modjac/curves.txt'.  The point is that we need to store the url somewhere, and don't want to end up using the ugly id in this case.  This is different than the urls that come from setting a name for the owner and public path, since that's for files shared *from* within cocalc.",
+    },
   },
   rules: {
     primary_key: "id",
@@ -139,6 +143,7 @@ Table({
 
     pg_indexes: [
       "project_id",
+      "url",
       "(substring(project_id::text from 1 for 1))",
       "(substring(project_id::text from 1 for 2))",
     ],
@@ -152,6 +157,7 @@ Table({
           project_id: null,
           path: null,
           name: null,
+          url: null, // user can get this but NOT set it (below) since it's set when path is created only (it defines the path).
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)

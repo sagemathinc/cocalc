@@ -11,8 +11,8 @@ import withCustomize from "lib/with-customize";
 import getProjectInfo from "lib/project/info";
 import getProject from "lib/share/get-project";
 import Project from "components/project/project";
-import getPublicPathInfoGithub from "lib/share/github/get-public-path-info";
 import Organization from "lib/share/github/organization";
+import getPublicPathInfoGithub from "lib/share/github/get-public-path-info";
 
 export default function Page(props) {
   if (props.project_id) {
@@ -32,8 +32,10 @@ export async function getServerSideProps(context) {
       // special case for special github URL's
       // This is a URL like   https://cocalc.com/github/cocalc,
       // which will end up listing all public repos under the cocalc org (say).
-      props = await getPublicPathInfoGithub("", project, "", [], context.req);
-      props.organization = project;
+      props = {
+        ...(await getPublicPathInfoGithub(`${owner}/${project}`)),
+        organization: project,
+      };
     } else {
       const project_id = await getProjectId(owner, project);
       props = {
@@ -42,9 +44,9 @@ export async function getServerSideProps(context) {
         ...(await getProject(project_id)),
       };
     }
-
     return withCustomize({ context, props });
-  } catch (_err) {
+  } catch (err) {
+    console.log(err);
     return { notFound: true };
   }
 }
