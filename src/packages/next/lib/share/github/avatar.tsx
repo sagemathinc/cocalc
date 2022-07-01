@@ -5,24 +5,28 @@ import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   name: string;
+  repo?: string; // if given, impacts links
   size?: number;
   style?: CSSProperties;
 }
-export default function GithubAvatar({ style, size = 195 / 2, name }: Props) {
-  const url = `https://avatars.githubusercontent.com/${name}`;
+export default function GithubAvatar({
+  style,
+  size = 195 / 2,
+  name,
+  repo,
+}: Props) {
+  const target = `${name}${repo ? "/" + repo : ""}`;
+  const url = `https://github.com/${target}`;
   return (
-    <A
-      href={`https://github.com/${name}`}
-      style={{ textAlign: "center", ...style }}
-    >
+    <A href={url} style={{ textAlign: "center", ...style }}>
       <Avatar
         style={{ borderRadius: "7.5px", border: "1px solid #eee" }}
         shape="square"
         size={size}
-        icon={<img src={url} />}
+        icon={<img src={`https://avatars.githubusercontent.com/${name}`} />}
       />
       <br />
-      <Icon name="external-link" /> {name}
+      <Icon name="github" /> {target}
     </A>
   );
 }

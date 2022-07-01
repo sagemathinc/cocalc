@@ -72,7 +72,7 @@ function columns(id, relativePath) {
             }
           >
             <a style={{ width: "100%", display: "inline-block" }}>
-              {record.isdir ? <b>{name}</b> : name}
+              {record.isdir ? <b>{name}/</b> : name}
             </a>
           </Link>
         );

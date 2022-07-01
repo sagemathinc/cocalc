@@ -35,7 +35,7 @@ import getPool from "@cocalc/database/pool";
 
 // We don't allow just fetching content that is arbitrarily large, since that could cause
 // the server to just run out of memory.  However, we want this to reasonably big.
-const RAW_MAX_SIZE_BYTES = 25000000; // 25MB
+export const RAW_MAX_SIZE_BYTES = 10000000; // 10MB
 
 // TODO: we will also have a raw blob or stream or something for serving up images, etc.,
 export async function rawText(
@@ -87,7 +87,7 @@ async function credentials(): Promise<{
   return result;
 }
 
-async function api(path: string): Promise<any> {
+export async function api(path: string): Promise<any> {
   const url = `https://api.github.com/${path}`;
   const options: any = {};
   const { github_username, github_token } = await credentials();

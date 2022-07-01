@@ -178,6 +178,7 @@ export default function PublicPath({
         {githubOrg && (
           <Avatar
             name={githubOrg}
+            repo={githubRepo}
             style={{ float: "right", marginLeft: "15px" }}
           />
         )}
