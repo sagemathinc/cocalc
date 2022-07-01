@@ -15,6 +15,7 @@ import ProjectLink from "components/share/project-link";
 import useCounter from "lib/share/counter";
 import { Layout } from "components/share/layout";
 import { Customize } from "lib/share/customize";
+import type { CustomizeType } from "lib/customize";
 import { getTitle } from "lib/share/util";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import Badge from "components/misc/badge";
@@ -26,13 +27,37 @@ import {
 import apiPost from "lib/api/post";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { useRouter } from "next/router";
+import type { PathContents as PathContentsType } from "lib/share/get-contents";
+import Avatar from "lib/share/github/avatar";
+
+interface Props {
+  id: string;
+  path: string;
+  project_id: string;
+  projectTitle?: string;
+  relativePath?: string;
+  description?: string;
+  counter?: number;
+  compute_image?: string;
+  license?: string;
+  contents?: PathContentsType;
+  error?: string;
+  customize: CustomizeType;
+  disabled?: boolean;
+  unlisted?: boolean;
+  authenticated?: boolean;
+  stars?: number;
+  isStarred?: boolean;
+  githubOrg?: string; // if given, this is being mirrored from this github org
+  githubRepo?: string; // if given, mirrored from this github repo.
+}
 
 export default function PublicPath({
   id,
   path,
   project_id,
   projectTitle,
-  relativePath,
+  relativePath = "",
   description,
   counter,
   compute_image,
@@ -43,12 +68,16 @@ export default function PublicPath({
   disabled,
   unlisted,
   authenticated,
-  stars,
+  stars = 0,
   isStarred: isStarred0,
-}) {
+  githubOrg,
+  githubRepo,
+}: Props) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
-  const [isStarred, setIsStarred] = useState<boolean | null>(isStarred0);
+  const [isStarred, setIsStarred] = useState<boolean | null>(
+    isStarred0 ?? null
+  );
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
 
@@ -146,6 +175,12 @@ export default function PublicPath({
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
+        {githubOrg && (
+          <Avatar
+            name={githubOrg}
+            style={{ float: "right", marginLeft: "15px" }}
+          />
+        )}
         <div style={{ float: "right" }}>{renderStar()}</div>
         {signingUp && (
           <Alert
@@ -166,7 +201,9 @@ export default function PublicPath({
         )}
         {description?.trim() && (
           <SanitizedMarkdown
-            style={{ marginBottom: "-1em" } /* -1em to undo it being a paragraph */}
+            style={
+              { marginBottom: "-1em" } /* -1em to undo it being a paragraph */
+            }
             value={description}
           />
         )}

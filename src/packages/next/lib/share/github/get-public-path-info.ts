@@ -33,6 +33,7 @@ export default async function getPublicPathInfoGithub(
       contents,
       relativePath,
       projectTitle,
+      githubOrg,
     };
   }
   if (typeof id != "string" || id.length != 40) {
@@ -73,5 +74,7 @@ export default async function getPublicPathInfoGithub(
     projectTitle,
     basePath,
     isStarred,
+    githubOrg,
+    githubRepo,
   };
 }

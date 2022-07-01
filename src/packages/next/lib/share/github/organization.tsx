@@ -28,9 +28,7 @@ export default function Organization({
   return (
     <Customize value={customize}>
       <Layout title={`GitHub - ${organization}`}>
-        <div style={{ float: "right" }}>
-          <Avatar user={organization} />
-        </div>
+          <Avatar name={organization} style={{ float: "right" }}/>
         <h1>{capitalize(organization)}'s GitHub Repositories</h1>
         These are the{" "}
         <A href={`https://github.com/${organization}`}>
