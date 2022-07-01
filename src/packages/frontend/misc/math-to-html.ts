@@ -5,6 +5,7 @@
 
 import { macros } from "@cocalc/frontend/jquery-plugins/math-katex";
 import katex from "katex";
+import KaTeXCompatHacks from "./katex-compat-hacks";
 
 export default function mathToHtml(
   math: string, // latex expression
@@ -15,6 +16,10 @@ export default function mathToHtml(
     // don't let it be empty, since then it is not possible to see/select.
     math = "\\LaTeX";
   }
+
+  // Apply some hacks to deal with missing functionality in katex.
+  math = KaTeXCompatHacks(math);
+
   let err: string | undefined = undefined;
   let html: string | undefined = undefined;
   try {
