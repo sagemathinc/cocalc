@@ -12,6 +12,7 @@ export interface User {
 export interface PublicPath {
   id: string;
   path?: string;
+  url?: string;
   description?: string;
   last_edited?: number;
   disabled?: boolean;

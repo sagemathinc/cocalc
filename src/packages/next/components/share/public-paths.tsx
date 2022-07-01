@@ -44,8 +44,16 @@ function LastEdited({ last_edited }: { last_edited: string }) {
   return <>{`${new Date(parseFloat(last_edited)).toLocaleString()}`}</>;
 }
 
-function Title({ id, title }: { id: string; title: string }) {
-  return <A href={`/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
+function Title({
+  id,
+  title,
+  url,
+}: {
+  id: string;
+  title: string;
+  url?: string;
+}) {
+  return <A href={url ?? `/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
 }
 
 function Visibility({ disabled, unlisted, vhost, authenticated }) {
@@ -104,7 +112,9 @@ const COLUMNS0: any[] = [
     title: "Path",
     dataIndex: "path",
     key: "path",
-    render: (title, record) => <Title id={record.id} title={title} />,
+    render: (title, record) => (
+      <Title id={record.id} title={title} url={record.url} />
+    ),
     responsive: ["sm"] as any,
     sorter: field_cmp("path"),
   },
@@ -150,10 +160,11 @@ const COLUMNS: any[] = COLUMNS0.concat([
     responsive: ["xs"] as any,
     key: "path",
     render: (_, record) => {
-      const { path, last_edited, id, description, stars, counter } = record;
+      const { path, url, last_edited, id, description, stars, counter } =
+        record;
       return (
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Title title={path} id={id} />
+          <Title title={path} id={id} url={url} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
           <ViewsAndStars stars={stars} views={counter} />
@@ -184,10 +195,11 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
     responsive: ["xs"] as any,
     key: "path",
     render: (_, record) => {
-      const { path, last_edited, id, description, stars, counter } = record;
+      const { path, last_edited, id, description, stars, counter, url } =
+        record;
       return (
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Title title={path} id={id} />
+          <Title title={path} id={id} url={url} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
           <Visibility

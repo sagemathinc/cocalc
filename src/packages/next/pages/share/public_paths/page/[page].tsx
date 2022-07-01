@@ -90,7 +90,7 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT id, path, description, ${timeInSeconds("last_edited")},
+    `SELECT id, path, url, description, ${timeInSeconds("last_edited")},
     counter::INT,
      (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
     FROM public_paths

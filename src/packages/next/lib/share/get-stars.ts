@@ -19,7 +19,7 @@ export default async function getStars(
 
   const pool = getPool("short");
   const { rows } = await pool.query(
-    `SELECT id, path, description, ${timeInSeconds(
+    `SELECT id, path, url, description, ${timeInSeconds(
       "last_edited"
     )}, disabled, unlisted, authenticated,
     counter::INT,
