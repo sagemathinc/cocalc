@@ -44,7 +44,7 @@ export async function rawText(
   segments: string[]
 ): Promise<string> {
   const url = rawURL(githubOrg, githubRepo, segments);
-  console.log("raw:", { url });
+  //console.log("raw:", { url });
   return await (await fetch(url, { size: RAW_MAX_SIZE_BYTES })).text();
 }
 
@@ -97,12 +97,15 @@ export async function api(path: string): Promise<any> {
       "Content-Type": "application/json",
     });
   }
-  const response: any = await (await fetch(url, options)).json();
-  console.log({ url, response });
-  if (response.message) {
-    throw Error(`${response.message}  (see ${response.documentation_url})`);
+  //console.log(options);
+  const response = await fetch(url, options);
+  //console.log(response.headers);
+  const data: any = await response.json();
+  //console.log({ url, response });
+  if (data.message) {
+    throw Error(`${data.message}  (see ${data.documentation_url})`);
   }
-  return response;
+  return data;
 }
 
 // Use the github api to get the contents of a path on github.

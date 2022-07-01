@@ -12,7 +12,7 @@ import getProjectInfo from "lib/project/info";
 import getProject from "lib/share/get-project";
 import Project from "components/project/project";
 import Organization from "lib/share/github/organization";
-import getPublicPathInfoGithub from "lib/share/github/get-public-path-info";
+import getPublicPathInfoGithub from "lib/share/github/get-public-path-info-github";
 
 export default function Page(props) {
   if (props.project_id) {

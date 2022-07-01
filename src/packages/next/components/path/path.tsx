@@ -257,7 +257,8 @@ export default function PublicPath({
             message="Error loading file"
             description={
               <div>
-                There was a problem loading "{relativePath}" in{" "}
+                There was a problem loading{" "}
+                {relativePath ? relativePath : "this file"} in{" "}
                 <Link href={`/share/public_paths/${id}`}>
                   <a>{path}.</a>
                 </Link>

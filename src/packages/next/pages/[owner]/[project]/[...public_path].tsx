@@ -16,24 +16,15 @@ export default PublicPath;
 export async function getServerSideProps(context) {
   const { owner, project, public_path } = context.params;
   try {
-    const props = await getProps(owner, project, public_path, context);
+    const id = await getPublicPathId(owner, project, public_path);
+    const props = await getPublicPathInfo({
+      id,
+      public_path,
+      req: context.req,
+    });
     return await withCustomize({ context, props });
   } catch (_err) {
     console.log(_err);
     return { notFound: true };
   }
-}
-
-async function getProps(
-  owner: string,
-  project: string,
-  public_path: string[],
-  context
-) {
-  const public_path_id = await getPublicPathId(owner, project, public_path);
-  return await getPublicPathInfo({
-    id: public_path_id,
-    public_path,
-    req: context.req,
-  });
 }
