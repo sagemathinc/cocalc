@@ -24,7 +24,7 @@ export async function getServerSideProps(context) {
   }
 }
 
-export async function getProps(
+async function getProps(
   owner: string,
   project: string,
   public_path: string[],
