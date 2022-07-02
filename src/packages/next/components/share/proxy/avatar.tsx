@@ -17,7 +17,7 @@ export default function GithubAvatar({ style, size = 195 / 2, name }: Props) {
       title={`Open the GitHub pag ${url} in a new tab.`}
       placement="left"
     >
-      <div style={style}>
+      <div style={{ textAlign: "center", ...style }}>
         <A href={url}>
           <Avatar
             style={{ borderRadius: "7.5px", border: "1px solid #eee" }}
@@ -25,7 +25,7 @@ export default function GithubAvatar({ style, size = 195 / 2, name }: Props) {
             size={size}
             icon={<img src={`https://avatars.githubusercontent.com/${name}`} />}
           />
-          <div style={{ textAlign: "center" }}>
+          <div>
             <Icon name="external-link" /> {trunc(name, 28)}{" "}
             <Icon name="github" />
           </div>

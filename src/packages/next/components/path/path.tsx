@@ -267,14 +267,14 @@ export default function PublicPath({
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
+        {githubOrg && (
+          <Avatar
+            size={96}
+            name={githubOrg}
+            style={{ float: "right", marginLeft: "15px" }}
+          />
+        )}
         <div>
-          {githubOrg && (
-            <Avatar
-              size={128}
-              name={githubOrg}
-              style={{ float: "right", marginLeft: "15px" }}
-            />
-          )}
           <div style={{ float: "right" }}>{renderStar()}</div>
           {signingUp && (
             <Alert

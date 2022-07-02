@@ -22,7 +22,7 @@ When you want to edit an existing public share, here's the flow of what happens.
 
 */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRouter } from "next/router";
@@ -49,6 +49,9 @@ export default function Edit({
 }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<boolean>(!!router.query.edit);
+  useEffect(() => {
+    setExpanded(!!router.query.edit);
+  }, [id, path, url, relativePath]);
 
   return (
     <span>

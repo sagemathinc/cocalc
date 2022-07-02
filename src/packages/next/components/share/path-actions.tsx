@@ -37,18 +37,23 @@ export default function PathActions({
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
   if (include("edit")) {
-    v.push(
-      <Edit
-        key="edit"
-        id={id}
-        path={path}
-        url={url}
-        relativePath={relativePath}
-        image={image}
-        project_id={project_id}
-        description={description}
-      />
-    );
+    if (url && isDir) {
+      // TODO!
+      // have to implement git clone...
+    } else {
+      v.push(
+        <Edit
+          key="edit"
+          id={id}
+          path={path}
+          url={url}
+          relativePath={relativePath}
+          image={image}
+          project_id={project_id}
+          description={description}
+        />
+      );
+    }
   }
   if (!url && include("hosted")) {
     v.push(

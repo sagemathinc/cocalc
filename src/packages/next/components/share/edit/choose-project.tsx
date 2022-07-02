@@ -56,6 +56,7 @@ export default function ChooseProject({
     try {
       if (project == null) throw Error("no target specified");
       setCopying("starting");
+      setHideSelect(true);
       // Possibly upgrade the project using a public_path license
       await api("/projects/public-path-license", {
         public_path_id: id,
