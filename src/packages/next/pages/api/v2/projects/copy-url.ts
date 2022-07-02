@@ -13,7 +13,6 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getParams from "lib/api/get-params";
 import call from "@cocalc/server/projects/connection/call";
 import getProxiedPublicPathInfo from "lib/share/proxy/get-proxied-public-path-info";
-import { getProject } from "@cocalc/server/projects/control";
 
 export default async function handle(req, res) {
   const params = getParams(req, ["project_id", "url", "path", "timeout"]);
@@ -36,7 +35,6 @@ export default async function handle(req, res) {
     if (!isCollaborator({ account_id, project_id })) {
       throw Error("must be a collaborator on target project");
     }
-
     const info = await getProxiedPublicPathInfo(url);
     if (info.contents?.content == null) {
       throw Error(
@@ -50,16 +48,8 @@ export default async function handle(req, res) {
       path: path ? path : filename,
       content: info.contents.content,
     };
-    try {
-      const response = await call({ project_id, mesg });
-      res.json({ response });
-    } catch (_err) {
-      // ensure project running and try again.
-      const project = getProject(project_id);
-      await project.start();
-      const response = await call({ project_id, mesg });
-      res.json({ response });
-    }
+    const response = await call({ project_id, mesg });
+    res.json({ response });
   } catch (err) {
     res.json({ error: `${err.message}` });
   }

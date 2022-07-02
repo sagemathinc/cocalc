@@ -3,6 +3,8 @@ Create or return the TCP connection from this server to a given project.
 
 The connection is cached and calling this is async debounced, so call it
 all you want.
+
+This will also try to start the project up to about a minute.
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -11,6 +13,7 @@ import getLogger from "@cocalc/backend/logger";
 import { callback2 } from "@cocalc/util/async-utils";
 import initialize from "./initialize";
 import { cancelAll } from "./handle-query";
+import { delay } from "awaiting";
 
 // misc_node is still in coffeescript :-(
 //import { connect_to_locked_socket } from "@cocalc/backend/misc_node";
@@ -35,8 +38,26 @@ async function connect(project_id: string): Promise<Connection> {
 
   // Calling address starts the project running, then returns
   // information about where it is running and how to connection.
+  // We retry a few times, in case project isn't running yet.
   dbg("getting address of ", project_id);
-  const { host, port, secret_token: token } = await project.address();
+  let address;
+  let i = 0;
+  while (true) {
+    try {
+      address = await project.address();
+      break;
+    } catch (err) {
+      dbg(err);
+      if (i >= 10) {
+        // give up!
+        throw err;
+      }
+      await project.start();
+      await delay(1000 * i);
+      i += 1;
+    }
+  }
+  const { host, port, secret_token: token } = address;
   dbg("got ", host, port);
 
   const socket = await callback2(connect_to_locked_socket, {
