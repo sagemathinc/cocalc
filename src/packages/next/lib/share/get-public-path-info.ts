@@ -11,7 +11,7 @@ import basePath from "lib/base-path";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
 import { isStarred as getIsStarred } from "@cocalc/server/public-paths/star";
-import getProxiedPublicPathInfo from "lib/share/github/get-proxied-public-path-info";
+import getProxiedPublicPathInfo from "lib/share/proxy/get-proxied-public-path-info";
 
 export default async function getPublicPathInfo({
   id,

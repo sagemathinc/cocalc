@@ -11,8 +11,8 @@ import withCustomize from "lib/with-customize";
 import getProjectInfo from "lib/project/info";
 import getProject from "lib/share/get-project";
 import Project from "components/project/project";
-import Organization from "lib/share/github/organization";
-import getPublicPathInfoGithub from "lib/share/github/get-public-path-info-github";
+import Organization from "components/share/proxy/organization";
+import getPublicPathInfoGithub from "lib/share/proxy/get-public-path-info-github";
 
 export default function Page(props) {
   if (props.project_id) {

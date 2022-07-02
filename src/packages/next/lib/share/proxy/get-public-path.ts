@@ -1,13 +1,17 @@
-import getGithubProjectId from "lib/share/github/project";
+import getProxyProjectId from "lib/share/proxy/project";
 import getPool from "@cocalc/database/pool";
 import * as sha1 from "sha1";
 import { fileInGist } from "./api";
+
+export function shouldUseProxy(owner: string): boolean {
+  return owner == "github" || owner == "gist" || owner == "url";
+}
 
 const QUERY = `SELECT id, project_id, path, url, description, counter::INT, last_edited,
     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
     FROM public_paths WHERE `;
 
-export default async function getPublicPath({
+export default async function getProxyPublicPath({
   id,
   project_id,
   path,
@@ -47,7 +51,7 @@ export default async function getPublicPath({
   if (project_id == null) {
     // this is the unique project used for all url proxying functionality; if not given,
     // we just look it up for convenience.
-    project_id = await getGithubProjectId();
+    project_id = await getProxyProjectId();
   }
   if (id == null && path != null) {
     // if id not given but path is, then we can compute the id from project_id and path, since it's derived from them.

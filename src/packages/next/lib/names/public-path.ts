@@ -10,7 +10,9 @@ a nice "homepage" for that user or organization.
 import getPool from "@cocalc/database/pool";
 import getProjectId from "./project";
 import { getOwnerName } from "lib/names/owner";
-import getProxyPublicPath from "lib/share/github/get-public-path";
+import getProxyPublicPath, {
+  shouldUseProxy,
+} from "lib/share/proxy/get-public-path";
 import { join } from "path";
 
 export default async function getPublicPathId(
@@ -18,7 +20,7 @@ export default async function getPublicPathId(
   project: string,
   public_path: string[] // this is the entire actual path
 ): Promise<string> {
-  if (owner == "github" || owner == "gist" || owner == "url") {
+  if (shouldUseProxy(owner)) {
     // special case -- proxy urls...
     const { id } = await getProxyPublicPath({
       url: join(owner, project, ...public_path),

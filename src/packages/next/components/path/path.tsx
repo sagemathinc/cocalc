@@ -28,7 +28,7 @@ import apiPost from "lib/api/post";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { useRouter } from "next/router";
 import type { PathContents as PathContentsType } from "lib/share/get-contents";
-import Avatar from "lib/share/github/avatar";
+import Avatar from "components/share/proxy/avatar";
 
 interface Props {
   id: string;

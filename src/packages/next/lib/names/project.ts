@@ -7,7 +7,7 @@ a nice "homepage" for that user or organization.
 
 import getPool from "@cocalc/database/pool";
 import getOwner from "./owner";
-import getGithubProjectId from "lib/share/github/project";
+import getProxyProjectId from "lib/share/proxy/project";
 
 // Throws an exception if there is no project with this name.
 // TODO: take into account redirects for when name is changed.
@@ -16,7 +16,7 @@ export default async function getProjectId(
   project: string
 ): Promise<string> {
   if (owner == "github") {
-    return await getGithubProjectId();
+    return await getProxyProjectId();
   }
 
   const { owner_id } = await getOwner(owner);

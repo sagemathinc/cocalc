@@ -53,7 +53,11 @@ function Title({
   title: string;
   url?: string;
 }) {
-  return <A href={url ?? `/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
+  return (
+    <A href={url ? `/${url}` : `/share/public_paths/${id}`}>
+      {trunc_middle(title, 48)}
+    </A>
+  );
 }
 
 function Visibility({ disabled, unlisted, vhost, authenticated }) {
