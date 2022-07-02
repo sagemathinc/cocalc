@@ -86,8 +86,9 @@ export default async function getPublicPathInfo({
 
   try {
     let details;
-    if (rows[0].url) { // only proxied public paths have url attribute
-      details = await getProxiedPublicPathInfo(rows[0].url, public_path ??[]);
+    if (rows[0].url) {
+      // only proxied public paths have url attribute
+      details = await getProxiedPublicPathInfo(rows[0].url, public_path ?? []);
     } else {
       details = {
         contents: await getContents(

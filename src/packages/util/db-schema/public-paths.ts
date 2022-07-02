@@ -135,6 +135,10 @@ Table({
       type: "string",
       desc: "If given, use this relative URL to open this share. ONLY set this for proxy urls!  For example: 'gist/darribas/4121857' or 'github/cocalc/sagemathinc' or 'url/wstein.org/Tables/modjac/curves.txt'.  The point is that we need to store the url somewhere, and don't want to end up using the ugly id in this case.  This is different than the urls that come from setting a name for the owner and public path, since that's for files shared *from* within cocalc.",
     },
+    image: {
+      type: "string",
+      desc: "Image that illustrates this shared content.",
+    },
   },
   rules: {
     primary_key: "id",
@@ -159,6 +163,7 @@ Table({
           name: null,
           url: null, // user can get this but NOT set it (below) since it's set when path is created only (it defines the path).
           description: null,
+          image: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
           authenticated: null, // if true, only authenticated users can have access
@@ -181,6 +186,7 @@ Table({
           path: true,
           name: true,
           description: true,
+          image: true,
           disabled: true,
           unlisted: true,
           authenticated: true,

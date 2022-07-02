@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Button, Divider } from "antd";
+import { Alert, Button, Divider, Tooltip } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -29,10 +29,13 @@ import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { useRouter } from "next/router";
 import type { PathContents as PathContentsType } from "lib/share/get-contents";
 import Avatar from "components/share/proxy/avatar";
+import A from "components/misc/A";
+import { join } from "path";
 
 interface Props {
   id: string;
   path: string;
+  url: string;
   project_id: string;
   projectTitle?: string;
   relativePath?: string;
@@ -55,6 +58,7 @@ interface Props {
 export default function PublicPath({
   id,
   path,
+  url,
   project_id,
   projectTitle,
   relativePath = "",
@@ -172,13 +176,101 @@ export default function PublicPath({
     );
   }
 
+  function renderProjectLink() {
+    if (githubOrg && githubRepo) {
+      return (
+        <Tooltip
+          title="Go to the top level of the repository."
+          placement="right"
+        >
+          <b>
+            <Icon name="home" /> GitHub Repository:{" "}
+          </b>
+          <A href={`/github/${githubOrg}/${githubRepo}`}>
+            {githubOrg}/{githubRepo}
+          </A>
+          <br />
+        </Tooltip>
+      );
+    }
+    if (url) {
+      let name, target;
+      const i = url.indexOf("/");
+      if (url.startsWith("gist")) {
+        target = `https://gist.github.com/${url.slice(i + 1)}`;
+        name = "GitHub Gist";
+      } else {
+        target = "https://" + url.slice(i + 1);
+        name = "URL";
+      }
+      // NOTE: it could conceivable only be http:// display will work, but this
+      // link will be wrong. I'm not going to worry about that.
+      return (
+        <Tooltip
+          placement="right"
+          title={`This file is hosted at ${target}. Click to open in a new tab.`}
+        >
+          <b>
+            <Icon name="external-link" /> {name}:{" "}
+          </b>
+          <A href={target}>{target}</A>
+          <br />
+        </Tooltip>
+      );
+    }
+    return (
+      <div>
+        <b>Project:</b>{" "}
+        <ProjectLink project_id={project_id} title={projectTitle} />
+        <br />
+      </div>
+    );
+  }
+
+  function renderPathLink() {
+    if (githubRepo) {
+      const segments = url.split("/");
+      return (
+        <Tooltip
+          placement="right"
+          title="This is hosted on GitHub. Click to open GitHub in a new tab."
+        >
+          <b>
+            <Icon name="external-link" /> Path:{" "}
+          </b>
+          <A href={`https://github.com/${join(...segments.slice(1))}`}>
+            {segments.length > 3
+              ? join(...segments.slice(3))
+              : join(...segments.slice(1))}
+          </A>
+          <br />
+        </Tooltip>
+      );
+    }
+
+    if (url) return;
+
+    return (
+      <div>
+        <b>Path: </b>
+        <LinkedPath
+          path={path}
+          relativePath={relativePath}
+          id={id}
+          isDir={contents?.isdir}
+        />
+        <br />
+      </div>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
         {githubOrg && (
           <Avatar
+            size={128}
             name={githubOrg}
-            repo={githubRepo}
             style={{ float: "right", marginLeft: "15px" }}
           />
         )}
@@ -208,17 +300,8 @@ export default function PublicPath({
             value={description}
           />
         )}
-        <b>Project:</b>{" "}
-        <ProjectLink project_id={project_id} title={projectTitle} />
-        <br />
-        <b>Path: </b>
-        <LinkedPath
-          path={path}
-          relativePath={relativePath}
-          id={id}
-          isDir={contents?.isdir}
-        />
-        <br />
+        {renderProjectLink()}
+        {renderPathLink()}
         {counter && (
           <>
             <b>Views:</b> <Badge count={counter} />
@@ -241,6 +324,7 @@ export default function PublicPath({
         <PathActions
           id={id}
           path={path}
+          url={url}
           relativePath={relativePath}
           isDir={contents?.isdir}
           exclude={new Set(["hosted"])}

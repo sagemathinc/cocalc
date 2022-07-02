@@ -88,10 +88,18 @@ export default async function getProxyPublicPath({
     return rows[0];
   }
 
+  let publicPathUrl;
+  if (url.startsWith("github/")) {
+    // URL to the repository, not the exact path being requested.
+    publicPathUrl = url.split("/").slice(0, 3).join("/");
+  } else {
+    publicPathUrl = url;
+  }
+
   const now = new Date();
   await pool.query(
     "INSERT INTO public_paths (id, url, project_id, path, description, last_edited, last_saved, created) VALUES($1, $2, $3, $4, $5, $6, $7, $8)",
-    [id, url, project_id, path, description, now, now, now]
+    [id, publicPathUrl, project_id, path, description, now, now, now]
   );
   return {
     id,

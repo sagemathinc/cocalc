@@ -37,5 +37,6 @@ export default async function getPublicPathInfoGithub(url: string) {
     projectTitle,
     githubOrg,
     githubRepo,
+    url,
   };
 }
