@@ -17,6 +17,7 @@ export default async function handle(req, res) {
   if (!isPost(req, res)) return;
 
   const {
+    public_id,
     path,
     src_project_id,
     target_project_id,
@@ -26,7 +27,6 @@ export default async function handle(req, res) {
     backup,
     timeout,
     bwlimit,
-    public_id,
   } = req.body;
 
   const error = checkParams(req.body);

@@ -9,10 +9,12 @@ import { join } from "path";
 
 export default async function getProxiedPublicPathInfo(
   url: string,
-  segments: string[]
+  segments?: string[]
 ) {
   if (url.startsWith("github/")) {
-    return await getPublicPathInfoGithub(join(url, ...segments.slice(1)));
+    return await getPublicPathInfoGithub(
+      segments == null ? url : join(url, ...segments.slice(1))
+    );
   }
   if (url.startsWith("url/")) {
     return await getPublicPathInfoUrl(url);

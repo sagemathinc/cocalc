@@ -84,6 +84,7 @@ function SignedInOptions({
       id={id}
       src_project_id={project_id}
       path={path}
+      url={url}
       relativePath={relativePath}
       image={image}
       description={description ? description : path ? path : relativePath}

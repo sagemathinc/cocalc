@@ -1,3 +1,20 @@
+/*
+Supported proxy schema should be mostly consistent with (and an extension of) nbviewer.org:
+
+`url/example.com/thingy...` or `gist/user/id` or `github/owner/repo...`, etc.
+
+Three options handled right now; anything else is an error.  The path must uniquely determine
+what is publicly shared (at some unit), and it's nice if it is useful (e.g., for url's and gists).
+
+- github/cocalc/sagemathinc/... --> 'github/cocalc/sagemathinc'; i.e., the github repo maps 1:1 to cocalc public path.
+- gist/darribas/4121857 --> 'gist/4121857/guardian_gaza.ipynb'; here guardian_gaza.ipynb is the first filename hosted
+  in the gist, and requires api call to github to get it. This uniquely determines the gist *and* tells us what type of file
+  it contains so we can render it.
+- url/wstein.org/Tables/modjac/curves.txt --> 'url/wstein.org/Tables/modjac/curves.txt'; path equals the url, since this is
+  completely generic and there is nothing further we could do.
+
+*/
+
 import getProxyProjectId from "lib/share/proxy/project";
 import getPool from "@cocalc/database/pool";
 import * as sha1 from "sha1";
@@ -113,19 +130,6 @@ export default async function getProxyPublicPath({
   };
 }
 
-/*
-Three options handled right now; anything else is an error.  The path must uniquely determine
-what is publicly shared (at some unit), and it's nice if it is useful (e.g., for url's and gists).
-
-- github/cocalc/sagemathinc/... --> 'github/cocalc/sagemathinc'; i.e., the github repo maps 1:1 to cocalc public path.
-- gist/darribas/4121857 --> 'gist/4121857/guardian_gaza.ipynb'; here guardian_gaza.ipynb is the first filename hosted
-  in the gist, and requires api call to github to get it. This uniquely determines the gist *and* tells us what type of file
-  it contains so we can render it.
-- url/wstein.org/Tables/modjac/curves.txt --> 'url/wstein.org/Tables/modjac/curves.txt'; path equals the url, since this is
-  completely generic and there is nothing further we could do.
-
-
-*/
 async function getPath(url: string) {
   if (url.startsWith("github/")) {
     const v = url.split("/");
