@@ -12,6 +12,7 @@ interface Props {
   style?: CSSProperties;
   fullscreen?: boolean;
   description?: string;
+  start?: boolean; // if true, immediately load iframe rather than waiting for user to click a button.
 }
 
 export default function IFrame({
@@ -20,12 +21,13 @@ export default function IFrame({
   path,
   style,
   fullscreen: fullscreen0,
+  start: start0,
   description,
 }: Props) {
   const [fullscreen, setFullscreen] = useState<boolean>(!!fullscreen0);
   const [reload, setReload] = useState<number>(0);
   const iframeRef = useRef<any>(null);
-  const [start, setStart] = useState<boolean>(false);
+  const [start, setStart] = useState<boolean>(!!start0);
 
   const url = new URL("http://example.com" + src0);
   url.search += (url.search ? "&" : "") + `reload=${reload}`;
@@ -119,13 +121,16 @@ export default function IFrame({
       {start && <hr style={{ width: "100%" }} />}
       {!start ? (
         <Button
-          style={{ margin: "auto" }}
+          style={{ margin: "15px auto" }}
           size="large"
           type="primary"
           shape="round"
           onClick={() => setStart(true)}
         >
-          <Icon name={"run"} /> Start {description ?? ""}...
+          <span style={{ marginRight: "10px" }}>
+            <Icon name={"run"} />{" "}
+          </span>{" "}
+          Load {description ?? "Editor"}...
         </Button>
       ) : (
         <iframe

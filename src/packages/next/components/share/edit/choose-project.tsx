@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
@@ -18,7 +18,7 @@ import CreateProject from "components/project/create";
 import SelectProject from "components/project/select";
 import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Path from "components/app/path";
+import RunApp from "components/app/path";
 
 export default function ChooseProject({
   id,
@@ -41,16 +41,24 @@ export default function ChooseProject({
   const [hideCreate, setHideCreate] = useState<boolean>(false);
   const targetPath = join(path, relativePath);
 
+  useEffect(() => {
+    // Always immediately start copying -- don't wait for user to click a button. See
+    // https://github.com/sagemathinc/cocalc/issues/6025
+    if (project != null && copying == "before") {
+      doCopy();
+    }
+  }, [project != null]);
+
   async function doCopy() {
     try {
       if (project == null) throw Error("no target specified");
+      setCopying("starting");
       // Possibly upgrade the project using a public_path license
       await api("/projects/public-path-license", {
         public_path_id: id,
         project_id: project.project_id,
       });
       // Start the *target* project!
-      setCopying("starting");
       await api("/projects/start", { project_id: project.project_id });
       if (!isMounted.current) return;
       setCopying("during");
@@ -191,9 +199,10 @@ export default function ChooseProject({
                 ) : (
                   ""
                 )}
-                <br/>
-                <br/>
-                <Path
+                <br />
+                <br />
+                <RunApp
+                  start
                   project_id={project.project_id}
                   path={join(path, relativePath)}
                 />

@@ -31,6 +31,7 @@ import EditOptions from "./edit-options";
 export interface Props {
   id: string;
   path: string;
+  url?: string;
   relativePath: string;
   project_id: string;
   image?: string;
@@ -40,6 +41,7 @@ export interface Props {
 export default function Edit({
   id,
   path,
+  url,
   relativePath,
   project_id,
   image,
@@ -57,7 +59,6 @@ export default function Edit({
           setExpanded(true);
         }}
         key="edit"
-        size="small"
       >
         <Icon name="pencil" /> Edit...
       </Button>
@@ -65,6 +66,7 @@ export default function Edit({
         <EditOptions
           id={id}
           path={path}
+          url={url}
           relativePath={relativePath}
           project_id={project_id}
           image={image}

@@ -17,17 +17,20 @@ export default function GithubAvatar({ style, size = 195 / 2, name }: Props) {
       title={`Open the GitHub pag ${url} in a new tab.`}
       placement="left"
     >
-      <A href={url} style={{ textAlign: "center", ...style }}>
-        <Avatar
-          style={{ borderRadius: "7.5px", border: "1px solid #eee" }}
-          shape="square"
-          size={size}
-          icon={<img src={`https://avatars.githubusercontent.com/${name}`} />}
-        />
-        <br />
-        <Icon name="external-link" /> {trunc(name, 28)}{" "}
-        <Icon name="github" />
-      </A>
+      <div style={style}>
+        <A href={url}>
+          <Avatar
+            style={{ borderRadius: "7.5px", border: "1px solid #eee" }}
+            shape="square"
+            size={size}
+            icon={<img src={`https://avatars.githubusercontent.com/${name}`} />}
+          />
+          <div style={{ textAlign: "center" }}>
+            <Icon name="external-link" /> {trunc(name, 28)}{" "}
+            <Icon name="github" />
+          </div>
+        </A>
+      </div>
     </Tooltip>
   );
 }

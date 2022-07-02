@@ -267,71 +267,76 @@ export default function PublicPath({
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
-        {githubOrg && (
-          <Avatar
-            size={128}
-            name={githubOrg}
-            style={{ float: "right", marginLeft: "15px" }}
+        <div>
+          {githubOrg && (
+            <Avatar
+              size={128}
+              name={githubOrg}
+              style={{ float: "right", marginLeft: "15px" }}
+            />
+          )}
+          <div style={{ float: "right" }}>{renderStar()}</div>
+          {signingUp && (
+            <Alert
+              style={{ margin: "0 auto", maxWidth: "400px" }}
+              type="warning"
+              message={
+                <InPlaceSignInOrUp
+                  title="Star Shared Files"
+                  why="to star this"
+                  onSuccess={() => {
+                    star();
+                    setSigningUp(false);
+                    router.reload();
+                  }}
+                />
+              }
+            />
+          )}
+          {description?.trim() && (
+            <SanitizedMarkdown
+              style={
+                { marginBottom: "-1em" } /* -1em to undo it being a paragraph */
+              }
+              value={description}
+            />
+          )}
+          {renderProjectLink()}
+          {renderPathLink()}
+          {counter && (
+            <>
+              <b>
+                <Icon name="eye" /> Views:
+              </b>{" "}
+              <Badge count={counter} />
+              <br />
+            </>
+          )}
+          {license && (
+            <>
+              <b>License:</b> <License license={license} />
+              <br />
+            </>
+          )}
+          {visibility()}
+          {compute_image && (
+            <>
+              <b>Image:</b> {compute_image}
+              <br />
+            </>
+          )}
+          <PathActions
+            id={id}
+            path={path}
+            url={url}
+            relativePath={relativePath}
+            isDir={contents?.isdir}
+            exclude={new Set(["hosted"])}
+            project_id={project_id}
+            image={compute_image}
+            description={description}
           />
-        )}
-        <div style={{ float: "right" }}>{renderStar()}</div>
-        {signingUp && (
-          <Alert
-            style={{ margin: "0 auto", maxWidth: "400px" }}
-            type="warning"
-            message={
-              <InPlaceSignInOrUp
-                title="Star Shared Files"
-                why="to star this"
-                onSuccess={() => {
-                  star();
-                  setSigningUp(false);
-                  router.reload();
-                }}
-              />
-            }
-          />
-        )}
-        {description?.trim() && (
-          <SanitizedMarkdown
-            style={
-              { marginBottom: "-1em" } /* -1em to undo it being a paragraph */
-            }
-            value={description}
-          />
-        )}
-        {renderProjectLink()}
-        {renderPathLink()}
-        {counter && (
-          <>
-            <b>Views:</b> <Badge count={counter} />
-            <br />
-          </>
-        )}
-        {license && (
-          <>
-            <b>License:</b> <License license={license} />
-            <br />
-          </>
-        )}
-        {visibility()}
-        {compute_image && (
-          <>
-            <b>Image:</b> {compute_image}
-            <br />
-          </>
-        )}
-        <PathActions
-          id={id}
-          path={path}
-          url={url}
-          relativePath={relativePath}
-          isDir={contents?.isdir}
-          exclude={new Set(["hosted"])}
-          project_id={project_id}
-          image={compute_image}
-          description={description}
-        />
+        </div>
         <Divider />
         {error != null && (
           <Alert

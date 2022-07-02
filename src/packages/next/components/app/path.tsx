@@ -19,6 +19,7 @@ interface Props {
   fullscreen?: boolean;
   embed?: boolean;
   description?: string;
+  start?: boolean; // if true, immediately load editor rather than waiting for user to click a button.
 }
 
 export default function Path({
@@ -28,6 +29,7 @@ export default function Path({
   fullscreen,
   embed,
   description,
+  start,
 }: Props) {
   const { account, anonymousSignup } = useCustomize();
 
@@ -63,6 +65,7 @@ export default function Path({
       style={style}
       fullscreen={fullscreen}
       description={description}
+      start={start}
     />
   );
 }

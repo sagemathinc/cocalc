@@ -36,6 +36,20 @@ export default function PathActions({
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
+  if (include("edit")) {
+    v.push(
+      <Edit
+        key="edit"
+        id={id}
+        path={path}
+        url={url}
+        relativePath={relativePath}
+        image={image}
+        project_id={project_id}
+        description={description}
+      />
+    );
+  }
   if (!url && include("hosted")) {
     v.push(
       <Link key="hosted" href={`/share/public_paths/${id}`}>
@@ -69,19 +83,6 @@ export default function PathActions({
       <a key="download" href={downloadURL(id, path, relativePath)}>
         Download
       </a>
-    );
-  }
-  if (include("edit")) {
-    v.push(
-      <Edit
-        key="edit"
-        id={id}
-        path={path}
-        relativePath={relativePath}
-        image={image}
-        project_id={project_id}
-        description={description}
-      />
     );
   }
 
