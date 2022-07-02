@@ -40,11 +40,17 @@ async function connect(project_id: string): Promise<Connection> {
   // information about where it is running and how to connection.
   // We retry a few times, in case project isn't running yet.
   dbg("getting address of ", project_id);
-  let address;
+  let socket;
   let i = 0;
   while (true) {
     try {
-      address = await project.address();
+      const { host, port, secret_token: token } = await project.address();
+      dbg("got ", host, port);
+      socket = await callback2(connect_to_locked_socket, {
+        host,
+        port,
+        token,
+      });
       break;
     } catch (err) {
       dbg(err);
@@ -57,15 +63,6 @@ async function connect(project_id: string): Promise<Connection> {
       i += 1;
     }
   }
-  const { host, port, secret_token: token } = address;
-  dbg("got ", host, port);
-
-  const socket = await callback2(connect_to_locked_socket, {
-    host,
-    port,
-    token,
-  });
-
   initialize(project_id, socket);
 
   function free() {
