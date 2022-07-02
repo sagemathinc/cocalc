@@ -12,6 +12,7 @@ import {
   unreachable,
   capitalize,
   uuid,
+  sha1,
   separate_file_extension,
 } from "@cocalc/util/misc";
 import { generate as heroku } from "project-name-generator";
@@ -23,7 +24,6 @@ import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { webapp_client } from "../webapp-client";
 import { BASE_URL } from "../misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import * as sha1 from "sha1";
 
 export type NewFilenameTypes =
   | "iso"

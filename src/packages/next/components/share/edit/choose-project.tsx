@@ -215,7 +215,9 @@ export default function ChooseProject({
                 </A>
                 .{" "}
                 {errorCopying ? (
-                  <div>There might have been an issue copying files.</div>
+                  <div>
+                    <b>There appears to have been an issue copying files.</b>
+                  </div>
                 ) : (
                   ""
                 )}
