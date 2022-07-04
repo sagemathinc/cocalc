@@ -25,8 +25,6 @@ and they include:
 
 import { callProjectMessage } from "./handle-message";
 import getConnection from "./connect";
-//import getLogger from "@cocalc/backend/logger";
-//const logger = getLogger("project-connection:call");
 
 export default async function call({
   project_id,

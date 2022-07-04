@@ -56,7 +56,9 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
         display: "flex",
         flexDirection: "column",
         height: "42px",
-        ...(elements.length == 1 && elements[0].type == "code" /* this is basically a hack for now so tab completion in code cells doesn't get obscured by edit bar */
+        ...(elements.length == 1 &&
+        elements[0].type ==
+          "code" /* this is basically a hack for now so tab completion in code cells doesn't get obscured by edit bar */
           ? { right: "10px" }
           : undefined),
       }}
@@ -347,7 +349,13 @@ export function SelectFontFamily({
         key={fontFamily}
         search={fontFamily.toLowerCase()}
       >
-        <span style={{ fontFamily }}>{fontFamily}</span>
+        <span
+          style={{
+            fontFamily: fontFamily != "Sans" ? fontFamily : "sans-serif",
+          }}
+        >
+          {fontFamily}
+        </span>
       </Option>
     );
   }
@@ -362,6 +370,7 @@ export function SelectFontFamily({
         showSearch
         placeholder="Select a font"
         optionFilterProp="children"
+        optionLabelProp="label"
         onChange={onChange}
         filterOption={(input, option) => {
           if (!input.trim()) return true;

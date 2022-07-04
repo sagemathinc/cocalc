@@ -44,11 +44,11 @@ export function init(redux) {
 
   // Login status
   webapp_client.on("signed_in", function (mesg) {
-    if (mesg != null ? mesg.api_key : undefined) {
+    if (mesg?.api_key) {
       // wait for sign in to finish and cookie to get set, then redirect
-      const f = () =>
-        (window.location.href = `https://authenticated?api_key=${mesg.api_key}`);
-      setTimeout(f, 2000);
+      setTimeout(() => {
+        window.location.href = `https://authenticated?api_key=${mesg.api_key}`;
+      }, 2000);
     }
     redux.getActions("account").set_user_type("signed_in");
   });

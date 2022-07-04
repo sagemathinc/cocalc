@@ -83,10 +83,6 @@ function Try0({ minimal, onSuccess }: Props) {
         Try {siteName} <b>without</b>{" "}
         <A href="/auth/sign-up" external={!!minimal}>
           creating an account
-        </A>{" "}
-        or{" "}
-        <A href="/auth/sign-in" external={!!minimal}>
-          signing in
         </A>
         !
         <Button
@@ -98,7 +94,7 @@ function Try0({ minimal, onSuccess }: Props) {
           onClick={createAnonymousAccount}
         >
           {state == "creating" ? (
-            <Loading>Creating Anonymous Account...</Loading>
+            <Loading>Configuring Anonymous Access...</Loading>
           ) : (
             <>Use {siteName} Anonymously</>
           )}

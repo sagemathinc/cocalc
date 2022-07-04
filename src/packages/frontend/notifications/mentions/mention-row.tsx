@@ -3,13 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import { CSSProperties } from "react";
 
-import { redux } from "../../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { MentionInfo } from "./types";
-import { Avatar } from "../../account/avatar/avatar";
-import { Icon, IconName, TimeAgo } from "../../components";
-import { User } from "../../users";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { Icon, IconName, TimeAgo } from "@cocalc/frontend/components";
+import { User } from "@cocalc/frontend/users";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { Tooltip } from "antd";
 
 export function MentionRow({
   id,
@@ -20,29 +24,19 @@ export function MentionRow({
   mention: MentionInfo;
   user_map: any;
 }) {
-  const {
-    path,
-    project_id,
-    source,
-    time,
-    target,
-    description,
-  } = mention.toJS();
+  const { path, project_id, source, time, target, description, fragment_id } =
+    mention.toJS();
 
-  const on_row_click = () => {
-    redux.getProjectActions(project_id).open_file({ path: path, chat: true });
-  };
-
+  const fragmentId = Fragment.decode(fragment_id);
   const is_read = mention.getIn(["users", target, "read"]);
   const is_saved = mention.getIn(["users", target, "saved"]);
-  let read_icon : IconName = "square-o";
-  let save_icon : IconName  = "book";
-  let row_style: React.CSSProperties = {};
+  let read_icon: IconName = "square-o";
+  let save_icon: IconName = "book";
+  let row_style: CSSProperties = {};
 
   if (is_read) {
     read_icon = "check-square-o";
     row_style = {
-      backgroundColor: "rgb(246, 248, 250)",
       color: "rgb(88, 96, 105)",
     };
   }
@@ -76,7 +70,26 @@ export function MentionRow({
   };
 
   return (
-    <li onClick={on_row_click} style={row_style}>
+    <li
+      className="cocalc-highlight-on-hover"
+      onClick={() => {
+        // Regarding chat -- if no fragment, assume chat.
+        // If fragment given, then it can explicitly specify chat, e.g.,
+        //    file.txt#chat=true,id=092ab039
+        redux.getProjectActions(project_id).open_file({
+          path: path,
+          chat: !fragmentId ? true : fragmentId["chat"],
+          fragmentId,
+        });
+        // the timeout is because visually seeing the mention disappear
+        // right when you click on it is disturbing.
+        setTimeout(
+          () => redux.getActions("mentions")?.mark_read(mention, id),
+          1000
+        );
+      }}
+      style={row_style}
+    >
       <div style={avatar_wrapping_style}>
         <Avatar account_id={source} />
       </div>
@@ -84,34 +97,50 @@ export function MentionRow({
         <strong>
           <User account_id={source} user_map={user_map} />
         </strong>{" "}
-        mentioned you.
-        {description && (
-          <div style={{ color: "rgb(100, 100, 100)", margin: "4px 10px" }}>
-            "{description}"
-          </div>
+        mentioned you in the file <code>{path}</code> in the project{" "}
+        <ProjectTitle project_id={project_id} />.
+        {description ? (
+          <StaticMarkdown
+            style={{ color: "rgb(100, 100, 100)", margin: "4px 10px" }}
+            value={description}
+          />
+        ) : (
+          <br />
         )}
-        {!description && <br />}
         <Icon name={"comment"} /> <TimeAgo date={time.getTime()} />
       </div>
       <div>
-        <Icon
-          name={save_icon}
-          size={"lg"}
-          onClick={on_save_unsave_click}
-          style={{ color: "rgb(100, 100, 100)", marginRight: "10px" }}
-        />
-        <Icon
-          name={read_icon}
-          size={"lg"}
-          onClick={on_read_unread_click}
-          style={{ color: "rgb(100, 100, 100)" }}
-        />
+        <Tooltip
+          title={
+            is_saved
+              ? "Remove this @mention from 'Saved for later'"
+              : "Save this mention for later"
+          }
+        >
+          <Icon
+            name={save_icon}
+            onClick={on_save_unsave_click}
+            style={{
+              fontSize: "20px",
+              color: "rgb(100, 100, 100)",
+              backgroundColor: is_saved ? "yellow" : undefined,
+              marginRight: "10px",
+            }}
+          />
+        </Tooltip>
+        <Tooltip title={`Mark this @mention as ${is_read ? "unread" : "read"}`}>
+          <Icon
+            name={read_icon}
+            onClick={on_read_unread_click}
+            style={{ fontSize: "20px", color: "rgb(100, 100, 100)" }}
+          />
+        </Tooltip>
       </div>
     </li>
   );
 }
 
-const description_style: React.CSSProperties = { flex: "1" };
-const avatar_wrapping_style: React.CSSProperties = {
+const description_style: CSSProperties = { flex: "1" };
+const avatar_wrapping_style: CSSProperties = {
   margin: ".9em",
 };

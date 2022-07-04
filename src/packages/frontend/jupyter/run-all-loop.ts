@@ -3,8 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// using require because this file is used in smc-project and import is messe
-const { close } = require("@cocalc/util/misc");
+import { close } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { JupyterActions } from "./project-actions";
 

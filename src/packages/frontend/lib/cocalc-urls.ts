@@ -1,6 +1,7 @@
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { splitFirst } from "@cocalc/util/misc";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 function getOrigin(): string {
   // This is a situation where our choice of definition of "/" for the
@@ -18,9 +19,8 @@ function getOrigin(): string {
 // isn't that bad.
 export function isCoCalcURL(href?: string): boolean {
   const origin = getOrigin();
-  return (
-    href != null &&
-    href.startsWith(origin) &&
+  return !!(
+    href?.startsWith(origin) &&
     !isUUID(href.slice(origin.length + 1, origin.length + 37))
   );
 }
@@ -30,7 +30,7 @@ export function parseCoCalcURL(href?: string): {
   project_id?: string;
   path?: string;
   target?: string;
-  anchor?: string;
+  fragmentId?: FragmentId;
   query?: string;
   projectPage?: string; // the page inside a project, if not a file, e.g., "new" or "settings"
 } {
@@ -39,18 +39,24 @@ export function parseCoCalcURL(href?: string): {
     return {};
   }
   href = href.slice(origin.length + 1);
-  const [hrefNoQuery, query] = splitFirst(href, "?");
-  const [hrefPlain, anchor] = splitFirst(hrefNoQuery, "#");
-  const i = hrefPlain.indexOf("/");
-  if (i == -1) {
-    return { page: hrefPlain, anchor, query };
+  const url = new URL("http://dummy/" + href); // using new URL is a safer way to parse url's
+  const fragmentId = Fragment.decode(url.hash.slice(1));
+  const query = url.search;
+  let pathname = url.pathname.slice(1);
+  const i = pathname.indexOf("/");
+  if (pathname.startsWith("settings")) {
+    // annoyingly, 'account' is what it is called in src/packages/frontend/app/actions.ts
+    pathname = "account";
   }
-  const page = hrefPlain.slice(0, i);
-  const inPage = hrefPlain.slice(i + 1);
+  if (i == -1) {
+    return { page: pathname, fragmentId, query };
+  }
+  const page = pathname.slice(0, i);
+  const inPage = pathname.slice(i + 1);
   if (page == "projects") {
     const [project_id, target] = splitFirst(inPage, "/");
     const [projectPage, path] = splitFirst(target ?? "", "/");
-    return { page, project_id, target, projectPage, path, anchor };
+    return { page, project_id, target, projectPage, path, fragmentId };
   }
-  return { page, target: inPage };
+  return { page, target: inPage, fragmentId };
 }

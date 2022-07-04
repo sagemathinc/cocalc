@@ -33,6 +33,7 @@ import "./project-log";
 import "./project-status";
 import "./projects";
 import "./public-paths";
+import "./public-path-stars";
 import "./project-invite-tokens";
 import "./registration-tokens";
 import "./server-settings";

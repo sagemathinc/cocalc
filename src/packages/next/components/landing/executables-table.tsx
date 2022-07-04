@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useMemo, useState } from "react";
 import { Input, Table, Typography } from "antd";
 import Code from "components/landing/code";
@@ -9,7 +14,7 @@ const { Text } = Typography;
 const INFO_STYLE: React.CSSProperties = {
   overflow: "auto",
   maxHeight: "10em",
-  maxWidth: "30vw",
+  maxWidth: "40vw",
   backgroundColor: "rgba(150, 150, 150, 0.1)",
   fontSize: "10px",
   border: "none",

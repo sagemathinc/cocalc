@@ -4,10 +4,11 @@
  */
 
 /*
-Whiteboard FRAME Editor Actions
+Whiteboard frame Editor Actions
 */
 
-import { Map as ImmutableMap } from "immutable";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { Map as ImmutableMap, fromJS } from "immutable";
 import { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
@@ -43,18 +44,25 @@ import {
   MAX_FONT_SIZE,
 } from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { cloneDeep, size } from "lodash";
+import { cloneDeep, debounce, size } from "lodash";
 import runCode from "./elements/code/run";
 import { getName } from "./elements/chat";
 import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
 import getKeyHandler from "./key-handler";
 import { pasteFromInternalClipboard } from "./tools/clipboard";
+import {
+  TableOfContentsEntryList,
+  TableOfContentsEntry,
+} from "@cocalc/frontend/components";
+import parseTableOfContents from "./table-of-contents";
+import { delay } from "awaiting";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
   pages?: PagesMap;
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
+  contents?: TableOfContentsEntryList; // table of contents data.
 }
 
 export class Actions extends BaseActions<State> {
@@ -144,6 +152,11 @@ export class Actions extends BaseActions<State> {
       if (elements !== elements0) {
         this.setState({ elements, pages });
       }
+
+      this._syncstring.on(
+        "change",
+        debounce(this.updateTableOfContents.bind(this), 1500)
+      );
     });
   }
 
@@ -276,12 +289,18 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  private createId(): string {
+  // create a new valid id.  If id is given, will try to use
+  // it if it isn't currently in use.
+  private createId(id?: string): string {
     const elements = this.store.get("elements");
-    while (true) {
-      const id = uuid().slice(0, 8);
-      if (!elements?.has(id)) return id;
+    if (elements == null) {
+      // fallback for weird edge case.
+      return uuid().slice(0, 8);
     }
+    while (!id || elements.has(id)) {
+      id = uuid().slice(0, 8);
+    }
+    return id;
   }
 
   private getGroupIds(): Set<string> {
@@ -386,8 +405,24 @@ export class Actions extends BaseActions<State> {
     }
   }
 
+  private setFragmentIdToPage(frameId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node?.get("type") != "whiteboard") return;
+    const page = node?.get("page");
+    if (this.store.get("visible")) {
+      if (page != null) {
+        Fragment.set({ page });
+      } else {
+        Fragment.clear();
+      }
+    }
+  }
+
   clearSelection(frameId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null || (node.get("selection")?.size ?? 0) == 0) return;
     this.set_frame_tree({ id: frameId, selection: [], editFocus: false });
+    this.setFragmentIdToPage(frameId);
   }
 
   // Sets the selection to either a single element or a list
@@ -408,43 +443,55 @@ export class Actions extends BaseActions<State> {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
-    if (expandGroups) {
-      const elements = this.store.get("elements");
-      if (elements == null) return;
-      const group = elements.getIn([id, "group"]);
-      if (group) {
-        const ids = this.getGroup(group).map((e) => e.id);
-        if (ids.length > 1) {
-          if (type == "toggle") {
-            type = selection.includes(id) ? "remove" : "add";
+    try {
+      if (expandGroups) {
+        const elements = this.store.get("elements");
+        if (elements == null) return;
+        const group = elements.getIn([id, "group"]);
+        if (group) {
+          const ids = this.getGroup(group).map((e) => e.id);
+          if (ids.length > 1) {
+            if (type == "toggle") {
+              type = selection.includes(id) ? "remove" : "add";
+            }
+            this.setSelectionMulti(frameId, ids, type, false);
+            return;
           }
-          this.setSelectionMulti(frameId, ids, type, false);
-          return;
+          // expanding the group did nothing
         }
-        // expanding the group did nothing
+        // not in a group
       }
-      // not in a group
-    }
 
-    if (type == "toggle") {
-      const i = selection.indexOf(id);
-      if (i == -1) {
+      if (type == "toggle") {
+        const i = selection.indexOf(id);
+        if (i == -1) {
+          selection.push(id);
+        } else {
+          selection.splice(i, 1);
+        }
+      } else if (type == "add") {
+        if (selection.includes(id)) return;
         selection.push(id);
-      } else {
+      } else if (type == "remove") {
+        const i = selection.indexOf(id);
+        if (i == -1) return;
         selection.splice(i, 1);
+      } else if (type == "only") {
+        selection = [id];
       }
-    } else if (type == "add") {
-      if (selection.includes(id)) return;
-      selection.push(id);
-    } else if (type == "remove") {
-      const i = selection.indexOf(id);
-      if (i == -1) return;
-      selection.splice(i, 1);
-    } else if (type == "only") {
-      selection = [id];
+      this.setEditFocus(frameId, type == "only" && size(selection) == 1);
+      this.set_frame_tree({ id: frameId, selection });
+    } finally {
+      if (node.get("type") != "whiteboard") return;
+
+      if (this.store.get("visible")) {
+        if (size(selection) == 0) {
+          this.setFragmentIdToPage(frameId);
+        } else {
+          Fragment.set({ id: selection[0] });
+        }
+      }
     }
-    this.setEditFocus(frameId, type == "only" && size(selection) == 1);
-    this.set_frame_tree({ id: frameId, selection });
   }
 
   public setSelectionMulti(
@@ -533,8 +580,8 @@ export class Actions extends BaseActions<State> {
     return this._syncstring?.in_undo_mode();
   }
 
-  fitToScreen(id: string, state: boolean = true): void {
-    this.set_frame_tree({ id, fitToScreen: state ? true : undefined });
+  fitToScreen(frameId, state: boolean = true): void {
+    this.set_frame_tree({ id: frameId, fitToScreen: state ? true : undefined });
   }
 
   toggleMapType(id: string): void {
@@ -568,8 +615,12 @@ export class Actions extends BaseActions<State> {
   }
 
   // define this, so icon shows up at top
-  zoom_page_width(id: string): void {
-    this.fitToScreen(id);
+  zoom_page_width(frameId: string): void {
+    this.fitToScreen(frameId);
+  }
+
+  zoom100(frameId: string) {
+    this.set_font_size(frameId, DEFAULT_FONT_SIZE);
   }
 
   // maybe this should NOT be in localStorage somehow... we need
@@ -629,7 +680,10 @@ export class Actions extends BaseActions<State> {
     const idMap: { [id: string]: string } = {};
     const groupMap: { [id: string]: string } = {};
     for (const element of elements) {
-      const newId = this.createId();
+      // Note that we try to use the existing id if available, in order to keep
+      // object id's stable under cut/paste, which is useful for making links
+      // more robust.
+      const newId = this.createId(element.id);
       idMap[element.id] = newId;
       ids.push(newId);
       element.id = newId;
@@ -835,7 +889,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
-    this.setPage(frameId, element.page ?? 1);
+    super.setPage(frameId, element.page ?? 1);
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1128,6 +1182,90 @@ export class Actions extends BaseActions<State> {
     this.setPages(frameId, page);
     this.setPage(frameId, page);
     this.centerElement(element.id, frameId);
+  }
+
+  async programmatical_goto_line(
+    line: string | number,
+    _cursor?: boolean,
+    _focus?: boolean,
+    frameId?: string // if given scroll this particular frame
+  ) {
+    // NOTE: This function is a bit different in that it is often called before
+    // the sync stuff is initialized. So unlike most functions above, we
+    // have to be explicit about that.
+    if (!(await this.wait_until_syncdoc_ready())) {
+      return;
+    }
+    if (frameId == null) {
+      frameId = this.show_focused_frame_of_type("whiteboard");
+    }
+
+    const elementId = `${line}`;
+    this.centerElement(elementId, frameId);
+    this.zoom100(frameId);
+  }
+
+  setPage(frameId: string, page: string | number): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    super.setPage(frameId, page);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
+  async gotoFragment(fragmentId: FragmentId) {
+    // console.log("gotoFragment ", fragmentId);
+    const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
+    if (!frameId) return;
+    const { id, page } = fragmentId as any;
+    if (page != null) {
+      this.setPage(frameId, parseInt(page));
+      this.fitToScreen(frameId);
+      return;
+    }
+    if (id != null) {
+      this.centerElement(id, frameId);
+      this.zoom100(frameId);
+      return;
+    }
+  }
+
+  public async show_table_of_contents(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "whiteboard_table_of_contents",
+      "col",
+      true,
+      0.2
+    );
+    // the click to select TOC focuses the active id back on the notebook
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public updateTableOfContents(force: boolean = false): void {
+    if (this._state == "closed" || this._syncstring == null) {
+      // no need since not initialized yet or already closed.
+      return;
+    }
+    if (
+      !force &&
+      !this.get_matching_frame({ type: "whiteboard_table_of_contents" })
+    ) {
+      // There is no table of contents frame so don't update that info.
+      return;
+    }
+    const elements = this.store.get("elements");
+    if (elements == null) return;
+
+    const contents = fromJS(parseTableOfContents(elements));
+    this.setState({ contents });
+  }
+
+  public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
+    this.gotoFragment({ id: entry.id.split('-')[1] });
   }
 }
 

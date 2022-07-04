@@ -52,6 +52,7 @@ export default function R({ customize }) {
                   in a full, remote online R environment.
                 </>
               }
+              subtitleBelow={true}
               image={rJupyter}
               alt={"Use of R in Jupyter"}
             />

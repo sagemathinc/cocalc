@@ -22,20 +22,24 @@ interface Props {
   children: ReactNode;
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   swapCols?: boolean; // if true, then put text on left and image on right.
+  textStyleExtra?: CSSProperties;
 }
 
-export default function Info({
-  anchor,
-  icon,
-  title,
-  image,
-  alt,
-  video,
-  caption,
-  children,
-  wide,
-  swapCols,
-}: Props) {
+export default function Info(props: Props) {
+  const {
+    anchor,
+    icon,
+    title,
+    image,
+    alt,
+    video,
+    caption,
+    children,
+    wide,
+    swapCols,
+    textStyleExtra,
+  } = props;
+
   const head = (
     <h1
       id={anchor}
@@ -51,19 +55,21 @@ export default function Info({
   );
 
   let graphic: ReactNode = null;
+
   if (image != null) {
     graphic = <Image style={showcase} src={image} alt={alt ?? caption} />;
   } else if (video != null) {
-    if (typeof video == "string") video = [video];
-    verifyHasMp4(video);
+    const videoSrcs = typeof video == "string" ? [video] : video;
+    verifyHasMp4(videoSrcs);
     graphic = (
       <div style={{ position: "relative", width: "100%" }}>
         <video style={showcase} loop controls>
-          {sources(video)}
+          {sources(videoSrcs)}
         </video>
       </div>
     );
   }
+
   if (graphic != null && caption != null) {
     graphic = (
       <div>
@@ -78,16 +84,21 @@ export default function Info({
   }
 
   if (!graphic) {
+    const noGraphicTextStyle: CSSProperties = {
+      background: "#fafafa",
+      padding: "20px",
+      marginBottom: "15px",
+    };
+
+    if (textStyleExtra != null) {
+      // if textColStyleExtra is given, then merge it into noGraphicTextStyle.
+      Object.assign(noGraphicTextStyle, textStyleExtra);
+    }
+
     return (
       <div style={{ width: "100%" }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
-          <div
-            style={{
-              background: "#fafafa",
-              padding: "20px",
-              marginBottom: "15px",
-            }}
-          >
+          <div style={noGraphicTextStyle}>
             <div style={{ textAlign: "center" }}>{head}</div>
             <div
               style={{ margin: "auto", maxWidth: wide ? "600px" : undefined }}
@@ -100,23 +111,25 @@ export default function Info({
     );
   }
 
+  const textColStyle: CSSProperties = {
+    border: "1px solid white",
+    borderRadius: "5px",
+    padding: "0 20px 0 20px",
+    marginBottom: "15px",
+    display: "flex",
+    justifyContent: "start",
+    alignContent: "start",
+    flexDirection: "column",
+    fontSize: "12pt",
+  };
+
+  if (textStyleExtra != null) {
+    // if textColStyleExtra is given, then merge it into textColStyle.
+    Object.assign(textColStyle, textStyleExtra);
+  }
+
   const textCol = (
-    <Col
-      key="text"
-      lg={wide ? 7 : 9}
-      style={{
-        border: "1px solid white",
-        background: "#fafafa",
-        borderRadius: "5px",
-        padding: "20px",
-        marginBottom: "15px",
-        display: "flex",
-        justifyContent: "center",
-        alignContent: "center",
-        flexDirection: "column",
-        fontSize: "12pt",
-      }}
-    >
+    <Col key="text" lg={wide ? 7 : 9} style={textColStyle}>
       {children}
     </Col>
   );
@@ -165,14 +178,15 @@ function verifyHasMp4(video: string[]) {
 interface HeadingProps {
   children: ReactNode;
   description?: ReactNode;
+  style?: CSSProperties;
 }
 
-Info.Heading = ({ children, description }: HeadingProps) => {
+Info.Heading = ({ children, description, style }: HeadingProps) => {
   return (
     <div
       style={{
-        textAlign: "center",
-        margin: "40px",
+        ...{ textAlign: "center", margin: "40px" },
+        ...style,
       }}
     >
       <h1

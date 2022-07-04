@@ -8,11 +8,12 @@ import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
 import { Alert, Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
-import { SearchInput, Icon } from "@cocalc/frontend/components";
+import { SearchInput, Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { plural } from "@cocalc/util/misc";
 
 interface Props {
   file_use_list: iList<FileUseInfoMap>;
@@ -165,16 +166,19 @@ export default function FileUseViewer({
     );
   }
 
-  function render_see_mentions_link() {
+  function mentionsLink() {
     let notifications_page_text:
       | string
-      | JSX.Element = `Mentions (${unseen_mentions_size})`;
+      | JSX.Element = `You have ${unseen_mentions_size} unread ${plural(
+      unseen_mentions_size,
+      "mention"
+    )}...`;
     if (unseen_mentions_size > 0) {
       notifications_page_text = <b>{notifications_page_text}</b>;
     }
     return (
       <Link
-        style={{ fontSize: "16px", whiteSpace: "nowrap" }}
+        style={{ fontSize: "20px", textAlign: "center" }}
         on_click={() => {
           redux.getActions("page").set_active_tab("notifications");
           redux.getActions("page").toggle_show_file_use();
@@ -185,14 +189,20 @@ export default function FileUseViewer({
     );
   }
 
-  const link = render_see_mentions_link();
+  const link = mentionsLink();
   return (
     <div className={"smc-vfill smc-file-use-viewer"}>
+      <VisibleMDLG>
+        <h3 style={{ margin: "15px" }}>@Mentions</h3>
+      </VisibleMDLG>
+      {link}
+      <VisibleMDLG>
+        <h3 style={{ margin: "15px" }}>
+          Recent edits and chats by you and your collaborators
+        </h3>
+      </VisibleMDLG>
       <Row key="top" style={{ marginBottom: "5px" }}>
-        <Col sm={7}>{render_search_box()}</Col>
-        <Col sm={2} style={{ paddingTop: "5px" }}>
-          {link}
-        </Col>
+        <Col sm={9}>{render_search_box()}</Col>
         <Col sm={3}>
           <div style={{ float: "right" }}>{render_mark_all_read_button()}</div>
         </Col>

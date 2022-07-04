@@ -72,6 +72,7 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     [project_map, project_id]
   );
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const isSandbox = project_map?.getIn([project_id, "sandbox"]);
 
   // note: closing this is currently disabled.
   const free_warning_closed = useTypedRedux(
@@ -90,6 +91,10 @@ export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
     // No need to provide all these warnings and scare anonymous users, who are just
     // playing around for the first time (and probably wouldn't read this, and should
     // assume strong limitations since they didn't even make an account).
+    return null;
+  }
+  if (isSandbox) {
+    // don't bother for sandbox project, since users can't upgrade it anyways.
     return null;
   }
   if (free_warning_closed) {

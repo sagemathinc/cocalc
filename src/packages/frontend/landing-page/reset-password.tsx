@@ -42,7 +42,7 @@ export const ResetPassword: React.FC<Props> = (props: Props) => {
 
   function hide_reset_password(e): void {
     e.preventDefault();
-    history.pushState("", document.title, window.location.pathname);
+    history.pushState({}, "", location.href);
     redux.getActions("account").setState({
       reset_key: "",
       reset_password_error: "",

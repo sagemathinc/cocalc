@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.98.2",
+  "version": "1.108.1",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -20,11 +20,12 @@
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
-    "tsc": "cd src && npx tsc --watch",
+    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
-    "build": "rm -rf dist && ./production-build.py"
+    "clean": "rm -rf dist",
+    "build": "npm run clean && ./production-build.py"
   },
   "repository": {
     "type": "git",
@@ -50,10 +51,10 @@
   "dep-notes": "WARNING: is-plain-object dep is needed for slate in frontend, or an ancient version gets installed here.",
   "devDependencies": {
     "@cocalc/assets": "^1.7.1",
-    "@cocalc/backend": "^1.17.0",
+    "@cocalc/backend": "^1.18.1",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/frontend": "^1.64.2",
-    "@cocalc/util": "^1.49.0",
+    "@cocalc/frontend": "^1.74.1",
+    "@cocalc/util": "^1.57.0",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^27.4.1",
     "@types/jquery": "^3.5.5",
@@ -121,10 +122,10 @@
     "uglify-js": "^3.14.1",
     "url-loader": "^4.1.1",
     "util": "^0.12.3",
-    "webpack": "^5.72.1",
+    "webpack": "^5.73.0",
     "webpack-bundle-analyzer": "^4.5.0",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-middleware": "^5.3.1",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-middleware": "^5.3.3",
     "webpack-path-rewriter": "^1.1.4",
     "webpack-sha-hash": "^2.0.0",
     "worker-loader": "^3.0.8"

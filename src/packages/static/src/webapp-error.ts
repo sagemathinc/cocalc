@@ -20,18 +20,23 @@ import React from "react";
 // @ts-ignore
 import ReactDOM from "react-dom";
 
-function handle_window_error(msg, url, lineNo, columnNo, error) {
+function handleError(event) {
+  if (event.defaultPrevented) {
+    // see https://github.com/sagemathinc/cocalc/issues/5963
+    return;
+  }
+  const { message: msg, filename: url, lineno, colno, error } = event;
   if (error == null) {
     // Sometimes this window.onerror gets called with error null.
     // We ignore that here.  E.g., this happens when you open
     // a project sometimes with this input:
     // {msg: "ResizeObserver loop limit exceeded",
-    // url: "https://cocalc.com/45f...44a1-b842-6eaf5ee07f8f/files/?session=default", lineNo: 0, columnNo: 0, error: null}
+    // url: "https://cocalc.com/45f...44a1-b842-6eaf5ee07f8f/files/?session=default", lineno: 0, colno: 0, error: null}
     return;
   }
-  console.warn("handle_window_error", { msg, url, lineNo, columnNo, error });
+  console.warn("handleError", { msg, url, lineno, colno, error });
   if (isWhitelisted({ error })) {
-    console.warn("handle_window_error -- whitelisted");
+    console.warn("handleError -- whitelisted");
     return;
   }
   window.onerror = null; // only once!!
@@ -49,12 +54,12 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     if (errorbox == null) return;
   }
   const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
-  console.log({ errorbox }, "rendering", { msg, lineNo });
+  console.warn({ errorbox }, "rendering", { msg, lineno });
   ReactDOM.render(
     React.createElement(CrashMessage, {
       msg,
-      lineNo,
-      columnNo,
+      lineNo: lineno,
+      columnNo: colno,
       url,
       stack,
       showLoadFail,
@@ -72,7 +77,7 @@ export default function init() {
   );
 
   // Install error handler.
-  window.onerror = handle_window_error;
+  window.addEventListener("error", handleError);
 }
 
 export function startedUp() {

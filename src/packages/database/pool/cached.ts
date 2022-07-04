@@ -26,6 +26,8 @@ import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 import getPool from "./pool";
 import { Pool } from "pg";
+import getLogger from "@cocalc/backend/logger";
+const L = getLogger("db:pool:cached");
 
 const MAX_AGE_S = {
   short: 5, // just to avoid a very rapid fire sequence of re-requests
@@ -33,7 +35,7 @@ const MAX_AGE_S = {
   long: 30,
   minutes: 10 * 60, // a really long time -- for now, 10 minutes.  example, the owner of a project.
   infinite: 60 * 60 * 24 * 365, // effectively forever; e.g., getting path from share id is really just a reversed sha1 hash, so can't change.
-};
+} as const;
 
 export type Length = keyof typeof MAX_AGE_S;
 
@@ -59,13 +61,18 @@ const cachedQuery = reuseInFlight(async (length: Length, ...args) => {
   // console.log(`NOT using cache for ${key}`);
 
   const pool = getPool();
-  // @ts-ignore - no clue how to typescript this.
-  const result = await pool.query(...args);
-  if (result.rows.length > 0) {
-    // We only cache query if it returned something.
-    cache.set(key, result);
+  try {
+    // @ts-ignore - no clue how to typescript this.
+    const result = await pool.query(...args);
+    if (result.rows.length > 0) {
+      // We only cache query if it returned something.
+      cache.set(key, result);
+    }
+    return result;
+  } catch (err) {
+    L.error(`cachedQuery error: ${err}`);
+    throw err;
   }
-  return result;
 });
 
 export default function getCachedPool(length: Length) {

@@ -267,11 +267,14 @@ function split_the_leaf(
   extra?: object,
   first?: boolean
 ) {
-  // split this leaf node
-  // 1. Make another leaf that is identical, except with a new id.
-  let leaf2 = leaf.set("id", generate_id());
-  if (type != null) {
-    leaf2 = leaf2.set("type", type);
+  // 1. split this leaf node
+  let leaf2;
+  if (type == leaf.get("type") || type == null) {
+    // Same type: Make another leaf that is identical, except with a new id.
+    leaf2 = leaf.set("id", generate_id());
+  } else {
+    // Different type: make blank leaf with just an id and type
+    leaf2 = fromJS({ id: generate_id(), type });
   }
   // Also, set extra data if given.
   if (extra != null) {

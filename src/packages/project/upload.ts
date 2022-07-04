@@ -16,9 +16,7 @@ import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
 import { join } from "path";
 import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
-const {
-  ensure_containing_directory_exists,
-} = require("@cocalc/backend/misc_node");
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { getLogger } from "./logger";
 
 export default function init(): Router {
@@ -83,7 +81,7 @@ export default function init(): Router {
 
       const dest = join(HOME, dest_dir, fields.fullPath ?? files.file.name);
       dbg(`dest='${dest}'`);
-      await callback(ensure_containing_directory_exists, dest);
+      await ensureContainingDirectoryExists(dest);
       dbg("append the next chunk onto the destination file...");
       await handle_chunk_data(
         parseInt(fields.dzchunkindex),

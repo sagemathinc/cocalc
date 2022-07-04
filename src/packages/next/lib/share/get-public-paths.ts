@@ -25,7 +25,10 @@ export default async function getPublicPaths(
   const result = await pool.query(
     `SELECT id, path, description, ${timeInSeconds(
       "last_edited"
-    )}, disabled, unlisted, authenticated FROM public_paths WHERE project_id=$1 ORDER BY last_edited DESC`,
+    )}, disabled, unlisted, authenticated,
+    counter::INT,
+     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
+    FROM public_paths WHERE project_id=$1 ORDER BY stars DESC, last_edited DESC`,
     [project_id]
   );
 

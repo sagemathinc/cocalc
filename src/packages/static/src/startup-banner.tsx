@@ -47,6 +47,8 @@ export default function StartupBanner() {
       className="cocalc-fade-in"
       style={{
         height: "100vh",
+        width: "100vw",
+        position: "fixed",
         display: "flex",
         justifyContent: "center" /* horizontally center */,
         alignItems: "center" /* vertically center */,

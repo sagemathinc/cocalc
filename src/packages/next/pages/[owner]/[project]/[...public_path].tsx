@@ -6,30 +6,25 @@
 // Page for a project that is owned by a named account
 // or organization.
 
+import getPublicPathId from "lib/names/public-path";
 import getPublicPathInfo from "lib/share/get-public-path-info";
 import withCustomize from "lib/with-customize";
 import PublicPath from "components/path/path";
-import getPublicPathId from "lib/names/public-path";
 
 export default PublicPath;
 
 export async function getServerSideProps(context) {
   const { owner, project, public_path } = context.params;
   try {
-    const public_path_id = await getPublicPathId(
-      owner,
-      project,
-      public_path[0]
-    );
-    let relativePath = "";
-    if (public_path[1] == "files") {
-      // only files/ implemented right now; we will add other things like edit/ later.
-      relativePath = public_path.slice(2).join("/");
-    }
-    const props = await getPublicPathInfo(public_path_id, relativePath, context.req);
+    const id = await getPublicPathId(owner, project, public_path);
+    const props = await getPublicPathInfo({
+      id,
+      public_path,
+      req: context.req,
+    });
     return await withCustomize({ context, props });
   } catch (_err) {
-    // console.log(_err);
+    console.log(_err);
     return { notFound: true };
   }
 }

@@ -210,23 +210,21 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Info.Heading description={"Easy to use together in CoCalc!"}>
-            SageMath + Python + R + <LaTeX />
-          </Info.Heading>
-
           <Info
             anchor="a-calculations"
+            textStyleExtra={{ background: "inherit" }}
             title={
               <>
-                Run calculations inside your <LaTeX /> documents!
+                Run SageMath, Python, or R in <LaTeX />
               </>
             }
             alt="A LaTeX document with embedded SageMath code"
           >
-            Embed Sage, R, or Python code in your document to automatically
-            generate text, plots, formulas or tables. The code is evaluated as
-            part of the compilation process and the output will be included in
-            the generated document.
+            You can run calculations inside your <LaTeX /> documents! It's
+            possible to embed Sage, R, or Python code in your document to
+            automatically generate text, plots, formulas or tables. The code is
+            evaluated as part of the compilation process and the output will be
+            included in the generated document.
           </Info>
 
           <Info

@@ -11,10 +11,11 @@ import {
   human_readable_size as humanReadableSize,
   plural,
 } from "@cocalc/util/misc";
+import { field_cmp } from "@cocalc/util/misc";
 
 interface Props {
-  id: string;
-  relativePath: string;
+  id?: string;
+  relativePath?: string;
   listing: FileInfo[];
   showHidden?: boolean;
 }
@@ -63,22 +64,20 @@ function columns(id, relativePath) {
       render: (name, record) => {
         return (
           <Link
-            href={`/share/public_paths/${id}/${encodeURIComponent(
-              join(relativePath, name)
-            )}`}
+            href={
+              record.url ??
+              `/share/public_paths/${id}/${encodeURIComponent(
+                join(relativePath, name)
+              )}`
+            }
           >
             <a style={{ width: "100%", display: "inline-block" }}>
-              {record.isdir ? <b>{name}</b> : name}
+              {record.isdir ? <b>{name}/</b> : name}
             </a>
           </Link>
         );
       },
-    },
-    {
-      title: "Date Modified",
-      dataIndex: "mtime",
-      key: "mtime",
-      render: (mtime) => `${new Date(mtime).toLocaleString()}`,
+      sorter: field_cmp("name"),
     },
     {
       title: "Size",
@@ -86,6 +85,15 @@ function columns(id, relativePath) {
       key: "size",
       render: (size, record) => renderSize(size, record.isdir),
       align: "right" as any,
+      sorter: field_cmp("size"),
+    },
+    {
+      title: "Last Modified",
+      dataIndex: "mtime",
+      key: "mtime",
+      align: "right" as any,
+      render: (mtime) => (mtime ? `${new Date(mtime).toLocaleString()}` : ""),
+      sorter: field_cmp("mtime"),
     },
   ];
 }

@@ -22,8 +22,6 @@ import "./launch/actions";
 
 // Various jquery plugins:
 import "./jquery-plugins";
-// Another jquery plugin:
-import "./misc/process-links/jquery";
 
 // Initialize app stores, actions, etc.
 import { init as initAccount } from "./account";
@@ -39,8 +37,8 @@ import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
-// This import of codemirror is force the initial full load of codemirror as part of the
-// main webpack entry point.
+// This import of codemirror forces the initial full load of codemirror
+// as part of the main webpack entry point.
 import "codemirror";
 
 // Should be loaded last

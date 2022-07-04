@@ -113,7 +113,7 @@ export class AddPaymentMethod extends Component<Props, State> {
         bsStyle="primary"
         disabled={this.state.submitting}
       >
-        {this.state.submitting ? <Loading /> : undefined} Add Credit Card
+        {this.state.submitting ? <Loading /> : "Add Credit Card"}
       </Button>
     );
   }
@@ -163,15 +163,11 @@ export class AddPaymentMethod extends Component<Props, State> {
 
   public render(): Rendered {
     return (
-      <Row>
-        <Col sm={6} smOffset={3}>
-          <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 2 }}>
-            {this.render_card()}
-            {this.render_error()}
-            {this.render_payment_method_buttons()}
-          </Well>
-        </Col>
-      </Row>
+      <Well style={{ boxShadow: "5px 5px 5px lightgray", zIndex: 2 }}>
+        {this.render_card()}
+        {this.render_error()}
+        {this.render_payment_method_buttons()}
+      </Well>
     );
   }
 }

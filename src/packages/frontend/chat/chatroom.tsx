@@ -213,12 +213,14 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   function render_export_button(): JSX.Element {
     return (
-      <Button
-        onClick={() => actions.export_to_markdown()}
-        style={{ marginLeft: "5px" }}
-      >
-        <Icon name="external-link" /> Export
-      </Button>
+      <VisibleMDLG>
+        <Button
+          onClick={() => actions.export_to_markdown()}
+          style={{ marginLeft: "5px" }}
+        >
+          <Icon name="external-link" /> Export
+        </Button>
+      </VisibleMDLG>
     );
   }
 
@@ -240,7 +242,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         project_id={project_id}
         path={path}
         button={true}
-        label={<VisibleMDLG>Video Chat</VisibleMDLG>}
       />
     );
   }
@@ -277,14 +278,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           </ButtonGroup>
           {render_export_button()}
           {actions.syncdb != null && (
-            <ButtonGroup style={{ marginLeft: "5px" }}>
-              <Button onClick={() => actions.syncdb?.undo()}>
-                <Icon name="undo" /> Undo
-              </Button>
-              <Button onClick={() => actions.syncdb?.redo()}>
-                <Icon name="redo" /> Redo
-              </Button>
-            </ButtonGroup>
+            <VisibleMDLG>
+              <ButtonGroup style={{ marginLeft: "5px" }}>
+                <Button onClick={() => actions.syncdb?.undo()}>
+                  <Icon name="undo" /> Undo
+                </Button>
+                <Button onClick={() => actions.syncdb?.redo()}>
+                  <Icon name="redo" /> Redo
+                </Button>
+              </ButtonGroup>
+            </VisibleMDLG>
           )}
         </Col>
         <Col xs={3} md={3} style={{ padding: "2px" }}>

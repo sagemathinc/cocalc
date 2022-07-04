@@ -13,7 +13,7 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import {
   redux,
   useMemo,
@@ -46,6 +46,7 @@ interface Props {
   is_next_sender?: boolean;
   show_avatar?: boolean;
   include_avatar_col?: boolean;
+  selectedHashtags?: Set<string>;
 
   set_scroll?: Function;
   scroll_into_view: () => void; // call to scroll this message into view
@@ -287,7 +288,20 @@ export default function Message(props: Props) {
             </span>
           )}
           {!isEditing && (
-            <StaticMarkdown value={value} className={message_class} />
+            <MostlyStaticMarkdown
+              value={value}
+              className={message_class}
+              selectedHashtags={props.selectedHashtags}
+              toggleHashtag={
+                props.selectedHashtags != null && props.actions != null
+                  ? (tag) =>
+                      props.actions?.setHashtagState(
+                        tag,
+                        props.selectedHashtags?.has(tag) ? undefined : 1
+                      )
+                  : undefined
+              }
+            />
           )}
           {isEditing && render_input()}
           <span>

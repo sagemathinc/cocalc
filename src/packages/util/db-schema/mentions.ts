@@ -24,18 +24,19 @@ Table({
     },
     target: {
       type: "string",
-      desc:
-        "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc.",
+      desc: "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc.",
     },
     description: {
       type: "string",
-      desc:
-        "Extra text to describe the mention. eg. could be the containing message",
+      desc: "Extra text to describe the mention. eg. could be the containing message",
+    },
+    fragment_id: {
+      type: "string",
+      desc: "Text represenation of fragment_id, which is an indicator of exactly where the mention occurs in the document, e.g., a specific chat or cell in a notebook or line in a file.",
     },
     priority: {
       type: "number",
-      desc:
-        "optional integer priority.  0 = default, but could be 1 = higher priority, etc.",
+      desc: "optional integer priority.  0 = default, but could be 1 = higher priority, etc.",
     },
     error: {
       type: "string",
@@ -47,8 +48,7 @@ Table({
     },
     users: {
       type: "map",
-      desc:
-        "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}",
+      desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}",
     },
   },
   rules: {
@@ -57,9 +57,9 @@ Table({
     pg_indexes: ["action"],
     user_query: {
       get: {
-        pg_where: ["time >= NOW() - interval '14 days'", "projects"],
+        pg_where: ["time >= NOW() - interval '45 days'", "projects"],
         pg_changefeed: "projects",
-        options: [{ order_by: "-time" }, { limit: 100 }], // limit is arbitrary
+        options: [{ order_by: "-time" }, { limit: 500 }],
         throttle_changes: 3000,
         fields: {
           time: null,
@@ -69,6 +69,7 @@ Table({
           target: null,
           priority: null,
           description: null,
+          fragment_id: null,
           users: null,
         },
       },
@@ -83,6 +84,7 @@ Table({
           target: true,
           priority: true,
           description: true,
+          fragment_id: true,
           users: true,
         },
         required_fields: {

@@ -16,7 +16,7 @@ export function numberRunningQuery(license_id: string): string {
   // "... - 'status'" in the query, because there is always a status field (which is new)
   // an applied license not providing upgrades is just an empty object.
   return `
-    SELECT COUNT(*)
+    SELECT COUNT(*)::INT
     FROM projects
     WHERE state ->> 'state' = 'running'
     AND ((site_license -> '${license_id}') - 'status') != '{}'::JSONB`;
@@ -169,7 +169,7 @@ export async function number_of_projects_using_site_license(
   );
 
   const x = await db.async_query({
-    query: "SELECT COUNT(DISTINCT(projects.project_id)) " + query,
+    query: "SELECT COUNT(DISTINCT(projects.project_id))::INT " + query,
     params,
     timeout_s: TIMEOUT_S,
   });

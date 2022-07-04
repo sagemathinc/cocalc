@@ -157,6 +157,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_connecting?
             dbg('already trying to connect')
             @_connecting.push(opts.cb)
+            # keep several times the db-concurrent-warn limit of callbacks
+            max_connecting = 5 * @_concurrent_warn
+            while @_connecting.length > max_connecting
+                @_connecting.shift()
+                dbg("WARNING: still no DB available, dropping old callbacks (limit: #{max_connecting})")
             return
         dbg('will try to connect')
         @_state = 'init'
@@ -452,8 +457,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if not @is_connected()
             dbg = @_dbg("_query")
             dbg("connecting first...")
+            # 2022-06: below there was {max_time: 45000} set with the note
+            # "don't try forever; queries could pile up."
+            # but I think this is rather harmful, since the hub could stop
+            # trying to connect to the database altogether.
+            # Rather, hub/health-checks::checkDBConnectivity will
+            # mark the hub as being bad if it can't connect to the database.
             @connect
-                max_time : 45000    # don't try forever; queries could pile up.
                 cb       : (err) =>
                     if err
                         dbg("FAILED to connect -- #{err}")

@@ -254,7 +254,7 @@ export function startswith(s: any, x: string | string[]): boolean {
     return false;
   }
   if (typeof x === "string") {
-    return s.indexOf(x) === 0;
+    return s.startsWith(x);
   }
   for (const v of x) {
     if (s.indexOf(v) === 0) {
@@ -268,7 +268,7 @@ export function endswith(s: any, t: any): boolean {
   if (typeof s != "string" || typeof t != "string") {
     return false;
   }
-  return s.slice(s.length - t.length) === t;
+  return s.endsWith(t);
 }
 
 import { v4 as v4uuid } from "uuid";
@@ -960,7 +960,8 @@ export function search_split(
 // if it is a VALID regular expression.  Otherwise, returns
 // string.
 function stringOrRegExp(s: string, options: string): string | RegExp {
-  if (s.length < 2 || s[0] != "/" || s[s.length - 1] != "/") return s;
+  if (s.length < 2 || s[0] != "/" || s[s.length - 1] != "/")
+    return s.toLowerCase();
   try {
     return new RegExp(s.slice(1, -1), options);
   } catch (_err) {
@@ -969,8 +970,26 @@ function stringOrRegExp(s: string, options: string): string | RegExp {
     // is reasonably sophisticated, so they don't need hand holding
     // error messages (CodeMirror doesn't give any indication when
     // a regexp is invalid).
-    return s;
+    return s.toLowerCase();
   }
+}
+
+function isMatch(s: string, x: string | RegExp): boolean {
+  if (typeof x == "string") {
+    if (x[0] == "-") {
+      // negate
+      return !isMatch(s, x.slice(1));
+    }
+    if (x[0] === "#") {
+      // only match hashtag at end of word (the \b), so #fo does not match #foo.
+      return s.search(new RegExp(x + "\\b")) != -1;
+    }
+    return s.includes(x);
+  } else {
+    // regular expression instead of string
+    return x.test?.(s);
+  }
+  return false;
 }
 
 // s = lower case string
@@ -980,29 +999,9 @@ export function search_match(s: string, v: (string | RegExp)[]): boolean {
     // be safe against non Typescript clients
     return false;
   }
+  s = s.toLowerCase();
   for (let x of v) {
-    if (typeof x == "string") {
-      if (x[0] == "-") {
-        // negate since first character is a -.  In this case,
-        // it is NOT a match if it is there.
-        const y = x.slice(1);
-        if (y.length > 0 && s.includes(y)) {
-          // is there, so not a match
-          return false;
-        }
-      } else {
-        if (!s.includes(x)) {
-          // not there, so not a match
-          return false;
-        }
-      }
-    } else {
-      // regular expression instead of string
-      if (!x.test?.(s)) {
-        // regexp doesn't match, so not a match
-        return false;
-      }
-    }
+    if (!isMatch(s, x)) return false;
   }
   // no term doesn't match, so we have a match.
   return true;

@@ -15,6 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 import Composing from "./chat-composing";
 import useWheel from "./scroll-wheel";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
 
@@ -41,7 +42,7 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
-  const submitMentionsRef = useRef<Function>();
+  const submitMentionsRef = useRef<(fragmentId?: FragmentId) => string>();
 
   const saveChat = useDebouncedCallback((input) => {
     lastInputRef.current = input;
@@ -116,7 +117,7 @@ function Conversation({ element, focused }: Props) {
           }}
         >
           <MultiMarkdownInput
-            submitMentionsRef={submitMentionsRef}
+            submitMentionsRef={submitMentionsRef as any}
             saveDebounceMs={0}
             onFocus={() => {
               setEditFocus(true);
@@ -150,7 +151,7 @@ function Conversation({ element, focused }: Props) {
             onShiftEnter={(input) => {
               saveChat.cancel();
               actions.sendChat({ id: element.id, input });
-              submitMentionsRef.current?.(); // send all the mentions
+              submitMentionsRef.current?.({ id: element.id }); // send all the mentions, noting that they for *this* chat element.
               clearInput();
             }}
             onUndo={() => {
@@ -193,7 +194,7 @@ function Conversation({ element, focused }: Props) {
               style={{ height: INPUT_HEIGHT, marginLeft: "5px" }}
               onClick={() => {
                 actions.sendChat({ id: element.id, input });
-                submitMentionsRef.current?.(); // send all the mentions
+                submitMentionsRef.current?.({ id: element.id }); // send all the mentions
                 clearInput();
               }}
             >

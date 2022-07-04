@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map } from "immutable";
+import { List, Map as immutableMap, fromJS } from "immutable";
 import { Store, TypedMap, redux } from "../app-framework";
+import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
 
 type Mention = TypedMap<{
   id: string;
@@ -30,6 +31,7 @@ export interface ChatState {
   use_saved_position?: boolean; //   whether or not to maintain last saved scroll position (used when unmounting then remounting, e.g., due to tab change)
   saved_position?: number;
   search: string;
+  selectedHashtags: immutableMap<string, HashtagState>;
   add_collab: boolean;
   is_saving: boolean;
   has_uncommitted_changes: boolean;
@@ -53,7 +55,8 @@ export class ChatStore extends Store<ChatState> {
       use_saved_position: undefined,
       saved_position: undefined,
       search: "",
-      add_collab: true,
+      selectedHashtags: fromJS({}),
+      add_collab: false,
       is_saving: false,
       has_uncommitted_changes: false,
       has_unsaved_changes: false,

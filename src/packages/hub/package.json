@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.71.0",
+  "version": "1.83.2",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -20,14 +20,14 @@
   ],
   "dependencies": {
     "@cocalc/assets": "^1.7.1",
-    "@cocalc/backend": "^1.17.0",
+    "@cocalc/backend": "^1.18.1",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/database": "^0.23.1",
-    "@cocalc/frontend": "^1.64.0",
-    "@cocalc/next": "^0.56.0",
-    "@cocalc/server": "^0.31.0",
-    "@cocalc/static": "^1.98.0",
-    "@cocalc/util": "^1.49.0",
+    "@cocalc/database": "^0.27.0",
+    "@cocalc/frontend": "^1.74.1",
+    "@cocalc/next": "^0.68.2",
+    "@cocalc/server": "^0.36.2",
+    "@cocalc/static": "^1.108.1",
+    "@cocalc/util": "^1.57.0",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^7.4.6",
@@ -124,7 +124,7 @@
   },
   "scripts": {
     "build": "npx tsc && coffee -m -c -o dist/ .",
-    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
+    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development NODE_OPTIONS='--max_old_space_size=6000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-project-dev": "npm run build && npm run hub-project-dev-nobuild",
     "hub-project-prod": "npm run build && unset DATA COCALC_ROOT  BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-docker-dev": "COCALC_DOCKER=true DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",

@@ -222,60 +222,6 @@ message({
 // non-JSON data (except channel
 // '\u0000', which is JSON).
 
-// hub --> client
-message({
-  event: "session_reconnect",
-  session_uuid: undefined, // at least one of session_uuid or data_channel must be defined
-  data_channel: undefined,
-});
-
-//
-
-// client --> hub
-message({
-  event: "connect_to_session",
-  id: undefined,
-  type: required,
-  project_id: required,
-  session_uuid: required,
-  params: undefined,
-}); // extra parameters that control the type of session -- if we have to create a new one
-
-message({
-  event: "session_connected",
-  id: undefined,
-  session_uuid: required,
-  data_channel: undefined, // used for certain types of sessions
-  history: undefined,
-}); // used for console/terminal sessions
-
-// sage_server&console_server --> hub
-message({
-  event: "session_description",
-  pid: required,
-  limits: undefined,
-});
-
-// client <----> hub <--> sage_server
-message({
-  event: "terminate_session",
-  project_id: undefined,
-  session_uuid: undefined,
-  reason: undefined,
-  done: undefined,
-});
-
-message({
-  event: "execute_code",
-  id: undefined,
-  code: required,
-  data: undefined,
-  session_uuid: undefined,
-  cell_id: undefined, // optional extra useful information about which cells is being executed
-  preparse: true,
-  allow_cache: true,
-});
-
 // Output resulting from evaluating code that is displayed by the browser.
 // sage_server --> local hub --> hubs --> clients
 message({

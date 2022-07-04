@@ -15,7 +15,7 @@ const {
   write_file_to_project,
 } = require("@cocalc/project/read_write_files");
 const { print_to_pdf } = require("@cocalc/project/print_to_pdf");
-const { process_kill } = require("@cocalc/backend/misc_node");
+import processKill from "@cocalc/backend/misc/process-kill";
 const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
@@ -24,7 +24,14 @@ import writeTextFileToProject from "./write-text-file-to-project";
 const winston = getLogger("handle-message-from-hub");
 
 export default function handleMessage(socket, mesg: Message) {
-  winston.debug("received ", mesg);
+  winston.debug("received a message", {
+    event: mesg.event,
+    id: mesg.id,
+    "...": "...",
+  });
+  // We can't just log this in general, since it can be big.
+  // So only uncomment this for low level debugging, unfortunately.
+  // winston.debug("received ", mesg);
 
   if (client.client?.handle_mesg(mesg, socket)) {
     return;
@@ -70,7 +77,23 @@ export default function handleMessage(socket, mesg: Message) {
       return;
 
     case "send_signal":
-      process_kill(mesg.pid, mesg.signal);
+      if (
+        mesg.pid &&
+        (mesg.signal == 2 || mesg.signal == 3 || mesg.signal == 9)
+      ) {
+        processKill(mesg.pid, mesg.signal);
+      } else {
+        if (mesg.id) {
+          socket.write_mesg(
+            "json",
+            message.error({
+              id: mesg.id,
+              error: "invalid pid or signal (must be 2,3,9)",
+            })
+          );
+        }
+        return;
+      }
       if (mesg.id != null) {
         // send back confirmation that a signal was sent
         socket.write_mesg("json", message.signal_sent({ id: mesg.id }));

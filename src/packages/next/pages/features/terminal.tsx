@@ -38,6 +38,7 @@ export default function Terminal({ customize }) {
               subtitle={
                 "A Linux Terminal that can't mess up your own computer."
               }
+              subtitleBelow={true}
               image={terminal}
               alt={"Running Sage in a Terminal"}
             />

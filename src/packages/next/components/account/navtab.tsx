@@ -18,7 +18,7 @@ interface Props {
 
 export default function AccountNavTab({ style }: Props) {
   const router = useRouter();
-  const { isCommercial, siteName, sshGateway } = useCustomize();
+  const { isCommercial, shareServer, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
   if (!profile) return null;
 
@@ -36,13 +36,8 @@ export default function AccountNavTab({ style }: Props) {
               Signed into {siteName} as
               <br />
               <b>
-                {is_anonymous && <>Anonymous User</>}
-                {!is_anonymous && (
-                  <>
-                    {first_name} {last_name}
-                    {name ? ` (@${name})` : ""}
-                  </>
-                )}
+                {first_name} {last_name}
+                {name ? ` (@${name})` : ""}
               </b>
             </A>
           </Menu.Item>
@@ -133,6 +128,11 @@ export default function AccountNavTab({ style }: Props) {
             >
               Shared Files
             </A>
+          </Menu.Item>
+        )}
+        {!is_anonymous && shareServer && (
+          <Menu.Item key="stars" icon={<Icon name="star-filled" />}>
+            <A href={"/stars"}>Stars</A>
           </Menu.Item>
         )}
       </Menu.ItemGroup>

@@ -8,11 +8,12 @@ A table of a list of public paths.
 */
 
 import { Space, Table } from "antd";
+import Badge from "components/misc/badge";
 import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { trunc_middle } from "@cocalc/util/misc";
+import { field_cmp, trunc_middle } from "@cocalc/util/misc";
 import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
 
 function Description({
@@ -43,8 +44,20 @@ function LastEdited({ last_edited }: { last_edited: string }) {
   return <>{`${new Date(parseFloat(last_edited)).toLocaleString()}`}</>;
 }
 
-function Title({ id, title }: { id: string; title: string }) {
-  return <A href={`/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
+function Title({
+  id,
+  title,
+  url,
+}: {
+  id: string;
+  title: string;
+  url?: string;
+}) {
+  return (
+    <A href={url ? `/${url}` : `/share/public_paths/${id}`}>
+      {trunc_middle(title, 48)}
+    </A>
+  );
 }
 
 function Visibility({ disabled, unlisted, vhost, authenticated }) {
@@ -79,6 +92,23 @@ function Visibility({ disabled, unlisted, vhost, authenticated }) {
   );
 }
 
+function ViewsAndStars({ stars, views }) {
+  return (
+    <div style={{ display: "flex" }}>
+      {views > 0 && (
+        <div style={{ marginRight: "30px" }}>
+          Views <Badge count={views} />
+        </div>
+      )}
+      {stars > 0 && (
+        <div>
+          Stars <Badge count={stars} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // I'm using any[]'s below since it's too much of a pain dealing with TS for this.
 
 const COLUMNS0: any[] = [
@@ -86,24 +116,45 @@ const COLUMNS0: any[] = [
     title: "Path",
     dataIndex: "path",
     key: "path",
-    render: (title, record) => <Title id={record.id} title={title} />,
+    render: (title, record) => (
+      <Title id={record.id} title={title} url={record.url} />
+    ),
     responsive: ["sm"] as any,
+    sorter: field_cmp("path"),
   },
   {
     title: "Description",
     dataIndex: "description",
     key: "description",
     render: (description) => (
-      <Description description={description} maxWidth="300px" />
+      <Description description={description} maxWidth="250px" />
     ),
     responsive: ["sm"] as any,
+    sorter: field_cmp("description"),
   },
   {
-    title: "Date Modified",
+    title: "Last Modified",
     dataIndex: "last_edited",
     key: "last_edited",
     render: (last_edited) => <LastEdited last_edited={last_edited} />,
     responsive: ["sm"] as any,
+    sorter: field_cmp("last_edited"),
+  },
+  {
+    title: "Stars",
+    dataIndex: "stars",
+    key: "stars",
+    render: (stars) => <Badge count={stars} />,
+    responsive: ["sm"] as any,
+    sorter: field_cmp("stars"),
+  },
+  {
+    title: "Views",
+    dataIndex: "counter",
+    key: "counter",
+    render: (counter) => <Badge count={counter} />,
+    responsive: ["sm"] as any,
+    sorter: field_cmp("counter"),
   },
 ];
 
@@ -113,12 +164,14 @@ const COLUMNS: any[] = COLUMNS0.concat([
     responsive: ["xs"] as any,
     key: "path",
     render: (_, record) => {
-      const { path, last_edited, id, description } = record;
+      const { path, url, last_edited, id, description, stars, counter } =
+        record;
       return (
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Title title={path} id={id} />
+          <Title title={path} id={id} url={url} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
+          <ViewsAndStars stars={stars} views={counter} />
         </Space>
       );
     },
@@ -139,16 +192,18 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
       />
     ),
     responsive: ["sm"] as any,
+    sorter: field_cmp(["disabled", "unlisted", "vhost", "authenticated"]),
   },
   {
     title: "Documents",
     responsive: ["xs"] as any,
     key: "path",
     render: (_, record) => {
-      const { path, last_edited, id, description } = record;
+      const { path, last_edited, id, description, stars, counter, url } =
+        record;
       return (
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Title title={path} id={id} />
+          <Title title={path} id={id} url={url} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
           <Visibility
@@ -157,6 +212,7 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
             authenticated={record.authenticated}
             vhost={record.vhost}
           />
+          <ViewsAndStars stars={stars} views={counter} />
         </Space>
       );
     },

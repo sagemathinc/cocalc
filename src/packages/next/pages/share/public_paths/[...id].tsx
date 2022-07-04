@@ -37,7 +37,11 @@ export async function getServerSideProps(context) {
       res.end();
       return { props: {} };
     }
-    const props = await getPublicPathInfo(id, relativePath, context.req);
+    const props = await getPublicPathInfo({
+      id,
+      relativePath,
+      req: context.req,
+    });
     return await withCustomize({ context, props });
   } catch (_err) {
     console.log(_err);

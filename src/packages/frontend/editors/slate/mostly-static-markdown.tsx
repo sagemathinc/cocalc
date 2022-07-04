@@ -48,15 +48,17 @@ import Highlighter from "react-highlight-words";
 
 interface Props {
   value: string;
+  className?: string;
   style?: CSSProperties;
   onChange?: (string) => void; // if given support some very minimal amount of editing, e.g., checkboxes; onChange is called with modified markdown.
-  selectedHashtags?: Set<string>;
+  selectedHashtags?: Set<string>; // assumed lower case!
   toggleHashtag?: (string) => void;
   searchWords?: Set<string> | string[]; // higlight text that matches anything in here
 }
 
 export default function MostlyStaticMarkdown({
   value,
+  className,
   style,
   onChange,
   selectedHashtags,
@@ -107,7 +109,11 @@ export default function MostlyStaticMarkdown({
     );
     n += 1;
   }
-  return <div style={{ width: "100%", ...style }}>{v}</div>;
+  return (
+    <div style={{ width: "100%", ...style }} className={className}>
+      {v}
+    </div>
+  );
 }
 
 function RenderElement({
@@ -140,11 +146,11 @@ function RenderElement({
       return (
         <Hashtag
           value={element.content}
-          selected={selectedHashtags.has(element.content)}
+          selected={selectedHashtags.has(element.content?.toLowerCase())}
           onClick={
             toggleHashtag != null
               ? () => {
-                  toggleHashtag(element.content);
+                  toggleHashtag(element.content?.toLowerCase());
                 }
               : undefined
           }

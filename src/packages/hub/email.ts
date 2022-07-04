@@ -14,25 +14,19 @@ import * as fs from "fs";
 import * as os_path from "path";
 import { isEqual } from "lodash";
 const fs_readFile_prom = promisify(fs.readFile);
-const async = require("async");
-const winston = require("./logger").getLogger("email");
+import { getLogger } from "./logger";
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import base_path from "@cocalc/backend/base-path";
 import { secrets } from "@cocalc/backend/data";
-
 // sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import sendgrid from "@sendgrid/client";
-
 import { createTransport } from "nodemailer";
-
-const misc = require("@cocalc/util/misc");
-const { defaults, required } = misc;
+import { defaults, required, split, to_json } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
 import sanitizeHtml from "sanitize-html";
 import { contains_url } from "@cocalc/backend/misc";
-
 import {
   SENDGRID_TEMPLATE_ID,
   SENDGRID_ASM_NEWSLETTER,
@@ -44,6 +38,9 @@ import {
   HELP_EMAIL,
   LIVE_DEMO_REQUEST,
 } from "@cocalc/util/theme";
+import * as async from "async";
+
+const winston = getLogger("email");
 
 export function escape_email_body(body: string, allow_urls: boolean): string {
   // in particular, no img and no anchor a
@@ -267,7 +264,7 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
     msg.asm = { group_id: opts.asm_group };
   }
 
-  dbg(`sending email to ${opts.to} -- data -- ${misc.to_json(msg)}`);
+  dbg(`sending email to ${opts.to} -- data -- ${to_json(msg)}`);
 
   const req = {
     body: msg,
@@ -279,11 +276,11 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
     sendgrid_server
       .request(req)
       .then(([_, body]) => {
-        dbg(`sending email to ${opts.to} -- success -- ${misc.to_json(body)}`);
+        dbg(`sending email to ${opts.to} -- success -- ${to_json(body)}`);
         done();
       })
       .catch((err) => {
-        dbg(`sending email to ${opts.to} -- error = ${misc.to_json(err)}`);
+        dbg(`sending email to ${opts.to} -- error = ${to_json(err)}`);
         fail(err);
       });
   });
@@ -469,7 +466,7 @@ interface Opts {
   cb?: (err?, msg?) => void;
 }
 
-const opts_default: Opts = {
+const opts_default: any = {
   subject: required,
   body: required,
   fromname: undefined,
@@ -590,7 +587,7 @@ export async function send_email(opts: Opts): Promise<void> {
     if (err) {
       // so next time it will try fresh to connect to email server, rather than being wrecked forever.
       sendgrid_server = undefined;
-      err = `error sending email -- ${misc.to_json(err)}`;
+      err = `error sending email -- ${to_json(err)}`;
       dbg(err);
     } else {
       dbg("successfully sent email");
@@ -632,7 +629,7 @@ export function mass_email(opts): void {
             if (err) {
               cb(err);
             } else {
-              recipients.push(...misc.split(data.toString()));
+              recipients.push(...split(data.toString()));
               cb();
             }
           });

@@ -4,22 +4,28 @@
  */
 
 import {
+  pgdatabase as database,
   pghost as host,
   pguser as user,
-  pgdatabase as database,
 } from "@cocalc/backend/data";
-import dbPassword from "./password";
-export * from "./util";
-import getCachedPool, { Length } from "./cached";
 
 import { Pool } from "pg";
+import getCachedPool, { Length } from "./cached";
+import dbPassword from "./password";
+import { getLogger } from "@cocalc/backend/logger";
+const L = getLogger("db:pool");
+
+export * from "./util";
+
 let pool: Pool | undefined = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
+
   if (cacheLength != null) {
     return getCachedPool(cacheLength);
   }
   if (pool == null) {
+    L.debug(`creating a new Pool`);
     pool = new Pool({ password: dbPassword(), user, host, database });
   }
   return pool;

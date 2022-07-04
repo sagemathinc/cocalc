@@ -35,13 +35,14 @@ export default async function init(): Promise<void> {
 async function handleAllMentions(): Promise<void> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT time, project_id, path, source, target, description FROM mentions WHERE action IS null"
+    "SELECT time, project_id, path, source, target, description, fragment_id FROM mentions WHERE action IS null"
   );
   for (const row of rows) {
-    const { time, project_id, path, source, target, description } = row;
+    const { time, project_id, path, source, target, description, fragment_id } =
+      row;
     try {
       await handleMention(
-        { project_id, path, time, target },
+        { project_id, path, time, target, fragment_id },
         source,
         description ?? ""
       );
@@ -82,12 +83,12 @@ async function handleMention(
 async function determineAction(key: Key): Promise<Action> {
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${parseInt(
+    `SELECT COUNT(*)::INT FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${parseInt(
       minEmailInterval
     )}'`,
     [key.project_id, key.path, key.target]
   );
-  const count: number = parseInt(rows[0]?.count ?? 0);
+  const count: number = rows[0]?.count ?? 0;
   if (count >= maxPerInterval) {
     return "ignore";
   }

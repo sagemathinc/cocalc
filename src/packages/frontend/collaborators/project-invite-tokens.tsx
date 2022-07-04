@@ -84,22 +84,24 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     const heading = (
-      <a
-        onClick={() => {
-          if (!expanded) {
-            fetch_tokens();
-          }
-          set_expanded(!expanded);
-        }}
-        style={{ cursor: "pointer" }}
-      >
-        {" "}
-        <Icon
-          style={{ width: "20px" }}
-          name={expanded ? "caret-down" : "caret-right"}
-        />{" "}
-        Invite collaborators by sending them a project invite token...
-      </a>
+      <div>
+        <a
+          onClick={() => {
+            if (!expanded) {
+              fetch_tokens();
+            }
+            set_expanded(!expanded);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          {" "}
+          <Icon
+            style={{ width: "20px" }}
+            name={expanded ? "caret-down" : "caret-right"}
+          />{" "}
+          Invite collaborators by sending them a project invite token...
+        </a>
+      </div>
     );
     if (!expanded) {
       return heading;

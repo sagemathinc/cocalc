@@ -1,7 +1,6 @@
 // This react component is displayed as quickly as possible
 // right when the page starts loading.  It doesn't depend on
 // loading everything else.
-// (NOTE: this replaces what was once "app.pug".)
 
 import "./init-app-base-path";
 // @ts-ignore
