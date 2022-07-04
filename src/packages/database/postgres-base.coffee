@@ -857,6 +857,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 misc_node.execute_code
                     command : 'createdb'
                     args    : ['--host', @_host, '--port', @_port, @_database]
+                    env     :
+                        PGPASSWORD : @_password
                     cb      : cb
 
     _confirm_delete: (opts) =>
