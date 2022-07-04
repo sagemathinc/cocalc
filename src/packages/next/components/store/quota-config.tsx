@@ -6,6 +6,9 @@
 import { Divider, Form } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
+import { upgrades } from "@cocalc/util/upgrade-spec";
+
+const MAX_GB_RAM = upgrades.max_per_project.memory / 1000;
 
 interface Props {
   showExplanations: boolean;
@@ -37,29 +40,31 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   // e.g. since we can't go beyond the max cpu, but the base license already provides one, don't let users select the max
   const adjMax = boost ? 1 : 0;
 
+  function explainRam() {
+    if (!showExplanations) return;
+    return (
+      <>
+        This quota limits the total amount of memory a project can use. Note
+        that RAM may be limited, if many other users are using the same host –
+        though member hosting significantly reduces competition for RAM. We
+        recommend at least 2G! Beyond the overall maximum of {MAX_GB_RAM}G, we
+        also offer{" "}
+        <A href={"/store/dedicated?type=vm"}>dedicated virtual machines</A> with
+        larger memory options.
+      </>
+    );
+  }
+
   function ram() {
     const defaultRam = 2; // 2gb highly recommended
-    const maxRam = 16 - adjMax;
+    const maxRam = MAX_GB_RAM - adjMax;
 
     return (
       <Form.Item
         label="Shared RAM"
         name="ram"
         initialValue={boost ? 0 : defaultRam}
-        extra={
-          showExplanations ? (
-            <>
-              Each project can use up to this much of RAM. Note that RAM may be
-              limited, if many other users are using the same host – though
-              member hosting significantly reduces competition for RAM. We
-              recommend at least 2G! Beyond that, we also offer{" "}
-              <A href={"/store/dedicated?type=vm"}>
-                dedicated virtual machines
-              </A>{" "}
-              with larger memory options.
-            </>
-          ) : undefined
-        }
+        extra={explainRam()}
       >
         <IntegerSlider
           disabled={disabled}
