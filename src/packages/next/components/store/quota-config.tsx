@@ -3,9 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Divider, Form } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
+import { plural } from "@cocalc/util/misc";
+import { Col, Divider, Form, Radio, Row, Space, Tabs } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
+import { Preset, PRESETS, Presets } from "./quota-config-presets";
+
+const { TabPane } = Tabs;
 
 interface Props {
   showExplanations: boolean;
@@ -13,6 +19,11 @@ interface Props {
   disabled?: boolean;
   onChange: () => void;
   boost?: boolean;
+  // boost doesn't define any of the below, that's only for site-license
+  configMode?: "preset" | "expert";
+  setConfigMode?: (mode: "preset" | "expert") => void;
+  preset?: Presets;
+  setPreset?: (preset: Presets) => void;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -22,6 +33,10 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     disabled = false,
     onChange,
     boost = false,
+    configMode,
+    setConfigMode,
+    preset,
+    setPreset,
   } = props;
 
   function title() {
@@ -152,12 +167,184 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function presetExtra() {
+    const cpuValue = form.getFieldValue("cpu");
+    const ramValue = form.getFieldValue("ram");
+    const diskValue = form.getFieldValue("disk");
+    const memberValue = form.getFieldValue("member");
+    const uptimeValue = form.getFieldValue("uptime");
+
+    if (
+      preset == null ||
+      cpuValue == null ||
+      ramValue == null ||
+      diskValue == null ||
+      memberValue == null ||
+      uptimeValue == null
+    )
+      return;
+
+    const presetData: Preset = PRESETS[preset];
+    if (presetData == null) {
+      return (
+        <div>
+          Error: preset <code>{preset}</code> is not known.
+        </div>
+      );
+    }
+    const { name, descr, details } = presetData;
+
+    function presetDescription() {
+      if (!descr) {
+        return "";
+      } else {
+        return <>{descr}. It</>;
+      }
+    }
+
+    function renderDetails() {
+      if (details) {
+        return details;
+      }
+    }
+
+    function renderProvides() {
+      const basic = (
+        <>
+          provides up to {cpuValue} CPU {plural(cpuValue, "core")}, {ramValue}G{" "}
+          memory, and {diskValue}G disk space for each project.
+        </>
+      );
+      const mh = memberValue === false ? <>member hosting is disabled</> : null;
+      const ut =
+        uptimeValue !== "short" ? (
+          <>
+            {mh != null ? "and" : ""} the project's idle timeout is set to{" "}
+            {LicenseIdleTimeouts[uptimeValue].label}
+          </>
+        ) : null;
+
+      const any = mh != null || ut != null;
+
+      return (
+        <>
+          {basic} {any ? "Additionally, " : ""}
+          {mh}
+          {ut}
+          {any ? "." : ""}
+        </>
+      );
+    }
+
+    return (
+      <Space direction="vertical">
+        <div></div>
+        <div>
+          Preset <strong>"{name}"</strong> {presetDescription()}{" "}
+          {renderProvides()} {renderDetails()}
+        </div>
+      </Space>
+    );
+  }
+
+  function onPresetChange(newVal) {
+    const val = newVal.target.value;
+    if (val == null || setPreset == null) return;
+    setPreset(val);
+    const preset = PRESETS[val];
+    if (preset != null) {
+      const { cpu, ram, disk, uptime = "short", member = true } = preset;
+      form.setFieldsValue({ uptime, member, cpu, ram, disk });
+    }
+    onChange();
+  }
+
+  function presets() {
+    return (
+      <>
+        <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
+          <Radio.Group onChange={onPresetChange} value={preset}>
+            <Space size={[10, 10]} wrap>
+              {Object.keys(PRESETS).map((p) => {
+                const presetData = PRESETS[p];
+                return (
+                  <Radio.Button key={p} value={p}>
+                    <Icon name={presetData.icon ?? "arrow-up"} />{" "}
+                    {presetData.name}
+                  </Radio.Button>
+                );
+              })}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+      </>
+    );
+  }
+
+  function detailed() {
+    return (
+      <>
+        {ram()}
+        {cpu()}
+        {disk()}
+      </>
+    );
+  }
+
+  function main() {
+    if (boost) {
+      return (
+        <>
+          <div>TODO EXPLANATION</div>
+          {detailed()}
+        </>
+      );
+    } else {
+      return (
+        <Tabs
+          activeKey={configMode}
+          onChange={setConfigMode}
+          type="card"
+          tabPosition="top"
+          renderTabBar={(props, DefaultTabBar) => (
+            <Row>
+              <Col span={18} offset={6} className="ant-tabs-card">
+                <DefaultTabBar {...props} />
+              </Col>
+            </Row>
+          )}
+        >
+          <TabPane
+            tab={
+              <span>
+                <Icon name="lightbulb" />
+                Quota presets
+              </span>
+            }
+            key="preset"
+          >
+            {presets()}
+          </TabPane>
+          <TabPane
+            tab={
+              <span>
+                <Icon name="wrench" />
+                Expert configuration
+              </span>
+            }
+            key="expert"
+          >
+            {detailed()}
+          </TabPane>
+        </Tabs>
+      );
+    }
+  }
+
   return (
     <>
       <Divider plain>{title()}</Divider>
-      {ram()}
-      {cpu()}
-      {disk()}
+      {main()}
     </>
   );
 };

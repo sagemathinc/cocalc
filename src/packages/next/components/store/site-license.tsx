@@ -26,6 +26,7 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { MAX_WIDTH } from "lib/config";
+import { PRESETS, Presets } from "./quota-config-presets";
 
 export default function SiteLicense() {
   const router = useRouter();
@@ -70,8 +71,11 @@ function CreateSiteLicense() {
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [shadowMember, setShadowMember] = useState<boolean | null>(null);
+  const [configMode, setConfigMode] = useState<"preset" | "expert">("preset");
   const [form] = Form.useForm();
   const router = useRouter();
+
+  const [preset, setPreset] = useState<Presets>("standard");
 
   function onChange() {
     setCost(computeCost(form.getFieldsValue(true)));
@@ -101,6 +105,9 @@ function CreateSiteLicense() {
         }
         onChange();
       })();
+    } else {
+      const { cpu, ram, disk } = PRESETS["standard"];
+      form.setFieldsValue({ cpu, ram, disk, preset: "standard" });
     }
     onChange();
   }, []);
@@ -150,16 +157,20 @@ function CreateSiteLicense() {
           form={form}
           onChange={onChange}
         />
+        <RunLimit
+          showExplanations={showExplanations}
+          form={form}
+          onChange={onChange}
+        />
         <QuotaConfig
           boost={false}
           form={form}
           onChange={onChange}
           showExplanations={showExplanations}
-        />
-        <RunLimit
-          showExplanations={showExplanations}
-          form={form}
-          onChange={onChange}
+          configMode={configMode}
+          setConfigMode={setConfigMode}
+          preset={preset}
+          setPreset={setPreset}
         />
         <MemberHostingAndIdleTimeout
           showExplanations={showExplanations}

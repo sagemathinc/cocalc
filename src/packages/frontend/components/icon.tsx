@@ -168,6 +168,7 @@ import {
   WarningOutlined,
   WifiOutlined,
   MailOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 
 const IconSpec = {
@@ -484,6 +485,7 @@ const IconSpec = {
   "video-camera": VideoCameraOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
+  wallet: WalletOutlined,
   warning: WarningOutlined,
   wifi: WifiOutlined,
   "window-maximize": { IconFont: "window-maximize" },
