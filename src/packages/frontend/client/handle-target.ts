@@ -33,11 +33,12 @@ function handleTarget(): string {
     }
   }
   if (!IS_EMBEDDED) {
-    // Write the full url for the given target, preserving any search and fragment parts of the url.
+    u.searchParams.delete("target");
+    // Write the full url for the given target, preserving any search (except target) and fragment parts of the url.
     const fullUrl =
       document.location.origin +
       join(appBasePath, encode_path(target)) +
-      url.search +
+      u.search +
       u.hash;
     history.pushState({}, "", fullUrl);
   }
