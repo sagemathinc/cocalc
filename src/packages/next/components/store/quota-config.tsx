@@ -4,14 +4,18 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
+import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural } from "@cocalc/util/misc";
-import { Col, Divider, Form, Radio, Row, Space, Tabs } from "antd";
+import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import { Preset, PRESETS, Presets } from "./quota-config-presets";
 
+const { Text } = Typography;
+
 const { TabPane } = Tabs;
+
+const EXPERT_CONFIG = "Expert configuration";
 
 interface Props {
   showExplanations: boolean;
@@ -22,8 +26,10 @@ interface Props {
   // boost doesn't define any of the below, that's only for site-license
   configMode?: "preset" | "expert";
   setConfigMode?: (mode: "preset" | "expert") => void;
-  preset?: Presets;
-  setPreset?: (preset: Presets) => void;
+  preset?: Presets | null;
+  setPreset?: (preset: Presets | null) => void;
+  presetAdjusted?: boolean;
+  setPresetAdjusted?: (adjusted: boolean) => void;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -37,6 +43,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setConfigMode,
     preset,
     setPreset,
+    presetAdjusted,
+    setPresetAdjusted,
   } = props;
 
   function title() {
@@ -51,6 +59,13 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
 
   // e.g. since we can't go beyond the max cpu, but the base license already provides one, don't let users select the max
   const adjMax = boost ? 1 : 0;
+
+  /**
+   * when a quota ist changed, we warn the user that the preset was adjusted. (the text updates, though, since it rerenders every time). Explanation in the details could make no sense, though – that's why this is added.
+   */
+  function presetWasAdjusted() {
+    setPresetAdjusted?.(true);
+  }
 
   function ram() {
     const defaultRam = 2; // 2gb highly recommended
@@ -82,6 +97,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           max={maxRam}
           onChange={(ram) => {
             form.setFieldsValue({ ram });
+            presetWasAdjusted();
             onChange();
           }}
           units={"G RAM"}
@@ -120,6 +136,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           max={3 - adjMax}
           onChange={(cpu) => {
             form.setFieldsValue({ cpu });
+            presetWasAdjusted();
             onChange();
           }}
           units={"vCPU"}
@@ -158,6 +175,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           max={maxDisk}
           onChange={(disk) => {
             form.setFieldsValue({ disk });
+            presetWasAdjusted();
             onChange();
           }}
           units={"G Disk"}
@@ -167,7 +185,16 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function presetExtra() {
+  function infoText() {
+    if (preset == null) {
+      return (
+        <Text type="danger">
+          Currently, no preset selection is active. Select a preset above to
+          reset your recent changes.
+        </Text>
+      );
+    }
+
     const cpuValue = form.getFieldValue("cpu");
     const ramValue = form.getFieldValue("ram");
     const diskValue = form.getFieldValue("disk");
@@ -175,7 +202,6 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     const uptimeValue = form.getFieldValue("uptime");
 
     if (
-      preset == null ||
       cpuValue == null ||
       ramValue == null ||
       diskValue == null ||
@@ -211,16 +237,27 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     function renderProvides() {
       const basic = (
         <>
-          provides up to {cpuValue} CPU {plural(cpuValue, "core")}, {ramValue}G{" "}
-          memory, and {diskValue}G disk space for each project.
+          provides up to{" "}
+          <Text strong>
+            {cpuValue} CPU {plural(cpuValue, "core")}
+          </Text>
+          , <Text strong>{ramValue}G memory</Text>, and{" "}
+          <Text strong>{diskValue}G disk space</Text> for each project.
         </>
       );
-      const mh = memberValue === false ? <>member hosting is disabled</> : null;
+
+      const mh =
+        memberValue === false ? (
+          <Text strong>member hosting is disabled</Text>
+        ) : null;
+
       const ut =
         uptimeValue !== "short" ? (
           <>
-            {mh != null ? "and" : ""} the project's idle timeout is set to{" "}
-            {LicenseIdleTimeouts[uptimeValue].label}
+            {mh != null ? " and" : ""} the project's{" "}
+            <Text strong>
+              idle timeout is {displaySiteLicense(uptimeValue)}
+            </Text>
           </>
         ) : null;
 
@@ -236,13 +273,48 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     }
 
+    function presetIsAdjusted() {
+      if (!presetAdjusted) return;
+      return (
+        <Typography style={{ marginBottom: "10px" }}>
+          <Text type="warning">
+            The preset has been adjusted and parts of the description might no
+            longer be applicable. If you select another one, your modifications
+            will be reset.
+          </Text>
+        </Typography>
+      );
+    }
+
+    return (
+      <>
+        {presetIsAdjusted()}
+        <Typography>
+          Preset <Text strong>"{name}"</Text> {presetDescription()}{" "}
+          {renderProvides()} {renderDetails()}
+        </Typography>
+      </>
+    );
+  }
+
+  function presetsCommon() {
+    if (!showExplanations) return null;
+    return (
+      <Text type="secondary">
+        After selecting a preset, feel free to fine tune the selection in the "
+        {EXPERT_CONFIG}" or change the "Member hosting" or the "Idle timeout"
+        configuration below. Subsequent preset selections will reset your
+        adjustments.
+      </Text>
+    );
+  }
+
+  function presetExtra() {
     return (
       <Space direction="vertical">
         <div></div>
-        <div>
-          Preset <strong>"{name}"</strong> {presetDescription()}{" "}
-          {renderProvides()} {renderDetails()}
-        </div>
+        <div>{infoText()}</div>
+        {presetsCommon()}
       </Space>
     );
   }
@@ -251,6 +323,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     const val = newVal.target.value;
     if (val == null || setPreset == null) return;
     setPreset(val);
+    setPresetAdjusted?.(false);
     const preset = PRESETS[val];
     if (preset != null) {
       const { cpu, ram, disk, uptime = "short", member = true } = preset;
@@ -295,7 +368,16 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (boost) {
       return (
         <>
-          <div>TODO EXPLANATION</div>
+          <Row>
+            <Col xs={16} offset={6} style={{ marginBottom: "20px" }}>
+              <Text type="secondary">
+                Configure the quotas you want to add on top of your existing
+                license. E.g. if your license provides a limit of 2G of RAM and
+                you add a matching boost license with 3G of RAM, you'll end up
+                with a total quota limit of 5G of RAM.
+              </Text>
+            </Col>
+          </Row>
           {detailed()}
         </>
       );
@@ -306,13 +388,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           onChange={setConfigMode}
           type="card"
           tabPosition="top"
-          renderTabBar={(props, DefaultTabBar) => (
-            <Row>
-              <Col span={18} offset={6} className="ant-tabs-card">
-                <DefaultTabBar {...props} />
-              </Col>
-            </Row>
-          )}
+          size="middle"
+          centered={true}
         >
           <TabPane
             tab={
@@ -329,7 +406,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             tab={
               <span>
                 <Icon name="wrench" />
-                Expert configuration
+                {EXPERT_CONFIG}
               </span>
             }
             key="expert"

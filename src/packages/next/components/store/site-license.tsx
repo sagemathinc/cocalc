@@ -75,7 +75,8 @@ function CreateSiteLicense() {
   const [form] = Form.useForm();
   const router = useRouter();
 
-  const [preset, setPreset] = useState<Presets>("standard");
+  const [preset, setPreset] = useState<Presets | null>("standard");
+  const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
   function onChange() {
     setCost(computeCost(form.getFieldsValue(true)));
@@ -171,6 +172,8 @@ function CreateSiteLicense() {
           setConfigMode={setConfigMode}
           preset={preset}
           setPreset={setPreset}
+          presetAdjusted={presetAdjusted}
+          setPresetAdjusted={setPresetAdjusted}
         />
         <MemberHostingAndIdleTimeout
           showExplanations={showExplanations}
@@ -178,6 +181,7 @@ function CreateSiteLicense() {
           onChange={onChange}
           shadowMember={shadowMember}
           setShadowMember={setShadowMember}
+          setPresetAdjusted={setPresetAdjusted}
         />
         <TitleDescription showExplanations={showExplanations} />
         <Reset
