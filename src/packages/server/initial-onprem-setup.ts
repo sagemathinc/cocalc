@@ -30,6 +30,7 @@ const REG_TOKEN = "COCALC_SETUP_REGISTRATION_TOKEN";
 // valid email address and a password for an admin account. if account exists, password is left as it is, i.e. no reset.
 const ADMIN_EMAIL = "COCALC_SETUP_ADMIN_EMAIL";
 const ADMIN_PW = "COCALC_SETUP_ADMIN_PASSWORD";
+const ADMIN_NAME = "COCALC_SETUP_ADMIN_NAME";
 
 function isSet(name: string): boolean {
   const val = process.env[name];
@@ -91,14 +92,30 @@ class Setup {
     await cb2(this.db.make_user_admin, { account_id });
   }
 
+  getAdminName(email_address): [string, string] {
+    // either use the ADMIN_NAME env var or the email address as a fallback
+    const name = process.env[ADMIN_NAME];
+    if (name) {
+      const [first, ...last] = name.split(/\s+/);
+      return [first, last.join(" ")];
+    } else {
+      // replacing dots is necessary, because otherwise names are
+      // recognized as email addresses and throw an error.
+      return ["Admin", email_address.split("@")[0].replace(".", " ")];
+    }
+  }
+
   async createAdminUser(email_address: string): Promise<string | undefined> {
     const pw = process.env[ADMIN_PW];
     if (pw == null || pw == "") throw new Error(`Password not set or empty`);
+
+    const [first_name, last_name] = this.getAdminName(email_address);
+
     return await cb2(this.db.create_account, {
       email_address,
       password_hash: passwordHash(pw),
-      first_name: "Admin",
-      last_name: email_address.split("@")[0],
+      first_name,
+      last_name,
     });
   }
 
