@@ -27,7 +27,7 @@ import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 interface Issues {
@@ -37,16 +37,8 @@ interface Issues {
 }
 
 export default async function signUp(req, res) {
-  if (!isPost(req, res)) return;
-
-  let {
-    terms,
-    email,
-    password,
-    firstName,
-    lastName,
-    registrationToken,
-  } = req.body;
+  let { terms, email, password, firstName, lastName, registrationToken } =
+    getParams(req);
 
   password = (password ?? "").trim();
   email = (email ?? "").toLowerCase().trim();

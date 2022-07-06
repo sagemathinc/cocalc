@@ -8,7 +8,7 @@ export default async function handle(req, res) {
   const account_id = await getAccountId(req);
   try {
     if (account_id == null) throw Error("must be authenticated");
-    const { limit } = getParams(req, ["limit"]);
+    const { limit } = getParams(req);
     res.json(await getProjects({ account_id, limit }));
   } catch (err) {
     res.json({ error: err.message });

@@ -7,17 +7,15 @@ currently set for the account, you have to set one as part of this request.
 
 import setEmailAddress from "@cocalc/server/accounts/set-email-address";
 import getAccountId from "lib/account/get-account";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-
   const account_id = await getAccountId(req);
   if (account_id == null) {
     res.json({ error: "must be signed in" });
     return;
   }
-  const { email_address, password } = req.body;
+  const { email_address, password } = getParams(req);
   try {
     await setEmailAddress(account_id, email_address, password);
     res.json({});

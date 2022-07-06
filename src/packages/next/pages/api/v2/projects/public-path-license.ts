@@ -7,11 +7,10 @@ import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { db } from "@cocalc/database";
 import { getProject } from "@cocalc/server/projects/control";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-  const { public_path_id, project_id } = req.body;
+  const { public_path_id, project_id } = getParams(req);
 
   try {
     if (!isValidUUID(project_id)) {

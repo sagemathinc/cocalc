@@ -4,17 +4,23 @@ a project) or within a project.
 
 This requires the user to be signed in with appropriate access.
 
-See "@cocalc/server/projects/control/base" for POST params.
+See "@cocalc/server/projects/control/base" for params.
 */
 import getAccountId from "lib/account/get-account";
 import { getProject } from "@cocalc/server/projects/control";
 import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
+  const params = getParams(req);
+
+  const error = checkParams(params);
+  if (error) {
+    res.json({ error });
+    return;
+  }
 
   const {
     public_id,
@@ -27,13 +33,7 @@ export default async function handle(req, res) {
     backup,
     timeout,
     bwlimit,
-  } = req.body;
-
-  const error = checkParams(req.body);
-  if (error) {
-    res.json({ error });
-    return;
-  }
+  } = params;
 
   try {
     const account_id = await getAccountId(req);

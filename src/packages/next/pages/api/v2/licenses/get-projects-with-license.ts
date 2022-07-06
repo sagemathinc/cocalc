@@ -13,11 +13,10 @@ import getProjectsWithLicense, {
 } from "@cocalc/server/licenses/get-projects-with-license";
 import { isManager } from "@cocalc/server/licenses/get-license";
 import getAccountId from "lib/account/get-account";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 import { isValidUUID } from "@cocalc/util/misc";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
   try {
     res.json(await get(req));
   } catch (err) {
@@ -31,7 +30,7 @@ async function get(req): Promise<Project[]> {
   if (account_id == null) {
     throw Error("must be signed in as a manager of the license");
   }
-  const { license_id } = req.body;
+  const { license_id } = getParams(req);
   if (!isValidUUID(license_id)) {
     throw Error("license_id must be a valid uuid");
   }

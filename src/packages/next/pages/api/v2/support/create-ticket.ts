@@ -4,12 +4,10 @@ Create a support ticket.
 
 import createSupportTicket from "@cocalc/server/support/create-ticket";
 import getAccountId from "lib/account/get-account";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-
-  const { options } = req.body;
+  const { options } = getParams(req);
 
   let url;
   try {

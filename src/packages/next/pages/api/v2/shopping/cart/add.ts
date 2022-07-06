@@ -13,6 +13,7 @@ import addToCart, {
   buyItAgain,
 } from "@cocalc/server/shopping/cart/add";
 import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -28,7 +29,7 @@ async function add(req): Promise<number | undefined> {
   if (account_id == null) {
     throw Error("must be signed in to use shopping cart");
   }
-  const { product, description, id, purchased } = req.body;
+  const { product, description, id, purchased } = getParams(req);
   if (id != null) {
     if (purchased) {
       // put copy of it in the cart

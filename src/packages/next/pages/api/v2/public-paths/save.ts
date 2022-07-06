@@ -12,7 +12,7 @@ export default async function handle(req, res) {
         "must be signed in to save public path (have to be collab on project)"
       );
     }
-    const { id } = getParams(req, ["id"]);
+    const { id } = getParams(req);
     if (!id) {
       throw Error("must specify id of public path");
     }

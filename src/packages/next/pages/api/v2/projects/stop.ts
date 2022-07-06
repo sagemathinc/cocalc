@@ -1,5 +1,5 @@
 /*
-API endpoint to start a project running.
+API endpoint to stop a project running.
 
 This requires the user to be signed in so they are allowed to use this project.
 */
@@ -21,10 +21,10 @@ export default async function handle(req, res) {
       throw Error("must be signed in");
     }
     if (!isCollaborator({ account_id, project_id })) {
-      throw Error("must be a collaborator to start project");
+      throw Error("must be a collaborator to stop project");
     }
     const project = getProject(project_id);
-    await project.start();
+    await project.stop();
     res.json({});
   } catch (err) {
     res.json({ error: err.message });

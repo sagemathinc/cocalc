@@ -1,15 +1,29 @@
 import type { Request } from "express";
 
-export default function getParams(req: Request, params: string[]) {
-  const x: any = {};
+export default function getParams(req: Request): { [param: string]: any } {
   if (req?.method == "POST") {
-    for (const param of params) {
-      x[param] = req.body?.[param];
-    }
+    return new Proxy(
+      {},
+      {
+        get(_, key) {
+          return req.body?.[key];
+        },
+      }
+    );
+  } else if (req?.method == "GET") {
+    return new Proxy(
+      {},
+      {
+        get(_, key) {
+          if (typeof key != "string") {
+            return undefined;
+          }
+          return req.query?.[key];
+        },
+      }
+    );
   } else {
-    for (const param of params) {
-      x[param] = req.query?.[param];
-    }
+    // only have params for GET and POST requests.
+    return {};
   }
-  return x;
 }
