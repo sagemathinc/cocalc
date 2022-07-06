@@ -258,7 +258,9 @@ export class PageActions extends Actions<PageState> {
     this.setState({ new_version });
   }
 
-  set_fullscreen(fullscreen) {
+  async set_fullscreen(
+    fullscreen?: "default" | "kiosk" | "project" | undefined
+  ) {
     // val = 'default', 'kiosk', 'project', undefined
     // if kiosk is ever set, disable toggling back
     if (redux.getStore("page").get("fullscreen") === "kiosk") {
@@ -271,7 +273,12 @@ export class PageActions extends Actions<PageState> {
       return;
     }
     if (fullscreen) {
-      document.documentElement.requestFullscreen();
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        // gives an error if not initiated explicitly by user action...
+        console.log(err);
+      }
     } else {
       if (document.fullscreenElement) {
         document.exitFullscreen();

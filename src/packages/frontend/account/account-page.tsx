@@ -57,6 +57,7 @@ export const AccountPage: React.FC = () => {
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const get_api_key = useTypedRedux("page", "get_api_key");
 
   const exclusive_sso_domains = React.useMemo(() => {
     if (strategies == null) return;
@@ -260,7 +261,9 @@ export const AccountPage: React.FC = () => {
 
   return (
     <div style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}>
-      {is_logged_in ? render_logged_in_view() : render_landing_page()}
+      {is_logged_in && !get_api_key
+        ? render_logged_in_view()
+        : render_landing_page()}
     </div>
   );
 };

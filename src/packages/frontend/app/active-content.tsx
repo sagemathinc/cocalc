@@ -16,6 +16,7 @@ import { Connecting } from "../landing-page/connecting";
 export const ActiveContent: React.FC = React.memo(() => {
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const get_api_key = useTypedRedux("page", "get_api_key");
   const open_projects = useTypedRedux("projects", "open_projects");
 
   const v: JSX.Element[] = [];
@@ -32,6 +33,11 @@ export const ActiveContent: React.FC = React.memo(() => {
       </div>
     );
   });
+
+  if (get_api_key) {
+    // Only render the account page which has the message for allowing api access:
+    return <AccountPage key={"account"} />;
+  }
 
   // in kiosk mode: if no file is opened show a banner
   if (fullscreen == "kiosk" && v.length === 0) {

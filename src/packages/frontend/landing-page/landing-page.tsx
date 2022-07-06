@@ -10,7 +10,7 @@ The Landing Page
 import * as immutable from "immutable";
 import { Component, rclass, rtypes, Rendered } from "../app-framework";
 import { Row, Col, Alert } from "../antd-bootstrap";
-import { UNIT } from "../components";
+import { UNIT, A } from "../components";
 import { SiteDescription, Footer } from "../customize";
 import { SignIn } from "./sign-in";
 import { ForgotPassword } from "./forgot-password";
@@ -350,25 +350,27 @@ class LandingPage extends Component<Props & reduxProps, State> {
             />
           </div>
         </Row>
-        <Row
-          style={{
-            color: COLORS.GRAY,
-            fontSize: "16pt",
-            margin: "150px 0",
-            textAlign: "center",
-          }}
-        >
-          <Col sm={12}>
-            <a href={join(appBasePath, "/auth/sign-up")}>
-              Create a new account
-            </a>{" "}
-            or{" "}
-            <a href={join(appBasePath, "/auth/sign-in")}>
-              sign in with an existing account
-            </a>
-            .
-          </Col>
-        </Row>
+        {!this.props.get_api_key && (
+          <Row
+            style={{
+              color: COLORS.GRAY,
+              fontSize: "16pt",
+              margin: "150px 0",
+              textAlign: "center",
+            }}
+          >
+            <Col sm={12}>
+              <a href={join(appBasePath, "/auth/sign-up")}>
+                Create a new account
+              </a>{" "}
+              or{" "}
+              <a href={join(appBasePath, "/auth/sign-in")}>
+                sign in with an existing account
+              </a>
+              .
+            </Col>
+          </Row>
+        )}
         <Footer />
       </div>
     );
@@ -388,20 +390,16 @@ class LandingPage extends Component<Props & reduxProps, State> {
             {app} would like your CoCalc API key.
             <br />
             <br />
-            This grants <b>full access</b> to all of your CoCalc projects to{" "}
-            {app}, until you explicitly revoke your API key in Account
-            preferences.
+            Sign in below to grant <b>full access</b> to all of
+            your CoCalc projects to {app}, until you explicitly revoke your API
+            key in Account preferences.
             <br />
             <br />
             If necessary, please{" "}
-            <a href={join(appBasePath, "/auth/sign-up")}>
+            <A href={join(appBasePath, "/auth/sign-up")}>
               create a new account
-            </a>{" "}
-            or{" "}
-            <a href={join(appBasePath, "/auth/sign-in")}>
-              sign in with an existing account
-            </a>
-            .
+            </A>{" "}
+            then revisit this page and sign in here.
           </div>
         </div>
         <hr />

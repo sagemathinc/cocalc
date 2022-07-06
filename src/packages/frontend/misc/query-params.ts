@@ -17,6 +17,7 @@ export namespace QueryParams {
 
   // Remove the given query parameter from the URL
   export function remove(p: string | string[]): void {
+    // console.log("QueryParams.remove", p);
     const url = new URL(location.href);
     if (typeof p != "string") {
       for (const x of p) {
@@ -30,6 +31,7 @@ export namespace QueryParams {
 
   // val = undefined means to remove it, since won't be represented in query param anyways.
   export function set(p: string, val: string | null | undefined): void {
+    // console.log("QueryParams.set", { p, val });
     const url = new URL(location.href);
     if (val == null) {
       url.searchParams.delete(p);
