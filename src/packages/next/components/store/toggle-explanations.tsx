@@ -9,7 +9,10 @@ import { Form, Switch } from "antd";
 export function ToggleExplanations({ showExplanations, setShowExplanations }) {
   return (
     <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
-      <div style={{ float: "right" }}>
+      <div
+        style={{ float: "right", cursor: "pointer" }}
+        onClick={() => setShowExplanations(!showExplanations)}
+      >
         <Switch
           checked={showExplanations}
           onChange={(show) => {
