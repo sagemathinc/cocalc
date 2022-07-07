@@ -149,7 +149,7 @@ export const PRESETS: PresetEntries = {
     ),
     cpu: 1,
     ram: 6,
-    disk: 16,
+    disk: 15,
     uptime: "medium",
   },
   research: {
