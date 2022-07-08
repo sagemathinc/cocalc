@@ -4,10 +4,9 @@ Set default payment source for signed in customer.
 
 import createPaymentMethod from "@cocalc/server/billing/create-payment-method";
 import getAccountId from "lib/account/get-account";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
   try {
     res.json(await set(req));
   } catch (err) {
@@ -21,7 +20,7 @@ async function set(req): Promise<{ success: true }> {
   if (account_id == null) {
     throw Error("must be signed in to create payment method");
   }
-  const { id } = req.body;
+  const { id } = getParams(req);
   if (!id) {
     throw Error("must specify the token id");
   }

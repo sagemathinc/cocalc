@@ -60,3 +60,11 @@ export function untangleUptime(uptime?: Uptime): {
   }
   return { always_running: false, idle_timeout: uptime };
 }
+
+export function displaySiteLicense(uptime: Uptime) {
+  if (uptime == "always_running") {
+    return "Always Running";
+  } else {
+    return LicenseIdleTimeouts[uptime].label;
+  }
+}

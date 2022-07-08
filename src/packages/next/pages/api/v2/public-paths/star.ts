@@ -14,7 +14,7 @@ export default async function handle(req, res) {
     if (account_id == null) {
       throw Error("must be signed in to star");
     }
-    const { id } = getParams(req, ["id"]);
+    const { id } = getParams(req);
     if (!id) {
       throw Error("must specify id of public path");
     }

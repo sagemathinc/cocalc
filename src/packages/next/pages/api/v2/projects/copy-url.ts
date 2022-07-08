@@ -15,7 +15,7 @@ import call from "@cocalc/server/projects/connection/call";
 import getProxiedPublicPathInfo from "lib/share/proxy/get-proxied-public-path-info";
 
 export default async function handle(req, res) {
-  const params = getParams(req, ["project_id", "url", "path", "timeout"]);
+  const params = getParams(req);
   const error = checkParams(params);
   if (error) {
     res.json({ error });

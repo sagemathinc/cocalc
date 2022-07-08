@@ -49,15 +49,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
-  const params = getParams(req, [
-    "project_id",
-    "content",
-    "path",
-    "command",
-    "timeout",
-    "ttl",
-    "leave",
-  ]);
+  const params = getParams(req);
   try {
     if (!account_id) {
       throw Error("must be authenticated");

@@ -136,11 +136,11 @@ function CreateBooster() {
       >
         Boost licenses only work in combination with regular Site Licenses. The
         intention of a Boost License is to increase how much resources your
-        project receives, without having to purchase yet another regular license.
-        For example, you can increase just the RAM for some projects for
-        a couple of days, while otherwise you are happy with a smaller license as
-        part of an ongoing subscription. The following conditions must be met in
-        order to benefit from an activated boost license:
+        project receives, without having to purchase yet another regular
+        license. For example, you can increase just the RAM for some projects
+        for a couple of days, while otherwise you are happy with a smaller
+        license as part of an ongoing subscription. The following conditions
+        must be met in order to benefit from an activated boost license:
         <ul>
           <li>
             <Text strong>Active Site License</Text>: one or more{" "}
@@ -240,19 +240,19 @@ function CreateBooster() {
           boost={true}
           disabled={!confirmWarning}
         />
-        <QuotaConfig
-          boost={true}
-          form={form}
-          onChange={onChange}
-          disabled={!confirmWarning}
-          showExplanations={showExplanations}
-        />
         <RunLimit
           showExplanations={showExplanations}
           form={form}
           onChange={onChange}
           boost={true}
           disabled={!confirmWarning}
+        />
+        <QuotaConfig
+          boost={true}
+          form={form}
+          onChange={onChange}
+          disabled={!confirmWarning}
+          showExplanations={showExplanations}
         />
         <TitleDescription
           showExplanations={showExplanations}

@@ -44,7 +44,7 @@ export function init_query_params(): void {
   const get_api_key_query_value = QueryParams.get("get_api_key");
   if (get_api_key_query_value) {
     actions.set_get_api_key(get_api_key_query_value);
-    actions.set_fullscreen("default");
+    actions.set_fullscreen("project");
   }
 
   // configure the session

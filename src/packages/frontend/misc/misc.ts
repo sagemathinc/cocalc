@@ -19,5 +19,10 @@ export function html_to_text(html: string): string {
 
 // returns true, if a target page should be loaded
 export function should_load_target_url(): boolean {
-  return target != null && target != "login" && !QueryParams.get("test");
+  return (
+    target != null &&
+    target != "login" &&
+    !QueryParams.get("test") &&
+    !QueryParams.get("get_api_key")
+  );
 }

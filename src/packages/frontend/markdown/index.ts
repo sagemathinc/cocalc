@@ -24,8 +24,6 @@ export { parseHeader } from "./header";
 import Markdown from "./component";
 export { Markdown };
 
-
-
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 
 export const OPTIONS: MarkdownIt.Options = {

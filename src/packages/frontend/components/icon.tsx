@@ -169,6 +169,10 @@ import {
   WarningOutlined,
   WifiOutlined,
   MailOutlined,
+  WalletOutlined,
+  MehOutlined,
+  SettingOutlined,
+  HighlightOutlined,
 } from "@ant-design/icons";
 
 const IconSpec = {
@@ -325,6 +329,7 @@ const IconSpec = {
   header: { IconFont: "header" },
   heart: { IconFont: "heart" },
   hdd: HddOutlined,
+  highlighter: HighlightOutlined,
   history: HistoryOutlined,
   home: HomeOutlined,
   "horizontal-split": { IconFont: "horizontal-split" },
@@ -365,6 +370,7 @@ const IconSpec = {
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
+  meh: MehOutlined,
   microchip: { IconFont: "microchip" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
@@ -423,6 +429,7 @@ const IconSpec = {
   "search-minus": MinusOutlined, // we actually use this for zoom
   "search-plus": PlusOutlined,
   "select-outlined": SelectOutlined,
+  settings: SettingOutlined,
   server: CloudServerOutlined,
   "sign-in": LoginOutlined,
   "sign-out-alt": LogoutOutlined,
@@ -486,6 +493,7 @@ const IconSpec = {
   "video-camera": VideoCameraOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
+  wallet: WalletOutlined,
   warning: WarningOutlined,
   wifi: WifiOutlined,
   "window-maximize": { IconFont: "window-maximize" },

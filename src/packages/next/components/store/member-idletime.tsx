@@ -12,15 +12,29 @@ import A from "components/misc/A";
 
 const { Text } = Typography;
 
-export function MemberHostingAndIdleTimeout({
-  shadowMember,
-  setShadowMember,
-  form,
-  showExplanations,
-  onChange,
-  boost = false,
-  disabled = false,
-}) {
+interface Props {
+  shadowMember: boolean | null;
+  setShadowMember: (shadowMember: boolean | null) => void;
+  form: any;
+  showExplanations: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+  boost?: boolean;
+  setPresetAdjusted?: (adjusted: boolean) => void;
+}
+
+export function MemberHostingAndIdleTimeout(props: Props) {
+  const {
+    shadowMember,
+    setShadowMember,
+    form,
+    showExplanations,
+    onChange,
+    setPresetAdjusted,
+    boost = false,
+    disabled = false,
+  } = props;
+
   function memberExplanation(): JSX.Element | undefined {
     if (!showExplanations) return;
     if (boost) {
@@ -33,7 +47,7 @@ export function MemberHostingAndIdleTimeout({
     } else {
       return (
         <>
-          Member hosting significanlty reduces competition for resources, and we
+          Member hosting significantly reduces competition for resources, and we
           prioritize{" "}
           <A href="support/new" external>
             support requests
@@ -180,6 +194,7 @@ export function MemberHostingAndIdleTimeout({
           disabled={
             disabled || requiresMemberhosting(form.getFieldValue("uptime"))
           }
+          onChange={() => setPresetAdjusted?.(true)}
         >
           Run project on a much better host with network access
         </Checkbox>
@@ -194,6 +209,7 @@ export function MemberHostingAndIdleTimeout({
           disabled={disabled}
           onChange={(e) => {
             form.setFieldsValue({ uptime: e.target.value });
+            setPresetAdjusted?.(true);
             onChange();
           }}
         >

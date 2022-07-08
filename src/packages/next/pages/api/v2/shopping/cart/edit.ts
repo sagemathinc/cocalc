@@ -4,6 +4,7 @@ Edit item in the shopping cart.
 
 import editCart from "@cocalc/server/shopping/cart/edit";
 import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -19,6 +20,6 @@ async function edit(req): Promise<number> {
   if (account_id == null) {
     throw Error("must be signed in to use shopping cart");
   }
-  const { product, description, id } = req.body;
+  const { product, description, id } = getParams(req);
   return await editCart({ account_id, product, description, id });
 }

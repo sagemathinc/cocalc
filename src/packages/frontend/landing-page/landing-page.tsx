@@ -29,12 +29,12 @@ import {
   launch_action_description,
   NAME as LAUNCH_ACTIONS_NAME,
 } from "@cocalc/frontend/launch/actions";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import * as immutable from "immutable";
 import { join } from "path";
-import { UNIT } from "../components";
+import { A, UNIT } from "../components";
+import { QueryParams } from "../misc/query-params";
 import { Connecting } from "./connecting";
 import { ForgotPassword } from "./forgot-password";
 import { ResetPassword } from "./reset-password";
@@ -359,25 +359,27 @@ class LandingPage extends Component<Props & reduxProps, State> {
             />
           </div>
         </Row>
-        <Row
-          style={{
-            color: COLORS.GRAY,
-            fontSize: "16pt",
-            margin: "150px 0",
-            textAlign: "center",
-          }}
-        >
-          <Col sm={12}>
-            <a href={join(appBasePath, "/auth/sign-up")}>
-              Create a new account
-            </a>{" "}
-            or{" "}
-            <a href={join(appBasePath, "/auth/sign-in")}>
-              sign in with an existing account
-            </a>
-            .
-          </Col>
-        </Row>
+        {!this.props.get_api_key && (
+          <Row
+            style={{
+              color: COLORS.GRAY,
+              fontSize: "16pt",
+              margin: "150px 0",
+              textAlign: "center",
+            }}
+          >
+            <Col sm={12}>
+              <a href={join(appBasePath, "/auth/sign-up")}>
+                Create a new account
+              </a>{" "}
+              or{" "}
+              <a href={join(appBasePath, "/auth/sign-in")}>
+                sign in with an existing account
+              </a>
+              .
+            </Col>
+          </Row>
+        )}
         <Footer />
       </div>
     );
@@ -397,20 +399,16 @@ class LandingPage extends Component<Props & reduxProps, State> {
             {app} would like your CoCalc API key.
             <br />
             <br />
-            This grants <b>full access</b> to all of your CoCalc projects to{" "}
-            {app}, until you explicitly revoke your API key in Account
-            preferences.
+            Sign in below to grant <b>full access</b> to all of your CoCalc
+            projects to {app}, until you explicitly revoke your API key in
+            Account preferences.
             <br />
             <br />
             If necessary, please{" "}
-            <a href={join(appBasePath, "/auth/sign-up")}>
+            <A href={join(appBasePath, "/auth/sign-up")}>
               create a new account
-            </a>{" "}
-            or{" "}
-            <a href={join(appBasePath, "/auth/sign-in")}>
-              sign in with an existing account
-            </a>
-            .
+            </A>{" "}
+            then revisit this page and sign in here.
           </div>
         </div>
         <hr />
