@@ -56,8 +56,8 @@ export default function Boost() {
           <Typography>
             <Icon name="lightbulb" style={{ color: COLORS.ANTD_ORANGE }} /> If
             you are teaching a course and have to cover more students, you need
-            to get a <A href="./site-license">Site License</A> with a "Run
-            Limit" matching the number of additional of students.
+            to get an additional <A href="./site-license">Site License</A> with
+            a "Run Limit" matching the number of additional of students.
           </Typography>
         </Space>
       )}
