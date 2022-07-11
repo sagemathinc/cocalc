@@ -10,7 +10,10 @@ export default function getParams(req: Request): { [param: string]: any } {
         },
       }
     );
-  } else if (req?.method == "GET") {
+    /*
+    // Disabled, since this could lead to a sneaky click on a link attack.
+    // Should only be enabled for dev purposes.
+    } else if (req?.method == "GET") {
     return new Proxy(
       {},
       {
@@ -22,8 +25,9 @@ export default function getParams(req: Request): { [param: string]: any } {
         },
       }
     );
+*/
   } else {
-    // only have params for GET and POST requests.
+    // only support params for POST requests.
     return {};
   }
 }
