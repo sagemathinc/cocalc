@@ -49,7 +49,7 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
       result?.filter((l) => {
         // hide expired licenses
         if (l.expires != null && l.expires < now) return false;
-        if (l.quota.dedicated_disk != null || l.quota.dedicated_vm != null) {
+        if (l.quota?.dedicated_disk != null || l.quota?.dedicated_vm != null) {
           return false;
         }
         return true;
