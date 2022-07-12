@@ -44,6 +44,11 @@ function makeGroup(
     type: "group",
   } as MenuItem;
 }
+
+const DIVIDER = {
+  type: "divider",
+} as const;
+
 interface Props {
   style: CSSProperties;
 }
@@ -71,30 +76,12 @@ export default function AccountNavTab({ style }: Props) {
     </A>
   );
 
-  const divider = {
-    type: "divider",
-  } as const;
-
-  const signUp = makeItem(
-    "sign-up",
-    <A href="/config/search/input">
-      <b>Sign Up (save your work)!</b>
-    </A>,
-    "user"
-  );
-
   const docs = makeItem(
     "docs",
     <A href="https://doc.cocalc.com" external>
       Documentation
     </A>,
     "book"
-  );
-
-  const commercial = makeItem(
-    "store",
-    <A href="/store">Store</A>,
-    "shopping-cart"
   );
 
   const configuration = makeGroup(
@@ -123,16 +110,28 @@ export default function AccountNavTab({ style }: Props) {
     if (!profile) return [];
     const ret: MenuItem[] = [];
     ret.push(signedIn);
-    if (is_anonymous) ret.push(signUp);
+    if (is_anonymous) {
+      ret.push(
+        makeItem(
+          "sign-up",
+          <A href="/config/search/input">
+            <b>Sign Up (save your work)!</b>
+          </A>,
+          "user"
+        )
+      );
+    }
     ret.push(docs);
-    if (isCommercial) ret.push(commercial);
-    ret.push(divider);
+    if (isCommercial) {
+      ret.push(makeItem("store", <A href="/store">Store</A>, "shopping-cart"));
+    }
+    ret.push(DIVIDER);
     ret.push(configuration);
-    ret.push(divider);
+    ret.push(DIVIDER);
     return ret;
   }
 
-  function your(): MenuItem[] {
+  function yourPages(): MenuItem[] {
     const yours: MenuItem[] = [];
     yours.push(
       makeItem(
@@ -202,7 +201,7 @@ export default function AccountNavTab({ style }: Props) {
   function admin(): MenuItem[] {
     if (!is_admin) return [];
     return [
-      divider,
+      DIVIDER,
       makeItem(
         "admin",
         <A href={join(basePath, "admin")} external>
@@ -214,7 +213,7 @@ export default function AccountNavTab({ style }: Props) {
   }
 
   const signout: MenuItem[] = [
-    divider,
+    DIVIDER,
     makeItem(
       "sign-out",
       <A
@@ -230,10 +229,10 @@ export default function AccountNavTab({ style }: Props) {
 
   const items: MenuProps["items"] = [
     ...profileItems(),
-    ...your(),
+    ...yourPages(),
     ...admin(),
     ...signout,
-  ].filter((item) => item != null);
+  ];
 
   const menu = <Menu mode="vertical" theme="dark" items={items} />;
 
