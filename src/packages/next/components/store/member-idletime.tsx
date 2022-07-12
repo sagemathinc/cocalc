@@ -42,7 +42,7 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
     calling,
   } = useAPI("licenses/get-managed", undefined, 600);
 
-  const managedLicesens = useMemo(() => {
+  const managedLicenses = useMemo(() => {
     if (!Array.isArray(result)) return [];
     const now = Date.now();
     const filtered =
@@ -64,8 +64,9 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
 
   function shortQuotaDescription(
     run_limit: number,
-    quota: SiteLicenseQuota & { uptime?: Uptime }
+    quota?: SiteLicenseQuota & { uptime?: Uptime }
   ): string {
+    if (quota == null) return ""; // I saw this in production.
     const { cpu, ram, disk, always_running, idle_timeout, member } = quota;
     const up =
       always_running === true
@@ -79,14 +80,14 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
   }
 
   function renderLicenses() {
-    if (managedLicesens == null || managedLicesens.length === 0) {
+    if (managedLicenses == null || managedLicenses.length === 0) {
       return [
         <Option key="first" value="first" disabled="true">
           {calling ? "Loading…" : "No licenses found"}
         </Option>,
       ];
     } else {
-      const entries = managedLicesens.map((license) => {
+      const entries = managedLicenses.map((license) => {
         // split the license id at "-" and take the last part
         const shortID = license.id.split("-").pop();
         const quota = shortQuotaDescription(license.run_limit, license.quota);
@@ -107,7 +108,7 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
   }
 
   function onSelection(license_id: string) {
-    const license = managedLicesens.find((l) => l.id === license_id);
+    const license = managedLicenses.find((l) => l.id === license_id);
     if (license == null) return;
     const q = license.quota;
     if (q == null) return;
