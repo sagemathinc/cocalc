@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.108.4",
+  "version": "1.108.5",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -53,7 +53,7 @@
     "@cocalc/assets": "^1.7.1",
     "@cocalc/backend": "^1.18.1",
     "@cocalc/cdn": "^1.12.0",
-    "@cocalc/frontend": "^1.75.2",
+    "@cocalc/frontend": "^1.75.3",
     "@cocalc/util": "^1.58.0",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^27.4.1",
@@ -75,7 +75,7 @@
     "crypto-browserify": "^3.12.0",
     "css-loader": "^5.2.5",
     "cssnano": "^5.0.3",
-    "entities": "^4.3.1",
+    "entities": "^2.2.0",
     "enzyme": "^3.11.0",
     "enzyme-to-json": "^3.6.2",
     "eslint": "^7.31.0",
