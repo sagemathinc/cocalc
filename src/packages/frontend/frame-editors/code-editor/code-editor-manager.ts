@@ -76,10 +76,7 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     delete this.code_editors[id];
   }
 
-  async init_code_editor(
-    id: string,
-    path: string
-  ): Promise<CodeEditor | null> {
+  async init_code_editor(id: string, path: string): Promise<CodeEditor | null> {
     const e = this.get_code_editor(id, path);
     if (e != null) return e;
     const x = new CodeEditor(this.actions.project_id, path);
@@ -90,7 +87,8 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
 
   get_code_editor(id: string, path?: string): CodeEditor | undefined {
     if (path == null) {
-      let node = this.actions._get_frame_node(id);
+      // actions undefined can happen if called after close;  somebody reported this happening once...
+      let node = this.actions?._get_frame_node(id);
       if (node == null) {
         return;
       }

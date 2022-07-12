@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
-import useAPI from "lib/hooks/api";
-import apiPost from "lib/api/post";
-import Loading from "components/share/loading";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { cmp, plural, search_match, search_split } from "@cocalc/util/misc";
 import {
   Alert,
   Button,
@@ -11,18 +14,18 @@ import {
   Popover,
   Table,
 } from "antd";
-import { Quota as LicenseQuota } from "./license";
 import Avatar from "components/account/avatar";
 import UserName from "components/account/name";
-import { EditableDescription, EditableTitle } from "./editable-license";
-import { search_split, search_match } from "@cocalc/util/misc";
-import { cmp, plural } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Timestamp from "components/misc/timestamp";
-import License, { DateRange } from "./license";
 import SelectUsers from "components/account/select-users";
-import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
+import Timestamp from "components/misc/timestamp";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useCustomize from "lib/use-customize";
+import { useMemo, useState } from "react";
+import { EditableDescription, EditableTitle } from "./editable-license";
+import License, { DateRange, Quota as LicenseQuota } from "./license";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 

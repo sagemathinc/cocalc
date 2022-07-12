@@ -59,7 +59,22 @@ export default function Home({ customize, publicPaths }) {
                     : ""
                 }`}
               </A>
-              <div style={{ fontSize: "10pt", margin: "15px 0" }}>
+              <div style={{ fontSize: "11pt", margin: "15px 0" }}>
+                {customize.isCommercial &&
+                  customize.account &&
+                  !customize.account.is_anonymous && (
+                    <>
+                      <A href="/store" style={topLinkStyle}>
+                        Store
+                      </A>{" "}
+                      <A href={"/licenses"} style={topLinkStyle}>
+                        Licenses
+                      </A>{" "}
+                      <A href={"/billing"} style={topLinkStyle}>
+                        Billing
+                      </A>{" "}
+                    </>
+                  )}
                 {customize.account != null && (
                   <>
                     <A
@@ -95,21 +110,6 @@ export default function Home({ customize, publicPaths }) {
                     </A>{" "}
                   </>
                 )}
-                {customize.isCommercial &&
-                  customize.account &&
-                  !customize.account.is_anonymous && (
-                    <>
-                      <A href="/store" style={topLinkStyle}>
-                        Store
-                      </A>{" "}
-                      <A href={"/licenses"} style={topLinkStyle}>
-                        Licenses
-                      </A>{" "}
-                      <A href={"/billing"} style={topLinkStyle}>
-                        Billing
-                      </A>{" "}
-                    </>
-                  )}
                 {customize.shareServer && (
                   <>
                     <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
