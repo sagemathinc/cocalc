@@ -73,7 +73,7 @@ import {
   welcome_email,
 } from "./email";
 import bodyParser from "body-parser";
-import Saml2js from "saml2js";
+//import Saml2js from "saml2js";
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
 
@@ -92,7 +92,7 @@ const BLACKLISTED_STRATEGIES = [
 ] as const;
 
 // root for authentication related endpoints -- will be prefixed with the base_path
-const AUTH_BASE = "/auth";
+const AUTH_BASE = "/auth2";
 
 const { defaults, required } = misc;
 
@@ -103,7 +103,7 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 //#######################################
 
 interface PassportLogin {
-  strategy: string;
+  name: string;
   profile: any; // complex object
   id: string;
   first_name?: string;
@@ -120,7 +120,8 @@ interface PassportLogin {
 type LoginInfoDerivator<T> = (profile: any) => T;
 
 interface StrategyConf {
-  strategy: string;
+  name: string; // our custom name
+  type: string; // e.g. "saml"
   PassportStrategyConstructor: any;
   extra_opts?: {
     enableProof?: boolean; // facebook
@@ -155,7 +156,8 @@ interface StrategyConf {
 // library and put in print statements to see what the *REAL* errors were, since that
 // library hid the errors (**WHY**!!?).
 const GoogleStrategyConf: StrategyConf = {
-  strategy: "google",
+  name: "google",
+  type: "@passport-next/passport-google-oauth2",
   PassportStrategyConstructor: require("@passport-next/passport-google-oauth2")
     .Strategy,
   auth_opts: { scope: "openid email profile" },
@@ -173,7 +175,8 @@ const GoogleStrategyConf: StrategyConf = {
 //   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
 const GithubStrategyConf: StrategyConf = {
-  strategy: "github",
+  name: "github",
+  type: "passport-github2",
   PassportStrategyConstructor: require("passport-github2").Strategy,
   auth_opts: {
     scope: ["user:email"],
@@ -195,7 +198,8 @@ const GithubStrategyConf: StrategyConf = {
 //   db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
 const FacebookStrategyConf: StrategyConf = {
-  strategy: "facebook",
+  name: "facebook",
+  type: "passport-facebook",
   PassportStrategyConstructor: require("passport-facebook").Strategy,
   extra_opts: {
     enableProof: false,
@@ -227,7 +231,8 @@ const TwitterWrapper = (
 };
 
 const TwitterStrategyConf: StrategyConf = {
-  strategy: "twitter",
+  name: "twitter",
+  type: "passport-twitter",
   PassportStrategyConstructor: TwitterWrapper,
   login_info: {
     id: (profile) => profile.id,
@@ -639,7 +644,8 @@ export class PassportManager {
         emails: "emails[0].value",
       };
       const config: StrategyConf = {
-        strategy: name,
+        name: name,
+        type: strategy.conf.type,
         PassportStrategyConstructor: cons,
         login_info: { ...DEFAULT_LOGIN_INFO, ...strategy.conf.login_info },
         userinfoURL: strategy.conf.userinfoURL,
@@ -661,8 +667,8 @@ export class PassportManager {
     await Promise.all(inits);
   }
 
-  private getVerify(strategy: StrategyConf["strategy"]) {
-    switch (strategy) {
+  private getVerify(type: StrategyConf["type"]) {
+    switch (type) {
       case "saml":
         return (profile, done) => {
           done(undefined, profile);
@@ -678,24 +684,25 @@ export class PassportManager {
   // a generalized strategy initizalier
   private async init_strategy(strategy_config: StrategyConf): Promise<void> {
     const {
-      strategy,
+      name,
+      type,
       PassportStrategyConstructor,
       extra_opts,
       auth_opts,
       login_info,
       userinfoURL,
     } = strategy_config;
-    logger.debug(`init_strategy ${strategy}`);
+    logger.debug(`init_strategy ${name}`);
     if (this.passports == null) throw Error("strategies not initalized!");
-    if (strategy == null) {
+    if (name == null) {
       logger.debug(`strategy is null -- aborting initialization`);
       return;
     }
 
-    const confDB = this.passports[strategy];
+    const confDB = this.passports[name];
     if (confDB == null) {
       logger.debug(
-        `no conf for strategy=${strategy} in DB -- aborting initialization`
+        `no conf for strategy=${name} in DB -- aborting initialization`
       );
       return;
     }
@@ -703,14 +710,14 @@ export class PassportManager {
     const opts = {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
-      callbackURL: `${this.auth_url}/${strategy}/return`,
+      callbackURL: `${this.auth_url}/${name}/return`,
       ...extra_opts,
     };
 
     // attn: this log line shows secrets
     // logger.debug(`opts = ${safeJsonStringify(opts)}`);
 
-    const verify = this.getVerify(strategy);
+    const verify = this.getVerify(type);
 
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
@@ -765,7 +772,7 @@ export class PassportManager {
           }
 
           const profile = parse_openid_profile(json);
-          profile.provider = strategy;
+          profile.provider = type;
           profile._raw = body;
           logger.debug(
             `PassportStrategyConstructor.userProfile: profile = ${safeJsonStringify(
@@ -777,25 +784,25 @@ export class PassportManager {
       };
     }
 
-    passport.use(strategy, strategy_instance);
+    passport.use(name, strategy_instance);
+
+    const strategyUrl = `${AUTH_BASE}/${name}`;
 
     this.router.get(
-      `${AUTH_BASE}/${strategy}`,
+      strategyUrl,
       this.handle_get_api_key,
-      passport.authenticate(strategy, auth_opts || {})
+      passport.authenticate(name, auth_opts || {})
     );
 
     const handleReturn = async (req, res) => {
       if (req.user == null) {
         throw Error("req.user == null -- that shouldn't happen");
       }
-      logger.debug(`${strategy}/return user = ${safeJsonStringify(req.user)}`);
+      logger.debug(`${name}/return user = ${safeJsonStringify(req.user)}`);
       const profile = req.user["profile"] as any as passport.Profile;
-      logger.debug(
-        `${strategy}/return profile = ${safeJsonStringify(profile)}`
-      );
+      logger.debug(`${name}/return profile = ${safeJsonStringify(profile)}`);
       const login_opts = {
-        strategy,
+        name,
         profile, // will just get saved in database
         req,
         res,
@@ -814,27 +821,32 @@ export class PassportManager {
       await this.passport_login(login_opts as PassportLogin);
     };
 
-    if (strategy === "saml") {
-      this.router.post(
-        `${AUTH_BASE}/${strategy}/return`,
-        bodyParser.urlencoded({ extended: false }),
-        passport.authenticate("saml"),
-        async (req, res) => {
-          const xmlResponse = req.body.SAMLResponse;
-          const samlRes = new Saml2js(xmlResponse);
-          if (req.user == null) req.user = {};
-          req.user["profile"] = samlRes.toObject();
-          await handleReturn(req, res);
-        }
-      );
-    }
+    const returnUrl = `${AUTH_BASE}/${name}/return`;
 
-    this.router.get(
-      `${AUTH_BASE}/${strategy}/return`,
-      passport.authenticate(strategy),
-      handleReturn
-    );
-    logger.debug("initialization successful");
+    logger.debug({ name, type, returnUrl });
+
+    if (type === "saml") {
+      this.router.post(
+        `${AUTH_BASE}/${name}/return`,
+        bodyParser.urlencoded({ extended: false }),
+        passport.authenticate(name),
+        function (req, res) {
+          logger.debug(`${name}/return: body=${JSON.stringify(req.body)}`);
+          res.redirect(`/${AUTH_BASE}/app`);
+        }
+
+        //async (req, res) => {
+        //  const xmlResponse = req.body.SAMLResponse;
+        //  const samlRes = new Saml2js(xmlResponse);
+        //  if (req.user == null) req.user = {};
+        //  req.user["profile"] = samlRes.toObject();
+        //  await handleReturn(req, res);
+        //}
+      );
+    } else {
+      this.router.get(returnUrl, passport.authenticate(name), handleReturn);
+    }
+    logger.debug(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
 
   private async passport_login(opts: PassportLogin): Promise<void> {
@@ -867,7 +879,7 @@ export class PassportManager {
 
     //# logger.debug("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
     logger.debug(
-      `strategy=${opts.strategy} id=${opts.id} emails=${
+      `strategy=${opts.name} id=${opts.id} emails=${
         opts.emails
       } remember_me_cookie = '${
         locals.remember_me_cookie
@@ -939,7 +951,7 @@ export class PassportManager {
       logger.debug(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
     } catch (err) {
-      const err_msg = `Error trying to login using ${opts.strategy} -- ${err}`;
+      const err_msg = `Error trying to login using ${opts.name} -- ${err}`;
       logger.debug(`sending error "${err_msg}"`);
       opts.res.send(err_msg);
     }
@@ -999,7 +1011,7 @@ export class PassportManager {
     );
 
     const _account_id = await cb2(this.database.passport_exists, {
-      strategy: opts.strategy,
+      strategy: opts.name,
       id: opts.id,
     });
 
@@ -1013,7 +1025,7 @@ export class PassportManager {
       );
       await cb2(this.database.create_passport, {
         account_id: locals.account_id,
-        strategy: opts.strategy,
+        strategy: opts.name,
         id: opts.id,
         profile: opts.profile,
         email_address: opts.emails != null ? opts.emails[0] : undefined,
@@ -1026,7 +1038,7 @@ export class PassportManager {
           "passport exists but is associated with another account already"
         );
         throw Error(
-          `Your ${opts.strategy} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategy} in account settings if you want to instead associate it with this account.`
+          `Your ${opts.name} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.name} in account settings if you want to instead associate it with this account.`
         );
       } else {
         if (locals.has_valid_remember_me) {
@@ -1080,7 +1092,7 @@ export class PassportManager {
             `found matching account ${locals.account_id} for email ${locals.email_address}`
           );
           throw Error(
-            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategy} to it in account settings.`
+            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.name} to it in account settings.`
           );
         }
       }
