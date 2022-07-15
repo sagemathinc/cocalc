@@ -3,43 +3,52 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, List } from "immutable";
-import { Alert as AntdAlert } from "antd";
-import {
-  redux,
-  Component,
-  React,
-  Rendered,
-  TypedMap,
-} from "../../app-framework";
 import {
   Alert,
   Button,
   ButtonToolbar,
   Checkbox,
-  Row,
   Col,
-  Panel,
-  Well,
   FormGroup,
-} from "../../antd-bootstrap";
-import { SiteName, TermsOfService } from "../../customize";
-import { keys, startswith } from "@cocalc/util/misc";
-import { set_account_table, ugly_error } from "../util";
-import { webapp_client } from "../../webapp-client";
-import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../components";
-import { SignOut } from "../sign-out";
-import { DeleteAccount } from "../delete-account";
-import { TextSetting } from "./text-setting";
-import { PasswordSetting } from "./password-setting";
-import { EmailAddressSetting } from "./email-address-setting";
-import { APIKeySetting } from "./api-key";
-import { EmailVerification } from "./email-verification";
-import { log } from "../../user-tracking";
-import { PassportStrategyFrontend } from "../passport-types";
-import { PassportStrategyIcon, strategy2display } from "../../passports";
-import { join } from "path";
+  Panel,
+  Row,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  React,
+  redux,
+  Rendered,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import {
+  A,
+  ErrorDisplay,
+  Icon,
+  Space,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import {
+  PassportStrategyIcon,
+  strategy2display,
+} from "@cocalc/frontend/passports";
+import { log } from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { keys, startswith } from "@cocalc/util/misc";
+import { Alert as AntdAlert, Space as AntdSpace } from "antd";
+import { List, Map } from "immutable";
+import { join } from "path";
+import { SiteName, TermsOfService } from "../../customize";
+import { DeleteAccount } from "../delete-account";
+import { PassportStrategyFrontend } from "../passport-types";
+import { SignOut } from "../sign-out";
+import { set_account_table, ugly_error } from "../util";
+import { APIKeySetting } from "./api-key";
+import { EmailAddressSetting } from "./email-address-setting";
+import { EmailVerification } from "./email-verification";
+import { PasswordSetting } from "./password-setting";
+import { TextSetting } from "./text-setting";
 
 type ImmutablePassportStrategy = TypedMap<PassportStrategyFrontend>;
 
@@ -348,9 +357,9 @@ export class AccountSettings extends Component<Props, State> {
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>{heading}</h5>
-        <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
+        <AntdSpace size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
-        </ButtonToolbar>
+        </AntdSpace>
         {this.render_add_strategy_link()}
       </div>
     );
