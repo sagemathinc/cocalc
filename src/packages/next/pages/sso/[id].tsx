@@ -54,7 +54,13 @@ export default function Signup(props: Props) {
     return (
       <Paragraph>
         This is required for email addresses at{" "}
-        {r_human_list((domains ?? []).map((d) => <Text code>{d}</Text>))}
+        {r_human_list(
+          (domains ?? []).map((d) => (
+            <Text code key={d}>
+              {d}
+            </Text>
+          ))
+        )}
       </Paragraph>
     );
   }
