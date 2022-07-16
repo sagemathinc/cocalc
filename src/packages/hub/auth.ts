@@ -61,6 +61,7 @@ import { DNS, HELP_EMAIL } from "@cocalc/util/theme";
 import Cookies from "cookies";
 import * as dot from "dot-object";
 import { Router } from "express";
+import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
 import ms from "ms";
@@ -72,7 +73,6 @@ import {
   email_verified_successfully,
   welcome_email,
 } from "./email";
-import bodyParser from "body-parser";
 //import Saml2js from "saml2js";
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
@@ -92,7 +92,7 @@ const BLACKLISTED_STRATEGIES = [
 ] as const;
 
 // root for authentication related endpoints -- will be prefixed with the base_path
-const AUTH_BASE = "/auth2";
+const AUTH_BASE = "/auth";
 
 const { defaults, required } = misc;
 
@@ -103,9 +103,9 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 //#######################################
 
 interface PassportLogin {
-  name: string;
+  strategyName: string;
   profile: any; // complex object
-  id: string;
+  id?: string;
   first_name?: string;
   last_name?: string;
   full_name?: string;
@@ -113,7 +113,7 @@ interface PassportLogin {
   req: any;
   res: any;
   host: any;
-  cb: (err) => void;
+  cb?: (err) => void;
 }
 
 // maps the full profile object to a string or list of strings (e.g. "first_name")
@@ -801,8 +801,8 @@ export class PassportManager {
       logger.debug(`${name}/return user = ${safeJsonStringify(req.user)}`);
       const profile = req.user["profile"] as any as passport.Profile;
       logger.debug(`${name}/return profile = ${safeJsonStringify(profile)}`);
-      const login_opts = {
-        name,
+      const login_opts: PassportLogin = {
+        strategyName: name,
         profile, // will just get saved in database
         req,
         res,
@@ -818,7 +818,7 @@ export class PassportManager {
               dot.pick(v, profile);
         Object.assign(login_opts, { [k]: param });
       }
-      await this.passport_login(login_opts as PassportLogin);
+      await this.passport_login(login_opts);
     };
 
     const returnUrl = `${AUTH_BASE}/${name}/return`;
@@ -828,20 +828,24 @@ export class PassportManager {
     if (type === "saml") {
       this.router.post(
         `${AUTH_BASE}/${name}/return`,
-        bodyParser.urlencoded({ extended: false }),
+        // the body-parser package is deprecated, using express directly
+        express.urlencoded({ extended: false }),
+        express.json(),
         passport.authenticate(name),
-        function (req, res) {
-          logger.debug(`${name}/return: body=${JSON.stringify(req.body)}`);
-          res.redirect(`/${AUTH_BASE}/app`);
-        }
+        async (req, res) => {
+          //res.redirect(`/${AUTH_BASE}/app`);
+          //const xmlResponse = req.body.SAMLResponse;
+          //if (xmlResponse == null) {
+          //  throw new Error("SAML xmlResponse is null");
+          //}
+          //const samlRes = new Saml2js(xmlResponse);
+          //if (req.user == null) req.user = {};
+          //req.user["profile"] = samlRes.toObject();
 
-        //async (req, res) => {
-        //  const xmlResponse = req.body.SAMLResponse;
-        //  const samlRes = new Saml2js(xmlResponse);
-        //  if (req.user == null) req.user = {};
-        //  req.user["profile"] = samlRes.toObject();
-        //  await handleReturn(req, res);
-        //}
+          logger.debug(`${name}/return: req=${safeJsonStringify(req)}`);
+          logger.debug(`${name}/return: user=${safeJsonStringify(req.user)}`);
+          await handleReturn(req, res);
+        }
       );
     } else {
       this.router.get(returnUrl, passport.authenticate(name), handleReturn);
@@ -851,9 +855,9 @@ export class PassportManager {
 
   private async passport_login(opts: PassportLogin): Promise<void> {
     opts = defaults(opts, {
-      strategy: required, // name of the auth strategy, e.g., 'google', 'facebook', etc.
+      strategyName: required, // name of the auth strategy, e.g., 'google', 'facebook', etc.
       profile: required, // will just get saved in database
-      id: required, // unique id given by oauth provider
+      id: undefined, // unique id, but not necessarily provided by the auth provider
       first_name: undefined,
       last_name: undefined,
       full_name: undefined,
@@ -879,7 +883,7 @@ export class PassportManager {
 
     //# logger.debug("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
     logger.debug(
-      `strategy=${opts.name} id=${opts.id} emails=${
+      `strategy=${opts.strategyName} id=${opts.id} emails=${
         opts.emails
       } remember_me_cookie = '${
         locals.remember_me_cookie
@@ -951,7 +955,7 @@ export class PassportManager {
       logger.debug(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
     } catch (err) {
-      const err_msg = `Error trying to login using ${opts.name} -- ${err}`;
+      const err_msg = `Error trying to login using ${opts.strategyName} -- ${err}`;
       logger.debug(`sending error "${err_msg}"`);
       opts.res.send(err_msg);
     }
@@ -1011,7 +1015,7 @@ export class PassportManager {
     );
 
     const _account_id = await cb2(this.database.passport_exists, {
-      strategy: opts.name,
+      strategy: opts.strategyName,
       id: opts.id,
     });
 
@@ -1025,7 +1029,7 @@ export class PassportManager {
       );
       await cb2(this.database.create_passport, {
         account_id: locals.account_id,
-        strategy: opts.name,
+        strategy: opts.strategyName,
         id: opts.id,
         profile: opts.profile,
         email_address: opts.emails != null ? opts.emails[0] : undefined,
@@ -1038,7 +1042,7 @@ export class PassportManager {
           "passport exists but is associated with another account already"
         );
         throw Error(
-          `Your ${opts.name} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.name} in account settings if you want to instead associate it with this account.`
+          `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings if you want to instead associate it with this account.`
         );
       } else {
         if (locals.has_valid_remember_me) {
@@ -1092,7 +1096,7 @@ export class PassportManager {
             `found matching account ${locals.account_id} for email ${locals.email_address}`
           );
           throw Error(
-            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.name} to it in account settings.`
+            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategyName} to it in account settings.`
           );
         }
       }
