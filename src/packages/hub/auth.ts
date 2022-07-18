@@ -60,7 +60,6 @@ import * as misc from "@cocalc/util/misc";
 import { DNS, HELP_EMAIL } from "@cocalc/util/theme";
 import Cookies from "cookies";
 import * as dot from "dot-object";
-import { Router } from "express";
 import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
@@ -112,8 +111,17 @@ interface PassportLogin {
   emails?: string[];
   req: any;
   res: any;
-  host: any;
+  host?: any;
   cb?: (err) => void;
+}
+
+// this error is used to signal that the user has done something wrong (in a general sense) and not the code or returned data by itself is buggy.
+// this is used to improve the feedback sent back to the user if there is a problem...
+class PassportLoginError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "PassportLoginError";
+  }
 }
 
 // maps the full profile object to a string or list of strings (e.g. "first_name")
@@ -283,7 +291,7 @@ function parse_openid_profile(json: any) {
 }
 
 interface InitPassport {
-  router: Router;
+  router: express.Router;
   database: PostgreSQL;
   host: string;
   cb: (err?) => void;
@@ -316,7 +324,7 @@ export async function init_passport(opts: InitPassport) {
 }
 
 interface PassportManagerOpts {
-  router: Router;
+  router: express.Router;
   database: PostgreSQL;
   host: string;
 }
@@ -337,7 +345,7 @@ interface PassportLoginLocals {
 
 export class PassportManager {
   // express js, passed in from hub's main file
-  readonly router: Router;
+  readonly router: express.Router;
   // the database, for various server queries
   readonly database: PostgreSQL;
   // set in the hub, passed in -- not used by "site_conf", though
@@ -354,6 +362,11 @@ export class PassportManager {
     this.router = router;
     this.database = database;
     this.host = host;
+  }
+
+  private async getHelpEmail(): Promise<string> {
+    const settings = await cb2(this.database.get_server_settings_cached);
+    return settings.help_email || HELP_EMAIL;
   }
 
   private async init_passport_settings(): Promise<{
@@ -692,18 +705,19 @@ export class PassportManager {
       login_info,
       userinfoURL,
     } = strategy_config;
-    logger.debug(`init_strategy ${name}`);
+    const Linit = logger.extend("init_strategy");
+    const L = Linit.debug;
+
+    L(`init_strategy ${name}`);
     if (this.passports == null) throw Error("strategies not initalized!");
     if (name == null) {
-      logger.debug(`strategy is null -- aborting initialization`);
+      L(`strategy is null -- aborting initialization`);
       return;
     }
 
     const confDB = this.passports[name];
     if (confDB == null) {
-      logger.debug(
-        `no conf for strategy=${name} in DB -- aborting initialization`
-      );
+      L(`no conf for strategy=${name} in DB -- aborting initialization`);
       return;
     }
 
@@ -726,16 +740,16 @@ export class PassportManager {
     if (userinfoURL != null) {
       // closure captures "strategy"
       strategy_instance.userProfile = function userProfile(accessToken, done) {
-        logger.debug(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
+        L(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
 
         this._oauth2.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
-          logger.debug(`get->body = ${body}`);
+          L(`get->body = ${body}`);
 
           let json;
 
           if (err) {
-            logger.debug(
+            L(
               `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
                 err
               )}`
@@ -774,7 +788,7 @@ export class PassportManager {
           const profile = parse_openid_profile(json);
           profile.provider = type;
           profile._raw = body;
-          logger.debug(
+          L(
             `PassportStrategyConstructor.userProfile: profile = ${safeJsonStringify(
               profile
             )}`
@@ -798,18 +812,20 @@ export class PassportManager {
       if (req.user == null) {
         throw Error("req.user == null -- that shouldn't happen");
       }
-      // usually, we pick the "profile", but in some cases like SAML everything is the user field → we call this "profile" now.
+      const Lret = Linit.extend(`${name}/return`).debug;
+      // usually, we pick the "profile", but in some cases like SAML this is in "attributes". finally, as a fallback, we just take the ".user"
       const profile = (req.user.profile != null
         ? req.user.profile
+        : req.user.attributes != null
+        ? req.user.attributes
         : req.user) as any as passport.Profile;
-      logger.debug(`${name}/return profile = ${safeJsonStringify(profile)}`);
+      Lret(`profile = ${safeJsonStringify(profile)}`);
       const login_opts: PassportLogin = {
         id: profile.id ?? "", // ATTN: not all profiles/users have an ID → you have to derive the ID from the profile below (e.g. email)
         strategyName: name,
         profile, // will just get saved in database
         req,
         res,
-        host: this.host,
       };
       for (const k in login_info) {
         const v = login_info[k];
@@ -821,12 +837,25 @@ export class PassportManager {
               dot.pick(v, profile);
         login_opts[k] = param;
       }
-      await this.passport_login(login_opts);
+      try {
+        await this.passport_login(login_opts);
+      } catch (err) {
+        let err_msg = "";
+        // due to https://github.com/Microsoft/TypeScript/issues/13965 we have to check on name and can't use instanceof
+        if (err.name === "PassportLoginError") {
+          err_msg = `Problem signing in using '${name}:<br/><strong>${err.message}</strong>`;
+        } else {
+          const helpEmail = await this.getHelpEmail();
+          err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${helpEmail} -- ${err}<br/><pre>${err.stack}</pre>`;
+        }
+        Lret(`sending error "${err_msg}"`);
+        res.send(err_msg);
+      }
     };
 
     const returnUrl = `${AUTH_BASE}/${name}/return`;
 
-    logger.debug({ name, type, returnUrl });
+    L({ name, type, returnUrl });
 
     if (type === "saml") {
       this.router.post(
@@ -850,22 +879,41 @@ export class PassportManager {
     } else {
       this.router.get(returnUrl, passport.authenticate(name), handleReturn);
     }
-    logger.debug(`initialization of '${name}' at '${strategyUrl}' successful`);
+    L(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
 
   private async passport_login(opts: PassportLogin): Promise<void> {
-    opts = defaults(opts, {
-      strategyName: required, // name of the auth strategy, e.g., 'google', 'facebook', etc.
-      profile: required, // will just get saved in database
-      id: required, // unique id, but not necessarily provided by the auth provider, use the email address as a fallback
-      first_name: undefined,
-      last_name: undefined,
-      full_name: undefined,
-      emails: undefined, // string or Array<string> if user not logged in (via remember_me) already, and existing account with same email, and passport not created, then get an error instead of login or account creation.
-      req: required, // request object
-      res: required, // response object
-      host: required,
+    const L = logger.extend("passport_login").debug;
+
+    L({
+      strategyName: opts.strategyName,
+      profile: opts.profile,
+      id: opts.id,
+      first_name: opts.first_name,
+      last_name: opts.last_name,
+      full_name: opts.full_name,
+      emails: opts.emails,
+      host: this.host,
     });
+
+    // sanity checks
+    if (opts.strategyName == null) {
+      throw new Error("opts.strategyName must be defined");
+    }
+    if (this.passports?.[opts.strategyName] == null) {
+      throw new Error(
+        `passport strategy '${opts.strategyName}' does not exist`
+      );
+    }
+    if (!_.isPlainObject(opts.profile)) {
+      throw new Error("opts.profile must be an object");
+    }
+    // this should be a string, usually the ID of the user (number must be converted to a string),
+    // sometimes just the email, but an empty string is fine as well
+    opts.id = opts.id == null ? "" : `${opts.id}`;
+
+    // FIXME: host field is probably not needed anywhere – kept for now to be compatible with old code
+    opts.host = this.host;
 
     const cookies = new Cookies(opts.req, opts.res);
     const locals: PassportLoginLocals = {
@@ -881,18 +929,12 @@ export class PassportManager {
       api_key: undefined,
     };
 
-    //# logger.debug("cookies = '#{opts.req.headers['cookie']}'")  # DANGER -- do not uncomment except for debugging due to SECURITY
-    logger.debug(
-      `strategy=${opts.strategyName} id=${opts.id} emails=${
-        opts.emails
-      } remember_me_cookie = '${
-        locals.remember_me_cookie
-      }' user=${safeJsonStringify(opts.req.user)}`
-    );
+    // L( {remember_me_cookie : locals.remember_me_cookie})  // DANGER -- do not uncomment except for debugging due to SECURITY
+    L(`remember_me_cookie is set: ${locals.remember_me_cookie?.length > 0}`);
 
     // check if user is just trying to get an api key.
     if (locals.get_api_key) {
-      logger.debug("user is just trying to get api_key");
+      L("user is just trying to get api_key");
       // Set with no value **deletes** the cookie when the response is set. It's very important
       // to delete this cookie ASAP, since otherwise the user can't sign in normally.
       locals.cookies.set(API_KEY_COOKIE_NAME);
@@ -932,9 +974,7 @@ export class PassportManager {
       })();
     }
 
-    opts.id = `${opts.id}`; // convert to string (id is often a number)
-
-    logger.debug({ locals, opts });
+    // L({ locals, opts }); // DANGER -- do not uncomment except for debugging due to SECURITY
 
     try {
       // do we have a valid remember me cookie for a given account_id already?
@@ -954,12 +994,10 @@ export class PassportManager {
       //  last step: set remember me cookie (for a  new sign in)
       await this.handle_new_sign_in(opts, locals);
       // no exceptions → we're all good
-      logger.debug(`redirect the client to '${locals.target}'`);
+      L(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
     } catch (err) {
-      const err_msg = `Error trying to login using ${opts.strategyName} -- ${err}`;
-      logger.debug(`sending error "${err_msg}"`);
-      opts.res.send(err_msg);
+      throw new PassportLoginError(err.message);
     }
   } // end passport_login
 
@@ -1044,7 +1082,7 @@ export class PassportManager {
       if (locals.has_valid_remember_me && locals.account_id !== _account_id) {
         L("passport exists but is associated with another account already");
         throw Error(
-          `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings if you want to instead associate it with this account.`
+          `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`
         );
       } else {
         if (locals.has_valid_remember_me) {
@@ -1116,13 +1154,15 @@ export class PassportManager {
     });
   }
 
-  private async create_account(opts, email_address): Promise<string> {
+  private async create_account(
+    opts: PassportLogin,
+    email_address: string | undefined
+  ): Promise<string> {
     return await cb2(this.database.create_account, {
       first_name: opts.first_name,
       last_name: opts.last_name,
       email_address,
-
-      passport_strategy: opts.strategy,
+      passport_strategy: opts.strategyName,
       passport_id: opts.id,
       passport_profile: opts.profile,
     });
@@ -1141,7 +1181,7 @@ export class PassportManager {
     if (opts.emails != null) {
       locals.email_address = opts.emails[0];
     }
-    L("emails=${opts.emails} email_address=${locals.email_address}");
+    L(`emails=${opts.emails} email_address=${locals.email_address}`);
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
@@ -1253,10 +1293,9 @@ export class PassportManager {
       account_id,
     });
     if (is_banned) {
-      const settings = await cb2(this.database.get_server_settings_cached);
-      const email = settings.help_email || HELP_EMAIL;
+      const helpEmail = await this.getHelpEmail();
       throw Error(
-        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${email}.`
+        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${helpEmail}.`
       );
     }
     return is_banned;
