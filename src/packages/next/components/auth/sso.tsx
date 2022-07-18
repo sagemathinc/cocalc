@@ -111,19 +111,20 @@ interface AvatarProps {
   size: number;
   noLink?: boolean;
   toolTip?: ReactNode;
+  showName?: boolean;
 }
 
 export function StrategyAvatar(props: AvatarProps) {
-  const { strategy, size, noLink, toolTip } = props;
+  const { strategy, size, noLink, toolTip, showName = false } = props;
   const { name, display, backgroundColor } = strategy;
   const icon = strategy.icon ?? "link"; // icon could be "null", hence the ??
   const ssoHREF = useSSOHref(name);
 
-  const STYLE = {
+  const STYLE: CSSProperties = {
     fontSize: `${size - 2}px`,
     color: backgroundColor ? "white" : "black",
     margin: "0 2px",
-  } as CSSProperties;
+  } as const;
 
   function renderIconImg() {
     if (icon?.includes("://")) {
@@ -171,6 +172,11 @@ export function StrategyAvatar(props: AvatarProps) {
     );
   }
 
+  function renderName() {
+    if (!showName) return;
+    return <div style={{ textAlign: "center" }}>{display}</div>;
+  }
+
   return (
     <Tooltip
       title={
@@ -180,7 +186,10 @@ export function StrategyAvatar(props: AvatarProps) {
       }
       color={backgroundColor}
     >
-      {renderAvatar()}
+      <div>
+        {renderAvatar()}
+        {renderName()}
+      </div>
     </Tooltip>
   );
 }

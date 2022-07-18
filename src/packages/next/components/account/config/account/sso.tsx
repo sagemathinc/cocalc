@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { len } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
@@ -30,6 +35,7 @@ register({
       },
       { noSave: true }
     );
+
     const hasPassword = useAPI("auth/has-password");
     const strategies = useAPI("auth/sso-strategies");
 
@@ -65,6 +71,9 @@ register({
     }
 
     const passports = edited.passports ?? {};
+    const linkedNames = Object.keys(passports).map(
+      (name) => name.split("-")[0]
+    );
 
     return (
       <div style={{ color: "#555" }}>
@@ -126,7 +135,7 @@ register({
         {strategies.result.length > 0 && (
           <>
             <Heading title="Click to link your account" />
-            <Link strategies={strategies.result} />
+            <Link strategies={strategies.result} linked={linkedNames} />
           </>
         )}
       </div>
@@ -163,9 +172,16 @@ function Unlink({
   return <Space>{v}</Space>;
 }
 
-function Link({ strategies }: { strategies: Strategy[] }) {
+function Link({
+  strategies,
+  linked,
+}: {
+  strategies: Strategy[];
+  linked: string[];
+}) {
   const v: ReactNode[] = [];
   for (const strategy of strategies) {
+    if (linked.includes(strategy.name)) continue;
     v.push(<Strategy key={strategy.name} strategy={strategy} />);
   }
   return <Space>{v}</Space>;
@@ -178,39 +194,45 @@ function Strategy({
   strategy: Strategy;
   onUnlink?: Function;
 }) {
+  function unlinkButton() {
+    if (!onUnlink) return;
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <Popconfirm
+          title={
+            <div style={{ maxWidth: "50ex" }}>
+              Are you sure you want to unlink signing in to <SiteName /> using{" "}
+              {strategy.display}?
+            </div>
+          }
+          onConfirm={onUnlink as any}
+          okText={"Yes, unlink"}
+          cancelText={"Cancel"}
+        >
+          {" "}
+          <Button type="dashed" danger>
+            <Icon name="unlink" />
+            Unlink
+          </Button>
+        </Popconfirm>
+      </div>
+    );
+  }
+
   return (
     <div style={{ textAlign: "center" }}>
       <StrategyAvatar
         strategy={strategy}
         size={60}
         noLink={onUnlink != null}
+        showName={true}
         toolTip={
           onUnlink
             ? `Your account is currently linked to ${strategy.display}.`
             : undefined
         }
       />
-      {onUnlink && (
-        <div style={{ marginTop: "5px" }}>
-          <Popconfirm
-            title={
-              <div style={{ maxWidth: "50ex" }}>
-                Are you sure you want to unlink signing in to <SiteName /> using{" "}
-                {strategy.display}?
-              </div>
-            }
-            onConfirm={onUnlink as any}
-            okText={"Yes, unlink"}
-            cancelText={"Cancel"}
-          >
-            {" "}
-            <Button type="dashed" danger>
-              <Icon name="unlink" />
-              Unlink
-            </Button>
-          </Popconfirm>
-        </div>
-      )}
+      {unlinkButton()}
     </div>
   );
 }

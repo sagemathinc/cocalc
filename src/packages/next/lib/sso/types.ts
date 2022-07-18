@@ -9,4 +9,5 @@ export interface SSO {
   domains: string[]; // empty, or list of domains for exclusive usage
   descr: string; // sent through the markdown component
   icon?: string; // a URL
+  backgroundColor?: string; // a hex color
 }

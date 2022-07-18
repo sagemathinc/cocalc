@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Get a string[] of the names of strategies that are
    currently configured. Cached a bit so safe to call a lot. */
 
@@ -21,13 +26,15 @@ export default async function getStrategies(): Promise<Strategy[]> {
       AND COALESCE(info ->> 'disabled', conf ->> 'disabled', 'false') != 'true'`);
 
   return rows.map((row) => {
-    const display =
-      row.display ??
-      (row.strategy == "github" ? "GitHub" : capitalize(row.strategy));
+    const display = getSSODisplay({
+      display: row.display,
+      strategy: row.strategy,
+    });
+
     return {
       name: row.strategy,
       display,
-      icon: row.icon ?? row.strategy,
+      icon: row.icon, // don't use row.strategy as a fallback icon, since that icon likely does not exist
       backgroundColor: COLORS[row.strategy] ?? "",
       public: row.public ?? true,
       exclusiveDomains: row.exclusive_domains ?? [],
@@ -36,9 +43,13 @@ export default async function getStrategies(): Promise<Strategy[]> {
   });
 }
 
-const COLORS = {
+export const COLORS = {
   github: "#000000",
   facebook: "#428bca",
   google: "#dc4857",
   twitter: "#55acee",
 } as const;
+
+export function getSSODisplay({ display, strategy }) {
+  return display ?? (strategy === "github" ? "GitHub" : capitalize(strategy));
+}
