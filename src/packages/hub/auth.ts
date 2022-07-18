@@ -105,7 +105,7 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 interface PassportLogin {
   strategyName: string;
   profile: any; // complex object
-  id?: string;
+  id: string; // id is required. e.g. take the email address – see create_passport in postgres-server-queries.coffee
   first_name?: string;
   last_name?: string;
   full_name?: string;
@@ -798,10 +798,13 @@ export class PassportManager {
       if (req.user == null) {
         throw Error("req.user == null -- that shouldn't happen");
       }
-      logger.debug(`${name}/return user = ${safeJsonStringify(req.user)}`);
-      const profile = req.user["profile"] as any as passport.Profile;
+      // usually, we pick the "profile", but in some cases like SAML everything is the user field → we call this "profile" now.
+      const profile = (req.user.profile != null
+        ? req.user.profile
+        : req.user) as any as passport.Profile;
       logger.debug(`${name}/return profile = ${safeJsonStringify(profile)}`);
       const login_opts: PassportLogin = {
+        id: profile.id ?? "", // ATTN: not all profiles/users have an ID → you have to derive the ID from the profile below (e.g. email)
         strategyName: name,
         profile, // will just get saved in database
         req,
@@ -816,7 +819,7 @@ export class PassportManager {
               v(profile)
             : // v is a string for dot-object
               dot.pick(v, profile);
-        Object.assign(login_opts, { [k]: param });
+        login_opts[k] = param;
       }
       await this.passport_login(login_opts);
     };
@@ -833,7 +836,7 @@ export class PassportManager {
         express.json(),
         passport.authenticate(name),
         async (req, res) => {
-          //res.redirect(`/${AUTH_BASE}/app`);
+          // block below: boilerplate-code to parse the response from the SAML provider – could become helpful some day!
           //const xmlResponse = req.body.SAMLResponse;
           //if (xmlResponse == null) {
           //  throw new Error("SAML xmlResponse is null");
@@ -841,9 +844,6 @@ export class PassportManager {
           //const samlRes = new Saml2js(xmlResponse);
           //if (req.user == null) req.user = {};
           //req.user["profile"] = samlRes.toObject();
-
-          logger.debug(`${name}/return: req=${safeJsonStringify(req)}`);
-          logger.debug(`${name}/return: user=${safeJsonStringify(req.user)}`);
           await handleReturn(req, res);
         }
       );
@@ -857,7 +857,7 @@ export class PassportManager {
     opts = defaults(opts, {
       strategyName: required, // name of the auth strategy, e.g., 'google', 'facebook', etc.
       profile: required, // will just get saved in database
-      id: undefined, // unique id, but not necessarily provided by the auth provider
+      id: required, // unique id, but not necessarily provided by the auth provider, use the email address as a fallback
       first_name: undefined,
       last_name: undefined,
       full_name: undefined,
@@ -934,6 +934,8 @@ export class PassportManager {
 
     opts.id = `${opts.id}`; // convert to string (id is often a number)
 
+    logger.debug({ locals, opts });
+
     try {
       // do we have a valid remember me cookie for a given account_id already?
       await this.check_remember_me_cookie(locals);
@@ -973,13 +975,14 @@ export class PassportManager {
   private async check_remember_me_cookie(
     locals: PassportLoginLocals
   ): Promise<void> {
+    const L = logger.extend("check_remember_me_cookie").debug;
     if (!locals.remember_me_cookie) return;
 
-    logger.debug("check if user has a valid remember_me cookie");
+    L("check if user has a valid remember_me cookie");
     const value = locals.remember_me_cookie;
     const x: string[] = value.split("$");
     if (x.length !== 4) {
-      logger.debug("badly formatted remember_me cookie");
+      L("badly formatted remember_me cookie");
       return;
     }
     let hash;
@@ -987,7 +990,7 @@ export class PassportManager {
       hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
     } catch (error) {
       const err = error;
-      logger.debug(
+      L(
         `unable to generate hash from remember_me cookie = '${locals.remember_me_cookie}' -- ${err}`
       );
     }
@@ -996,11 +999,11 @@ export class PassportManager {
         hash,
       });
       if (signed_in_mesg != null) {
-        logger.debug("user does have valid remember_me token");
+        L("user does have valid remember_me token");
         locals.account_id = signed_in_mesg.account_id;
         locals.has_valid_remember_me = true;
       } else {
-        logger.debug("no valid remember_me token");
+        L("no valid remember_me token");
         return;
       }
     }
@@ -1010,7 +1013,8 @@ export class PassportManager {
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
-    logger.debug(
+    const L = logger.extend("check_passport_exists").debug;
+    L(
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
     );
 
@@ -1024,7 +1028,7 @@ export class PassportManager {
       locals.has_valid_remember_me &&
       locals.account_id != null
     ) {
-      logger.debug(
+      L(
         "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
       );
       await cb2(this.database.create_passport, {
@@ -1038,19 +1042,17 @@ export class PassportManager {
       });
     } else {
       if (locals.has_valid_remember_me && locals.account_id !== _account_id) {
-        logger.debug(
-          "passport exists but is associated with another account already"
-        );
+        L("passport exists but is associated with another account already");
         throw Error(
           `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings if you want to instead associate it with this account.`
         );
       } else {
         if (locals.has_valid_remember_me) {
-          logger.debug(
+          L(
             "passport already exists and is associated to the currently logged into account"
           );
         } else {
-          logger.debug(
+          L(
             "passport exists and is already associated to a valid account, which we'll log user into"
           );
           locals.account_id = _account_id;
@@ -1063,36 +1065,35 @@ export class PassportManager {
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
+    const L = logger.extend("check_existing_emails").debug;
     // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
     if (locals.account_id != null || opts.emails == null) return;
 
-    logger.debug(
+    L(
       "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error"
     );
 
     const check_emails = opts.emails.map(async (email) => {
       if (locals.account_id) {
-        logger.debug(
-          `already found a match with account_id=${locals.account_id} -- done`
-        );
+        L(`already found a match with account_id=${locals.account_id} -- done`);
         return;
       } else {
-        logger.debug(`checking for account with email ${email}...`);
+        L(`checking for account with email ${email}...`);
         const _account_id = await cb2(this.database.account_exists, {
           email_address: email.toLowerCase(),
         });
         if (locals.account_id) {
           // already done, so ignore
-          logger.debug(
+          L(
             `already found a match with account_id=${locals.account_id} -- done`
           );
           return;
         } else if (!_account_id) {
-          logger.debug(`check_email: no _account_id for ${email}`);
+          L(`check_email: no _account_id for ${email}`);
         } else {
           locals.account_id = _account_id;
           locals.email_address = email.toLowerCase();
-          logger.debug(
+          L(
             `found matching account ${locals.account_id} for email ${locals.email_address}`
           );
           throw Error(
@@ -1132,14 +1133,15 @@ export class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.account_id) return;
+    const L = logger.extend("maybe_create_account").debug;
 
-    logger.debug(
+    L(
       "no existing account to link, so create new account that can be accessed using this passport"
     );
     if (opts.emails != null) {
       locals.email_address = opts.emails[0];
     }
-    logger.debug("emails=${opts.emails} email_address=${locals.email_address}");
+    L("emails=${opts.emails} email_address=${locals.email_address}");
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
@@ -1179,9 +1181,10 @@ export class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.new_account_created) return;
+    const L = logger.extend("maybe_record_sign_in").debug;
 
     // don't make client wait for this -- it's just a log message for us.
-    logger.debug(`no new account → record_sign_in: ${opts.req.ip}`);
+    L(`no new account → record_sign_in: ${opts.req.ip}`);
     sign_in.record_sign_in({
       ip_address: opts.req.ip,
       successful: true,
@@ -1197,6 +1200,7 @@ export class PassportManager {
   ): Promise<void> {
     if (!locals.get_api_key) return;
     if (!locals.account_id) return; // typescript cares about this.
+    const L = logger.extend("maybe_provision_api_key").debug;
 
     // Just handle getting api key here.
     if (locals.new_account_created) {
@@ -1212,7 +1216,7 @@ export class PassportManager {
 
     // if there is no key
     if (!locals.api_key) {
-      logger.debug("must generate key, since don't already have it");
+      L("must generate key, since don't already have it");
       locals.api_key = await apiKeyAction({
         account_id: locals.account_id,
         action: "regenerate",
@@ -1228,18 +1232,17 @@ export class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
+    const L = logger.extend("handle_new_sign_in").debug;
 
     // make TS happy
     if (locals.account_id == null) throw new Error("locals.account_id is null");
 
-    logger.debug(
-      "passport created: set remember_me cookie, so user gets logged in"
-    );
+    L("passport created: set remember_me cookie, so user gets logged in");
 
-    logger.debug("create remember_me cookie and save in database");
+    L("create remember_me cookie and save in database");
     const { value, ttl_s } = await createRememberMeCookie(locals.account_id);
 
-    logger.debug("and also set remember_me cookie in client");
+    L("and also set remember_me cookie in client");
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
     });
