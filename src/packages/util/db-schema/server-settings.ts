@@ -27,6 +27,27 @@ Table({
 });
 
 Table({
+  name: "passport_store",
+  rules: {
+    primary_key: "key",
+  },
+  fields: {
+    key: {
+      type: "string",
+      desc: "an arbitrary key",
+    },
+    value: {
+      type: "string",
+      desc: "an arbitrary value as a string",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "when this key expires",
+    },
+  },
+});
+
+Table({
   name: "server_settings",
   rules: {
     primary_key: "name",

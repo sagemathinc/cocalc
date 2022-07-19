@@ -74,6 +74,7 @@ import {
   welcome_email,
 } from "./email";
 //import Saml2js from "saml2js";
+import { getPassportCache } from "@cocalc/database/postgres/passport-store";
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
 
@@ -635,10 +636,17 @@ export class PassportManager {
     }
   }
 
-  private get_extra_default_opts(type: PassportTypes): any {
+  private get_extra_default_opts({
+    name,
+    type,
+  }: {
+    type: PassportTypes;
+    name: string;
+  }) {
     switch (type) {
       case "saml":
         // see https://github.com/node-saml/passport-saml#config-parameter-details
+        const cachedMS = ms("8 hours");
         return {
           issuer: this.auth_url,
           signatureAlgorithm: "sha256", // better than default sha1
@@ -648,11 +656,14 @@ export class PassportManager {
           // if "*:persistent" doesn't work, use *:emailAddress
           identifierFormat:
             "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          requestIdExpirationPeriodMs: cachedMS,
+          validateInResponseTo: true,
+          cacheProvider: getPassportCache(name, cachedMS),
         };
     }
   }
 
-  private get_extra_opts(conf: PassportStrategyDBConfig) {
+  private get_extra_opts(name, conf: PassportStrategyDBConfig) {
     // "extra_opts" is passed to the passport.js "Strategy" constructor!
     // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
     const extracted = _.omit(conf, [
@@ -667,7 +678,10 @@ export class PassportManager {
       "public", // we don't need that info for initializing them
     ]);
 
-    return { ...this.get_extra_default_opts(conf.type), ...extracted };
+    return {
+      ...this.get_extra_default_opts({ name, type: conf.type }),
+      ...extracted,
+    };
   }
 
   // this maps additional strategy configurations to a list of StrategyConf objects
@@ -706,7 +720,7 @@ export class PassportManager {
         PassportStrategyConstructor,
         login_info: { ...DEFAULT_LOGIN_INFO, ...strategy.conf.login_info },
         userinfoURL: strategy.conf.userinfoURL,
-        extra_opts: this.get_extra_opts(strategy.conf),
+        extra_opts: this.get_extra_opts(name, strategy.conf),
         update_on_login: strategy.info?.update_on_login ?? false,
         cookie_ttl_s: strategy.info?.cookie_ttl_s ?? 0,
       } as const;
