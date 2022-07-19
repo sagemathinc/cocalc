@@ -55,6 +55,40 @@ export interface ChangefeedOptions {
   cb: CB;
 }
 
+export interface DeletePassportOpts {
+  account_id: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  cb?: CB;
+}
+
+export interface PassportExistsOpts {
+  strategy: string;
+  id: string;
+  cb?: CB;
+}
+
+export interface CreatePassportOpts {
+  account_id: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  profile: any; // complex object
+  email_address?: string;
+  first_name?: string;
+  last_name?: string;
+  cb?: CB;
+}
+
+export interface UpdateAccountInfoAndPassportOpts {
+  account_id: string;
+  first_name?: string;
+  last_name?: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  profile: any;
+  passport_profile: any;
+}
+
 export interface PostgreSQL extends EventEmitter {
   _dbg(desc: string): Function;
 
@@ -175,6 +209,7 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   get_remember_me(opts: { hash: string; cb: CB });
+
   save_remember_me(opts: {
     account_id: string;
     hash: string;
@@ -183,27 +218,27 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   });
 
-  passport_exists(opts: { strategy: string; id: string; cb: CB });
-  create_passport(opts: {
-    account_id: string;
-    strategy: string;
-    id: string;
-    profile: any; // complex object
-    email_address?: string;
-    first_name?: string;
-    last_name?: string;
-    cb: CB;
-  });
+  passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
+
+  create_passport(opts: CreatePassportOpts): Promise<string>;
+
+  delete_passport(opts: DeletePassportOpts): void;
+
   set_passport_settings(
     db: PostgreSQL,
     opts: PassportStrategyDB & { cb?: CB }
   ): Promise<void>;
+
   get_passport_settings(opts: {
     strategy: string;
     cb?: CB;
   }): Promise<PassportStrategyDB>;
   get_all_passport_settings(): Promise<PassportStrategyDB[]>;
   get_all_passport_settings_cached(): Promise<PassportStrategyDB[]>;
+
+  update_account_and_passport(
+    opts: UpdateAccountInfoAndPassportOpts
+  ): Promise<void>;
 
   change_password(opts: {
     account_id: string;

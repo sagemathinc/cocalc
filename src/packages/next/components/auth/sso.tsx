@@ -186,7 +186,7 @@ export function StrategyAvatar(props: AvatarProps) {
       }
       color={backgroundColor}
     >
-      <div>
+      <div style={{ display: "inline-block" }}>
         {renderAvatar()}
         {renderName()}
       </div>

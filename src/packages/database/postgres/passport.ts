@@ -3,46 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-For development, this is a list of commands to get some suitable test data into your DB:
-
--- DELETE FROM passport_settings;
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'food',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "Food University", "icon": "https://img.icons8.com/glyph-neue/344/food-and-wine.png"}'::JSONB,
-    '{"description": "This is the SSO mechanism for anyone associated with Food University", "public": false, "exclusive_domains": ["food.edu"]}'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'abacus',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"} }'::JSONB,
-    '{"description": "This is the SSO mechanism for anyone associated with Abacus Inc", "public": false, "exclusive_domains": ["abacus.edu", "dadacus.edu", "nadacus.edu", "blablacus.edu"], "display": "Abacus Inc.", "icon": "https://img.icons8.com/external-smashingstocks-outline-color-smashing-stocks/344/external-abacus-online-education-smashingstocks-outline-color-smashing-stocks.png"}'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'flight',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}}'::JSONB,
-    '{"description": "This is to sign up with CoCalc as a student of **Flight Research International, Inc.**\n\nMore information:\n\n- [airplane.edu](http://airplane.edu/)\n\n- [yet another link](http://nowhere.com)", "public": false, "exclusive_domains": ["airplane.edu", "aircraft.com"], "display": "Flight Research", "icon": "https://img.icons8.com/external-kiranshastry-solid-kiranshastry/344/external-flight-interface-kiranshastry-solid-kiranshastry.png" }'::JSONB
-);
-
-INSERT INTO passport_settings (strategy, conf, info)
-VALUES (
-    'minimal',
-    '{"type": "oauth2next", "clientID": "CoCalc_Client", "scope": ["email", "profile"], "clientSecret": "sEcRet1234", "authorizationURL": "https://localhost/oauth2/authorize", "userinfoURL" :"https://localhost/oauth2/userinfo",  "tokenURL":"https://localhost/oauth2/wowtech/access_token",  "login_info" : {"emails" :"emails[0].value"}, "display": "Minimal", "icon": "https://img.icons8.com/external-others-zulfa-mahendra/344/external-animal-halloween-others-zulfa-mahendra-3.png" }'::JSONB,
-    '{"do_not_hide": true, "public": false, "exclusive_domains": ["minimal.edu"]}'::JSONB
-);
-
-*/
+// DEVELOPMENT: use scripts/auth/gen-sso.py to generate some test data
 
 import {
   getPassportsCached,
   setPassportsCached,
 } from "@cocalc/server/settings/server-settings";
-import { CB, PostgreSQL } from "./types";
+import { to_json } from "@cocalc/util/misc";
+import { set_account_info_if_possible } from "./account-queries";
+import {
+  CB,
+  CreatePassportOpts,
+  DeletePassportOpts,
+  PassportExistsOpts,
+  PostgreSQL,
+  UpdateAccountInfoAndPassportOpts,
+} from "./types";
 
 export type LoginInfoKeys = "id" | "first_name" | "last_name" | "emails";
 
@@ -60,10 +36,12 @@ export const PassportTypesList = [
   "apple",
   "microsoft",
   "azure-ad",
+  // the 4 types for google, twitter, github and facebook are not included here – they're hardcoded special cases
 ] as const;
 
 export type PassportTypes = typeof PassportTypesList[number];
 
+export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
 export interface PassportStrategyDBConfig {
   type: PassportTypes;
   clientID?: string; // Google, Twitter, ... and OAuth2
@@ -71,7 +49,7 @@ export interface PassportStrategyDBConfig {
   authorizationURL?: string; // OAuth2
   tokenURL?: string; // --*--
   userinfoURL?: string; // OAuth2, to get a profile
-  login_info?: { [key in LoginInfoKeys]?: string }; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
+  login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
 }
 
 export interface PassportStrategyDBInfo {
@@ -82,6 +60,8 @@ export interface PassportStrategyDBInfo {
   description?: string; // markdown
   icon?: string; // URL to a square image
   disabled?: boolean; // if true, ignore this entry. default false.
+  update_on_login?: boolean; // if true, update the user's info on login. default false.
+  cookie_ttl_s?: number; // default is about a month
 }
 
 // those are the 3 columns in the DB table
@@ -149,4 +129,127 @@ export async function get_all_passport_settings_cached(
   const res = await get_all_passport_settings(db);
   setPassportsCached(res);
   return res;
+}
+
+// Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.
+// The Schema is slightly redundant, but indexed properly:
+//    {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
+
+function _passport_key(opts) {
+  return `${opts.strategy}-${opts.id}`;
+}
+
+export async function create_passport(
+  db: PostgreSQL,
+  opts: CreatePassportOpts
+): Promise<void> {
+  const dbg = db._dbg("create_passport");
+  dbg(to_json(opts.profile));
+
+  try {
+    dbg("setting the passport for the account");
+    await db.async_query({
+      query: "UPDATE accounts",
+      jsonb_set: {
+        passports: { [_passport_key(opts)]: opts.profile },
+      },
+      where: {
+        "account_id = $::UUID": opts.account_id,
+      },
+    });
+
+    dbg(
+      `setting other account info ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
+    );
+    await set_account_info_if_possible({
+      db: db,
+      account_id: opts.account_id,
+      email_address: opts.email_address,
+      first_name: opts.first_name,
+      last_name: opts.last_name,
+    });
+    opts.cb?.(null);
+  } catch (err) {
+    if (opts.cb != null) {
+      opts.cb(err);
+    } else {
+      throw err;
+    }
+  }
+}
+
+export async function delete_passport(
+  db: PostgreSQL,
+  opts: DeletePassportOpts
+) {
+  db._dbg("delete_passport")(to_json({ strategy: opts.strategy, id: opts.id }));
+  return db._query({
+    query: "UPDATE accounts",
+    jsonb_set: {
+      // delete it
+      passports: { [_passport_key(opts)]: null },
+    },
+    where: {
+      "account_id = $::UUID": opts.account_id,
+    },
+    cb: opts.cb,
+  });
+}
+
+export async function passport_exists(
+  db: PostgreSQL,
+  opts: PassportExistsOpts
+) {
+  try {
+    const result = await db.async_query({
+      query: "SELECT account_id FROM accounts",
+      where: { "(passports->>$::TEXT) IS NOT NULL": _passport_key(opts) },
+    });
+    const aid = result?.rows[0]?.account_id;
+    if (opts.cb != null) {
+      opts.cb(null, aid);
+    } else {
+      return aid;
+    }
+  } catch (err) {
+    if (opts.cb != null) {
+      opts.cb(err);
+    } else {
+      throw err;
+    }
+  }
+}
+
+export async function update_account_and_passport(
+  db: PostgreSQL,
+  opts: UpdateAccountInfoAndPassportOpts
+) {
+  // we deliberately do not update the email address, because if the SSO
+  // strategy sends a different one, this would break the "link".
+  // rather, if the email (and hence most likely the email address) changes on the
+  // SSO side, this would equal to creating a new account.
+  const dbg = db._dbg("update_account_and_passport");
+  dbg(
+    `updating account info ${to_json({
+      first_name: opts.first_name,
+      last_name: opts.last_name,
+    })}`
+  );
+  await set_account_info_if_possible({
+    db: db,
+    account_id: opts.account_id,
+    first_name: opts.first_name,
+    last_name: opts.last_name,
+  });
+  const key = _passport_key(opts);
+  dbg(`updating passport ${to_json({ key, profile: opts.profile })}`);
+  await db.async_query({
+    query: "UPDATE accounts",
+    jsonb_set: {
+      passports: { [key]: opts.profile },
+    },
+    where: {
+      "account_id = $::UUID": opts.account_id,
+    },
+  });
 }

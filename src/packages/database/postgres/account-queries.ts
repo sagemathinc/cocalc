@@ -37,12 +37,13 @@ export async function is_paying_customer(
   return await is_a_site_license_manager(db, account_id);
 }
 
+// This sets the given fields of an account, if it is different from the current value
 export async function set_account_info_if_possible(opts: {
   db: PostgreSQL;
   account_id: string;
-  email_address: string | undefined;
-  first_name: string | undefined;
-  last_name: string | undefined;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
 }): Promise<void> {
   const columns = ["email_address", "first_name", "last_name"];
   const account = await get_account(opts.db, opts.account_id, columns);
@@ -50,7 +51,8 @@ export async function set_account_info_if_possible(opts: {
     [field: string]: string;
   } = {};
   for (const field of columns) {
-    if (!!opts[field] && !account[field]) {
+    if (typeof opts[field] !== "string") continue;
+    if (account[field] != opts[field]) {
       do_set[field] = opts[field];
     }
   }
