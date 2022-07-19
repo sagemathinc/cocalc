@@ -121,9 +121,12 @@ Table({
       unique: true,
     },
     cross_origin_isolation: {
-      // This is used by https://python-wasm.cocalc.com.  But it can't be used by https://sagelets.cocalc.com/ since that loads third party javascript from
-      // the sage cell server.   The idea is to isolate things that require cross-origin isolation to a very minimal page, then embed that page in a more
-      // complicated page via an iframe (which is allowed).
+      // This is used by https://python-wasm.cocalc.com.  But it can't be used by https://sagelets.cocalc.com/
+      // since that loads third party javascript from the sage cell server.   The only safe and secure way to
+      // allow this functionality is in a minimal page that doesn't load content from other pages, and that's
+      // just the way it is.  You can't embed such a minimal page in an iframe.   See
+      //    https://stackoverflow.com/questions/69322834/is-it-possible-to-embed-a-cross-origin-isolated-iframe-inside-a-normal-page
+      // for a discussion.
       type: "boolean",
       desc: "Set to true to enable cross-origin isolation for this shared path.  It will be served with COOP and COEP headers set to enable access to web APIs including SharedArrayBuffer and Atomics and prevent outer attacks (Spectre attacks, cross-origin attacks, etc.).  Setting this will break loading any third party javascript that requires communication with cross-origin windows, e.g., the Sage Cell Server.",
     },
