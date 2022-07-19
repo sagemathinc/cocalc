@@ -19,7 +19,7 @@ interface HostInfo {
 
 // This could get called a LOT on the same host that is not special
 // for the server, and also the list of public projects that have
-// vhost info is very small (e.g., like 3 of them) and at least
+// vhost info is very small (e.g., like 10 of them) and at least
 // right now only something that is manually changed!  We thus cache
 // the answer for 1 minute.  If we change our use of vhosts, we can
 // revisit this parameter.
@@ -46,7 +46,7 @@ export default async function getVirtualHostInfo(
   const query =
     "SELECT project_id, path, auth FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
   // logger.debug('query = ', query);
-  
+
   try {
     const { rows } = await pool.query(query, [vhost]);
 
