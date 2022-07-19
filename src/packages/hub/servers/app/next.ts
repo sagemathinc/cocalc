@@ -29,20 +29,34 @@ export default async function init(app: Application) {
   if (shareServer) {
     // We create a redirect middleware and a raw/download
     // middleware, since the share server will be fully available.
+    // IMPORTANT: all files are also served with download:true, so that
+    // they don't get rendered with potentially malicious content.
+    // The only way we could allow this is to serve all raw content
+    // from a separate domain, e.g., raw.cocalc.com.  That would be
+    // reasonable on cocalc.com, but to ensure this for all on-prem,
+    // etc. servers is definitely too much, so we just disable this.
+    // For serving actual raw content, the solution will be to use
+    // a vhost.
     // 1: The raw static server:
     const raw = join(shareBasePath, "raw");
     app.all(
       join(raw, "*"),
       (req: Request, res: Response, next: NextFunction) => {
         try {
-          handleRaw({ ...parseURL(req, raw), req, res, next });
+          handleRaw({
+            ...parseURL(req, raw),
+            req,
+            res,
+            next,
+            download: true /* do not change this by default -- see above. */,
+          });
         } catch (_err) {
           res.status(404).end();
         }
       }
     );
 
-    // 2: The download server -- just like raw, but files get sent via download.
+    // 2: The download server -- just like raw, but files always get sent via download.
     const download = join(shareBasePath, "download");
     app.all(
       join(download, "*"),

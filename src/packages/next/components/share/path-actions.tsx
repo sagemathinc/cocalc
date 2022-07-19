@@ -64,13 +64,6 @@ export default function PathActions({
       </Link>
     );
   }
-  if (!url && include("raw")) {
-    v.push(
-      <ExternalLink key="raw" href={rawURL({ id, path, relativePath })}>
-        Raw
-      </ExternalLink>
-    );
-  }
   if (!url && include("embed")) {
     v.push(
       <Link
@@ -88,6 +81,13 @@ export default function PathActions({
       <a key="download" href={downloadURL(id, path, relativePath)}>
         Download
       </a>
+    );
+  }
+  if (!url && include("raw")) {
+    v.push(
+      <ExternalLink key="raw" href={rawURL({ id, path, relativePath })}>
+        Raw
+      </ExternalLink>
     );
   }
 
