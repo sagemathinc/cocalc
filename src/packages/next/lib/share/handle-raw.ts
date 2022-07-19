@@ -96,12 +96,6 @@ export function staticHandler(
   next: Function
 ) {
   //console.log("staticHandler", { fsPath, url: req.url });
-  // The following two headers make it possible to serve content that used
-  // SharedArrayBuffer from vhosts and raw shared content.  This is very
-  // important as it is a prerequisite for modern use of WebAssembly.
-  // E.g., https://python-wasm.cocalc.com uses this.
-  res.setHeader("Cross-origin-Embedder-Policy", "require-corp");
-  res.setHeader("Cross-origin-Opener-Policy", "same-origin");
   const handler = getStaticFileHandler(fsPath);
   handler(req, res, () => {
     // Static handler didn't work, so try the directory listing handler.

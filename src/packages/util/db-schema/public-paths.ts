@@ -104,16 +104,28 @@ Table({
     },
     vhost: {
       // For now, this will only be used *manually* for now; at some point users will be able to specify this,
-      // though maybe they have to prove they own it.
+      // though maybe they have to prove they own it.  This will be like "github pages", basically.
       // For now we will only serve the vhost files statically with no special support, except we do support
       // basic http auth.   However, we will add
       // special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
       // so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
       // This could be a non-default option.
       // IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.
+      // This is intentional for security reasons, since vhosts actually serve html files in a way that can be
+      // directly viewed in the browser, and they could contain dangerous content, so must be served on a different
+      // domain to avoid them somehow being an attack vector.
+      // BUG: I also can't get this to work for new domains; it only works for foo.cocalc.com for subdomains, and my
+      // old domains like vertramp.org.  WEIRD.
       type: "string",
-      desc: 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.',
+      desc: 'Request for the given host (which must not contain the string "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts that point to the same public path.',
       unique: true,
+    },
+    cross_origin_isolation: {
+      // This is used by https://python-wasm.cocalc.com.  But it can't be used by https://sagelets.cocalc.com/ since that loads third party javascript from
+      // the sage cell server.   The idea is to isolate things that require cross-origin isolation to a very minimal page, then embed that page in a more
+      // complicated page via an iframe (which is allowed).
+      type: "boolean",
+      desc: "Set to true to enable cross-origin isolation for this shared path.  It will be served with COOP and COEP headers set to enable access to web APIs including SharedArrayBuffer and Atomics and prevent outer attacks (Spectre attacks, cross-origin attacks, etc.).  Setting this will break loading any third party javascript that requires communication with cross-origin windows, e.g., the Sage Cell Server.",
     },
     auth: {
       type: "map",
@@ -175,6 +187,7 @@ Table({
           // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
           compute_image: "default",
           // do NOT allow to read the site_license_id.
+          cross_origin_isolation: null,
         },
       },
       set: {
@@ -195,6 +208,7 @@ Table({
           created: true,
           compute_image: true,
           site_license_id: true, // user with write access to project can set this.
+          cross_origin_isolation: true,
         },
         required_fields: {
           id: true,
