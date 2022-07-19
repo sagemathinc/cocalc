@@ -40,6 +40,7 @@ import base_path from "@cocalc/backend/base-path";
 import {
   PassportLoginInfo,
   PassportStrategyDB,
+  PassportStrategyDBConfig,
   PassportTypes,
   PassportTypesList,
 } from "@cocalc/database/postgres/passport";
@@ -634,6 +635,41 @@ export class PassportManager {
     }
   }
 
+  private get_extra_default_opts(type: PassportTypes): any {
+    switch (type) {
+      case "saml":
+        // see https://github.com/node-saml/passport-saml#config-parameter-details
+        return {
+          issuer: this.auth_url,
+          signatureAlgorithm: "sha256", // better than default sha1
+          digestAlgorithm: "sha256", // better than default sha1
+          wantAssertionsSigned: true,
+          acceptedClockSkewMs: ms("5 minutes"),
+          // if "*:persistent" doesn't work, use *:emailAddress
+          identifierFormat:
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        };
+    }
+  }
+
+  private get_extra_opts(conf: PassportStrategyDBConfig) {
+    // "extra_opts" is passed to the passport.js "Strategy" constructor!
+    // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
+    const extracted = _.omit(conf, [
+      "name", // deprecated
+      "display", // deprecated
+      "type",
+      "icon", // deprecated
+      "login_info", // already extracted, see login_info field above
+      "clientID",
+      "clientSecret",
+      "userinfoURL",
+      "public", // we don't need that info for initializing them
+    ]);
+
+    return { ...this.get_extra_default_opts(conf.type), ...extracted };
+  }
+
   // this maps additional strategy configurations to a list of StrategyConf objects
   // the overall goal is to support custom OAuth2 and LDAP endpoints, where additional
   // info is sent to the webapp client to properly present them. Google&co are "primary" configurations.
@@ -664,27 +700,13 @@ export class PassportManager {
       // the constructor
       const PassportStrategyConstructor = this.extra_strategy_constructor(type);
 
-      // "extra_opts" is passed to the passport.js "Strategy" constructor!
-      // e.g. arbitrary fields like a tokenURL will be extracted here, and then passed to the constructor
-      const extra_opts = _.omit(strategy.conf, [
-        "name", // deprecated
-        "display", // deprecated
-        "type",
-        "icon", // deprecated
-        "login_info", // already extracted, see login_info field above
-        "clientID",
-        "clientSecret",
-        "userinfoURL",
-        "public", // we don't need that info for initializing them
-      ]);
-
       const config: StrategyConf = {
         name,
         type,
         PassportStrategyConstructor,
         login_info: { ...DEFAULT_LOGIN_INFO, ...strategy.conf.login_info },
         userinfoURL: strategy.conf.userinfoURL,
-        extra_opts,
+        extra_opts: this.get_extra_opts(strategy.conf),
         update_on_login: strategy.info?.update_on_login ?? false,
         cookie_ttl_s: strategy.info?.cookie_ttl_s ?? 0,
       } as const;
@@ -814,10 +836,14 @@ export class PassportManager {
       return;
     }
 
+    // under the same name, we make it accessible
+    const strategyUrl = `${AUTH_BASE}/${name}`;
+    const returnUrl = `${strategyUrl}/return`;
+
     const opts = {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
-      callbackURL: `${this.auth_url}/${name}/return`,
+      callbackURL: returnUrl,
       ...extra_opts,
     } as const;
 
@@ -834,10 +860,6 @@ export class PassportManager {
     // this ties the name (our name set in the DB) to the strategy instance
     passport.use(name, strategy_instance);
 
-    // under the same name, we make it accessible
-    const strategyUrl = `${AUTH_BASE}/${name}`;
-    const returnUrl = `${strategyUrl}/return`;
-
     this.router.get(
       strategyUrl,
       this.handle_get_api_key,
@@ -852,11 +874,19 @@ export class PassportManager {
       // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
       // finally, as a fallback, we just take the ".user"
       // technically, req.user should never be undefined, though.
-      const profile = (req.user?.profile != null
+      const profile = (req.user.profile != null
         ? req.user.profile
         : req.user.attributes != null
         ? req.user.attributes
         : req.user) as any as passport.Profile;
+
+      if (type === "saml") {
+        // the nameID is set via the conf.identifierFormat parameter – even if we set it to
+        // persistent, we might still just get an email address, though
+        Lret(`nameID format we actually got is ${req.user.nameIDFormat}`);
+        profile.id = req.user.nameID;
+      }
+
       Lret(`profile = ${safeJsonStringify(profile)}`);
       const login_opts: PassportLogin = {
         id: profile.id, // ATTN: not all strategies have an ID → you have to derive the ID from the profile below via the "login_info" mapping (e.g. {id: "email"})
@@ -895,7 +925,7 @@ export class PassportManager {
 
     if (type === "saml") {
       this.router.post(
-        `${AUTH_BASE}/${name}/return`,
+        returnUrl,
         // the body-parser package is deprecated, using express directly
         express.urlencoded({ extended: false }),
         express.json(),
