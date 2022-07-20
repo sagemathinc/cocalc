@@ -160,7 +160,7 @@ export async function create_passport(
     });
 
     dbg(
-      `setting other account info ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
+      `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
     );
     await set_account_info_if_possible({
       db: db,
@@ -169,7 +169,7 @@ export async function create_passport(
       first_name: opts.first_name,
       last_name: opts.last_name,
     });
-    opts.cb?.(null);
+    opts.cb?.(undefined); // all good
   } catch (err) {
     if (opts.cb != null) {
       opts.cb(err);
@@ -200,17 +200,17 @@ export async function delete_passport(
 export async function passport_exists(
   db: PostgreSQL,
   opts: PassportExistsOpts
-) {
+): Promise<string | undefined> {
   try {
     const result = await db.async_query({
       query: "SELECT account_id FROM accounts",
       where: { "(passports->>$::TEXT) IS NOT NULL": _passport_key(opts) },
     });
-    const aid = result?.rows[0]?.account_id;
+    const account_id = result?.rows[0]?.account_id;
     if (opts.cb != null) {
-      opts.cb(null, aid);
+      opts.cb(null, account_id);
     } else {
-      return aid;
+      return account_id;
     }
   } catch (err) {
     if (opts.cb != null) {

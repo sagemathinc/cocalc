@@ -173,7 +173,7 @@ oauth2: Entry = {
         "clientSecret": 'ssh-secret',
         "login_info": {
             "id": "_raw",
-            "last_name": "displayNmae",
+            ""
         }
     },
     "info": {

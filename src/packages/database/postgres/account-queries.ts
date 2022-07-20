@@ -6,7 +6,6 @@
 // Various functions involving the database and accounts.
 
 import { PostgreSQL } from "./types";
-
 import { callback2 } from "@cocalc/util/async-utils";
 import { len } from "@cocalc/util/misc";
 import { is_a_site_license_manager } from "./site-license/search";
@@ -47,9 +46,7 @@ export async function set_account_info_if_possible(opts: {
 }): Promise<void> {
   const columns = ["email_address", "first_name", "last_name"];
   const account = await get_account(opts.db, opts.account_id, columns);
-  const do_set: {
-    [field: string]: string;
-  } = {};
+  const do_set: { [field: string]: string } = {};
   for (const field of columns) {
     if (typeof opts[field] !== "string") continue;
     if (account[field] != opts[field]) {

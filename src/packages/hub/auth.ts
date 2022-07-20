@@ -880,7 +880,10 @@ export class PassportManager {
         let err_msg = "";
         // due to https://github.com/Microsoft/TypeScript/issues/13965 we have to check on name and can't use instanceof
         if (err.name === "PassportLoginError") {
-          err_msg = `Problem signing in using '${name}:<br/><strong>${err.message}</strong>`;
+          err_msg = `Problem signing in using '${name}:<br/><strong>${
+            err.message ?? `${err}`
+          }</strong>`;
+          throw err;
         } else {
           const helpEmail = await this.getHelpEmail();
           err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${helpEmail} -- ${err}<br/><pre>${err.stack}</pre>`;
@@ -1135,7 +1138,9 @@ export class PassportManager {
       L(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
     } catch (err) {
-      throw new PassportLoginError(err.message);
+      if (!err) {
+        throw new PassportLoginError(err.message);
+      } else throw err;
     }
   } // end passport_login
 
