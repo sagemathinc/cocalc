@@ -156,6 +156,36 @@ else:
         f"WARNING: no SAML 2.0 generated. Setup saml-idp and copy the pem file certificate to exactly {saml20fn}"
     )
 
+# https://github.com/authlib/example-oauth2-server
+# export AUTHLIB_INSECURE_TRANSPORT=1
+# flask run -p 5555
+oauth2server = 'http://localhost:5555'
+# user: tough-skunk@example.com // Sleepy-Kouprey-11
+oauth2: Entry = {
+    "strategy": "myOauth2",
+    "conf": {
+        "type": "oauth2",
+        "scope": ["email", "profile"],
+        "authorizationURL": f'{oauth2server}/dialog/authorize',
+        "tokenURL": f'{oauth2server}/oauth/token',
+        "userinfoURL": f'{oauth2server}/api/userinfo',
+        "clientID": 'abc123',
+        "clientSecret": 'ssh-secret',
+        "login_info": {
+            "id": "_raw",
+            "last_name": "displayNmae",
+        }
+    },
+    "info": {
+        "public": False,
+        "display": "My OAuth2",
+        "description": "My OAuth2",
+    }
+}
+strats.append(oauth2)
+
+##############
+
 sql_commands = []
 
 from json import dumps

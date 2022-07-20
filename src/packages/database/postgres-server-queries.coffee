@@ -59,7 +59,7 @@ collab = require('./postgres/collab')
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
-{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, delete_passport, passport_exists, update_account_and_passport} = require('./postgres/passport')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, delete_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
@@ -347,7 +347,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     update_account_and_passport: (opts) =>
         return await update_account_and_passport(@, opts)
 
-
     ###
     Account creation, deletion, existence
     ###
@@ -390,7 +389,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # This should be enough for now since a given user only makes their account through a single
             # server via the persistent websocket...
             @_create_account_passport_keys ?= {}
-            passport_key = @_passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
+            passport_key = _passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
             last = @_create_account_passport_keys[passport_key]
             if last? and new Date() - last <= 60*1000
                 opts.cb("recent attempt to make account with this passport strategy")

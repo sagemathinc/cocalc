@@ -33,6 +33,7 @@
 //
 // Then restart the hubs.
 
+import { v4 as uuidv4 } from "uuid";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
@@ -92,7 +93,7 @@ const BLACKLISTED_STRATEGIES = [
   "password-reset",
 ] as const;
 
-// This is the default derivation of user/profile fields. It works fine for OAuth2.
+// This is the default derivation of user/profile fields.
 // Overwrite them via the configuration's login_info field.
 const DEFAULT_LOGIN_INFO: Required<PassportLoginInfo> = {
   id: "id",
@@ -437,8 +438,8 @@ export class PassportManager {
 
   // Define handler for api key cookie setting.
   private handle_get_api_key(req, res, next) {
-    logger.debug("handle_get_api_key");
     if (req.query.get_api_key) {
+      logger.debug("handle_get_api_key");
       const cookies = new Cookies(req, res);
       // maxAge: User gets up to 60 minutes to go through the SSO process...
       cookies.set(API_KEY_COOKIE_NAME, req.query.get_api_key, {
@@ -520,10 +521,10 @@ export class PassportManager {
     logger.debug(`auth_url='${this.auth_url}'`);
 
     await Promise.all([
-      this.init_strategy(GoogleStrategyConf),
-      this.init_strategy(GithubStrategyConf),
-      this.init_strategy(FacebookStrategyConf),
-      this.init_strategy(TwitterStrategyConf),
+      this.initStrategy(GoogleStrategyConf),
+      this.initStrategy(GithubStrategyConf),
+      this.initStrategy(FacebookStrategyConf),
+      this.initStrategy(TwitterStrategyConf),
       this.init_extra_strategies(),
     ]);
   }
@@ -676,6 +677,7 @@ export class PassportManager {
       "clientSecret",
       "userinfoURL",
       "public", // we don't need that info for initializing them
+      "auth_opts", // we pass them as a separate parameter
     ]);
 
     return {
@@ -722,10 +724,11 @@ export class PassportManager {
         userinfoURL: strategy.conf.userinfoURL,
         extra_opts: this.get_extra_opts(name, strategy.conf),
         update_on_login: strategy.info?.update_on_login ?? false,
-        cookie_ttl_s: strategy.info?.cookie_ttl_s ?? 0,
+        cookie_ttl_s: strategy.info?.cookie_ttl_s, // could be undefined, that's OK
+        auth_opts: strategy.conf.auth_opts ?? {},
       } as const;
 
-      inits.push(this.init_strategy(config));
+      inits.push(this.initStrategy(config));
     }
     await Promise.all(inits);
   }
@@ -745,13 +748,15 @@ export class PassportManager {
     }
   }
 
-  private get_strategy_instance({
+  private getStrategyInstance({
     type,
     opts,
     userinfoURL,
     PassportStrategyConstructor,
   }) {
-    const L = logger.extend("get_strategy_instance").debug;
+    const L1 = logger.extend("get_strategy_instance");
+    const L2 = L1.extend("userProfile").debug;
+
     const verify = this.getVerify(type);
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
@@ -760,16 +765,16 @@ export class PassportManager {
     if (userinfoURL != null) {
       // closure captures "strategy"
       strategy_instance.userProfile = function userProfile(accessToken, done) {
-        L(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
+        L2(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
 
         this._oauth2.useAuthorizationHeaderforGET(true);
         this._oauth2.get(userinfoURL, accessToken, (err, body) => {
-          L(`get->body = ${body}`);
+          L2(`get->body = ${safeJsonStringify(body)}`);
 
           let json;
 
           if (err) {
-            L(
+            L2(
               `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
                 err
               )}`
@@ -807,12 +812,8 @@ export class PassportManager {
 
           const profile = parse_openid_profile(json);
           profile.provider = type;
-          profile._raw = body;
-          L(
-            `PassportStrategyConstructor.userProfile: profile = ${safeJsonStringify(
-              profile
-            )}`
-          );
+          profile._raw = json;
+          L2(`profile = ${safeJsonStringify(profile)}`);
           return done(null, profile);
         });
       };
@@ -821,14 +822,83 @@ export class PassportManager {
     return strategy_instance;
   }
 
+  private getHandleReturn({
+    Linit,
+    name,
+    type,
+    update_on_login,
+    cookie_ttl_s,
+    login_info,
+  }) {
+    return async (req, res: express.Response) => {
+      if (req.user == null) {
+        throw Error("req.user == null -- that shouldn't happen");
+      }
+      const Lret = Linit.extend(`${name}/return`).debug;
+      // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
+      // finally, as a fallback, we just take the ".user"
+      // technically, req.user should never be undefined, though.
+      const profile = (req.user.profile != null
+        ? req.user.profile
+        : req.user.attributes != null
+        ? req.user.attributes
+        : req.user) as any as passport.Profile;
+
+      if (type === "saml") {
+        // the nameID is set via the conf.identifierFormat parameter – even if we set it to
+        // persistent, we might still just get an email address, though
+        Lret(`nameID format we actually got is ${req.user.nameIDFormat}`);
+        profile.id = req.user.nameID;
+      }
+
+      Lret(`profile = ${safeJsonStringify(profile)}`);
+
+      const login_opts: PassportLogin = {
+        id: profile.id, // ATTN: not all strategies have an ID → you have to derive the ID from the profile below via the "login_info" mapping (e.g. {id: "email"})
+        strategyName: name,
+        profile, // will just get saved in database
+        update_on_login,
+        cookie_ttl_s,
+        req,
+        res,
+      };
+
+      for (const k in login_info) {
+        const v = login_info[k];
+        const param: string | string[] =
+          typeof v == "function"
+            ? // v is a LoginInfoDerivator<T>
+              v(profile)
+            : // v is a string for dot-object
+              dot.pick(v, profile);
+        login_opts[k] = param;
+      }
+
+      try {
+        await this.passportLogin(login_opts);
+      } catch (err) {
+        let err_msg = "";
+        // due to https://github.com/Microsoft/TypeScript/issues/13965 we have to check on name and can't use instanceof
+        if (err.name === "PassportLoginError") {
+          err_msg = `Problem signing in using '${name}:<br/><strong>${err.message}</strong>`;
+        } else {
+          const helpEmail = await this.getHelpEmail();
+          err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${helpEmail} -- ${err}<br/><pre>${err.stack}</pre>`;
+        }
+        Lret(`sending error "${err_msg}"`);
+        res.send(err_msg);
+      }
+    };
+  }
+
   // a generalized strategy initizalier
-  private async init_strategy(strategy_config: StrategyConf): Promise<void> {
+  private async initStrategy(strategy_config: StrategyConf): Promise<void> {
     const {
       name, // our "name" of the strategy, set in the DB
       type, // the "type", which is the key in the k
       PassportStrategyConstructor,
       extra_opts,
-      auth_opts,
+      auth_opts = {},
       login_info,
       userinfoURL,
       cookie_ttl_s,
@@ -864,7 +934,7 @@ export class PassportManager {
     // attn: this log line shows secrets
     // logger.debug(`opts = ${safeJsonStringify(opts)}`);
 
-    const strategy_instance = this.get_strategy_instance({
+    const strategy_instance = this.getStrategyInstance({
       type,
       opts,
       userinfoURL,
@@ -877,65 +947,25 @@ export class PassportManager {
     this.router.get(
       strategyUrl,
       this.handle_get_api_key,
-      passport.authenticate(name, auth_opts || {})
+      (_req, _res, next) => {
+        if (type === "oauth2") {
+          auth_opts.state = uuidv4();
+          logger.debug("session: " + auth_opts.state);
+        }
+        next();
+      },
+      passport.authenticate(name, auth_opts)
     );
 
-    const handleReturn = async (req, res: express.Response) => {
-      if (req.user == null) {
-        throw Error("req.user == null -- that shouldn't happen");
-      }
-      const Lret = Linit.extend(`${name}/return`).debug;
-      // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
-      // finally, as a fallback, we just take the ".user"
-      // technically, req.user should never be undefined, though.
-      const profile = (req.user.profile != null
-        ? req.user.profile
-        : req.user.attributes != null
-        ? req.user.attributes
-        : req.user) as any as passport.Profile;
-
-      if (type === "saml") {
-        // the nameID is set via the conf.identifierFormat parameter – even if we set it to
-        // persistent, we might still just get an email address, though
-        Lret(`nameID format we actually got is ${req.user.nameIDFormat}`);
-        profile.id = req.user.nameID;
-      }
-
-      Lret(`profile = ${safeJsonStringify(profile)}`);
-      const login_opts: PassportLogin = {
-        id: profile.id, // ATTN: not all strategies have an ID → you have to derive the ID from the profile below via the "login_info" mapping (e.g. {id: "email"})
-        strategyName: name,
-        profile, // will just get saved in database
-        update_on_login,
-        cookie_ttl_s,
-        req,
-        res,
-      };
-      for (const k in login_info) {
-        const v = login_info[k];
-        const param: string | string[] =
-          typeof v == "function"
-            ? // v is a LoginInfoDerivator<T>
-              v(profile)
-            : // v is a string for dot-object
-              dot.pick(v, profile);
-        login_opts[k] = param;
-      }
-      try {
-        await this.passport_login(login_opts);
-      } catch (err) {
-        let err_msg = "";
-        // due to https://github.com/Microsoft/TypeScript/issues/13965 we have to check on name and can't use instanceof
-        if (err.name === "PassportLoginError") {
-          err_msg = `Problem signing in using '${name}:<br/><strong>${err.message}</strong>`;
-        } else {
-          const helpEmail = await this.getHelpEmail();
-          err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${helpEmail} -- ${err}<br/><pre>${err.stack}</pre>`;
-        }
-        Lret(`sending error "${err_msg}"`);
-        res.send(err_msg);
-      }
-    };
+    // this will hopefully call this.passportLogin(...)
+    const handleReturn = this.getHandleReturn({
+      Linit,
+      name,
+      type,
+      update_on_login,
+      cookie_ttl_s,
+      login_info,
+    });
 
     if (type === "saml") {
       this.router.post(
@@ -956,6 +986,16 @@ export class PassportManager {
           await handleReturn(req, res);
         }
       );
+    } else if (type === "oauth2" || type === "oauth2next") {
+      this.router.get(
+        returnUrl,
+        async (req, _res, next) => {
+          L("OAuth2: checking state:", req.params);
+          next();
+        },
+        passport.authenticate(name),
+        handleReturn
+      );
     } else {
       this.router.get(returnUrl, passport.authenticate(name), handleReturn);
     }
@@ -964,27 +1004,22 @@ export class PassportManager {
 
   private sanitize_id(opts): void {
     // id must be a uniquely identifying string, usually the ID of the user
-    // (also, a number will be converted to a string),
-    // sometimes just the email, but never an empty string.
-    // Why? The DB looks up pasports by their "passport key", which is strategyName + id, to see
-    // if the user is already in the DB.
-    if (
-      opts.id == null ||
-      opts.id === "" ||
-      opts.id === "undefined" ||
-      opts.id === "null"
-    ) {
+    // sometimes just the email, but not something that's not unique for the user.
+    // Why? The DB looks up pasports by their "passport key", which is strategyName + id,
+    // to check if an assocated account already exists in the DB.
+    if (opts.id == null || opts.id === "undefined" || opts.id === "null") {
       throw new Error(`opts.id must be uniquely identifying`);
     }
+    // here, a number will be converted to a string
     opts.id = `${opts.id}`;
-    if (opts.id.length <= 4) {
-      // anything shorter than 4 characters is probably not a valid ID.
-      // shortest email I can think of is a@b.de
+    if (opts.id.length == 0) {
+      // it would be ideal if such IDs are long "random" strings, but in reality it could
+      // be a number starting at 0. What we can't allow is an empty string.
       throw new Error(`opts.id must be uniquely identifying`);
     }
   }
 
-  private sanitize_profile(opts): void {
+  private sanitizeProfile(opts): void {
     if (
       opts.full_name != null &&
       opts.first_name == null &&
@@ -1015,7 +1050,7 @@ export class PassportManager {
     }
   }
 
-  private async passport_login(opts: PassportLogin): Promise<void> {
+  private async passportLogin(opts: PassportLogin): Promise<void> {
     const L = logger.extend("passport_login").debug;
 
     L({
@@ -1073,7 +1108,7 @@ export class PassportManager {
       locals.cookies.set(API_KEY_COOKIE_NAME);
     }
 
-    this.sanitize_profile(opts);
+    this.sanitizeProfile(opts);
 
     // L({ locals, opts }); // DANGER -- do not uncomment except for debugging due to SECURITY
 

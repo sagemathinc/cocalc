@@ -50,6 +50,7 @@ export interface PassportStrategyDBConfig {
   tokenURL?: string; // --*--
   userinfoURL?: string; // OAuth2, to get a profile
   login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
+  auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
 }
 
 export interface PassportStrategyDBInfo {
@@ -135,7 +136,7 @@ export async function get_all_passport_settings_cached(
 // The Schema is slightly redundant, but indexed properly:
 //    {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
 
-function _passport_key(opts) {
+export function _passport_key(opts) {
   return `${opts.strategy}-${opts.id}`;
 }
 
