@@ -30,7 +30,8 @@ export default function virtualHostsMiddleware() {
     // impossible because otherwise the haproxy server sends queries
     // all straight to the production share server!
     const vhost: string | undefined = req.headers.host?.toLowerCase();
-    //const vhost = "vertramp.org";
+    // const vhost = "vertramp.org";
+    // const vhost = "python-wasm.org";
     if (vhost == null) {
       // logger.debug("no host header set");
       next();
@@ -72,6 +73,15 @@ export default function virtualHostsMiddleware() {
       );
       res.status(403).end();
       return;
+    }
+
+    if (info.cross_origin_isolation) {
+      // The following two headers make it possible to serve content that used
+      // SharedArrayBuffer from vhosts and raw shared content.  This is very
+      // important as it is a prerequisite for modern use of WebAssembly.
+      // E.g., https://python-wasm.cocalc.com uses this.
+      res.setHeader("Cross-origin-Embedder-Policy", "require-corp");
+      res.setHeader("Cross-origin-Opener-Policy", "same-origin");
     }
 
     const dir = pathToFiles(info.project_id, info.path);

@@ -15,11 +15,12 @@ interface HostInfo {
   project_id: string;
   path: string;
   auth: VirtualHostInfo;
+  cross_origin_isolation?: boolean;
 }
 
 // This could get called a LOT on the same host that is not special
 // for the server, and also the list of public projects that have
-// vhost info is very small (e.g., like 3 of them) and at least
+// vhost info is very small (e.g., like 10 of them) and at least
 // right now only something that is manually changed!  We thus cache
 // the answer for 1 minute.  If we change our use of vhosts, we can
 // revisit this parameter.
@@ -44,9 +45,9 @@ export default async function getVirtualHostInfo(
   // NOTE: we are assuming there is at most one with a given vhost.  If there
   // are more, behavior is not defined, but that will get logged.
   const query =
-    "SELECT project_id, path, auth FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
+    "SELECT project_id, path, auth, cross_origin_isolation FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
   // logger.debug('query = ', query);
-  
+
   try {
     const { rows } = await pool.query(query, [vhost]);
 
@@ -62,8 +63,8 @@ export default async function getVirtualHostInfo(
     if (rows.length > 1) {
       logger.warn("WARNING: multiple virtual host entries for vhost=%s", vhost);
     }
-    const { project_id, path, auth } = rows[0]; // is a weird data type, which is why we don't just return it.
-    const r = { project_id, path, auth };
+    const { project_id, path, auth, cross_origin_isolation } = rows[0]; // is a weird data type, which is why we don't just return it.
+    const r = { project_id, path, auth, cross_origin_isolation };
     cache.set(vhost, r);
     return r;
   } catch (err) {
