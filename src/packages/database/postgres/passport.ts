@@ -10,7 +10,11 @@ import {
   setPassportsCached,
 } from "@cocalc/server/settings/server-settings";
 import { to_json } from "@cocalc/util/misc";
-import { set_account_info_if_possible } from "./account-queries";
+import {
+  set_account_info_if_different,
+  set_account_info_if_not_set,
+  set_email_address_verified,
+} from "./account-queries";
 import {
   CB,
   CreatePassportOpts,
@@ -19,58 +23,7 @@ import {
   PostgreSQL,
   UpdateAccountInfoAndPassportOpts,
 } from "./types";
-
-export type LoginInfoKeys = "id" | "first_name" | "last_name" | "emails";
-
-// google, facebook, etc ... are not included, they're hardcoded
-export const PassportTypesList = [
-  "email", // special case, always included by default, not a passport strategy
-  "activedirectory",
-  "ldap",
-  "oauth1",
-  "oauth2",
-  "oauth2next",
-  "orcid",
-  "saml",
-  "gitlab2",
-  "apple",
-  "microsoft",
-  "azure-ad",
-  // the 4 types for google, twitter, github and facebook are not included here – they're hardcoded special cases
-] as const;
-
-export type PassportTypes = typeof PassportTypesList[number];
-
-export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
-export interface PassportStrategyDBConfig {
-  type: PassportTypes;
-  clientID?: string; // Google, Twitter, ... and OAuth2
-  clientSecret?: string; // Google, Twitter, ... and OAuth2
-  authorizationURL?: string; // OAuth2
-  tokenURL?: string; // --*--
-  userinfoURL?: string; // OAuth2, to get a profile
-  login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
-  auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
-}
-
-export interface PassportStrategyDBInfo {
-  public?: boolean; // default true
-  do_not_hide?: boolean; // default false, only relevant for public=false SSOs, which will be shown on the login/signup page directly
-  exclusive_domains?: string[]; // list of domains, e.g. ["foo.com"], which must go through that SSO mechanism (and hence block normal email signup)
-  display?: string; // e.g. "WOW Tech", fallback: capitalize(strategy)
-  description?: string; // markdown
-  icon?: string; // URL to a square image
-  disabled?: boolean; // if true, ignore this entry. default false.
-  update_on_login?: boolean; // if true, update the user's info on login. default false.
-  cookie_ttl_s?: number; // default is about a month
-}
-
-// those are the 3 columns in the DB table
-export interface PassportStrategyDB {
-  strategy: string;
-  conf: PassportStrategyDBConfig;
-  info?: PassportStrategyDBInfo;
-}
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
 
 export async function set_passport_settings(
   db: PostgreSQL,
@@ -137,7 +90,16 @@ export async function get_all_passport_settings_cached(
 //    {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
 
 export function _passport_key(opts) {
-  return `${opts.strategy}-${opts.id}`;
+  const { strategy, id } = opts;
+  // note: strategy is *our* name of the strategy in the DB, not it's type string!
+  if (typeof strategy !== "string") {
+    throw new Error("_passport_key: strategy must be defined");
+  }
+  if (typeof id !== "string") {
+    throw new Error("_passport_key: id must be defined");
+  }
+
+  return `${strategy}-${id}`;
 }
 
 export async function create_passport(
@@ -145,7 +107,7 @@ export async function create_passport(
   opts: CreatePassportOpts
 ): Promise<void> {
   const dbg = db._dbg("create_passport");
-  dbg(to_json(opts.profile));
+  dbg({ id: opts.id, strategy: opts.strategy, profile: to_json(opts.profile) });
 
   try {
     dbg("setting the passport for the account");
@@ -162,13 +124,21 @@ export async function create_passport(
     dbg(
       `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
     );
-    await set_account_info_if_possible({
+    await set_account_info_if_not_set({
       db: db,
       account_id: opts.account_id,
       email_address: opts.email_address,
       first_name: opts.first_name,
       last_name: opts.last_name,
     });
+    // we still record that email address as being verified
+    if (opts.email_address != null) {
+      await set_email_address_verified({
+        db,
+        account_id: opts.account_id,
+        email_address: opts.email_address,
+      });
+    }
     opts.cb?.(undefined); // all good
   } catch (err) {
     if (opts.cb != null) {
@@ -236,7 +206,7 @@ export async function update_account_and_passport(
       last_name: opts.last_name,
     })}`
   );
-  await set_account_info_if_possible({
+  await set_account_info_if_different({
     db: db,
     account_id: opts.account_id,
     first_name: opts.first_name,

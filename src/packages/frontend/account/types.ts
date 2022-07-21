@@ -5,7 +5,7 @@
 
 import { List, Map } from "immutable";
 import { NewFilenameTypes } from "../project/utils";
-import { PassportStrategyFrontend } from "./passport-types";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { TypedMap } from "../app-framework";
 import { MessageInfo } from "../client/hub";
 

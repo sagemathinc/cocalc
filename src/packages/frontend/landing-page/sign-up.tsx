@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-types";
 import {
   ReactDOM,
   redux,
@@ -18,6 +17,7 @@ import {
   HelpEmailLink,
   TermsOfService,
 } from "@cocalc/frontend/customize";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 //import { set_local_storage } from "@cocalc/frontend/misc";
 import { Passports, PassportStrategy } from "@cocalc/frontend/passports";
 import { COLORS } from "@cocalc/util/theme";

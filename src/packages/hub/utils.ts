@@ -5,7 +5,7 @@
 
 import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PassportStrategyDB } from "@cocalc/database/postgres/passport";
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
 
 export async function have_active_registration_tokens(
   db: PostgreSQL

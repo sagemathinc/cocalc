@@ -7,7 +7,6 @@
 The Landing Page
 */
 
-import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-types";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   Component,
@@ -31,6 +30,7 @@ import {
 } from "@cocalc/frontend/launch/actions";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import * as immutable from "immutable";
 import { join } from "path";
 import { A, UNIT } from "../components";

@@ -36,12 +36,12 @@ import {
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { Alert as AntdAlert, Space as AntdSpace } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
 import { SiteName, TermsOfService } from "../../customize";
 import { DeleteAccount } from "../delete-account";
-import { PassportStrategyFrontend } from "../passport-types";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
 import { APIKeySetting } from "./api-key";

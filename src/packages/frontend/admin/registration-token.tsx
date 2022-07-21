@@ -7,29 +7,34 @@
 Input box for setting the account creation token.
 */
 
-import { List } from "immutable";
-import moment from "moment";
-import { sortBy, pick } from "lodash";
-import { cmp_moment, secure_random_token, round1 } from "@cocalc/util/misc";
-import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
-import { React, Rendered, redux, TypedMap } from "../app-framework";
-import {
-  Checkbox,
-  Form,
-  DatePicker,
-  InputNumber,
-  Input,
-  Popconfirm,
-  Table,
-  Switch,
-} from "antd";
-import { Button as AntdButton } from "antd";
-import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { ErrorDisplay, Saving, Icon } from "../components";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  redux,
+  Rendered,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
+import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
+import { cmp_moment, round1, secure_random_token } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { PassportStrategyFrontend } from "../account/passport-types";
-import { query } from "../frame-editors/generic/client";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import {
+  Button as AntdButton,
+  Checkbox,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  Popconfirm,
+  Switch,
+  Table,
+} from "antd";
+import { List } from "immutable";
+import { pick, sortBy } from "lodash";
+import moment from "moment";
 
 interface Token {
   key?: string; // used in the table, not for the database

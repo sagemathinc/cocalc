@@ -33,23 +33,11 @@
 //
 // Then restart the hubs.
 
-import { v4 as uuidv4 } from "uuid";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import base_path from "@cocalc/backend/base-path";
-import {
-  PassportLoginInfo,
-  PassportStrategyDB,
-  PassportStrategyDBConfig,
-  PassportTypes,
-  PassportTypesList,
-} from "@cocalc/database/postgres/passport";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import {
-  PassportStrategyFrontend,
-  PRIMARY_SSO,
-} from "@cocalc/frontend/account/passport-types";
 import { getLogger } from "@cocalc/hub/logger";
 import apiKeyAction from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
@@ -57,9 +45,28 @@ import {
   COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
   createRememberMeCookie,
 } from "@cocalc/server/auth/remember-me";
+import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
+import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
+import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
+import {
+  InitPassport,
+  PassportLogin,
+  PassportLoginError,
+  PassportLoginLocals,
+  PassportManagerOpts,
+  PassportStrategyDB,
+  PassportStrategyDBConfig,
+  PassportTypes,
+  StrategyConf,
+  StrategyInstanceOpts,
+} from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { DNS, HELP_EMAIL } from "@cocalc/util/theme";
+import {
+  PassportStrategyFrontend,
+  PRIMARY_SSO,
+} from "@cocalc/util/types/passport-types";
 import Cookies from "cookies";
 import * as dot from "dot-object";
 import * as express from "express";
@@ -68,7 +75,7 @@ import * as _ from "lodash";
 import ms from "ms";
 import passport from "passport";
 import { join as path_join } from "path";
-import { v4 } from "uuid";
+import { v4 as uuidv4, v4 } from "uuid";
 import {
   email_verification_problem,
   email_verified_successfully,
@@ -76,31 +83,26 @@ import {
 } from "./email";
 //import Saml2js from "saml2js";
 import { getPassportCache } from "@cocalc/database/postgres/passport-store";
+import {
+  BLACKLISTED_STRATEGIES,
+  DEFAULT_LOGIN_INFO,
+} from "@cocalc/server/auth/sso/consts";
+import {
+  FacebookStrategyConf,
+  GithubStrategyConf,
+  GoogleStrategyConf,
+  TwitterStrategyConf,
+} from "@cocalc/server/auth/sso/public-strategies";
+import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
+import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
+
 const sign_in = require("./sign-in");
 const safeJsonStringify = require("safe-json-stringify");
 
-const logger = getLogger("auth");
+const logger = getLogger("hub:auth");
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO] as const;
-
-// see next/pages/auth/ROUTING.md for more informatino
-const BLACKLISTED_STRATEGIES = [
-  "sign-in",
-  "sign-up",
-  "try",
-  "verify",
-  "password-reset",
-] as const;
-
-// This is the default derivation of user/profile fields.
-// Overwrite them via the configuration's login_info field.
-const DEFAULT_LOGIN_INFO: Required<PassportLoginInfo> = {
-  id: "id",
-  first_name: "name.givenName",
-  last_name: "name.familyName",
-  emails: "emails[0].value",
-} as const;
 
 // root for authentication related endpoints -- will be prefixed with the base_path
 const AUTH_BASE = "/auth";
@@ -108,210 +110,6 @@ const AUTH_BASE = "/auth";
 const { defaults, required } = misc;
 
 const API_KEY_COOKIE_NAME = base_path + "get_api_key";
-
-//#######################################
-// Password hashing
-//#######################################
-
-interface PassportLogin {
-  strategyName: string;
-  profile: any; // complex object
-  id: string; // id is required. e.g. take the email address – see create_passport in postgres-server-queries.coffee
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  emails?: string[];
-  req: any;
-  res: any;
-  update_on_login: boolean; // passed down from StrategyConf, default false
-  cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
-  host?: any;
-  cb?: (err) => void;
-}
-
-// this error is used to signal that the user has done something wrong (in a general sense) and not the code or returned data by itself is buggy.
-// this is used to improve the feedback sent back to the user if there is a problem...
-class PassportLoginError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "PassportLoginError";
-  }
-}
-
-// maps the full profile object to a string or list of strings (e.g. "first_name")
-type LoginInfoDerivator<T> = (profile: any) => T;
-
-interface StrategyConf {
-  name: string; // our custom name
-  type: PassportTypes; // e.g. "saml"
-  PassportStrategyConstructor: any;
-  extra_opts?: {
-    enableProof?: boolean; // facebook
-    profileFields?: string[]; // facebook
-    includeEmail?: boolean; // twitter
-  };
-  auth_opts?: passport.AuthenticateOptions;
-  // return type has to partially fit with passport_login
-  login_info: {
-    id: string | LoginInfoDerivator<string>; // id is required!
-    first_name?: string | LoginInfoDerivator<string>;
-    last_name?: string | LoginInfoDerivator<string>;
-    full_name?: string | LoginInfoDerivator<string>;
-    emails?: string | LoginInfoDerivator<string[]>;
-  };
-  userinfoURL?: string; // OAuth2, to get a profile
-  update_on_login?: boolean; // if true, update the user's profile on login
-  cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
-}
-
-// docs for getting these for your app
-// https://developers.google.com/identity/protocols/oauth2/openid-connect#appsetup
-// and https://console.developers.google.com/apis/credentials
-//
-// You must then put them in the database, via
-//
-// require 'c'; db()
-// db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-// Scope:
-// Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
-// then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
-// didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
-// library and put in print statements to see what the *REAL* errors were, since that
-// library hid the errors (**WHY**!!?).
-const GoogleStrategyConf: StrategyConf = {
-  name: "google",
-  type: "@passport-next/passport-google-oauth2" as any,
-  PassportStrategyConstructor: require("@passport-next/passport-google-oauth2")
-    .Strategy,
-  auth_opts: { scope: "openid email profile" },
-  login_info: {
-    id: (profile) => profile.id,
-    first_name: (profile) => profile.name.givenName,
-    last_name: (profile) => profile.name.familyName,
-    emails: (profile) => profile.emails.map((x) => x.value as string),
-  },
-};
-
-// Get these here:
-//      https://github.com/settings/applications/new
-// You must then put them in the database, via
-//   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-const GithubStrategyConf: StrategyConf = {
-  name: "github",
-  type: "passport-github2" as any,
-  PassportStrategyConstructor: require("passport-github2").Strategy,
-  auth_opts: {
-    scope: ["user:email"],
-  },
-  login_info: {
-    id: (profile) => profile.id,
-    full_name: (profile) =>
-      profile.name || profile.displayName || profile.username,
-    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
-  },
-};
-
-// Get these by going to https://developers.facebook.com/ and creating a new application.
-// For that application, set the url to the site CoCalc will be served from.
-// The Facebook "App ID" and is clientID and the Facebook "App Secret" is the clientSecret
-// for oauth2, as I discovered by a lucky guess... (sigh).
-//
-// You must then put them in the database, via
-//   db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-const FacebookStrategyConf: StrategyConf = {
-  name: "facebook",
-  type: "passport-facebook" as any,
-  PassportStrategyConstructor: require("passport-facebook").Strategy,
-  extra_opts: {
-    enableProof: false,
-    profileFields: ["id", "email", "name", "displayName"],
-  },
-  auth_opts: { scope: "email" },
-  login_info: {
-    id: (profile) => profile.id,
-    full_name: (profile) => profile.displayName,
-    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
-  },
-};
-
-// Get these by:
-//    (1) Go to https://apps.twitter.com/ and create a new application.
-//    (2) Click on Keys and Access Tokens
-//
-// You must then put them in the database, via
-//   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-const TwitterWrapper = (
-  { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
-  verify
-) => {
-  // cast to any, because otherwies TypeScript complains:
-  // Only a void function can be called with the 'new' keyword.
-  const TwitterStrat = require("passport-twitter").Strategy as any;
-  return new TwitterStrat({ consumerKey, consumerSecret, callbackURL }, verify);
-};
-
-const TwitterStrategyConf: StrategyConf = {
-  name: "twitter",
-  type: "passport-twitter" as any,
-  PassportStrategyConstructor: TwitterWrapper,
-  login_info: {
-    id: (profile) => profile.id,
-    full_name: (profile) => profile.displayName,
-    emails: (profile) => (profile.emails ?? []).map((x) => x.value),
-  },
-  extra_opts: {
-    includeEmail: true,
-  },
-};
-
-// generalized OpenID (OAuth2) profile parser for the "userinfo" endpoint
-// the returned structure matches passport.js's conventions
-function parse_openid_profile(json: any) {
-  const profile: any = {};
-  profile.id = json.sub || json.id;
-  profile.displayName = json.name;
-  if (json.family_name || json.given_name) {
-    profile.name = {
-      familyName: json.family_name,
-      givenName: json.given_name,
-    };
-    // no name? we use the email address
-  } else if (json.email) {
-    // don't include dots, because our "spam protection" rejects domain-like patterns
-    const emailacc = json.email.split("@")[0].split(".");
-    const [first, ...last] = emailacc; // last is always at least []
-    profile.name = {
-      givenName: first,
-      familyName: last.join(" "),
-    };
-  }
-
-  if (json.email) {
-    profile.emails = [
-      {
-        value: json.email,
-        verified: json.email_verified || json.verified_email,
-      },
-    ];
-  }
-
-  if (json.picture) {
-    profile.photos = [{ value: json.picture }];
-  }
-
-  return profile;
-}
-
-interface InitPassport {
-  router: express.Router;
-  database: PostgreSQL;
-  host: string;
-  cb: (err?) => void;
-}
 
 // singleton
 let pp_manager: PassportManager | null = null;
@@ -337,26 +135,6 @@ export async function init_passport(opts: InitPassport) {
   } catch (err) {
     opts.cb(err);
   }
-}
-
-interface PassportManagerOpts {
-  router: express.Router;
-  database: PostgreSQL;
-  host: string;
-}
-
-// passport_login state
-interface PassportLoginLocals {
-  account_id: string | undefined;
-  email_address: string | undefined;
-  new_account_created: boolean;
-  has_valid_remember_me: boolean;
-  target: string;
-  cookies: any;
-  remember_me_cookie: string;
-  get_api_key: string;
-  action: "regenerate" | "get" | undefined;
-  api_key: string | undefined;
 }
 
 export class PassportManager {
@@ -600,43 +378,6 @@ export class PassportManager {
     });
   }
 
-  private extra_strategy_constructor(type: PassportTypes) {
-    // LDAP via passport-ldapauth: https://github.com/vesse/passport-ldapauth#readme
-    // OAuth2 via @passport-next/passport-oauth2: https://github.com/passport-next/passport-oauth2#readme
-    // ORCID via passport-orcid: https://github.com/hubgit/passport-orcid#readme
-    if (!PassportTypesList.includes(type)) {
-      throw Error(`hub/auth: unknown extra strategy "${type}"`);
-    }
-    switch (type) {
-      case "ldap":
-        return require("passport-ldapauth").Strategy;
-      case "oauth1":
-        return require("passport-oauth").OAuthStrategy;
-      case "oauth2":
-        return require("passport-oauth").OAuth2Strategy;
-      case "oauth2next":
-        return require("@passport-next/passport-oauth2").Strategy;
-      case "orcid":
-        return require("passport-orcid").Strategy;
-      case "saml":
-        return require("passport-saml").Strategy;
-      case "activedirectory":
-        return require("passport-activedirectory").Strategy;
-      case "gitlab2":
-        return require("passport-gitlab2").Strategy;
-      case "apple":
-        return require("passport-apple").Strategy;
-      case "microsoft":
-        return require("passport-microsoft").Strategy;
-      case "azure-ad":
-        return require("passport-azure-ad").Strategy;
-      case "email":
-        throw new Error("email is a special case, not a strategy");
-      default:
-        misc.unreachable(type);
-    }
-  }
-
   private get_extra_default_opts({
     name,
     type,
@@ -714,7 +455,7 @@ export class PassportManager {
       const type: PassportTypes = strategy.conf.type;
 
       // the constructor
-      const PassportStrategyConstructor = this.extra_strategy_constructor(type);
+      const PassportStrategyConstructor = getExtraStrategyConstructor(type);
 
       const config: StrategyConf = {
         name,
@@ -748,75 +489,17 @@ export class PassportManager {
     }
   }
 
-  private getStrategyInstance({
-    type,
-    opts,
-    userinfoURL,
-    PassportStrategyConstructor,
-  }) {
+  private getStrategyInstance(args: StrategyInstanceOpts) {
+    const { type, opts, userinfoURL, PassportStrategyConstructor } = args;
     const L1 = logger.extend("get_strategy_instance");
     const L2 = L1.extend("userProfile").debug;
 
     const verify = this.getVerify(type);
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
-    // OAuth2 userinfoURL: next to /authorize
-    // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
+    // for OAuth2, set the userinfoURL to get the profile
     if (userinfoURL != null) {
-      // closure captures "strategy"
-      strategy_instance.userProfile = function userProfile(accessToken, done) {
-        L2(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
-
-        this._oauth2.useAuthorizationHeaderforGET(true);
-        this._oauth2.get(userinfoURL, accessToken, (err, body) => {
-          L2(`get->body = ${safeJsonStringify(body)}`);
-
-          let json;
-
-          if (err) {
-            L2(
-              `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
-                err
-              )}`
-            );
-
-            if (err.data) {
-              try {
-                json = safeJsonStringify(err.data);
-              } catch (_) {
-                json = {};
-              }
-            }
-
-            if (json && json.error && json.error_description) {
-              return done(
-                new Error(
-                  `UserInfoError: ${json.error_description}, ${json.error}`
-                )
-              );
-            }
-            return done(
-              new Error(
-                `InternalOAuthError: Failed to fetch user profile -- ${safeJsonStringify(
-                  err
-                )}`
-              )
-            );
-          }
-
-          try {
-            json = JSON.parse(body);
-          } catch (ex) {
-            return done(new Error(`Failed to parse user profile -- ${body}`));
-          }
-
-          const profile = parse_openid_profile(json);
-          profile.provider = type;
-          profile._raw = json;
-          L2(`profile = ${safeJsonStringify(profile)}`);
-          return done(null, profile);
-        });
-      };
+      addUserProfileCallback({ strategy_instance, userinfoURL, L2, type });
     }
 
     return strategy_instance;
@@ -1005,54 +688,6 @@ export class PassportManager {
     L(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
 
-  private sanitize_id(opts): void {
-    // id must be a uniquely identifying string, usually the ID of the user
-    // sometimes just the email, but not something that's not unique for the user.
-    // Why? The DB looks up pasports by their "passport key", which is strategyName + id,
-    // to check if an assocated account already exists in the DB.
-    if (opts.id == null || opts.id === "undefined" || opts.id === "null") {
-      throw new Error(`opts.id must be uniquely identifying`);
-    }
-    // here, a number will be converted to a string
-    opts.id = `${opts.id}`;
-    if (opts.id.length == 0) {
-      // it would be ideal if such IDs are long "random" strings, but in reality it could
-      // be a number starting at 0. What we can't allow is an empty string.
-      throw new Error(`opts.id must be uniquely identifying`);
-    }
-  }
-
-  private sanitizeProfile(opts): void {
-    if (
-      opts.full_name != null &&
-      opts.first_name == null &&
-      opts.last_name == null
-    ) {
-      const name = opts.full_name;
-      const i = name.lastIndexOf(" ");
-      if (i === -1) {
-        opts.first_name = "";
-        opts.last_name = name;
-      } else {
-        opts.first_name = name.slice(0, i).trim();
-        opts.last_name = name.slice(i).trim();
-      }
-    }
-
-    opts.first_name = opts.first_name ?? "";
-    opts.last_name = opts.last_name ?? "";
-
-    // pick first email that is valid – or the only one in the "emails" param.
-    if (opts.emails != null) {
-      const email_arr =
-        typeof opts.emails == "string" ? [opts.emails] : opts.emails;
-
-      opts.emails = email_arr
-        .filter((x) => typeof x === "string" && misc.is_valid_email_address(x))
-        .map((x) => x.toLowerCase());
-    }
-  }
-
   private async passportLogin(opts: PassportLogin): Promise<void> {
     const L = logger.extend("passport_login").debug;
 
@@ -1081,7 +716,7 @@ export class PassportManager {
       throw new Error("opts.profile must be an object");
     }
 
-    this.sanitize_id(opts);
+    sanitizeID(opts);
 
     // FIXME: host field is probably not needed anywhere – kept for now to be compatible with old code
     opts.host = this.host;
@@ -1111,36 +746,34 @@ export class PassportManager {
       locals.cookies.set(API_KEY_COOKIE_NAME);
     }
 
-    this.sanitizeProfile(opts);
+    sanitizeProfile(opts);
 
     // L({ locals, opts }); // DANGER -- do not uncomment except for debugging due to SECURITY
 
     try {
       // do we have a valid remember me cookie for a given account_id already?
-      await this.check_remember_me_cookie(locals);
+      await this.checkRememberMeCookie(locals);
       // do we already have a passport?
-      await this.check_passport_exists(opts, locals);
+      await this.checkPassportExists(opts, locals);
       // there might be accounts already with that email address
-      await this.check_existing_emails(opts, locals);
+      await this.checkExistingEmails(opts, locals);
       // if no account yet → create one
-      await this.maybe_create_account(opts, locals);
+      await this.maybeCreateAccount(opts, locals);
       // record a sign-in activity, if we deal with an existing account
-      await this.maybe_record_sign_in(opts, locals);
+      await this.maybeRecordSignIn(opts, locals);
       // if update_on_login is true, update the account with the new profile data
-      await this.maybe_update_account_and_passport(opts, locals);
+      await this.maybeUpdateAccountAndPassport(opts, locals);
       // deal with the case where user wants an API key
-      await this.maybe_provision_api_key(locals);
+      await this.maybeProvisionAPIKey(locals);
       // check if user is banned?
-      await this.is_user_banned(locals.account_id, locals.email_address);
+      await this.isUserBanned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
-      await this.handle_new_sign_in(opts, locals);
+      await this.handleNewSignIn(opts, locals);
       // no exceptions → we're all good
       L(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
     } catch (err) {
-      if (!err) {
-        throw new PassportLoginError(err.message);
-      } else throw err;
+      throw new PassportLoginError(err.message, err);
     }
   } // end passport_login
 
@@ -1153,7 +786,7 @@ export class PassportManager {
   // invalid in any way, which is overkill... since rememember_me
   // not being valid should just not entitle the user to having a
   // a specific account_id.
-  private async check_remember_me_cookie(
+  private async checkRememberMeCookie(
     locals: PassportLoginLocals
   ): Promise<void> {
     const L = logger.extend("check_remember_me_cookie").debug;
@@ -1190,7 +823,7 @@ export class PassportManager {
     }
   }
 
-  private async check_passport_exists(
+  private async checkPassportExists(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -1242,7 +875,7 @@ export class PassportManager {
     }
   }
 
-  private async check_existing_emails(
+  private async checkExistingEmails(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -1286,17 +919,6 @@ export class PassportManager {
     await Promise.all(check_emails);
   }
 
-  private async set_email_verified(
-    account_id: string,
-    email_address: string
-  ): Promise<void> {
-    return await cb2(this.database._query, {
-      query: "UPDATE accounts",
-      jsonb_set: { email_address_verified: { [email_address]: new Date() } },
-      where: { "account_id = $::UUID": account_id },
-    });
-  }
-
   private async create_account(
     opts: PassportLogin,
     email_address: string | undefined
@@ -1311,7 +933,7 @@ export class PassportManager {
     });
   }
 
-  private async maybe_create_account(
+  private async maybeCreateAccount(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -1335,10 +957,11 @@ export class PassportManager {
         email_address: locals.email_address,
         account_id: locals.account_id,
       });
-      const verify = this.set_email_verified(
-        locals.account_id,
-        locals.email_address
-      );
+      const verify = set_email_address_verified({
+        db: this.database,
+        account_id: locals.account_id,
+        email_address: locals.email_address,
+      });
       await Promise.all([actions, verify]);
     }
 
@@ -1359,7 +982,7 @@ export class PassportManager {
     });
   }
 
-  private async maybe_record_sign_in(
+  private async maybeRecordSignIn(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -1378,7 +1001,7 @@ export class PassportManager {
     });
   }
 
-  private async maybe_update_account_and_passport(
+  private async maybeUpdateAccountAndPassport(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ) {
@@ -1400,12 +1023,13 @@ export class PassportManager {
       strategy: opts.strategyName,
       id: opts.id,
       profile: opts.profile,
+      // but not the email address, at least for now
       // email_address: locals.email_address,
       passport_profile: opts.profile,
     });
   }
 
-  private async maybe_provision_api_key(
+  private async maybeProvisionAPIKey(
     locals: PassportLoginLocals
   ): Promise<void> {
     if (!locals.get_api_key) return;
@@ -1437,7 +1061,7 @@ export class PassportManager {
     locals.target = `https://authenticated?api_key=${locals.api_key}`;
   }
 
-  private async handle_new_sign_in(
+  private async handleNewSignIn(
     opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -1461,7 +1085,7 @@ export class PassportManager {
     });
   }
 
-  private async is_user_banned(account_id, email_address): Promise<boolean> {
+  private async isUserBanned(account_id, email_address): Promise<boolean> {
     const is_banned = await cb2(this.database.is_banned_user, {
       account_id,
     });

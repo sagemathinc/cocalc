@@ -3,14 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PassportStrategyFrontend } from "@cocalc/frontend/account/passport-types";
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { Markdown } from "@cocalc/frontend/components";
 import { ErrorDisplay } from "@cocalc/frontend/components/error-display";
 import { Passports } from "@cocalc/frontend/passports";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { Input } from "antd";
 import { List } from "immutable";
-import { TypedMap, useActions, useEffect, useState } from "../app-framework";
+import {
+  TypedMap,
+  useActions,
+  useEffect,
+  useState,
+} from "@cocalc/frontend/app-framework";
 
 interface Props {
   sign_in_error?: string;

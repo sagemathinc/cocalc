@@ -156,11 +156,12 @@ else:
         f"WARNING: no SAML 2.0 generated. Setup saml-idp and copy the pem file certificate to exactly {saml20fn}"
     )
 
-# https://github.com/authlib/example-oauth2-server
-# export AUTHLIB_INSECURE_TRANSPORT=1
-# flask run -p 5555
+# Setting up a test OAuth2 server is hard, or I don't know how to do it.
+# In any case, this test was using gerges-beshay/oauth2orize-examples
+# with small modifications: db/users has a given_name and family_name,
+# and routes/user returns them in the json response.
+# $ PORT=5555 node app.js
 oauth2server = 'http://localhost:5555'
-# user: tough-skunk@example.com // Sleepy-Kouprey-11
 oauth2: Entry = {
     "strategy": "myOauth2",
     "conf": {
@@ -171,15 +172,15 @@ oauth2: Entry = {
         "userinfoURL": f'{oauth2server}/api/userinfo',
         "clientID": 'abc123',
         "clientSecret": 'ssh-secret',
-        "login_info": {
-            "id": "_raw",
-            ""
-        }
+        #"login_info": {
+        #    "id": "_raw.user_id",
+        #}
     },
     "info": {
         "public": False,
         "display": "My OAuth2",
         "description": "My OAuth2",
+        "update_on_login": True,
     }
 }
 strats.append(oauth2)

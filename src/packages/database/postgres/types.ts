@@ -7,7 +7,7 @@ import type { Stripe } from "@cocalc/server/stripe/client";
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 import { Client } from "pg";
-import { PassportStrategyDB } from "./passport";
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
 
 export type QuerySelect = object;
 
@@ -246,6 +246,11 @@ export interface PostgreSQL extends EventEmitter {
     invalidate_remember_me?: boolean;
     cb: CB;
   });
+  change_email_address(opts: {
+    account_id: string;
+    email_address: string;
+    cb: CB;
+  }): void;
   verify_email_check_token(opts: { email_address: string; token: string });
   reset_server_settings_cache(): void;
 

@@ -6,7 +6,7 @@
 import {
   PassportStrategyFrontend,
   PRIMARY_SSO,
-} from "@cocalc/frontend/account/passport-types";
+} from "@cocalc/util/types/passport-types";
 import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
