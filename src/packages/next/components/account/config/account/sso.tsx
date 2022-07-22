@@ -169,7 +169,7 @@ function Unlink({
     }
   }
 
-  return <Space>{v}</Space>;
+  return <SpacedStrategies>{v}</SpacedStrategies>;
 }
 
 function Link({
@@ -184,7 +184,7 @@ function Link({
     if (linked.includes(strategy.name)) continue;
     v.push(<Strategy key={strategy.name} strategy={strategy} />);
   }
-  return <Space>{v}</Space>;
+  return <SpacedStrategies>{v}</SpacedStrategies>;
 }
 
 function Strategy({
@@ -234,5 +234,13 @@ function Strategy({
       />
       {unlinkButton()}
     </div>
+  );
+}
+
+function SpacedStrategies({ children }: { children: ReactNode[] }) {
+  return (
+    <Space size={[20, 20]} wrap>
+      {children}
+    </Space>
   );
 }

@@ -1,4 +1,5 @@
 import { Icon } from "@cocalc/frontend/components/icon";
+import { PRIMARY_SSO } from "@cocalc/util/types/passport-types";
 import { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Avatar, Tooltip, Typography } from "antd";
 import Loading from "components/share/loading";
@@ -117,7 +118,7 @@ interface AvatarProps {
 export function StrategyAvatar(props: AvatarProps) {
   const { strategy, size, noLink, toolTip, showName = false } = props;
   const { name, display, backgroundColor } = strategy;
-  const icon = strategy.icon ?? "link"; // icon could be "null", hence the ??
+  const icon = iconName();
   const ssoHREF = useSSOHref(name);
 
   const STYLE: CSSProperties = {
@@ -125,6 +126,17 @@ export function StrategyAvatar(props: AvatarProps) {
     color: backgroundColor ? "white" : "black",
     margin: "0 2px",
   } as const;
+
+  // this derives the name of the icon, that's shown on the avatar
+  // in particular, the old public SSO mechanisms are special cases.
+  function iconName(): string {
+    // icon could be "null"
+    if (strategy.icon != null) return strategy.icon;
+    if ((PRIMARY_SSO as readonly string[]).includes(strategy.name)) {
+      return strategy.name;
+    }
+    return "link"; // a chain link, very general fallback
+  }
 
   function renderIconImg() {
     if (icon?.includes("://")) {
@@ -174,7 +186,7 @@ export function StrategyAvatar(props: AvatarProps) {
 
   function renderName() {
     if (!showName) return;
-    return <div style={{ textAlign: "center" }}>{display}</div>;
+    return <div style={{ textAlign: "center", whiteSpace: "nowrap" }}>{display}</div>;
   }
 
   return (

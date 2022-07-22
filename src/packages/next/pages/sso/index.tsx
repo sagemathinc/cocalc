@@ -46,7 +46,7 @@ export default function SignupIndex(props: Props) {
         backgroundColor: "",
         icon: sso.icon,
         display: sso.display,
-      };
+      } as const;
       return (
         <Col xs={12} md={6} key={sso.id}>
           <Card
