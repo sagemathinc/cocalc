@@ -14,8 +14,21 @@ export interface InitPassport {
   cb: (err?) => void;
 }
 
-export interface PassportLogin {
+// see @hub/sign-in
+interface RecordSignInOpts {
+  ip_address: string;
+  successful: boolean;
+  database: PostgreSQL;
+  email_address?: string;
+  account_id?: string;
+  remember_me: boolean;
+}
+
+export interface PassportLoginOpts {
+  passports: { [k: string]: PassportStrategyDB };
+  database: PostgreSQL;
   strategyName: string;
+  record_sign_in: (opts: RecordSignInOpts) => void; // a function of that old "hub/sign-in" module
   profile: any; // complex object
   id: string; // id is required. e.g. take the email address – see create_passport in postgres-server-queries.coffee
   first_name?: string;
@@ -26,7 +39,7 @@ export interface PassportLogin {
   res: any;
   update_on_login: boolean; // passed down from StrategyConf, default false
   cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
-  host?: any;
+  host: string;
   cb?: (err) => void;
 }
 

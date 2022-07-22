@@ -5,6 +5,7 @@
 
 // various constants related to SSO authentication
 
+import base_path from "@cocalc/backend/base-path";
 import { PassportLoginInfo } from "@cocalc/server/auth/sso/types";
 
 // This is the default derivation of user/profile fields.
@@ -26,3 +27,5 @@ export const BLACKLISTED_STRATEGIES = [
   "verify",
   "password-reset",
 ] as const;
+
+export const API_KEY_COOKIE_NAME = base_path + "get_api_key";
