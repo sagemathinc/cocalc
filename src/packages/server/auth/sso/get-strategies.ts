@@ -7,8 +7,8 @@
    currently configured. Cached a bit so safe to call a lot. */
 
 import getPool from "@cocalc/database/pool";
-import { capitalize } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
+import { ssoDispayedName } from "@cocalc/util/auth";
 
 export default async function getStrategies(): Promise<Strategy[]> {
   const pool = getPool("long");
@@ -26,9 +26,9 @@ export default async function getStrategies(): Promise<Strategy[]> {
       AND COALESCE(info ->> 'disabled', conf ->> 'disabled', 'false') != 'true'`);
 
   return rows.map((row) => {
-    const display = getSSODisplay({
+    const display = ssoDispayedName({
       display: row.display,
-      strategy: row.strategy,
+      name: row.strategy,
     });
 
     return {
@@ -49,7 +49,3 @@ export const COLORS = {
   google: "#dc4857",
   twitter: "#55acee",
 } as const;
-
-export function getSSODisplay({ display, strategy }) {
-  return display ?? (strategy === "github" ? "GitHub" : capitalize(strategy));
-}

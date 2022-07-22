@@ -11,10 +11,10 @@ import { CSS, React, TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { List } from "immutable";
 import { join } from "path";
+import { ssoDispayedName } from "@cocalc/util/auth";
 
 interface Props {
   strategies?: List<TypedMap<PassportStrategyFrontend>>;
@@ -90,18 +90,23 @@ const PASSPORT_ICON_STYLES = {
 } as const;
 
 export function strategy2display(strategy: PassportStrategyFrontend): string {
-  return strategy.display ?? capitalize(strategy.name);
+  return ssoDispayedName({ name: strategy.name, display: strategy.display });
 }
 
 interface StrategyIconProps {
   strategy: PassportStrategyFrontend;
   small?: boolean;
+  defaultIconStyle?: { backgroundColor?: string; color?: string };
 }
 
 export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
   props: StrategyIconProps
 ) => {
-  const { strategy, small } = props;
+  const { strategy, small = false } = props;
+  const defaultIconStyle = {
+    ...PASSPORT_ICON_STYLES.github,
+    ...props.defaultIconStyle,
+  };
   const { name, display, icon } = strategy;
   const small_icon = small ? SMALL_ICON_STYLE : {};
   const icon_style: CSS = {
@@ -115,13 +120,8 @@ export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
         style={{ ...icon_style, ...PASSPORT_ICON_STYLES[name] }}
       />
     );
-  } else if (name === "sso" && isIconName(icon)) {
-    return (
-      <Icon
-        name={icon}
-        style={{ ...icon_style, ...PASSPORT_ICON_STYLES[name] }}
-      />
-    );
+  } else if (isIconName(icon)) {
+    return <Icon name={icon} style={{ ...icon_style, ...defaultIconStyle }} />;
   } else if (icon != null) {
     // icon is an URL
     const style: CSS = {
@@ -130,6 +130,10 @@ export const PassportStrategyIcon: React.FC<StrategyIconProps> = (
       ...small_icon,
     };
     return <div style={style} />;
+  } else if (icon == null) {
+    return (
+      <Icon name={"link"} style={{ ...icon_style, ...defaultIconStyle }} />
+    );
   } else {
     return <div style={TEXT_ICON_STYLE}>{display}</div>;
   }

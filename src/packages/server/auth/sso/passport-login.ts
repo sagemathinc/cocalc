@@ -342,7 +342,7 @@ export class PassportLogin {
       last_name: opts.last_name,
       email_address: locals.email_address != null ? locals.email_address : null,
       created_by: opts.req.ip,
-    };
+    } as const;
 
     // no await -- don't let client wait for *logging* the fact that we created an account
     // failure wouldn't matter.
