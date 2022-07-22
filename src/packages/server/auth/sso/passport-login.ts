@@ -20,7 +20,6 @@ import {
   createRememberMeCookie,
 } from "@cocalc/server/auth/remember-me";
 import {
-  PassportLoginError,
   PassportLoginLocals,
   PassportLoginOpts,
   PassportStrategyDB,
@@ -138,7 +137,11 @@ export class PassportLogin {
       L(`redirect the client to '${locals.target}'`);
       this.opts.res.redirect(locals.target);
     } catch (err) {
-      throw new PassportLoginError(err.message, err);
+      // this error is used to signal that the user has done something wrong (in a general sense)
+      // and it shouldn't be the code or how it handles the returned data.
+      // this is used to improve the feedback sent back to the user if there is a problem...
+      err.name = "PassportLoginError";
+      throw err;
     }
   } // end passport_login
 

@@ -552,10 +552,10 @@ export class PassportManager {
         let err_msg = "";
         // due to https://github.com/Microsoft/TypeScript/issues/13965 we have to check on name and can't use instanceof
         if (err.name === "PassportLoginError") {
+          const signInUrl = path_join(base_path, "auth", "sign-in");
           err_msg = `Problem signing in using '${name}:<br/><strong>${
             err.message ?? `${err}`
-          }</strong>`;
-          throw err;
+          }</strong><br/><a href="${signInUrl}">Sign-in again</a>`;
         } else {
           const helpEmail = await passportLogin.getHelpEmail();
           err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${helpEmail} -- ${err}<br/><pre>${err.stack}</pre>`;

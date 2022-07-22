@@ -4,7 +4,8 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import { ssoDispayedName, COLORS } from "@cocalc/server/auth/sso/get-strategies";
+import { COLORS } from "@cocalc/server/auth/sso/get-strategies";
+import { ssoDispayedName } from "@cocalc/util/auth";
 import { sortBy } from "lodash";
 import { SSO } from "./types";
 
@@ -25,7 +26,7 @@ function parseRow(row: Row): SSO | undefined {
   const { strategy, exclusive_domains, display, info, icon } = row;
   return {
     id: strategy,
-    display: ssoDispayedName({ display, strategy }),
+    display: ssoDispayedName({ display, name: strategy }),
     domains: exclusive_domains ?? [],
     descr: info?.description ?? null,
     backgroundColor: COLORS[strategy] ?? "",

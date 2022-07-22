@@ -63,15 +63,6 @@ export interface PassportLoginLocals {
   api_key: string | undefined;
 }
 
-// this error is used to signal that the user has done something wrong (in a general sense) and not the code or returned data by itself is buggy.
-// this is used to improve the feedback sent back to the user if there is a problem...
-export class PassportLoginError extends Error {
-  constructor(message, error?) {
-    super(message, { cause: error });
-    this.name = "PassportLoginError";
-  }
-}
-
 // maps the full profile object to a string or list of strings (e.g. "first_name")
 export type LoginInfoDerivator<T> = (profile: any) => T;
 
