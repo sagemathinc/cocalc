@@ -74,7 +74,10 @@ import {
   welcome_email,
 } from "./email";
 //import Saml2js from "saml2js";
-import { getPassportCache } from "@cocalc/database/postgres/passport-store";
+import {
+  getOauthCache,
+  getPassportCache,
+} from "@cocalc/database/postgres/passport-store";
 import {
   API_KEY_COOKIE_NAME,
   BLACKLISTED_STRATEGIES,
@@ -566,6 +569,36 @@ export class PassportManager {
     };
   }
 
+  // right now, we only set this for OAauth2 (SAML know what to do on its own)
+  // This does not encode any information for now.
+  private setState(name, type: PassportTypes, auth_opts) {
+    return async (_req, _res, next) => {
+      if (type === "oauth2" || type === "oauth2next") {
+        const oauthcache = getOauthCache(name);
+        const state = uuidv4();
+        await oauthcache.saveAsync(state, `${Date.now()}`);
+        auth_opts.state = state;
+        logger.debug("session: " + auth_opts.state);
+      }
+      next();
+    };
+  }
+
+  private checkState(name, type: PassportTypes) {
+    return async (req, _res, next) => {
+      if (type === "oauth2" || type === "oauth2next") {
+        const oauthcache = getOauthCache(name);
+        const state = req.query.state;
+        const saved_state = await oauthcache.getAsync(state);
+        if (saved_state == null) {
+          throw Error(`Invalid state: ${state}`);
+        }
+        await oauthcache.removeAsync(state);
+      }
+      next();
+    };
+  }
+
   // a generalized strategy initizalier
   private async initStrategy(strategy_config: StrategyConf): Promise<void> {
     const {
@@ -622,13 +655,7 @@ export class PassportManager {
     this.router.get(
       strategyUrl,
       this.handle_get_api_key,
-      (_req, _res, next) => {
-        if (type === "oauth2") {
-          auth_opts.state = uuidv4();
-          logger.debug("session: " + auth_opts.state);
-        }
-        next();
-      },
+      this.setState(name, type, auth_opts),
       passport.authenticate(name, auth_opts)
     );
 
@@ -664,10 +691,7 @@ export class PassportManager {
     } else if (type === "oauth2" || type === "oauth2next") {
       this.router.get(
         returnUrl,
-        async (req, _res, next) => {
-          L("OAuth2: checking state:", req.params);
-          next();
-        },
+        this.checkState(name, type),
         passport.authenticate(name),
         handleReturn
       );

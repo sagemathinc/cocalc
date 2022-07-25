@@ -89,3 +89,7 @@ export function getPassportCache(
   }
   return samlCaches[name];
 }
+
+export function getOauthCache(name: string) {
+  return getPassportCache(name, 1000 * 60 * 60);
+}
