@@ -107,6 +107,11 @@ export const PassportTypesList = [
 
 export type PassportTypes = typeof PassportTypesList[number];
 
+// the OAuth2 strategies
+export function isOAuth2(type: PassportTypes): boolean {
+  return type === "oauth2" || type === "oauth2next";
+}
+
 export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
 export interface PassportStrategyDBConfig {
   type: PassportTypes;

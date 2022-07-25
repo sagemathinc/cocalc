@@ -44,6 +44,7 @@ import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-prof
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
   InitPassport,
+  isOAuth2,
   PassportLoginOpts,
   PassportManagerOpts,
   PassportStrategyDB,
@@ -573,7 +574,7 @@ export class PassportManager {
   // This does not encode any information for now.
   private setState(name, type: PassportTypes, auth_opts) {
     return async (_req, _res, next) => {
-      if (type === "oauth2" || type === "oauth2next") {
+      if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = uuidv4();
         await oauthcache.saveAsync(state, `${Date.now()}`);
@@ -586,7 +587,7 @@ export class PassportManager {
 
   private checkState(name, type: PassportTypes) {
     return async (req, _res, next) => {
-      if (type === "oauth2" || type === "oauth2next") {
+      if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = req.query.state;
         const saved_state = await oauthcache.getAsync(state);
@@ -688,7 +689,7 @@ export class PassportManager {
           await handleReturn(req, res);
         }
       );
-    } else if (type === "oauth2" || type === "oauth2next") {
+    } else if (isOAuth2(type)) {
       this.router.get(
         returnUrl,
         this.checkState(name, type),
