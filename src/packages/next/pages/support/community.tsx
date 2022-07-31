@@ -1,23 +1,25 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { Layout } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Layout } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import IndexList, { DataSource } from "components/landing/index-list";
+import A from "components/misc/A";
 import SiteName from "components/share/site-name";
-import Discord from "public/info/discord.png";
-import Share from "public/info/share.png";
-import Blog from "public/info/blog.png";
-import Twitter from "public/info/twitter.png";
-import Facebook from "public/info/facebook.png";
-import Github from "public/info/github.png";
-import GitHubDiscussions from "public/info/github-discussions.png";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+import Blog from "public/info/blog.png";
+import MailingList from "public/info/cocalc-mailing-list.png";
+import Discord from "public/info/discord.png";
+import Facebook from "public/info/facebook.png";
+import GitHubDiscussions from "public/info/github-discussions.png";
+import Github from "public/info/github.png";
+import Share from "public/info/share.png";
+import StackOverflow from "public/info/stackoverflow.png";
+import Twitter from "public/info/twitter.png";
 
-const imageWidth = "350px";
+const imageWidth = "300px";
 
 const dataSource = [
   {
@@ -62,71 +64,44 @@ const dataSource = [
     ),
   },
   {
-    link: "https://github.com/sagemathinc/cocalc/discussions",
-    logo: "github",
+    logo: "solution",
+    image: StackOverflow,
     imageWidth,
-    image: GitHubDiscussions,
+    link: "https://stackoverflow.com/",
     title: (
       <>
-        CoCalc <b>GitHub Discussions</b>
+        <b>Ask</b> on StackExchange
       </>
     ),
     description: (
       <>
-        Discuss CoCalc with the community at the{" "}
-        <A href="https://github.com/sagemathinc/cocalc/discussions">
-          GitHub CoCalc Discussion forum
-        </A>
-        . This is a good place to ask questions, start discussions, and show and
-        tell.
-      </>
-    ),
-  },
-  {
-    link: "https://github.com/sagemathinc/cocalc",
-    logo: "github",
-    imageWidth,
-    image: Github,
-    title: (
-      <>
-        CoCalc's <b>Source Code</b>
-      </>
-    ),
-    description: (
-      <>
-        Browse every change to{" "}
-        <A href="https://github.com/sagemathinc/cocalc/commits/master">
-          CoCalc source code going back to <b>April 2012</b>
-        </A>
-        , track the status of{" "}
-        <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AI-bug+-label%3Ablocked+sort%3Acreated-desc">
-          known bugs
-        </A>
-        ,{" "}
-        <A href="https://github.com/sagemathinc/cocalc/issues/new">
-          report a bug
-        </A>
-        , comment on{" "}
-        <A href="https://github.com/sagemathinc/cocalc/issues">
-          development ideas
-        </A>{" "}
-        and see an{" "}
-        <A href="https://github.com/sagemathinc/cocalc/graphs/contributors">
-          overview of the pace of development
-        </A>
-        . While you're at it,{" "}
-        <A href="https://github.com/sagemathinc/cocalc/network/members">
-          fork CoCalc
-        </A>{" "}
-        and send us{" "}
-        <A href="https://github.com/sagemathinc/cocalc/pulls">a pull request</A>
-        .
+        There are many pages on{" "}
+        <A href={"https://stackexchange.com/sites"}>StackExchange</A>, where you
+        can get help from a broad community.{" "}
+        <strong>
+          Make sure to tag CoCalc specific questions with <code>"cocalc"</code>
+        </strong>{" "}
+        and add more tags matching the topic accordingly, e.g.{" "}
+        <code>"python"</code>.
+        <ul style={{ paddingLeft: "20px" }}>
+          <li>
+            <A href={"https://stackoverflow.com/"}>StackOverflow</A>:
+            programming questions, for professional and enthusiast programmers
+          </li>
+          <li>
+            <A href={"https://math.stackexchange.com/"}>Mathematics</A>: for
+            people studying math at any level and professionals in related
+            fields
+          </li>
+        </ul>
       </>
     ),
   },
   {
     link: "https://groups.google.com/forum/?fromgroups#!forum/cocalc",
     logo: "envelope",
+    image: MailingList,
+    imageWidth,
     title: (
       <>
         <b>Email</b> via the Google Groups Mailing List
@@ -174,6 +149,48 @@ const dataSource = [
     ),
   },
   {
+    link: "https://github.com/sagemathinc/cocalc",
+    logo: "github",
+    imageWidth,
+    image: Github,
+    title: (
+      <>
+        CoCalc's <b>Source Code</b>
+      </>
+    ),
+    description: (
+      <>
+        Browse every change to{" "}
+        <A href="https://github.com/sagemathinc/cocalc/commits/master">
+          CoCalc source code going back to <b>April 2012</b>
+        </A>
+        , track the status of{" "}
+        <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AI-bug+-label%3Ablocked+sort%3Acreated-desc">
+          known bugs
+        </A>
+        ,{" "}
+        <A href="https://github.com/sagemathinc/cocalc/issues/new">
+          report a bug
+        </A>
+        , comment on{" "}
+        <A href="https://github.com/sagemathinc/cocalc/issues">
+          development ideas
+        </A>{" "}
+        and see an{" "}
+        <A href="https://github.com/sagemathinc/cocalc/graphs/contributors">
+          overview of the pace of development
+        </A>
+        . While you're at it,{" "}
+        <A href="https://github.com/sagemathinc/cocalc/network/members">
+          fork CoCalc
+        </A>{" "}
+        and send us{" "}
+        <A href="https://github.com/sagemathinc/cocalc/pulls">a pull request</A>
+        .
+      </>
+    ),
+  },
+  {
     link: "https://twitter.com/cocalc_com",
     logo: "twitter",
     imageWidth,
@@ -208,6 +225,27 @@ const dataSource = [
         <A href="https://www.facebook.com/CoCalcOnline/">Facebook page</A>,
         where you can post something cool you've done using CoCalc, start a
         dicussion, or watch out for announcements.
+      </>
+    ),
+  },
+  {
+    link: "https://github.com/sagemathinc/cocalc/discussions",
+    logo: "github",
+    imageWidth,
+    image: GitHubDiscussions,
+    title: (
+      <>
+        CoCalc <b>GitHub Discussions</b>
+      </>
+    ),
+    description: (
+      <>
+        Discuss CoCalc with the community at the{" "}
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          GitHub CoCalc Discussion forum
+        </A>
+        . This is a good place to ask questions, start discussions, and show and
+        tell.
       </>
     ),
   },
