@@ -65,7 +65,7 @@ export default function SSO(props: SSOProps) {
     // a fake entry to point the user to the page for private SSO login options
     const sso: Strategy = {
       name: "sso",
-      display: "Single-Sign-On",
+      display: "institutional Single-Sign-On",
       icon: "api",
       backgroundColor: "",
       public: true,
@@ -75,7 +75,7 @@ export default function SSO(props: SSOProps) {
 
     return (
       <>
-        {"External Single-Sign-On: "}
+        {"Institutional Single-Sign-On: "}
         <StrategyAvatar key={"sso"} strategy={sso} size={size ?? 60} />
       </>
     );
@@ -105,6 +105,12 @@ export default function SSO(props: SSOProps) {
       </div>
     </div>
   );
+}
+
+function useSSOHref(name?: string) {
+  const router = useRouter();
+  if (name == null) return "";
+  return getLink(name, join(router.basePath, router.pathname));
 }
 
 interface AvatarProps {
@@ -186,7 +192,9 @@ export function StrategyAvatar(props: AvatarProps) {
 
   function renderName() {
     if (!showName) return;
-    return <div style={{ textAlign: "center", whiteSpace: "nowrap" }}>{display}</div>;
+    return (
+      <div style={{ textAlign: "center", whiteSpace: "nowrap" }}>{display}</div>
+    );
   }
 
   return (
@@ -206,15 +214,11 @@ export function StrategyAvatar(props: AvatarProps) {
   );
 }
 
-function useSSOHref(name?: string) {
-  const router = useRouter();
-  if (name == null) return "";
-  return getLink(name, join(router.basePath, router.pathname));
-}
-
 export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
-  const ssoHREF = useSSOHref(strategy?.name);
   if (strategy == null) return null;
+  if (strategy.name == "null")
+    return <Alert type="error" message={"SSO Strategy not defined!"} />;
+  const ssoLink = join(basePath, "sso", strategy.name);
   return (
     <Alert
       style={{ margin: "15px 0" }}
@@ -225,7 +229,7 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
         <>
           <p>
             You must sign up using the{" "}
-            <AntdLink strong underline href={ssoHREF}>
+            <AntdLink strong underline href={ssoLink}>
               {strategy.display}
             </AntdLink>{" "}
             Single-Sign-On strategy.
