@@ -358,7 +358,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.project_actions.flag_file_activity(this.path);
   }
 
-  render(data: string): void {
+  async render(data: string): Promise<void> {
     this.assert_not_closed();
     this.history += data;
     if (this.history.length > MAX_HISTORY_LENGTH) {
@@ -366,7 +366,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5)
       );
     }
-    this.terminal.write(data);
+    try {
+      await this.terminal.write(data);
+    } catch (err) {
+      console.warn(`issue writing data to terminal: ${data}`);
+    }
     // tell anyone who waited for output coming back about this
     while (this.render_done.length > 0) {
       this.render_done.pop()?.();
