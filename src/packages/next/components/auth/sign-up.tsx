@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
@@ -20,7 +25,6 @@ import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
 interface Props {
-  strategies?: Strategy[];
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
@@ -36,7 +40,7 @@ export default function SignUp(props: Props) {
   );
 }
 
-function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
+function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
   const {
     anonymousSignup,
     siteName,
@@ -64,11 +68,14 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
 
   const { executeRecaptcha } = useGoogleReCaptcha();
 
+  const { strategies } = useCustomize();
+
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
   const [requiresToken2, setRequiresToken2] = useState<boolean | undefined>(
     requiresToken
   );
+
   useEffect(() => {
     if (requiresToken2 === undefined) {
       (async () => {
@@ -79,26 +86,13 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
     }
   }, []);
 
-  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
-    strategies
-  );
-
-  useEffect(() => {
-    if (strategies2 === undefined) {
-      (async () => {
-        try {
-          setStrategies2(await apiPost("/auth/sso-strategies"));
-        } catch (err) {}
-      })();
-    }
-  }, []);
-
-  if (requiresToken2 === undefined || strategies2 === undefined) {
-    return <Loading />;
-  }
 
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
-  const requiredSSO = useRequiredSSO(strategies2, email);
+  const requiredSSO = useRequiredSSO(strategies, email);
+
+  if (requiresToken2 === undefined || strategies == null) {
+    return <Loading />;
+  }
 
   submittable.current = !!(
     terms &&
@@ -147,7 +141,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
     }
   }
 
-  if (!emailSignup && strategies2.length == 0) {
+  if (!emailSignup && strategies.length == 0) {
     return (
       <Alert
         style={{ margin: "30px 15%" }}
@@ -240,7 +234,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
               email={email}
               setEmail={setEmail}
               signUp={signUp}
-              strategies={strategies2}
+              strategies={strategies}
               hideSSO={requiredSSO != null}
             />
           )}
@@ -393,7 +387,6 @@ function EmailOrSSO(props: EmailOrSSOProps) {
     return (
       <div style={{ textAlign: "center", margin: "20px 0" }}>
         <SSO
-          strategies={strategies}
           size={email ? 24 : undefined}
           style={style}
         />

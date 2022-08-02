@@ -1,10 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 import { PRIMARY_SSO } from "@cocalc/util/types/passport-types";
 import { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Avatar, Tooltip, Typography } from "antd";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import basePath from "lib/base-path";
+import { useCustomize } from "lib/customize";
 import { useRouter } from "next/router";
 import { join } from "path";
 import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
@@ -14,7 +21,6 @@ const { Link: AntdLink } = Typography;
 import styles from "./sso.module.css";
 
 interface SSOProps {
-  strategies?: Strategy[];
   size?: number;
   style?: CSSProperties;
   header?: ReactNode;
@@ -33,7 +39,8 @@ export function getLink(strategy: string, target?: string): string {
 }
 
 export default function SSO(props: SSOProps) {
-  const { strategies, size, style, header } = props;
+  const { size, style, header } = props;
+  const { strategies } = useCustomize();
 
   const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
     strategies
@@ -256,17 +263,6 @@ export function useRequiredSSO(
   email: string | undefined
 ): Strategy | undefined {
   return useMemo(() => {
-    // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
-    if (email == null) return;
-    if (strategies == null || strategies.length === 0) return;
-    if (email.indexOf("@") === -1) return;
-    const emailDomain = email.trim().toLowerCase().split("@")[1];
-    if (!emailDomain) return;
-    for (const strategy of strategies) {
-      for (const ssoDomain of strategy.exclusiveDomains) {
-        if (emailDomain === ssoDomain || emailDomain.endsWith(`.${ssoDomain}`))
-          return strategy;
-      }
-    }
+    return checkRequiredSSO(email, strategies);
   }, [strategies == null, email]);
 }

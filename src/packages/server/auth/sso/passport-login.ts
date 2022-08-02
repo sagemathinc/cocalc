@@ -8,10 +8,8 @@
 // Checks if user info needs to be updated, and even checks if this is actually about
 // an API key.
 
-import getLogger from "@cocalc/backend/logger";
-import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
-
 import base_path from "@cocalc/backend/base-path";
+import getLogger from "@cocalc/backend/logger";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import apiKeyAction from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
@@ -19,6 +17,7 @@ import {
   COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
   createRememberMeCookie,
 } from "@cocalc/server/auth/remember-me";
+import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
@@ -37,6 +36,8 @@ const logger = getLogger("server:auth:sso:passport-login");
 
 export class PassportLogin {
   private readonly passports: { [k: string]: PassportStrategyDB } = {};
+  // this maps from exclusive email domains to the corresponding passport name
+  private readonly exclusiveDomains: { [k: string]: string } = {};
   // the database, for various server queries
   private readonly database: PostgreSQL;
   // passed on to do the login
@@ -47,6 +48,7 @@ export class PassportLogin {
     const L = logger.extend("constructor").debug;
 
     this.passports = opts.passports;
+    this.exclusiveDomains = this.mapExclusiveDomains();
     this.database = opts.database;
     this.record_sign_in = opts.record_sign_in;
 
@@ -67,6 +69,18 @@ export class PassportLogin {
     });
   }
 
+  private mapExclusiveDomains(): { [k: string]: string } {
+    if (this.passports == null) throw new Error(`this.passports must be set`);
+    const ret: { [k: string]: string } = {};
+    for (const k in this.passports) {
+      const v = this.passports[k];
+      for (const domain of v.info?.exclusive_domains ?? []) {
+        ret[domain] = k;
+      }
+    }
+    return ret;
+  }
+
   async login(): Promise<void> {
     const L = logger.extend("login").debug;
 
@@ -84,6 +98,9 @@ export class PassportLogin {
     }
 
     sanitizeID(this.opts);
+
+    L("this.passports", JSON.stringify(this.passports, null, 2));
+    L("this.exclusiveDomains", JSON.stringify(this.exclusiveDomains, null, 2));
 
     const cookies = new Cookies(this.opts.req, this.opts.res);
     const locals: PassportLoginLocals = {

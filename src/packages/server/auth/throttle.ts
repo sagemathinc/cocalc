@@ -4,7 +4,9 @@ attacks.  This is in memory per-backend server, and doesn't touch
 the database.
 */
 
+import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import LRU from "lru-cache";
+import { checkRequiredSSO } from "./sso/check-required-sso";
 
 const emailShortCache = new LRU<string, number>({
   max: 10000, // avoid memory issues
@@ -20,7 +22,15 @@ const ipLongCache = new LRU<string, number>({
   maxAge: 1000 * 60 * 60,
 });
 
-export function signInCheck(email: string, ip?: string): string | undefined {
+async function isExclusiveEmail(email: string) {
+  const strategies = await getStrategies();
+  return checkRequiredSSO(email, strategies);
+}
+
+export async function signInCheck(
+  email: string,
+  ip?: string
+): Promise<string | undefined> {
   if ((emailShortCache.get(email) ?? 0) > 5) {
     // A given email address is allowed at most 5 failed login attempts per minute
     return `Too many attempts per minute to sign in as "${email}". Wait one minute, then try again.`;
@@ -37,6 +47,11 @@ export function signInCheck(email: string, ip?: string): string | undefined {
   if (ip != null && (ipLongCache.get(ip) ?? 0) > 200) {
     // A given ip address is allowed at most 200 failed login attempts per hour.
     return `Too many attempts per hour to sign in from your computer. Wait about an hour, then try again.`;
+  }
+  const exclusiveSSO = await isExclusiveEmail(email);
+  if (exclusiveSSO != null) {
+    const name = exclusiveSSO.display ?? exclusiveSSO.name;
+    return `You have to sign in using the Single-Sign-On mechanism "${name}" of your institution.`;
   }
 }
 

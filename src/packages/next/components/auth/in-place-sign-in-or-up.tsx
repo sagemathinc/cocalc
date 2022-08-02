@@ -1,11 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // TODO: below we need to get the strategies!
 // and also requiresToken for SignUp!
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Divider } from "antd";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
 import { useRouter } from "next/router";
-import { useState, ReactNode } from "react";
-import { Divider } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { ReactNode, useState } from "react";
 
 interface Props {
   title: ReactNode;
@@ -13,7 +18,8 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export default function InPlaceSignInOrUp({ title, why, onSuccess }: Props) {
+export default function InPlaceSignInOrUp(props: Props) {
+  const { title, why, onSuccess } = props;
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
 
@@ -24,7 +30,7 @@ export default function InPlaceSignInOrUp({ title, why, onSuccess }: Props) {
       </Divider>
       <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
       <a onClick={() => setShow("sign-up")}>Sign Up</a>
-      {why == null ? "." : <> {why}.</>}
+      {why == null ? "." : <>{why}.</>}
       <br />
       <br />
       {show == "sign-in" && (

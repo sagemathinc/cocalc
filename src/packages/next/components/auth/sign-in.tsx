@@ -1,5 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Button, Input } from "antd";
 import Contact from "components/landing/contact";
 import SquareLogo from "components/logo-square";
@@ -15,7 +19,6 @@ import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
 interface Props {
-  strategies?: Strategy[];
   minimal?: boolean;
   onSuccess?: () => void; // if given, call after sign in *succeeds*.
 }
@@ -30,8 +33,10 @@ export default function SignIn(props: Props) {
   );
 }
 
-function SignIn0({ strategies, minimal, onSuccess }: Props) {
-  const { anonymousSignup, reCaptchaKey, siteName } = useCustomize();
+function SignIn0(props: Props) {
+  const { minimal = false, onSuccess } = props;
+  const { anonymousSignup, reCaptchaKey, siteName, strategies } =
+    useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
@@ -102,7 +107,6 @@ function SignIn0({ strategies, minimal, onSuccess }: Props) {
               }}
             >
               <SSO
-                strategies={strategies}
                 size={email ? 24 : undefined}
                 style={
                   email

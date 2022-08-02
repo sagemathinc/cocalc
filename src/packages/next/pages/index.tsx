@@ -3,26 +3,33 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import SquareLogo from "components/logo-square";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import Head from "components/landing/head";
-import { join } from "path";
-import basePath from "lib/base-path";
-import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 import Path from "components/app/path";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import SquareLogo from "components/logo-square";
+import A from "components/misc/A";
 import PublicPaths from "components/share/public-paths";
 import getAccountId from "lib/account/get-account";
-import getPool, { timeInSeconds } from "@cocalc/database/pool";
+import basePath from "lib/base-path";
+import { Customize, CustomizeType } from "lib/customize";
+import { PublicPath as PublicPathType } from "lib/share/types";
+import withCustomize from "lib/with-customize";
+import { join } from "path";
+import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
 const topLinkStyle = { marginRight: "20px" };
 
-export default function Home({ customize, publicPaths }) {
+interface Props {
+  customize: CustomizeType;
+  publicPaths: PublicPathType[];
+}
+
+export default function Home(props: Props) {
+  const { customize, publicPaths } = props;
   const {
     shareServer,
     siteName,

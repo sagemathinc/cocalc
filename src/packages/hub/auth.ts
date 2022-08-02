@@ -280,6 +280,7 @@ export class PassportManager {
 
     // prerequisite for setting up any SSO endpoints
     await this.init_passport_settings();
+    this.check_exclusive_domains_unique();
 
     const settings = await cb2(this.database.get_server_settings_cached);
     const dns = settings.dns || DNS;
@@ -293,6 +294,22 @@ export class PassportManager {
       this.initStrategy(TwitterStrategyConf),
       this.init_extra_strategies(),
     ]);
+  }
+
+  // check if exclusive domains are unique
+  private check_exclusive_domains_unique() {
+    const ret: { [k: string]: string } = {};
+    for (const k in this.passports) {
+      const v = this.passports[k];
+      for (const domain of v.info?.exclusive_domains ?? []) {
+        if (ret[domain] != null) {
+          throw new Error(
+            `exclusive domain '${domain}' defined by ${ret[domain]} and ${k}: they must be unique`
+          );
+        }
+        ret[domain] = k;
+      }
+    }
   }
 
   private init_strategies_endpoint(): void {
