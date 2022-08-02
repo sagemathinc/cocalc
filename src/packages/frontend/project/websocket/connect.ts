@@ -129,7 +129,12 @@ async function connection_to_project0(project_id: string): Promise<any> {
                 // console.log("success. data:", data.slice(0, 100));
                 if (data.charAt(0) !== "<") {
                   if (do_eval) {
-                    await globalEval(data);
+                    try {
+                      await globalEval(data);
+                    } catch(err) {
+                      cb(err);
+                      return;
+                    }
                   }
                   cb();
                 } else {
@@ -162,9 +167,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
       // NOTE that since we wait until the project is running before any attempt to connect,
       // most of the time we do a GET request, then wait for it to fail, which takes timeout ms.
       // This delay here (that retry_until_success introduces) is really only due to
-      // paranoia htat maybe the GET request fails very quickly (I don't know if that
+      // paranoia that maybe the GET request fails very quickly (I don't know if that
       // is even possible).
-      factor: 1.1,
+      factor: 1.2,
       desc: "connecting to project",
       log: (...x) => {
         log("retry primus:", ...x);
