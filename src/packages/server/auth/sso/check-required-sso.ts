@@ -18,12 +18,24 @@ export function checkRequiredSSO(
   if (email == null) return;
   if (strategies == null || strategies.length === 0) return;
   if (email.indexOf("@") === -1) return;
-  const emailDomain = email.trim().toLowerCase().split("@")[1];
+  const emailDomain = getEmailDomain(email);
   if (!emailDomain) return;
   for (const strategy of strategies) {
     for (const ssoDomain of strategy.exclusiveDomains) {
-      if (emailDomain === ssoDomain || emailDomain.endsWith(`.${ssoDomain}`))
+      if (emailBelongsToDomain(emailDomain, ssoDomain)) {
         return strategy;
+      }
     }
   }
+}
+
+export function getEmailDomain(email: string): string {
+  return email.trim().toLowerCase().split("@")[1];
+}
+
+export function emailBelongsToDomain(
+  emailDomain: string,
+  ssoDomain: string
+): boolean {
+  return emailDomain === ssoDomain || emailDomain.endsWith(`.${ssoDomain}`);
 }

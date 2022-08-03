@@ -113,6 +113,25 @@ export function isOAuth2(type: PassportTypes): boolean {
 }
 
 export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
+
+/**
+ * To confgure a passport strategy, the "type" field is required.
+ * It associates these config parameters with a strategy constructor from one of the passport.js strategies.
+ * The remaining fields, except for type, clientID, clientSecret, and callbackURL, userinfoURL, login_info are passed to that constructor.
+ * Additionally, there are default values for some of the fields, e.g. for the SAML2.0 strategy.
+ * Please check the hub/auth.ts file for more details.
+ * Regarding the userinfoURL, this is used by OAuth2 to get the profile.
+ * The "login_info" field is a mapping from "cocalc" profile fields, that end up in the DB,
+ * to the entries in the generated profile object. The DB entry can only be a string and
+ * processing is done by using the "dot-object" npm library.
+ * What should be provided is a mapping like that (the default for OAuth2), which in particular provides a unique id (a number or email address):
+ * {
+ *   id: "id",
+ *   first_name: "name.givenName",
+ *   last_name: "name.familyName",
+ *   emails: "emails[0].value",
+ * }
+ */
 export interface PassportStrategyDBConfig {
   type: PassportTypes;
   clientID?: string; // Google, Twitter, ... and OAuth2
@@ -124,6 +143,24 @@ export interface PassportStrategyDBConfig {
   auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
 }
 
+/**
+ * The "info" column contains information, which is relevant to CoCalc's side of SSO strategies.
+ * - public (default true): if false, the strategy is not shown prominently, but moved to the dedicated /sso/... pages.
+ * Set this to false for all "institutional" SSO connections. (public would be Google, Twitter, etc. where anyone can have an account)
+ * - do_not_hide: if public is false and do_not_hide is true, the strategy is still shown prominently.
+ * - exclusive_domains: a list of domain extensions, matching also subdomains, e.g. ["example.com", "example.org"]
+ * would match foo@example.com and bar@baz.example.org
+ * The ultimate intention is that users with such email addresses have to go through that authentication mechanism.
+ * They're also prevented from linking with other passports.
+ * That way, the organization behind that SSO mechanism has full control over the user's account.
+ * - display: The string that's presented to the user as the name of that SSO strategy.
+ * - description: A longer description of the strategy, could be markdown, shown on the dedicated /sso/... pages.
+ * - icon: A URL to an icon
+ * - disabled: if true, this is ignored during the initialization
+ * - update_on_login: if true, the user's profile is updated on login (first and last name, not email)
+ * - cookie_ttl_s: how long the remember_me cookied lasts (default is a month or so).
+ * This could be set to a much shorter period to force users more frequently to re-login.
+ */
 export interface PassportStrategyDBInfo {
   public?: boolean; // default true
   do_not_hide?: boolean; // default false, only relevant for public=false SSOs, which will be shown on the login/signup page directly
@@ -138,7 +175,7 @@ export interface PassportStrategyDBInfo {
 
 // those are the 3 columns in the DB table
 export interface PassportStrategyDB {
-  strategy: string;
+  strategy: string; // must be unique
   conf: PassportStrategyDBConfig;
   info?: PassportStrategyDBInfo;
 }

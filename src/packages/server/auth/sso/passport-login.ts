@@ -3,10 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This is called by a passport strategy endpoint (which is already setup) to actually
-// authenticate a user. This checks if there is an account already, creates it, etc.
-// Checks if user info needs to be updated, and even checks if this is actually about
-// an API key.
+/** This is called by a passport strategy endpoint (which is already setup) to actually
+ * authenticate a user. This checks if there is an account already, creates it, etc.
+ * Checks if user info needs to be updated, and even checks if this is actually about
+ * getting an API key.
+ *
+ * There are various details to consider as well.
+ * 1. If you're signed in already and you're trying to sign in with a different account provided
+ * via an SSO strategy, we link this passport to your exsiting account. There is just one exception,
+ * which are SSO strategies which "exclusively" manage a domain.
+ * 2. If you're not signed in and try to sign in, this checks if there is already an account – and creates it if not.
+ * 3. If you sign in and the SSO strategy is set to "update_on_login", it will reset the name of the user to the
+ * data from the SSO provider. However, the user can still modify the name.
+ */
 
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
@@ -31,14 +40,14 @@ import * as _ from "lodash";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { API_KEY_COOKIE_NAME } from "./consts";
+import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
+import { isEmpty } from "lodash";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
 export class PassportLogin {
   private readonly passports: { [k: string]: PassportStrategyDB } = {};
-  // this maps from exclusive email domains to the corresponding passport name
-  private readonly exclusiveDomains: { [k: string]: string } = {};
-  // the database, for various server queries
+  //// this maps from exclusive email domains to the corresponding passport name
   private readonly database: PostgreSQL;
   // passed on to do the login
   private opts: PassportLoginOpts;
@@ -48,7 +57,7 @@ export class PassportLogin {
     const L = logger.extend("constructor").debug;
 
     this.passports = opts.passports;
-    this.exclusiveDomains = this.mapExclusiveDomains();
+    //this.exclusiveDomains = this.mapExclusiveDomains();
     this.database = opts.database;
     this.record_sign_in = opts.record_sign_in;
 
@@ -69,18 +78,6 @@ export class PassportLogin {
     });
   }
 
-  private mapExclusiveDomains(): { [k: string]: string } {
-    if (this.passports == null) throw new Error(`this.passports must be set`);
-    const ret: { [k: string]: string } = {};
-    for (const k in this.passports) {
-      const v = this.passports[k];
-      for (const domain of v.info?.exclusive_domains ?? []) {
-        ret[domain] = k;
-      }
-    }
-    return ret;
-  }
-
   async login(): Promise<void> {
     const L = logger.extend("login").debug;
 
@@ -98,9 +95,6 @@ export class PassportLogin {
     }
 
     sanitizeID(this.opts);
-
-    L("this.passports", JSON.stringify(this.passports, null, 2));
-    L("this.exclusiveDomains", JSON.stringify(this.exclusiveDomains, null, 2));
 
     const cookies = new Cookies(this.opts.req, this.opts.res);
     const locals: PassportLoginLocals = {
@@ -213,6 +207,40 @@ export class PassportLogin {
     }
   }
 
+  private async createPassport(
+    opts: PassportLoginOpts,
+    locals: PassportLoginLocals
+  ) {
+    if (locals.account_id == null) {
+      throw new Error("createPassport: account_id is null");
+    }
+    await this.database.create_passport({
+      account_id: locals.account_id,
+      strategy: opts.strategyName,
+      id: opts.id,
+      profile: opts.profile,
+      email_address: opts.emails != null ? opts.emails[0] : undefined,
+      first_name: opts.first_name,
+      last_name: opts.last_name,
+    });
+  }
+
+  private checkExclusiveSSO(opts: PassportLoginOpts): boolean {
+    const strategy = opts.passports[opts.strategyName];
+    const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
+    if (!isEmpty(exclusiveDomains)) {
+      for (const email of opts.emails ?? []) {
+        const emailDomain = getEmailDomain(email.toLocaleLowerCase());
+        for (const ssoDomain of exclusiveDomains) {
+          if (emailBelongsToDomain(emailDomain, ssoDomain)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   private async checkPassportExists(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -222,30 +250,34 @@ export class PassportLogin {
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
     );
 
-    const _account_id = await this.database.passport_exists({
+    const passport_account_id = await this.database.passport_exists({
       strategy: opts.strategyName,
       id: opts.id,
     });
 
     if (
-      !_account_id &&
+      !passport_account_id &&
       locals.has_valid_remember_me &&
       locals.account_id != null
     ) {
       L(
         "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
       );
-      await this.database.create_passport({
-        account_id: locals.account_id,
-        strategy: opts.strategyName,
-        id: opts.id,
-        profile: opts.profile,
-        email_address: opts.emails != null ? opts.emails[0] : undefined,
-        first_name: opts.first_name,
-        last_name: opts.last_name,
-      });
+      // check if the email address of the passport is exclusive (which means we do not link to an existing account)
+      if (this.checkExclusiveSSO(opts)) {
+        throw new Error(
+          `It is not possible to link this SSO ${
+            opts.passports[opts.strategyName].info?.display ?? opts.strategyName
+          } account to the account your're current logged in with. Please sign out first and then try signin in using this SSO account again.`
+        );
+      }
+
+      await this.createPassport(opts, locals);
     } else {
-      if (locals.has_valid_remember_me && locals.account_id !== _account_id) {
+      if (
+        locals.has_valid_remember_me &&
+        locals.account_id !== passport_account_id
+      ) {
         L("passport exists but is associated with another account already");
         throw Error(
           `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`
@@ -259,7 +291,7 @@ export class PassportLogin {
           L(
             "passport exists and is already associated to a valid account, which we'll log user into"
           );
-          locals.account_id = _account_id;
+          locals.account_id = passport_account_id;
         }
       }
     }
@@ -274,39 +306,44 @@ export class PassportLogin {
     if (locals.account_id != null || opts.emails == null) return;
 
     L(
-      "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error"
+      "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error, unless it's an 'exclusive' strategy, where we take over that account"
     );
 
-    const check_emails = opts.emails.map(async (email) => {
-      if (locals.account_id) {
-        L(`already found a match with account_id=${locals.account_id} -- done`);
-        return;
+    const strategy: PassportStrategyDB = opts.passports[opts.strategyName];
+
+    // there is usually just one email in opts.emails, or an empty array
+    for (const email of opts.emails) {
+      const email_address = email.toLowerCase().trim();
+      L(`checking for account with email ${email_address}...`);
+      const existing_account_id = await cb2(this.database.account_exists, {
+        email_address,
+      });
+      if (!existing_account_id) {
+        L(`check_email: no existing_account_id for ${email}`);
       } else {
-        L(`checking for account with email ${email}...`);
-        const _account_id = await cb2(this.database.account_exists, {
-          email_address: email.toLowerCase(),
-        });
-        if (locals.account_id) {
-          // already done, so ignore
+        locals.account_id = existing_account_id;
+        locals.email_address = email_address;
+        L(
+          `found matching account ${locals.account_id} for email ${locals.email_address}`
+        );
+        if (this.checkExclusiveSSO(opts)) {
           L(
-            `already found a match with account_id=${locals.account_id} -- done`
+            `email ${email_address} belongs to SSO strategy ${
+              strategy.info?.display ?? opts.strategyName
+            }, which exclusively manages all emails with domain in ${JSON.stringify(
+              strategy.info?.exclusive_domains ?? []
+            )}`
           );
+          await this.createPassport(opts, locals);
           return;
-        } else if (!_account_id) {
-          L(`check_email: no _account_id for ${email}`);
-        } else {
-          locals.account_id = _account_id;
-          locals.email_address = email.toLowerCase();
-          L(
-            `found matching account ${locals.account_id} for email ${locals.email_address}`
-          );
-          throw Error(
-            `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategyName} to it in account settings.`
-          );
         }
+
+        // if there is no SSO mechanism with an exclusive email domain, we throw an error:
+        throw Error(
+          `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategyName} to it in account settings.`
+        );
       }
-    });
-    await Promise.all(check_emails);
+    }
   }
 
   private async create_account(

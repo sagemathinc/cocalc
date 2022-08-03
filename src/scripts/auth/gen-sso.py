@@ -180,7 +180,7 @@ oauth2: Entry = {
         "public": False,
         "display": "My OAuth2",
         "description": "My OAuth2",
-        "update_on_login": True,
+        "update_on_login": False,
     }
 }
 strats.append(oauth2)
