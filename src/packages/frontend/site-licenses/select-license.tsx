@@ -6,7 +6,7 @@ Component takes as input data that describes a licens.
 IMPORTANT: this component must work in *both* from nextjs and static.
 */
 
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
@@ -33,16 +33,17 @@ interface Props {
   style?: CSS;
 }
 
-export default function SelectLicense({
-  defaultLicenseId,
-  onSave,
-  onChange,
-  onCancel,
-  exclude,
-  managedLicenses,
-  confirmLabel,
-  style,
-}: Props) {
+export default function SelectLicense(props: Props) {
+  const {
+    defaultLicenseId,
+    onSave,
+    onChange,
+    onCancel,
+    exclude,
+    managedLicenses,
+    confirmLabel,
+    style,
+  } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
   const [showAll, setShowAll] = useState<boolean>(false);
@@ -95,6 +96,27 @@ export default function SelectLicense({
 
   const valid = isValidUUID(licenseId);
 
+  function renderButton(): Rendered {
+    if (!(onSave || onCancel)) return;
+
+    return (
+      <Space>
+        {onSave && (
+          <Button
+            disabled={!valid}
+            type="primary"
+            onClick={() => {
+              onSave(licenseId);
+            }}
+          >
+            <Icon name="check" /> {confirmLabel ?? "Apply License"}
+          </Button>
+        )}
+        {onCancel && <Button onClick={onCancel}>Cancel</Button>}
+      </Space>
+    );
+  }
+
   return (
     <div style={style}>
       <div style={{ width: "100%", display: "flex" }}>
@@ -140,22 +162,7 @@ export default function SelectLicense({
           </Checkbox>
         )}
       </div>
-      {(onSave || onCancel) && (
-        <Space>
-          {onSave && (
-            <Button
-              disabled={!valid}
-              type="primary"
-              onClick={() => {
-                onSave(licenseId);
-              }}
-            >
-              <Icon name="check" /> {confirmLabel ?? "Apply License"}
-            </Button>
-          )}
-          {onCancel && <Button onClick={onCancel}>Cancel</Button>}
-        </Space>
-      )}
+      {renderButton()}
       {!valid && licenseId && (
         <Alert
           style={{ margin: "15px" }}
