@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Get a string[] of the names of strategies that are
-   currently configured. Cached a bit so safe to call a lot. */
-
 import getPool from "@cocalc/database/pool";
 import { Strategy } from "@cocalc/util/types/sso";
 import { ssoDispayedName } from "@cocalc/util/auth";
 
+/** Returns an array of public info about strategies.
+ * Cached a bit so safe to call a lot.
+ */
 export default async function getStrategies(): Promise<Strategy[]> {
   const pool = getPool("long");
   // entries in "conf" were used before the "info" col existed. this is only for backwards compatibility.

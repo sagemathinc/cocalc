@@ -1,4 +1,9 @@
-// Just enough for display to the user:
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+// Just enough about configured SSO strategies to display to the user
 export interface Strategy {
   name: string;
   display: string; // name to display for SSO

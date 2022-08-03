@@ -9,12 +9,11 @@ import { PRIMARY_SSO } from "@cocalc/util/types/passport-types";
 import { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Avatar, Tooltip, Typography } from "antd";
 import Loading from "components/share/loading";
-import apiPost from "lib/api/post";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import { useRouter } from "next/router";
 import { join } from "path";
-import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
+import { CSSProperties, ReactNode, useMemo } from "react";
 
 const { Link: AntdLink } = Typography;
 
@@ -42,29 +41,15 @@ export default function SSO(props: SSOProps) {
   const { size, style, header } = props;
   const { strategies } = useCustomize();
 
-  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
-    strategies
-  );
-
-  useEffect(() => {
-    if (strategies2 === undefined) {
-      (async () => {
-        try {
-          setStrategies2(await apiPost("/auth/sso-strategies"));
-        } catch (_err) {}
-      })();
-    }
-  }, []);
-
   const havePrivateSSO: boolean = useMemo(() => {
-    return strategies2?.some((s) => !s.public) ?? false;
-  }, [strategies2]);
+    return strategies?.some((s) => !s.public) ?? false;
+  }, [strategies]);
 
-  if (strategies2 === undefined) {
+  if (strategies == null) {
     return <Loading style={{ fontSize: "16pt" }} />;
   }
 
-  if (strategies2.length == 0) return <></>;
+  if (strategies.length == 0) return <></>;
 
   function renderPrivateSSO() {
     if (!havePrivateSSO) return;
@@ -89,8 +74,8 @@ export default function SSO(props: SSOProps) {
   }
 
   function renderStrategies() {
-    if (strategies2 == null) return;
-    return strategies2
+    if (strategies == null) return;
+    return strategies
       .filter((s) => s.public || s.doNotHide)
       .map((strategy) => (
         <StrategyAvatar
