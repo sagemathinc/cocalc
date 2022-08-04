@@ -34,12 +34,14 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
-import { Col, Form, Input, Row } from "antd";
+import { Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
+const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
+const CARD_STYLE: CSS = { marginTop: "10px", marginBottom: "10px" } as const;
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -59,7 +61,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   const [error, set_error] = useState<string>("");
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [show_add_license, set_show_add_license] = useState<boolean>(false);
-  const [title_prefill, set_title_prefill] = useState<boolean>(true);
+  const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
 
   const [custom_software, set_custom_software] =
@@ -249,16 +251,25 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   function render_advanced() {
     if (!show_advanced) return;
-    return <SoftwareEnvironment onChange={custom_software_on_change} />;
+    return (
+      <Card size="small" title="Software environment" style={CARD_STYLE}>
+        <SoftwareEnvironment
+          onChange={custom_software_on_change}
+          showTitle={false}
+        />
+      </Card>
+    );
   }
 
   function render_add_license() {
     if (!show_add_license) return;
     return (
-      <SiteLicenseInput
-        confirmLabel={"Add this license"}
-        onChange={(lic) => set_license_id(lic)}
-      />
+      <Card size="small" title="Select license" style={CARD_STYLE}>
+        <SiteLicenseInput
+          confirmLabel={"Add this license"}
+          onChange={(lic) => set_license_id(lic)}
+        />
+      </Card>
     );
   }
 
@@ -268,7 +279,11 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     if (show_advanced) return;
     return (
       <div style={TOGGLE_STYLE}>
-        <Button onClick={() => set_show_advanced(true)} bsStyle="link">
+        <Button
+          onClick={() => set_show_advanced(true)}
+          bsStyle="link"
+          style={TOGGLE_BUTTON_STYLE}
+        >
           <Icon name="plus" /> Customize the software environment...
         </Button>
       </div>
@@ -285,7 +300,11 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     if (show_add_license) return;
     return (
       <div style={TOGGLE_STYLE}>
-        <Button onClick={() => set_show_add_license(true)} bsStyle="link">
+        <Button
+          onClick={() => set_show_add_license(true)}
+          bsStyle="link"
+          style={TOGGLE_BUTTON_STYLE}
+        >
           <Icon name="plus" /> Add a license key...
         </Button>
       </div>
@@ -305,7 +324,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
           >
             add/remove licenses
           </A>{" "}
-          later on in the project settings.
+          in the project settings later on.
         </div>
       );
     }
