@@ -14,6 +14,7 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useEditTable from "lib/hooks/edit-table";
+import { useRouter } from "next/router";
 import { ReactNode, useState } from "react";
 import register from "../register";
 
@@ -179,12 +180,41 @@ function Link({
   strategies: Strategy[];
   linked: string[];
 }) {
+  const router = useRouter();
+  let anyHidden = false;
+
   const v: ReactNode[] = [];
   for (const strategy of strategies) {
     if (linked.includes(strategy.name)) continue;
+    if (!(strategy.public ?? true) && !(strategy.doNotHide ?? false)) {
+      anyHidden = true;
+      continue;
+    }
     v.push(<Strategy key={strategy.name} strategy={strategy} />);
   }
-  return <SpacedStrategies>{v}</SpacedStrategies>;
+  // link to the page for additional non-public institutional SSOs
+  function hidden() {
+    return (
+      <div style={{ marginTop: "1rem" }}>
+        or other{" "}
+        <Button
+          type="link"
+          style={{ padding: 0 }}
+          onClick={() => router.push(`/sso`)}
+        >
+          institutional SSO options
+        </Button>
+        .
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <SpacedStrategies>{v}</SpacedStrategies>
+      {anyHidden && hidden()}
+    </>
+  );
 }
 
 function Strategy({
