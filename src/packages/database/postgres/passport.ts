@@ -24,6 +24,7 @@ import {
   UpdateAccountInfoAndPassportOpts,
 } from "./types";
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
 
 export async function set_passport_settings(
   db: PostgreSQL,
@@ -154,6 +155,22 @@ export async function delete_passport(
   opts: DeletePassportOpts
 ) {
   db._dbg("delete_passport")(to_json({ strategy: opts.strategy, id: opts.id }));
+
+  if (
+    await isBlockedUnlinkStrategy({
+      strategyName: opts.strategy,
+      account_id: opts.account_id,
+    })
+  ) {
+    const err_msg = `You are not allowed to unlink '${opts.strategy}'`;
+    if (typeof opts.cb === "function") {
+      opts.cb(err_msg);
+      return;
+    } else {
+      throw new Error(err_msg);
+    }
+  }
+
   return db._query({
     query: "UPDATE accounts",
     jsonb_set: {

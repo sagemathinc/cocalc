@@ -248,6 +248,6 @@ export function useRequiredSSO(
   email: string | undefined
 ): Strategy | undefined {
   return useMemo(() => {
-    return checkRequiredSSO(email, strategies);
+    return checkRequiredSSO({email, strategies});
   }, [strategies == null, email]);
 }

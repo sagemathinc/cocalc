@@ -55,7 +55,7 @@ collab = require('./postgres/collab')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
-
+{checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
@@ -1361,11 +1361,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         if exists
                             cb("email_already_taken")
                             return
-                        @_query
-                            query : 'UPDATE accounts'
-                            set   : {email_address: opts.email_address}
-                            where : @_account_where(opts)
-                            cb    : cb
+                        cb()
+            (cb) =>
+                checkEmailExclusiveSSO @, opts.account_id, (err, exclusive) =>
+                    if err
+                        cb(err)
+                        return
+                    if exclusive
+                        cb("you are not allowed to change your email address")
+                        return
+                    cb()
+            (cb) =>
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {email_address: opts.email_address}
+                    where : @_account_where(opts)
+                    cb    : cb
             (cb) =>
                 @_query
                     query : "SELECT stripe_customer_id FROM accounts"

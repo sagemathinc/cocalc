@@ -10,10 +10,15 @@ import { Strategy } from "@cocalc/util/types/sso";
  * which is configured to be an "exclusive" domain, then return the Strategy.
  * This also matches subdomains, i.e. "foo@bar.baz.edu" is goverend by "baz.edu".
  */
-export function checkRequiredSSO(
-  email: string | undefined,
-  strategies: Strategy[] | undefined
-): Strategy | undefined {
+
+interface Opts {
+  email: string | undefined;
+  strategies: Strategy[] | undefined;
+  specificStrategy?: string;
+}
+
+export function checkRequiredSSO(opts: Opts): Strategy | undefined {
+  const { email, strategies, specificStrategy } = opts;
   // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
   if (email == null) return;
   if (strategies == null || strategies.length === 0) return;
@@ -21,6 +26,7 @@ export function checkRequiredSSO(
   const emailDomain = getEmailDomain(email);
   if (!emailDomain) return;
   for (const strategy of strategies) {
+    if (specificStrategy && specificStrategy !== strategy.name) continue;
     for (const ssoDomain of strategy.exclusiveDomains) {
       if (emailBelongsToDomain(emailDomain, ssoDomain)) {
         return strategy;

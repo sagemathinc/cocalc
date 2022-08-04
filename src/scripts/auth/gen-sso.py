@@ -185,6 +185,26 @@ oauth2: Entry = {
 }
 strats.append(oauth2)
 
+# fake public
+
+twitter: Entry = {
+    "strategy": "twitter",
+    "conf": {
+        "clientID": "123",
+        "clientSecret": "123123"
+    },
+}
+strats.append(twitter)
+
+github: Entry = {
+    "strategy": "github",
+    "conf": {
+        "clientID": "123",
+        "clientSecret": "123123"
+    },
+}
+strats.append(github)
+
 ##############
 
 sql_commands = []
@@ -199,7 +219,7 @@ for strat in strats:
     sql_commands.append(
         insertPattern.format(strategy=strat["strategy"],
                              conf=dumps(strat["conf"]),
-                             info=dumps(strat["info"])))
+                             info=dumps(strat.get("info"))))
 
 from subprocess import run
 

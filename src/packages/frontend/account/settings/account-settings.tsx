@@ -41,6 +41,7 @@ import { Alert as AntdAlert, Space as AntdSpace } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
 import { SiteName, TermsOfService } from "../../customize";
+import { open_new_tab } from "../../misc/open-browser-tab";
 import { DeleteAccount } from "../delete-account";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
@@ -172,7 +173,11 @@ export class AccountSettings extends Component<Props, State> {
       return;
     }
     try {
-      await webapp_client.account_client.unlink_passport(strategy, id);
+      const x = await webapp_client.account_client.unlink_passport(
+        strategy,
+        id
+      );
+      console.log("ret:", x);
     } catch (err) {
       ugly_error(err);
     }
@@ -195,6 +200,10 @@ export class AccountSettings extends Component<Props, State> {
           account. Otherwise you would completely lose access to your account!
         </Well>
       );
+    } else if (false) {
+      return (
+        <Well>You are not allowed to remove the passport strategy {name}.</Well>
+      );
     } else {
       return (
         <Well>
@@ -204,15 +213,15 @@ export class AccountSettings extends Component<Props, State> {
           Your <SiteName /> account is linked to your {name} account, so you can
           login using it.
           <br /> <br />
-          If you delink your {name} account, you will no longer be able to use
-          your account to log into <SiteName />.
+          If you unlink your {name} account, you will no longer be able to use
+          this account to log into <SiteName />.
           <br /> <br />
           <ButtonToolbar style={{ textAlign: "center" }}>
             <Button
               bsStyle="danger"
               onClick={this.remove_strategy_click.bind(this)}
             >
-              <Icon name="unlink" /> Delink My {name} Account
+              <Icon name="unlink" /> Unlink my {name} account
             </Button>
             <Button
               onClick={() =>
@@ -340,12 +349,25 @@ export class AccountSettings extends Component<Props, State> {
     }
     const account_passports: string[] = this.get_account_passport_names();
 
+    let any_hidden = false;
     const not_linked: List<ImmutablePassportStrategy> =
       this.props.strategies.filter((strategy) => {
         const name = strategy.get("name");
-        return name !== "email" && !account_passports.includes(name);
+        // skip the email strategy, we don't use it
+        if (name === "email") return false;
+        // filter those which are already linked
+        if (account_passports.includes(name)) return false;
+        // do not show the non-public ones, unless they shouldn't be hidden
+        if (
+          !strategy.get("public", true) &&
+          !strategy.get("do_not_hide", false)
+        ) {
+          any_hidden = true;
+          return false;
+        }
+        return true;
       });
-    if (not_linked.size === 0) return;
+    if (any_hidden === false && not_linked.size === 0) return;
 
     const heading = this.props.is_anonymous
       ? "Sign up using your account at"
@@ -353,6 +375,18 @@ export class AccountSettings extends Component<Props, State> {
     const btns = not_linked
       .map((strategy) => this.render_strategy(strategy, account_passports))
       .toArray();
+
+    // add an extra button to link to the non public ones, which aren't shown
+    if (any_hidden) {
+      btns.push(
+        <Button
+          onClick={() => open_new_tab(join(appBasePath, "sso"))}
+          bsStyle="info"
+        >
+          Other SSO
+        </Button>
+      );
+    }
     return (
       <div>
         <hr key="hr0" />

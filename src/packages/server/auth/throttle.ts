@@ -24,7 +24,7 @@ const ipLongCache = new LRU<string, number>({
 
 async function isExclusiveEmail(email: string) {
   const strategies = await getStrategies();
-  return checkRequiredSSO(email, strategies);
+  return checkRequiredSSO({ email, strategies });
 }
 
 export async function signInCheck(
