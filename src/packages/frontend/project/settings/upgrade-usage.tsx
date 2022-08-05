@@ -25,7 +25,7 @@ import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { DedicatedDisk,  DedicatedResources } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import { Button, Card, Typography } from "antd";
@@ -53,10 +53,7 @@ interface Props {
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
   site_license_ids: string[];
-  dedicated_resources?: {
-    vm: false | DedicatedVM;
-    disks: DedicatedDisk[];
-  };
+  dedicated_resources?: DedicatedResources;
 }
 
 export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
@@ -227,6 +224,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
         project_id={project_id}
         project_state={project.getIn(["state", "state"])}
         project={project}
+        dedicated_resources={dedicated_resources}
       />
     );
   }
