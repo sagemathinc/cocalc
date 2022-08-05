@@ -70,7 +70,6 @@
     "clean-webpack-plugin": "^4.0.0",
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^3.0.0",
-    "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
     "crypto-browserify": "^3.12.0",
     "css-loader": "^5.2.5",
@@ -97,7 +96,6 @@
     "less-loader": "^9.0.0",
     "node-cjsx": "^2.0.0",
     "node-glob": "^1.2.0",
-    "node-pre-gyp": "^0.17.0",
     "npm-check-updates": "^11.5.13",
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
@@ -106,8 +104,8 @@
     "raw-loader": "^4.0.2",
     "react-helmet": "^6.1.0",
     "react-test-renderer": "^17.0.2",
-    "sass": "^1.32.13",
-    "sass-loader": "^11.1.1",
+    "sass": "^1.54.3",
+    "sass-loader": "^13.0.2",
     "script-loader": "^0.7.2",
     "source-map-loader": "^3.0.0",
     "stream-browserify": "^3.0.0",
@@ -126,6 +124,7 @@
     "webpack-dev-middleware": "^5.3.3",
     "webpack-path-rewriter": "^1.1.4",
     "webpack-sha-hash": "^2.0.0",
-    "worker-loader": "^3.0.8"
+    "worker-loader": "^3.0.8",
+    "@mapbox/node-pre-gyp": "^1.0.9"
   }
 }
