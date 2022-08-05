@@ -29,6 +29,7 @@
     "awaiting": "^3.0.0",
     "immutable": "^3.8.2",
     "json-stable-stringify": "^1.0.1",
+    "lodash": "^4.17.21",
     "sha1": "^1.1.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync",
