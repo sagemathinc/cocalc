@@ -46,6 +46,7 @@ export interface MainCapabilities {
   sage_version?: number[];
   x11: boolean;
   rmd: boolean;
+  qmd: boolean;
   jq: boolean;
   spellcheck: boolean;
   library: boolean;
@@ -61,7 +62,8 @@ export interface Available {
   x11: boolean;
   latex: boolean;
   sage: boolean;
-  rmd: boolean; // TODO besides R, what's necessary?
+  rmd: boolean; // TODO besides R, what's necessary? pandoc!
+  qmd: boolean; // also depends on pandoc
   jq: boolean;
   spellcheck: boolean;
   library: boolean;
@@ -79,6 +81,7 @@ const NO_AVAIL: Readonly<Available> = {
   sage: false,
   latex: false,
   rmd: false,
+  qmd: false,
   jq: false,
   x11: false,
   spellcheck: false,
@@ -95,6 +98,7 @@ export const ALL_AVAIL: Readonly<Available> = {
   sage: true,
   latex: true,
   rmd: true,
+  qmd: true,
   jq: true,
   x11: true,
   spellcheck: true,
@@ -194,6 +198,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       sage: !!capabilities.sage,
       latex: !!capabilities.latex,
       rmd: !!capabilities.rmd,
+      qmd: !!capabilities.qmd,
       jq: !!capabilities.jq,
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
@@ -250,6 +255,7 @@ export async function get_configuration(
     const disabled_ext = (config.disabled_ext = [] as string[]);
     if (!caps.jupyter) disabled_ext.push("ipynb");
     if (!caps.rmd) disabled_ext.push("rmd");
+    if (!caps.qmd) disabled_ext.push("qmd");
     if (!caps.latex) disabled_ext.push(...KNITR_EXTS.concat(["tex"]));
     if (!caps.sage) disabled_ext.push("sagews", "sage");
     if (!caps.x11) disabled_ext.push("x11");

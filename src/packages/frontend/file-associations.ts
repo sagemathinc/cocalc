@@ -75,6 +75,7 @@ const codemirror_associations: { [ext: string]: string } = {
   pyx: "python",
   r: "r",
   rmd: "rmd",
+  qmd: "rmd",
   rnw: "rnw",
   rtex: "rtex",
   rs: "text/x-rustsrc",
@@ -245,6 +246,17 @@ file_associations["rmd"] = {
     spellcheck: true,
   },
   name: "RMarkdown",
+};
+
+file_associations["qmd"] = {
+  icon: "r",
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["rmd"],
+    spellcheck: true,
+  },
+  name: "Quarto",
 };
 
 file_associations["rst"] = {
