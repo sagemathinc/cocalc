@@ -25,7 +25,7 @@ import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost } from "./site-license-cost";
+import { computeCost } from "./compute-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";

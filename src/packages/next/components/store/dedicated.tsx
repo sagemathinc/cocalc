@@ -36,7 +36,7 @@ import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
-import { computeCost } from "./site-license-cost";
+import { computeCost } from "./compute-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";

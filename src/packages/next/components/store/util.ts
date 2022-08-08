@@ -7,8 +7,8 @@ import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
+import moment from "moment";
 import { useMemo } from "react";
-
 import { LicenseTypeInForms } from "./add-box";
 
 // site license type in a form, we have 4 forms hence 4 types
@@ -81,14 +81,29 @@ export function useTimeFixer() {
       );
     }
     const serverTime = customizeServerTime ?? Date.now();
+    const localTime = Date.now();
 
     // important: useMemo, b/c we calculate the offset only *once* when the page loads, not each time the hook is called
-    const offset = Date.now() - serverTime;
+    const offset = localTime - serverTime;
+
+    function toTimestamp(date: Date | string): number {
+      return moment(date).toDate().getTime();
+    }
+
+    function toServerTime(date: Date | string) {
+      return new Date(toTimestamp(date) - offset);
+    }
+
+    function fromServerTime(date: Date | string) {
+      return new Date(toTimestamp(date) + offset);
+    }
+
     return {
       offset,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       serverTimeDate: new Date(serverTime),
-      toServerTime: (date: Date) => new Date(date.getTime() - offset),
+      toServerTime,
+      fromServerTime,
     };
   }, []);
 }
