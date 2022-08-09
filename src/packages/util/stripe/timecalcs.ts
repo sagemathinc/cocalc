@@ -4,6 +4,7 @@
  */
 
 import moment from "moment";
+import { Moment } from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
 
@@ -30,4 +31,20 @@ export function startOfDay(date: Date | string): Date {
 // round date to the end of the day (local user time)
 export function endOfDay(date: Date | string): Date {
   return moment(date).endOf("day").toDate();
+}
+
+// this rounds to the nearest "start" or "end" of a day if a date is given.
+export function roundToMidnight(
+  date: Moment | Date | string | undefined,
+  side: "start" | "end"
+): Date | undefined {
+  if (date == null) return date;
+  const ts = moment(date).add(12, "hours").startOf("day");
+  if (side === "end") {
+    // we go back a minute to almost-fully-round to the end of the day.
+    // this makes a difference when displaying it for the start/end ranges
+    return ts.subtract("1", "minute").endOf("day").toDate();
+  } else {
+    return ts.toDate();
+  }
 }

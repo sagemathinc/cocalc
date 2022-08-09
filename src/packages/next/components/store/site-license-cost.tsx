@@ -21,6 +21,7 @@ import {
 import Timestamp from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
+import { roundToMidnight } from "@cocalc/util/stripe/timecalcs";
 
 interface Props {
   cost: CostInputPeriod;
@@ -147,14 +148,15 @@ export function describePeriod(props: PeriodProps): ReactNode {
     // we do not use startOfDay and endOfDay, because this was already
     // done in "usage-and-duration::fixRangeSelector"
     // rather, we calculate back to the user's offset
-    const start = fromServerTime(startRaw);
-    const end = fromServerTime(endRaw);
+    const start = roundToMidnight(fromServerTime(startRaw), "start");
+    const end = roundToMidnight(fromServerTime(endRaw), "end");
 
     const days = getDays({ start, end });
     return (
       <>
         <Timestamp dateOnly datetime={start} absolute /> to{" "}
-        <Timestamp dateOnly datetime={end} absolute />, {days} days
+        <Timestamp dateOnly datetime={end} absolute />, {days}{" "}
+        {plural(days, "day")}
       </>
     );
   } else {
