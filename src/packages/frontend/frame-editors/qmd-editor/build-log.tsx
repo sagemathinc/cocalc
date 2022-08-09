@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import Ansi from "ansi-to-react";
-import { Loading } from "@cocalc/frontend/components";
-import { Rendered, useRedux } from "../../app-framework";
-import { COLORS } from "@cocalc/util/theme";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Loading } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
+import Ansi from "ansi-to-react";
+import React from "react";
+import { Rendered, useRedux } from "../../app-framework";
 
 interface BuildLogProps {
   name: string;
@@ -112,9 +112,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
   }
 
   if (status) {
-    return (
-      <Loading style={STYLE_LOADING} text={"Running Quarto ..."} />
-    );
+    return <Loading style={STYLE_LOADING} text={"Running Quarto ..."} />;
   } else if (!build_log && !build_err) {
     return (
       <div style={{ margin: "1rem" }}>

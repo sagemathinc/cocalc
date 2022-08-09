@@ -7,25 +7,25 @@
 Quarto Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
-import { debounce } from "lodash";
-import { Set } from "immutable";
 import { callback2 } from "@cocalc/util/async-utils";
-import { Actions as MarkdownActions } from "../markdown-editor/actions";
-import { convert } from "./qmd-converter";
-import { markdown_to_html_frontmatter } from "../../markdown";
-import { FrameTree } from "../frame-tree/types";
-import { redux } from "../../app-framework";
-import { ExecOutput } from "../generic/client";
 import { path_split } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "../rmd-editor/utils";
+import { reuseInFlight } from "async-await-utils/hof";
+import { Set } from "immutable";
+import { debounce } from "lodash";
+import { redux } from "../../app-framework";
+import { markdown_to_html_frontmatter } from "../../markdown";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
+import { FrameTree } from "../frame-tree/types";
+import { ExecOutput } from "../generic/client";
+import { Actions as MarkdownActions } from "../markdown-editor/actions";
+import { derive_rmd_output_filename } from "../rmd-editor/utils";
+import { convert } from "./qmd-converter";
 
 const custom_pdf_error_message: string = `
-TODO: explain how to output to PDF
+No PDF file has been generated.
 `;
 
 export class Actions extends MarkdownActions {

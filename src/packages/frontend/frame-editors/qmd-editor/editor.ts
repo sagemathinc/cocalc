@@ -7,16 +7,16 @@
 Top-level react component for editing quarto documents
 */
 
-import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "../rmd-editor/utils";
-import { EditorDescription } from "../frame-tree/types";
-import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { SETTINGS_SPEC } from "../settings/editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { IFrameHTML } from "../html-editor/iframe-html";
-import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjs_buttons } from "../latex-editor/editor";
+import { PDFJS } from "../latex-editor/pdfjs";
+import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
+import { derive_rmd_output_filename } from "../rmd-editor/utils";
+import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";

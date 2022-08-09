@@ -7,8 +7,8 @@
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import { path_split } from "@cocalc/util/misc";
+import { reuseInFlight } from "async-await-utils/hof";
 import { exec, ExecOutput } from "../generic/client";
 
 export const convert = reuseInFlight(_convert);
