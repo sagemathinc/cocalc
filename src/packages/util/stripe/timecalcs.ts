@@ -35,9 +35,14 @@ export function endOfDay(date: Date | string): Date {
 
 // this rounds to the nearest "start" or "end" of a day if a date is given.
 export function roundToMidnight(
-  date: Moment | Date | string | undefined,
+  date: Moment | Date | string,
   side: "start" | "end"
-): Date | undefined {
+): Date;
+export function roundToMidnight(
+  date: undefined,
+  side: "start" | "end"
+): undefined;
+export function roundToMidnight(date, side) {
   if (date == null) return date;
   const ts = moment(date).add(12, "hours").startOf("day");
   if (side === "end") {
