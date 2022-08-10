@@ -34,7 +34,7 @@
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^7.1.0",
+    "better-sqlite3": "^7.6.2",
     "body-parser": "^1.19.0",
     "chokidar": "^3.5.3",
     "commander": "^7.2.0",
@@ -64,7 +64,7 @@
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
     "prettier": "^2.6.2",
-    "primus": "^8.0.3",
+    "primus": "^8.0.6",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
     "prom-client": "^13.0.0",
@@ -79,15 +79,14 @@
     "ws": "^6.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^5.4.0",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/body-parser": "^1.19.0",
     "@types/express": "^4.17.13",
     "@types/jquery": "^3.5.5",
     "@types/mocha": "^5.2.7",
     "@types/node": "^14.18.10",
-    "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.6.3"
+    "typescript": "^4.7.4"
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
