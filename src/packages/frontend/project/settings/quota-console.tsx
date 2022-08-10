@@ -558,7 +558,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       ),
       edit: render_input("always_running"),
     },
-  };
+  } as const;
 
   function render_quota_rows() {
     // we only show all the entries if this is an admin actively editing the settings quotas
