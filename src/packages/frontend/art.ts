@@ -16,15 +16,6 @@ import APP_LOGO_NAME from "@cocalc/assets/cocalc-font-black.svg";
 // @ts-ignore
 import APP_LOGO_NAME_WHITE from "@cocalc/assets/cocalc-font-white.svg";
 
-console.log({
-  APP_ICON,
-  APP_ICON_WHITE,
-  APP_LOGO,
-  APP_LOGO_WHITE,
-  APP_LOGO_NAME,
-  APP_LOGO_NAME_WHITE,
-});
-
 export {
   APP_ICON,
   APP_ICON_WHITE,
