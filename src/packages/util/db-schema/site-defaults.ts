@@ -357,6 +357,7 @@ export const site_settings_conf: SiteSettings = {
     desc: "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's `quota.ts` code",
     default: "{}",
     show: only_onprem,
+    to_val: from_json,
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
@@ -373,8 +374,8 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
   },
   iframe_comm_hosts: {
-    name: "IFrame communication hosts",
-    desc: "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching `[a-zA-Z0-9.-]+`",
+    name: "IFrame hosts",
+    desc: "List of allowed DNS names, which are allowed to embed and communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching `[a-zA-Z0-9.-]+`",
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,

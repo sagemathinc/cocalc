@@ -15,7 +15,7 @@ import {
 import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";
 import { gtag_id } from "@cocalc/util/theme";
-import { Quota } from "@cocalc/util/upgrades/quota";
+import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
 import { List } from "immutable";
 import { join } from "path";
 import {
@@ -54,14 +54,15 @@ function validate_kucalc(k?): string {
   return KUCALC_DISABLED;
 }
 
-const result: any[] = [];
+// populate all default key/values in the "customize" store
+const defaultKeyVals: [string, string | string[]][] = [];
 for (const k in site_settings_conf) {
   const v = site_settings_conf[k];
   const value: any =
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
-  result.push([k, value]);
+  defaultKeyVals.push([k, value]);
 }
-const defaults: any = dict(result);
+const defaults: any = dict(defaultKeyVals);
 defaults.is_commercial = defaults.commercial;
 defaults._is_configured = false; // will be true after set via call to server
 
@@ -75,8 +76,8 @@ export interface CustomizeState {
   ssh_gateway: boolean;
   account_creation_email_instructions: string;
   commercial: boolean;
-  default_quotas: "{}";
-  dns: "cocalc.com";
+  default_quotas: TypedMap<DefaultQuotaSetting>;
+  dns: string; // e.g. "cocalc.com"
   email_enabled: false;
   email_signup: boolean;
   anonymous_signup: boolean;
@@ -182,9 +183,7 @@ function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] = obj[k] ?? v.default;
-    if (typeof v.to_val === "function") {
-      obj[k] = v.to_val(obj[k], obj);
-    }
+    // the "to_val" processing already happened server-side
   }
   set_customize(obj);
 }
