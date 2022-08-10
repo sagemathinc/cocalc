@@ -26,7 +26,7 @@ function not_in_blocked_country() {
   if (country == null) return true;
   const nonfree_countries = customize.get("nonfree_countries");
   if (nonfree_countries == null) return true;
-  return !nonfree_countries.includes(country);
+  return !nonfree_countries.contains(country);
 }
 
 export function too_many_free_projects(): boolean {

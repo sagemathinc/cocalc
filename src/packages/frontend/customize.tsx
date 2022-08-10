@@ -182,8 +182,9 @@ function process_customize(obj) {
 
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
-    obj[k] = obj[k] ?? v.default;
-    // the "to_val" processing already happened server-side
+    obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default) ?? v.default;
+    // the "to_val" processing already happened server-side for obj[k],
+    // but NOT for v.default!
   }
   set_customize(obj);
 }
