@@ -360,13 +360,6 @@ export class SyncTable extends EventEmitter {
     if (DEBUG) {
       //console.log(`set('${this.table}'): ${JSON.stringify(changes.toJS())}`);
     }
-    if (this.table == "syncstrings") {
-      console.log(
-        `set('${this.table}'):\nmerge=${merge}\n${JSON.stringify(
-          changes?.toJS()
-        )}`
-      );
-    }
     // For sanity!
     changes = this.do_coerce_types(changes);
     // Ensure that each key is allowed to be set.
@@ -446,13 +439,6 @@ export class SyncTable extends EventEmitter {
       }
     }
 
-    if (this.table == "syncstrings") {
-      console.log(
-        `set('${this.table}'):\nnew_val=${JSON.stringify(
-          new_val?.toJS()
-        )}\ncur=${JSON.stringify(cur?.toJS())}`
-      );
-    }
     if (new_val.equals(cur)) {
       // nothing actually changed, so nothing further to do.
       return new_val;
