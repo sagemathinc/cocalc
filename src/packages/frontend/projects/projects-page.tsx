@@ -6,43 +6,40 @@
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
 
+import { Footer } from "@cocalc/frontend/customize";
 import { Map, Set } from "immutable";
-
+import { UsersViewing } from "../account/avatar/users-viewing";
+import { Col, Row } from "../antd-bootstrap";
 import {
   React,
   redux,
   useActions,
-  useTypedRedux,
-  useState,
   useMemo,
+  useState,
+  useTypedRedux,
 } from "../app-framework";
 import { Icon, Loading, LoginLink } from "../components";
-import { Row, Col } from "../antd-bootstrap";
-
-import { UsersViewing } from "../account/avatar/users-viewing";
-
 import { NewProjectCreator } from "./create-project";
+import { Hashtags } from "./hashtags";
+import ProjectList from "./project-list";
+import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
 import { AddToProjectToken } from "./token";
-import { Hashtags } from "./hashtags";
-import { ProjectsListingDescription } from "./project-list-desc";
-import ProjectList from "./project-list";
-import { get_visible_projects, get_visible_hashtags } from "./util";
-import { Footer } from "@cocalc/frontend/customize";
+import { get_visible_hashtags, get_visible_projects } from "./util";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: "#666",
   fontSize: "24px",
   fontWeight: 500,
   marginBottom: "1ex",
-};
+} as const;
 
 const LOADING_STYLE: React.CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
   color: "#999999",
-};
+} as const;
 
 export const ProjectsPage: React.FC = () => {
   const actions = useActions("projects");
@@ -107,11 +104,12 @@ export const ProjectsPage: React.FC = () => {
       // on n when it is *first* rendered.
       return;
     }
+    const ts = new Date().toISOString().split("T")[0];
     return (
       <div style={{ margin: "15px auto", maxWidth: "900px" }}>
         <NewProjectCreator
           start_in_edit_mode={n === 0}
-          default_value={search ?? "Untitled"}
+          default_value={search || `Untitled ${ts}`}
         />
       </div>
     );

@@ -134,6 +134,18 @@ export interface Upgrades {
   ephemeral_disk: number;
 }
 
+// this is onprem specific only!
+// this server setting configuration "default_quotas" is stored in the database
+// and used by the manage process to configure default quotas of projects.
+export interface DefaultQuotaSetting {
+  cpu: number; // limit cpu, usually 1
+  cpu_oc: number; // overcommit ratio for CPU, e.g 10: means 1/10 is requested
+  idle_timeout: number; // seconds
+  internet: boolean; // usually true
+  mem: number; // memory limit in MB
+  mem_oc: number; // overcommit ratio to derive memory request (e.g. 5 = 5x overcommit)
+}
+
 // upgrade raw data from users: {"<uuid4>": {"group": ...,
 // "upgrades":
 // {"cores": 0, "memory": 3000, "mintime": 86400, "network": 1,

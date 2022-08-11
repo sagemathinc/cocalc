@@ -98,6 +98,10 @@ module.exports = function (PRODMODE) {
     },
     { test: /\.hbs$/, loader: "handlebars-loader" },
     {
+      test: /\.svg?$/,
+      type: "asset/resource",
+    },
+    {
       test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
       type: "asset/resource",
     },

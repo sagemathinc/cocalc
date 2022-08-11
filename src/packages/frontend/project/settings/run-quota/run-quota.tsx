@@ -4,11 +4,12 @@
  */
 
 import { PoweroffOutlined } from "@ant-design/icons";
-import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { React, useTypedRedux, useMemo } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
+import { DedicatedResources } from "@cocalc/util/types/dedicated";
 import { upgrade2quota_key, Upgrades } from "@cocalc/util/upgrades/quota";
 import { Table, Typography } from "antd";
 import { Project } from "../types";
@@ -38,16 +39,21 @@ interface Props {
   project_id: string;
   project_state?: "opened" | "running" | "starting" | "stopping";
   project: Project;
+  dedicated_resources?: DedicatedResources;
 }
 
 export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
-  const { project_id, project_state /* project */ } = props;
+  const { project_id, project_state, dedicated_resources } = props;
   //const projectStatus = project.get("status");
   const currentUsage = useCurrentUsage({ project_id });
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const runQuota = useRunQuota(project_id, project_state === "running");
   const maxUpgrades = useMaxUpgrades();
   const displayedFields = useDisplayedFields();
+
+  const onDedicatedVM: boolean = useMemo(() => {
+    return dedicated_resources?.vm != null && dedicated_resources?.vm !== false;
+  }, [dedicated_resources]);
 
   function quotaValue(key: keyof RunQuotaType): Value {
     const val = runQuota[key];
@@ -88,7 +94,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     });
   }, [runQuota, currentUsage, maxUpgrades, project_state === "running"]);
 
-  function renderExtraMaximum(record: QuotaData) {
+  function renderExtraMaximum(record: QuotaData): JSX.Element | undefined {
     if (SHOW_MAX.includes(record.key)) {
       return (
         <>
@@ -102,7 +108,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function renderExtraExplanation(record: QuotaData) {
+  function renderExtraExplanation(record: QuotaData): JSX.Element {
+    if (onDedicatedVM) return <></>;
+
     const dedicatedVM = (
       <>
         If you need more RAM or CPU, consider upgrading to a{" "}
@@ -136,39 +144,63 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         return is_commercial ? dedicatedDisk : <></>;
       case "idle_timeout":
         // special case: if we have always running, don't tell the user to increase idle timeout (stupid)
-        return record.quota != INFINITY_CHAR ? idleTimeoutInfo : "";
+        return record.quota != INFINITY_CHAR ? idleTimeoutInfo : <></>;
       default:
         return <></>;
     }
   }
 
-  function renderQuotaValue(record: QuotaData) {
+  function renderQuotaValue(record: QuotaData): string {
     const { key, quota, quotaDedicated, usage } = record;
     if (QUOTAS_BOOLEAN.includes(key as any)) {
       return `This quota is ${booleanValueStr(quota)}.`;
     } else {
       const curStr =
         usage != null
-          ? `Usage right now is ${usage.display} with a quota limit of ${quota}`
-          : `The quota limit is ${quota}`;
+          ? `Usage right now is ${usage.display} with a limit of ${quota}`
+          : `The limit is ${quota}`;
       const dediStr =
-        quotaDedicated != null
+        !onDedicatedVM && quotaDedicated != null
           ? `, of which ${quotaDedicated} are dedicated to this project.`
           : ".";
       return `${curStr}${dediStr}`;
     }
   }
 
-  function renderExtra(record: QuotaData) {
+  function renderDedicatedVMExtra(record: QuotaData): JSX.Element {
+    const desc = (function () {
+      switch (record.key) {
+        case "memory_limit":
+        case "memory_request":
+          return "Project runs on a Dedicated VM and can use up all of its memory.";
+        case "cpu_limit":
+        case "cpu_request":
+          return "Project runs on a Dedicated VM and can use up all of its CPU.";
+        default:
+          return record.desc;
+      }
+    })();
     return (
       <>
-        {record.desc} {renderQuotaValue(record)} {renderExtraMaximum(record)}{" "}
-        {renderExtraExplanation(record)}
+        {desc} {renderQuotaValue(record)}
       </>
     );
   }
 
-  function renderUsage(record: QuotaData) {
+  function renderExtra(record: QuotaData): JSX.Element {
+    if (onDedicatedVM) {
+      return renderDedicatedVMExtra(record);
+    } else {
+      return (
+        <>
+          {record.desc} {renderQuotaValue(record)} {renderExtraMaximum(record)}{" "}
+          {renderExtraExplanation(record)}
+        </>
+      );
+    }
+  }
+
+  function renderUsage(record: QuotaData): JSX.Element | undefined {
     if (project_state != "running") return;
     // the usage of a boolean quota is always the same as its value
     if (QUOTAS_BOOLEAN.includes(record.key as any)) return;

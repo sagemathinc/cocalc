@@ -31,6 +31,7 @@ import { wait } from "@cocalc/util/async-wait";
 import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
+import mergeDeep from "./immutable-deep-merge";
 
 export type Query = any; // todo
 export type QueryOptions = any[]; // todo
@@ -359,7 +360,6 @@ export class SyncTable extends EventEmitter {
     if (DEBUG) {
       //console.log(`set('${this.table}'): ${JSON.stringify(changes.toJS())}`);
     }
-
     // For sanity!
     changes = this.do_coerce_types(changes);
     // Ensure that each key is allowed to be set.
@@ -424,10 +424,9 @@ export class SyncTable extends EventEmitter {
       new_val = changes;
     } else {
       // Use the appropriate merge strategy to get the next val.
-      // Fortunately, these are all built into immutable.js!
       switch (merge) {
         case "deep":
-          new_val = cur.mergeDeep(changes);
+          new_val = mergeDeep(cur, changes);
           break;
         case "shallow":
           new_val = cur.merge(changes);
@@ -1587,11 +1586,6 @@ export class SyncTable extends EventEmitter {
       // This means the primary key is null or missing, which
       // shouldn't happen.  Maybe it could in some edge case.
       // For now, we shouldn't let this break everything, so:
-      console.warn(
-        this.table,
-        "handle_new_val: ignoring invalid new_val ",
-        new_val
-      );
       return undefined;
       // throw Error("key must not be null");
     }

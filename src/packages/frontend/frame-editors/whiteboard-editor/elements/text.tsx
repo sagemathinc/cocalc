@@ -137,7 +137,7 @@ function EditText({
 
   return (
     <div
-      {...mouseClickDrag}
+      {...(mouseClickDrag ?? {})}
       style={{
         ...getStyle(element),
         padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
