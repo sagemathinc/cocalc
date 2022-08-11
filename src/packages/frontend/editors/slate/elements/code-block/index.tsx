@@ -22,8 +22,9 @@ const StaticElement: React.FC<RenderElementProps> = ({
   element,
 }) => {
   if (element.type != "code_block") throw Error("bug");
+  // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   return (
-    <div {...attributes} style={{ marginBottom: "1em" }}>
+    <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         value={element.value}
         style={{ background: "#f7f7f7" }}

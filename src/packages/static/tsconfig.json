@@ -1,31 +1,31 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "module": "es2020",
     "incremental": false,
-    "rootDir": "./node_modules/@cocalc/frontend/",
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "module": "es2020",
     "outDir": "dist",
-    "target": "es5",
+    "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
     "sourceMap": true,
-    "lib": ["es5", "es6", "es2017", "dom"]
+    "target": "es5",
   },
   "exclude": [
-    "dist",
-    "node_modules",
+    "*__test__*",
+    "*__tests__*",
     "account/test",
-    "jupyter/test",
+    "admin",
     "app-framework/__tests__/",
-    "frame-editors/sagews-editor",
+    "app",
+    "components/__tests__",
+    "dist",
     "frame-editors/generic/mocha-tests",
+    "frame-editors/sagews-editor",
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
+    "jupyter/test",
     "misc/__test__",
-    "components/__tests__",
+    "node_modules",
     "test-mocha",
-    "test",
-    "*__tests__*",
-    "*__test__*",
-    "admin",
-    "app"
+    "test"
   ]
 }

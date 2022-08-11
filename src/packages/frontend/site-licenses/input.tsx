@@ -26,14 +26,23 @@ export function useManagedLicenses() {
 }
 
 interface Props {
-  onSave: (licenseId: string) => void;
-  onCancel: () => void;
+  onSave?: (licenseId: string) => void;
+  onCancel?: () => void;
+  onChange?: (licenseId: string) => void;
+  confirmLabel?: string;
   exclude?: string[];
   style?: CSS;
 }
 
 export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
-  const { onSave, onCancel, exclude, style } = props;
+  const {
+    onSave,
+    onCancel,
+    onChange,
+    exclude,
+    style,
+    confirmLabel = "Apply License",
+  } = props;
 
   const managedLicenses = useManagedLicenses();
 
@@ -43,9 +52,10 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
     <SelectLicense
       onSave={onSave}
       onCancel={onCancel}
+      onChange={onChange}
       exclude={exclude}
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
-      confirmLabel={"Apply License"}
+      confirmLabel={confirmLabel}
       style={style}
     />
   );

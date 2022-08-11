@@ -30,7 +30,6 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 whitelist: Final[List[str]] = [
     'async',
     'immutable',
-    'typescript',
     'entities'  # it breaks when you upgrade in static to 4.x
 ]
 
