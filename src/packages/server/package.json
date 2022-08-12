@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/server",
-  "version": "0.36.4",
+  "version": "0.37.0",
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
     "./*": "./dist/*.js",
@@ -35,15 +35,15 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/backend": "^1.18.2",
-    "@cocalc/database": "^0.27.1",
-    "@cocalc/util": "^1.60.1",
+    "@cocalc/backend": "^1.19.0",
+    "@cocalc/database": "^0.28.0",
+    "@cocalc/util": "^1.60.0",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@sendgrid/mail": "^7.5.0",
     "@types/express": "^4.17.13",
     "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",
-    "@types/node-zendesk": "^2.0.4",
+    "@types/node-zendesk": "^2.0.9",
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
     "async-await-utils": "^3.0.1",
@@ -52,10 +52,10 @@
     "cookies": "^0.8.0",
     "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
-    "node-fetch": "^3.2.7",
-    "node-zendesk": "^2.1.0",
+    "node-fetch": "^3.2.10",
+    "node-zendesk": "^2.2.0",
     "nodemailer": "^6.7.0",
-    "parse-domain": "^4.1.0",
+    "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
     "passport-activedirectory": "^1.0.4",
     "passport-apple": "^2.0.1",
@@ -77,11 +77,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@jest/types": "^27.5.1",
-    "@types/jest": "^27.4.1",
+    "@types/jest": "^28.1.6",
     "@types/node": "^14.18.10",
-    "jest": "^26.6.3",
-    "ts-jest": "^26.5.6",
-    "typescript": "^4.6.3"
+    "jest": "^28.1.3",
+    "ts-jest": "^28.0.7",
+    "typescript": "^4.7.4"
   }
 }

@@ -82,13 +82,12 @@ export function derive_project_img_name(
 interface Props {
   onChange: (obj: SoftwareEnvironmentState) => void;
   default_image?: string; // which one to initialize state to
+  showTitle?: boolean; // default true
 }
 
 // this is a selector for the software environment of a project
-export const SoftwareEnvironment: React.FC<Props> = ({
-  onChange,
-  default_image,
-}) => {
+export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
+  const { onChange, default_image, showTitle = true } = props;
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images"
@@ -352,7 +351,7 @@ export const SoftwareEnvironment: React.FC<Props> = ({
   function render_type_selection() {
     return (
       <>
-        <ControlLabel>Software environment</ControlLabel>
+        {showTitle && <ControlLabel>Software environment</ControlLabel>}
 
         <FormGroup>
           {render_default()}
