@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
@@ -85,7 +86,6 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
       })();
     }
   }, []);
-
 
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
   const requiredSSO = useRequiredSSO(strategies, email);
@@ -178,7 +178,9 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             priority={true}
           />
           <h1>Create a {siteName} Account</h1>
-          {accountCreationInstructions}
+          {accountCreationInstructions && (
+            <Markdown value={accountCreationInstructions} />
+          )}
         </div>
       )}
 
@@ -386,10 +388,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
 
     return (
       <div style={{ textAlign: "center", margin: "20px 0" }}>
-        <SSO
-          size={email ? 24 : undefined}
-          style={style}
-        />
+        <SSO size={email ? 24 : undefined} style={style} />
       </div>
     );
   }
