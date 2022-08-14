@@ -26,8 +26,8 @@ export default function StartupBanner() {
       let logo: string | undefined = undefined;
       try {
         // check for a custom logo
-        logo = (await (await fetch(join(appBasePath, "customize"))).json())
-          ?.configuration?.logo_rectangular;
+        const customizeData = await fetch(join(appBasePath, "customize"));
+        logo = (await customizeData.json())?.configuration?.logo_rectangular;
       } catch (err) {
         console.log("WARNING: problem loading customize data", err);
       }

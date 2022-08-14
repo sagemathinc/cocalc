@@ -64,3 +64,9 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
     ["ssd", "standard", "balanced"].includes(d.type)
   );
 }
+
+// returned by store.get_total_site_license_dedicated(project_id)
+export type DedicatedResources = {
+  vm: false | DedicatedVM;
+  disks: DedicatedDisk[];
+};

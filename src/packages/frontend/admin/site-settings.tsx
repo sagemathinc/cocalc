@@ -513,7 +513,7 @@ class SiteSettingsComponent extends Component<
       typeof conf.to_display == "function"
         ? `${conf.to_display(raw_value)}`
         : typeof conf.to_val == "function"
-        ? `${conf.to_val(raw_value)}`
+        ? `${conf.to_val(raw_value, this.state.edited)}`
         : undefined;
 
     const clearable = conf.clearable ?? false;

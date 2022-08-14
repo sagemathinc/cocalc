@@ -7,9 +7,11 @@
 Synchronized table that tracks server settings.
 */
 
-import { site_settings_conf } from "@cocalc/util/db-schema";
-import { startswith } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { startswith } from "@cocalc/util/misc";
+import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
+import { isEmpty } from "lodash";
 import { database } from "./database";
 
 // Returns:
@@ -37,9 +39,26 @@ export default async function getServerSettings(): Promise<ServerSettings> {
   serverSettings = { all: {}, pub: {}, version: {}, table: table };
   const { all, pub, version } = serverSettings;
   const update = async function () {
+    const allRaw = {};
+    table.get().forEach((record, field) => {
+      allRaw[field] = record.get("value");
+    });
+
     table.get().forEach(function (record, field) {
-      all[field] = record.get("value");
-      if (site_settings_conf[field]) {
+      const rawValue = record.get("value");
+
+      // process all values from the database according to the optional "to_val" mapping function
+      const spec = SITE_SETTINGS_CONF[field] ?? SERVER_SETTINGS_EXTRAS[field];
+      if (typeof spec?.to_val == "function") {
+        all[field] = spec.to_val(rawValue, allRaw);
+      } else {
+        if (typeof rawValue == "string" || typeof rawValue == "boolean") {
+          all[field] = rawValue;
+        }
+      }
+
+      // export certain fields to "pub[...]" and some old code regarding the version numbers
+      if (SITE_SETTINGS_CONF[field]) {
         if (startswith(field, "version_")) {
           const field_val: number = (all[field] = parseInt(all[field]));
           if (isNaN(field_val) || field_val * 1000 >= new Date().getTime()) {
@@ -53,9 +72,29 @@ export default async function getServerSettings(): Promise<ServerSettings> {
       }
     });
 
+    // set all default values
+    for (const config of [SITE_SETTINGS_CONF, SERVER_SETTINGS_EXTRAS]) {
+      for (const field in config) {
+        if (all[field] == null) {
+          const spec = config[field];
+          const fallbackVal =
+            spec?.to_val != null
+              ? spec.to_val(spec.default, allRaw)
+              : spec.default;
+          // we don't bother to set empty strings or empty arrays
+          if (fallbackVal === "" || isEmpty(fallbackVal)) continue;
+          all[field] = fallbackVal;
+          // site-settings end up in the "pub" object as well
+          // while "all" is the one we keep to us, contains secrets
+          if (SITE_SETTINGS_CONF === config) {
+            pub[field] = all[field];
+          }
+        }
+      }
+    }
+
     // PRECAUTION: never make the required version bigger than version_recommended_browser. Very important
     // not to stupidly completely eliminate all cocalc users by a typo...
-
     for (const x of ["project", "browser"]) {
       const field = `version_min_${x}`;
       const minver = all[field] || 0;
