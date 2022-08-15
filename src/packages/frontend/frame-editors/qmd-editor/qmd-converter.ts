@@ -4,7 +4,7 @@
  */
 
 /*
-Convert R Markdown file to hidden Markdown file, then read.
+Convert Quarto Markdown file (similar to Rmd) to html or pdf
 */
 
 import { path_split } from "@cocalc/util/misc";
@@ -12,6 +12,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { exec, ExecOutput } from "../generic/client";
 
 export const convert = reuseInFlight(_convert);
+
+const LOG = ["--log-level", "info"] as const;
 
 async function _convert(
   project_id: string,
@@ -21,14 +23,14 @@ async function _convert(
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
-  const cmd = `render '${infile}' --to html`;
+  const args = ["render", infile, "--to", "html", ...LOG];
 
   return await exec({
     timeout: 4 * 60,
     bash: true, // so timeout is enforced by ulimit
     command: "quarto",
-    args: [cmd],
-    project_id: project_id,
+    args,
+    project_id,
     path: x.head,
     err_on_exit: false,
     aggregate: { value: hash },

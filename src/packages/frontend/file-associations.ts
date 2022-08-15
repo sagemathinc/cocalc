@@ -249,7 +249,7 @@ file_associations["rmd"] = {
 };
 
 file_associations["qmd"] = {
-  icon: "r",
+  icon: "plus-circle-filled",
   opts: {
     indent_unit: 4,
     tab_size: 4,

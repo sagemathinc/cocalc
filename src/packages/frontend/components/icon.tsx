@@ -120,6 +120,7 @@ import {
   PlayCircleFilled,
   PlayCircleOutlined,
   PlusCircleOutlined,
+  PlusCircleFilled,
   PlusOutlined,
   PlusSquareOutlined,
   PoweroffOutlined,
@@ -397,6 +398,7 @@ const IconSpec = {
   plus: PlusOutlined,
   "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
+  "plus-circle-filled": PlusCircleFilled,
   "plus-one": { IconFont: "plus-one" },
   "plus-square": PlusSquareOutlined,
   "plus-square-o": PlusSquareOutlined,
@@ -644,4 +646,3 @@ export const Icon: React.FC<Props> = (props: Props) => {
     return <BorderOutlined {...props} alt={name} />;
   }
 };
-

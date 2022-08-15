@@ -57,9 +57,16 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
   const font_size = 0.8 * font_size_orig;
 
   const status = useRedux([name, "building"]);
-  const build_log = useRedux([name, "build_log"]) || "";
-  const build_err = useRedux([name, "build_err"]) || "";
-  const have_err = (useRedux([name, "build_exit"]) || 0) != 0;
+  const build_err_out = useRedux([name, "build_err"]) ?? "";
+  const have_err = (useRedux([name, "build_exit"]) ?? 0) !== 0;
+  const build_log_out = useRedux([name, "build_log"]) ?? "";
+
+  // all output is somehow an error, so we add the error output to the normal output, if it was ok
+  const build_log = !have_err
+    ? `${build_log_out}\n${build_err_out}`.trim()
+    : build_log_out;
+  const build_err = have_err ? build_err : "";
+
   const [show_stdout, set_show_stdout] = React.useState(false);
 
   function style(type: "log" | "err") {
