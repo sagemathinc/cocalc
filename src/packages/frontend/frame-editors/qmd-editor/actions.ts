@@ -156,7 +156,7 @@ export class Actions extends MarkdownActions {
     }
     const md = this._syncstring.to_str();
     if (md == null) return;
-    this.set_status("Running Qurto...");
+    this.set_status("Running Quarto...");
     this.setState({ building: true });
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
@@ -165,12 +165,12 @@ export class Actions extends MarkdownActions {
     try {
       const { frontmatter, html } = markdown_to_html_frontmatter(md);
       markdown = html;
-      output = await convert(
-        this.project_id,
-        this.path,
+      output = await convert({
+        project_id: this.project_id,
+        path: this.path,
         frontmatter,
-        hash || this._last_qmd_hash
-      );
+        hash: hash || this._last_qmd_hash,
+      });
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
         this.set_error(

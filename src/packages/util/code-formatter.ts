@@ -6,8 +6,6 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
-import { tuple } from "./misc";
-
 // ideally, this is the "syntax", but for historic reasons it's what is being called "parsed" and
 // hence there there are additional entries for backwards compatibility with older projects.
 // this shouldn't be necessary any more and could be removed.
@@ -25,6 +23,7 @@ export type Syntax =
   | "bibtex"
   | "markdown"
   | "Markdown"
+  | "Quarto"
   | "knitr"
   | "json"
   | "JSON"
@@ -84,13 +83,15 @@ export type Tool =
   | "DOES_NOT_EXIST"; // use this for testing;
 
 // the set of file extensions where we want to have formatting support
-export const file_extensions = tuple([
+export const file_extensions = [
   "js",
   "jsx",
   "ts",
   "tsx",
   "json",
   "md",
+  "rmd",
+  "qmd",
   "css",
   "py",
   "r",
@@ -110,7 +111,7 @@ export const file_extensions = tuple([
   "h",
   "bib",
   "zig",
-]);
+] as const;
 
 // convert to type
 export type Exts = typeof file_extensions[number];
@@ -122,6 +123,7 @@ export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
   jsx: "jsx",
   md: "Markdown",
   rmd: "RMarkdown",
+  qmd: "Quarto",
   css: "CSS",
   ts: "TypeScript",
   tsx: "tsx",
@@ -173,6 +175,7 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   markdown: "markdown", // in prettier
   Markdown: "markdown", // in prettier
   RMarkdown: "markdown", // same as markdown, at last for now!
+  Quarto: "markdown", // same as RMarkdown, at least for now
   c: "clang-format",
   clang: "clang-format",
   "clang-format": "clang-format",

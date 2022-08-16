@@ -217,7 +217,7 @@ file_associations["html"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
   name: "html",
-};
+} as const;
 
 file_associations["lean"] = {
   editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
@@ -249,7 +249,7 @@ file_associations["rmd"] = {
 };
 
 file_associations["qmd"] = {
-  icon: "r",
+  icon: "plus-circle-filled",
   opts: {
     indent_unit: 4,
     tab_size: 4,

@@ -65,7 +65,7 @@ const EDITOR_SPEC = {
     ]),
   } as EditorDescription,
 
-  // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
+  // By default, only html is generated. This viewer is still there in case the user explicitly tells Quarto to generate a PDF
 
   pdfjs_canvas: {
     short: "PDF",
