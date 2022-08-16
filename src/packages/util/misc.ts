@@ -671,6 +671,8 @@ export function meta_file(path: string, ext: string): string {
 // helps with converting an array of strings to a union type of strings.
 // usage: 1. const foo : string[] = tuple(["bar", "baz"]);
 //        2. type Foo = typeof foo[number]; // bar | baz;
+//
+// NOTE: in newer TS versions, it's fine to define the string[] list with "as const", then step 2.
 export function tuple<T extends string[]>(o: T) {
   return o;
 }
