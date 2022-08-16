@@ -11,19 +11,23 @@ import { path_split } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { exec, ExecOutput } from "../generic/client";
 
-export const convert = reuseInFlight(_convert);
+export const convert: (opts: Opts) => Promise<ExecOutput> =
+  reuseInFlight(_convert);
 
 const LOG = ["--log-level", "info"] as const;
 
-async function _convert(
-  project_id: string,
-  path: string,
-  // frontmatter: string,
-  hash
-): Promise<ExecOutput> {
+interface Opts {
+  project_id: string;
+  path: string;
+  frontmatter: string;
+  hash: string;
+}
+
+async function _convert(opts: Opts): Promise<ExecOutput> {
+  const { project_id, path, hash } = opts;
   const x = path_split(path);
   const infile = x.tail;
-  const args = ["render", infile, "--to", "html", ...LOG];
+  const args = ["render", infile, ...LOG];
 
   return await exec({
     timeout: 4 * 60,
