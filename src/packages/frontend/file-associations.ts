@@ -75,6 +75,7 @@ const codemirror_associations: { [ext: string]: string } = {
   pyx: "python",
   r: "r",
   rmd: "rmd",
+  qmd: "rmd",
   rnw: "rnw",
   rtex: "rtex",
   rs: "text/x-rustsrc",
@@ -216,7 +217,7 @@ file_associations["html"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
   name: "html",
-};
+} as const;
 
 file_associations["lean"] = {
   editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
@@ -245,6 +246,17 @@ file_associations["rmd"] = {
     spellcheck: true,
   },
   name: "RMarkdown",
+};
+
+file_associations["qmd"] = {
+  icon: "plus-circle-filled",
+  opts: {
+    indent_unit: 4,
+    tab_size: 4,
+    mode: codemirror_associations["rmd"],
+    spellcheck: true,
+  },
+  name: "Quarto",
 };
 
 file_associations["rst"] = {

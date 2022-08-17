@@ -71,6 +71,11 @@ async function get_x11(): Promise<boolean> {
   return await have("xpra");
 }
 
+// Quarto document formatter (on top of pandoc)
+async function get_quarto(): Promise<boolean> {
+  return await have("quarto");
+}
+
 // do we have "sage"? which version?
 async function get_sage_info(): Promise<{
   exists: boolean;
@@ -229,6 +234,7 @@ async function capabilities(): Promise<MainCapabilities> {
     library,
     x11,
     rmd,
+    qmd,
   ] = await Promise.all([
     get_formatting(),
     get_latex(hashsums),
@@ -240,6 +246,7 @@ async function capabilities(): Promise<MainCapabilities> {
     get_library(),
     get_x11(),
     get_rmd(),
+    get_quarto(),
   ]);
   const caps: MainCapabilities = {
     jupyter,
@@ -250,6 +257,7 @@ async function capabilities(): Promise<MainCapabilities> {
     sage_version: undefined,
     x11,
     rmd,
+    qmd,
     jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
     spellcheck,
     library,

@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import Ansi from "ansi-to-react";
-import { Loading } from "@cocalc/frontend/components";
-import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Loading } from "@cocalc/frontend/components";
+import Ansi from "ansi-to-react";
+import React from "react";
+import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import {
   STYLE_LOADING,
   STYLE_HEADER,
@@ -15,7 +15,7 @@ import {
   STYLE_LOG,
   STYLE_PRE,
   STYLE_ERR,
-} from "./styles";
+} from "../rmd-editor/styles";
 
 interface BuildLogProps {
   name: string;
@@ -29,9 +29,16 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
   const font_size = 0.8 * font_size_orig;
 
   const status = useRedux([name, "building"]);
-  const build_log = useRedux([name, "build_log"]) || "";
-  const build_err = useRedux([name, "build_err"]) || "";
-  const have_err = (useRedux([name, "build_exit"]) || 0) != 0;
+  const build_err_out = useRedux([name, "build_err"]) ?? "";
+  const have_err = (useRedux([name, "build_exit"]) ?? 0) !== 0;
+  const build_log_out = useRedux([name, "build_log"]) ?? "";
+
+  // all output ends up as an error, so we add the error output to the normal output, if there was no exit error
+  const build_log = !have_err
+    ? `${build_log_out}\n${build_err_out}`.trim()
+    : build_log_out;
+  const build_err = have_err ? build_err_out : "";
+
   const [show_stdout, set_show_stdout] = React.useState(false);
 
   function style(type: "log" | "err") {
@@ -84,14 +91,12 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
   }
 
   if (status) {
-    return (
-      <Loading style={STYLE_LOADING} text={"Running rmarkdown::render ..."} />
-    );
+    return <Loading style={STYLE_LOADING} text={"Running Quarto ..."} />;
   } else if (!build_log && !build_err) {
     return (
       <div style={{ margin: "1rem" }}>
         Document not built:{" "}
-        <Button bsSize={"small"} onClick={() => actions.run_rmd_converter()}>
+        <Button bsSize={"small"} onClick={() => actions.run_qmd_converter()}>
           build now
         </Button>
         .

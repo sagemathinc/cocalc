@@ -1982,7 +1982,7 @@ export class Actions<
   ): false | FormatterTool {
     if (syntax == null) return false;
     // first, check if there exists a tool for that syntax
-    const tool: FormatterTool = syntax2tool[syntax];
+    const tool: FormatterTool | undefined = syntax2tool[syntax];
     if (tool == null) return false;
     // if so, check if this formatting tool is available in that project
     const formatting = available_features.get("formatting");

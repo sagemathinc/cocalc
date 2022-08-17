@@ -249,7 +249,7 @@ export const site_settings_conf: SiteSettings = {
   },
   index_info_html: {
     name: "Index page info",
-    desc: "An HTML/Markdown string displayed on the index page.",
+    desc: "An HTML/Markdown string displayed on the index page. If set, replaces the Index page picture!",
     default: "",
     clearable: true,
     show: show_theming_vars,
@@ -374,8 +374,8 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
   },
   iframe_comm_hosts: {
-    name: "IFrame hosts",
-    desc: "List of allowed DNS names, which are allowed to embed and communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching `[a-zA-Z0-9.-]+`",
+    name: "IFrame embedding",
+    desc: "DNS hostnames, which are allowed to embed and communicate with this CoCalc instance. Strings starting with a dot will match subdomains. Hosts are tokens matching `[a-zA-Z0-9.-]+`. In production, this needs `co proxy update-config` & restart.",
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,
