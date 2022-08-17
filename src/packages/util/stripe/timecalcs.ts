@@ -8,7 +8,7 @@ import { Moment } from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
 
-// this does NOT rounds start/end of the day.
+// this does NOT round to start/end of the day.
 // take special care if you do this in the front-end, because if server-time is off by a significant amount,
 // it might count one day too many or too little.
 // use the rounding functions below to fix this, but maybe you have to use the "store/util::useTimeFixer" hook.
@@ -33,7 +33,9 @@ export function endOfDay(date: Date | string): Date {
   return moment(date).endOf("day").toDate();
 }
 
-// this rounds to the nearest "start" or "end" of a day if a date is given.
+// this rounds to the nearest "start" or "end" of a day, either rounded to the very end or start of the day
+// this is important when you use a date range selector,
+// because e.g. 2022-08-13T23:59:99 is interpreted as the 13th, although (with rounding) it's the 14th
 export function roundToMidnight(
   date: Moment | Date | string,
   side: "start" | "end"
