@@ -57,25 +57,15 @@ export default function Content(props: Props) {
     subtitle,
     subtitleBelow = false,
   } = props;
+
   const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
     if (!indexInfo) return;
-
     return (
-      <>
-        <Col
-          xs={24}
-          style={{
-            borderTop: "1px solid lightgrey",
-            marginTop: "20px",
-            marginBottom: "20px",
-          }}
-        ></Col>
-        <Col sm={{ span: 12, offset: 6 }} xs={{ span: 24, offset: 0 }}>
-          <SanitizedMarkdown value={indexInfo} />
-        </Col>
-      </>
+      <Col xs={20}>
+        <SanitizedMarkdown value={indexInfo} style={{ padding: "20xp" }} />
+      </Col>
     );
   }
 
@@ -96,6 +86,39 @@ export default function Content(props: Props) {
         </Col>
       </>
     );
+  }
+
+  function renderImage() {
+    // if the index info is anything more than an empty string, we render this here instead
+    if (!!indexInfo) return renderIndexInfo();
+    if (!image) return;
+    return (
+      <>
+        <Image
+          src={image}
+          priority={true}
+          style={{ padding: "15px" }}
+          alt={alt ?? `Image illustrating ${title}`}
+        />
+        <div style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}>
+          {caption}
+        </div>
+      </>
+    );
+  }
+
+  function renderAboveImage() {
+    return aboveImage != null
+      ? aboveImage
+      : sandboxProjectId && (
+          <div style={{ margin: "15px" }}>
+            <Path
+              style={{ marginBottom: "15px" }}
+              project_id={sandboxProjectId}
+              description="Public Sandbox"
+            />
+          </div>
+        );
   }
 
   return (
@@ -123,35 +146,10 @@ export default function Content(props: Props) {
           </div>
         </Col>
         <Col sm={14} xs={24}>
-          {aboveImage != null
-            ? aboveImage
-            : sandboxProjectId && (
-                <div style={{ margin: "15px" }}>
-                  <Path
-                    style={{ marginBottom: "15px" }}
-                    project_id={sandboxProjectId}
-                    description="Public Sandbox"
-                  />
-                </div>
-              )}
-          {image && (
-            <>
-              <Image
-                src={image}
-                priority={true}
-                style={{ padding: "15px" }}
-                alt={alt ?? `Image illustrating ${title}`}
-              />
-              <div
-                style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
-              >
-                {caption}
-              </div>
-            </>
-          )}
+          {renderAboveImage()}
+          {renderImage()}
         </Col>
         {renderSubtitleBelow()}
-        {renderIndexInfo()}
       </Row>
       <SignIn startup={startup ?? title} hideFree={true} />
     </div>
