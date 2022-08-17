@@ -1078,7 +1078,10 @@ export class Actions extends BaseActions<State> {
     }
   }
 
-  duplicateElements(elements: Element[], frameId?: string) {
+  // For duplicateElements, it's critical to take into account the frameId, so the
+  // paste below is into the same page as where the element was copied. Otherwise,
+  // the elements all end up on page 1.
+  duplicateElements(elements: Element[], frameId: string) {
     const elements0 = [...elements];
     extendToIncludeEdges(elements0, this.getElements());
     copyToClipboard(elements0);
