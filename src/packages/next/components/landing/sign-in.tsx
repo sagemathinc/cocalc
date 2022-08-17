@@ -19,7 +19,7 @@ interface Props {
 const STYLE: CSSProperties = {
   textAlign: "center",
   padding: "30px 15px 0 15px",
-};
+} as const;
 
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();

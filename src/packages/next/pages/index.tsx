@@ -32,7 +32,48 @@ export default function Home({ customize, publicPaths }) {
     splashImage,
     indexInfo,
     sandboxProjectId,
+    onCoCalcCom,
   } = customize;
+
+  function renderAboveImage() {
+    return (
+      <>
+        {sandboxProjectId && (
+          <div style={{ marginBottom: "30px" }}>
+            <h3 style={{ textAlign: "center", color: "#666" }}>
+              The Public {siteName} Sandbox
+            </h3>
+            <Path
+              style={{ marginRight: "15px", marginBottom: "15px" }}
+              project_id={sandboxProjectId}
+              description="Public Sandbox"
+            />
+          </div>
+        )}
+        {shareServer && onCoCalcCom && (
+          <>
+            <h3 style={{ textAlign: "center" }}>
+              <A href="/share/public_paths/page/1">
+                Explore what people have shared using {siteName}!
+              </A>
+            </h3>
+            {publicPaths && (
+              <div
+                style={{
+                  maxHeight: "60vh",
+                  overflow: "auto",
+                  marginRight: "15px",
+                }}
+              >
+                <PublicPaths publicPaths={publicPaths} />
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Head title="Collaborative Calculation" />
@@ -143,7 +184,7 @@ export default function Home({ customize, publicPaths }) {
                     hosted by <A href={organizationURL}>{organizationName}</A>
                   </>
                 )}
-                {customize.onCoCalcCom && (
+                {onCoCalcCom && (
                   <div style={{ marginTop: "15px" }}>
                     <A href="https://about.cocalc.com">
                       Mission and Features of CoCalc
@@ -171,42 +212,7 @@ export default function Home({ customize, publicPaths }) {
                 ? splashImage
                 : screenshot
             }
-            aboveImage={
-              <>
-                {sandboxProjectId && (
-                  <div style={{ marginBottom: "30px" }}>
-                    <h3 style={{ textAlign: "center", color: "#666" }}>
-                      The Public {siteName} Sandbox
-                    </h3>
-                    <Path
-                      style={{ marginRight: "15px", marginBottom: "15px" }}
-                      project_id={sandboxProjectId}
-                      description="Public Sandbox"
-                    />
-                  </div>
-                )}
-                {shareServer && (
-                  <>
-                    <h3 style={{ textAlign: "center" }}>
-                      <A href="/share/public_paths/page/1">
-                        Explore what people have shared using {siteName}!
-                      </A>
-                    </h3>
-                    {publicPaths && (
-                      <div
-                        style={{
-                          maxHeight: "60vh",
-                          overflow: "auto",
-                          marginRight: "15px",
-                        }}
-                      >
-                        <PublicPaths publicPaths={publicPaths} />
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            }
+            aboveImage={renderAboveImage()}
             alt={"Screenshot showing CoCalc in action!"}
             indexInfo={indexInfo}
           />
