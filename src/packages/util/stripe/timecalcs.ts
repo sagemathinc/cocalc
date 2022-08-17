@@ -37,14 +37,9 @@ export function endOfDay(date: Date | string): Date {
 // this is important when you use a date range selector,
 // because e.g. 2022-08-13T23:59:99 is interpreted as the 13th, although (with rounding) it's the 14th
 export function roundToMidnight(
-  date: Moment | Date | string,
+  date: Moment | Date | string | undefined,
   side: "start" | "end"
-): Date;
-export function roundToMidnight(
-  date: undefined,
-  side: "start" | "end"
-): undefined;
-export function roundToMidnight(date, side) {
+): Date | undefined {
   if (date == null) return date;
   const ts = moment(date).add(12, "hours").startOf("day");
   if (side === "end") {

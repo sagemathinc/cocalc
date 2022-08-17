@@ -151,6 +151,10 @@ export function describePeriod(props: PeriodProps): ReactNode {
     const start = roundToMidnight(fromServerTime(startRaw), "start");
     const end = roundToMidnight(fromServerTime(endRaw), "end");
 
+    if (start == null || end == null) {
+      throw new Error(`this should never happen`);
+    }
+
     const days = getDays({ start, end });
     return (
       <>

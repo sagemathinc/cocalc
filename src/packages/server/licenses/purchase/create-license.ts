@@ -26,7 +26,7 @@ function adjustRange([start, end]: DateRange): DateRange {
   if (start < serverTime) {
     const diff = serverTime.getTime() - start.getTime();
     end = new Date(end.getTime() + diff);
-    // we don't care about changing fixedStart, because it's already in the past
+    // we don't care about changing start, because it's already in the past
   }
   return [start, end];
 }
