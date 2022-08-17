@@ -55,7 +55,7 @@ import {
   sha1,
 } from "@cocalc/util/misc";
 import { IBuildSpecs } from "./build";
-import { open_new_tab } from "../../misc";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { parseTableOfContents } from "./table-of-contents";
 import {
   TableOfContentsEntryList,

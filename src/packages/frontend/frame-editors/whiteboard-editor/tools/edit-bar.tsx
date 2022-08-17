@@ -423,7 +423,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);
         } else if (key == "duplicate") {
-          actions.duplicateElements(elements);
+          actions.duplicateElements(elements, frame.id);
         } else if (key == "cut") {
           extendToIncludeEdges(elements, allElements);
           copyToClipboard(elements);

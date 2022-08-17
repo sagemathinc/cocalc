@@ -42,6 +42,7 @@ const EDITOR_SPEC = {
       "redo",
       "readonly_view", // change frame to readonly view (for now, at least).
       "sync",
+      "help",
     ]),
   } as EditorDescription,
   cm: {

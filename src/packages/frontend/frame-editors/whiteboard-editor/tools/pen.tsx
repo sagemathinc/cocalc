@@ -95,7 +95,7 @@ function AlternateTop({
       <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
         Pen
       </div>
-      <Tooltip title="Pen">
+      <Tooltip title="Pen (customize below)">
         <Button
           style={{ width: "25px" }}
           type="text"
@@ -107,7 +107,7 @@ function AlternateTop({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Highlighter">
+      <Tooltip title="Highlighter (a wide transparent pen)">
         <Button
           style={{ width: "25px" }}
           type="text"
@@ -122,7 +122,7 @@ function AlternateTop({
           />
         </Button>
       </Tooltip>
-      <Tooltip title="Eraser">
+      <Tooltip title="Whiteout (a wide white pen)">
         <Button
           style={{ width: "25px" }}
           type="text"

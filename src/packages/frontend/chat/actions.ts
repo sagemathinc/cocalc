@@ -17,6 +17,8 @@ import type {
 } from "@cocalc/frontend/editors/task-editor/types";
 import { getSelectedHashtagsSearch } from "./utils";
 import { parse_hashtags } from "@cocalc/util/misc";
+import { open_new_tab } from "@cocalc/frontend/misc";
+
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -342,5 +344,9 @@ export class ChatActions extends Actions<ChatState> {
     if (commit) {
       this.syncdb.commit();
     }
+  }
+
+  help() {
+        open_new_tab("https://doc.cocalc.com/chat.html");
   }
 }
