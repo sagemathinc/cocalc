@@ -3,33 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { getLogger } from "@cocalc/backend/logger";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { v4 as uuid } from "uuid";
-import { getLogger } from "@cocalc/backend/logger";
+import { adjustDateRangeEndOnSameDay } from "@cocalc/util/stripe/timecalcs";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
-import { Date0 } from "@cocalc/util/types/store";
+import { v4 as uuid } from "uuid";
 const logger = getLogger("createLicense");
-
-type DateRange = [Date0 | undefined, Date0 | undefined];
-
-/**
- * We play nice to the user. if the start date is before the current time,
- * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
- * then append that period that's already in the past to the end of the range.
- */
-function adjustRange([start, end]: DateRange): DateRange {
-  if (start == null || end == null) {
-    return [start, end];
-  }
-  const serverTime = new Date();
-  if (start < serverTime) {
-    const diff = serverTime.getTime() - start.getTime();
-    end = new Date(end.getTime() + diff);
-    // we don't care about changing start, because it's already in the past
-  }
-  return [start, end];
-}
 
 // ATTN: for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
 // this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
@@ -43,7 +23,7 @@ export default async function createLicense(
 
   const [start, end] =
     info.type !== "disk"
-      ? adjustRange([info.start, info.end])
+      ? adjustDateRangeEndOnSameDay([info.start, info.end])
       : [info.start, undefined];
 
   const values: { [key: string]: any } = {

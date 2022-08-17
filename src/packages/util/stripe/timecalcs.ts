@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import moment from "moment";
-import { Moment } from "moment";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
+import { DateRangeOptional } from "@cocalc/util/types/store";
+import moment, { Moment } from "moment";
 
 // this does NOT round to start/end of the day.
 // take special care if you do this in the front-end, because if server-time is off by a significant amount,
@@ -48,5 +48,40 @@ export function roundToMidnight(
     return ts.subtract("1", "minute").endOf("day").toDate();
   } else {
     return ts.toDate();
+  }
+}
+
+/**
+ * We play nice to the user. if the start date is before the current time,
+ * which happens when you order something that is supposed to start "now" (and is corrected to the start of the day in the user's time zone),
+ * then append that period that's already in the past to the end of the range.
+ */
+export function adjustDateRangeEndOnSameDay([
+  start,
+  end,
+]: DateRangeOptional): DateRangeOptional {
+  if (start == null || end == null) {
+    return [start, end];
+  }
+  const now = new Date();
+  // we don't care about changing start, because it's already in the past
+  end = appendAfterNowToDate({ now, start, end });
+  return [start, end];
+}
+
+export function appendAfterNowToDate({
+  now,
+  start,
+  end,
+}: {
+  now: Date;
+  start: Date;
+  end: Date;
+}): Date {
+  if (start < now) {
+    const diff = now.getTime() - start.getTime();
+    return new Date(end.getTime() + diff);
+  } else {
+    return end;
   }
 }

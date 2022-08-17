@@ -13,7 +13,7 @@ import {
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
-import { getDays } from "@cocalc/util/stripe/timecalcs";
+import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
   dedicatedVmDisplay,
@@ -137,10 +137,13 @@ interface PeriodProps {
   end?: Date | string;
 }
 
+/**
+ * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
+ */
 export function describePeriod(props: PeriodProps): ReactNode {
   const { subscription, start: startRaw, end: endRaw } = props;
 
-  const { fromServerTime } = useTimeFixer();
+  const { fromServerTime, serverTimeDate } = useTimeFixer();
 
   if (subscription == "no") {
     if (startRaw == null || endRaw == null)
@@ -155,11 +158,21 @@ export function describePeriod(props: PeriodProps): ReactNode {
       throw new Error(`this should never happen`);
     }
 
+    // days are calculated based on the actual selection
     const days = getDays({ start, end });
+
+    // but the displayed end mimics what will happen later on the backend
+    // i.e. if the day alreaday started, we append the already elapsed period to the end
+    const endDisplay = appendAfterNowToDate({
+      now: serverTimeDate,
+      start,
+      end,
+    });
+
     return (
       <>
         <Timestamp dateOnly datetime={start} absolute /> to{" "}
-        <Timestamp dateOnly datetime={end} absolute />, {days}{" "}
+        <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
         {plural(days, "day")}
       </>
     );
