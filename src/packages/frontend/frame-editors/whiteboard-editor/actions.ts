@@ -57,6 +57,7 @@ import {
 } from "@cocalc/frontend/components";
 import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
+import { open_new_tab } from "@cocalc/frontend/misc";
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
@@ -1265,7 +1266,11 @@ export class Actions extends BaseActions<State> {
   }
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
-    this.gotoFragment({ id: entry.id.split('-')[1] });
+    this.gotoFragment({ id: entry.id.split("-")[1] });
+  }
+
+  help(): void {
+    open_new_tab("https://doc.cocalc.com/whiteboard.html");
   }
 }
 
