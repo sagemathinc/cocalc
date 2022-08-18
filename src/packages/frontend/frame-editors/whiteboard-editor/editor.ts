@@ -32,6 +32,7 @@ const whiteboardButtons = set([
   "copy",
   "paste",
   "show_table_of_contents",
+  "help",
 ]);
 
 export const EDITOR_SPEC = {

@@ -7,6 +7,7 @@ import "./generic/jquery-plugins";
 import "./code-editor/register"; // should be first.
 import "./wiki-editor/register";
 import "./rmd-editor/register";
+import "./qmd-editor/register";
 import "./rst-editor/register";
 import "./markdown-editor/register";
 import "./html-editor/register";

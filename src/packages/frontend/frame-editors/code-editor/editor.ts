@@ -56,7 +56,8 @@ export const cm = {
       "shell",
     ]);
     const ext = filename_extension(path);
-    buttons.format = FORMAT.includes(ext);
+    // type casting to circumvent TS2345
+    buttons.format = (FORMAT as readonly string[]).includes(ext);
     return buttons;
   },
 } as EditorDescription;

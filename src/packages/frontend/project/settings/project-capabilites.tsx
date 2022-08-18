@@ -50,6 +50,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       const feature_map = [
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
+        ["qmd", "Quarto"],
         ["sage", "SageMath Worksheets"],
         ["jupyter_notebook", "Classical Jupyter Notebook"],
         ["jupyter_lab", "Jupyter Lab"],
