@@ -11,7 +11,9 @@ import { Strategy as ADStrategy } from "passport-activedirectory";
 import { Strategy as AppleStrategy } from "passport-apple";
 import { Strategy as Gitlab2Strategy } from "passport-gitlab2";
 // this is a wrapper containing version 1 and 2
+import { OIDCStrategy as AzureAdStrategy } from "passport-azure-ad";
 import * as oauth from "passport-oauth";
+import { Strategy as OidcStrategy } from "passport-openidconnect";
 import { Strategy as OrcidStrategy } from "passport-orcid";
 import { Strategy as SAMLStrategy } from "passport-saml";
 import { PassportTypes, PassportTypesList } from "./types";
@@ -36,6 +38,10 @@ export function getExtraStrategyConstructor(
       return OrcidStrategy;
     case "saml":
       return SAMLStrategy;
+    case "oidc":
+      return OidcStrategy;
+    case "azuread":
+      return AzureAdStrategy;
     case "activedirectory":
       return ADStrategy;
     case "gitlab2":

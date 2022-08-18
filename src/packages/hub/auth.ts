@@ -487,6 +487,19 @@ export class PassportManager {
           done(undefined, profile);
         };
 
+      case "azuread":
+        return (_iss, _sub, profile, _accessToken, _refreshToken, done) => {
+          if (!profile.oid) {
+            return done(new Error("No oid found"), null);
+          }
+          done(undefined, profile);
+        };
+
+      case "oidc":
+        return (_issuer, profile, done) => {
+          return done(undefined, profile);
+        };
+
       default:
         return (_accessToken, _refreshToken, params, profile, done) => {
           done(undefined, { params, profile });
@@ -587,7 +600,7 @@ export class PassportManager {
     };
   }
 
-  // right now, we only set this for OAauth2 (SAML know what to do on its own)
+  // right now, we only set this for OAauth2 (SAML knows what to do on its own)
   // This does not encode any information for now.
   private setState(name, type: PassportTypes, auth_opts) {
     return async (_req, _res, next) => {
@@ -602,6 +615,7 @@ export class PassportManager {
     };
   }
 
+  // corresponding check to the above. basically checks if the state data is still available.
   private checkState(name, type: PassportTypes) {
     return async (req, _res, next) => {
       if (isOAuth2(type)) {

@@ -110,7 +110,27 @@ abacus2: Entry = {
     }
 }
 
-strats = [food, flight, minimal, abacus2]
+oidc1: Entry = {
+    "strategy": "oidc1",
+    "conf": {
+        "type": "oidc",
+        "issuer": "http://localhost:5300",
+        "authorizationURL": "http://localhost:5300/auth",
+        "tokenURL": "http://localhost:5300/token",
+        "userInfoURL": "http://localhost:5300/me",
+        "clientID": "cocalc",
+        "clientSecret": "s3cr3t",
+        "callbackURL": "http://localhost:5000/auth/oidc1/return",
+    },
+    "info": {
+        "display": "OIDC Test",
+        "description":
+        "This is the SSO mechanism for anyone associated with OIDC Test",
+        "public": False,
+    }
+}
+
+strats = [food, flight, minimal, abacus2, oidc1]
 
 # read content of file saml-idp-local.pem
 # curdir is the directory of this file
@@ -216,6 +236,7 @@ sql_commands.append("DELETE FROM passport_settings;")
 insertPattern = "INSERT INTO passport_settings (strategy, conf, info) VALUES ('{strategy}', '{conf}'::JSONB, '{info}'::JSONB);"
 
 for strat in strats:
+    print("Inserting", strat["strategy"])
     sql_commands.append(
         insertPattern.format(strategy=strat["strategy"],
                              conf=dumps(strat["conf"]),
