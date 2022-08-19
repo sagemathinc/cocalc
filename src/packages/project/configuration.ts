@@ -180,28 +180,31 @@ async function get_library(): Promise<boolean> {
 // we check this here, because the frontend should offer these choices if available.
 // in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
 async function get_formatting(): Promise<Capabilities> {
-  const status: Promise<boolean>[] = [];
+  const status: Promise<any>[] = [];
   const tools = new Array(
     ...new Set(Object.keys(syntax2tool).map((k) => syntax2tool[k]))
   );
   tools.push("yapf3", "black", "autopep8");
   const tidy = have("tidy");
+
+  const ret: Capabilities = {};
   for (const tool of tools) {
     if (tool === ("formatR" as FormatTool)) {
       // TODO special case. must check for package "formatR" in "R" -- for now just test for R
-      status.push(have("R"));
+      status.push((async () => (ret[tool] = await have("R")))());
     } else if (tool == ("bib-biber" as FormatTool)) {
       // another special case
-      status.push(have("biber"));
+      status.push((async () => (ret[tool] = await have("biber")))());
     } else if (tool === ("xml-tidy" as FormatTool)) {
       // tidy, already covered
     } else {
-      status.push(have(tool));
+      status.push((async () => (ret[tool] = await have(tool)))());
     }
   }
-  const results = await Promise.all(status);
-  const ret: Capabilities = {};
-  tools.map((tool, idx) => (ret[tool] = results[idx]));
+
+  // this populates all "await have" in ret[...]
+  await Promise.all(status);
+
   ret["tidy"] = await tidy;
   // just for testing
   // ret['yapf'] = false;

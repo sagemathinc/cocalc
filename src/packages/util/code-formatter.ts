@@ -16,7 +16,6 @@ export type Syntax =
   | "clang"
   | "latex"
   | "go"
-  | "rust"
   | "CSS"
   | "html"
   | "xml"
@@ -45,7 +44,8 @@ export type Syntax =
   | "babel"
   | "gofmt"
   | "clang-format"
-  | "rustfmt"
+  | "rust"
+  | "rustfmt" // deprecated, should be rust
   | "tsx"
   | "jsx"
   | "yapf"
@@ -185,7 +185,6 @@ export const syntax2tool: Readonly<Partial<Config>> = {
   R: "formatR",
   RMarkdown: "markdown", // same as markdown, at last for now!
   rust: "rustfmt",
-  rustfmt: "rustfmt",
   tsx: "typescript", // in prettier
   typescript: "typescript", // in prettier
   TypeScript: "typescript", // in prettier
@@ -215,7 +214,6 @@ export const syntax2display: Readonly<Langs> = {
   py: "Python",
   r: "R Language",
   rust: "Rust",
-  rustfmt: "Rust",
   typescript: "TypeScript",
   xml: "XML",
   yaml: "YAML",
