@@ -1627,6 +1627,7 @@ export function containing_public_path(
     // array so "of"
     // @ts-ignore
     for (const p of paths) {
+      if (p == null) continue;  // the typescript typings evidently aren't always exactly right
       if (p === "") {
         // the whole project is public, which matches everything
         return "";
