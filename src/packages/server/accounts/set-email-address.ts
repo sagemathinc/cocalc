@@ -54,7 +54,6 @@ export default async function setEmailAddress(
 
   // if you have an email address that's controlled by an "exclusive" SSO strategy
   // you're not allowed to change your email address
-
   const strategies = await getStrategies();
   const strategy = checkRequiredSSO({ strategies, email: old_email_address });
   if (strategy != null) {
@@ -66,6 +65,13 @@ export default async function setEmailAddress(
       );
     }
     throw new Error(`You are not allowed to change your email address`);
+  }
+
+  // you're also not allowed to change your email address to one that's covered by an exclusive strategy
+  if (checkRequiredSSO({ strategies, email: email_address }) != null) {
+    throw new Error(
+      `You are not allowed to change your email address to this one`
+    );
   }
 
   if (!password_hash) {

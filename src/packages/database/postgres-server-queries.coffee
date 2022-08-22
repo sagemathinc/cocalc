@@ -1363,12 +1363,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             return
                         cb()
             (cb) =>
-                checkEmailExclusiveSSO @, opts.account_id, (err, exclusive) =>
+                checkEmailExclusiveSSO @, opts.account_id, email_address, (err, exclusive) =>
                     if err
                         cb(err)
                         return
                     if exclusive
-                        cb("you are not allowed to change your email address")
+                        cb("you are not allowed to change your email address or change to this one")
                         return
                     cb()
             (cb) =>
