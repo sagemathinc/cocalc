@@ -18,7 +18,7 @@ export async function checkEmailExclusiveSSO(
       where: { "account_id = $": account_id },
     });
     const email = emailQuery.rows[0].email_address;
-    if (email === null) {
+    if (email == null) {
       cb(null, false);
       return;
     }
@@ -30,6 +30,7 @@ export async function checkEmailExclusiveSSO(
     }
   } catch (err) {
     cb(err);
+    return;
   }
   cb(null, false);
 }
