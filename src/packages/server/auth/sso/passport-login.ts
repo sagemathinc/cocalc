@@ -42,6 +42,7 @@ import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { API_KEY_COOKIE_NAME } from "./consts";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { isEmpty } from "lodash";
+import getEmailAddress from "../../accounts/get-email-address";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -207,6 +208,7 @@ export class PassportLogin {
     }
   }
 
+  // this creates a passport to an existing account
   private async createPassport(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -241,6 +243,19 @@ export class PassportLogin {
     return false;
   }
 
+  private checkEmailExclusiveSSO(email_address): boolean {
+    const emailDomain = getEmailDomain(email_address.toLocaleLowerCase());
+    for (const strategyName in this.opts.passports) {
+      const strategy = this.opts.passports[strategyName];
+      for (const ssoDomain of strategy.info?.exclusive_domains ?? []) {
+        if (emailBelongsToDomain(emailDomain, ssoDomain)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private async checkPassportExists(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -263,6 +278,7 @@ export class PassportLogin {
       L(
         "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
       );
+
       // check if the email address of the passport is exclusive (which means we do not link to an existing account)
       if (this.checkExclusiveSSO(opts)) {
         throw new Error(
@@ -270,6 +286,17 @@ export class PassportLogin {
             opts.passports[opts.strategyName].info?.display ?? opts.strategyName
           } account to the account your're current logged in with. Please sign out first and then try signin in using this SSO account again.`
         );
+      }
+
+      // we also check if the currently signed in user is goverend by an exclusive SSO domain
+      // and prevent linking *another* SSO accoount (because this bypasses the exclusivity)
+      const account_email_address = await getEmailAddress(locals.account_id);
+      if (account_email_address != null) {
+        if (this.checkEmailExclusiveSSO(account_email_address)) {
+          throw new Error(
+            `It is not possible to link any other SSO accounts to the account your're current logged in with.`
+          );
+        }
       }
 
       await this.createPassport(opts, locals);
