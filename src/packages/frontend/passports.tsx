@@ -179,7 +179,7 @@ export const PassportStrategy: React.FC<PassportStrategyProps> = (props) => {
     if (!disabled) {
       if (name === "sso") {
         // this is a next.js page listing all non-public SSO strategies
-        url = join(appBasePath + "sso");
+        url = join(appBasePath, "sso");
       } else {
         url = join(appBasePath, "auth", name);
         if (get_api_key) {
