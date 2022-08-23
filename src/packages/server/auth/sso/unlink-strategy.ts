@@ -36,7 +36,7 @@ export default async function unlinkStrategy(opts: Options): Promise<void> {
   const pool = getPool();
 
   if (await isBlockedUnlinkStrategy({ strategyName, account_id })) {
-    throw new Error("You are not allowed to unlink this strategy");
+    throw new Error("You are not allowed to unlink this SSO account");
   }
 
   // if we can't find the strategy, we still let users unlink it – maybe no longer available?
