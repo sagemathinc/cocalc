@@ -74,7 +74,7 @@ export default function Signup(props: Props) {
         size="large"
         style={{ marginTop: "50px" }}
       >
-        Signup via {display}
+        Sign up using <strong>{display}</strong>
       </Button>
     );
   }
