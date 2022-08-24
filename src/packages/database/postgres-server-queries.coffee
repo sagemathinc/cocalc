@@ -1363,7 +1363,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             return
                         cb()
             (cb) =>
-                checkEmailExclusiveSSO @, opts.account_id, email_address, (err, exclusive) =>
+                checkEmailExclusiveSSO @, opts.account_id, opts.email_address, (err, exclusive) =>
                     if err
                         cb(err)
                         return
