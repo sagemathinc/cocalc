@@ -380,6 +380,7 @@ export class AccountSettings extends Component<Props, State> {
     if (any_hidden) {
       btns.push(
         <Button
+          key="sso"
           onClick={() => open_new_tab(join(appBasePath, "sso"))}
           bsStyle="info"
         >
