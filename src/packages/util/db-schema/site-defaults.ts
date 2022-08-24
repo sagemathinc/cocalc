@@ -53,7 +53,11 @@ export type SiteSettingsKeys =
 
 type Mapping = { [key: string]: string | number | boolean };
 
-type ToVal = boolean | string | number | Mapping;
+type ToVal = boolean | string | number | string[] | Mapping;
+type ToValFunc<T> = (
+  val?: string,
+  config?: { [key in SiteSettingsKeys]?: string }
+) => T;
 
 export interface Config {
   readonly name: string;
@@ -65,10 +69,7 @@ export interface Config {
   readonly password?: boolean;
   readonly show?: (conf: any) => boolean;
   // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
-  readonly to_val?: (
-    val: string,
-    config?: { [key in SiteSettingsKeys]?: string }
-  ) => ToVal;
+  readonly to_val?: ToValFunc<ToVal>;
   // this optional function derives the visual representation for the admin (fallback: to_val)
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
@@ -122,10 +123,11 @@ export const from_json = (conf): Mapping => {
 // TODO a cheap'n'dirty validation is good enough
 //const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
-export const split_iframe_comm_hosts = (hosts) =>
-  hosts.match(/[a-z0-9.-]+/g) || [];
+export const split_iframe_comm_hosts: ToValFunc<string[]> = (hosts) =>
+  (hosts ?? "").match(/[a-z0-9.-]+/g) || [];
 
-const split_strings = (str) => str.match(/[a-zA-Z0-9]+/g) || [];
+const split_strings: ToValFunc<string[]> = (str) =>
+  (str ?? "").match(/[a-zA-Z0-9]+/g) || [];
 
 function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
