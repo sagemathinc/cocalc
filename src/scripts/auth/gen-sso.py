@@ -242,6 +242,15 @@ for strat in strats:
                              conf=dumps(strat["conf"]),
                              info=dumps(strat.get("info"))))
 
+import sys
+if len(sys.argv) > 1 and sys.argv[1] == 'dump':
+    print()
+    print('commands:')
+    print()
+    for sql in sql_commands:
+        print(sql)
+    exit()
+
 from subprocess import run
 
 # this needs all env variables to set properly, e.g. source an "postgres-env" file first
