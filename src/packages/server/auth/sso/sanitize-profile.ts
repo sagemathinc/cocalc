@@ -4,12 +4,13 @@
  */
 
 import { is_valid_email_address } from "@cocalc/util/misc";
+import { PassportLoginOpts } from "@cocalc/server/auth/sso/types";
 
 // this processes the profile, based on our general experience
-// in particular, the interesting detial is to derive a "name" if
-// there is just an email address
+// in particular, an interesting detail to add would be to derive a "name" if
+// there is just an email address given. (there are workarounds for OAuth2 elsewhere)
 
-export function sanitizeProfile(opts): void {
+export function sanitizeProfile(opts: PassportLoginOpts): void {
   if (
     opts.full_name != null &&
     opts.first_name == null &&

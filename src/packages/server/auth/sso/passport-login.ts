@@ -4,7 +4,7 @@
  */
 
 /** This is called by a passport strategy endpoint (which is already setup) to actually
- * authenticate a user. This checks if there is an account already, creates it, etc.
+ * authenticate a user. This checks if there already exists an account, if not creates it, etc.
  * Checks if user info needs to be updated, and even checks if this is actually about
  * getting an API key.
  *
@@ -15,6 +15,7 @@
  * 2. If you're not signed in and try to sign in, this checks if there is already an account – and creates it if not.
  * 3. If you sign in and the SSO strategy is set to "update_on_login", it will reset the name of the user to the
  * data from the SSO provider. However, the user can still modify the name.
+ * 4. If you already have an email address belonging to a newly introduced exclusive domain, it will start to be controlled by it.
  */
 
 import base_path from "@cocalc/backend/base-path";
@@ -98,6 +99,8 @@ export class PassportLogin {
     sanitizeID(this.opts);
 
     const cookies = new Cookies(this.opts.req, this.opts.res);
+
+    // TODO: once this is settled, refactor this.opts and locals to be attributes of this short-living class.
     const locals: PassportLoginLocals = {
       cookies,
       new_account_created: false,
@@ -157,6 +160,7 @@ export class PassportLogin {
     }
   } // end passport_login
 
+  // retrieve the support help email address from the server settings
   async getHelpEmail(): Promise<string> {
     const settings = await cb2(this.database.get_server_settings_cached);
     return settings.help_email || HELP_EMAIL;
@@ -208,7 +212,7 @@ export class PassportLogin {
     }
   }
 
-  // this creates a passport to an existing account
+  // this adds a passport to an existing account
   private async createPassport(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -227,6 +231,7 @@ export class PassportLogin {
     });
   }
 
+  // this checks if the login info contains an email address, which belongs to an exclusive SSO strategy
   private checkExclusiveSSO(opts: PassportLoginOpts): boolean {
     const strategy = opts.passports[opts.strategyName];
     const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
@@ -243,6 +248,7 @@ export class PassportLogin {
     return false;
   }
 
+  // similar to the above, for a specific email address
   private checkEmailExclusiveSSO(email_address): boolean {
     const emailDomain = getEmailDomain(email_address.toLocaleLowerCase());
     for (const strategyName in this.opts.passports) {
@@ -256,6 +262,10 @@ export class PassportLogin {
     return false;
   }
 
+  // check, if depending on the strategy name and provided ID, we already know about that particular passport
+  // this is in particular important, if e.g. a user A is signed in, but attempts to link to a passport X,
+  // which is already associated with a user B. passports across all users are unique!
+  // Exceptions apply to exclusive SSO strategies, which excert more control over the associated account.
   private async checkPassportExists(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -299,6 +309,7 @@ export class PassportLogin {
         }
       }
 
+      // user authenticated, passport not known, adding to the user's account
       await this.createPassport(opts, locals);
     } else {
       if (
@@ -324,6 +335,11 @@ export class PassportLogin {
     }
   }
 
+  // If the SSO strategy provides one or more email addresses, we check if we already know these addresses!
+  // This means a user can't "grab" some elses account, but has to sign in first (knowing the password)
+  // and then link to the account. An exception are "exclusive" SSO strategies, which are all set to
+  // control email addresses of their associated accounts (and well, users can only sign in using that SSO
+  // strategy)
   private async checkExistingEmails(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -373,6 +389,7 @@ export class PassportLogin {
     }
   }
 
+  // This calls the DB methods to create a new account, including the SSO passport configuration
   private async create_account(
     opts: PassportLoginOpts,
     email_address: string | undefined
@@ -387,6 +404,7 @@ export class PassportLogin {
     });
   }
 
+  // This calls the above, as long as we do not already have an account_id
   private async maybeCreateAccount(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -404,7 +422,7 @@ export class PassportLogin {
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
-    // if we know the email address,
+    // if we know the email address provided by the SSO strategy,
     // we execute the account creation actions and set the address to be verified
     if (locals.email_address != null) {
       const actions = cb2(this.database.do_account_creation_actions, {
@@ -436,6 +454,8 @@ export class PassportLogin {
     });
   }
 
+  // if the above created no new account (and hence we had an account_id before that)
+  // we record that we signed in a user
   private async maybeRecordSignIn(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -455,6 +475,9 @@ export class PassportLogin {
     });
   }
 
+  // optionally, SSO strategies can be configured to always update fields of the user
+  // with the data they provide. right now that's first and last name.
+  // email address is a bit more tricky and not implemented.
   private async maybeUpdateAccountAndPassport(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -483,6 +506,8 @@ export class PassportLogin {
     });
   }
 
+  // There is a special case, where an api_key was requested.
+  // This is chekced here, key created, and the client is redirected to a special (local) URL
   private async maybeProvisionAPIKey(
     locals: PassportLoginLocals
   ): Promise<void> {
@@ -515,6 +540,23 @@ export class PassportLogin {
     locals.target = `https://authenticated?api_key=${locals.api_key}`;
   }
 
+  // ebfore recording the sign-in below, we check if a user is banned
+  private async isUserBanned(account_id, email_address): Promise<boolean> {
+    const is_banned = await cb2(this.database.is_banned_user, {
+      account_id,
+    });
+    if (is_banned) {
+      const helpEmail = await this.getHelpEmail();
+      throw Error(
+        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${helpEmail}.`
+      );
+    }
+    return is_banned;
+  }
+
+  // If we did end up here, and there wasn't already a valid remember me cookie,
+  // we signed in a user. We record that and set the remember me cookie
+  // SSO strategies can configure the expiration of that cookie – e.g. super paranoid ones can set this to 1 day.
   private async handleNewSignIn(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals
@@ -537,18 +579,5 @@ export class PassportLogin {
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
     });
-  }
-
-  private async isUserBanned(account_id, email_address): Promise<boolean> {
-    const is_banned = await cb2(this.database.is_banned_user, {
-      account_id,
-    });
-    if (is_banned) {
-      const helpEmail = await this.getHelpEmail();
-      throw Error(
-        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${helpEmail}.`
-      );
-    }
-    return is_banned;
   }
 }

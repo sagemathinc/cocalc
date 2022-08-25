@@ -25,6 +25,7 @@ interface RowType {
   expire: Date;
 }
 
+// ATTN: do not change the method names nilly-willy: https://github.com/node-saml/passport-saml#cache-provider
 class PassportCache {
   private name: string;
   private cachedMS: number;

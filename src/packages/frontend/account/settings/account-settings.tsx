@@ -200,6 +200,8 @@ export class AccountSettings extends Component<Props, State> {
           account. Otherwise you would completely lose access to your account!
         </Well>
       );
+      // TODO: flesh out the case where the UI prevents a user from unlinking an exclusive sso strategy
+      // Right now, the backend blocks this.
     } else if (false) {
       return (
         <Well>You are not allowed to remove the passport strategy {name}.</Well>

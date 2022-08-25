@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+# This is 100% for development only. None of these configurations are real!
 # This is a quick and simple script to generate PostgreSQL commands to re-create the passport_strategy table.
 # As a first command, it deletes everything you have there -- hence this is 100% only for development!
 # Usage:
-#    python3 cocalc-db-sso.py | psql
+#    python3 cocalc-db-sso.py [dump]
+# which issues commands to psql directly, or add "dump" to see what it would do.
 
 from typing_extensions import TypedDict
 from typing import Dict
