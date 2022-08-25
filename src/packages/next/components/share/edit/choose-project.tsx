@@ -4,11 +4,11 @@
  */
 
 import { join } from "path";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
-import { trunc } from "@cocalc/util/misc";
+import { path_split, trunc } from "@cocalc/util/misc";
 import copyPublicPath from "lib/share/copy-public-path";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
@@ -18,11 +18,13 @@ import CreateProject from "components/project/create";
 import SelectProject from "components/project/select";
 import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
+import RunApp from "components/app/path";
 
 export default function ChooseProject({
   id,
   src_project_id,
   path,
+  url,
   relativePath,
   image,
   description,
@@ -38,28 +40,51 @@ export default function ChooseProject({
   const [showListing, setShowListing] = useState<boolean>(false);
   const [hideSelect, setHideSelect] = useState<boolean>(false);
   const [hideCreate, setHideCreate] = useState<boolean>(false);
-  const targetPath = join(path, relativePath);
+  const targetPath = url
+    ? path_split(join(path, relativePath)).tail
+    : join(path, relativePath);
+
+  useEffect(() => {
+    // Always immediately start copying -- don't wait for user to click a button. See
+    // https://github.com/sagemathinc/cocalc/issues/6025
+    if (project != null && copying == "before") {
+      doCopy();
+    }
+  }, [project != null]);
 
   async function doCopy() {
     try {
       if (project == null) throw Error("no target specified");
+      setCopying("starting");
+      setHideSelect(true);
       // Possibly upgrade the project using a public_path license
       await api("/projects/public-path-license", {
         public_path_id: id,
         project_id: project.project_id,
       });
       // Start the *target* project!
-      setCopying("starting");
       await api("/projects/start", { project_id: project.project_id });
       if (!isMounted.current) return;
       setCopying("during");
-      await copyPublicPath({
-        id,
-        src_project_id,
-        path,
-        relativePath,
-        target_project_id: project.project_id,
-      });
+      // Get the content
+      if (url) {
+        // From a URL
+        await api("/projects/copy-url", {
+          project_id: project.project_id,
+          url,
+          path: targetPath,
+        });
+      } else {
+        // From another project
+        await copyPublicPath({
+          id,
+          src_project_id,
+          path,
+          url,
+          relativePath,
+          target_project_id: project.project_id,
+        });
+      }
     } catch (err) {
       if (!isMounted.current) return;
       setErrorCopying(err.message);
@@ -72,6 +97,9 @@ export default function ChooseProject({
   return (
     <div>
       <div>
+        {!errorCopying && copying == "after" && project?.project_id && (
+          <RunApp start project_id={project.project_id} path={targetPath} />
+        )}
         {image && image != DEFAULT_COMPUTE_IMAGE && (
           <div>
             We recommend that you create a new project, since this public path
@@ -83,10 +111,11 @@ export default function ChooseProject({
             image={image}
             label="In a new project"
             start={true}
-            defaultTitle={description}
+            defaultTitle={url ? targetPath : description}
             onCreate={(project) => {
               setProject(project);
               setHideSelect(true);
+              setHideCreate(true);
             }}
           />
         )}
@@ -115,7 +144,7 @@ export default function ChooseProject({
                   style={{ maxWidth: "100%", overflow: "hidden" }}
                   shape="round"
                 >
-                  <Icon name="copy" /> Copy {join(path, relativePath)} to
+                  <Icon name="copy" /> Copy {targetPath} to
                   <b style={{ marginLeft: "5px" }}>{project.title}</b>
                 </Button>
                 {!hideSelect && (
@@ -163,7 +192,7 @@ export default function ChooseProject({
                   name={errorCopying ? "times-circle" : "check"}
                   style={{ color: "darkgreen", fontSize: "16pt" }}
                 />{" "}
-                Finished copying {join(path, relativePath)} to{" "}
+                Finished copying {targetPath} to{" "}
                 <A
                   href={editURL({
                     type: "collaborator",
@@ -186,30 +215,12 @@ export default function ChooseProject({
                 </A>
                 .{" "}
                 {errorCopying ? (
-                  <div>There might have been an issue copying files.</div>
+                  <div>
+                    <b>There appears to have been an issue copying files.</b>
+                  </div>
                 ) : (
                   ""
                 )}
-                <br />
-                <Button
-                  href={editURL({
-                    type: "collaborator",
-                    project_id: project.project_id,
-                    path: targetPath,
-                  })}
-                  target="_blank"
-                  size="large"
-                  type="primary"
-                  style={{
-                    maxWidth: "100%",
-                    overflow: "hidden",
-                    margin: "15px 0",
-                  }}
-                  shape="round"
-                >
-                  <Icon name="paper-plane" /> Open your copy of "
-                  {join(path, relativePath)}"...
-                </Button>
               </>
             )}
           </div>

@@ -7,7 +7,6 @@
 Functions for parsing input, etc.
 */
 
-const { endswith } = require("@cocalc/util/misc");
 import { Syntax } from "@cocalc/util/code-formatter";
 import CodeMirror from "@cocalc/frontend/codemirror/static";
 
@@ -19,10 +18,9 @@ export function run_mode(code: string, mode: string, language: string) {
     const style = last_style(code, mode);
     if (style === "comment" || style === "string") {
       return "execute";
-    } else if (endswith(code, "??")) {
-      // TODO: can we not just use "string.endsWith"?
+    } else if (code.endsWith("??")) {
       return "show_source";
-    } else if (endswith(code, "?")) {
+    } else if (code.endsWith("?")) {
       return "show_doc";
     }
   }

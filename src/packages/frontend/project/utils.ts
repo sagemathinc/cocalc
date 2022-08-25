@@ -12,6 +12,7 @@ import {
   unreachable,
   capitalize,
   uuid,
+  sha1,
   separate_file_extension,
 } from "@cocalc/util/misc";
 import { generate as heroku } from "project-name-generator";
@@ -209,9 +210,6 @@ export class NewFilenames {
     }
   }
 }
-
-const sha1 = require("sha1");
-
 export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
 }

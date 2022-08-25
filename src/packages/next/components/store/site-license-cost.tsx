@@ -234,9 +234,10 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
     throw Error("at this point, we only deal with type=quota");
   }
 
-  if (info.custom_uptime == null || info.quantity == null)
+  if (info.quantity == null) {
     throw new Error("should not happen");
-  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
+  }
+  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime ?? "short");
   return (
     <>
       {describe_quota({

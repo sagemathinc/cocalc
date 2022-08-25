@@ -24,6 +24,7 @@ import {
   CommandDescription,
 } from "@cocalc/frontend/jupyter/commands";
 import { isEqual } from "lodash";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 export interface EditorFunctions {
   save?: () => string | undefined;
@@ -425,7 +426,17 @@ export class NotebookFrameActions {
         this.set_md_cell_editing(cur_id);
       }
     }
+    const prev_id = this.store.get("cur_id");
     this.setState({ cur_id });
+
+    // set the fragment if the id **changes** and this is the
+    // the active frame.
+    if (
+      cur_id != prev_id &&
+      this.frame_tree_actions._get_active_id() == this.frame_id
+    ) {
+      Fragment.set({ id: cur_id });
+    }
   }
 
   // Called when the cell list changes due to external events.
@@ -665,6 +676,8 @@ export class NotebookFrameActions {
       delta
     );
     this.set_cur_id(id);
+    this.scroll("cell visible force");
+    setTimeout(() => this.scroll("cell visible force"), 0);
     return id;
   }
 

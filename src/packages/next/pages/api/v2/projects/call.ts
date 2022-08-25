@@ -15,7 +15,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
   try {
-    const { project_id, mesg } = getParams(req, ["project_id", "mesg"]);
+    const { project_id, mesg } = getParams(req);
     res.json(await callProject({ account_id, project_id, mesg }));
   } catch (err) {
     res.json({ error: err.message });

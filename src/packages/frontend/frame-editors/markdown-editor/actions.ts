@@ -31,6 +31,7 @@ import {
   slatePointToMarkdownPosition,
   scrollIntoView as scrollSlateIntoView,
 } from "@cocalc/frontend/editors/slate/sync";
+import { open_new_tab } from "@cocalc/frontend/misc";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
@@ -57,7 +58,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
     this._syncstring.on(
       "change",
-      debounce(this.updateTableOfContents.bind(this), 2000)
+      debounce(this.updateTableOfContents.bind(this), 1500)
     );
   }
 
@@ -289,5 +290,9 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
         this.sync_cm_to_slate(id, editor_actions);
         return;
     }
+  }
+
+  help(): void {
+    open_new_tab("https://doc.cocalc.com/markdown.html");
   }
 }

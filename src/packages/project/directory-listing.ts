@@ -21,15 +21,22 @@ import { Router } from "express";
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 import { callback } from "awaiting";
 import { DirectoryListingEntry } from "@cocalc/util/types";
+import { reuseInFlight } from "async-await-utils/hof";
+
+import { getLogger } from "@cocalc/project/logger";
+const winston = getLogger("directory-listing");
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
 const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME;
 
-export async function get_listing(
+export const get_listing = reuseInFlight(getDirectoryListing);
+
+async function getDirectoryListing(
   path: string, // assumed in home directory!
   hidden: boolean = false
 ): Promise<DirectoryListingEntry[]> {
   const dir = HOME + "/" + path;
+  winston.debug(dir);
   const files: DirectoryListingEntry[] = [];
   let file: Dirent;
   for (file of await callback(readdir, dir, { withFileTypes: true })) {

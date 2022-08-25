@@ -7,16 +7,23 @@
 Render all the messages in the chat.
 */
 
+import { VisibleMDLG } from "@cocalc/frontend/components";
 import React, { MutableRefObject, useEffect, useMemo, useRef } from "react";
-import { List, Map } from "immutable";
-import { useActions, useRedux, useTypedRedux } from "../app-framework";
-import { Alert } from "../antd-bootstrap";
-import { Message } from "./message";
-import { search_match, search_split } from "@cocalc/util/misc";
+import { List, Map, Set as immutableSet } from "immutable";
+import {
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Alert } from "antd";
+import Message from "./message";
+import { parse_hashtags, search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { Avatar } from "../account/avatar/avatar";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
+import { newest_content, getSelectedHashtagsSearch } from "./utils";
 
 type MessageMap = Map<string, any>;
 
@@ -33,12 +40,38 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     const messages = useRedux(["messages"], project_id, path);
     const drafts = useRedux(["drafts"], project_id, path);
     const font_size = useRedux(["font_size"], project_id, path);
-    const search = useRedux(["search"], project_id, path);
+
+    // see similar code in task list:
+    const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
+    const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
+      return getSelectedHashtagsSearch(selectedHashtags0);
+    }, [selectedHashtags0]);
+
+    const search =
+      useRedux(["search"], project_id, path) + selectedHashtagsSearch;
+
+    useEffect(() => {
+      scrollToBottomRef?.current?.(true);
+    }, [search]);
+
     const user_map = useTypedRedux("users", "user_map");
     const account_id = useTypedRedux("account", "account_id");
     const sorted_dates = useMemo<string[]>(() => {
       return get_sorted_dates(messages, search);
     }, [messages, search, project_id, path]);
+
+    const visibleHashtags = useMemo(() => {
+      let X = immutableSet<string>([]);
+      for (const date of sorted_dates) {
+        const message = messages.get(date);
+        const value = newest_content(message);
+        for (const x of parse_hashtags(value)) {
+          const tag = value.slice(x[0] + 1, x[1]).toLowerCase();
+          X = X.add(tag);
+        }
+      }
+      return X;
+    }, [messages, sorted_dates]);
 
     const virtuosoRef = useRef<VirtuosoHandle>(null);
     const manualScrollRef = useRef<boolean>(false);
@@ -77,6 +110,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
           project_id={project_id}
           path={path}
           font_size={font_size}
+          selectedHashtags={selectedHashtags}
           actions={actions}
           is_prev_sender={is_prev_message_sender(i, sorted_dates, messages)}
           is_next_sender={is_next_message_sender(i, sorted_dates, messages)}
@@ -97,12 +131,17 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       const not_showing = messages.size - sorted_dates.length;
       if (not_showing <= 0) return;
       return (
-        <Alert bsStyle="warning" key="not_showing">
-          <b>
-            WARNING: Hiding {not_showing} chats that do not match search for '
-            {search}'.
-          </b>
-        </Alert>
+        <Alert
+          style={{ margin: "0 5px" }}
+          type="warning"
+          key="not_showing"
+          message={
+            <b>
+              WARNING: Hiding {not_showing} chats that do not match search for '
+              {search.trim()}'.
+            </b>
+          }
+        />
       );
     }
 
@@ -135,6 +174,19 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
 
     return (
       <>
+        {visibleHashtags.size > 0 && (
+          <VisibleMDLG>
+            <HashtagBar
+              actions={{
+                set_hashtag_state: (tag, state) => {
+                  actions.setHashtagState(tag, state);
+                },
+              }}
+              selected_hashtags={selectedHashtags0}
+              hashtags={visibleHashtags}
+            />
+          </VisibleMDLG>
+        )}
         {render_not_showing()}
         <Virtuoso
           ref={virtuosoRef}
@@ -197,7 +249,7 @@ function is_prev_message_sender(
 function search_matches(message: MessageMap, search_terms): boolean {
   const first = message.get("history", List()).first();
   if (first == null) return false;
-  return search_match(first.get("content", "").toLowerCase(), search_terms);
+  return search_match(first.get("content", ""), search_terms);
 }
 
 export function get_sorted_dates(messages, search) {
@@ -207,7 +259,7 @@ export function get_sorted_dates(messages, search) {
   let m = messages;
   if (m == null) return [];
   if (search) {
-    const search_terms = search_split(search.toLowerCase());
+    const search_terms = search_split(search);
     m = m.filter((message) => search_matches(message, search_terms));
   }
   return m.keySeq().sort().toJS();

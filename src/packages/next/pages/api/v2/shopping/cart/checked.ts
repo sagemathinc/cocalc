@@ -4,6 +4,7 @@ Check or uncheck item in cart.
 
 import setChecked from "@cocalc/server/shopping/cart/checked";
 import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -19,6 +20,6 @@ async function set(req): Promise<number> {
   if (account_id == null) {
     throw Error("must be signed in to get shopping cart information");
   }
-  const { id, checked } = req.body;
+  const { id, checked } = getParams(req);
   return await setChecked(account_id, checked, id);
 }

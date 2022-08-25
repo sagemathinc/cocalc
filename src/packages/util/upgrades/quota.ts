@@ -76,8 +76,11 @@ const MIN_POSSIBLE_MEMORY: Limit = Object.freeze({
 
 // lower bound for the RAM "limit"
 // in particular, we make sure member projects are above the free quota
+// 20220601: for years we gave away 1.5x the default quota for members, even if we only sold a 1gb upgade.
+//           We stopped doing this as part of a price increase, and instead configure exactly what we sell.
+//           We also enahanced the OOM banner with note about upgrading the project or boosting a license.
 const MIN_MEMORY_LIMIT: Limit = Object.freeze({
-  member: 1.5 * DEFAULT_QUOTAS.memory,
+  member: DEFAULT_QUOTAS.memory,
   nonmember: DEFAULT_QUOTAS.memory,
 });
 
@@ -129,6 +132,18 @@ export interface Upgrades {
   always_running: number;
   ephemeral_state: number;
   ephemeral_disk: number;
+}
+
+// this is onprem specific only!
+// this server setting configuration "default_quotas" is stored in the database
+// and used by the manage process to configure default quotas of projects.
+export interface DefaultQuotaSetting {
+  cpu: number; // limit cpu, usually 1
+  cpu_oc: number; // overcommit ratio for CPU, e.g 10: means 1/10 is requested
+  idle_timeout: number; // seconds
+  internet: boolean; // usually true
+  mem: number; // memory limit in MB
+  mem_oc: number; // overcommit ratio to derive memory request (e.g. 5 = 5x overcommit)
 }
 
 // upgrade raw data from users: {"<uuid4>": {"group": ...,

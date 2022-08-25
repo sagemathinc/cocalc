@@ -24,6 +24,7 @@ import type { IFilterXSSOptions } from "xss";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import DefaultMath from "@cocalc/frontend/components/math/ssr";
 import { MathJaxConfig } from "@cocalc/util/mathjax-config";
+import { decodeHTML } from "entities";
 
 const URL_TAGS = ["src", "href", "data"];
 
@@ -94,6 +95,14 @@ export default function HTML({
   let options: any = {};
   options.replace = (domNode) => {
     // console.log("domNode = ", domNode);
+    if (!/^[a-zA-Z]+[0-9]?$/.test(domNode.name)) {
+      // Without this, if user gives html input that is a malformed tag then all of React
+      // completely crashes, which is not desirable for us.  On the other hand, I prefer not
+      // to always completely sanitize input, since that can do a lot we don't want to do
+      // and may be expensive. See
+      //   https://github.com/remarkablemark/html-react-parser/issues/60#issuecomment-398588573
+      return React.createElement(React.Fragment);
+    }
     if (domNode instanceof Text) {
       if (hasAncestor(domNode, MATH_SKIP_TAGS)) {
         // Do NOT convert Text to math inside a pre/code tree environment.
@@ -101,9 +110,9 @@ export default function HTML({
       }
       const { data } = domNode;
       if (MathComponent != null) {
-        return <MathComponent data={data} />;
+        return <MathComponent data={decodeHTML(data)} />;
       }
-      return <DefaultMath data={data} />;
+      return <DefaultMath data={decodeHTML(data)} />;
     }
 
     if (!(domNode instanceof Element)) return;
@@ -115,7 +124,7 @@ export default function HTML({
       if (type?.startsWith("math/tex")) {
         const child = domNode.children?.[0];
         if (child instanceof Text && child.data) {
-          let data = "$" + child.data + "$";
+          let data = "$" + decodeHTML(child.data) + "$";
           if (type.includes("display")) {
             data = "$" + data + "$";
           }

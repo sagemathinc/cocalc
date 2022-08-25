@@ -22,15 +22,8 @@ between them.
 
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
-import {
-  Alert,
-  Button,
-  Row,
-  Col,
-  FormGroup,
-  FormControl,
-  Radio,
-} from "react-bootstrap";
+import { Alert, Button, FormGroup, FormControl, Radio } from "react-bootstrap";
+import { Row, Col } from "antd";
 import {
   redux,
   ReactDOM,
@@ -58,6 +51,10 @@ import {
   SHARE_AUTHENTICATED_EXPLANATION,
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
+import { Popover } from "antd";
+
+// https://ant.design/components/grid/
+const GUTTER: [number, number] = [16, 24];
 
 interface PublicInfo {
   created: Date;
@@ -173,7 +170,8 @@ class Configure extends Component<Props, State> {
   }
 
   private render_public_listed_option(state: string): Rendered {
-    if (!this.props.is_commercial || this.props.has_network_access) {
+    // We are always allowing public sharing now.
+    if (true || !this.props.is_commercial || this.props.has_network_access) {
       return (
         <Radio
           name="sharing_options"
@@ -369,10 +367,17 @@ class Configure extends Component<Props, State> {
       <>
         <h4>Link</h4>
         <div style={{ paddingBottom: "5px" }}>Your share will appear here.</div>
-        <Button bsStyle="default" onClick={() => open_new_tab(url)}>
-          <Icon name="external-link" />
-        </Button>
-        <CopyToClipBoard value={url} />
+        <CopyToClipBoard
+          value={url}
+          labelStyle={{ marginRight: "5px" }}
+          label={
+            <Popover content={"Open published file on share server."}>
+              <Button bsStyle="default" onClick={() => open_new_tab(url)}>
+                <Icon name="external-link" />
+              </Button>
+            </Popover>
+          }
+        />
       </>
     );
   }
@@ -381,12 +386,12 @@ class Configure extends Component<Props, State> {
     if (this.state.sharing_options_state === "private") return;
 
     return (
-      <Row>
-        <Col sm={6} style={{ color: "#666" }}>
+      <Row gutter={GUTTER} style={{ paddingTop: "12px" }}>
+        <Col span={12} style={{ color: "#666" }}>
           {this.render_description(parent_is_public)}
           {this.render_license(parent_is_public)}
         </Col>
-        <Col sm={6} style={{ color: "#666" }}>
+        <Col span={12} style={{ color: "#666" }}>
           {this.render_link(parent_is_public)}
           <ConfigureName
             project_id={this.props.project_id}
@@ -418,6 +423,7 @@ class Configure extends Component<Props, State> {
     return <Button onClick={this.props.close}>Close</Button>;
   }
 
+  /*
   private render_needs_network_access(parent_is_public: boolean): Rendered {
     const url =
       this.props.public == null || this.props.public.disabled
@@ -446,6 +452,7 @@ class Configure extends Component<Props, State> {
       </Alert>
     );
   }
+  */
 
   private render_share_server_disabled(): Rendered {
     return (
@@ -469,9 +476,10 @@ class Configure extends Component<Props, State> {
     if (!this.props.share_server) {
       return this.render_share_server_disabled();
     }
-    if (this.props.is_commercial && !this.props.has_network_access) {
-      return this.render_needs_network_access(parent_is_public);
-    }
+    // We are again allowing sharing without network.
+    //     if (this.props.is_commercial && !this.props.has_network_access) {
+    //       return this.render_needs_network_access(parent_is_public);
+    //     }
 
     return (
       <div>
@@ -487,24 +495,26 @@ class Configure extends Component<Props, State> {
             {trunc_middle(this.props.path, 128)}
           </a>
         </h2>
-        <Row>
-          <VisibleMDLG>
-            <Col sm={6}>{this.render_how_shared_heading()}</Col>
-            <Col sm={6}>
+        <Row gutter={GUTTER}>
+          <Col span={12}>
+            <VisibleMDLG>{this.render_how_shared_heading()}</VisibleMDLG>
+          </Col>
+          <Col span={12}>
+            <VisibleMDLG>
               <span style={{ fontSize: "15pt" }}>How it works</span>
-            </Col>
-          </VisibleMDLG>
+            </VisibleMDLG>
+          </Col>
         </Row>
-        <Row>
-          <Col sm={6}>
+        <Row gutter={GUTTER}>
+          <Col span={12}>
             {this.render_how_shared(parent_is_public)}
             {this.render_share_warning(parent_is_public)}
           </Col>
-          <Col sm={6}>{this.render_share_defn()}</Col>
+          <Col span={12}>{this.render_share_defn()}</Col>
         </Row>
         {this.render_public_config(parent_is_public)}
-        <Row>
-          <Col sm={12}>{this.render_close_button()}</Col>
+        <Row gutter={GUTTER}>
+          <Col span={24}>{this.render_close_button()}</Col>
         </Row>
       </div>
     );

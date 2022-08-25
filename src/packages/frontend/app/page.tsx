@@ -412,7 +412,7 @@ export const Page: React.FC = () => {
         </Navbar>
       )}
       {!fullscreen && <div style={{ minHeight: positionHackHeight }}></div>}
-      {fullscreen !== "kiosk" && !is_anonymous && <FullscreenButton />}
+      {!is_anonymous && <FullscreenButton />}
       <ActiveContent />
     </div>
   );

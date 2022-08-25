@@ -313,7 +313,9 @@ export class JupyterActions extends JupyterActions0 {
 
     // Track backend state changes other than closing, so they
     // are visible to user etc.
-    // TODO: all these need to move to ephemeral table!!
+    // TODO: Maybe all these need to move to ephemeral table?
+    // There's a good argument that recording these is useful though, so when
+    // looking at time travel or debugging, you know what was going on.
     this.jupyter_kernel.on("state", (state) => {
       switch (state) {
         case "spawning":
@@ -324,7 +326,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    this.jupyter_kernel.on("execution_state", this.set_kernel_state);
+    this.jupyter_kernel.on("execution_state", this.set_kernel_state.bind(this));
 
     this.jupyter_kernel.on("kernel_error", (err) => {
       // save so gets reported to frontend, and surfaced to user:
@@ -575,19 +577,31 @@ export class JupyterActions extends JupyterActions0 {
       dbg,
     });
 
-    this.jupyter_kernel.once("closed", () => {
+    dbg("adding closed handler to jupyter_kernel");
+    const handleKernelClose = () => {
       dbg("output handler -- closing due to jupyter kernel closed");
       handler.close();
-    });
+    };
+    this.jupyter_kernel.once("closed", handleKernelClose);
+    // remove the "closed" handler we just defined above once
+    // we are done waiting for output from this cell.
+    // The output handler removes all listeners whenever it is
+    // finished, so we don't have to remove this listener for done.
+    handler.once("done", () =>
+      this.jupyter_kernel?.removeListener("closed", handleKernelClose)
+    );
 
     handler.on("more_output", (mesg, mesg_length) => {
       this.set_more_output(cell.id, mesg, mesg_length);
     });
 
     handler.on("process", (mesg) => {
-      if (this.jupyter_kernel != null) {
-        this.jupyter_kernel.process_output(mesg);
-      }
+      if (
+        this.jupyter_kernel == null ||
+        this.jupyter_kernel.get_state() == "closed"
+      )
+        return;
+      this.jupyter_kernel.process_output(mesg);
     });
 
     return handler;

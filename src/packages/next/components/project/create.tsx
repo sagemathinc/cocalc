@@ -111,7 +111,7 @@ export default function CreateProject({
             type={title ? "primary" : undefined}
             onClick={() => create(title)}
           >
-            Create Project
+            <Icon name="plus-circle"/> Create New Project
           </Button>
         )}
       </Space>

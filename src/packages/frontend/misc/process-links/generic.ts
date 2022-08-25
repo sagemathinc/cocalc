@@ -15,8 +15,17 @@ import { join } from "path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 type jQueryAPI = Function;
+
+type LoadTargetFunction = (
+  target: string,
+  switchTo: boolean,
+  a: boolean,
+  b: boolean,
+  fragmentId?: FragmentId
+) => void;
 
 interface Options {
   $: jQueryAPI; // something with jquery api -- might be cheerio or jQuery itself.
@@ -24,21 +33,15 @@ interface Options {
   projectId?: string;
   filePath?: string;
   projectActions?: {
-    load_target: (
-      target: string,
-      switchTo: boolean,
-      a: boolean,
-      b: boolean,
-      anchor: string
-    ) => void;
+    load_target: LoadTargetFunction;
   };
 }
 
 function loadTarget(
   target: string,
   switchTo: boolean,
-  anchor: string,
-  projectActions: { load_target: Function }
+  fragmentId: FragmentId | undefined,
+  projectActions: { load_target: LoadTargetFunction }
 ): void {
   // get rid of "?something" in "path/file.ext?something"
   const i = target.lastIndexOf("/");
@@ -46,9 +49,8 @@ function loadTarget(
     const j = target.slice(i).indexOf("?");
     if (j >= 0) target = target.slice(0, i + j);
   }
-  projectActions.load_target(target, switchTo, false, true, anchor);
+  projectActions.load_target(target, switchTo, false, true, fragmentId);
 }
-
 
 function processAnchorTag(y: any, opts: Options): void {
   let href = y?.attr("href");
@@ -60,40 +62,37 @@ function processAnchorTag(y: any, opts: Options): void {
     href = opts.urlTransform(href, "a") ?? href;
     y.attr("href", href);
   }
-  if (href[0] === "#") {
-    // CASE: internal link on same document. We have to do some ugly stuff here, since
-    // background tabs may result in multiple copies of the same id (with most not visible).
+  if (href.startsWith("#")) {
+    // CASE: internal URI fragment pointing to something in this same document.
     href = y[0].baseURI + href; // will get handled below.
   }
   if (href.startsWith("mailto:")) {
     return; // do nothing
   }
   const { projectActions } = opts;
-  if (
-    projectActions &&
-    isCoCalcURL(href) &&
-    href.includes("/projects/")
-  ) {
+  if (projectActions && isCoCalcURL(href) && href.includes("/projects/")) {
     // CASE: Link inside a specific browser tab.
     // target starts with cloud URL or is absolute, and has /projects/ in it,
     // so we open the link directly inside this browser tab.
     // WARNING: there are cases that could be wrong via this heuristic, e.g.,
     // a raw link that happens to have /projects/ in it -- deal with them someday...
     y.click(function (e): boolean {
-      let anchor;
+      let fragmentId;
       const url = href;
       const i = url.indexOf("/projects/");
       let target = url.slice(i + "/projects/".length);
       const v = target.split("#");
       if (v.length > 1) {
-        [target, anchor] = v;
+        let hash;
+        [target, hash] = v;
+        fragmentId = Fragment.decode(hash);
       } else {
-        anchor = undefined;
+        fragmentId = undefined;
       }
       loadTarget(
         decodeURI(target),
         !(e.which === 2 || e.ctrlKey || e.metaKey),
-        anchor,
+        fragmentId,
         projectActions
       );
       return false;
@@ -106,13 +105,15 @@ function processAnchorTag(y: any, opts: Options): void {
     // does not start with http
     // internal link
     y.click(function (e): boolean {
-      let anchor;
+      let fragmentId;
       let target = href;
       const v = target.split("#");
       if (v.length > 1) {
-        [target, anchor] = v;
+        let hash;
+        [target, hash] = v;
+        fragmentId = Fragment.decode(hash);
       } else {
-        anchor = undefined;
+        fragmentId = undefined;
       }
       // if DEBUG then console.log "target", target
       if (target.indexOf("/projects/") === 0) {
@@ -141,7 +142,7 @@ function processAnchorTag(y: any, opts: Options): void {
       loadTarget(
         target,
         !(e.which === 2 || e.ctrlKey || e.metaKey),
-        anchor,
+        fragmentId,
         projectActions
       );
       return false;

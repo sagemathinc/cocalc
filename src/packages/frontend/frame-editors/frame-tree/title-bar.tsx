@@ -204,6 +204,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
+  const fullscreen: undefined | "default" | "kiosk" = useRedux(
+    "page",
+    "fullscreen"
+  );
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -240,16 +244,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
 
     if (buttons_ref.current == null) {
-      let buttons = props.spec.buttons;
-      if (!explicit && buttons == null) {
+      if (!explicit) {
         return true;
       }
+      let buttons = props.spec.buttons ?? {};
       buttons_ref.current =
         typeof buttons == "function" ? buttons(props.path) : buttons;
     }
-    return buttons_ref.current != null
-      ? !!buttons_ref.current[action_name]
-      : false;
+    return !!buttons_ref.current?.[action_name];
   }
 
   function click_close(): void {
@@ -438,13 +440,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_zoom_out(): Rendered {
-    if (!is_visible("decrease_font_size")) {
+    if (!is_visible("decrease_font_size", true)) {
       return;
     }
     return (
       <StyledButton
         key={"font-increase"}
-        title={"Decrease font size"}
+        title={"Decrease font size (control + <)"}
         bsSize={button_size()}
         onClick={() => props.actions.decrease_font_size(props.id)}
       >
@@ -454,13 +456,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_zoom_in(): Rendered {
-    if (!is_visible("increase_font_size")) {
+    if (!is_visible("increase_font_size", true)) {
       return;
     }
     return (
       <StyledButton
         key={"font-decrease"}
-        title={"Increase font size"}
+        title={"Increase font size (control + >)"}
         onClick={() => props.actions.increase_font_size(props.id)}
         bsSize={button_size()}
       >
@@ -470,11 +472,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_set_zoom(): Rendered {
-    if (!is_visible("set_zoom")) {
+    if (!is_visible("set_zoom", true)) {
       return;
     }
 
-    const items: Rendered[] = [85, 100, 115, 125, 150, 200].map((zoom) => {
+    const items: Rendered[] = [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
       return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 
@@ -745,14 +747,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_zoom_group(): Rendered {
-    if (!is_visible("decrease_font_size")) {
-      return;
-    }
     return (
       <ButtonGroup key={"zoom"}>
+        {render_set_zoom()}
         {render_zoom_out()}
         {render_zoom_in()}
-        {render_set_zoom()}
       </ButtonGroup>
     );
   }
@@ -992,7 +991,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_save(labels: boolean): Rendered {
-    if (!is_visible("save")) {
+    if (!is_visible("save", true)) {
       return;
     }
     return (
@@ -1336,6 +1335,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_file_menu(): Rendered {
+    // We don't show this menu in kiosk mode, where none of the options make sense,
+    // because they are all file management, which should be handled a different way.
+    if (fullscreen == "kiosk") return;
+    // Also, instructors can disable this for students:
     if (student_project_functionality.disableActions) return;
     const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];
@@ -1552,6 +1555,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number
+      if (props.pages <= 1) {
+        // only one page so don't render anything
+        return;
+      }
       if (is_active) {
         // Below we use step=-1 and do not set min/max so that
         // the up/down buttons are switched from usual, which makes
@@ -1585,6 +1592,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
     } else {
       // pages is a immutable list of string names of the pages
+      if (props.pages.size <= 1) {
+        return;
+      }
       const n = props.pages.indexOf(`${props.page}`);
       if (n == -1) {
         if (is_active) {

@@ -40,7 +40,7 @@ export function is_csi_launchvalue(launch: string) {
 
 export function launch_action_description(
   type: NonNullable<LaunchTypes>
-): string|undefined {
+): string | undefined {
   switch (type) {
     case "csi":
       return "Run Custom Software Image";
@@ -67,10 +67,8 @@ const actions = redux.createActions(NAME, LaunchActions);
 
 // persist any launch action information in local storage (e.g. it's lost via SSO)
 export function store() {
-  const params = QueryParams.get_all();
-  // console.log("launch-actions: params =", params);
-  const launch = params.launch;
-  if (launch === undefined) return;
+  const launch = QueryParams.get("launch");
+  if (launch == null) return;
   try {
     if (typeof launch !== "string") {
       console.warn("WARNING: launch query param must be a string");
@@ -82,14 +80,14 @@ export function store() {
       type,
     };
     {
-      const filepath = params.filepath;
-      if (filepath != null && typeof filepath === "string") {
+      const filepath = QueryParams.get("filepath");
+      if (typeof filepath == "string") {
         data.filepath = filepath;
       }
     }
     {
-      const urlpath = params.urlpath;
-      if (urlpath != null && typeof urlpath === "string") {
+      const urlpath = QueryParams.get("urlpath");
+      if (typeof urlpath == "string") {
         data.urlpath = urlpath;
       }
     }

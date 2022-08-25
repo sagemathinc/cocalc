@@ -10,19 +10,22 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
+import { isStarred as getIsStarred } from "@cocalc/server/public-paths/star";
+import getProxiedPublicPathInfo from "lib/share/proxy/get-proxied-public-path-info";
 
-export default async function getPublicPathInfo(
-  id: string,
-  relativePath: string,
-  req // use to get account_id if necessary
-) {
-  if (
-    typeof id != "string" ||
-    id.length != 40 ||
-    relativePath.indexOf("..") != -1 ||
-    relativePath[0] == "/"
-  ) {
-    throw Error("invalid id or relativePath");
+export default async function getPublicPathInfo({
+  id,
+  relativePath,
+  public_path,
+  req,
+}: {
+  id: string;
+  relativePath?: string;
+  public_path?: string[];
+  req; // use to get account_id if necessary
+}) {
+  if (typeof id != "string" || id.length != 40) {
+    throw Error("invalid id");
   }
 
   // TODO: currently not using any caching because when editing and saving, we want info to update.
@@ -31,16 +34,32 @@ export default async function getPublicPathInfo(
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
-    "SELECT project_id, path, description, counter, compute_image, license, disabled, unlisted, authenticated FROM public_paths WHERE vhost IS NULL AND id=$1",
+    `SELECT project_id, path, description, compute_image, license, disabled, unlisted, authenticated, url,
+    counter::INT,
+    (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
+    FROM public_paths WHERE vhost IS NULL AND id=$1`,
     [id]
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
     throw Error("not found");
   }
 
+  if (relativePath == null) {
+    if (public_path?.[1] == "files") {
+      // only files/ implemented right now; we might add other things like edit/ later?
+      relativePath = public_path.slice(2).join("/");
+    } else {
+      relativePath = "";
+    }
+  }
+
+  if (relativePath.includes("..") || relativePath.startsWith("/")) {
+    // a security check
+    throw Error("invalid relativePath");
+  }
+
   const { disabled, authenticated } = rows[0];
-  const account_id =
-    disabled || authenticated ? await getAccountId(req) : undefined;
+  const account_id = await getAccountId(req);
 
   if (disabled) {
     // Share is disabled, so account_id must be a collaborator on the project.
@@ -62,16 +81,32 @@ export default async function getPublicPathInfo(
     }
   }
 
-  let contents;
-  try {
-    contents = await getContents(
-      rows[0].project_id,
-      join(rows[0].path, relativePath)
-    );
-  } catch (error) {
-    return { id, ...rows[0], relativePath, error: error.toString() };
-  }
-  const projectTitle = (await getProjectInfo(rows[0].project_id)).title;
+  // if user is signed in, whether or not they stared this.
+  const isStarred = account_id ? await getIsStarred(id, account_id) : null;
 
-  return { id, ...rows[0], contents, relativePath, projectTitle, basePath };
+  try {
+    let details;
+    if (rows[0].url) {
+      // only proxied public paths have url attribute
+      details = await getProxiedPublicPathInfo(rows[0].url, public_path ?? []);
+    } else {
+      details = {
+        contents: await getContents(
+          rows[0].project_id,
+          join(rows[0].path, relativePath)
+        ),
+        projectTitle: (await getProjectInfo(rows[0].project_id)).title,
+      };
+    }
+    return {
+      id,
+      ...rows[0],
+      relativePath,
+      basePath,
+      isStarred,
+      ...details,
+    };
+  } catch (error) {
+    return { id, ...rows[0], relativePath, isStarred, error: error.toString() };
+  }
 }

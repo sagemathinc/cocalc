@@ -17,9 +17,17 @@ interface AProps {
   title?: string;
   style?: React.CSSProperties;
   onClick?: (any) => void;
+  onMouseDown?: (any) => void;
 }
 
-export function A({ href, children, style, title, onClick }: AProps) {
+export function A({
+  href,
+  children,
+  style,
+  title,
+  onClick,
+  onMouseDown,
+}: AProps) {
   return (
     <a
       href={href}
@@ -28,6 +36,7 @@ export function A({ href, children, style, title, onClick }: AProps) {
       style={style}
       title={title}
       onClick={onClick}
+      onMouseDown={onMouseDown}
     >
       {children}
     </a>

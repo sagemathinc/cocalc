@@ -39,18 +39,16 @@ import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 import { withIsInline, withIsVoid } from "./plugins";
 import useUpload from "./upload";
-
 import { slateDiff } from "./slate-diff";
 import { applyOperations, preserveScrollPosition } from "./operations";
 import { getScrollState, setScrollState } from "./scroll";
 import { slatePointToMarkdownPosition } from "./sync";
-
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { createMention } from "./elements/mention/editable";
 import { Mention } from "./elements/mention/index";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
-
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { useSearch, SearchHook } from "./search";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 
@@ -121,7 +119,7 @@ interface Props {
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
-  submitMentionsRef?: MutableRefObject<() => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -327,16 +325,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     useEffect(() => {
       if (submitMentionsRef != null) {
-        submitMentionsRef.current = () => {
+        submitMentionsRef.current = (fragmentId?: FragmentId) => {
           if (project_id == null || path == null) {
             throw Error(
               "project_id and path must be set in order to use mentions."
             );
           }
+          const fragment_id = Fragment.encode(fragmentId);
 
           // No mentions in the document were already sent, so we send them now.
           // We have to find all mentions in the document tree, and submit them.
-          const mentions: { account_id: string; description: string }[] = [];
+          const mentions: {
+            account_id: string;
+            description: string;
+            fragment_id: string;
+          }[] = [];
           for (const [node, path] of Editor.nodes(editor, {
             at: { path: [], offset: 0 },
             match: (node) => node["type"] == "mention",
@@ -345,6 +348,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             mentions.push({
               account_id: (node as Mention).account_id,
               description: slate_to_markdown([parent]),
+              fragment_id,
             });
           }
           submit_mentions(project_id, path, mentions);

@@ -28,7 +28,6 @@ function global_timeout_exceeded(limits: Limits): boolean {
 }
 
 export async function jupyter_run_notebook(
-  client,
   logger,
   opts: RunNotebookOptions
 ): Promise<string> {
@@ -66,7 +65,7 @@ export async function jupyter_run_notebook(
     // path is random so it doesn't randomly conflict with
     // something else running at the same time.
     const path = opts.path + `/${uuid()}.ipynb`;
-    jupyter = kernel({ name, client, path });
+    jupyter = kernel({ name, path });
     log("init_jupyter: spawning");
     // for Python, we suppress all warnings
     // they end up as stderr-output and hence would imply 0 points

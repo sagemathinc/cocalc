@@ -4,7 +4,7 @@
  */
 
 /*
-Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http server.
+Jupyter's blob store (based on sqlite), which hooks into the raw http server.
 */
 
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
@@ -64,7 +64,9 @@ export class BlobStore implements BlobStoreInterface {
 
   init(): void {
     if (JUPYTER_BLOBS_DB_FILE == "memory") {
-      this.db = new Database(".db", { memory: true });
+      // as any, because @types/better-sqlite3 is not yet updated to support this
+      // doc about the constructor: https://wchargin.com/better-sqlite3/api.html#new-databasepath-options
+      this.db = new Database(".db", { memory: true } as any);
     } else {
       this.db = new Database(JUPYTER_BLOBS_DB_FILE);
     }

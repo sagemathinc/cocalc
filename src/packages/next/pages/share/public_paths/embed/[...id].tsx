@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -25,19 +26,7 @@ export default function PublicPath({
 }) {
   useCounter(id);
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
-  if (error != null) {
-    return (
-      <div>
-        There was a problem loading "{relativePath}" in{" "}
-        <Link href={`/share/public_paths/${id}`}>
-          <a>{path}.</a>
-        </Link>
-        <br />
-        <br />
-        {error}
-      </div>
-    );
-  }
+
   return (
     <Customize value={customize}>
       <Embed title={getTitle({ path, relativePath })}>
@@ -67,6 +56,25 @@ export default function PublicPath({
             {...contents}
           />
         )}
+        {error != null && (
+          <Alert
+            showIcon
+            type="error"
+            style={{ maxWidth: "700px", margin: "30px auto" }}
+            message="Error loading file"
+            description={
+              <div>
+                There was a problem loading "{relativePath}" in{" "}
+                <Link href={`/share/public_paths/${id}`}>
+                  <a>{path}.</a>
+                </Link>
+                <br />
+                <br />
+                {error}
+              </div>
+            }
+          />
+        )}
       </Embed>
     </Customize>
   );
@@ -76,7 +84,11 @@ export async function getServerSideProps(context) {
   const id = context.params.id[0];
   const relativePath = context.params.id.slice(1).join("/");
   try {
-    const props = await getPublicPathInfo(id, relativePath, context.req);
+    const props = await getPublicPathInfo({
+      id,
+      relativePath,
+      req: context.req,
+    });
     return await withCustomize({
       context,
       props: { ...props, layout: "embed" },

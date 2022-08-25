@@ -56,7 +56,7 @@ describe("main quota functionality", () => {
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
-      memory_limit: 1500, // set at the top of quota config
+      memory_limit: 1000, // set at the top of quota config
       memory_request: 300, // set at the top of quota config
       network: false,
       privileged: false,
@@ -75,7 +75,7 @@ describe("main quota functionality", () => {
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
-      memory_limit: 1500, // set at the top of quota config
+      memory_limit: 1000, // set at the top of quota config
       memory_request: 300, // set at the top of quota config
       network: true, // what this upgrade is about
       privileged: false,
@@ -145,7 +145,7 @@ describe("main quota functionality", () => {
       network: true,
       member_host: true,
       memory_request: 3210,
-      memory_limit: 1500, // 1500 mb free for members
+      memory_limit: 1000, // 1000 mb free for members
       cpu_request: 0.05,
       cpu_limit: 1,
       privileged: false,
@@ -260,7 +260,7 @@ describe("main quota functionality", () => {
       network: true,
       member_host: true,
       memory_request: 4210,
-      memory_limit: 1500, // 1500 mb free for members
+      memory_limit: 1000, // 1000 mb free for members
       cpu_request: 0.5 + 0.1,
       cpu_limit: 3,
       privileged: false,
@@ -379,7 +379,7 @@ describe("main quota functionality", () => {
     // members get strictly more than free users
     expect(qfree.cpu_request).toBeLessThan(qmember.cpu_request);
     expect(qfree.memory_request).toBeLessThan(qmember.memory_request);
-    expect(qfree.memory_limit).toBeLessThan(qmember.memory_limit);
+    expect(qfree.memory_limit).toBeLessThanOrEqual(qmember.memory_limit);
   });
 
   it("partial site_settings1/mem", () => {
@@ -778,7 +778,7 @@ describe("always running", () => {
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
-      memory_limit: 1500, // set at the top of quota config
+      memory_limit: 1000, // set at the top of quota config
       memory_request: 300, // set at the top of quota config
       network: true, // what this upgrade is about
       privileged: false,
@@ -1692,7 +1692,7 @@ describe("idle timeout license", () => {
       disk_quota: 3000,
       idle_timeout: ito,
       member_host: true,
-      memory_limit: 1500, // 1500 min for members
+      memory_limit: 1000, // 1000 min for members
       memory_request: 300, // oc ratio
       network: true,
       privileged: false,
@@ -1959,7 +1959,7 @@ describe("boost", () => {
     });
   });
 
-  it("rejects a incompatible boost license (member hosting)", () => {
+  it("rejects an incompatible boost license (member hosting)", () => {
     const site_licenses: SiteLicenses = {
       regular: {
         title: "standard",
@@ -1983,7 +1983,7 @@ describe("boost", () => {
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true,
-      memory_limit: 1500,
+      memory_limit: 1000,
       memory_request: 300,
       network: true,
       privileged: false,
@@ -1992,7 +1992,7 @@ describe("boost", () => {
     });
   });
 
-  it("rejects a incompatible boost license (idle timeout)", () => {
+  it("rejects an incompatible boost license (idle timeout)", () => {
     const site_licenses: SiteLicenses = {
       regular: {
         title: "standard",

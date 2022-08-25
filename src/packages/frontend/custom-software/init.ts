@@ -6,10 +6,10 @@
 // Manage DB <-> UI integration of available *custom* compute images
 // TODO: also get rid of hardcoded official software images
 
-const { redux, Store, Actions, Table } = require("../app-framework");
+import { redux, Store, Actions, Table } from "@cocalc/frontend/app-framework";
 import { Map as iMap } from "immutable";
 import { NAME } from "./util";
-const { capitalize } = require("@cocalc/util/misc");
+import { capitalize } from "@cocalc/util/misc";
 
 // this must match db-schema.compute_images → field type → allowed values
 // "standard" image names are "default", "exp", "ubuntu2020", or a timestamp-string
@@ -51,9 +51,9 @@ export function launchcode2display(
   return img.get("display") || id2name(id);
 }
 
-export class ComputeImagesActions<ComputeImagesState> extends Actions<
+export class ComputeImagesActions<
   ComputeImagesState
-> {}
+> extends Actions<ComputeImagesState> {}
 
 export function id2name(id: string): string {
   return id.split("-").map(capitalize).join(" ");

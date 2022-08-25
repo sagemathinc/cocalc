@@ -1,16 +1,53 @@
 /* The "Account" navigation tab in the bar at the top. */
-import { Menu, Dropdown } from "antd";
-import { join } from "path";
-import { LinkStyle } from "components/landing/header";
-import basePath from "lib/base-path";
+import { Icon, isIconName } from "@cocalc/frontend/components/icon";
+import type { MenuProps } from "antd";
+import { Dropdown, Menu } from "antd";
 import Avatar from "components/account/avatar";
-import { useCustomize } from "lib/customize";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { LinkStyle } from "components/landing/header";
 import A from "components/misc/A";
-import useProfile from "lib/hooks/profile";
-import { CSSProperties } from "react";
 import apiPost from "lib/api/post";
+import basePath from "lib/base-path";
+import { useCustomize } from "lib/customize";
+import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
+import { join } from "path";
+import { CSSProperties } from "react";
+
+type MenuItem = Required<MenuProps>["items"][number];
+
+function makeItem(
+  key: React.Key,
+  label: React.ReactNode,
+  icon?: React.ReactNode | string,
+  children?: MenuItem[]
+): MenuItem {
+  if (typeof icon === "string" && isIconName(icon)) {
+    icon = <Icon name={icon} />;
+  }
+  return {
+    key,
+    icon,
+    children,
+    label,
+  } as MenuItem;
+}
+
+function makeGroup(
+  key: React.Key,
+  label: React.ReactNode,
+  children: MenuItem[]
+): MenuItem {
+  return {
+    key,
+    children,
+    label,
+    type: "group",
+  } as MenuItem;
+}
+
+const DIVIDER = {
+  type: "divider",
+} as const;
 
 interface Props {
   style: CSSProperties;
@@ -18,7 +55,7 @@ interface Props {
 
 export default function AccountNavTab({ style }: Props) {
   const router = useRouter();
-  const { isCommercial, siteName, sshGateway } = useCustomize();
+  const { isCommercial, shareServer, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
   if (!profile) return null;
 
@@ -27,140 +64,177 @@ export default function AccountNavTab({ style }: Props) {
 
   const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
 
-  const menu = (
-    <Menu theme="dark">
-      {profile && (
-        <>
-          <Menu.Item key="signed-in">
-            <A href={is_anonymous ? "/config/search/input" : profile_url}>
-              Signed into {siteName} as
-              <br />
-              <b>
-                {is_anonymous && <>Anonymous User</>}
-                {!is_anonymous && (
-                  <>
-                    {first_name} {last_name}
-                    {name ? ` (@${name})` : ""}
-                  </>
-                )}
-              </b>
-            </A>
-          </Menu.Item>
+  const signedIn = makeItem(
+    "signed-in",
+    <A href={is_anonymous ? "/config/search/input" : profile_url}>
+      Signed into {siteName} as
+      <br />
+      <b>
+        {first_name} {last_name}
+        {name ? ` (@${name})` : ""}
+      </b>
+    </A>
+  );
 
-          {is_anonymous && (
-            <Menu.Item key="sign-up" icon={<Icon name="user" />}>
-              <A href="/config/search/input">
-                <b>Sign Up (save your work)!</b>
-              </A>
-            </Menu.Item>
-          )}
-          <Menu.Item key="docs" icon={<Icon name="book" />}>
-            <A href="https://doc.cocalc.com" external>
-              Documentation
-            </A>
-          </Menu.Item>
-          {isCommercial && (
-            <Menu.Item key="store" icon={<Icon name="shopping-cart" />}>
-              <A href="/store">Store</A>
-            </Menu.Item>
-          )}
-          <Menu.Divider />
+  const docs = makeItem(
+    "docs",
+    <A href="https://doc.cocalc.com" external>
+      Documentation
+    </A>,
+    "book"
+  );
 
-          {!is_anonymous /* color due to a theme bug */ && (
-            <Menu.ItemGroup
-              key="configuration"
-              title={
-                <A href="/config/search/input">
-                  <span style={{ color: "#a4acb3" }}>
-                    <Icon name="wrench" /> Configuration
-                  </span>
-                </A>
-              }
-            >
-              <Menu.Item key="account" icon={<Icon name="user" />}>
-                <A href="/config/account/name">Account</A>
-              </Menu.Item>
-              <Menu.Item key="editor" icon={<Icon name="edit" />}>
-                <A href="/config/editor/appearance">Editor</A>
-              </Menu.Item>
-              <Menu.Item key="system" icon={<Icon name="gear" />}>
-                <A href="/config/system/appearance">System</A>
-              </Menu.Item>
-            </Menu.ItemGroup>
-          )}
+  const configuration = makeGroup(
+    "configuration",
+    <A href="/config/search/input">
+      <span style={{ color: "#a4acb3" }}>
+        <Icon name="wrench" /> Configuration
+      </span>
+    </A>,
+    [
+      makeItem("account", <A href="/config/account/name">Account</A>, "user"),
+      makeItem(
+        "editor",
+        <A href="/config/editor/appearance">Editor</A>,
+        "edit"
+      ),
+      makeItem(
+        "system",
+        <A href="/config/system/appearance">System</A>,
+        "gear"
+      ),
+    ]
+  );
 
-          <Menu.Divider />
-        </>
-      )}
-      <Menu.ItemGroup
-        key="your"
-        title={
-          <A href={join(basePath, "app")} external>
-            <span style={{ color: "#a4acb3" }}>
-              <Icon name="user" /> Your...
-            </span>
-          </A>
-        }
-      >
-        <Menu.Item key="projects" icon={<Icon name="edit" />}>
-          <A href={join(basePath, "projects")} external>
-            {is_anonymous ? "Project" : "Projects"}
-          </A>
-        </Menu.Item>
-        {!is_anonymous && (
-          <Menu.Item key="licenses" icon={<Icon name="key" />}>
-            <A href="/licenses">Licenses</A>
-          </Menu.Item>
-        )}
-        {!is_anonymous && isCommercial && (
-          <Menu.Item key="billing" icon={<Icon name="credit-card" />}>
-            <A href="/billing">Billing</A>
-          </Menu.Item>
-        )}
-        {!is_anonymous && sshGateway && (
-          <Menu.Item key="ssh" icon={<Icon name="key" />}>
+  function profileItems() {
+    if (!profile) return [];
+    const ret: MenuItem[] = [];
+    ret.push(signedIn);
+    if (is_anonymous) {
+      ret.push(
+        makeItem(
+          "sign-up",
+          <A href="/config/search/input">
+            <b>Sign Up (save your work)!</b>
+          </A>,
+          "user"
+        )
+      );
+    }
+    ret.push(docs);
+    if (isCommercial) {
+      ret.push(makeItem("store", <A href="/store">Store</A>, "shopping-cart"));
+    }
+    ret.push(DIVIDER);
+    ret.push(configuration);
+    ret.push(DIVIDER);
+    return ret;
+  }
+
+  function yourPages(): MenuItem[] {
+    const yours: MenuItem[] = [];
+    yours.push(
+      makeItem(
+        "projects",
+        <A href={join(basePath, "projects")} external>
+          {is_anonymous ? "Project" : "Projects"}
+        </A>,
+        "edit"
+      )
+    );
+
+    if (!is_anonymous) {
+      yours.push(makeItem("licenses", <A href="/licenses">Licenses</A>, "key"));
+
+      if (isCommercial) {
+        yours.push(
+          makeItem("billing", <A href="/billing">Billing</A>, "credit-card")
+        );
+      }
+      if (sshGateway) {
+        yours.push(
+          makeItem(
+            "ssh",
             <A href={join(basePath, "settings", "ssh-keys")} external>
               SSH keys
-            </A>
-          </Menu.Item>
-        )}
-        {!is_anonymous && (
-          <Menu.Item key="shared" icon={<Icon name="bullhorn" />}>
+            </A>,
+            "key"
+          )
+        );
+      }
+
+      if (shareServer) {
+        yours.push(
+          makeItem(
+            "shared",
             <A
               href={
                 profile?.name ? `/${name}` : `/share/accounts/${account_id}`
               }
+              external
             >
               Shared Files
-            </A>
-          </Menu.Item>
-        )}
-      </Menu.ItemGroup>
-      {is_admin && (
-        <>
-          <Menu.Divider />
-          <Menu.Item key="admin" icon={<Icon name="users" />}>
-            <A href={join(basePath, "admin")} external>
-              Site Administration
-            </A>
-          </Menu.Item>
-        </>
-      )}
+            </A>,
+            "bullhorn"
+          )
+        );
 
-      <Menu.Divider />
+        yours.push(
+          makeItem("stars", <A href="/stars">Stars</A>, "star-filled")
+        );
+      }
+    }
 
-      <Menu.Item key="sign-out" icon={<Icon name="sign-out-alt" />}>
-        <A
-          onClick={async () => {
-            await apiPost("/accounts/sign-out", { all: false });
-            router.push("/");
-          }}
-        >
-          Sign Out
-        </A>
-      </Menu.Item>
-    </Menu>
-  );
+    return [
+      makeGroup(
+        "your",
+        <A href={join(basePath, "app")} external>
+          <span style={{ color: "#a4acb3" }}>
+            <Icon name="user" /> Your...
+          </span>
+        </A>,
+        yours
+      ),
+    ];
+  }
+
+  function admin(): MenuItem[] {
+    if (!is_admin) return [];
+    return [
+      DIVIDER,
+      makeItem(
+        "admin",
+        <A href={join(basePath, "admin")} external>
+          Site Administration
+        </A>,
+        "users"
+      ),
+    ];
+  }
+
+  const signout: MenuItem[] = [
+    DIVIDER,
+    makeItem(
+      "sign-out",
+      <A
+        onClick={async () => {
+          await apiPost("/accounts/sign-out", { all: false });
+          router.push("/");
+        }}
+      >
+        Sign Out
+      </A>
+    ),
+  ];
+
+  const items: MenuProps["items"] = [
+    ...profileItems(),
+    ...yourPages(),
+    ...admin(),
+    ...signout,
+  ];
+
+  const menu = <Menu mode="vertical" theme="dark" items={items} />;
 
   return (
     <Dropdown overlay={menu} trigger={"click" as any}>

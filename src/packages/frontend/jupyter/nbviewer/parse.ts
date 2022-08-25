@@ -45,7 +45,7 @@ function getMode(ipynb): string {
   return (
     ipynb.metadata?.language_info?.codemirror_mode ??
     ipynb.metadata?.language_info?.name ??
-    ipynb.metadata.kernelspec.language.toLowerCase() ??
+    ipynb.metadata?.kernelspec?.language?.toLowerCase() ??
     "python"
   );
 }

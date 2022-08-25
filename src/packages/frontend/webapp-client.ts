@@ -7,7 +7,7 @@
 // connection to back-end hub
 //###########################################
 
-import "./client/handle-hash-url";
+import "./client/handle-target";
 
 // The following interface obviously needs to get completed,
 // and then of course all of webapp client itself needs to

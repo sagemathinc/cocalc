@@ -11,7 +11,7 @@ import { Project } from "./types";
 import * as misc from "@cocalc/util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
-
+import { tool2display } from "@cocalc/util/code-formatter";
 import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -50,6 +50,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       const feature_map = [
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
+        ["qmd", "Quarto"],
         ["sage", "SageMath Worksheets"],
         ["jupyter_notebook", "Classical Jupyter Notebook"],
         ["jupyter_lab", "Jupyter Lab"],
@@ -105,8 +106,6 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       if (formatter === true) {
         return [<div>All code formatters are available</div>, false];
       }
-
-      const { tool2display } = require("@cocalc/util/code-formatter");
 
       const r_formatters: JSX.Element[] = [];
       let any_nonavail = false;

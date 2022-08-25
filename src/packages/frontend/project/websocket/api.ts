@@ -15,8 +15,8 @@ import {
   Configuration,
   ProjectConfiguration,
   isMainConfiguration,
-} from "../../project_configuration";
-import { redux } from "../../app-framework";
+} from "@cocalc/frontend/project_configuration";
+import { redux } from "@cocalc/frontend/app-framework";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import {
   Options as FormatterOptions,
@@ -25,7 +25,7 @@ import {
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,
-} from "../../jupyter/nbgrader/api";
+} from "@cocalc/frontend/jupyter/nbgrader/api";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 
 import { reuseInFlight } from "async-await-utils/hof";

@@ -4,17 +4,23 @@
  */
 
 export { useCustomize } from "lib/customize";
-import { Customize as CustomizeContext } from "lib/customize";
+import { Customize as CustomizeContext, CustomizeType } from "lib/customize";
 import Link from "next/link";
 
-export function Customize({ value, children }) {
+export function Customize({
+  value,
+  children,
+}: {
+  value: CustomizeType;
+  children;
+}) {
   if (!value.shareServer) {
     return <ShareServerIsDisabled value={value} />;
   }
   return <CustomizeContext value={value}>{children}</CustomizeContext>;
 }
 
-function ShareServerIsDisabled({ value }) {
+function ShareServerIsDisabled({ value }: { value: CustomizeType }) {
   const { siteName, helpEmail } = value;
   return (
     <div style={{ margin: "30px", fontSize: "12pt" }}>

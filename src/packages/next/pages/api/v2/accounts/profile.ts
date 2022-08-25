@@ -8,13 +8,11 @@ the image.
 
 import getProfile from "@cocalc/server/accounts/profile/get";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
-import isPost from "lib/api/is-post";
 import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-
-  const { account_id, noCache } = req.body;
+  const { account_id, noCache } = getParams(req);
   try {
     if (account_id == null) {
       res.json({ profile: await getPrivate(req, noCache) });

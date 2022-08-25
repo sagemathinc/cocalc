@@ -31,10 +31,11 @@ const Element: React.FC<RenderElementProps> = ({
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
 
   const setElement = useSetElement(editor, element);
+  // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
 
   return (
     <div {...attributes}>
-      <div contentEditable={false}>
+      <div contentEditable={false} style={{ textIndent: 0 }}>
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}

@@ -7,6 +7,8 @@ import editURL from "lib/share/edit-url";
 import shareURL from "lib/share/share-url";
 import A from "components/misc/A";
 import ConfigurePublicPath from "components/share/configure-public-path";
+import RunApp from "components/app/path";
+import { join } from "path";
 
 export default function OpenDirectly({
   project_id,
@@ -35,14 +37,20 @@ export default function OpenDirectly({
       <A href={url} external>
         this shared document,
       </A>{" "}
-      so you can easily{" "}
-      <A href={url} external>
-        open it directly.
-      </A>
+      so you can edit it below. Scroll further down to adjust the description
+      and license, choose a nice URL, or stop sharing this.
+      <RunApp
+        start
+        project_id={project_id}
+        path={join(path, relativePath)}
+        style={{
+          margin: "30px 0",
+        }}
+      />
+      <hr />
       <br />
       {!relativePath ? (
         <>
-          <br />
           You can adjust how this is shared below, or turn off sharing by
           selecting <em>Private</em>.
           <ConfigurePublicPath id={id} project_id={project_id} path={path} />

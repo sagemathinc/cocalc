@@ -26,7 +26,12 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 # we don't want to introduce any other inconsistencies...
 
 # whitelisting typescript is temporary really just for @cocalc/util -- see https://github.com/sagemathinc/cocalc/issues/5888
-whitelist: Final[List[str]] = ['async', 'immutable', 'typescript']
+
+whitelist: Final[List[str]] = [
+    'async',
+    'immutable',
+    'entities'  # it breaks when you upgrade in static to 4.x
+]
 
 
 # NOTE: test/puppeteer is long dead...

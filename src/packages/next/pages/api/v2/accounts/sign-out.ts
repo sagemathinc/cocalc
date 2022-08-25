@@ -10,11 +10,9 @@ import {
   deleteRememberMe,
   deleteAllRememberMe,
 } from "@cocalc/server/auth/remember-me";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-
   try {
     await signOut(req);
     res.json({});
@@ -24,7 +22,7 @@ export default async function handle(req, res) {
 }
 
 async function signOut(req): Promise<void> {
-  const { all } = req.body;
+  const { all } = getParams(req);
   if (all) {
     // invalidate all remember me cookies for this account.
     const account_id = await getAccountId(req);

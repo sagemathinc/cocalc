@@ -126,6 +126,7 @@ src/smc_sagews/.pytest_cache/
 
 src/go-landing
 
+**/dist
 **/dist/
 **/dist-measure/
 **/dist-prod/

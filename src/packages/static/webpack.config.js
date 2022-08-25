@@ -128,22 +128,23 @@ if (useDiskCache) {
 module.exports = {
   cache: useDiskCache
     ? {
-        // This is supposed to cache the in-memory state to disk
-        // so initial startup time is less.  Don't do this in
-        // user home directory on cocalc, since it uses a LOT
-        // of disk IO, which makes everything very slow.
-        type: "filesystem",
-        buildDependencies: {
-          config: [__filename],
-        },
-        cacheDirectory,
-      }
+      // This is supposed to cache the in-memory state to disk
+      // so initial startup time is less.  Don't do this in
+      // user home directory on cocalc, since it uses a LOT
+      // of disk IO, which makes everything very slow.
+      type: "filesystem",
+      buildDependencies: {
+        config: [__filename],
+      },
+      cacheDirectory,
+    }
     : undefined,
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {
     load: "./src/load.tsx",
-    app: "./src/webapp-cocalc.js",
+    app: { import: "./src/webapp-cocalc.js", dependOn: "load" },
+    embed: { import: "./src/webapp-embed.js", dependOn: "load" },
   },
   /* Why chunkhash below, rather than contenthash? This says contenthash is a special
      thing for css and other text files only (??):

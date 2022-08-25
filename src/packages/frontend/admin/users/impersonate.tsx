@@ -47,7 +47,7 @@ export class Impersonate extends Component<Props, State> {
     }
     const link = join(
       appBasePath,
-      `settings/support/app?auth_token=${this.state.auth_token}`
+      `app?auth_token=${this.state.auth_token}`
     );
     return (
       <div>

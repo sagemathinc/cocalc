@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Table } from "../../app-framework";
+import { Table } from "@cocalc/frontend/app-framework";
 
 export class MentionsTable extends Table {
   query() {

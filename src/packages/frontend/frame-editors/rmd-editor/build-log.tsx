@@ -6,50 +6,22 @@
 import React from "react";
 import Ansi from "ansi-to-react";
 import { Loading } from "@cocalc/frontend/components";
-import { Rendered, useRedux } from "../../app-framework";
-import { COLORS } from "@cocalc/util/theme";
+import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import {
+  STYLE_LOADING,
+  STYLE_HEADER,
+  STYLE_OUTER,
+  STYLE_LOG,
+  STYLE_PRE,
+  STYLE_ERR,
+} from "./styles";
 
 interface BuildLogProps {
   name: string;
   actions: any;
   font_size: number;
 }
-
-const STYLE_LOADING: React.CSSProperties = {
-  margin: "auto",
-};
-
-const STYLE_HEADER: React.CSSProperties = {
-  margin: "1rem 1rem 0 1rem",
-  borderBottom: `1px solid ${COLORS.GRAY}`,
-  color: COLORS.GRAY,
-};
-
-const STYLE_OUTER: React.CSSProperties = {
-  display: "flex",
-  flex: "1 1 auto",
-  flexDirection: "column",
-  overflow: "auto",
-};
-
-const STYLE_LOG: React.CSSProperties = {
-  flex: "1 1 auto",
-};
-
-const STYLE_PRE: React.CSSProperties = {
-  whiteSpace: "pre-wrap",
-  margin: "0",
-  borderRadius: "0",
-  border: "0",
-  backgroundColor: "inherit",
-};
-
-const STYLE_ERR: React.CSSProperties = {
-  ...STYLE_LOG,
-  fontWeight: "bold",
-  backgroundColor: COLORS.ATND_BG_RED_L,
-};
 
 export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
   const { name, actions, font_size: font_size_orig } = props;

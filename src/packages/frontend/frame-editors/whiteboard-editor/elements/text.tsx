@@ -110,7 +110,8 @@ function EditText({
       // to change the height, resize wouldn't bet triggered without this clause.
       if (
         readOnly ||
-        (actions.in_undo_mode() && element.str == getValueRef.current?.())
+        (actions.in_undo_mode() && element.str == getValueRef.current?.()) ||
+        element.rotate // auto resize for rotated text doesn't work at all (it's actively very bad, so best to just diable it).
       ) {
         return;
       }
@@ -129,13 +130,14 @@ function EditText({
       });
     };
   }, [canvasScale, element.id, editFocus, readOnly]);
+
   useEffect(() => {
     resizeRef.current?.();
   }, [resize]);
 
   return (
     <div
-      {...mouseClickDrag}
+      {...(mouseClickDrag ?? {})}
       style={{
         ...getStyle(element),
         padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,

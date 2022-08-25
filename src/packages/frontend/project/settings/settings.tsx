@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert as AntdAlert } from "antd";
 import { rclass, rtypes } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import {
@@ -131,8 +132,35 @@ export const ProjectSettings = rclass<ReactProps>(
         return <Loading />;
       }
       let project =
-        this.props.project_map.get(this.props.project_id) ||
-        this.state.admin_project;
+        this.props.project_map.get(this.props.project_id);
+      if (
+        this.props.group != "admin" &&
+        this.props.group != "owner" &&
+        project?.get("sandbox")
+      ) {
+        return (
+          <AntdAlert
+            showIcon
+            style={{ margin: "auto", fontSize: "14pt" }}
+            type="warning"
+            message="Sandboxed Project"
+            description={
+              <div style={{ maxWidth: "700px" }}>
+                Settings are disabled for non-owners of sandboxed projects.
+                <br />
+                <br />
+                You will automatically be removed as a collaborator of this
+                project when you stop actively using it.
+                <br />
+                <br />
+                You can easily make your own new private project by clicking on
+                the "Projects" button then "Create new project". Copy any files
+                to it from the Files tab here.
+              </div>
+            }
+          />
+        );
+      }
       if (this.props.group === "admin") {
         project = this.state.admin_project;
         if (

@@ -1,18 +1,17 @@
 // This react component is displayed as quickly as possible
 // right when the page starts loading.  It doesn't depend on
 // loading everything else.
-// (NOTE: this replaces what was once "app.pug".)
 
 import "./init-app-base-path";
 // @ts-ignore
 import ReactDOM from "react-dom";
-import Primus from "./primus";
-import Manifest from "./manifest";
-import PreflightCheck from "./preflight-checks";
-import initError from "./webapp-error";
 import Favicons from "./favicons";
+import Manifest from "./manifest";
 import Meta from "./meta";
+import PreflightCheck from "./preflight-checks";
+import Primus from "./primus";
 import StartupBanner from "./startup-banner";
+import initError from "./webapp-error";
 
 initError();
 

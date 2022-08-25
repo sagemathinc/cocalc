@@ -9,8 +9,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   title: ReactNode;
-  why: ReactNode;
-  onSuccess?: ()=>void;
+  why?: ReactNode;
+  onSuccess?: () => void;
 }
 
 export default function InPlaceSignInOrUp({ title, why, onSuccess }: Props) {
@@ -23,7 +23,8 @@ export default function InPlaceSignInOrUp({ title, why, onSuccess }: Props) {
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
       <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
-      <a onClick={() => setShow("sign-up")}>Sign Up</a> {why}.
+      <a onClick={() => setShow("sign-up")}>Sign Up</a>
+      {why == null ? "." : <> {why}.</>}
       <br />
       <br />
       {show == "sign-in" && (

@@ -120,6 +120,7 @@ import {
   PlayCircleFilled,
   PlayCircleOutlined,
   PlusCircleOutlined,
+  PlusCircleFilled,
   PlusOutlined,
   PlusSquareOutlined,
   PoweroffOutlined,
@@ -137,11 +138,13 @@ import {
   ScissorOutlined,
   SearchOutlined,
   SelectOutlined,
+  SolutionOutlined,
   SendOutlined,
   ShareAltOutlined,
   ShoppingCartOutlined,
   ShrinkOutlined,
   SmileOutlined,
+  StarFilled,
   StarOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
@@ -167,6 +170,10 @@ import {
   WarningOutlined,
   WifiOutlined,
   MailOutlined,
+  WalletOutlined,
+  MehOutlined,
+  SettingOutlined,
+  HighlightOutlined,
 } from "@ant-design/icons";
 
 const IconSpec = {
@@ -322,6 +329,7 @@ const IconSpec = {
   header: { IconFont: "header" },
   heart: { IconFont: "heart" },
   hdd: HddOutlined,
+  highlighter: HighlightOutlined,
   history: HistoryOutlined,
   home: HomeOutlined,
   "horizontal-split": { IconFont: "horizontal-split" },
@@ -362,6 +370,7 @@ const IconSpec = {
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
+  meh: MehOutlined,
   microchip: { IconFont: "microchip" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
@@ -389,6 +398,7 @@ const IconSpec = {
   plus: PlusOutlined,
   "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
+  "plus-circle-filled": PlusCircleFilled,
   "plus-one": { IconFont: "plus-one" },
   "plus-square": PlusSquareOutlined,
   "plus-square-o": PlusSquareOutlined,
@@ -420,6 +430,7 @@ const IconSpec = {
   "search-minus": MinusOutlined, // we actually use this for zoom
   "search-plus": PlusOutlined,
   "select-outlined": SelectOutlined,
+  settings: SettingOutlined,
   server: CloudServerOutlined,
   "sign-in": LoginOutlined,
   "sign-out-alt": LogoutOutlined,
@@ -430,8 +441,10 @@ const IconSpec = {
   "sort-amount-up": { IconFont: "sort-amount-up" },
   spinner: { IconFont: "cocalc-ring" },
   square: BorderOutlined,
+  solution: SolutionOutlined,
   "square-o": BorderOutlined,
   "square-root-alt": { IconFont: "square-root-alt" },
+  "star-filled": StarFilled,
   star: StarOutlined,
   "step-backward": StepBackwardOutlined,
   "step-forward": StepForwardOutlined,
@@ -482,6 +495,7 @@ const IconSpec = {
   "video-camera": VideoCameraOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
+  wallet: WalletOutlined,
   warning: WarningOutlined,
   wifi: WifiOutlined,
   "window-maximize": { IconFont: "window-maximize" },
@@ -632,31 +646,3 @@ export const Icon: React.FC<Props> = (props: Props) => {
     return <BorderOutlined {...props} alt={name} />;
   }
 };
-
-/* Here we define a jQuery plugin that turns the old font-awesome css elements
-   into react-rendered Icon's.  This is, of course, meant to be some temporary
-   code until Jupyter classic and Sage worksheets are rewritten using React.
-   Also, this is only defined when jQuery itself is defined.
-*/
-
-import ReactDOM from "react-dom";
-declare var $: any;
-if (typeof $ != "undefined") {
-  $.fn.processIcons = function () {
-    return this.each(function () {
-      // @ts-ignore
-      const that = $(this);
-      for (const elt of that.find(".fa")) {
-        for (const cls of elt.className.split(/\s+/)) {
-          if (cls.startsWith("fa-")) {
-            ReactDOM.render(
-              <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />,
-              elt
-            );
-            break;
-          }
-        }
-      }
-    });
-  };
-}

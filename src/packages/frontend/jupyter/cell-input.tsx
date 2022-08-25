@@ -25,10 +25,6 @@ import { JupyterActions } from "./browser-actions";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
-
-// TODO: plan to switch to this soon!
-// import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 function attachmentTransform(
@@ -264,6 +260,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       const cmOptions = options("markdown").toJS();
       return (
         <MarkdownInput
+          enableMentions={true}
           cacheId={`${props.id}${frameActions.current?.frame_id}`}
           value={props.cell.get("input") ?? ""}
           height="auto"

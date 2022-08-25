@@ -7,7 +7,8 @@
    strongly encourage them to set a better name... and also sign up.
 */
 
-import { Alert } from "antd";
+import { useState } from "react";
+import { Alert, Input } from "antd";
 import {
   React,
   redux,
@@ -37,31 +38,29 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const project = useRedux(["project_map", project_id], "projects");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
+  const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
   if (first_name == null || last_name == null) {
     // loading?
     return <></>;
   }
 
-  const icons = (
+  const icon = (
     <>
       <Icon
         name="exclamation-triangle"
-        style={{ float: "right", marginTop: "3px" }}
+        style={{ float: "right", margin: "7px 0 0 7px", fontSize: "16px" }}
       />
-      <Icon name="exclamation-triangle" />{" "}
     </>
   );
   let mesg;
   if ((project?.get("users")?.size ?? 1) <= 1) {
-    // no need to encourage a name -- they are alone.
+    // no need to encourage a name -- they are alone; also, emphasize
+    // that they could lose their work:
     mesg = (
       <div>
-        {icons}
-        Thank you for trying <SiteName />! <Space />
-        <Space />
-        <Space />
-        Please{" "}
+        {icon}
+        Thank you for trying <SiteName />! Please{" "}
         <a onClick={() => redux.getActions("page").set_active_tab("account")}>
           sign up
         </a>{" "}
@@ -69,40 +68,63 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
       </div>
     );
   } else {
+    const anonName =
+      editingName ||
+      first_name.startsWith("Anonymous") ||
+      last_name.startsWith("User") ||
+      !first_name.trim() ||
+      !last_name.trim();
     mesg = (
       <div>
-        {icons}
-        Thank you for trying <SiteName />! <Space />
-        <Space />
-        <Space />
-        Set a name so people know who you are:{" "}
-        <input
-          value={first_name}
-          onChange={
-            (e) =>
-              actions.setState({
-                first_name: e.target.value,
-              }) /* sets in redux */
-          }
-          onBlur={
-            () =>
-              actions.set_account_table({ first_name }) /* sets in database */
-          }
-        />{" "}
-        <input
-          value={last_name}
-          onChange={(e) => actions.setState({ last_name: e.target.value })}
-          onBlur={() => actions.set_account_table({ last_name })}
-        />{" "}
-        <Space />
-        <Space />
-        Better yet,{" "}
-        <a onClick={() => redux.getActions("page").set_active_tab("account")}>
-          sign up
-        </a>{" "}
-        to avoid losing your work.
+        {icon}
+        <a
+          style={{ float: "right", margin: "5px" }}
+          onClick={() => redux.getActions("page").set_active_tab("account")}
+        >
+          Sign Up
+        </a>
+        Thank you {anonName ? "" : ` ${first_name} ${last_name} `} for using{" "}
+        <SiteName />!<Space />
+        {anonName && (
+          <>
+            Set your name:{" "}
+            <Input
+              style={{ width: "20ex" }}
+              value={first_name}
+              onChange={
+                (e) =>
+                  actions.setState({
+                    first_name: e.target.value,
+                  }) /* sets in redux */
+              }
+              onFocus={() => setEditingName(true)}
+              onBlur={() => {
+                actions.set_account_table({
+                  first_name,
+                }); /* sets in database */
+                setEditingName(false);
+              }}
+            />{" "}
+            <Input
+              style={{ width: "20ex" }}
+              value={last_name}
+              onChange={(e) => actions.setState({ last_name: e.target.value })}
+              onFocus={() => setEditingName(true)}
+              onBlur={() => {
+                actions.set_account_table({ last_name });
+                setEditingName(false);
+              }}
+            />{" "}
+          </>
+        )}
       </div>
     );
   }
-  return <Alert type="warning" message={mesg}></Alert>;
+  return (
+    <Alert
+      style={{ marginBottom: "5px" }}
+      type="warning"
+      message={mesg}
+    ></Alert>
+  );
 });

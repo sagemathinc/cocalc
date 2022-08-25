@@ -213,7 +213,7 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
   }
   // set default so can use in table
   const { default_source } = result;
-  const cards: any[] = [];
+  const cards: (CardProps & { id: string; default_source: boolean })[] = [];
   if (result.sources != null) {
     for (const row of result.sources.data) {
       if (row.id == default_source) {
@@ -234,7 +234,7 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
   cards.sort((x, y) => cmp(x.id, y.id));
 
   if (minimized) {
-    let defaultCard = undefined;
+    let defaultCard: undefined | CardProps = undefined;
     for (const card of cards) {
       if (card.default_source) {
         defaultCard = card;
@@ -448,14 +448,17 @@ function AddPaymentMethod({
   );
 }
 
-export function CreditCard({
-  brand,
-  last4,
-  exp_month,
-  exp_year,
-  country,
-  address_zip,
-}) {
+interface CardProps {
+  brand;
+  last4;
+  exp_month;
+  exp_year;
+  country;
+  address_zip;
+}
+
+export function CreditCard(props: CardProps) {
+  const { brand, last4, exp_month, exp_year, country, address_zip } = props;
   return (
     <div
       style={{

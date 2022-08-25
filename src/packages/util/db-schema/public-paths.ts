@@ -104,16 +104,31 @@ Table({
     },
     vhost: {
       // For now, this will only be used *manually* for now; at some point users will be able to specify this,
-      // though maybe they have to prove they own it.
+      // though maybe they have to prove they own it.  This will be like "github pages", basically.
       // For now we will only serve the vhost files statically with no special support, except we do support
       // basic http auth.   However, we will add
       // special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
       // so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
       // This could be a non-default option.
       // IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.
+      // This is intentional for security reasons, since vhosts actually serve html files in a way that can be
+      // directly viewed in the browser, and they could contain dangerous content, so must be served on a different
+      // domain to avoid them somehow being an attack vector.
+      // BUG: I also can't get this to work for new domains; it only works for foo.cocalc.com for subdomains, and my
+      // old domains like vertramp.org.  WEIRD.
       type: "string",
-      desc: 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.',
+      desc: 'Request for the given host (which must not contain the string "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts that point to the same public path.',
       unique: true,
+    },
+    cross_origin_isolation: {
+      // This is used by https://python-wasm.cocalc.com.  But it can't be used by https://sagelets.cocalc.com/
+      // since that loads third party javascript from the sage cell server.   The only safe and secure way to
+      // allow this functionality is in a minimal page that doesn't load content from other pages, and that's
+      // just the way it is.  You can't embed such a minimal page in an iframe.   See
+      //    https://stackoverflow.com/questions/69322834/is-it-possible-to-embed-a-cross-origin-isolated-iframe-inside-a-normal-page
+      // for a discussion.
+      type: "boolean",
+      desc: "Set to true to enable cross-origin isolation for this shared path.  It will be served with COOP and COEP headers set to enable access to web APIs including SharedArrayBuffer and Atomics and prevent outer attacks (Spectre attacks, cross-origin attacks, etc.).  Setting this will break loading any third party javascript that requires communication with cross-origin windows, e.g., the Sage Cell Server.",
     },
     auth: {
       type: "map",
@@ -131,6 +146,14 @@ Table({
       type: "string",
       desc: "Site license to apply to projects editing a copy of this.",
     },
+    url: {
+      type: "string",
+      desc: "If given, use this relative URL to open this share. ONLY set this for proxy urls!  For example: 'gist/darribas/4121857' or 'github/cocalc/sagemathinc' or 'url/wstein.org/Tables/modjac/curves.txt'.  The point is that we need to store the url somewhere, and don't want to end up using the ugly id in this case.  This is different than the urls that come from setting a name for the owner and public path, since that's for files shared *from* within cocalc.",
+    },
+    image: {
+      type: "string",
+      desc: "Image that illustrates this shared content.",
+    },
   },
   rules: {
     primary_key: "id",
@@ -139,6 +162,7 @@ Table({
 
     pg_indexes: [
       "project_id",
+      "url",
       "(substring(project_id::text from 1 for 1))",
       "(substring(project_id::text from 1 for 2))",
     ],
@@ -152,7 +176,9 @@ Table({
           project_id: null,
           path: null,
           name: null,
+          url: null, // user can get this but NOT set it (below) since it's set when path is created only (it defines the path).
           description: null,
+          image: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
           authenticated: null, // if true, only authenticated users can have access
@@ -164,6 +190,7 @@ Table({
           // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
           compute_image: "default",
           // do NOT allow to read the site_license_id.
+          cross_origin_isolation: null,
         },
       },
       set: {
@@ -175,6 +202,7 @@ Table({
           path: true,
           name: true,
           description: true,
+          image: true,
           disabled: true,
           unlisted: true,
           authenticated: true,
@@ -183,6 +211,7 @@ Table({
           created: true,
           compute_image: true,
           site_license_id: true, // user with write access to project can set this.
+          cross_origin_isolation: true,
         },
         required_fields: {
           id: true,
@@ -203,7 +232,7 @@ Table({
           }
           // It's a valid name, so next check that it is unique
           db._query({
-            query: "SELECT COUNT(*) FROM public_paths",
+            query: "SELECT COUNT(*)::INT FROM public_paths",
             where: {
               "project_id = $::UUID": project_id,
               "path != $::TEXT": obj["path"],

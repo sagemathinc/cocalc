@@ -1,8 +1,7 @@
-import "antd/dist/antd.css";
+import "antd/dist/antd.min.css";
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
-import "../styles/globals.css"; // this must be last to overwrite things like antd
 
 import type { AppProps } from "next/app";
 
@@ -67,3 +66,7 @@ import "@cocalc/cdn/dist/codemirror/theme/xq-dark.css";
 import "@cocalc/cdn/dist/codemirror/theme/xq-light.css";
 import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
+
+// this must be last to overwrite things like antd
+import "../styles/globals.css";
+

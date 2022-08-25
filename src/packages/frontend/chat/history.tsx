@@ -3,16 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
 import { List, Map } from "immutable";
 import { trunc_middle } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "../misc";
-import { Markdown, TimeAgo } from "../components";
-import { ListGroupItem, Well } from "react-bootstrap";
+import { sanitize_html_safe } from "@cocalc/frontend/misc";
+import { Well } from "@cocalc/frontend/antd-bootstrap";
+import { TimeAgo } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-export const HistoryTitle: React.FC<{}> = () => {
+export function HistoryTitle() {
   return (
-    <ListGroupItem
+    <div
       style={{
         borderRadius: "10px 10px 0px 0px",
         textAlign: "center",
@@ -22,26 +22,29 @@ export const HistoryTitle: React.FC<{}> = () => {
       <span style={{ fontStyle: "italic", fontWeight: "bold" }}>
         Message History
       </span>
-    </ListGroupItem>
+    </div>
   );
-};
+}
 
-export const HistoryFooter: React.FC<{}> = () => {
+export function HistoryFooter() {
   return (
-    <ListGroupItem
+    <div
       style={{ borderRadius: "0px 0px 10px 10px", marginBottom: "3px" }}
-    ></ListGroupItem>
+    ></div>
   );
-};
+}
 
-export const History: React.FC<{
+interface HistoryProps {
   history?: List<any>;
   user_map?: Map<string, any>;
-}> = ({ history, user_map }) => {
+}
+
+export function History({ history, user_map }: HistoryProps) {
   if (history == null || user_map == null) {
     return null;
   }
-  const historyList = history.toJS().slice(1); // convert to javascript from immutable, and remove current version.
+  // convert to javascript from immutable, and remove current version.
+  const historyList = history.toJS().slice(1);
   const v: JSX.Element[] = [];
   for (const index in historyList) {
     const objects = historyList[index];
@@ -53,9 +56,9 @@ export const History: React.FC<{
       20
     );
     v.push(
-      <Well key={index} bsSize="small" style={{ marginBottom: "0px" }}>
+      <Well key={index} style={{ marginBottom: "0px" }}>
         <div style={{ marginBottom: "-10px", wordWrap: "break-word" }}>
-          <Markdown value={value} />
+          <StaticMarkdown value={value} />
         </div>
         <div className="small">
           {value.trim() == "" ? "Message deleted " : "Last edit "}
@@ -66,4 +69,4 @@ export const History: React.FC<{
     );
   }
   return <div>{v}</div>;
-};
+}

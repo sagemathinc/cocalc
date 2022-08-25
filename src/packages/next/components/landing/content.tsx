@@ -3,11 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
-import { ReactNode } from "react";
+import { Col, Row } from "antd";
 import SignIn from "components/landing/sign-in";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { ReactNode } from "react";
 import Image from "./image";
+import useCustomize from "lib/use-customize";
+import Path from "components/app/path";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -18,15 +20,17 @@ interface StaticImageData {
 }
 
 interface Props {
-  title: ReactNode;
-  subtitle: ReactNode;
-  description?: ReactNode;
-  logo?: ReactNode | string | StaticImageData;
-  image?: string | StaticImageData;
   alt?: string;
-  startup?: ReactNode;
   caption?: string;
+  description?: ReactNode;
+  image?: string | StaticImageData;
+  aboveImage?: ReactNode;
   indexInfo?: string;
+  logo?: ReactNode | string | StaticImageData;
+  startup?: ReactNode;
+  subtitle: ReactNode;
+  subtitleBelow?: boolean;
+  title: ReactNode;
 }
 
 function Logo({ logo, title }) {
@@ -39,35 +43,82 @@ function Logo({ logo, title }) {
   return logo;
 }
 
-export default function Content({
-  title,
-  subtitle,
-  description,
-  logo,
-  image,
-  alt,
-  startup,
-  caption,
-  indexInfo,
-}: Props) {
+export default function Content(props: Props) {
+  const {
+    title,
+    alt,
+    caption,
+    description,
+    image,
+    aboveImage,
+    indexInfo,
+    logo,
+    startup,
+    subtitle,
+    subtitleBelow = false,
+  } = props;
+
+  const { sandboxProjectId } = useCustomize();
+
   function renderIndexInfo() {
     if (!indexInfo) return;
+    return (
+      <Col xs={20}>
+        <SanitizedMarkdown value={indexInfo} style={{ padding: "20xp" }} />
+      </Col>
+    );
+  }
 
+  function renderSubtitleTop() {
+    if (subtitleBelow) return;
+    return <h2 style={{ color: "#333" }}>{subtitle}</h2>;
+  }
+
+  function renderSubtitleBelow() {
+    if (!subtitleBelow) return;
     return (
       <>
-        <Col
-          xs={24}
-          style={{
-            borderTop: "1px solid lightgrey",
-            marginTop: "20px",
-            marginBottom: "20px",
-          }}
-        ></Col>
-        <Col sm={{ span: 12, offset: 6 }} xs={{ span: 24, offset: 0 }}>
-          <SanitizedMarkdown value={indexInfo} />
+        <Col xs={0} sm={4}></Col>
+        <Col xs={24} sm={16}>
+          <h2 style={{ color: "#333", textAlign: "center", marginTop: "30px" }}>
+            {subtitle}
+          </h2>
         </Col>
       </>
     );
+  }
+
+  function renderImage() {
+    // if the index info is anything more than an empty string, we render this here instead
+    if (!!indexInfo) return renderIndexInfo();
+    if (!image) return;
+    return (
+      <>
+        <Image
+          src={image}
+          priority={true}
+          style={{ padding: "15px" }}
+          alt={alt ?? `Image illustrating ${title}`}
+        />
+        <div style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}>
+          {caption}
+        </div>
+      </>
+    );
+  }
+
+  function renderAboveImage() {
+    return aboveImage != null
+      ? aboveImage
+      : sandboxProjectId && (
+          <div style={{ margin: "15px" }}>
+            <Path
+              style={{ marginBottom: "15px" }}
+              project_id={sandboxProjectId}
+              description="Public Sandbox"
+            />
+          </div>
+        );
   }
 
   return (
@@ -90,28 +141,15 @@ export default function Content({
             <br />
 
             <h1 style={{ color: "#333" }}>{title}</h1>
-            <h2 style={{ color: "#333" }}>{subtitle}</h2>
+            {renderSubtitleTop()}
             <h3 style={{ color: "#666" }}>{description}</h3>
           </div>
         </Col>
         <Col sm={14} xs={24}>
-          {image && (
-            <>
-              <Image
-                src={image}
-                priority={true}
-                style={{ padding: "15px" }}
-                alt={alt ?? `Image illustrating ${title}`}
-              />
-              <div
-                style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
-              >
-                {caption}
-              </div>
-            </>
-          )}
+          {renderAboveImage()}
+          {renderImage()}
         </Col>
-        {renderIndexInfo()}
+        {renderSubtitleBelow()}
       </Row>
       <SignIn startup={startup ?? title} hideFree={true} />
     </div>

@@ -11,6 +11,8 @@ know exactly what you're doing.
 COPYRIGHT : (c) 2021 SageMath, Inc.
 */
 
+import { setupRecordConnectErrors } from "./postgres/record-connect-error";
+
 const base = require("./postgres-base");
 
 export const {
@@ -44,6 +46,8 @@ export function db(opts = {}) {
       );
     }
     theDB = new PostgreSQL(opts);
+    setupRecordConnectErrors(theDB);
   }
+
   return theDB;
 }

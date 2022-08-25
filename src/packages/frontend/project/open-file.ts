@@ -5,10 +5,9 @@
 
 // Implement the open_file actions for opening one single file in a project.
 
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 import {
   defaults,
-  endswith,
   filename_extension,
   filename_extension_notilde,
   meta_file,
@@ -19,13 +18,13 @@ import {
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { editor_id } from "./utils";
 import { redux } from "../app-framework";
 import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";
 import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const { local_storage } = require("../editor");
 //import { local_storage } from "../editor";
@@ -36,6 +35,8 @@ export async function open_file(
   actions: ProjectActions,
   opts: {
     path: string;
+    line?: number; // mainly backward compat for now
+    fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
     foreground?: boolean;
     foreground_project?: boolean;
     chat?: any;
@@ -43,18 +44,19 @@ export async function open_file(
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
-    // anchor -- if given, try to jump to scroll to this id in the editor, after it
-    // renders and is put in the foreground (ignored if foreground not true)
-    anchor?: string;
   }
 ): Promise<void> {
-  if (endswith(opts.path, "/")) {
+  // console.log("open_file", opts);
+
+  if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
     return;
   }
 
   opts = defaults(opts, {
     path: required,
+    line: undefined,
+    fragmentId: undefined,
     foreground: true,
     foreground_project: true,
     chat: undefined,
@@ -62,28 +64,22 @@ export async function open_file(
     ignore_kiosk: false,
     new_browser_window: false,
     change_history: true,
-    anchor: undefined,
   });
   opts.path = normalize(opts.path);
+
+  if (opts.line != null && !opts.fragmentId) {
+    // backward compat
+    opts.fragmentId = { line: opts.line };
+  }
 
   const is_kiosk = () =>
     !opts.ignore_kiosk &&
     (redux.getStore("page") as any).get("fullscreen") === "kiosk";
 
-  // intercept any requests if in kiosk mode
-  if (is_kiosk()) {
-    alert_message({
-      type: "error",
-      message: `CoCalc is in Kiosk mode, so you may not open new files.  Please try visiting ${document.location.origin} directly.`,
-      timeout: 15,
-    });
-    return;
-  }
-
   if (opts.new_browser_window) {
-    // options other than path are ignored in this case.
-    // TODO: do not ignore anchor option.
-    // if there is no path, we open the entire project and want to show the tabs – unless in kiosk mode
+    // TODO: options other than path are ignored right now.
+    // if there is no path, we open the entire project and want
+    // to show the tabs – unless in kiosk mode
     const fullscreen = is_kiosk() ? "kiosk" : opts.path ? "default" : "";
     actions.open_in_new_browser_window(opts.path, fullscreen);
     return;
@@ -95,8 +91,11 @@ export async function open_file(
   }
 
   let open_files = store.get("open_files");
-  if (!open_files.has(opts.path)) {
-    // Make the visible tab appear ASAP, even though
+  const alreadyOpened = open_files.has(opts.path);
+
+  if (!alreadyOpened) {
+    // Make the visible tab itself appear ASAP (just the tab at the top,
+    // not the file contents), even though
     // some stuff that may await below needs to happen.
     // E.g., if the user elects not to start the project, or
     // we have to resolve a symlink instead, then we *fix*
@@ -104,6 +103,29 @@ export async function open_file(
     // usually.
     if (!actions.open_files) return; // closed
     actions.open_files.set(opts.path, "component", {});
+  }
+
+  // intercept any requests to open files with an error when in kiosk mode
+  if (is_kiosk() && !alreadyOpened) {
+    alert_message({
+      type: "error",
+      message: `CoCalc is in Kiosk mode, so you may not open "${opts.path}".  Please try visiting ${document.location.origin} directly.`,
+      timeout: 15,
+    });
+    return;
+  }
+
+  if (
+    opts.fragmentId == null &&
+    !alreadyOpened &&
+    location.hash.slice(1) &&
+    opts.foreground
+  ) {
+    // If you just opened a file and location.hash is set and in foreground, go to
+    // that location.  Do NOT do this if opts.foreground not set, e.g,. when restoring
+    // session, because then all background files are configured to open with that
+    // fragment.
+    opts.fragmentId = Fragment.decode(location.hash);
   }
 
   if (
@@ -170,10 +192,6 @@ export async function open_file(
     // Check if have capability to open this file.  Important
     // to only do this if not public, since again, if public we
     // are not even using the project (it is all client side).
-    // NOTE: I think this is wrong; we should always open any file
-    // and instead of saying "can't open it", instead just fall
-    // back to a codemirror text editor...   After all, that's what
-    // we already do with all uknown file types.
     const can_open_file = await store.can_open_file_ext(ext, actions);
     if (is_closed()) return;
     if (!can_open_file) {
@@ -193,7 +211,7 @@ export async function open_file(
     // Wait for the project to start opening (only do this if not public -- public users don't
     // know anything about the state of the project).
     try {
-      await callback(actions._ensure_project_is_open);
+      await callback(actions._ensure_project_is_open.bind(actions));
     } catch (err) {
       actions.set_activity({
         id: uuid(),
@@ -205,6 +223,7 @@ export async function open_file(
   }
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
+    // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
     await open_sagenb_worksheet({ ...opts, project_id: actions.project_id });
     return;
   }
@@ -227,7 +246,7 @@ export async function open_file(
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
   });
-  if (!open_files.has(opts.path) || file_info.is_public !== is_public) {
+  if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 
     if (was_public != null && was_public !== is_public) {
@@ -238,7 +257,6 @@ export async function open_file(
     // Add it to open files
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
-
     if (opts.chat) {
       init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
       // ONLY do this *after* initializing actions/store for side chat:
@@ -248,45 +266,21 @@ export async function open_file(
     redux.getActions("page").save_session();
   }
 
+  actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
+
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
     const tab = path_to_tab(opts.path);
     actions.set_active_tab(tab, {
       change_history: opts.change_history,
     });
-    if (opts.anchor) {
-      // Scroll the *visible* one into view.  NOTE: it's possible
-      // that several notebooks (say) are all open in background tabs
-      // and all have the same anchor tag in them; we only want to
-      // try to scroll the visible one or ones.
-      // We also have no reliable way to know if the editor has
-      // fully loaded yet, so we just try until the tag appears
-      // up to 15s.  Someday, we will have to make it so editors
-      // somehow clearly indicate when they are done loading, and
-      // we can use that to do this right.
-      const start: number = new Date().valueOf();
-      const id = editor_id(actions.project_id, opts.path);
-      while (new Date().valueOf() - start.valueOf() <= 15000) {
-        await delay(100);
-        const store = actions.get_store();
-        if (store == undefined) break;
-        if (tab != store.get("active_project_tab")) break;
-        const e = $("#" + id).find("#" + opts.anchor);
-        if (e.length > 0) {
-          // We iterate through all of them in this visible editor.
-          // Because of easy editor splitting we could easily have multiple
-          // copies of the same id, and we move them all into view.
-          // Change this to break after the first one if this annoys people;
-          // it's not clear what the "right" design is.
-          for (const x of e) {
-            x.scrollIntoView();
-          }
-          break;
-        } else {
-          await delay(100);
-        }
-      }
-    }
+  }
+
+  if (alreadyOpened && opts.fragmentId) {
+    // when file already opened we have to explicitly do this, since
+    // it doesn't happen in response to foregrounding the file the
+    // first time.
+    actions.gotoFragment(opts.path, opts.fragmentId);
   }
 }
 

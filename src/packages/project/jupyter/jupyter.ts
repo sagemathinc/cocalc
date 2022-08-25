@@ -35,8 +35,7 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-
-const {
+import {
   merge,
   copy,
   deep_copy,
@@ -45,8 +44,7 @@ const {
   uuid,
   len,
   is_array,
-} = require("@cocalc/util/misc");
-
+} from "@cocalc/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 const { key_value_store } = require("@cocalc/util/key-value-store");
@@ -84,6 +82,9 @@ import {
   LaunchJupyterOpts,
 } from "./launch_jupyter_kernel";
 
+import { getLogger } from "@cocalc/project/logger";
+const winston = getLogger("jupyter");
+
 /*
 We set a few extra user-specific options for the environment in which
 Sage-based Jupyter kernels run; these are more multi-user friendly.
@@ -95,8 +96,8 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 });
 
 export function jupyter_backend(syncdb: SyncDB, client: any): void {
-  const dbg = client.dbg("jupyter_backend");
-  dbg();
+  const dbg = getLogger("jupyter_backend");
+  dbg.debug();
   const app_framework = require("@cocalc/frontend/app-framework");
 
   const project_id = client.client_id();
@@ -120,8 +121,8 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
 
   actions._init(project_id, path, syncdb, store, client);
 
-  syncdb.once("error", (err) => dbg(`syncdb ERROR -- ${err}`));
-  syncdb.once("ready", () => dbg("syncdb ready"));
+  syncdb.once("error", (err) => dbg.error(`syncdb ERROR -- ${err}`));
+  syncdb.once("ready", () => dbg.debug("syncdb ready"));
 }
 
 // Get rid of the store/actions for a given Jupyter notebook,
@@ -152,39 +153,26 @@ export async function remove_jupyter_backend(
 
 // for interactive testing
 // TODO: needs to somehow proxy through the real client...
-class Client {
-  client_id(): string {
-    return "123e4567-e89b-12d3-a456-426655440000";
-  }
-  is_project(): boolean {
-    return true;
-  }
-  dbg(f) {
-    return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
-  }
-}
+// class Client {
+//   client_id(): string {
+//     return "123e4567-e89b-12d3-a456-426655440000";
+//   }
+//   is_project(): boolean {
+//     return true;
+//   }
+//   dbg(f) {
+//     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
+//   }
+// }
 
 interface KernelParams {
   name: string;
-  client?: Client;
-  verbose?: boolean;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
-  if (opts.verbose === undefined) {
-    opts.verbose = true;
-  }
-  if (opts.client === undefined) {
-    opts.client = new Client();
-  }
-  return new JupyterKernel(
-    opts.name,
-    opts.verbose ? opts.client.dbg : undefined,
-    opts.path,
-    opts.actions
-  );
+  return new JupyterKernel(opts.name, opts.path, opts.actions);
 }
 
 /*
@@ -205,7 +193,6 @@ export class JupyterKernel
   public readonly identity: string = uuid();
 
   private stderr: string = "";
-  private _dbg: Function;
   private _path: string;
   private _actions: any;
   private _state: string;
@@ -217,7 +204,7 @@ export class JupyterKernel
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _dbg, _path, _actions) {
+  constructor(name, _path, _actions) {
     super();
 
     this.spawn = reuseInFlight(this.spawn.bind(this)); // TODO -- test carefully!
@@ -230,7 +217,6 @@ export class JupyterKernel
     this.process_output = this.process_output.bind(this);
 
     this.name = name;
-    this._dbg = _dbg;
     this._path = _path;
     this._actions = _actions;
 
@@ -248,7 +234,7 @@ export class JupyterKernel
     _jupyter_kernels[this._path] = this;
     const dbg = this.dbg("constructor");
     dbg();
-    process.on("exit", this.close);
+    process.on("exit", this.close.bind(this));
     this.setMaxListeners(100);
   }
 
@@ -546,19 +532,17 @@ export class JupyterKernel
   }
 
   // public, since we do use it from some other places...
-  public dbg(f: string, trunc: number = 1000): Function {
-    if (!this._dbg) {
-      return function () {};
-    } else {
-      return this._dbg(
+  dbg(f: string): Function {
+    return (...args) => {
+      winston.debug(
         `jupyter.Kernel('${this.name}',path='${this._path}').${f}`,
-        trunc
+        ...args
       );
-    }
+    };
   }
 
   low_level_dbg(): void {
-    const dbg = this.dbg("low_level_debug", 10000);
+    const dbg = this.dbg("low_level_debug");
     dbg("Enabling");
     this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...

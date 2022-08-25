@@ -10,22 +10,34 @@ a nice "homepage" for that user or organization.
 import getPool from "@cocalc/database/pool";
 import getProjectId from "./project";
 import { getOwnerName } from "lib/names/owner";
+import getProxyPublicPath, {
+  shouldUseProxy,
+} from "lib/share/proxy/get-public-path";
+import { join } from "path";
 
 export default async function getPublicPathId(
   owner: string,
   project: string,
-  public_path: string
+  public_path: string[] // this is the entire actual path
 ): Promise<string> {
+  if (shouldUseProxy(owner)) {
+    // special case -- proxy urls...
+    const { id } = await getProxyPublicPath({
+      url: join(owner, project, ...public_path),
+    });
+    return id;
+  }
+
   const project_id = await getProjectId(owner, project);
   const pool = getPool("long");
   const result = await pool.query(
     "SELECT id FROM public_paths WHERE LOWER(name)=$1 AND project_id=$2",
-    [public_path.toLowerCase(), project_id]
+    [public_path[0]?.toLowerCase() ?? "", project_id]
   );
   if (result.rows.length > 0) {
     return result.rows[0].id;
   }
-  throw Error(`no public_path ${owner}/${project}/${public_path}`);
+  throw Error(`no public_path ${owner}/${project}/${public_path[0]}`);
 }
 
 // Given the id of a public path, returns owner name, project name, and public_path name

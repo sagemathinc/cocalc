@@ -3,29 +3,30 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CSSProperties } from "react";
 import { Map } from "immutable";
-const { IS_TOUCH } = require("../feature");
-
-import { Avatar } from "../account/avatar/avatar";
-import { is_different, path_split } from "@cocalc/util/misc";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   is_editing,
   message_colors,
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { Markdown } from "./markdown";
-
-import { redux, React, useMemo, useRef, useState } from "../app-framework";
-import { Icon, Space, TimeAgo, Tip } from "../components";
-import { Button } from "../antd-bootstrap";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import {
+  redux,
+  useMemo,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { Button } from "antd";
 import { Row, Col } from "antd";
 import { get_user_name } from "./chat-log";
-
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import { ChatInput } from "./input";
 import { ChatActions } from "./actions";
-
 import { Time } from "./time";
 import { Name } from "./name";
 
@@ -45,24 +46,13 @@ interface Props {
   is_next_sender?: boolean;
   show_avatar?: boolean;
   include_avatar_col?: boolean;
+  selectedHashtags?: Set<string>;
 
   set_scroll?: Function;
   scroll_into_view: () => void; // call to scroll this message into view
 }
 
-function areEqual(prevProps, nextProps): boolean {
-  return !is_different(prevProps, nextProps, [
-    "message",
-    "user_map",
-    "font_size",
-    "show_avatar",
-    "include_avatar_col",
-    "is_prev_sender",
-    "is_next_sender",
-  ]);
-}
-
-export const Message: React.FC<Props> = React.memo((props) => {
+export default function Message(props: Props) {
   const [edited_message, set_edited_message] = useState(
     newest_content(props.message)
   );
@@ -95,27 +85,22 @@ export const Message: React.FC<Props> = React.memo((props) => {
 
   const submitMentionsRef = useRef<Function>();
 
-  function render_toggle_history() {
+  function renderToggleHistory() {
     const verb = show_history ? "Hide" : "Show";
     return (
-      <span>
-        <Space />
-        <span
-          className="small"
-          style={{
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-          onClick={() => toggle_history_chat(!show_history)}
+      <Button
+        style={{ marginLeft: "5px" }}
+        type="text"
+        size="small"
+        onClick={() => toggle_history_chat(!show_history)}
+      >
+        <Tip
+          title="Message History"
+          tip={`${verb} history of editing of this message.  Any collaborator can edit any message.`}
         >
-          <Tip
-            title="Message History"
-            tip={`${verb} history of editing of this message.`}
-          >
-            <Icon name="history" /> {verb} History
-          </Tip>
-        </span>
-      </span>
+          <Icon name="history" /> {verb} History
+        </Tip>
+      </Button>
     );
   }
 
@@ -193,7 +178,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
             <Space />
-            <Button onClick={on_send} bsStyle="success">
+            <Button onClick={on_send} type="primary">
               Save (shift+enter)
             </Button>
           </span>
@@ -217,7 +202,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
 
   function avatar_column() {
     let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
-    let style: React.CSSProperties = {};
+    let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
@@ -272,7 +257,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
       borderRadius = "5px 5px 10px 10px";
     }
 
-    const message_style: React.CSSProperties = {
+    const message_style: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
@@ -302,24 +287,30 @@ export const Message: React.FC<Props> = React.memo((props) => {
               <Time message={props.message} edit={edit_message} />
             </span>
           )}
-          {!isEditing ? (
-            <Markdown
+          {!isEditing && (
+            <MostlyStaticMarkdown
               value={value}
-              project_id={props.project_id}
-              file_path={
-                props.path != null ? path_split(props.path).head : undefined
-              }
               className={message_class}
+              selectedHashtags={props.selectedHashtags}
+              toggleHashtag={
+                props.selectedHashtags != null && props.actions != null
+                  ? (tag) =>
+                      props.actions?.setHashtagState(
+                        tag,
+                        props.selectedHashtags?.has(tag) ? undefined : 1
+                      )
+                  : undefined
+              }
             />
-          ) : undefined}
-          {isEditing ? render_input() : undefined}
+          )}
+          {isEditing && render_input()}
           <span>
             {props.message.get("history").size > 1 ||
             props.message.get("editing").size > 0
               ? editing_status(isEditing)
               : undefined}
             {props.message.get("history").size > 1
-              ? render_toggle_history()
+              ? renderToggleHistory()
               : undefined}
           </span>
         </div>
@@ -392,7 +383,7 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
   }
   return <Row>{cols}</Row>;
-}, areEqual);
+}
 
 // Used for exporting chat to markdown file
 export function message_to_markdown(message): string {

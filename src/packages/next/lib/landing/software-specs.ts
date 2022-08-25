@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { hours_ago } from "@cocalc/util/relative-time";
 import { reuseInFlight } from "async-await-utils/hof";
 import COMPONENTS from "dist/inventory/compute-components.json";
@@ -138,7 +143,8 @@ async function getSoftwareSpec(): Promise<SoftwareSpec> {
 // this is for the server side getServerSideProps function
 export async function withCustomizedAndSoftwareSpec(
   context,
-  lang: LanguageName | "executables"
+  lang: LanguageName | "executables",
+  executableInfo?: string[]
 ) {
   const [customize, spec] = await Promise.all([
     withCustomize({ context }),
@@ -157,5 +163,14 @@ export async function withCustomizedAndSoftwareSpec(
     customize.props.inventory = inventory;
     customize.props.components = components;
   }
+
+  if (executableInfo != null) {
+    const { inventory } = await getSoftwareInfo();
+    customize.props.execInfo = {};
+    for (const cmd of executableInfo) {
+      customize.props.execInfo[cmd] = inventory.executables?.[cmd] ?? null;
+    }
+  }
+
   return customize;
 }

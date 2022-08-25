@@ -21,12 +21,14 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { pdf_path } from "./util";
 import { IS_IOS, IS_IPAD } from "../../feature";
+import { TableOfContents } from "../markdown-editor/table-of-contents";
 
 export const pdfjs_buttons = set([
   "print",
   "download",
   "decrease_font_size",
   "increase_font_size",
+  "set_zoom",
   "zoom_page_width",
   "zoom_page_height",
   "sync",
@@ -57,6 +59,7 @@ const EDITOR_SPEC = {
       "help",
       "format",
       "switch_to_file",
+      "show_table_of_contents",
     ]),
     gutters: ["Codemirror-latex-errors"],
   } as EditorDescription,
@@ -93,6 +96,14 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "rescan_latex_directive",
     ]),
+  } as EditorDescription,
+
+  latex_table_of_contents: {
+    short: "Contents",
+    name: "Table of Contents",
+    icon: "align-right",
+    component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   word_count: {

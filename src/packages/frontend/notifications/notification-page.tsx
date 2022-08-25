@@ -7,6 +7,7 @@ import React from "react";
 import { NotificationNav } from "./notification-nav";
 import { NotificationList } from "./notification-list";
 import { MentionFilter } from "./mentions/types";
+import { A, VisibleMDLG } from "@cocalc/frontend/components";
 
 import { redux, rclass, rtypes } from "../app-framework";
 
@@ -41,9 +42,35 @@ export const NotificationPage = rclass(
       }
       return (
         <div style={outer_container_style} className="smc-vfill">
-          <h3 style={{ color: "#666" }}>
-            Mentions
-          </h3>
+          <h1 style={{ color: "#666", textAlign: "center" }}>Mentions</h1>
+          <VisibleMDLG>
+            <div
+              style={{
+                maxWidth: "800px",
+                margin: "0 auto",
+                color: "#666",
+                border: "1px solid #ddd",
+                padding: "15px",
+                borderRadius: "5px",
+                fontSize: "11pt",
+              }}
+            >
+              Use @mention to explicitly mention your collaborators{" "}
+              <A href="https://doc.cocalc.com/chat.html">in</A>{" "}
+              <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
+                chatrooms
+              </A>
+              , and{" "}
+              <A href="https://doc.cocalc.com/markdown.html#mentions">
+                when editing files.
+              </A>{" "}
+              For example, when editing text in a Jupyter notebook or
+              whiteboard, type an @ symbol, then select the name of a
+              collaborator, and they will receive an email telling them that you
+              mentioned them. You can also @mention yourself for testing or to
+              make it easy to find something later.
+            </div>
+          </VisibleMDLG>
           <div style={inner_container_style}>
             <NotificationNav
               filter={filter}

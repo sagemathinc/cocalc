@@ -6,8 +6,6 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
-import { tuple } from "./misc";
-
 // ideally, this is the "syntax", but for historic reasons it's what is being called "parsed" and
 // hence there there are additional entries for backwards compatibility with older projects.
 // this shouldn't be necessary any more and could be removed.
@@ -18,14 +16,15 @@ export type Syntax =
   | "clang"
   | "latex"
   | "go"
-  | "rust"
   | "CSS"
   | "html"
   | "xml"
   | "bibtex"
   | "markdown"
   | "Markdown"
+  | "Quarto"
   | "knitr"
+  | "javascript" // backwards compatibility
   | "json"
   | "JSON"
   | "latex"
@@ -45,7 +44,8 @@ export type Syntax =
   | "babel"
   | "gofmt"
   | "clang-format"
-  | "rustfmt"
+  | "rust"
+  | "rustfmt" // deprecated, should be rust
   | "tsx"
   | "jsx"
   | "yapf"
@@ -84,44 +84,49 @@ export type Tool =
   | "DOES_NOT_EXIST"; // use this for testing;
 
 // the set of file extensions where we want to have formatting support
-export const file_extensions = tuple([
-  "js",
-  "jsx",
-  "ts",
-  "tsx",
-  "json",
-  "md",
-  "css",
-  "py",
-  "r",
-  "rs",
-  "go",
-  "yml",
-  "yaml",
-  "xml",
-  "cml" /* that's xml */,
-  "kml" /* geodata keyhole markup, also xml */,
-  "xsl",
-  "ptx",
+export const file_extensions = [
+  "bib",
   "c",
   "c++",
   "cc",
+  "cml" /* that's xml */,
   "cpp",
+  "css",
+  "go",
   "h",
-  "bib",
+  "html",
+  "js",
+  "json",
+  "jsx",
+  "kml" /* geodata keyhole markup, also xml */,
+  "md",
+  "ptx",
+  "py",
+  "qmd",
+  "r",
+  "rmd",
+  "rs",
+  "tex",
+  "ts",
+  "tsx",
+  "xml",
+  "xsl",
+  "yaml",
+  "yml",
   "zig",
-]);
+] as const;
 
 // convert to type
 export type Exts = typeof file_extensions[number];
 
 // associating filename extensions with a specific type of syntax for a parser
 type Ext2Syntax = { [s in Exts]: Parser };
-export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
+export const ext2syntax: Readonly<Ext2Syntax> = {
   js: "JavaScript",
   jsx: "jsx",
   md: "Markdown",
   rmd: "RMarkdown",
+  qmd: "Quarto",
   css: "CSS",
   ts: "TypeScript",
   tsx: "tsx",
@@ -146,7 +151,7 @@ export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
   ptx: "xml",
   zig: "zig",
   bib: "bibtex", // via biber --tool
-} as Ext2Syntax);
+} as const;
 
 export const ext2parser = ext2syntax;
 
@@ -154,39 +159,39 @@ export const ext2parser = ext2syntax;
 // have these special tools (command-line interface)
 // (several ones are added for backwards compatibility)
 type Config = { [s in Parser]: Tool };
-export const syntax2tool: Readonly<Config> = Object.freeze({
+export const syntax2tool: Readonly<Partial<Config>> = {
+  "c++": "clang-format",
+  "clang-format": "clang-format",
+  babel: "prettier",
+  bibtex: "bib-biber",
+  c: "clang-format",
+  clang: "clang-format",
+  CSS: "css", // in prettier
+  go: "gofmt",
+  gofmt: "gofmt",
+  html: "html", // via prettier
+  JavaScript: "babel", // in prettier
+  json: "json", // in prettier
+  JSON: "json", // in prettier
+  jsx: "babel", // in prettier
+  latex: "latex", // should be "latexindent",
+  markdown: "markdown", // in prettier
+  Markdown: "markdown", // in prettier
   py: "python", // should be yapf or whatever …
   python: "python", // should be yapf or whatever …
   python3: "python", // should be yapf or whatever …
-  R: "formatR",
+  Quarto: "markdown", // same as RMarkdown, at least for now
   r: "formatR",
-  zig: "zig",
-  JavaScript: "babel", // in prettier
-  jsx: "babel", // in prettier
-  tsx: "typescript", // in prettier
-  TypeScript: "typescript", // in prettier
-  typescript: "typescript", // in prettier
-  CSS: "css", // in prettier
-  json: "json", // in prettier
-  JSON: "json", // in prettier
-  yaml: "yaml", // in prettier
-  markdown: "markdown", // in prettier
-  Markdown: "markdown", // in prettier
+  R: "formatR",
   RMarkdown: "markdown", // same as markdown, at last for now!
-  c: "clang-format",
-  clang: "clang-format",
-  "clang-format": "clang-format",
-  "c++": "clang-format",
-  babel: "prettier",
-  latex: "latex", // should be "latexindent",
-  go: "gofmt",
-  gofmt: "gofmt",
   rust: "rustfmt",
-  rustfmt: "rustfmt",
-  bibtex: "bib-biber",
+  tsx: "typescript", // in prettier
+  typescript: "typescript", // in prettier
+  TypeScript: "typescript", // in prettier
   xml: "xml-tidy",
-  html: "html", // via prettier
-} as Config);
+  yaml: "yaml", // in prettier
+  zig: "zig",
+} as const;
 
 export const parser2tool = syntax2tool;
 
@@ -194,26 +199,26 @@ export const parser2tool = syntax2tool;
 // in order to communicate what syntaxes can be formatted.
 type Langs = { [s in Parser]?: string };
 
-export const syntax2display: Readonly<Langs> = Object.freeze({
-  r: "R Language",
-  c: "C",
-  "c++": "C++",
-  latex: "LaTeX",
+export const syntax2display: Readonly<Langs> = {
   "bib-biber": "Bibtex",
-  json: "JSON",
-  yaml: "YAML",
-  py: "Python",
-  gofmt: "Go",
-  rust: "Rust",
-  rustfmt: "Rust",
-  markdown: "Markdown",
-  typescript: "TypeScript",
-  html: "HTML",
-  xml: "XML",
+  "c++": "C++",
+  c: "C",
   css: "CSS",
+  gofmt: "Go",
+  html: "HTML",
   javascript: "JavaScript",
+  JavaScript: "JavaScript",
+  json: "JSON",
+  latex: "LaTeX",
+  markdown: "Markdown",
+  py: "Python",
+  r: "R Language",
+  rust: "Rust",
+  typescript: "TypeScript",
+  xml: "XML",
+  yaml: "YAML",
   zig: "Zig",
-} as Langs);
+} as const;
 
 export const parser2display = syntax2display;
 

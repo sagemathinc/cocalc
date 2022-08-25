@@ -72,38 +72,19 @@ module.exports = function (PRODMODE) {
     },
     {
       test: /\.png$/,
-      use: [
-        {
-          loader: "file-loader",
-          options: { name: hashname, limit: 16000, mimetype: "image/png" },
-        },
-      ],
+      type: "asset/resource",
     },
     {
       test: /\.ico$/,
-      use: [
-        {
-          loader: "file-loader",
-          options: { name: hashname, mimetype: "image/x-icon" },
-        },
-      ],
+      type: "asset/resource",
     },
     {
       test: /\.svg(\?[a-z0-9\.-=]+)?$/,
-      use: [
-        {
-          loader: "url-loader",
-          options: {
-            name: hashname,
-            limit: 16000,
-            mimetype: "image/svg+xml",
-          },
-        },
-      ],
+      type: "asset/resource",
     },
     {
       test: /\.(jpg|jpeg|gif)$/,
-      use: [{ loader: "file-loader", options: { name: hashname } }],
+      type: "asset/resource",
     },
     {
       test: /\.html$/,
@@ -117,26 +98,20 @@ module.exports = function (PRODMODE) {
     },
     { test: /\.hbs$/, loader: "handlebars-loader" },
     {
+      test: /\.svg?$/,
+      type: "asset/resource",
+    },
+    {
       test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
-      use: [
-        {
-          loader: "url-loader",
-          options: { name: hashname, mimetype: "application/font-woff" },
-        },
-      ],
+      type: "asset/resource",
     },
     {
       test: /\.ttf(\?[a-z0-9\.-=]+)?$/,
-      use: [
-        {
-          loader: "url-loader",
-          options: { limit: 10000, mimetype: "application/octet-stream" },
-        },
-      ],
+      type: "asset/resource",
     },
     {
       test: /\.eot(\?[a-z0-9\.-=]+)?$/,
-      use: [{ loader: "file-loader", options: { name: hashname } }],
+      type: "asset/resource",
     },
     {
       test: /\.css$/i,

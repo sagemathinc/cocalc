@@ -12,6 +12,7 @@ export type CellType = "raw" | "markdown" | "code" | "multi";
 export type Scroll =
   | number
   | "cell visible"
+  | "cell visible force"
   | "cell top"
   | "list up"   // should probably have been called "page up" and "page down"...
   | "list down";

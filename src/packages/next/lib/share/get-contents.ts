@@ -24,6 +24,7 @@ export interface FileInfo {
   isdir?: boolean;
   size?: number;
   mtime?: number;
+  url?: string; // if given and click on this file, goes here.  Can be used to make path canonical and is used for navigating github repos (say).
 }
 
 export interface PathContents {

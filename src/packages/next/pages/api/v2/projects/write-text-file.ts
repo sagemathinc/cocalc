@@ -8,11 +8,7 @@ export default async function handle(req, res) {
   const account_id = await getAccountId(req);
   try {
     if (account_id == null) throw Error("must be authenticated");
-    const { project_id, path, content } = getParams(req, [
-      "project_id",
-      "path",
-      "content",
-    ]);
+    const { project_id, path, content } = getParams(req);
     if (!isValidUUID(project_id))
       throw Error("must set project_id to a valid uuid");
     if (!path) throw Error("must specify a 'path'");

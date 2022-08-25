@@ -24,13 +24,11 @@ import {
 } from "@cocalc/server/auth/remember-me";
 import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 // import reCaptcha from "@cocalc/server/auth/recaptcha";
 
 export default async function signIn(req, res) {
-  if (!isPost(req, res)) return;
-
-  let { email, password } = req.body;
+  let { email, password } = getParams(req);
   email = email.toLowerCase().trim();
   const check = signInCheck(email, req.ip);
   if (check) {

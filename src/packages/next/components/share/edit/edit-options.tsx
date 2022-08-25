@@ -12,6 +12,7 @@ import OpenAnonymously from "./open-anonymously";
 import ChooseProject from "./choose-project";
 import { Props } from "./index";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { trunc_middle } from "@cocalc/util/misc";
 
 interface EditOptionsProps extends Props {
   onClose: () => void;
@@ -20,6 +21,7 @@ interface EditOptionsProps extends Props {
 export default function EditOptions({
   id,
   path,
+  url,
   relativePath,
   project_id,
   image,
@@ -32,11 +34,14 @@ export default function EditOptions({
       style={{ margin: "30px 0" }}
       title={
         <>
-          <div style={{ float: "right", cursor: "pointer" }} onClick={onClose}>
+          <div
+            style={{ position: "absolute", right: "30px", cursor: "pointer" }}
+            onClick={onClose}
+          >
             <Icon name="times-circle" />
           </div>
-          <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
-          <b>{join(path, relativePath)}</b>?
+          <Icon style={{ marginRight: "10px" }} name="pencil" /> Edit{" "}
+          <b>{trunc_middle(join(path, relativePath), 60)}</b>
         </>
       }
     >
@@ -44,6 +49,7 @@ export default function EditOptions({
         <SignedInOptions
           id={id}
           path={path}
+          url={url}
           relativePath={relativePath}
           project_id={project_id}
           image={image}
@@ -59,13 +65,14 @@ export default function EditOptions({
 function SignedInOptions({
   id,
   path,
+  url,
   relativePath,
   project_id,
   image,
   description,
 }) {
   const { isCollaborator } = useCustomize();
-  return isCollaborator ? (
+  return !url && isCollaborator ? (
     <OpenDirectly
       id={id}
       project_id={project_id}
@@ -77,6 +84,7 @@ function SignedInOptions({
       id={id}
       src_project_id={project_id}
       path={path}
+      url={url}
       relativePath={relativePath}
       image={image}
       description={description ? description : path ? path : relativePath}

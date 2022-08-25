@@ -187,6 +187,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     return !!this.getIn(["project_map", project_id, "deleted"]);
   }
 
+  public isSandbox(project_id: string): boolean {
+    return !!this.getIn(["project_map", project_id, "sandbox"]);
+  }
+
   public is_hidden_from(project_id: string, account_id: string): boolean {
     return !!this.getIn([
       "project_map",
@@ -209,7 +213,9 @@ export class ProjectsStore extends Store<ProjectsState> {
        admin and not on the project at all
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
-  public get_my_group(project_id: string): undefined | string {
+  public get_my_group(
+    project_id: string
+  ): undefined | "admin" | "owner" | "collaborator" | "public" {
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;

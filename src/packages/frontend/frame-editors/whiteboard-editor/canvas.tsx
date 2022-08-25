@@ -1365,12 +1365,14 @@ export default function Canvas({
                 elements,
                 selection,
               });
+              extendToIncludeEdges(selectedElements, elements);
               const encoded = encodeForCopy(selectedElements);
               event.clipboardData.setData(
                 "application/x-cocalc-whiteboard",
                 encoded
               );
               frame.actions.deleteElements(selectedElements);
+              frame.actions.clearSelection(frame.id);
             }
       }
       onPaste={

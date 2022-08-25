@@ -48,6 +48,8 @@ import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IconName } from "./components";
+import { default_filename } from "./account";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -317,26 +319,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_panel("show_library", show);
   }
 
-  set_url_to_path(current_path): void {
+  set_url_to_path(current_path, hash?: string): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
     }
-    this.push_state(`files/${current_path}`);
+    this.push_state(`files/${current_path}`, hash);
   }
 
   _url_in_project(local_url): string {
     return `/projects/${this.project_id}/${misc.encode_path(local_url)}`;
   }
 
-  push_state(local_url?: string): void {
+  push_state(local_url?: string, hash?: string): void {
     if (local_url == null) {
-      local_url = this._last_history_state;
-    }
-    if (local_url == null) {
-      local_url = `files/`;
+      local_url = this._last_history_state ?? "files/";
     }
     this._last_history_state = local_url;
-    set_url(this._url_in_project(local_url));
+    set_url(this._url_in_project(local_url), hash);
   }
 
   move_file_tab(opts: { old_index: number; new_index: number }): void {
@@ -410,20 +409,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // already active -- nothing further to do
       return;
     }
+    if (prev_active_project_tab) {
+      // do not keep fragment from tab that is being hidden
+      Fragment.clear();
+    }
     if (
       prev_active_project_tab !== key &&
-      misc.startswith(prev_active_project_tab, "editor-")
+      prev_active_project_tab.startsWith("editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
-
     const change: any = { active_project_tab: key };
     switch (key) {
       case "files":
         if (opts.change_history) {
-          this.set_url_to_path(
-            store.get("current_path") != null ? store.get("current_path") : ""
-          );
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         if (opts.update_file_listing) {
           this.fetch_directory_listing();
@@ -432,32 +432,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
-          this.push_state(`new/${store.get("current_path")}`);
+          this.push_state(`new/${store.get("current_path")}`, "");
         }
-        const new_fn = require("./account").default_filename(
-          opts.new_ext,
-          this.project_id
-        );
+        const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
       case "log":
         if (opts.change_history) {
-          this.push_state("log");
+          this.push_state("log", "");
         }
         break;
       case "search":
         if (opts.change_history) {
-          this.push_state(`search/${store.get("current_path")}`);
+          this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
       case "settings":
         if (opts.change_history) {
-          this.push_state("settings");
+          this.push_state("settings", "");
         }
         break;
       case "info":
         if (opts.change_history) {
-          this.push_state("info");
+          this.push_state("info", "");
         }
         break;
       default:
@@ -521,6 +518,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // this is important, because e.g. the store has a "visible" field, which stays undefined
             // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
             this.show_file(path);
+            // If a fragment identifier is set, we also jump there.
+            const fragmentId = store
+              .get("open_files")
+              .getIn([path, "fragmentId"]);
+            if (fragmentId) {
+              this.gotoFragment(path, fragmentId);
+            }
           })();
         } else {
           this.show_file(path);
@@ -822,12 +826,62 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // Moves to the given fragment if the gotoFragment action is implemented and accepted,
+  // and the file actions exist already (e.g. file was opened).
+  // Otherwise, silently does nothing.  Has a fallback for now for fragmentId='line=[number]'.
+  public gotoFragment(path: string, fragmentId: FragmentId): void {
+    // console.log("gotoFragment", { path, fragmentId });
+    if (typeof fragmentId != "object") {
+      console.warn(`gotoFragment -- invalid fragmentId: "${fragmentId}"`);
+      return;
+    }
+    const actions: any = redux.getEditorActions(this.project_id, path);
+    const store = this.get_store();
+    // We ONLY actually goto the fragment if the file is the active one
+    // in the active project and the actions for that file have been created.
+    // Otherwise, we just save the fragment for later when the file is opened
+    // and this.show_file gets called, thus triggering all this again.
+    if (
+      actions != null &&
+      store != null &&
+      path == misc.tab_to_path(store.get("active_project_tab")) &&
+      this.isProjectTabVisible()
+    ) {
+      // Clear the fragmentId from the "todo" state, so we won't try to use
+      // this next time we display the file:
+      this.open_files?.set(path, "fragmentId", undefined);
+      // The file is actually visible, so we can try to scroll to the fragment.
+      // set the fragment in the URL if the file is in the foreground
+      Fragment.set(fragmentId);
+      if (actions.gotoFragment != null) {
+        actions.gotoFragment(fragmentId);
+        return;
+      }
+      // a fallback for now.
+      if (fragmentId["line"] != null) {
+        this.goto_line(path, fragmentId["line"], true, true);
+        return;
+      }
+    } else {
+      // File is NOT currently visible, so going to the fragment is likely
+      // to break for many editors.  e.g., codemirror background editor just
+      // does nothing since it has no DOM measurements...
+      // Instead we record the fragment we want to be at, and when the
+      // tab is next shown, it will move there.
+      this.open_files?.set(path, "fragmentId", fragmentId);
+    }
+  }
+
+  // Returns true if this project is the currently selected top nav.
+  public isProjectTabVisible(): boolean {
+    return this.redux.getStore("page").get("active_top_tab") == this.project_id;
+  }
+
   // If the given path is open, and editor supports going to line,
-  // moves to the given line.
-  // Otherwise, does nothing.
+  // moves to the given line.  Otherwise, does nothing.
   public goto_line(path, line, cursor?: boolean, focus?: boolean): void {
-    const a: any = redux.getEditorActions(this.project_id, path);
-    if (a == null) {
+    const actions: any = redux.getEditorActions(this.project_id, path);
+    if (actions == null) {
       // try non-react editor
       const editor = get_editor(this.project_id, path);
       if (
@@ -835,11 +889,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         typeof editor.programmatical_goto_line === "function"
       ) {
         editor.programmatical_goto_line(line);
+        // TODO: For an old non-react editor (basically just sage worksheets at this point!)
+        // we have to just use this flaky hack, since we are going to toss all this
+        // code soon.  This is needed since if editor is just *loading*, should wait until it
+        // finishes before actually jumping to line, but that's not implemented in editor.coffee.
+        setTimeout(() => {
+          editor.programmatical_goto_line(line);
+        }, 1000);
+        setTimeout(() => {
+          editor.programmatical_goto_line(line);
+        }, 2000);
       }
-    } else {
-      if (typeof a.programmatical_goto_line === "function") {
-        a.programmatical_goto_line(line, cursor, focus);
-      }
+    } else if (actions.programmatical_goto_line != null) {
+      actions.programmatical_goto_line(line, cursor, focus);
     }
   }
 
@@ -851,7 +913,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const editor = get_editor(this.project_id, path);
       if (editor != null) editor.show();
     } else {
-      if (typeof a.show === "function") a.show();
+      a.show?.();
+    }
+    const fragmentId = this.open_files?.get(path, "fragmentId");
+    if (fragmentId) {
+      // have to wait for next render so that local store is updated and
+      // also any rendering and measurement happens with the editor.
+      setTimeout(() => {
+        this.gotoFragment(path, fragmentId);
+      }, 0);
     }
   }
 
@@ -2108,10 +2178,33 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  private checkForSandboxError(message): boolean {
+    const projectsStore = this.redux.getStore("projects");
+    if (projectsStore.isSandbox(this.project_id)) {
+      const group = projectsStore.get_my_group(this.project_id);
+      if (group != "owner" && group != "admin") {
+        alert_message({
+          type: "error",
+          message,
+        });
+      }
+      return true;
+    }
+    return false;
+  }
+
   public async delete_files(opts: { paths: string[] }): Promise<void> {
     let mesg;
     opts = defaults(opts, { paths: required });
     if (opts.paths.length === 0) {
+      return;
+    }
+
+    if (
+      this.checkForSandboxError(
+        "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+      )
+    ) {
       return;
     }
 
@@ -2401,6 +2494,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       authenticated?: boolean;
     }
   ) {
+    if (
+      this.checkForSandboxError(
+        "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
+      )
+    ) {
+      return;
+    }
+
     const store = this.get_store();
     if (!store) {
       return;
@@ -2693,7 +2794,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     foreground = true,
     ignore_kiosk = false,
     change_history = true,
-    anchor: string = ""
+    fragmentId?: FragmentId
   ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
@@ -2702,13 +2803,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const main_segment = segments[0];
     switch (main_segment) {
       case "files":
-        if (target[target.length - 1] === "/" || full_path === "") {
+        if (target.endsWith("/") || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
           this.open_directory(parent_path, change_history);
           return;
         }
         const store = this.get_store();
-        if (store == undefined) {
+        if (store == null) {
           return; // project closed already
         }
         let { item, err } = store.get_item_in_path(last, parent_path);
@@ -2719,7 +2820,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               path: parent_path,
             });
             const store = this.get_store();
-            if (store == undefined) {
+            if (store == null) {
               // project closed
               return;
             }
@@ -2747,7 +2848,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             foreground_project: foreground,
             ignore_kiosk,
             change_history,
-            anchor,
+            fragmentId,
           });
         }
         break;
@@ -2831,6 +2932,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // called when project page is hidden
   async hide(): Promise<void> {
+    Fragment.clear();
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");

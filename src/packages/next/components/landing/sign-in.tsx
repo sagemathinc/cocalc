@@ -3,23 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
-import { useCustomize } from "lib/customize";
-import basePath from "lib/base-path";
-import { CSSProperties, ReactNode } from "react";
-import A from "components/misc/A";
 import { Button } from "antd";
+import A from "components/misc/A";
+import basePath from "lib/base-path";
+import { useCustomize } from "lib/customize";
 import { useRouter } from "next/router";
+import { join } from "path";
+import { CSSProperties, ReactNode } from "react";
 
 interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
   hideFree?: boolean;
 }
 
-const STYLE = {
+const STYLE: CSSProperties = {
   textAlign: "center",
   padding: "30px 15px 0 15px",
-} as CSSProperties;
+} as const;
 
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();
@@ -71,10 +71,9 @@ export default function SignIn({ startup, hideFree }: Props) {
         Sign Up
       </Button>
       {!hideFree && (
-        <>
-          <br />
+        <div style={{ padding: "15px 0 30px 0" }}>
           Start free today. Upgrade later.
-        </>
+        </div>
       )}
     </div>
   );

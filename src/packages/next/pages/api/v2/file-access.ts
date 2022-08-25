@@ -5,11 +5,9 @@ better find things.
 
 import getAccountId from "lib/account/get-account";
 import getPool from "@cocalc/database/pool";
-import isPost from "lib/api/is-post";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  if (!isPost(req, res)) return;
-
   const account_id = await getAccountId(req);
   if (account_id == null) {
     // no usage to list, since not signed in.
@@ -17,7 +15,7 @@ export default async function handle(req, res) {
     return;
   }
 
-  let { interval } = req.body;
+  let { interval } = getParams(req);
 
   try {
     const files = await fileAccess({ account_id, interval });
