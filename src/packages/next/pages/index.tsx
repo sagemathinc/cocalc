@@ -19,6 +19,7 @@ import Path from "components/app/path";
 import PublicPaths from "components/share/public-paths";
 import getAccountId from "lib/account/get-account";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
+import ProxyInput from "components/share/proxy-input";
 
 const topLinkStyle = { marginRight: "20px" };
 
@@ -65,6 +66,7 @@ export default function Home({ customize, publicPaths }) {
                   marginRight: "15px",
                 }}
               >
+                <ProxyInput />
                 <PublicPaths publicPaths={publicPaths} />
               </div>
             )}

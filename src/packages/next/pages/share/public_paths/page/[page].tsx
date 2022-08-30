@@ -17,6 +17,7 @@ import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
+import ProxyInput from "components/share/proxy-input";
 import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
 
@@ -67,11 +68,13 @@ export default function All({ page, publicPaths, customize }) {
           <div style={{ float: "right", width: "250px" }}>
             <GoogleSearch />
           </div>
-          <h1>
-            Browse Publicly Shared Documents on <SiteName />
-          </h1>
-          Browse everything that has been shared below. Star items to easily
-          find them in <A href="/stars">your list later</A>.
+          <h2>
+            Browse Jupyter Notebooks, Computational Whiteboards and much more
+            on <SiteName />
+          </h2>
+          <ProxyInput />
+          Star items to easily <A href="/stars">find them in your list</A>
+          .
           <br />
           <br />
           {pager}
