@@ -19,7 +19,6 @@ register({
 
   StaticElement: ({ attributes, children, element }) => {
     if (isTask(element)) {
-      console.log("children = ", children);
       // This is similar to how GitHub does it, and not more hacky.
       return (
         <li
