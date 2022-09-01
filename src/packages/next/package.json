@@ -70,7 +70,7 @@
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.2",
     "antd": "^4.22.8",
-    "antd-img-crop": "^4.2.0",
+    "antd-img-crop": "^4.2.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "base-64": "^1.0.0",

@@ -280,6 +280,14 @@ Table({
       type: "boolean",
       desc: "If set to true, then any user who attempts to access this project is automatically added as a collaborator to it.   Only the project owner can change this setting.",
     },
+    avatar_image_tiny: {
+      type: "string",
+      desc: "tiny (32x32) visual image associated with the project. Suitable to include as part of changefeed, since about 3kb.",
+    },
+    avatar_image_full: {
+      type: "string",
+      desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
+    },
   },
 });
 

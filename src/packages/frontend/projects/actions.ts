@@ -184,6 +184,33 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
+  // creates and stores image as a blob in the database.
+  // stores sha1 of that blog in projects map and also returns
+  // the sha1.
+  public async setProjectImage(
+    project_id: string,
+    {
+      full,
+      tiny,
+    }: {
+      full: string; // full size image
+      tiny: string; // tiny image
+    }
+  ) {
+    if (tiny.length > 10000) {
+      // quick sanity check
+      throw Error("bug -- tiny image is way too large");
+    }
+    console.log(
+      "setProjectImage",
+      project_id,
+      tiny.length,
+      full.length,
+      tiny,
+      full
+    );
+  }
+
   public async add_ssh_key_to_project(opts: {
     project_id: string;
     fingerprint: string;

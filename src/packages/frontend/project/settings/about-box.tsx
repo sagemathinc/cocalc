@@ -13,6 +13,7 @@ import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { Alert, Col, Row, Typography } from "antd";
 import React, { useState } from "react";
 import { useTypedRedux } from "../../app-framework";
+import ProjectImage from "./image";
 
 interface Props {
   project_title: string;
@@ -87,6 +88,13 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
             type="info"
           />
         )}
+      </LabeledRow>
+      <LabeledRow label="Image (optional)">
+        <ProjectImage
+          onChange={(data) => {
+            actions.setProjectImage(project_id, data);
+          }}
+        />
       </LabeledRow>
       {created && (
         <LabeledRow label="Created">

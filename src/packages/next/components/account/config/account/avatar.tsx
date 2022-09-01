@@ -14,6 +14,7 @@ import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import ImgCrop from "antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
 import Code from "components/landing/code";
+import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
 
 interface Data {
   email_address?: string;
@@ -204,24 +205,12 @@ function EditImage({ value, email_address, onChange }) {
             const reader = new FileReader();
             reader.addEventListener(
               "load",
-              (e) => {
+              async (e) => {
                 if (!e.target?.result) return; // typescript
-                const img = new Image();
-                img.src = e.target.result as string;
-                img.onload = () => {
-                  img.width = AVATAR_SIZE;
-                  img.height = AVATAR_SIZE;
-                  const canvas = document.createElement("canvas");
-                  const ctx = canvas.getContext("2d");
-                  if (ctx == null) {
-                    return;
-                  }
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  canvas.width = img.width;
-                  canvas.height = img.height;
-                  ctx.drawImage(img, 0, 0, img.width, img.height);
-                  onChange(canvas.toDataURL("image/png"));
-                };
+                const src = e.target.result as string;
+                onChange(
+                  await imageToDataURL(src, AVATAR_SIZE, AVATAR_SIZE, "image/png")
+                );
               },
               false
             );
