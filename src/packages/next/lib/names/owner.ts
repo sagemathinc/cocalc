@@ -18,7 +18,7 @@ export default async function getOwner(owner: string): Promise<Owner> {
   if (isReserved(owner)) {
     // can't be so save us the trouble of consulting database; these are common
     // so this is a good win.
-    throw Error("no such owner - reserved name");
+    throw Error(`no such owner '${owner}'- reserved name`);
   }
   const pool = getPool("long");
   // Is it an account?
