@@ -65,6 +65,9 @@ Table({
           created: null,
           env: null,
           sandbox: null,
+          avatar_image_tiny: null,
+          // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
+          // Instead, there is an API for reading this field, which does caching, etc.
         },
       },
       set: {
@@ -84,6 +87,8 @@ Table({
           site_license: true,
           env: true,
           sandbox: true,
+          avatar_image_tiny: true,
+          avatar_image_full: true,
         },
         required_fields: {
           project_id: true,
@@ -279,6 +284,14 @@ Table({
     sandbox: {
       type: "boolean",
       desc: "If set to true, then any user who attempts to access this project is automatically added as a collaborator to it.   Only the project owner can change this setting.",
+    },
+    avatar_image_tiny: {
+      type: "string",
+      desc: "tiny (32x32) visual image associated with the project. Suitable to include as part of changefeed, since about 3kb.",
+    },
+    avatar_image_full: {
+      type: "string",
+      desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
     },
   },
 });

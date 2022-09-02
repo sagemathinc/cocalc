@@ -176,7 +176,15 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
             overflowY: "auto",
           }}
         >
-          <div style={{ fontWeight: "bold" }}>
+          <div style={{ fontWeight: "bold", display: "flex" }}>
+            {project.get("avatar_image_tiny") && (
+              <img
+                src={project.get("avatar_image_tiny")}
+                style={{ marginRight: "10px" }}
+                width="32px"
+                height="32px"
+              />
+            )}{" "}
             <a
               cocalc-test="project-line"
               onClick={() => handle_click(undefined, true)}

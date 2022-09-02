@@ -317,7 +317,7 @@ export const EXTRAS: SettingsExtras = {
   prometheus_metrics: {
     name: "Prometheus Metrics",
     desc: "Make [Prometheus metrics](https://prometheus.io/) available at `/metrics`. (Wait one minute after changing this setting for it to take effect.)",
-    default: "false",
+    default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },

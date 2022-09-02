@@ -53,6 +53,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await the_table.set(obj, merge);
   }
 
+  // Set something in the projects table of the database directly
+  // using a query, instead of using sync'd table mechanism, which
+  // is what projects_table_set does.
+  private async projects_query_set(obj: object): Promise<void> {
+    await webapp_client.async_query({
+      query: {
+        projects: obj,
+      },
+    });
+  }
+
   private set_project_open(project_id: string): void {
     const x = store.get("open_projects");
     const index = x.indexOf(project_id);
@@ -181,6 +192,40 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.redux.getProjectActions(project_id).async_log({
       event: "set",
       name,
+    });
+  }
+
+  // creates and stores image as a blob in the database.
+  // stores sha1 of that blog in projects map and also returns
+  // the sha1.
+  public async setProjectImage(
+    project_id: string,
+    {
+      full,
+      tiny,
+    }: {
+      full: string; // full size image
+      tiny: string; // tiny image
+    }
+  ) {
+    if (tiny.length > 10000) {
+      // quick sanity check
+      throw Error("bug -- tiny image is way too large");
+    }
+    console.log(
+      "setProjectImage",
+      project_id,
+      tiny.length,
+      full.length,
+      tiny,
+      full
+    );
+
+    await this.projects_query_set({ project_id, avatar_image_full: full });
+    await this.projects_table_set({ project_id, avatar_image_tiny: tiny });
+    await this.redux.getProjectActions(project_id).async_log({
+      event: "set",
+      image: tiny,
     });
   }
 
