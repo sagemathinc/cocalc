@@ -325,7 +325,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       const value = obj[key];
       if (key == "image") {
         result.push(
-          <span>
+          <span key={i}>
             set project image to <img src={value} />
           </span>
         );

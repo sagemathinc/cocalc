@@ -14,6 +14,7 @@ import { Alert, Col, Row, Typography } from "antd";
 import React, { useState } from "react";
 import { useTypedRedux } from "../../app-framework";
 import ProjectImage from "./image";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
 interface Props {
   project_title: string;
@@ -48,7 +49,19 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <SettingBox title="About" icon="file-alt">
+    <SettingBox
+      title={
+        <>
+          About{" "}
+          <ProjectTitle
+            style={{ float: "right" }}
+            project_id={project_id}
+            noClick
+          />
+        </>
+      }
+      icon="file-alt"
+    >
       {error && (
         <Alert
           style={{ marginBottom: "15px" }}

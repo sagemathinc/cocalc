@@ -196,6 +196,19 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         <div style={PROJECT_NAME_STYLE} onClick={click_title}>
           <Tip title={title} tip={render_tip()} placement="bottom" size="small">
             {icon}
+            {project?.get("avatar_image_tiny") && (
+              <img
+                src={project.get("avatar_image_tiny")}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  marginBottom: "-5px",
+                  marginTop: "-5px",
+                  marginLeft: "2.5px",
+                  marginRight: "-2.5px",
+                }}
+              />
+            )}
             <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
           </Tip>
         </div>
