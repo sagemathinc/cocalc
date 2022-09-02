@@ -24,7 +24,7 @@ export default function ProjectImage({ onChange }: Props) {
     <div>
       <ImgCrop
         modalTitle={"Edit Project Image"}
-        shape="round"
+        shape="rect"
         rotate
         maxZoom={5}
         onModalOk={(file) => {

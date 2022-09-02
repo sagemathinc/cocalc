@@ -38,6 +38,7 @@ export type ProjectEvent =
   | SetTitleEvent
   | SetDescriptionEvent
   | SetNameEvent
+  | SetAvatarEvent
   | PublicPathEvent
   | { event: "open_project" }
   | { event: "delete_project" }
@@ -69,6 +70,11 @@ export type SetDescriptionEvent = {
 export type SetNameEvent = {
   event: "set";
   name: string;
+};
+
+export type SetAvatarEvent = {
+  event: "set";
+  image: string; // the tiny image
 };
 
 export type X11Event = {

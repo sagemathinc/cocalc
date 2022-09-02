@@ -321,8 +321,16 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
     let i = 0;
     const result: JSX.Element[] = [];
     for (const key in obj) {
-      const value = obj[key];
       i += 1;
+      const value = obj[key];
+      if (key == "image") {
+        result.push(
+          <span>
+            set project image to <img src={value} />
+          </span>
+        );
+        continue;
+      }
       let content = `${key} to ${value}`;
       if (i < obj.length) {
         content += "<Space/>and";

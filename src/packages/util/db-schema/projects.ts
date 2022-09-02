@@ -65,6 +65,9 @@ Table({
           created: null,
           env: null,
           sandbox: null,
+          avatar_image_tiny: null,
+          // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
+          // Instead, there is an API for reading this field, which does caching, etc.
         },
       },
       set: {
@@ -84,6 +87,8 @@ Table({
           site_license: true,
           env: true,
           sandbox: true,
+          avatar_image_tiny: true,
+          avatar_image_full: true,
         },
         required_fields: {
           project_id: true,

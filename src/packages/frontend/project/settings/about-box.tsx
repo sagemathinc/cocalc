@@ -31,6 +31,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
   const project_map = useTypedRedux("projects", "project_map");
   const courseProjectType = project_map?.getIn([project_id, "course", "type"]);
   const hasReadonlyFields = ["student", "shared"].includes(courseProjectType);
+  const [error, setError] = useState<string>("");
 
   function renderReadonly() {
     if (!hasReadonlyFields) return;
@@ -48,6 +49,14 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
 
   return (
     <SettingBox title="About" icon="file-alt">
+      {error && (
+        <Alert
+          style={{ marginBottom: "15px" }}
+          type="error"
+          message={error}
+          showIcon
+        />
+      )}
       {renderReadonly()}
       <LabeledRow label="Title">
         <TextInput
@@ -91,8 +100,12 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
       </LabeledRow>
       <LabeledRow label="Image (optional)">
         <ProjectImage
-          onChange={(data) => {
-            actions.setProjectImage(project_id, data);
+          onChange={async (data) => {
+            try {
+              await actions.setProjectImage(project_id, data);
+            } catch (err) {
+              setError(`Error saving project image: ${err}`);
+            }
           }}
         />
       </LabeledRow>
