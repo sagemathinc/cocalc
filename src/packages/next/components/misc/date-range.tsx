@@ -7,6 +7,7 @@ import { DatePicker } from "antd";
 import moment from "moment";
 import { CSSProperties, useState } from "react";
 import { DateRangeType, Date0 } from "@cocalc/util/types/store";
+import { roundToMidnight } from "@cocalc/util/stripe/timecalcs";
 
 interface Props {
   onChange?: (x: DateRangeType) => void;
@@ -17,15 +18,23 @@ interface Props {
   initialValues?: DateRangeType;
 }
 
-export default function DateRange({
-  onChange,
-  style,
-  noPast,
-  maxDaysInFuture,
-  disabled = false,
-  initialValues = [undefined, undefined],
-}: Props) {
+export default function DateRange(props: Props) {
+  const {
+    onChange,
+    style,
+    noPast,
+    maxDaysInFuture,
+    disabled = false,
+    initialValues = [undefined, undefined],
+  } = props;
+
+  // we round values to exactly midnight, because otherwise e.g. 2022-06-12T23:58:95 will be shown as 2022-06-12
+  // that's confusing and causes problems down the road
+  initialValues[0] = roundToMidnight(initialValues[0], 'start');
+  initialValues[1] = roundToMidnight(initialValues[1], 'end');
+
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
+
   return (
     <div style={style}>
       <DatePicker.RangePicker

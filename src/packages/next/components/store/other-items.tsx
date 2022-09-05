@@ -17,7 +17,8 @@ import {
   Popconfirm,
   Table,
 } from "antd";
-import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
+import { DisplayCost, describeItem } from "./site-license-cost";
+import { computeCost } from "./compute-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
