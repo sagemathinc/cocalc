@@ -272,14 +272,12 @@ export default function PublicPath({
         title={getTitle({ path, relativePath })}
         top={
           projectAvatarImage ? (
-            <>
-              <AntdAvatar
-                shape="square"
-                size={160}
-                icon={<img src={projectAvatarImage} />}
-                style={{ float: "left", margin: "10px" }}
-              />
-            </>
+            <AntdAvatar
+              shape="square"
+              size={160}
+              icon={<img src={projectAvatarImage} />}
+              style={{ float: "left", margin: "10px" }}
+            />
           ) : undefined
         }
       >
