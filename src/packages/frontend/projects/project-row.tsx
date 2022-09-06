@@ -28,7 +28,7 @@ import {
 } from "../custom-software/util";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
-import { useEffect } from "react";
+import { CSSProperties, useEffect } from "react";
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
@@ -181,14 +181,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
           }}
         >
           <div style={{ fontWeight: "bold", display: "flex" }}>
-            {project.get("avatar_image_tiny") && (
-              <img
-                src={project.get("avatar_image_tiny")}
-                style={{ marginRight: "10px" }}
-                width="16px"
-                height="16px"
-              />
-            )}{" "}
             <a
               cocalc-test="project-line"
               onClick={() => handle_click(undefined, true)}
@@ -222,8 +214,9 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
           {project.get("avatar_image_tiny") && (
             <ProjectAvatarImage
               project_id={project_id}
-              size={80}
+              size={120}
               onClick={handle_click}
+              style={{ margin: "-20px 0", textAlign: "center" }}
             />
           )}
         </Col>
@@ -232,14 +225,16 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   );
 };
 
-function ProjectAvatarImage({
+export function ProjectAvatarImage({
   project_id,
   size,
   onClick,
+  style,
 }: {
   project_id: string;
   size?: number;
   onClick?: Function;
+  style?: CSSProperties;
 }) {
   const isMounted = useIsMountedRef();
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
@@ -255,7 +250,7 @@ function ProjectAvatarImage({
   }, []);
 
   return avatarImage ? (
-    <div style={{ textAlign: "center" }} onClick={onClick}>
+    <div style={style} onClick={(e) => onClick?.(e)}>
       <Avatar
         shape="square"
         size={size ?? 160}

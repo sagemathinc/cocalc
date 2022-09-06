@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Avatar } from "antd";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { Nav, NavItem } from "react-bootstrap";
 import CloseX from "@cocalc/frontend/project/page/close-x";
@@ -10,6 +11,7 @@ import CloseX from "@cocalc/frontend/project/page/close-x";
 import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
+import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
 
 import { IS_TOUCH } from "../feature";
 import { set_window_title } from "../browser";
@@ -171,10 +173,17 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
     function render_tip() {
       return (
         <>
-          <div>{trunc(project?.get("description") ?? "", 128)}</div>
+          <ProjectAvatarImage
+            project_id={project_id}
+            size={120}
+            style={{ textAlign: "center" }}
+          />
+          <div style={{ textAlign: "center" }}>
+            {trunc(project?.get("description") ?? "", 128)}
+          </div>
           <hr />
           <div style={{ color: COLORS.GRAY }}>
-            Hint: Shift-Click to open in new window.
+            Hint: shift+click any project or file tab to open it in new window.
           </div>
         </>
       );
@@ -197,12 +206,11 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
           <Tip title={title} tip={render_tip()} placement="bottom" size="small">
             {icon}
             {project?.get("avatar_image_tiny") && (
-              <img
-                src={project.get("avatar_image_tiny")}
-                style={{
-                  width: "16px",
-                  height: "16px",
-                }}
+              <Avatar
+                style={{ marginTop: "-2px" }}
+                shape="circle"
+                icon={<img src={project.get("avatar_image_tiny")} />}
+                size={20}
               />
             )}
             <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>

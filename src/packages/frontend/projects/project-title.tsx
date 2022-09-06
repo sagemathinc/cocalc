@@ -5,6 +5,7 @@
 
 import { redux, React, useRedux } from "../app-framework";
 import { html_to_text } from "../misc";
+import { Avatar } from "antd";
 
 interface Props {
   project_id: string;
@@ -44,7 +45,9 @@ export const ProjectTitle: React.FC<Props> = ({
 
   const body = (
     <>
-      {avatar && <img src={avatar} style={{ width: "16px", height: "16px" }} />}{" "}
+      {avatar && (
+        <Avatar shape="circle" icon={<img src={avatar} />} size={20} />
+      )}{" "}
       {html_to_text(title)}
     </>
   );
