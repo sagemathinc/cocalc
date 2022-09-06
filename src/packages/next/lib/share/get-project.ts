@@ -14,27 +14,30 @@ interface ProjectInfo {
   title: string;
   description: string;
   name: string;
+  avatar_image_tiny: string;
+  avatar_image_full: string;
 }
 
 export default async function getProjectInfo(
-  project_id: string
-): Promise<ProjectInfo> {
-  const pool = getPool(); // not cached since editing then reloading is confusing with this cached.
-
+  project_id: string,
+  columns: string[] = ["title", "description", "name"],
+  // not cached by default since editing then reloading is confusing with this cached.
+  cache?: "short" | "medium" | "long"
+): Promise<Partial<ProjectInfo>> {
+  const pool = getPool(cache);
   if (!isUUID(project_id)) {
     throw Error(`project_id ${project_id} must be a uuid`);
   }
-
   const project = await pool.query(
-    "SELECT title, description, name FROM projects WHERE project_id=$1",
+    `SELECT ${columns.join(",")} FROM projects WHERE project_id=$1`,
     [project_id]
   );
   if (project.rows.length == 0) {
     throw Error(`no project with id ${project_id}`);
   }
-  return {
-    title: project.rows[0].title ?? "",
-    description: project.rows[0].description ?? "",
-    name: project.rows[0].name ?? "",
-  } as ProjectInfo;
+  const info: Partial<ProjectInfo> = {};
+  for (const name of columns) {
+    info[name] = project.rows[0][name] ?? "";
+  }
+  return info;
 }
