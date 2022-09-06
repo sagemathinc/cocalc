@@ -13,10 +13,13 @@ import {
   useActions,
   useRedux,
   useTypedRedux,
+  useIsMountedRef,
+  redux,
 } from "../app-framework";
 import { ProjectUsers } from "./project-users";
 import { AddCollaborators } from "../collaborators";
 import { Row, Col, Well } from "../antd-bootstrap";
+import { Avatar } from "antd";
 import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../components";
 import { id2name } from "../custom-software/init";
 import {
@@ -25,6 +28,7 @@ import {
 } from "../custom-software/util";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
+import { useEffect } from "react";
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
@@ -206,7 +210,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         >
           {render_project_description()}
         </Col>
-        <Col sm={5}>{!is_anonymous && render_collab()}</Col>
+        <Col sm={3}>{!is_anonymous && render_collab()}</Col>
         <Col sm={1} onClick={open_project_settings}>
           {!is_anonymous && (
             <a>
@@ -214,7 +218,45 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
             </a>
           )}
         </Col>
+        <Col sm={2}>
+          {project.get("avatar_image_tiny") && (
+            <ProjectAvatarImage project_id={project_id} size={80} />
+          )}
+        </Col>
       </Row>
     </Well>
   );
 };
+
+function ProjectAvatarImage({
+  project_id,
+  size,
+}: {
+  project_id: string;
+  size?: number;
+}) {
+  const isMounted = useIsMountedRef();
+  const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      const img = await redux
+        .getStore("projects")
+        .getProjectAvatarImage(project_id);
+      if (!isMounted.current) return;
+      setAvatarImage(img);
+    })();
+  }, []);
+
+  return avatarImage ? (
+    <div style={{ textAlign: "center" }}>
+      <Avatar
+        shape="square"
+        size={size ?? 160}
+        icon={<img src={avatarImage} />}
+      />
+    </div>
+  ) : (
+    <></>
+  );
+}
