@@ -12,13 +12,14 @@ const fullSize: number = 320;
 const tinySize: number = 32;
 
 interface Props {
+  avatarImage?: string;
   onChange: (data: {
     full: string; // full size image
     tiny: string; // tiny image
   }) => void;
 }
 
-export default function ProjectImage({ onChange }: Props) {
+export default function ProjectImage({ avatarImage, onChange }: Props) {
   const [error, setError] = useState<string>("");
   return (
     <div>
@@ -66,10 +67,14 @@ export default function ProjectImage({ onChange }: Props) {
           reader.readAsDataURL(file);
         }}
       >
-        <Upload.Dragger name="file">
-          <p className="ant-upload-drag-icon">
-            <InboxOutlined />
-          </p>
+        <Upload.Dragger name="file" showUploadList={false}>
+          {avatarImage ? (
+            <img src={avatarImage} width="160px" height="160px" />
+          ) : (
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+          )}
           <p className="ant-upload-text">Click or drag image to change</p>
         </Upload.Dragger>
       </ImgCrop>

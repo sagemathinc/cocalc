@@ -181,8 +181,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
               <img
                 src={project.get("avatar_image_tiny")}
                 style={{ marginRight: "10px" }}
-                width="32px"
-                height="32px"
+                width="16px"
+                height="16px"
               />
             )}{" "}
             <a

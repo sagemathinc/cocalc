@@ -44,7 +44,7 @@ export const ProjectTitle: React.FC<Props> = ({
 
   const body = (
     <>
-      {avatar && <img src={avatar} style={{ width: "24px", height: "24px" }} />}{" "}
+      {avatar && <img src={avatar} style={{ width: "16px", height: "16px" }} />}{" "}
       {html_to_text(title)}
     </>
   );

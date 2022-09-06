@@ -200,12 +200,8 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
               <img
                 src={project.get("avatar_image_tiny")}
                 style={{
-                  width: "32px",
-                  height: "32px",
-                  marginBottom: "-5px",
-                  marginTop: "-5px",
-                  marginLeft: "2.5px",
-                  marginRight: "-2.5px",
+                  width: "16px",
+                  height: "16px",
                 }}
               />
             )}

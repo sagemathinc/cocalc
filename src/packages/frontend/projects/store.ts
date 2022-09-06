@@ -707,6 +707,18 @@ export class ProjectsStore extends Store<ProjectsState> {
       ])?.toJS() ?? {}
     );
   }
+
+  public async getProjectAvatarImage(project_id: string): string | undefined {
+    const { query } = await webapp_client.async_query({
+      query: {
+        project_avatar_images: {
+          project_id,
+          avatar_image_full: null,
+        },
+      },
+    });
+    return query.project_avatar_images?.avatar_image_full;
+  }
 }
 
 // WARNING: A lot of code relies on the assumption project_map is

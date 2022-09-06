@@ -11,8 +11,8 @@ import {
 } from "@cocalc/frontend/components";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { Alert, Col, Row, Typography } from "antd";
-import React, { useState } from "react";
-import { useTypedRedux } from "../../app-framework";
+import React, { useEffect, useState } from "react";
+import { useTypedRedux, redux } from "../../app-framework";
 import ProjectImage from "./image";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
@@ -33,6 +33,15 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
   const courseProjectType = project_map?.getIn([project_id, "course", "type"]);
   const hasReadonlyFields = ["student", "shared"].includes(courseProjectType);
   const [error, setError] = useState<string>("");
+  const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      setAvatarImage(
+        await redux.getStore("projects").getProjectAvatarImage(project_id)
+      );
+    })();
+  }, []);
 
   function renderReadonly() {
     if (!hasReadonlyFields) return;
@@ -113,9 +122,11 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
       </LabeledRow>
       <LabeledRow label="Image (optional)">
         <ProjectImage
+          avatarImage={avatarImage}
           onChange={async (data) => {
             try {
               await actions.setProjectImage(project_id, data);
+              setAvatarImage(data.full);
             } catch (err) {
               setError(`Error saving project image: ${err}`);
             }

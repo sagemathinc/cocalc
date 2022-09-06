@@ -67,7 +67,7 @@ Table({
           sandbox: null,
           avatar_image_tiny: null,
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
-          // Instead, there is an API for reading this field, which does caching, etc.
+          // instead it gets its own virtual table.
         },
       },
       set: {
@@ -402,6 +402,35 @@ Table({
     project_id: true,
     invite_requests: true,
   }, // {account_id:{timestamp:?, message:?}, ...}
+});
+
+/*
+Virtual table to get project avatar_images.
+We don't put this in the main projects table,
+since we don't want the avatar_image_full to be
+the projects queries or changefeeds, since it
+is big, and by default all get fields appear there.
+*/
+
+Table({
+  name: "project_avatar_images",
+  rules: {
+    virtual: "projects",
+    primary_key: "project_id",
+    user_query: {
+      get: {
+        pg_where: ["projects"],
+        fields: {
+          project_id: null,
+          avatar_image_full: null,
+        },
+      },
+    },
+  },
+  fields: {
+    project_id: true,
+    avatar_image_full: true,
+  },
 });
 
 /*

@@ -212,15 +212,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       // quick sanity check
       throw Error("bug -- tiny image is way too large");
     }
-    console.log(
-      "setProjectImage",
-      project_id,
-      tiny.length,
-      full.length,
-      tiny,
-      full
-    );
-
     await this.projects_query_set({ project_id, avatar_image_full: full });
     await this.projects_table_set({ project_id, avatar_image_tiny: tiny });
     await this.redux.getProjectActions(project_id).async_log({
