@@ -220,7 +220,11 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         </Col>
         <Col sm={2}>
           {project.get("avatar_image_tiny") && (
-            <ProjectAvatarImage project_id={project_id} size={80} />
+            <ProjectAvatarImage
+              project_id={project_id}
+              size={80}
+              onClick={handle_click}
+            />
           )}
         </Col>
       </Row>
@@ -231,9 +235,11 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 function ProjectAvatarImage({
   project_id,
   size,
+  onClick,
 }: {
   project_id: string;
   size?: number;
+  onClick?: Function;
 }) {
   const isMounted = useIsMountedRef();
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
@@ -249,7 +255,7 @@ function ProjectAvatarImage({
   }, []);
 
   return avatarImage ? (
-    <div style={{ textAlign: "center" }}>
+    <div style={{ textAlign: "center" }} onClick={onClick}>
       <Avatar
         shape="square"
         size={size ?? 160}
