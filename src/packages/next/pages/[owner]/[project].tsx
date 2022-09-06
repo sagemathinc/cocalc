@@ -41,7 +41,12 @@ export async function getServerSideProps(context) {
       props = {
         project_id,
         ...(await getProjectInfo(project_id, context.req)),
-        ...(await getProject(project_id)),
+        ...(await getProject(project_id, [
+          "name",
+          "title",
+          "description",
+          "avatar_image_full",
+        ])),
       };
     }
     return withCustomize({ context, props });

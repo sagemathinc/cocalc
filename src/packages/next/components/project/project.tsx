@@ -40,12 +40,12 @@ export default function Project({
     <Customize value={customize}>
       <Layout title={title}>
         <h1>
-          <Avatar
+          {avatar_image_full && <Avatar
             icon={<img src={avatar_image_full} />}
             size={160}
             shape="square"
             style={{ float: "right" }}
-          />
+          />}
           Project:{" "}
           {collab ? (
             <A href={editURL({ project_id, type: "collaborator" })} external>

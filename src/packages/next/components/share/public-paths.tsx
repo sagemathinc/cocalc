@@ -7,7 +7,7 @@
 A table of a list of public paths.
 */
 
-import { Space, Table } from "antd";
+import { Avatar, Space, Table } from "antd";
 import Badge from "components/misc/badge";
 import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
@@ -48,13 +48,23 @@ function Title({
   id,
   title,
   url,
+  avatar_image_tiny,
 }: {
   id: string;
   title: string;
   url?: string;
+  avatar_image_tiny?: string;
 }) {
   return (
     <A href={url ? `/${url}` : `/share/public_paths/${id}`}>
+      {avatar_image_tiny && (
+        <Avatar
+          size={24}
+          shape="square"
+          icon={<img src={avatar_image_tiny} />}
+          style={{ marginRight: "5px", marginTop: "-4px" }}
+        />
+      )}
       {trunc_middle(title, 48)}
     </A>
   );
@@ -117,7 +127,12 @@ const COLUMNS0: any[] = [
     dataIndex: "path",
     key: "path",
     render: (title, record) => (
-      <Title id={record.id} title={title} url={record.url} />
+      <Title
+        id={record.id}
+        title={title}
+        url={record.url}
+        avatar_image_tiny={record.avatar_image_tiny}
+      />
     ),
     responsive: ["sm"] as any,
     sorter: field_cmp("path"),

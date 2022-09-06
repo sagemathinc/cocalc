@@ -12,6 +12,7 @@ import { PublicPath } from "./types";
 import { isUUID } from "./util";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getAccountId from "lib/account/get-account";
+import { getProjectAvatarTiny } from "./project-avatar-image";
 
 export default async function getPublicPaths(
   project_id: string,
@@ -32,7 +33,18 @@ export default async function getPublicPaths(
     [project_id]
   );
 
-  return await filterNonPublicAndNotAuthenticated(result.rows, project_id, req);
+  const v = await filterNonPublicAndNotAuthenticated(
+    result.rows,
+    project_id,
+    req
+  );
+  const avatar_image_tiny = await getProjectAvatarTiny(project_id);
+  if (avatar_image_tiny) {
+    for (const x of v) {
+      x.avatar_image_tiny = avatar_image_tiny;
+    }
+  }
+  return v;
 }
 
 async function filterNonPublicAndNotAuthenticated(

@@ -69,8 +69,8 @@ export default function All({ page, publicPaths, customize }) {
             <GoogleSearch />
           </div>
           <h2>
-            Browse Jupyter Notebooks, Computational Whiteboards and much more
-            on <SiteName />
+            Browse Jupyter Notebooks, Computational Whiteboards and much more on{" "}
+            <SiteName />
           </h2>
           <ProxyInput />
           Star items to easily <A href="/stars">find them in your list</A>
@@ -93,13 +93,14 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT id, path, url, description, ${timeInSeconds("last_edited")},
+    `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds("public_paths.last_edited","last_edited")}, projects.avatar_image_tiny,
     counter::INT,
-     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
-    FROM public_paths
-    WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
-    ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
-    ORDER BY stars DESC, last_edited DESC LIMIT $2 OFFSET $3`,
+     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=public_paths.id) AS stars
+    FROM public_paths, projects
+    WHERE public_paths.project_id = projects.project_id
+    AND public_paths.vhost IS NULL AND public_paths.disabled IS NOT TRUE AND public_paths.unlisted IS NOT TRUE AND
+    ((public_paths.authenticated IS TRUE AND $1 IS TRUE) OR (public_paths.authenticated IS NOT TRUE))
+    ORDER BY stars DESC, public_paths.last_edited DESC LIMIT $2 OFFSET $3`,
     [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
   return await withCustomize({ context, props: { page, publicPaths: rows } });

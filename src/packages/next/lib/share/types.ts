@@ -21,6 +21,7 @@ export interface PublicPath {
   vhost?: string;
   counter?: number;
   stars?: number;
+  avatar_image_tiny?: string;
 }
 
 // This is because of Type error: 'types.ts' cannot be compiled under '--isolatedModules' because it is considered a
