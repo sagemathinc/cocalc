@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This is a script for starting postgres for development purposes
 in an SMC project.

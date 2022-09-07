@@ -27,7 +27,12 @@ export async function getServerSideProps(context) {
   }
   let props;
   try {
-    const project = await getProject(project_id);
+    const project = await getProject(project_id, [
+      "name",
+      "title",
+      "description",
+      "avatar_image_full",
+    ]);
     if (project.name) {
       // This project probably has a nice vanity name. Possibly redirect to that instead.
       const owner_id = await getProjectOwner(project_id);

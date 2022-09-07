@@ -14,19 +14,27 @@ import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
+import { MAX_WIDTH } from "lib/config";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { AddBox } from "./add-box";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
+import { PRESETS, Presets } from "./quota-config-presets";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost } from "./site-license-cost";
+import { computeCost } from "./compute-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
-import { MAX_WIDTH } from "lib/config";
-import { PRESETS, Presets } from "./quota-config-presets";
+
+const STYLE: React.CSSProperties = {
+  marginTop: "15px",
+  maxWidth: MAX_WIDTH,
+  margin: "auto",
+  border: "1px solid #ddd",
+  padding: "15px",
+} as const;
 
 export default function SiteLicense() {
   const router = useRouter();
@@ -131,13 +139,7 @@ function CreateSiteLicense() {
     <div>
       <Form
         form={form}
-        style={{
-          marginTop: "15px",
-          maxWidth: MAX_WIDTH,
-          margin: "auto",
-          border: "1px solid #ddd",
-          padding: "15px",
-        }}
+        style={STYLE}
         name="basic"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}

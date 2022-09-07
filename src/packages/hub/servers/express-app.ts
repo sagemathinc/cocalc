@@ -58,6 +58,7 @@ export default async function init(opts: Options): Promise<{
   const basicEndpoints = express.Router();
   await setupHealthChecks({ router: basicEndpoints, db: database });
   app.use(basicEndpoints);
+
   // also, for the same reasons as above, setup the /metrics endpoint
   initMetricsEndpoint(basicEndpoints);
 

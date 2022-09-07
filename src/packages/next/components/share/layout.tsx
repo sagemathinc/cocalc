@@ -18,10 +18,11 @@ const favicon = join(basePath, "webapp/favicon-32x32.png");
 
 interface Props {
   title: string;
+  top?: ReactNode;
   children: ReactNode;
 }
 
-export function Layout({ title, children }: Props) {
+export function Layout({ title, children, top }: Props) {
   const { siteName, noindex } = useCustomize();
   return (
     <>
@@ -36,6 +37,7 @@ export function Layout({ title, children }: Props) {
       <AntdLayout>
         <Header />
         <AntdLayout.Content style={{ background: "white" }}>
+          {top}
           <div
             style={{
               color: "#555",

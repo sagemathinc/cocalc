@@ -7,10 +7,10 @@
 Create a new site license.
 */
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
+import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseType } from "@cocalc/util/upgrades/shopping";
-import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { Alert, Button } from "antd";
 import apiPost from "lib/api/post";
 import { DisplayCost } from "./site-license-cost";

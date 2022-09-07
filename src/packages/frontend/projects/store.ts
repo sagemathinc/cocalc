@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import LRU from "lru-cache";
 import { List, Map, Set } from "immutable";
 import { isEmpty } from "lodash";
 import { redux, Store, TypedMap } from "../app-framework";
@@ -706,6 +707,29 @@ export class ProjectsStore extends Store<ProjectsState> {
         "student_project_functionality",
       ])?.toJS() ?? {}
     );
+  }
+
+  // cache for 15s
+  private projectAvatarImageCache = new LRU<string, string | undefined>({
+    maxAge: 1000 * 15,
+  });
+  public async getProjectAvatarImage(
+    project_id: string
+  ): Promise<string | undefined> {
+    if (this.projectAvatarImageCache.has(project_id)) {
+      return this.projectAvatarImageCache.get(project_id);
+    }
+    const { query } = await webapp_client.async_query({
+      query: {
+        project_avatar_images: {
+          project_id,
+          avatar_image_full: null,
+        },
+      },
+    });
+    const img = query.project_avatar_images?.avatar_image_full;
+    this.projectAvatarImageCache.set(project_id, img);
+    return img;
   }
 }
 

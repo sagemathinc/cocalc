@@ -7,25 +7,26 @@
 Checkout -- finalize purchase and pay.
 */
 
-import { useEffect, useMemo, useState } from "react";
-import useAPI from "lib/hooks/api";
-import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Loading from "components/share/loading";
-import { Alert, Button, Row, Col, Table } from "antd";
-import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import SiteName from "components/share/site-name";
-import A from "components/misc/A";
-import useIsMounted from "lib/hooks/mounted";
-import PaymentMethods from "components/billing/payment-methods";
 import { copy_without as copyWithout } from "@cocalc/util/misc";
+import { Alert, Button, Col, Row, Table } from "antd";
+import PaymentMethods from "components/billing/payment-methods";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useIsMounted from "lib/hooks/mounted";
+import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
-import useCustomize from "lib/use-customize";
+import { computeCost } from "./compute-cost";
+import { describeItem, DisplayCost } from "./site-license-cost";
 
 export default function CheckoutWithCaptcha() {
   const { reCaptchaKey } = useCustomize();

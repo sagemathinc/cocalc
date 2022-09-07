@@ -12,6 +12,7 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
+import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
@@ -72,6 +73,7 @@ export default function Home(props: Props) {
                   marginRight: "15px",
                 }}
               >
+                <ProxyInput />
                 <PublicPaths publicPaths={publicPaths} />
               </div>
             )}

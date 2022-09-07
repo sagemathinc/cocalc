@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Button, Divider, Tooltip } from "antd";
+import { Alert, Avatar as AntdAvatar, Button, Divider, Tooltip } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -53,6 +53,7 @@ interface Props {
   isStarred?: boolean;
   githubOrg?: string; // if given, this is being mirrored from this github org
   githubRepo?: string; // if given, mirrored from this github repo.
+  projectAvatarImage?: string; // optional 320x320 image representing the project from which this was shared
 }
 
 export default function PublicPath({
@@ -76,6 +77,7 @@ export default function PublicPath({
   isStarred: isStarred0,
   githubOrg,
   githubRepo,
+  projectAvatarImage,
 }: Props) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
@@ -266,7 +268,19 @@ export default function PublicPath({
 
   return (
     <Customize value={customize}>
-      <Layout title={getTitle({ path, relativePath })}>
+      <Layout
+        title={getTitle({ path, relativePath })}
+        top={
+          projectAvatarImage ? (
+            <AntdAvatar
+              shape="square"
+              size={160}
+              icon={<img src={projectAvatarImage} />}
+              style={{ float: "left", margin: "10px" }}
+            />
+          ) : undefined
+        }
+      >
         {githubOrg && (
           <Avatar
             size={96}
