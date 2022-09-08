@@ -32,11 +32,13 @@ import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
+import { useScrollY } from "lib/use-scroll-y";
 import { sortBy } from "lodash";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { computeCost } from "./compute-cost";
+import { InfoBar } from "./cost-info-bar";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -49,9 +51,25 @@ const GCP_DISK_URL =
 
 export default function DedicatedResource() {
   const router = useRouter();
+  const headerRef = useRef<HTMLHeadingElement>(null);
+
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
+
+  const [offsetHeader, setOffsetHeader] = useState(0);
+  const scrollY = useScrollY();
+
+  useEffect(() => {
+    if (headerRef.current) {
+      setOffsetHeader(headerRef.current.offsetTop);
+    }
+  }, []);
+
   return (
     <>
-      <h3>
+      <h3 ref={headerRef}>
         <Icon name={"dedicated"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Dedicated Resources License in Shopping Cart"
@@ -69,12 +87,12 @@ export default function DedicatedResource() {
           <A href="/store/cart">shopping cart</A>.
         </p>
       )}
-      <CreateDedicatedResource />
+      <CreateDedicatedResource showInfoBar={scrollY > offsetHeader} />
     </>
   );
 }
 
-function CreateDedicatedResource() {
+function CreateDedicatedResource({ showInfoBar = false }) {
   // somehow this state is necessary to render the form properly
   const [formType, setFormType] = useState<"disk" | "vm" | null>(null);
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
@@ -681,6 +699,14 @@ function CreateDedicatedResource() {
 
   return (
     <div>
+      <InfoBar
+        show={showInfoBar}
+        cost={cost}
+        router={router}
+        form={form}
+        cartError={cartError}
+        setCartError={setCartError}
+      />
       <Form
         form={form}
         style={{

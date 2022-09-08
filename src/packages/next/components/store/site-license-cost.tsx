@@ -27,10 +27,11 @@ interface Props {
   cost: CostInputPeriod;
   simple?: boolean;
   oneLine?: boolean;
+  showDiscount?: boolean;
 }
 
 export function DisplayCost(props: Props) {
-  const { cost, simple, oneLine } = props;
+  const { cost, simple, oneLine, showDiscount = true } = props;
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
@@ -48,7 +49,7 @@ export function DisplayCost(props: Props) {
           ""
         )}
         {oneLine ? null : <br />}{" "}
-        {discount_pct > 0 && (
+        {discount_pct > 0 && showDiscount && (
           <>(includes {discount_pct}% self-service discount)</>
         )}
       </>
