@@ -4,10 +4,12 @@
  */
 
 import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
+import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
@@ -88,15 +90,15 @@ export default function ConfigLayout({ page }: Props) {
     }
   }
 
+  // this layout is the same as ../store/index.tsx
   return (
     <Layout
       style={{
         padding: "0 24px 24px",
         backgroundColor: "white",
-        color: "#555",
+        color: COLORS.GRAY_D,
       }}
     >
-      <Menu main={main} />
       <Content
         style={{
           padding: 24,
@@ -104,7 +106,10 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        {body()}
+        <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
+          <Menu main={main} />
+          {body()}
+        </div>
       </Content>
     </Layout>
   );
