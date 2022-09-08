@@ -10,7 +10,7 @@ interface Props {
 
 export default function Statistics({ stats }: Props) {
   return (
-    <div style={{ maxWidth: "100%", overflowX: "scroll" }}>
+    <div style={{ maxWidth: "100%", overflowX: "auto" }}>
       Last Updated: {new Date(stats.time).toLocaleString()}{" "}
       <A href="/info/status">(update)</A>
       <br />
