@@ -38,6 +38,7 @@ export default async function init(): Promise<void> {
   if (client == null) throw Error("client must be defined");
   const dbg: Function = client.dbg("api_server");
   const app: express.Application = express();
+  app.disable("x-powered-by"); // https://github.com/sagemathinc/cocalc/issues/6101
 
   dbg("configuring server...");
   configure(app, dbg);

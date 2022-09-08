@@ -62,4 +62,5 @@ module.exports = {
     locales: ["en-US"],
     defaultLocale: "en-US",
   },
+  poweredByHeader: false, // https://github.com/sagemathinc/cocalc/issues/6101
 };
