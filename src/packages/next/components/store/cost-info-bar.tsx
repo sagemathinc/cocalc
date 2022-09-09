@@ -4,8 +4,15 @@
  */
 
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { Typography } from "antd";
+import { MAX_WIDTH } from "lib/config";
 import { AddToCartButton } from "./add-box";
-import { DisplayCost } from "./site-license-cost";
+import { describeItem, DisplayCost } from "./site-license-cost";
+const { Text } = Typography;
+
+const INNER_STYLE: React.CSSProperties = {
+  paddingRight: "10px",
+};
 
 interface Props {
   show: boolean;
@@ -23,22 +30,30 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
   if (!show) return null;
 
   function renderInfoBarContent() {
-    if (!cost) return null;
     // if any of the fields in cost that start with the string "cost" are NaN, return null
-    if (Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))) {
-      return null;
-    }
+    const disabled =
+      !cost ||
+      Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]));
     return (
       <>
-        Cost:{" "}
-        <span style={{ fontWeight: "bold", paddingRight: "10px" }}>
-          <DisplayCost
-            cost={cost}
-            oneLine={true}
-            simple={true}
-            showDiscount={false}
-          />
-        </span>
+        {disabled ? (
+          <Text type="secondary" italic={true} style={INNER_STYLE}>
+            License is not fully configured.
+          </Text>
+        ) : (
+          <>
+            <>{describeItem({ info: cost.input, variant: "short" })}: </>
+            <Text strong={true} style={INNER_STYLE}>
+              <DisplayCost
+                cost={cost}
+                oneLine={true}
+                simple={true}
+                simpleShowPeriod={false}
+                discountTooltip={true}
+              />
+            </Text>
+          </>
+        )}
         <AddToCartButton
           cartError={cartError}
           cost={cost}
@@ -46,16 +61,20 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
           router={router}
           setCartError={setCartError}
           variant={"small"}
+          disabled={disabled}
         />
       </>
     );
   }
 
   // this is a thin bar at the top, fixed position and height
+  // the width limit of the inner div is the same as for the div
+  // inside the "Content", i.e. the form itself, such that everything
+  // alignes nicely.
   return (
     <div
       style={{
-        height: 50,
+        height: "30px",
         display: "flex", // we want to align the content at the bottom
         backgroundColor: "white",
         position: "fixed",
@@ -65,15 +84,17 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
         right: 0,
         zIndex: 1000,
         padding: "10px",
-        boxShadow: "0 3px 4px rgba(0,0,0,0.2)",
+        boxShadow: "0 4px 4px rgba(0,0,0,0.2)",
         overflow: "hidden",
       }}
     >
       <div
         style={{
+          maxWidth: MAX_WIDTH,
+          marginLeft: "auto",
+          marginRight: "auto",
           alignSelf: "center",
           flex: 1,
-          fontSize: "125%",
           whiteSpace: "nowrap",
         }}
       >

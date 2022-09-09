@@ -93,7 +93,7 @@ export function AddBox(props: Props) {
 }
 
 interface CartButtonProps {
-  cost: CostInputPeriod;
+  cost: CostInputPeriod | undefined;
   router: any;
   form: any;
   setCartError: (error) => void;
@@ -117,12 +117,12 @@ export function AddToCartButton(props: CartButtonProps) {
 
   return (
     <Button
-      size="large"
+      size={variant === "small" ? "small" : "large"}
       type="primary"
       htmlType="submit"
       style={style}
       onClick={() => addToCart({ form, setCartError, router })}
-      disabled={!!cartError || cost.cost === 0 || disabled}
+      disabled={disabled || !!cartError || cost == null || cost.cost === 0}
     >
       {router.query.id != null ? "Save Changes" : "Add to Cart"}
     </Button>

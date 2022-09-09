@@ -9,7 +9,7 @@ import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
 import moment from "moment";
 import { useMemo } from "react";
-import { LicenseTypeInForms } from "./add-box";
+import { LicenseTypeInForms } from "./add-to-cart";
 
 // site license type in a form, we have 4 forms hence 4 types
 // later, this will be mapped to just "LicenseType", where boost and regular

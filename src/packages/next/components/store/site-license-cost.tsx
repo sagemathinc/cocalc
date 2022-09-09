@@ -5,7 +5,10 @@
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { untangleUptime } from "@cocalc/util/consts/site-license";
-import { describe_quota } from "@cocalc/util/licenses/describe-quota";
+import {
+  describeQuotaOnLine,
+  describe_quota,
+} from "@cocalc/util/licenses/describe-quota";
 import {
   CostInputPeriod,
   PurchaseInfo,
@@ -13,45 +16,57 @@ import {
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
-import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
+import {
+  appendAfterNowToDate,
+  getDays,
+  roundToMidnight,
+} from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
   dedicatedVmDisplay,
 } from "@cocalc/util/upgrades/utils";
-import Timestamp from "components/misc/timestamp";
+import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
-import { roundToMidnight } from "@cocalc/util/stripe/timecalcs";
+import { Tooltip, Typography } from "antd";
+const { Text } = Typography;
 
 interface Props {
   cost: CostInputPeriod;
   simple?: boolean;
   oneLine?: boolean;
-  showDiscount?: boolean;
+  simpleShowPeriod?: boolean;
+  discountTooltip?: boolean;
 }
 
 export function DisplayCost(props: Props) {
-  const { cost, simple, oneLine, showDiscount = true } = props;
+  const {
+    cost,
+    simple = false,
+    oneLine = false,
+    simpleShowPeriod = true,
+    discountTooltip = false,
+  } = props;
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
   const discount_pct = percent_discount(cost);
   if (simple) {
+    const discount = discount_pct > 0 && (
+      <>includes {discount_pct}% self-service discount</>
+    );
     return (
       <>
         {money(cost.discounted_cost)}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
-            {cost.period}
+            {simpleShowPeriod && cost.period}
           </>
         ) : (
           ""
         )}
-        {oneLine ? null : <br />}{" "}
-        {discount_pct > 0 && showDiscount && (
-          <>(includes {discount_pct}% self-service discount)</>
-        )}
+        {oneLine ? null : <br />} {discount && !discountTooltip && discount}
       </>
     );
   }
@@ -76,19 +91,26 @@ export function DisplayCost(props: Props) {
 
   return (
     <span>
-      {describeItem(cost.input)}
+      {describeItem({ info: cost.input })}
       <hr />
       <Icon name="money-check" /> Cost: {desc}
     </span>
   );
 }
 
-export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
+interface DescribeItemProps {
+  info: Partial<PurchaseInfo>;
+  variant?: "short" | "long";
+}
+
+export function describeItem(props: DescribeItemProps): ReactNode {
+  const { info, variant = "long" } = props;
+
   if (info.type === "disk") {
     return (
       <>
-        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk)}){" "}
-        {describePeriod(info)}
+        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk, variant)}){" "}
+        {describePeriod({ quota: info, variant })}
       </>
     );
   }
@@ -97,7 +119,7 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
     return (
       <>
         Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
-        {describePeriod(info)}
+        {describePeriod({ quota: info, variant })}
       </>
     );
   }
@@ -109,40 +131,70 @@ export function describeItem(info: Partial<PurchaseInfo>): ReactNode {
   if (info.quantity == null) {
     throw new Error("should not happen");
   }
+
   const { always_running, idle_timeout } = untangleUptime(
     info.custom_uptime ?? "short"
   );
-  return (
-    <>
-      {describe_quota({
-        ram: info.custom_ram,
-        cpu: info.custom_cpu,
-        disk: info.custom_disk,
-        always_running,
-        idle_timeout,
-        member: info.custom_member,
-        user: info.user,
-      })}{" "}
-      {describeQuantity(info)} ({describePeriod(info)})
-    </>
-  );
+
+  const quota = {
+    ram: info.custom_ram,
+    cpu: info.custom_cpu,
+    disk: info.custom_disk,
+    always_running,
+    idle_timeout,
+    member: info.custom_member,
+    user: info.user,
+  };
+
+  if (variant === "short") {
+    return (
+      <>
+        <Text strong={true}>{describeQuantity({ quota: info, variant })}</Text>{" "}
+        {describeQuotaOnLine(quota)}, {describePeriod({ quota: info, variant })}
+      </>
+    );
+  } else {
+    return (
+      <>
+        {describe_quota(quota, false)}{" "}
+        {describeQuantity({ quota: info, variant })} (
+        {describePeriod({ quota: info, variant })})
+      </>
+    );
+  }
 }
 
-function describeQuantity({ quantity = 1 }: { quantity?: number }): ReactNode {
-  return `for ${quantity} running ${plural(quantity, "project")}`;
+interface DescribeQuantityProps {
+  quota: Partial<PurchaseInfo>;
+  variant?: "short" | "long";
+}
+
+function describeQuantity(props: DescribeQuantityProps): ReactNode {
+  const { quota: info, variant = "long" } = props;
+  const { quantity = 1 } = info;
+
+  if (variant === "short") {
+    return `${quantity}x`;
+  } else {
+    return `for ${quantity} running ${plural(quantity, "project")}`;
+  }
 }
 
 interface PeriodProps {
-  subscription?: Omit<Subscription, "no">;
-  start?: Date | string;
-  end?: Date | string;
+  quota: {
+    subscription?: Omit<Subscription, "no">;
+    start?: Date | string;
+    end?: Date | string;
+  };
+  variant?: "short" | "long";
 }
 
 /**
  * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
  */
 export function describePeriod(props: PeriodProps): ReactNode {
-  const { subscription, start: startRaw, end: endRaw } = props;
+  const { quota, variant = "long" } = props;
+  const { subscription, start: startRaw, end: endRaw } = quota;
 
   const { fromServerTime, serverTimeDate } = useTimeFixer();
 
@@ -170,14 +222,36 @@ export function describePeriod(props: PeriodProps): ReactNode {
       end,
     });
 
-    return (
-      <>
-        <Timestamp dateOnly datetime={start} absolute /> to{" "}
-        <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
-        {plural(days, "day")}
-      </>
-    );
+    if (variant === "short") {
+      const tsStart = processTimestamp({ datetime: start, absolute: true });
+      const tsEnd = processTimestamp({ datetime: endDisplay, absolute: true });
+      if (tsStart === "-" || tsEnd === "-") {
+        return "-";
+      }
+      const timespanStr = `${tsStart.absoluteTimeFull} - ${tsEnd.absoluteTimeFull}`;
+      return (
+        <Tooltip
+          trigger={["hover", "click"]}
+          title={timespanStr}
+          placement="bottom"
+        >
+          {`${days} ${plural(days, "day")}`}
+        </Tooltip>
+      );
+    } else {
+      return (
+        <>
+          <Timestamp dateOnly datetime={start} absolute /> to{" "}
+          <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
+          {plural(days, "day")}
+        </>
+      );
+    }
   } else {
-    return `${subscription} subscription`;
+    if (variant === "short") {
+      return `${subscription}`;
+    } else {
+      return `${subscription} subscription`;
+    }
   }
 }
