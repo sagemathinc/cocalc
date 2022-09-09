@@ -1,3 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Anonymous from "components/misc/anonymous";
@@ -9,14 +16,15 @@ import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
 import Menu from "./menu";
 import Overview from "./overview";
+import { MAX_WIDTH } from "lib/config";
 
 const { Content } = Layout;
 
 interface Props {
-  page: string;
+  page: ("projects" | "how-used" | "managed" | undefined)[];
 }
 
-export default function ConfigLayout({ page }: Props) {
+export default function LicensesLayout({ page }: Props) {
   const router = useRouter();
   const profile = useProfile({ noCache: true });
   if (!profile) {
@@ -49,6 +57,7 @@ export default function ConfigLayout({ page }: Props) {
   const [main] = page;
 
   function body() {
+    if (main == null) return <Overview />;
     switch (main) {
       case "projects":
         return <LicensedProjects />;
@@ -56,19 +65,20 @@ export default function ConfigLayout({ page }: Props) {
         return <ManagedLicenses />;
       case "how-used":
         return <HowUsed account_id={account_id} />;
+      default:
+        unreachable(main);
     }
-    return <Overview />;
   }
 
+  // this is layout the same way as ../store/index.tsx
   return (
     <Layout
       style={{
         padding: "0 24px 24px",
         backgroundColor: "white",
-        color: "#555",
+        color: COLORS.GRAY_D,
       }}
     >
-      <Menu main={main} />
       <Content
         style={{
           padding: 24,
@@ -76,7 +86,10 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        {body()}
+        <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
+          <Menu main={main} />
+          {body()}
+        </div>
       </Content>
     </Layout>
   );

@@ -3,38 +3,44 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Menu } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
+const { Text } = Typography;
+
+type MenuItem = Required<MenuProps>["items"][number];
 
 export default function ConfigMenu({ main }) {
   const router = useRouter();
+
+  function select(e) {
+    router.push(`/billing/${e.keyPath[0]}`, undefined, {
+      scroll: false,
+    });
+  }
+
+  const items: MenuItem[] = [
+    { label: <Text strong>Billing</Text>, key: "" },
+    { label: "Cards", key: "cards", icon: <Icon name={"credit-card"} /> },
+    {
+      label: "Subscriptions",
+      key: "subscriptions",
+      icon: <Icon name={"calendar"} />,
+    },
+    {
+      label: "Invoices and Receipts",
+      key: "receipts",
+      icon: <Icon name={"list"} />,
+    },
+  ];
 
   return (
     <Menu
       mode="horizontal"
       selectedKeys={[main]}
-      style={{ height: "100%" }}
-      onSelect={(e) => {
-        router.push(`/billing/${e.keyPath[0]}`, undefined, {
-          scroll: false,
-        });
-      }}
-    >
-      <Menu.Item key={""}>
-        <b style={{ color: "#666" }}>Billing</b>
-      </Menu.Item>
-      <Menu.Item key={"cards"}>
-        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Credit
-        Cards
-      </Menu.Item>
-      <Menu.Item key={"subscriptions"}>
-        <Icon name={"calendar"} style={{ marginRight: "5px" }} /> Subscriptions
-      </Menu.Item>
-      <Menu.Item key={"receipts"}>
-        <Icon name={"list"} style={{ marginRight: "5px" }} /> Invoices and
-        Receipts
-      </Menu.Item>
-    </Menu>
+      style={{ height: "100%", marginBottom: "24px" }}
+      onSelect={select}
+      items={items}
+    />
   );
 }

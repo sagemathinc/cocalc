@@ -10,11 +10,14 @@ import Head from "components/landing/head";
 import Store from "components/store";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { capitalize } from "@cocalc/util/misc";
 
 export default function Preferences({ customize, page }) {
+  const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";
+
   return (
     <Customize value={customize}>
-      <Head title="Store" />
+      <Head title={`Store${subpage}`} />
       <Layout>
         <Header />
         <Store page={page} />
