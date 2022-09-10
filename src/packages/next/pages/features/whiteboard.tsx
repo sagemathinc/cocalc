@@ -9,8 +9,10 @@ import Head from "components/landing/head";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
+import Image from "components/landing/image";
 
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
+import WhiteboardPostIt from "/public/features/whiteboard-post-it.png";
 
 export default function Whiteboard({ customize }) {
   return (
@@ -41,13 +43,20 @@ export default function Whiteboard({ customize }) {
           <Pitch
             col1={
               <div>
-                <h2>A full featured online collaborative whiteboard</h2>
+                <h2>
+                  Full featured online collaborative computational whiteboard
+                </h2>
                 <p>
-                  CoCalc{"'"}s{" "}
-                  <A href="https://doc.cocalc.com/whiteboard.html">
-                    collaborative mathematical whiteboards
+                  As explained in{" "}
+                  <A href="https://about.cocalc.com/2022/09/08/all-about-computational-whiteboard/">
+                    our blog
                   </A>{" "}
-                  support an infinite canvas with
+                  and{" "}
+                  <A href="https://doc.cocalc.com/whiteboard.html">
+                    documentation
+                  </A>
+                  , CoCalc{"'"}s collaborative mathematical whiteboards support
+                  an infinite canvas with
                 </p>
                 <ul>
                   <li>
@@ -85,7 +94,7 @@ export default function Whiteboard({ customize }) {
             }
             col2={
               <div>
-                <h2>The Whiteboard with Jupyter cells and more!</h2>
+                <h2>A Computational Whiteboard with Jupyter cells and more!</h2>
                 You can{" "}
                 <A href="https://doc.cocalc.com/whiteboard.html#jupyter-cells">
                   use Jupyter notebook code cells
@@ -131,9 +140,24 @@ export default function Whiteboard({ customize }) {
           }}
         >
           <h1>Now Available!</h1>
-          Try a whiteboard out in any CoCalc project by clicking +New, then
-          clicking "Whiteboard".
+          <div style={{ fontSize: "14pt", margin: "15px" }}>
+            Read much more about the computational whiteboard in{" "}
+            <A href="https://about.cocalc.com/2022/09/08/all-about-computational-whiteboard/">
+              our blog
+            </A>{" "}
+            and{" "}
+            <A href="https://doc.cocalc.com/whiteboard.html">
+              the documentation.
+            </A>
+          </div>
+          Try it in any CoCalc project by clicking +New, then clicking
+          "Whiteboard".
           <SignIn startup={"Whiteboard"} />
+          <Image
+            alt="Screenshot showing whiteboard with post-it notes."
+            src={WhiteboardPostIt}
+            style={{ margin: "15px auto", maxWidth: "1512px" }}
+          />
         </div>
         <Footer />
       </Layout>
