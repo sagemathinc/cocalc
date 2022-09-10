@@ -152,6 +152,7 @@ export default function PublicPath({
       />
     );
     if (isStarred == null) {
+      // not signed in ==> isStarred is null or undefined.
       return (
         <Button
           onClick={() => {
@@ -163,18 +164,28 @@ export default function PublicPath({
         </Button>
       );
     }
+    // Signed in so isStarred is true or false.
+    let btn;
     if (isStarred == true) {
-      return (
+      btn = (
         <Button onClick={unstar}>
           <Icon name="star-filled" style={{ color: "#eac54f" }} /> Starred{" "}
           {badge}
         </Button>
       );
+    } else {
+      btn = (
+        <Button onClick={star}>
+          <Icon name="star" /> Star {badge}
+        </Button>
+      );
     }
     return (
-      <Button onClick={star}>
-        <Icon name="star" /> Star {badge}
-      </Button>
+      <div style={{ textAlign: "center" }}>
+        {btn}
+        <br />
+        <A href="/stars">Your stars...</A>
+      </div>
     );
   }
 
