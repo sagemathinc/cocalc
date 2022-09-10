@@ -17,7 +17,7 @@ import WhiteboardPostIt from "/public/features/whiteboard-post-it.png";
 export default function Whiteboard({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Collaborative Mathematical Whiteboard" />
+      <Head title="Computational Whiteboard" />
       <Layout>
         <Header page="features" subPage="whiteboard" />
         <Layout.Content>
@@ -26,17 +26,17 @@ export default function Whiteboard({ customize }) {
               logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
               startup={"Whiteboard"}
               title={
-                "Online Collaborative Whiteboards for Mathematics and Computation"
+                "Online Collaborative Computational Whiteboards for Mathematics and Computation"
               }
               subtitle={
                 <>
                   <hr />
                   Sketch out ideas and run Jupyter code cells with CoCalc's
-                  whiteboard
+                  computational whiteboard
                 </>
               }
               image={WhiteboardImage}
-              alt={"Collaborative Mathematical Whiteboard"}
+              alt={"Collaborative Computational Whiteboard"}
             />
           </div>
 
@@ -55,7 +55,7 @@ export default function Whiteboard({ customize }) {
                   <A href="https://doc.cocalc.com/whiteboard.html">
                     documentation
                   </A>
-                  , CoCalc{"'"}s collaborative mathematical whiteboards support
+                  , CoCalc{"'"}s collaborative computational whiteboards support
                   an infinite canvas with
                 </p>
                 <ul>
