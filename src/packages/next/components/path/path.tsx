@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Avatar as AntdAvatar, Button, Divider, Tooltip } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
@@ -54,6 +54,10 @@ interface Props {
   githubOrg?: string; // if given, this is being mirrored from this github org
   githubRepo?: string; // if given, mirrored from this github repo.
   projectAvatarImage?: string; // optional 320x320 image representing the project from which this was shared
+  // Do a redirect to here; this is due to names versus id and is needed when
+  // visiting this by following a link from within the share server that
+  // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
+  redirect?: string;
 }
 
 export default function PublicPath({
@@ -78,14 +82,26 @@ export default function PublicPath({
   githubOrg,
   githubRepo,
   projectAvatarImage,
+  redirect,
 }: Props) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
-  const [isStarred, setIsStarred] = useState<boolean | null>(
+
+  const [isStarred, setIsStarred] = useState<boolean | null | undefined >(
     isStarred0 ?? null
   );
+  useEffect(() => {
+    setIsStarred(isStarred0);
+  }, [isStarred0]);
+
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (redirect) {
+      router.push(redirect);
+    }
+  }, [redirect]);
 
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
 

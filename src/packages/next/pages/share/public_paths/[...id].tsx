@@ -19,7 +19,6 @@ export async function getServerSideProps(context) {
     const names = await getPublicPathNames(id);
     if (names != null) {
       // redirect
-      const { res } = context;
       let location = join(
         basePath,
         names.owner,
@@ -33,9 +32,7 @@ export async function getServerSideProps(context) {
           context.params.id.slice(1).join("/")
         );
       }
-      res.writeHead(302, { location });
-      res.end();
-      return { props: {} };
+      return { props: { redirect: location } };
     }
     const props = await getPublicPathInfo({
       id,

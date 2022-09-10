@@ -38,10 +38,7 @@ export async function getServerSideProps(context) {
       const owner_id = await getProjectOwner(project_id);
       const owner = await getOwnerName(owner_id);
       if (owner) {
-        const { res } = context;
-        res.writeHead(302, { location: join(basePath, owner, project.name) });
-        res.end();
-        return { props: {} };
+        return { props: { redirect: join(basePath, owner, project.name) } };
       }
     }
     props = {
