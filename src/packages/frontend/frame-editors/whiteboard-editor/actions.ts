@@ -58,6 +58,9 @@ import {
 import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import debug from "debug";
+
+const log = debug("whiteboard:actions");
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
@@ -345,6 +348,7 @@ export class Actions extends BaseActions<State> {
     obj: Partial<Element>,
     commit: boolean = true
   ): Element {
+    log("createElement", frameId, obj, commit);
     if (obj.id == null || this.store.getIn(["elements", obj.id])) {
       obj.id = this.createId(); // ensure a new id is used, if needed.
     }
