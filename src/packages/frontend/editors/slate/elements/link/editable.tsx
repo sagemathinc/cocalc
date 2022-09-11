@@ -8,7 +8,7 @@ import { register } from "../register";
 import { useProcessLinks } from "../hooks";
 import { open_new_tab } from "@cocalc/frontend/misc";
 const linkify = require("linkify-it")();
-import { Link } from "./index";
+import { Link, LINK_STYLE } from "./index";
 
 register({
   slateType: "link",
@@ -28,6 +28,7 @@ register({
                 open_new_tab(url);
               }
             }}
+            style={LINK_STYLE}
           >
             {children}
             {element.children.length == 1 &&
