@@ -3,15 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
-import Error from "next/error";
-import Header from "components/landing/header";
+import { MainPages, MainPagesType } from "components/billing/consts";
+import Billing from "components/billing/layout";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
-import Billing from "components/billing/layout";
-import { MainPages, MainPagesType } from "components/billing/consts";
+import Header from "components/landing/header";
 import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import Error from "next/error";
 
 interface Props {
   customize: CustomizeType;
@@ -24,9 +25,12 @@ export default function Preferences(props: Props) {
   if (pageNotFound) {
     return <Error statusCode={404} />;
   }
+
+  const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";
+
   return (
     <Customize value={customize}>
-      <Head title="Billing" />
+      <Head title={`Billing${subpage}`} />
       <Layout>
         <Header />
         <Billing page={page} />

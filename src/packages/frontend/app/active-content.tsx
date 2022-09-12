@@ -3,21 +3,55 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ProjectPage } from "../project/page/page";
-import { React, useTypedRedux } from "../app-framework";
-import { ProjectsPage } from "../projects/projects-page";
-import { AccountPage } from "../account/account-page";
+import { ProjectPage } from "@cocalc/frontend/project/page/page";
+import {
+  React,
+  useTypedRedux,
+  useActions,
+  CSS,
+} from "@cocalc/frontend/app-framework";
+import { ProjectsPage } from "@cocalc/frontend/projects/projects-page";
+import { AccountPage } from "@cocalc/frontend/account/account-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
-import { FileUsePage } from "../file-use/page";
-import { NotificationPage } from "../notifications";
-import { AdminPage } from "../admin";
-import { Connecting } from "../landing-page/connecting";
+import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { NotificationPage } from "@cocalc/frontend/notifications";
+import { AdminPage } from "@cocalc/frontend/admin";
+import { Connecting } from "@cocalc/frontend/landing-page/connecting";
+import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { SiteName } from "@cocalc/frontend/customize";
+
+const STYLE_SIGNIN_WARNING: CSS = {
+  textAlign: "center",
+  width: "max(300px, 50vw)",
+  marginRight: "auto",
+  marginLeft: "auto",
+  marginTop: "50px",
+};
 
 export const ActiveContent: React.FC = React.memo(() => {
+  const page_actions = useActions("page");
+
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const fullscreen = useTypedRedux("page", "fullscreen");
   const get_api_key = useTypedRedux("page", "get_api_key");
   const open_projects = useTypedRedux("projects", "open_projects");
+
+  // initially, we assume a user is signed in – most likely case
+  const [notSignedIn, setNotSignedIn] = React.useState<boolean>(false);
+  const is_logged_in = useTypedRedux("account", "is_logged_in");
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setNotSignedIn(!is_logged_in);
+    }, 5 * 1000);
+    return () => clearTimeout(timer);
+  });
+
+  const showSignInWarning = React.useMemo(() => {
+    return !is_logged_in && notSignedIn;
+  }, [is_logged_in, notSignedIn]);
 
   const v: JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
@@ -37,6 +71,38 @@ export const ActiveContent: React.FC = React.memo(() => {
   if (get_api_key) {
     // Only render the account page which has the message for allowing api access:
     return <AccountPage key={"account"} />;
+  }
+
+  function project_loading() {
+    // This happens upon loading a URL for a project, but the
+    // project isn't open yet.  Implicitly, this waits for a
+    // websocket connection. To aid users towards signing up earlier
+    // we show a warning box about maybe having to sign in.
+    // https://github.com/sagemathinc/cocalc/issues/6092
+    v.push(<Connecting key={"active-content-connecting"} />);
+    if (showSignInWarning) {
+      v.push(
+        <div key="not-signed-in" style={STYLE_SIGNIN_WARNING}>
+          <Alert bsStyle="warning" banner={false}>
+            <Icon style={{ fontSize: "150%" }} name="exclamation-triangle" />
+            <br />
+            Your browser has not yet been able to connect to the <SiteName />{" "}
+            service. You probably have to{" "}
+            <a
+              onClick={() => page_actions.set_active_tab("account")}
+              style={{ fontWeight: "bold" }}
+            >
+              sign in
+            </a>{" "}
+            first, or otherwise check if you experience{" "}
+            <A href={"https://doc.cocalc.com/howto/trouble.html"}>
+              connectivity issues
+            </A>
+            .
+          </Alert>
+        </div>
+      );
+    }
   }
 
   // in kiosk mode: if no file is opened show a banner
@@ -66,10 +132,8 @@ export const ActiveContent: React.FC = React.memo(() => {
   }
 
   if (v.length === 0) {
-    // This happens upon loading a URL for a project, but the
-    // project isn't open yet.  Implicitly, this waits for a
-    // websocket connection, hence show the same banner as for the landing page
-    v.push(<Connecting key={"connecting"} />);
+    project_loading();
   }
+
   return <>{v}</>;
 });

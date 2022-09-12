@@ -9,6 +9,8 @@ Page for a given project
 Show all the public paths in a given project, and maybe other information about the project?
 */
 
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import PublicPaths from "components/share/public-paths";
 import Collaborators from "components/share/collaborators";
 import Loading from "components/share/loading";
@@ -30,7 +32,15 @@ export default function Project({
   name,
   customize,
   avatar_image_full,
+  redirect,
 }) {
+  const router = useRouter();
+  useEffect(() => {
+    if (redirect) {
+      router.push(redirect);
+    }
+  }, [redirect]);
+
   if (publicPaths == null || collaborators == null || title == null) {
     return <Loading style={{ fontSize: "30px" }} />;
   }
@@ -40,12 +50,14 @@ export default function Project({
     <Customize value={customize}>
       <Layout title={title}>
         <h1>
-          {avatar_image_full && <Avatar
-            icon={<img src={avatar_image_full} />}
-            size={160}
-            shape="square"
-            style={{ float: "right" }}
-          />}
+          {avatar_image_full && (
+            <Avatar
+              icon={<img src={avatar_image_full} />}
+              size={160}
+              shape="square"
+              style={{ float: "right" }}
+            />
+          )}
           Project:{" "}
           {collab ? (
             <A href={editURL({ project_id, type: "collaborator" })} external>

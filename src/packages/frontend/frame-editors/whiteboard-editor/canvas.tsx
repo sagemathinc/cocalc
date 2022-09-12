@@ -972,7 +972,7 @@ export default function Canvas({
     }
     if (selectedTool == "select" || selectedTool == "frame") {
       if (e.target != gridDivRef.current) return;
-      // draw a rectangular to select multiple items
+      // draw a rectangle to select multiple items
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current = [point];
@@ -1035,13 +1035,18 @@ export default function Canvas({
           }
 
           // The zMin - 1 is to put it UNDER everything so far.
-          const { id } = frame.actions.createElement(
+          frame.actions.createElement(
             frame.id,
             { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");
-          frame.actions.setSelection(frame.id, id);
+          // NOTE: we do NOT do "frame.actions.setSelection(frame.id, id);"
+          // to select the frame after creating it.  Why? Because it's confusing
+          // and you think the frame is on top of what you just framed. After
+          // making a frame, you typically want to rearrange or look at what
+          // you just framed, rather than resize the frame. See
+          //   https://github.com/sagemathinc/cocalc/issues/6107
         } else {
           // select everything in selection
           const overlapping = getOverlappingElements(elements, rect);

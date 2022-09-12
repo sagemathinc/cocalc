@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
@@ -7,8 +12,6 @@ type MenuItem = Required<MenuProps>["items"][number];
 
 export default function ConfigMenu({ main }) {
   const router = useRouter();
-
-  // const style = { marginRight: "5px" };
 
   function select(e) {
     router.push(`/store/${e.keyPath[0]}`, undefined, {
@@ -27,7 +30,7 @@ export default function ConfigMenu({ main }) {
   }
 
   const items: MenuItem[] = [
-    { label: "Store", key: "" },
+    { label: <Text strong>Store</Text>, key: "" },
     { label: "Site License", key: "site-license", icon: <Icon name="key" /> },
     {
       label: <>Boost {renderNew()}</>,
