@@ -92,7 +92,7 @@ export function HashtagBar({
     return v.map((x) => x[1]);
   }
 
-  if (hashtags == null) return <></>;
+  if (hashtags == null || hashtags.size == 0) return <></>;
 
   return <div style={{ ...STYLE, ...style }}>{render_hashtags()}</div>;
 }
