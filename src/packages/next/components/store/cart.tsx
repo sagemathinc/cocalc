@@ -430,7 +430,7 @@ function DescriptionColumn(props: DCProps) {
       <div>
         <b>
           {input.subscription == "no"
-            ? describePeriod(input)
+            ? describePeriod({ quota: input })
             : capitalize(input.subscription) + " subscription"}
         </b>
       </div>
@@ -443,7 +443,7 @@ function DescriptionColumn(props: DCProps) {
           borderRadius: "5px",
         }}
       >
-        {compact ? describeItem(input) : editableQuota()}{" "}
+        {compact ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
       <Button
         style={{ marginRight: "5px" }}

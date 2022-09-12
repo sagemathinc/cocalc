@@ -17,6 +17,7 @@ export const LicenseIdleTimeouts: {
   [key in Keys]: {
     mins: number;
     label: string;
+    labelShort: string; // same as "label", but shorter
     priceFactor: number;
     requireMemberhosting?: boolean; // if true, require member hosting
   };
@@ -24,12 +25,14 @@ export const LicenseIdleTimeouts: {
   short: {
     mins: 30,
     label: "30 minutes",
+    labelShort: "30min",
     priceFactor: 1,
   },
-  medium: { mins: 2 * 60, label: "2 hours", priceFactor: 2 },
+  medium: { mins: 2 * 60, label: "2 hours", labelShort: "2h", priceFactor: 2 },
   day: {
     mins: 24 * 60,
     label: "1 day",
+    labelShort: "1d",
     priceFactor: 4,
     requireMemberhosting: true,
   },

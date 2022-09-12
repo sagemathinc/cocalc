@@ -15,8 +15,8 @@ interface Props {
   absolute?: boolean;
 }
 
-export default function Timestamp(props: Props) {
-  const { epoch, style, absolute, dateOnly } = props;
+export function processTimestamp(props: Props) {
+  const { epoch, dateOnly } = props;
   let datetime = props.datetime;
 
   if (epoch && datetime == null) {
@@ -24,7 +24,7 @@ export default function Timestamp(props: Props) {
   }
 
   if (!datetime) {
-    return <span style={style}>-</span>;
+    return "-";
   }
 
   if (typeof datetime == "string") {
@@ -37,6 +37,7 @@ export default function Timestamp(props: Props) {
     month: "short",
     day: "numeric",
   });
+
   const absoluteTimeFull = datetime.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
@@ -46,6 +47,17 @@ export default function Timestamp(props: Props) {
   });
 
   const timeShown = dateOnly ? absoluteTimeDateOnly : absoluteTimeFull;
+
+  return { datetime, timeShown, absoluteTimeDateOnly, absoluteTimeFull };
+}
+
+export default function Timestamp(props: Props) {
+  const { style, absolute } = props;
+  const data = processTimestamp(props);
+  if (data === "-") {
+    return <span style={style}>-</span>;
+  }
+  const { datetime, timeShown, absoluteTimeFull } = data;
 
   if (absolute) {
     return (
