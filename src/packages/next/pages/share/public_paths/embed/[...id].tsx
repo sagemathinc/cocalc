@@ -14,16 +14,22 @@ import { Embed } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
+import { Customize as CustomizeType } from "@cocalc/server/settings/customize";
+import { PathContents as PathContentsInterface } from "lib/share/get-contents";
 
-export default function PublicPath({
-  id,
-  project_id,
-  path,
-  relativePath,
-  contents,
-  error,
-  customize,
-}) {
+interface Props {
+  id: string;
+  project_id: string;
+  path: string;
+  relativePath: string;
+  contents: PathContentsInterface;
+  error: string;
+  customize: CustomizeType;
+}
+
+export default function PublicPath(props: Props) {
+  const { id, project_id, path, relativePath, contents, error, customize } =
+    props;
   useCounter(id);
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
 

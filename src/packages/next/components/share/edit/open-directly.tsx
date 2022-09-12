@@ -3,24 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import editURL from "lib/share/edit-url";
-import shareURL from "lib/share/share-url";
+import RunApp from "components/app/path";
 import A from "components/misc/A";
 import ConfigurePublicPath from "components/share/configure-public-path";
-import RunApp from "components/app/path";
+import editURL from "lib/share/edit-url";
+import shareURL from "lib/share/share-url";
 import { join } from "path";
 
-export default function OpenDirectly({
-  project_id,
-  path,
-  id,
-  relativePath,
-}: {
+interface Props {
   id: string;
   project_id: string;
   path: string;
   relativePath: string;
-}) {
+}
+
+export default function OpenDirectly(props: Props) {
+  const { project_id, path, id, relativePath } = props;
   const url = editURL({
     type: "collaborator",
     project_id,

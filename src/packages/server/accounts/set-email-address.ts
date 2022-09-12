@@ -12,12 +12,16 @@ is verified.)
 Throws an exception if something is wrong.
 */
 
-import getPool from "@cocalc/database/pool";
-import { isValidUUID } from "@cocalc/util/misc";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
+import getPool from "@cocalc/database/pool";
+import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
+import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import {
+  isValidUUID,
+  is_valid_email_address as isValidEmailAddress,
+} from "@cocalc/util/misc";
 import accountCreationActions, {
   creationActionsDone,
 } from "./account-creation-actions";
@@ -40,13 +44,36 @@ export default async function setEmailAddress(
 
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT password_hash FROM accounts WHERE account_id=$1",
+    "SELECT email_address, password_hash FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
     throw Error("no such account");
   }
-  const { password_hash } = rows[0];
+  const { password_hash, email_address: old_email_address } = rows[0];
+
+  // if you have an email address that's controlled by an "exclusive" SSO strategy
+  // you're not allowed to change your email address
+  const strategies = await getStrategies();
+  const strategy = checkRequiredSSO({ strategies, email: old_email_address });
+  if (strategy != null) {
+    // user has no password set, so we can set it – but not the email address
+    if (!password_hash) {
+      await pool.query(
+        "UPDATE accounts SET password_hash=$1,  WHERE account_id=$2",
+        [passwordHash(password), account_id]
+      );
+    }
+    throw new Error(`You are not allowed to change your email address`);
+  }
+
+  // you're also not allowed to change your email address to one that's covered by an exclusive strategy
+  if (checkRequiredSSO({ strategies, email: email_address }) != null) {
+    throw new Error(
+      `You are not allowed to change your email address to this one`
+    );
+  }
+
   if (!password_hash) {
     // setting both the email_address *and* password at once.
     await pool.query(
@@ -63,9 +90,10 @@ export default async function setEmailAddress(
   // Is the email address available?
   if (
     (
-      await pool.query("SELECT COUNT(*)::INT FROM accounts WHERE email_address=$1", [
-        email_address,
-      ])
+      await pool.query(
+        "SELECT COUNT(*)::INT FROM accounts WHERE email_address=$1",
+        [email_address]
+      )
     ).rows[0].count > 0
   ) {
     throw Error(

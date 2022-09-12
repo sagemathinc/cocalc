@@ -3,45 +3,55 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, List } from "immutable";
-import { Alert as AntdAlert } from "antd";
-import {
-  redux,
-  Component,
-  React,
-  Rendered,
-  TypedMap,
-} from "../../app-framework";
 import {
   Alert,
   Button,
   ButtonToolbar,
   Checkbox,
-  Row,
   Col,
-  Panel,
-  Well,
   FormGroup,
-} from "../../antd-bootstrap";
-import { SiteName, TermsOfService } from "../../customize";
-import { keys, startswith } from "@cocalc/util/misc";
-import { set_account_table, ugly_error } from "../util";
-import { webapp_client } from "../../webapp-client";
-import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../components";
-import { SignOut } from "../sign-out";
-import { DeleteAccount } from "../delete-account";
-import { TextSetting } from "./text-setting";
-import { PasswordSetting } from "./password-setting";
-import { EmailAddressSetting } from "./email-address-setting";
-import { APIKeySetting } from "./api-key";
-import { EmailVerification } from "./email-verification";
-import { log } from "../../user-tracking";
-import { PassportStrategy } from "../passport-types";
-import { PassportStrategyIcon, strategy2display } from "../../passports";
-import { join } from "path";
+  Panel,
+  Row,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  React,
+  redux,
+  Rendered,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import {
+  A,
+  ErrorDisplay,
+  Icon,
+  Space,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import {
+  PassportStrategyIcon,
+  strategy2display,
+} from "@cocalc/frontend/passports";
+import { log } from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { keys, startswith } from "@cocalc/util/misc";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import { Alert as AntdAlert, Space as AntdSpace } from "antd";
+import { List, Map } from "immutable";
+import { join } from "path";
+import { SiteName, TermsOfService } from "../../customize";
+import { open_new_tab } from "../../misc/open-browser-tab";
+import { DeleteAccount } from "../delete-account";
+import { SignOut } from "../sign-out";
+import { set_account_table, ugly_error } from "../util";
+import { APIKeySetting } from "./api-key";
+import { EmailAddressSetting } from "./email-address-setting";
+import { EmailVerification } from "./email-verification";
+import { PasswordSetting } from "./password-setting";
+import { TextSetting } from "./text-setting";
 
-type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
+type ImmutablePassportStrategy = TypedMap<PassportStrategyFrontend>;
 
 interface Props {
   account_id?: string;
@@ -163,7 +173,11 @@ export class AccountSettings extends Component<Props, State> {
       return;
     }
     try {
-      await webapp_client.account_client.unlink_passport(strategy, id);
+      const x = await webapp_client.account_client.unlink_passport(
+        strategy,
+        id
+      );
+      console.log("ret:", x);
     } catch (err) {
       ugly_error(err);
     }
@@ -186,6 +200,12 @@ export class AccountSettings extends Component<Props, State> {
           account. Otherwise you would completely lose access to your account!
         </Well>
       );
+      // TODO: flesh out the case where the UI prevents a user from unlinking an exclusive sso strategy
+      // Right now, the backend blocks this.
+    } else if (false) {
+      return (
+        <Well>You are not allowed to remove the passport strategy {name}.</Well>
+      );
     } else {
       return (
         <Well>
@@ -195,15 +215,15 @@ export class AccountSettings extends Component<Props, State> {
           Your <SiteName /> account is linked to your {name} account, so you can
           login using it.
           <br /> <br />
-          If you delink your {name} account, you will no longer be able to use
-          your account to log into <SiteName />.
+          If you unlink your {name} account, you will no longer be able to use
+          this account to log into <SiteName />.
           <br /> <br />
           <ButtonToolbar style={{ textAlign: "center" }}>
             <Button
               bsStyle="danger"
               onClick={this.remove_strategy_click.bind(this)}
             >
-              <Icon name="unlink" /> Delink My {name} Account
+              <Icon name="unlink" /> Unlink my {name} account
             </Button>
             <Button
               onClick={() =>
@@ -331,12 +351,25 @@ export class AccountSettings extends Component<Props, State> {
     }
     const account_passports: string[] = this.get_account_passport_names();
 
+    let any_hidden = false;
     const not_linked: List<ImmutablePassportStrategy> =
       this.props.strategies.filter((strategy) => {
         const name = strategy.get("name");
-        return name !== "email" && !account_passports.includes(name);
+        // skip the email strategy, we don't use it
+        if (name === "email") return false;
+        // filter those which are already linked
+        if (account_passports.includes(name)) return false;
+        // do not show the non-public ones, unless they shouldn't be hidden
+        if (
+          !strategy.get("public", true) &&
+          !strategy.get("do_not_hide", false)
+        ) {
+          any_hidden = true;
+          return false;
+        }
+        return true;
       });
-    if (not_linked.size === 0) return;
+    if (any_hidden === false && not_linked.size === 0) return;
 
     const heading = this.props.is_anonymous
       ? "Sign up using your account at"
@@ -344,13 +377,26 @@ export class AccountSettings extends Component<Props, State> {
     const btns = not_linked
       .map((strategy) => this.render_strategy(strategy, account_passports))
       .toArray();
+
+    // add an extra button to link to the non public ones, which aren't shown
+    if (any_hidden) {
+      btns.push(
+        <Button
+          key="sso"
+          onClick={() => open_new_tab(join(appBasePath, "sso"))}
+          bsStyle="info"
+        >
+          Other SSO
+        </Button>
+      );
+    }
     return (
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>{heading}</h5>
-        <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
+        <AntdSpace size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
-        </ButtonToolbar>
+        </AntdSpace>
         {this.render_add_strategy_link()}
       </div>
     );

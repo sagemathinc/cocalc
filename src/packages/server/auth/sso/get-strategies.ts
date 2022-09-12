@@ -1,39 +1,51 @@
-/* Get a string[] of the names of strategies that are
-   currently configured. Cached a bit so safe to call a lot. */
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 import getPool from "@cocalc/database/pool";
-import { capitalize } from "@cocalc/util/misc";
+import { Strategy } from "@cocalc/util/types/sso";
+import { ssoDispayedName } from "@cocalc/util/auth";
 
-// Just enough for display to the user:
-interface Strategy {
-  name: string;
-  display: string; // name to display for SSO
-  icon: string; // name of or URL to icon to display for SSO
-  backgroundColor: string; // background color for icon, if not a link
-}
-
+/** Returns an array of public info about strategies.
+ * Cached a bit so safe to call a lot.
+ */
 export default async function getStrategies(): Promise<Strategy[]> {
   const pool = getPool("long");
-  const { rows } = await pool.query(
-    "SELECT strategy, conf#>>'{icon}' as icon, conf#>>'{display}' as display FROM passport_settings WHERE strategy != 'site_conf'"
-  );
-  const strategies: Strategy[] = [];
-  for (const row of rows) {
-    strategies.push({
+  // entries in "conf" were used before the "info" col existed. this is only for backwards compatibility.
+  const { rows } = await pool.query(`
+    SELECT strategy,
+           COALESCE(info -> 'icon',              conf -> 'icon')              as icon,
+           COALESCE(info -> 'display',           conf -> 'display')           as display,
+           COALESCE(info -> 'public',            conf -> 'public')            as public,
+           COALESCE(info -> 'exclusive_domains', conf -> 'exclusive_domains') as exclusive_domains,
+           COALESCE(info -> 'do_not_hide',      'false'::JSONB)               as do_not_hide
+
+    FROM passport_settings
+    WHERE strategy != 'site_conf'
+      AND COALESCE(info ->> 'disabled', conf ->> 'disabled', 'false') != 'true'`);
+
+  return rows.map((row) => {
+    const display = ssoDispayedName({
+      display: row.display,
       name: row.strategy,
-      display:
-        row.display ??
-        (row.strategy == "github" ? "GitHub" : capitalize(row.strategy)),
-      icon: row.icon ?? row.strategy,
-      backgroundColor: COLORS[row.strategy] ?? "",
     });
-  }
-  return strategies;
+
+    return {
+      name: row.strategy,
+      display,
+      icon: row.icon, // don't use row.strategy as a fallback icon, since that icon likely does not exist
+      backgroundColor: COLORS[row.strategy] ?? "",
+      public: row.public ?? true,
+      exclusiveDomains: row.exclusive_domains ?? [],
+      doNotHide: row.do_not_hide ?? false,
+    };
+  });
 }
 
-const COLORS = {
+export const COLORS = {
   github: "#000000",
   facebook: "#428bca",
   google: "#dc4857",
   twitter: "#55acee",
-};
+} as const;

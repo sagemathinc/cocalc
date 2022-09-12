@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { Layout } from "antd";
 import SignUp from "components/auth/sign-up";
@@ -15,7 +14,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
-export default function SignUpPage({ customize, strategies, requiresToken }) {
+export default function SignUpPage({ customize, requiresToken }) {
   const { siteName } = customize;
   const router = useRouter();
   return (
@@ -25,7 +24,6 @@ export default function SignUpPage({ customize, strategies, requiresToken }) {
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
           <SignUp
-            strategies={strategies}
             requiresToken={requiresToken}
             onSuccess={() => router.push("/")}
           />
@@ -45,7 +43,6 @@ export async function getServerSideProps(context) {
     res.end();
     return { props: {} };
   }
-  customize.props.strategies = await getStrategies();
   customize.props.requiresToken = await getRequiresToken();
   return customize;
 }

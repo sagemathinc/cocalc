@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Edit a file using the CoCalc app.
 */
 
@@ -22,15 +27,10 @@ interface Props {
   start?: boolean; // if true, immediately load editor rather than waiting for user to click a button.
 }
 
-export default function Path({
-  project_id,
-  path,
-  style,
-  fullscreen,
-  embed,
-  description,
-  start,
-}: Props) {
+export default function Path(props: Props) {
+  const { project_id, path, style, fullscreen, embed, description, start } =
+    props;
+
   const { account, anonymousSignup } = useCustomize();
 
   if (!account) {
