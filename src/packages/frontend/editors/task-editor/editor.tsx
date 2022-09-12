@@ -80,7 +80,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
 
         <Row>
           <Col md={7}>
-            {" "}
             <Find
               actions={actions}
               local_view_state={local_view_state}
