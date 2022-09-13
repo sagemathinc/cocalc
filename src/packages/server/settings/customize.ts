@@ -3,10 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import {
+  KucalcValues,
+  KUCALC_COCALC_COM,
+} from "@cocalc/util/db-schema/site-defaults";
+import { Strategy } from "@cocalc/util/types/sso";
+import getStrategies from "../auth/sso/get-strategies";
 import { getServerSettings, ServerSettings } from "./server-settings";
 import siteURL from "./site-url";
-import { KucalcValues } from "@cocalc/util/db-schema/site-defaults";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 export interface Customize {
   siteName?: string;
@@ -39,6 +43,7 @@ export interface Customize {
   policies_html?: string;
   reCaptchaKey?: string;
   sandboxProjectId?: string;
+  strategies: Strategy[];
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -56,7 +61,9 @@ for a few seconds.
 let cachedSettings: ServerSettings | undefined = undefined;
 let cachedCustomize: Customize | undefined = undefined;
 export default async function getCustomize(): Promise<Customize> {
-  const settings = await getServerSettings();
+  const [settings, strategies]: [ServerSettings, Strategy[]] =
+    await Promise.all([getServerSettings(), getStrategies()]);
+
   if (settings === cachedSettings && cachedCustomize != null) {
     return cachedCustomize;
   }
@@ -126,6 +133,9 @@ export default async function getCustomize(): Promise<Customize> {
 
     // GitHub proxy project
     githubProjectId: settings.github_project_id,
+
+    // public info about SSO strategies
+    strategies,
   } as Customize;
 
   return cachedCustomize;

@@ -2,7 +2,7 @@
 The HTTP API, which works via POST requests.
 */
 import { Router } from "express";
-import bodyParser from "body-parser";
+import * as express from "express";
 const { http_message_api_v1 } = require("@cocalc/hub/api/handler");
 import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/hub/logger";
@@ -27,7 +27,8 @@ export default function init(
   // to the /api/v1 routes.  We raise the limit since the
   // default is really tiny, and there is an api call to
   // upload the contents of a file.
-  router.use(bodyParser({ limit: "500kb" }));
+  router.use(express.urlencoded({ extended: true, limit: "1mb" }));
+  router.use(express.json()); // To parse the incoming requests with JSON payloads
 
   router.post("/*", async (req, res) => {
     let api_key;

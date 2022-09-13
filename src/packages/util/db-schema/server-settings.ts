@@ -13,9 +13,36 @@ Table({
   fields: {
     strategy: {
       type: "string",
+      desc: "a unique lower-case alphanumeric space-free identifier",
     },
     conf: {
       type: "map",
+      desc: "a JSON object with the configuration for this strategy, consumed by the 'auth.ts' module",
+    },
+    info: {
+      type: "map",
+      desc: "additional public information about this strategy, displayed on the next.js pages, etc.",
+    },
+  },
+});
+
+Table({
+  name: "passport_store",
+  rules: {
+    primary_key: "key",
+  },
+  fields: {
+    key: {
+      type: "string",
+      desc: "an arbitrary key",
+    },
+    value: {
+      type: "string",
+      desc: "an arbitrary value as a string",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "when this key expires",
     },
   },
 });

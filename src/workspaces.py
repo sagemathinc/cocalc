@@ -56,12 +56,19 @@ def handle_path(s: str,
         print(desc)
 
 
-def cmd(s: str, path: Optional[str] = None, verbose: bool = True) -> None:
+def cmd(s: str,
+        path: Optional[str] = None,
+        verbose: bool = True,
+        noerr=False) -> None:
     home: str = os.path.abspath(os.curdir)
     try:
         handle_path(s, path, verbose)
         if os.system(s):
-            raise RuntimeError("Error executing '%s'" % s)
+            msg = f"Error executing '{s}'"
+            if noerr:
+                print(msg)
+            else:
+                raise RuntimeError(msg)
     finally:
         os.chdir(home)
 
@@ -297,7 +304,7 @@ def delete_package_lock(args) -> None:
                nb_threads=10)
 
 
-def npm(args) -> None:
+def npm(args, noerr=False) -> None:
     v = packages(args)
     inputs: List[List[str]] = []
     for path in v:
@@ -305,12 +312,16 @@ def npm(args) -> None:
         inputs.append([s, os.path.abspath(path)])
 
     def f(args) -> None:
-        cmd(*args)
+        cmd(*args, noerr=noerr)
 
     if args.parallel:
         thread_map(f, inputs, 3)
     else:
         thread_map(f, inputs, 1)
+
+
+def npm_noerror(args) -> None:
+    npm(args, noerr=True)
 
 
 def version_check(args):
@@ -463,6 +474,7 @@ def node_version_check() -> None:
             err += '\nIf you are using https://cocalc.com, put ". /cocalc/nvm/nvm.sh" in ~/.bashrc\nto get an appropriate version of node.'
         raise RuntimeError(err)
 
+
 def npm_version_check() -> None:
     """
     Check if the npm utility has at least version 8.
@@ -470,8 +482,8 @@ def npm_version_check() -> None:
     version = os.popen('npm --version').read()
     if int(version.split('.')[0]) < 8:
         raise RuntimeError(
-            f"CoCalc requires npm version 8, but you're using npm v{version}."
-        )
+            f"CoCalc requires npm version 8, but you're using npm v{version}.")
+
 
 def main() -> None:
     node_version_check()
@@ -541,6 +553,19 @@ def main() -> None:
                            default='',
                            help='arguments to npm')
     subparser.set_defaults(func=npm)
+
+    subparser = subparsers.add_parser(
+        'npm-noerr',
+        help=
+        'like "npm" but suppresses errors; e.g., use for "npm-noerr audit fix"'
+    )
+    packages_arg(subparser)
+    subparser.add_argument('args',
+                           type=str,
+                           nargs='*',
+                           default='',
+                           help='arguments to npm')
+    subparser.set_defaults(func=npm_noerror)
 
     subparser = subparsers.add_parser(
         'version-check', help='version consistency checks across packages')

@@ -42,10 +42,10 @@ record_sign_in_fail = (opts) ->
     logger?("WARNING: record_sign_in_fail(#{email}, #{ip})")
 
 sign_in_check = (opts) ->
-    {email, ip} = defaults opts,
+    {email, ip, auth_token} = defaults opts,
         email : required
         ip    : required
-    return throttle.signInCheck(email, ip)
+    return throttle.signInCheck(email, ip, auth_token)
 
 exports.sign_in = (opts) ->
     opts = defaults opts,
@@ -96,11 +96,12 @@ _sign_in = (opts, done) ->
 
     mesg.email_address = misc.lower_email_address(mesg.email_address)
 
-    m = sign_in_check
-        email : mesg.email_address
-        ip    : client.ip_address
+    m = await sign_in_check
+        email      : mesg.email_address
+        ip         : client.ip_address
+        auth_token : false
     if m
-        sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
+        sign_in_error("sign_in_check failure: #{m}")
         return
 
     signed_in_mesg = undefined
@@ -239,9 +240,10 @@ _sign_in_using_auth_token = (opts, done) ->
         sign_in_error("auth_token must be exactly 24 characters long")
         return
 
-    m = sign_in_check
-        email : mesg.auth_token
-        ip    : client.ip_address
+    m = await sign_in_check
+        email      : mesg.auth_token
+        ip         : client.ip_address
+        auth_token : true
     if m
         sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return

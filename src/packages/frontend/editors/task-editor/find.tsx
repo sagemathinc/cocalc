@@ -65,6 +65,7 @@ export const Find: React.FC<Props> = React.memo(
     }
 
     function render_search() {
+      const value = local_view_state.get("search") ?? "";
       return (
         <FormGroup style={{ marginBottom: 0, marginRight: "20px" }}>
           <InputGroup>
@@ -73,7 +74,7 @@ export const Find: React.FC<Props> = React.memo(
               ref={search_ref}
               componentClass="input"
               placeholder={"Search for tasks..."}
-              value={local_view_state.get("search") ?? ""}
+              value={value}
               onChange={() =>
                 actions.set_local_view_state({
                   search: ReactDOM.findDOMNode(search_ref.current).value,
@@ -84,7 +85,10 @@ export const Find: React.FC<Props> = React.memo(
               onKeyDown={key_down}
             />
             <InputGroup.Button>
-              <Button onClick={clear_and_focus_search_input}>
+              <Button
+                onClick={clear_and_focus_search_input}
+                bsStyle={value.length > 0 ? "warning" : "default"}
+              >
                 <Icon name="times-circle" />
               </Button>
             </InputGroup.Button>

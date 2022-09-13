@@ -1,20 +1,24 @@
-import { Alert, Button, Input } from "antd";
-import { useState } from "react";
-import SquareLogo from "components/logo-square";
-import useCustomize from "lib/use-customize";
-import A from "components/misc/A";
-import SSO, { Strategy } from "./sso";
-import { LOGIN_STYLE } from "./shared";
-import apiPost from "lib/api/post";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Alert, Button, Input } from "antd";
 import Contact from "components/landing/contact";
+import SquareLogo from "components/logo-square";
+import A from "components/misc/A";
+import apiPost from "lib/api/post";
+import useCustomize from "lib/use-customize";
+import { useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+import { LOGIN_STYLE } from "./shared";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
 interface Props {
-  strategies?: Strategy[];
   minimal?: boolean;
   onSuccess?: () => void; // if given, call after sign in *succeeds*.
 }
@@ -29,13 +33,20 @@ export default function SignIn(props: Props) {
   );
 }
 
-function SignIn0({ strategies, minimal, onSuccess }: Props) {
-  const { anonymousSignup, reCaptchaKey, siteName } = useCustomize();
+function SignIn0(props: Props) {
+  const { minimal = false, onSuccess } = props;
+  const { anonymousSignup, reCaptchaKey, siteName, strategies } =
+    useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const { executeRecaptcha } = useGoogleReCaptcha();
+
+  const haveSSO = strategies != null && strategies.length > 0;
+
+  // based on email: if user has to sign up via SSO, this will tell which strategy to use.
+  const requiredSSO = useRequiredSSO(strategies, email);
 
   async function signIn() {
     if (signingIn) return;
@@ -65,11 +76,12 @@ function SignIn0({ strategies, minimal, onSuccess }: Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+            priority={true}
           />
           <h1>Sign In to {siteName}</h1>
         </div>
@@ -77,20 +89,29 @@ function SignIn0({ strategies, minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          {strategies != null
-            ? strategies.length > 0
-              ? "Sign in using your email address or a single sign on provider."
-              : "Sign in using your email address."
-            : "Sign in"}
+          {strategies == null
+            ? "Sign in"
+            : haveSSO
+            ? requiredSSO != null
+              ? "Sign in using your single-sign-on provider"
+              : "Sign in using your email address or a single-sign-on provider."
+            : "Sign in using your email address."}
         </div>
         <form>
-          {strategies != null && strategies.length > 0 && (
-            <div style={{ textAlign: "center", margin: "20px 0" }}>
+          {haveSSO && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "20px 0",
+                display: requiredSSO == null ? "inherit" : "none",
+              }}
+            >
               <SSO
-                strategies={strategies}
                 size={email ? 24 : undefined}
                 style={
-                  email ? { float: "right", marginBottom: "20px" } : undefined
+                  email
+                    ? { textAlign: "right", marginBottom: "20px" }
+                    : undefined
                 }
               />
             </div>
@@ -102,8 +123,15 @@ function SignIn0({ strategies, minimal, onSuccess }: Props) {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
-          {/* Don't ever hide password input, since that messes up autofill */}
-          <div style={{ marginTop: "30px" }}>
+
+          <RequiredSSO strategy={requiredSSO} />
+          {/* Don't remove password input, since that messes up autofill. Hide for forced SSO. */}
+          <div
+            style={{
+              marginTop: "30px",
+              display: requiredSSO == null ? "inherit" : "none",
+            }}
+          >
             <p>Password </p>
             <Input.Password
               style={{ fontSize: "12pt" }}
@@ -116,7 +144,7 @@ function SignIn0({ strategies, minimal, onSuccess }: Props) {
               }}
             />
           </div>
-          {email && (
+          {email && requiredSSO == null && (
             <Button
               disabled={signingIn || !(password?.length >= 6)}
               shape="round"

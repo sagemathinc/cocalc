@@ -5,16 +5,23 @@
 
 import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
-import { MainPages } from "components/billing/consts";
+import { MainPages, MainPagesType } from "components/billing/consts";
 import Billing from "components/billing/layout";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import { Customize } from "lib/customize";
+import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import Error from "next/error";
 
-export default function Preferences({ customize, pageNotFound, page }) {
+interface Props {
+  customize: CustomizeType;
+  pageNotFound: boolean;
+  page: [MainPagesType | undefined];
+}
+
+export default function Preferences(props: Props) {
+  const { customize, pageNotFound, page } = props;
   if (pageNotFound) {
     return <Error statusCode={404} />;
   }
@@ -52,5 +59,8 @@ export async function getServerSideProps(context) {
     return withCustomize({ context, props: { pageNotFound: true } });
   }
 
-  return await withCustomize({ context, props: { page } });
+  return await withCustomize({
+    context,
+    props: { page },
+  });
 }

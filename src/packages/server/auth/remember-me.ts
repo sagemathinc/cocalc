@@ -14,7 +14,10 @@ export const COOKIE_NAME = `${
 // uuid-v4, and we only store what it hashes to, so even if
 // somebody gets our database, they can't make fake cookies and use
 // them to sign in.
-export async function createRememberMeCookie(account_id: string): Promise<{
+export async function createRememberMeCookie(
+  account_id: string,
+  arg_ttl_s?: number
+): Promise<{
   // the value of the cookie, which encodes
   // a random uuid-v4 and the hash algorithm
   value: string;
@@ -27,7 +30,7 @@ export async function createRememberMeCookie(account_id: string): Promise<{
   const hash_session_id: string = passwordHash(session_id);
   const x: string[] = hash_session_id.split("$");
   const value = [x[0], x[1], x[2], session_id].join("$");
-  const ttl_s: number = 24 * 3600 * 30; // 30 days -- seems to work well, but this could be per user configurable, etc.
+  const ttl_s: number = arg_ttl_s ?? 24 * 3600 * 30; // 30 days -- seems to work well, but this could be per user configurable, etc.
 
   // store the cookie in the database
   const pool = getPool();
