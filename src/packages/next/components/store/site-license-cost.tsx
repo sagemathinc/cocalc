@@ -75,7 +75,7 @@ export function DisplayCost(props: Props) {
 
   return (
     <span>
-      {describeItem(cost.input)}
+      {cost.input != null && describeItem(cost.input)}
       <hr />
       <Icon name="money-check" /> Cost: {desc}
     </span>
