@@ -99,9 +99,12 @@ export function DisplayCost(props: Props) {
 }
 
 interface DescribeItemProps {
-  info?: Partial<PurchaseInfo>;
+  info: Partial<PurchaseInfo>;
   variant?: "short" | "long";
 }
+
+// TODO: this should be a component. Rename it to DescribeItem and use it
+// properly, e.g., <DescribeItem info={cost.input}/> above.
 
 export function describeItem(props: DescribeItemProps): ReactNode {
   const { info, variant = "long" } = props;

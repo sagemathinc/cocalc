@@ -367,7 +367,7 @@ function DescriptionColumn({ cost, description }) {
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describeItem(input)}
+        {describeItem({ info: input })}
       </div>
     </>
   );
