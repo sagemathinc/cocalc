@@ -51,6 +51,7 @@ export default async function init(opts: Options): Promise<{
 
   // Create an express application
   const app = express();
+  app.disable("x-powered-by"); // https://github.com/sagemathinc/cocalc/issues/6101
 
   // healthchecks are for internal use, no basePath prefix
   // they also have to come first, since e.g. the vhost depends
@@ -58,6 +59,7 @@ export default async function init(opts: Options): Promise<{
   const basicEndpoints = express.Router();
   await setupHealthChecks({ router: basicEndpoints, db: database });
   app.use(basicEndpoints);
+
   // also, for the same reasons as above, setup the /metrics endpoint
   initMetricsEndpoint(basicEndpoints);
 

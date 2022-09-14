@@ -1,6 +1,6 @@
 import { CSSProperties } from "react";
 
-export const LOGIN_STYLE = {
+export const LOGIN_STYLE: CSSProperties = {
   maxWidth: "400px",
   margin: "auto",
   border: "1px solid lightgrey",
@@ -9,4 +9,4 @@ export const LOGIN_STYLE = {
   backgroundColor: "#fafafa",
   fontSize: "12pt",
   color: "#606060",
-} as CSSProperties;
+} as const;

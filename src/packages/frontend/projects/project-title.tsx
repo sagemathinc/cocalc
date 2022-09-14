@@ -5,21 +5,31 @@
 
 import { redux, React, useRedux } from "../app-framework";
 import { html_to_text } from "../misc";
+import { Avatar } from "antd";
 
 interface Props {
   project_id: string;
   handle_click?: (e?) => void;
   style?: React.CSSProperties;
+  noClick?: boolean;
 }
 
 export const ProjectTitle: React.FC<Props> = ({
   project_id,
   handle_click,
   style,
+  noClick,
 }) => {
   const title = useRedux(["projects", "project_map", project_id, "title"]);
+  const avatar = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "avatar_image_tiny",
+  ]);
 
   function onClick(e): void {
+    if (noClick) return;
     if (handle_click != null) {
       handle_click(e);
     } else {
@@ -33,9 +43,19 @@ export const ProjectTitle: React.FC<Props> = ({
     return <span style={style}>(Private project)</span>;
   }
 
+  const body = (
+    <>
+      {avatar && (
+        <Avatar shape="circle" icon={<img src={avatar} />} size={20} />
+      )}{" "}
+      {html_to_text(title)}
+    </>
+  );
+  if (noClick) return <span style={style}>{body}</span>;
+
   return (
     <a onClick={onClick} style={style} role="button">
-      {html_to_text(title)}
+      {body}
     </a>
   );
 };

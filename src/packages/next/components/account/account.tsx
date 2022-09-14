@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import { trunc } from "lib/share/util";
 import Loading from "components/share/loading";
 import { Customize } from "lib/share/customize";
@@ -16,6 +18,7 @@ interface Props {
   publicPaths;
   customize;
   account_id: string;
+  redirect?: string;
 }
 
 export default function Account({
@@ -24,7 +27,15 @@ export default function Account({
   publicPaths,
   customize,
   account_id,
+  redirect,
 }: Props) {
+  const router = useRouter();
+  useEffect(() => {
+    if (redirect) {
+      router.push(redirect);
+    }
+  }, [redirect]);
+
   if (first_name == null || last_name == null || publicPaths == null) {
     return <Loading style={{ fontSize: "30px" }} />;
   }
@@ -34,10 +45,7 @@ export default function Account({
     <Customize value={customize}>
       <Layout title={name}>
         <h1>
-          <Avatar
-            account_id={account_id}
-          />{" "}
-          {name}
+          <Avatar account_id={account_id} /> {name}
         </h1>
         {client_id == account_id ? (
           <>

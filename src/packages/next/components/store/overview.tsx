@@ -4,14 +4,16 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
-import { Col, Row } from "antd";
-import { useEffect } from "react";
+import {
+  OverviewRow,
+  OVERVIEW_LARGE_ICON,
+  OVERVIEW_STYLE,
+  Product,
+} from "lib/styles/layouts";
 import { useRouter } from "next/router";
-
-const gridProps = { sm: 24, md: 12 };
+import { useEffect } from "react";
 
 export default function Overview() {
   const router = useRouter();
@@ -21,48 +23,15 @@ export default function Overview() {
     router.prefetch("/store/site-license");
   }, []);
 
-  function Product({ icon, title, href, children }) {
-    return (
-      <Col {...gridProps}>
-        <A href={href}>
-          <Icon
-            style={{ fontSize: "50px", fontWeight: "bold", display: "block" }}
-            name={icon}
-          />
-          <p style={{ fontSize: "25px", marginBottom: "15px" }}>{title}</p>
-        </A>
-        {children}
-      </Col>
-    );
-  }
-
   return (
-    <div
-      style={{ textAlign: "center", width: "75%", margin: "0px auto 0px auto" }}
-    >
-      <Icon
-        style={{
-          fontSize: "100px",
-          color: COLORS.COCALC_BLUE,
-          borderRadius: "50%",
-          backgroundColor: COLORS.COCALC_ORANGE,
-          border: `15px solid ${COLORS.COCALC_BLUE}`,
-          padding: "15px 15px 10px 10px",
-          display: "inline-block",
-          margin: "30px 0px 40px 0px",
-          boxShadow: "0px 2px 10px 2px",
-        }}
-        name="shopping-cart"
-      />
+    <div style={OVERVIEW_STYLE}>
+      <Icon style={OVERVIEW_LARGE_ICON} name="shopping-cart" />
 
       <h2 style={{ marginBottom: "30px" }}>
         Welcome to the <SiteName /> Store!
       </h2>
 
-      <Row
-        gutter={[25, 50]}
-        style={{ marginTop: "30px", marginBottom: "60px" }}
-      >
+      <OverviewRow>
         <Product
           icon="key"
           title="Site License Upgrade"
@@ -88,7 +57,7 @@ export default function Overview() {
         >
           Move your project to a much more powerful VM.
         </Product>
-      </Row>
+      </OverviewRow>
       <div style={{ marginTop: "4em" }}>
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}

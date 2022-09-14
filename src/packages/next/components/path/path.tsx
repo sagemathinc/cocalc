@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
-import { Alert, Button, Divider, Tooltip } from "antd";
+import { useEffect, useState } from "react";
+import { Alert, Avatar as AntdAvatar, Button, Divider, Tooltip } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -53,6 +53,11 @@ interface Props {
   isStarred?: boolean;
   githubOrg?: string; // if given, this is being mirrored from this github org
   githubRepo?: string; // if given, mirrored from this github repo.
+  projectAvatarImage?: string; // optional 320x320 image representing the project from which this was shared
+  // Do a redirect to here; this is due to names versus id and is needed when
+  // visiting this by following a link from within the share server that
+  // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
+  redirect?: string;
 }
 
 export default function PublicPath({
@@ -76,14 +81,27 @@ export default function PublicPath({
   isStarred: isStarred0,
   githubOrg,
   githubRepo,
+  projectAvatarImage,
+  redirect,
 }: Props) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
-  const [isStarred, setIsStarred] = useState<boolean | null>(
+
+  const [isStarred, setIsStarred] = useState<boolean | null | undefined >(
     isStarred0 ?? null
   );
+  useEffect(() => {
+    setIsStarred(isStarred0);
+  }, [isStarred0]);
+
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (redirect) {
+      router.push(redirect);
+    }
+  }, [redirect]);
 
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
 
@@ -150,6 +168,7 @@ export default function PublicPath({
       />
     );
     if (isStarred == null) {
+      // not signed in ==> isStarred is null or undefined.
       return (
         <Button
           onClick={() => {
@@ -161,18 +180,28 @@ export default function PublicPath({
         </Button>
       );
     }
+    // Signed in so isStarred is true or false.
+    let btn;
     if (isStarred == true) {
-      return (
+      btn = (
         <Button onClick={unstar}>
           <Icon name="star-filled" style={{ color: "#eac54f" }} /> Starred{" "}
           {badge}
         </Button>
       );
+    } else {
+      btn = (
+        <Button onClick={star}>
+          <Icon name="star" /> Star {badge}
+        </Button>
+      );
     }
     return (
-      <Button onClick={star}>
-        <Icon name="star" /> Star {badge}
-      </Button>
+      <div style={{ textAlign: "center" }}>
+        {btn}
+        <br />
+        <A href="/stars">Your stars...</A>
+      </div>
     );
   }
 
@@ -266,7 +295,19 @@ export default function PublicPath({
 
   return (
     <Customize value={customize}>
-      <Layout title={getTitle({ path, relativePath })}>
+      <Layout
+        title={getTitle({ path, relativePath })}
+        top={
+          projectAvatarImage ? (
+            <AntdAvatar
+              shape="square"
+              size={160}
+              icon={<img src={projectAvatarImage} />}
+              style={{ float: "left", margin: "10px" }}
+            />
+          ) : undefined
+        }
+      >
         {githubOrg && (
           <Avatar
             size={96}

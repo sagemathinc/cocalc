@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
+import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
@@ -21,12 +23,19 @@ import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
-import { MAX_WIDTH } from "lib/config";
 
 const { Content } = Layout;
 
 interface Props {
-  page: string;
+  page: (
+    | "site-license"
+    | "boost"
+    | "dedicated"
+    | "cart"
+    | "checkout"
+    | "congrats"
+    | undefined
+  )[];
 }
 
 export default function StoreLayout({ page }: Props) {
@@ -87,6 +96,7 @@ export default function StoreLayout({ page }: Props) {
   const [main] = page;
 
   function body() {
+    if (main == null) return <Overview />;
     switch (main) {
       case "site-license":
         return <SiteLicense />;
@@ -100,10 +110,12 @@ export default function StoreLayout({ page }: Props) {
         return <Checkout />;
       case "congrats":
         return <Congrats />;
+      default:
+        unreachable(main);
     }
-    return <Overview />;
   }
 
+  // this layout is the same as ../licenses/layout.tsx and ../billing/layout.tsx
   return (
     <Layout
       style={{

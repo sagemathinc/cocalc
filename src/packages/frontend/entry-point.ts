@@ -7,6 +7,9 @@
  * Global app initialization
  */
 
+import debug from "debug";
+debug.log = console.log.bind(console); // see https://github.com/debug-js/debug#output-streams
+
 import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality

@@ -11,12 +11,13 @@ import { Map as iMap } from "immutable";
 const { Col, Grid, Row } = require("react-bootstrap");
 import * as misc from "@cocalc/util/misc";
 import { open_file_use_entry } from "./util";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
 // Arbitrary constants:
 
 // Maximum number of distinct user names to show in a notification
 const MAX_USERS = 5;
-// Length to truncate project title and filename to.
+// Length to truncate filename.
 const TRUNCATE_LENGTH = 50;
 
 const file_use_style: CSS = {
@@ -115,9 +116,12 @@ export class FileUseInfo extends Component<Props, {}> {
   }
 
   render_project(): Rendered {
-    const proj = this.props.project_map.get(this.props.info.get("project_id"));
-    const title = proj == null ? "" : proj.get("title");
-    return <em key="project">{misc.trunc(title, TRUNCATE_LENGTH)}</em>;
+    return (
+      <ProjectTitle
+        key="project"
+        project_id={this.props.info.get("project_id")}
+      />
+    );
   }
 
   render_what_is_happening(): Rendered {

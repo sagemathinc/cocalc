@@ -25,14 +25,10 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { computeCost } from "./compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
-import {
-  computeCost,
-  describeItem,
-  describePeriod,
-  DisplayCost,
-} from "./site-license-cost";
+import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -434,7 +430,7 @@ function DescriptionColumn(props: DCProps) {
       <div>
         <b>
           {input.subscription == "no"
-            ? describePeriod(input)
+            ? describePeriod({ quota: input })
             : capitalize(input.subscription) + " subscription"}
         </b>
       </div>
@@ -447,7 +443,7 @@ function DescriptionColumn(props: DCProps) {
           borderRadius: "5px",
         }}
       >
-        {compact ? describeItem(input) : editableQuota()}{" "}
+        {compact ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
       <Button
         style={{ marginRight: "5px" }}

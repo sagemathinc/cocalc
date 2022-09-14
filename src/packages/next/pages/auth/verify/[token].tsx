@@ -5,6 +5,9 @@
 
 // Password reset page
 
+// WARNING: this can't work and isn't used – no idea what's going on here.
+// as of 2022-07: hub/auth.ts is handing the `/auth/verify?email=...&token=...` route to the verify email addresses.
+
 import { Layout } from "antd";
 import RedeemVerify from "components/auth/redeem-verify-email";
 import Footer from "components/landing/footer";

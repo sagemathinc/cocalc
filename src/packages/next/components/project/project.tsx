@@ -9,6 +9,8 @@ Page for a given project
 Show all the public paths in a given project, and maybe other information about the project?
 */
 
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import PublicPaths from "components/share/public-paths";
 import Collaborators from "components/share/collaborators";
 import Loading from "components/share/loading";
@@ -19,6 +21,7 @@ import { User } from "lib/share/types";
 import Edit from "./edit";
 import editURL from "lib/share/edit-url";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { Avatar } from "antd";
 
 export default function Project({
   project_id,
@@ -28,7 +31,16 @@ export default function Project({
   description,
   name,
   customize,
+  avatar_image_full,
+  redirect,
 }) {
+  const router = useRouter();
+  useEffect(() => {
+    if (redirect) {
+      router.push(redirect);
+    }
+  }, [redirect]);
+
   if (publicPaths == null || collaborators == null || title == null) {
     return <Loading style={{ fontSize: "30px" }} />;
   }
@@ -38,6 +50,14 @@ export default function Project({
     <Customize value={customize}>
       <Layout title={title}>
         <h1>
+          {avatar_image_full && (
+            <Avatar
+              icon={<img src={avatar_image_full} />}
+              size={160}
+              shape="square"
+              style={{ float: "right" }}
+            />
+          )}
           Project:{" "}
           {collab ? (
             <A href={editURL({ project_id, type: "collaborator" })} external>
@@ -67,7 +87,7 @@ export default function Project({
         )}
         <h2>Public Paths</h2>
         {collab && (
-          <div style={{marginBottom:'15px'}}>
+          <div style={{ marginBottom: "15px" }}>
             You are a collaborator on this project, so unlisted and disabled
             public paths are also listed here, so you can more easily edit them.
           </div>

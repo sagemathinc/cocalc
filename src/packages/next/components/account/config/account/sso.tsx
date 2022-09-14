@@ -1,15 +1,22 @@
-import register from "../register";
-import Loading from "components/share/loading";
-import useEditTable from "lib/hooks/edit-table";
-import useAPI from "lib/hooks/api";
-import { Alert, Button, Popconfirm, Space } from "antd";
-import { ReactNode, useState } from "react";
-import { Strategy, StrategyAvatar } from "components/auth/sso";
-import A from "components/misc/A";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import SiteName from "components/share/site-name";
 import { len } from "@cocalc/util/misc";
+import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Button, Popconfirm, Space } from "antd";
+import { StrategyAvatar } from "components/auth/sso";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useEditTable from "lib/hooks/edit-table";
+import { useRouter } from "next/router";
+import { ReactNode, useState } from "react";
+import register from "../register";
 
 interface Data {
   passports?: object;
@@ -29,6 +36,7 @@ register({
       },
       { noSave: true }
     );
+
     const hasPassword = useAPI("auth/has-password");
     const strategies = useAPI("auth/sso-strategies");
 
@@ -64,6 +72,9 @@ register({
     }
 
     const passports = edited.passports ?? {};
+    const linkedNames = Object.keys(passports).map(
+      (name) => name.split("-")[0]
+    );
 
     return (
       <div style={{ color: "#555" }}>
@@ -125,7 +136,7 @@ register({
         {strategies.result.length > 0 && (
           <>
             <Heading title="Click to link your account" />
-            <Link strategies={strategies.result} />
+            <Link strategies={strategies.result} linked={linkedNames} />
           </>
         )}
       </div>
@@ -159,15 +170,51 @@ function Unlink({
     }
   }
 
-  return <Space>{v}</Space>;
+  return <SpacedStrategies>{v}</SpacedStrategies>;
 }
 
-function Link({ strategies }: { strategies: Strategy[] }) {
+function Link({
+  strategies,
+  linked,
+}: {
+  strategies: Strategy[];
+  linked: string[];
+}) {
+  const router = useRouter();
+  let anyHidden = false;
+
   const v: ReactNode[] = [];
   for (const strategy of strategies) {
+    if (linked.includes(strategy.name)) continue;
+    if (!(strategy.public ?? true) && !(strategy.doNotHide ?? false)) {
+      anyHidden = true;
+      continue;
+    }
     v.push(<Strategy key={strategy.name} strategy={strategy} />);
   }
-  return <Space>{v}</Space>;
+  // link to the page for additional non-public institutional SSOs
+  function hidden() {
+    return (
+      <div style={{ marginTop: "1rem" }}>
+        or other{" "}
+        <Button
+          type="link"
+          style={{ padding: 0 }}
+          onClick={() => router.push(`/sso`)}
+        >
+          institutional SSO options
+        </Button>
+        .
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <SpacedStrategies>{v}</SpacedStrategies>
+      {anyHidden && hidden()}
+    </>
+  );
 }
 
 function Strategy({
@@ -177,39 +224,53 @@ function Strategy({
   strategy: Strategy;
   onUnlink?: Function;
 }) {
+  function unlinkButton() {
+    if (!onUnlink) return;
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <Popconfirm
+          title={
+            <div style={{ maxWidth: "50ex" }}>
+              Are you sure you want to unlink signing in to <SiteName /> using{" "}
+              {strategy.display}?
+            </div>
+          }
+          onConfirm={onUnlink as any}
+          okText={"Yes, unlink"}
+          cancelText={"Cancel"}
+        >
+          {" "}
+          <Button type="dashed" danger>
+            <Icon name="unlink" />
+            Unlink
+          </Button>
+        </Popconfirm>
+      </div>
+    );
+  }
+
   return (
     <div style={{ textAlign: "center" }}>
       <StrategyAvatar
         strategy={strategy}
         size={60}
         noLink={onUnlink != null}
+        showName={true}
         toolTip={
           onUnlink
             ? `Your account is currently linked to ${strategy.display}.`
             : undefined
         }
       />
-      {onUnlink && (
-        <div style={{ marginTop: "5px" }}>
-          <Popconfirm
-            title={
-              <div style={{ maxWidth: "50ex" }}>
-                Are you sure you want to unlink signing in to <SiteName /> using{" "}
-                {strategy.display}?
-              </div>
-            }
-            onConfirm={onUnlink as any}
-            okText={"Yes, unlink"}
-            cancelText={"Cancel"}
-          >
-            {" "}
-            <Button type="dashed" danger>
-              <Icon name="unlink" />
-              Unlink
-            </Button>
-          </Popconfirm>
-        </div>
-      )}
+      {unlinkButton()}
     </div>
+  );
+}
+
+function SpacedStrategies({ children }: { children: ReactNode[] }) {
+  return (
+    <Space size={[20, 20]} wrap>
+      {children}
+    </Space>
   );
 }

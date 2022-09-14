@@ -1,25 +1,31 @@
-import { Alert, Button, Checkbox, Input } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import SquareLogo from "components/logo-square";
-import useCustomize from "lib/use-customize";
-import A from "components/misc/A";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
-  len,
   is_valid_email_address as isValidEmailAddress,
+  len,
 } from "@cocalc/util/misc";
-import apiPost from "lib/api/post";
-import SSO, { Strategy } from "./sso";
-import { LOGIN_STYLE } from "./shared";
+import { Strategy } from "@cocalc/util/types/sso";
+import { Alert, Button, Checkbox, Input } from "antd";
+import SquareLogo from "components/logo-square";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useCustomize from "lib/use-customize";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+import { LOGIN_STYLE } from "./shared";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
-const LINE = { margin: "15px 0" } as CSSProperties;
+const LINE: CSSProperties = { margin: "15px 0" } as const;
 
 interface Props {
-  strategies?: Strategy[];
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
@@ -35,7 +41,7 @@ export default function SignUp(props: Props) {
   );
 }
 
-function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
+function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
   const {
     anonymousSignup,
     siteName,
@@ -63,11 +69,14 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
 
   const { executeRecaptcha } = useGoogleReCaptcha();
 
+  const { strategies } = useCustomize();
+
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
   const [requiresToken2, setRequiresToken2] = useState<boolean | undefined>(
     requiresToken
   );
+
   useEffect(() => {
     if (requiresToken2 === undefined) {
       (async () => {
@@ -78,25 +87,16 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
     }
   }, []);
 
-  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
-    strategies
-  );
-  useEffect(() => {
-    if (strategies2 === undefined) {
-      (async () => {
-        try {
-          setStrategies2(await apiPost("/auth/sso-strategies"));
-        } catch (err) {}
-      })();
-    }
-  }, []);
+  // based on email: if user has to sign up via SSO, this will tell which strategy to use.
+  const requiredSSO = useRequiredSSO(strategies, email);
 
-  if (requiresToken2 === undefined || strategies2 === undefined) {
+  if (requiresToken2 === undefined || strategies == null) {
     return <Loading />;
   }
 
   submittable.current = !!(
     terms &&
+    requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
     email &&
     isValidEmailAddress(email) &&
@@ -141,7 +141,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
     }
   }
 
-  if (!emailSignup && strategies2.length == 0) {
+  if (!emailSignup && strategies.length == 0) {
     return (
       <Alert
         style={{ margin: "30px 15%" }}
@@ -170,14 +170,17 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+            priority={true}
           />
           <h1>Create a {siteName} Account</h1>
-          {accountCreationInstructions}
+          {accountCreationInstructions && (
+            <Markdown value={accountCreationInstructions} />
+          )}
         </div>
       )}
 
@@ -233,9 +236,11 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
               email={email}
               setEmail={setEmail}
               signUp={signUp}
-              strategies={strategies2}
+              strategies={strategies}
+              hideSSO={requiredSSO != null}
             />
           )}
+          <RequiredSSO strategy={requiredSSO} />
           {issues.email && (
             <Alert
               style={LINE}
@@ -251,7 +256,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
               }
             />
           )}
-          {terms && email && (
+          {terms && email && requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -267,7 +272,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {terms && email && password?.length >= 6 && (
+          {terms && email && requiredSSO == null && password?.length >= 6 && (
             <div style={LINE}>
               <p>First name</p>
               <Input
@@ -279,7 +284,7 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
               />
             </div>
           )}
-          {terms && email && password && firstName && (
+          {terms && email && password && requiredSSO == null && firstName && (
             <div style={LINE}>
               <p>Last name</p>
               <Input
@@ -307,6 +312,8 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
+              : requiredSSO != null
+              ? "You must sign up via SSO"
               : !password || password.length < 6
               ? "Choose password with at least 6 characters"
               : !firstName
@@ -355,29 +362,49 @@ function SignUp0({ strategies, requiresToken, minimal, onSuccess }: Props) {
   );
 }
 
-function EmailOrSSO({ email, setEmail, signUp, strategies }) {
+interface EmailOrSSOProps {
+  email: string;
+  setEmail: (email: string) => void;
+  signUp: () => void;
+  strategies?: Strategy[];
+  hideSSO?: boolean;
+}
+
+function EmailOrSSO(props: EmailOrSSOProps) {
+  const { email, setEmail, signUp, strategies = [], hideSSO = false } = props;
   const { emailSignup } = useCustomize();
-  if (strategies == null) {
-    strategies = [];
+
+  function renderSSO() {
+    if (strategies.length == 0) return;
+
+    const emailStyle: CSSProperties = email
+      ? { textAlign: "right", marginBottom: "20px" }
+      : {};
+
+    const style: CSSProperties = {
+      display: hideSSO ? "none" : "block",
+      ...emailStyle,
+    };
+
+    return (
+      <div style={{ textAlign: "center", margin: "20px 0" }}>
+        <SSO size={email ? 24 : undefined} style={style} />
+      </div>
+    );
   }
+
   return (
     <div>
       <p>
-        {strategies.length > 0 && emailSignup
-          ? "Sign up using either your email address or a single sign on provider."
+        {hideSSO
+          ? "Sign up using your single-sign-on provider"
+          : strategies.length > 0 && emailSignup
+          ? "Sign up using either your email address or a single-sign-on provider."
           : emailSignup
           ? "Enter the email address you will use to sign in."
           : "Sign up using a single sign on provider."}
       </p>
-      {strategies.length > 0 && (
-        <div style={{ textAlign: "center", margin: "20px 0" }}>
-          <SSO
-            strategies={strategies}
-            size={email ? 24 : undefined}
-            style={email ? { float: "right", marginBottom: "20px" } : undefined}
-          />
-        </div>
-      )}
+      {renderSSO()}
       {emailSignup && (
         <p>
           <Input

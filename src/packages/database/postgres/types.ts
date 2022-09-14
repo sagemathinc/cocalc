@@ -7,6 +7,7 @@ import type { Stripe } from "@cocalc/server/stripe/client";
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 import { Client } from "pg";
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
 
 export type QuerySelect = object;
 
@@ -33,6 +34,7 @@ export interface QueryOptions {
   offset?: number;
   limit?: number;
   timeout_s?: number;
+  conflict?: string;
   cb?: Function;
 }
 
@@ -40,7 +42,7 @@ export interface AsyncQueryOptions extends Omit<QueryOptions, "cb"> {}
 
 export type QueryResult = { [key: string]: any };
 
-type CB = (err: string | Error, result: any) => any;
+export type CB = (err: string | Error | null | undefined, result?: any) => any;
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
@@ -51,6 +53,40 @@ export interface ChangefeedOptions {
   watch: string[]; // Array of field names we watch for changes
 
   cb: CB;
+}
+
+export interface DeletePassportOpts {
+  account_id: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  cb?: CB;
+}
+
+export interface PassportExistsOpts {
+  strategy: string;
+  id: string;
+  cb?: CB;
+}
+
+export interface CreatePassportOpts {
+  account_id: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  profile: any; // complex object
+  email_address?: string;
+  first_name?: string;
+  last_name?: string;
+  cb?: CB;
+}
+
+export interface UpdateAccountInfoAndPassportOpts {
+  account_id: string;
+  first_name?: string;
+  last_name?: string;
+  strategy: string; // our name of the strategy
+  id: string;
+  profile: any;
+  passport_profile: any;
 }
 
 export interface PostgreSQL extends EventEmitter {
@@ -173,6 +209,7 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   get_remember_me(opts: { hash: string; cb: CB });
+
   save_remember_me(opts: {
     account_id: string;
     hash: string;
@@ -181,20 +218,27 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   });
 
-  passport_exists(opts: { strategy: string; id: string; cb: CB });
-  create_passport(opts: {
-    account_id: string;
+  passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
+
+  create_passport(opts: CreatePassportOpts): Promise<string>;
+
+  delete_passport(opts: DeletePassportOpts): void;
+
+  set_passport_settings(
+    db: PostgreSQL,
+    opts: PassportStrategyDB & { cb?: CB }
+  ): Promise<void>;
+
+  get_passport_settings(opts: {
     strategy: string;
-    id: string;
-    profile: any; // complex object
-    email_address?: string;
-    first_name?: string;
-    last_name?: string;
-    cb: CB;
-  });
-  get_passport_settings(opts: { strategy: string; cb: CB });
-  get_all_passport_settings(opts: { cb: CB });
-  get_all_passport_settings_cached(opts: { cb: CB });
+    cb?: CB;
+  }): Promise<PassportStrategyDB>;
+  get_all_passport_settings(): Promise<PassportStrategyDB[]>;
+  get_all_passport_settings_cached(): Promise<PassportStrategyDB[]>;
+
+  update_account_and_passport(
+    opts: UpdateAccountInfoAndPassportOpts
+  ): Promise<void>;
 
   change_password(opts: {
     account_id: string;
@@ -202,6 +246,11 @@ export interface PostgreSQL extends EventEmitter {
     invalidate_remember_me?: boolean;
     cb: CB;
   });
+  change_email_address(opts: {
+    account_id: string;
+    email_address: string;
+    cb: CB;
+  }): void;
   verify_email_check_token(opts: { email_address: string; token: string });
   reset_server_settings_cache(): void;
 

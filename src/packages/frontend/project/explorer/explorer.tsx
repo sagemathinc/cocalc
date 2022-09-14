@@ -201,10 +201,12 @@ export const Explorer = rclass(
       // Should probably be moved elsewhere
       // Prevents cascading changes which impact responsiveness
       // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
-      setTimeout(() => {
+      setTimeout(async () => {
         const billing = redux.getActions("billing");
         if (billing != undefined) {
-          billing.update_customer();
+          try {
+            await billing.update_customer();
+          } catch (_err) {}
         }
       }, 200);
       $(window).on("keydown", this.handle_files_key_down);

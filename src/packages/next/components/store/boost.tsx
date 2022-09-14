@@ -9,36 +9,54 @@ Create a new site license.
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   get_local_storage,
-  set_local_storage,
+  set_local_storage
 } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { COLORS } from "@cocalc/util/theme";
 import { Form, Input, Space, Switch, Typography } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
+import { useScrollY } from "lib/use-scroll-y";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
+import { computeCost } from "./compute-cost";
+import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost } from "./site-license-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
-import { COLORS } from "@cocalc/util/theme";
 
 const { Text, Paragraph } = Typography;
 
 export default function Boost() {
   const router = useRouter();
+  const headerRef = useRef<HTMLHeadingElement>(null);
+
+  // most likely, user will go to the cart next
+  useEffect(() => {
+    router.prefetch("/store/cart");
+  }, []);
+
+  const [offsetHeader, setOffsetHeader] = useState(0);
+  const scrollY = useScrollY();
+
+  useEffect(() => {
+    if (headerRef.current) {
+      setOffsetHeader(headerRef.current.offsetTop);
+    }
+  }, []);
+
   return (
     <>
-      <h3>
+      <h3 ref={headerRef}>
         <Icon name={"rocket"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Boost License in Shopping Cart"
@@ -61,7 +79,7 @@ export default function Boost() {
           </Typography>
         </Space>
       )}
-      <CreateBooster />
+      <CreateBooster showInfoBar={scrollY > offsetHeader} />
     </>
   );
 }
@@ -69,7 +87,7 @@ export default function Boost() {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateBooster() {
+function CreateBooster({ showInfoBar = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -228,6 +246,14 @@ function CreateBooster() {
 
   return (
     <div>
+      <InfoBar
+        show={showInfoBar}
+        cost={cost}
+        router={router}
+        form={form}
+        cartError={cartError}
+        setCartError={setCartError}
+      />
       <Form
         form={form}
         style={{

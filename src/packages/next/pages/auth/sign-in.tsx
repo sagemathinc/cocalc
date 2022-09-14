@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import { Layout } from "antd";
 import SignIn from "components/auth/sign-in";
 import Footer from "components/landing/footer";
@@ -14,7 +13,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
-export default function Home({ customize, strategies }) {
+export default function Home({ customize }) {
   const { siteName } = customize;
   const router = useRouter();
   return (
@@ -23,7 +22,7 @@ export default function Home({ customize, strategies }) {
       <Layout>
         <Header page="sign-in" subPage="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignIn strategies={strategies} onSuccess={() => router.push("/")} />
+          <SignIn onSuccess={() => router.push("/")} />
           <Footer />
         </Layout.Content>
       </Layout>
@@ -40,6 +39,5 @@ export async function getServerSideProps(context) {
     res.end();
     return { props: {} };
   }
-  customize.props.strategies = await getStrategies();
   return customize;
 }

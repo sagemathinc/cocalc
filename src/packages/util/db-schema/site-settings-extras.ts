@@ -84,7 +84,8 @@ export type SiteSettingsExtrasKeys =
   | "github_heading"
   | "github_project_id"
   | "github_username"
-  | "github_token";
+  | "github_token"
+  | "prometheus_metrics";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -312,5 +313,12 @@ export const EXTRAS: SettingsExtras = {
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_password_reset_smtp,
+  },
+  prometheus_metrics: {
+    name: "Prometheus Metrics",
+    desc: "Make [Prometheus metrics](https://prometheus.io/) available at `/metrics`. (Wait one minute after changing this setting for it to take effect.)",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
 } as const;

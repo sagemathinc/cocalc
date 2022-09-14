@@ -90,12 +90,18 @@ export default async function getPublicPathInfo({
       // only proxied public paths have url attribute
       details = await getProxiedPublicPathInfo(rows[0].url, public_path ?? []);
     } else {
+      const { title, avatar_image_full } = await getProjectInfo(
+        rows[0].project_id,
+        ["title", "avatar_image_full"],
+        "medium"
+      );
       details = {
         contents: await getContents(
           rows[0].project_id,
           join(rows[0].path, relativePath)
         ),
-        projectTitle: (await getProjectInfo(rows[0].project_id)).title,
+        projectTitle: title,
+        projectAvatarImage: avatar_image_full,
       };
     }
     return {

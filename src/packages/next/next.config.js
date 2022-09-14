@@ -52,9 +52,15 @@ module.exports = {
     return config;
   },
   // This is because the debug module color support would otherwise log this warning constantly:
-  // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
+  // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to
+  // reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
   experimental: {
     esmExternals: "loose",
+    // We raise largePageDataBytes since this was recently added, and breaks a lot of SSR rendering
+    // for cocalc share server.  By default this is 128 * 1000 = "128KB", and we are changing it to
+    // 128 * 1000 * 15 = "1MB" for now.  TODO: Obviously, it would be nice to fix the root causes of this
+    // being too big, but that's for another day, since our production website is broken right now.
+    largePageDataBytes: 128 * 1000 * 10,
   },
   // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
   // We are doing this at all since it improves our Lighthouse accessibility score.
@@ -62,4 +68,5 @@ module.exports = {
     locales: ["en-US"],
     defaultLocale: "en-US",
   },
+  poweredByHeader: false, // https://github.com/sagemathinc/cocalc/issues/6101
 };

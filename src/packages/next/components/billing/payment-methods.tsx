@@ -280,7 +280,7 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
           columns={columns(call) as any}
           dataSource={cards}
           rowKey={"id"}
-          style={{ marginTop: "15px", overflowX: "scroll" }}
+          style={{ marginTop: "15px", overflowX: "auto" }}
           pagination={{ hideOnSinglePage: true, pageSize: 100 }}
         />
       )}

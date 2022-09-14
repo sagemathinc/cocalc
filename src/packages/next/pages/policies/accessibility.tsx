@@ -31,7 +31,7 @@ export default function AccessibilityPage({ customize }) {
             </h1>
             <h2>Last Updated: July 3, 2019</h2>
           </div>
-          <div style={{ fontSize: "12pt", overflowX: "scroll" }}>
+          <div style={{ fontSize: "12pt", overflowX: "auto" }}>
             <Accessibility />
           </div>
         </div>

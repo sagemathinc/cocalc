@@ -27,10 +27,7 @@ export async function getServerSideProps(context) {
     if (accountInfo.name) {
       // This account has a nice username. Redirect to that instead
       // of rendering here.
-      const { res } = context;
-      res.writeHead(302, { location: join(basePath, accountInfo.name) });
-      res.end();
-      return { props: {} };
+      return { props: { redirect: join(basePath, accountInfo.name) } };
     }
     return await withCustomize({
       context,

@@ -14,7 +14,7 @@
     "update-version": "./workspaces.py update-version --packages=$npm_config_packages  --exclude=$npm_config_exclude --newversion=$npm_config_newversion ",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
     "static": "cd packages/static && npm run webpack",
-    "psql": "PGUSER='smc' PGHOST=$INIT_CWD/data/postgres/socket psql",
+    "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
     "database": "cd dev/project && ./start_postgres.py",
     "version-check": "./workspaces.py version-check",
     "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c"

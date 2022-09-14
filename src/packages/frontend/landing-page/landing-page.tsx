@@ -7,34 +7,43 @@
 The Landing Page
 */
 
-import * as immutable from "immutable";
-import { Component, rclass, rtypes, Rendered } from "../app-framework";
-import { Row, Col, Alert } from "../antd-bootstrap";
-import { UNIT, A } from "../components";
-import { SiteDescription, Footer } from "../customize";
-import { SignIn } from "./sign-in";
-import { ForgotPassword } from "./forgot-password";
-import { ResetPassword } from "./reset-password";
-import { Connecting } from "./connecting";
-import { QueryParams } from "../misc/query-params";
+import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
-  NAME as LAUNCH_ACTIONS_NAME,
-  launch_action_description,
+  Component,
+  rclass,
+  Rendered,
+  rtypes,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "@cocalc/frontend/art";
+import {
+  ComputeImages,
+  launchcode2display,
+} from "@cocalc/frontend/custom-software/init";
+import { NAME as ComputeImageStoreName } from "@cocalc/frontend/custom-software/util";
+import { Footer, SiteDescription } from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import {
   LaunchTypes,
-} from "../launch/actions";
-import { NAME as ComputeImageStoreName } from "../custom-software/util";
-import { ComputeImages, launchcode2display } from "../custom-software/init";
-import { PassportStrategy } from "../account/passport-types";
+  launch_action_description,
+  NAME as LAUNCH_ACTIONS_NAME,
+} from "@cocalc/frontend/launch/actions";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import * as immutable from "immutable";
 import { join } from "path";
+import { A, UNIT } from "../components";
+import { QueryParams } from "../misc/query-params";
+import { Connecting } from "./connecting";
+import { ForgotPassword } from "./forgot-password";
+import { ResetPassword } from "./reset-password";
+import { SignIn } from "./sign-in";
 
 const DESC_FONT = "sans-serif";
 
 interface Props {
-  strategies?: immutable.List<PassportStrategy>;
+  strategies?: immutable.List<TypedMap<PassportStrategyFrontend>>;
   exclusive_sso_domains?: Set<string>;
   sign_up_error?: immutable.Map<string, any>;
   sign_in_error?: string;
@@ -390,9 +399,9 @@ class LandingPage extends Component<Props & reduxProps, State> {
             {app} would like your CoCalc API key.
             <br />
             <br />
-            Sign in below to grant <b>full access</b> to all of
-            your CoCalc projects to {app}, until you explicitly revoke your API
-            key in Account preferences.
+            Sign in below to grant <b>full access</b> to all of your CoCalc
+            projects to {app}, until you explicitly revoke your API key in
+            Account preferences.
             <br />
             <br />
             If necessary, please{" "}

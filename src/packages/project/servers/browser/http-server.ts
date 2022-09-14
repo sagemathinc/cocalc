@@ -36,6 +36,8 @@ export default async function init(): Promise<void> {
   winston.info("starting server...");
 
   const app = express();
+  app.disable("x-powered-by"); // https://github.com/sagemathinc/cocalc/issues/6101
+
   const server = createServer(app);
 
   // suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression

@@ -6,19 +6,11 @@
 /*
 Create a new site license.
 */
-import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
-import { LicenseType } from "@cocalc/util/upgrades/shopping";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { Alert, Button } from "antd";
-import apiPost from "lib/api/post";
+import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
-
-// these are the hidden type fields of the forms
-// regular and boost end up as "quota" types
-// where the description.boost flag is true or false
-export type LicenseTypeInForms = "regular" | "boost" | "vm" | "disk";
 
 interface Props {
   cost?: CostInputPeriod;
@@ -45,85 +37,6 @@ export function AddBox(props: Props) {
   // if any of the fields in cost that start with the string "cost" are NaN, return null
   if (Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))) {
     return null;
-  }
-
-  async function addToCart() {
-    // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
-    const description: ProductDescription & {
-      type?: LicenseTypeInForms | LicenseType;
-    } = {
-      ...form.getFieldsValue(true),
-    };
-
-    // unload the type parameter
-    switch (description.type) {
-      case "boost":
-        description.boost = true;
-        description.type = "quota";
-        break;
-
-      case "vm":
-        for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
-          delete description[k];
-        }
-        const machine = description["vm-machine"];
-        if (PRICES.vms[machine] == null) {
-          setCartError(`Unknown machine type ${machine}`);
-          return;
-        }
-        description.dedicated_vm = {
-          machine,
-        };
-        delete description["vm-machine"];
-        description.type = "vm";
-        break;
-
-      case "disk":
-        delete description["vm-machine"];
-
-        const diskID = getDedicatedDiskKey({
-          size_gb: description["disk-size_gb"],
-          speed: description["disk-speed"],
-        });
-        const disk = PRICES.disks[diskID];
-        if (disk == null) {
-          setCartError(`Disk ${diskID} not found`);
-          return;
-        }
-        description.dedicated_disk = {
-          ...disk.quota.dedicated_disk,
-          name: description["disk-name"],
-        };
-        for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
-          delete description[k];
-        }
-
-        description.type = "disk";
-        break;
-
-      case "regular":
-      default:
-        description.type = "quota";
-        description.boost = false;
-    }
-
-    try {
-      setCartError("");
-      if (router.query.id != null) {
-        await apiPost("/shopping/cart/edit", {
-          id: router.query.id,
-          description,
-        });
-      } else {
-        await apiPost("/shopping/cart/add", {
-          product: "site-license",
-          description,
-        });
-      }
-      router.push("/store/cart");
-    } catch (err) {
-      setCartError(err.message);
-    }
   }
 
   function costPerProject() {
@@ -166,19 +79,56 @@ export function AddBox(props: Props) {
               Cancel
             </Button>
           )}
-          <Button
-            size="large"
-            type="primary"
-            htmlType="submit"
-            style={{ marginTop: "5px" }}
-            onClick={() => addToCart()}
-            disabled={!!cartError || cost.cost_cents === 0 || disabled}
-          >
-            {router.query.id != null ? "Save Changes" : "Add to Cart"}
-          </Button>
+          <AddToCartButton
+            cartError={cartError}
+            cost={cost}
+            disabled={disabled}
+            form={form}
+            router={router}
+            setCartError={setCartError}
+          />
           {cartError && <Alert type="error" message={cartError} />}
         </div>
       </div>
     </div>
+  );
+}
+
+interface CartButtonProps {
+  cost: CostInputPeriod | undefined;
+  router: any;
+  form: any;
+  setCartError: (error) => void;
+  disabled?: boolean;
+  cartError: string | undefined;
+  variant?: "primary" | "small";
+}
+
+export function AddToCartButton(props: CartButtonProps) {
+  const {
+    cost,
+    form,
+    router,
+    setCartError,
+    disabled = false,
+    cartError,
+    variant = "primary",
+  } = props;
+
+  const style = variant === "primary" ? { marginTop: "5px" } : {};
+
+  return (
+    <Button
+      size={variant === "small" ? "small" : "large"}
+      type="primary"
+      htmlType="submit"
+      style={style}
+      onClick={() => addToCart({ form, setCartError, router })}
+      disabled={
+        disabled || !!cartError || cost == null || cost.cost_cents === 0
+      }
+    >
+      {router.query.id != null ? "Save Changes" : "Add to Cart"}
+    </Button>
   );
 }

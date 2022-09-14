@@ -199,15 +199,18 @@ module.exports = {
       ".sass",
     ],
     symlinks: true,
+    // The order below is very important.  E.g., there can easily be the correct version of a package
+    // in @cocalc/frontend/node_modules for a dependency installed in @cocalc/frontend/node_modules,
+    // but if you put @cocalc/util/node_modules above it, then the version from util is used.
     modules: [
       __dirname,
       path.resolve(__dirname, "node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/assets"),
       path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
       path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
       path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
       path.resolve(

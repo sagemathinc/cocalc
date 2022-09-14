@@ -13,6 +13,7 @@ import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
+  ApiOutlined,
   AreaChartOutlined,
   ArrowDownOutlined,
   ArrowLeftOutlined,
@@ -195,6 +196,7 @@ const IconSpec = {
   "arrow-right": ArrowRightOutlined,
   "arrow-up": ArrowUpOutlined,
   atom: { IconFont: "Atom" },
+  api: ApiOutlined,
   audio: AudioOutlined,
   backward: BackwardOutlined,
   "battery-empty": { IconFont: "battery-empty" },
@@ -557,7 +559,8 @@ export const IconName = undefined; // Javascript needs this, though we are only 
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
-export function isIconName(name: string): name is IconName {
+export function isIconName(name?: string): name is IconName {
+  if (name == null) return false;
   return IconSpec[name] != null;
 }
 

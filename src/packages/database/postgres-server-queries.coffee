@@ -44,6 +44,7 @@ read = require('read')
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
 collab = require('./postgres/collab')
+# TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
@@ -54,10 +55,11 @@ collab = require('./postgres/collab')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
-
+{checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, delete_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
@@ -318,46 +320,32 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             strategy : required
             conf     : required
+            info     : undefined
             cb       : required
-        @_query
-            query    : 'INSERT into passport_settings'
-            values   :
-                'strategy::TEXT ' : opts.strategy
-                'conf    ::JSONB' : opts.conf
-            conflict : 'strategy'
-            cb       : opts.cb
+        return await set_passport_settings(@, opts)
 
     get_passport_settings: (opts) =>
         opts = defaults opts,
             strategy : required
-            cb       : required
-        @_query
-            query : 'SELECT conf FROM passport_settings'
-            where :
-                "strategy = $::TEXT" : opts.strategy
-            cb    : one_result('conf', opts.cb)
+        return await get_passport_settings(@, opts)
 
-    get_all_passport_settings: (opts) =>
-        opts = defaults opts,
-            cb       : required
-        @_query
-            query : 'SELECT strategy, conf FROM passport_settings'
-            cb    : all_results(opts.cb)
+    get_all_passport_settings: () =>
+        return await get_all_passport_settings(@)
 
-    get_all_passport_settings_cached: (opts) =>
-        opts = defaults opts,
-            cb       : required
-        passports = getPassportsCached()
-        if passports
-            opts.cb(undefined, passports)
-            return
-        @get_all_passport_settings
-            cb: (err, res) =>
-                if err
-                    opts.cb(err)
-                else
-                    setPassportsCached(res)
-                    opts.cb(undefined, res)
+    get_all_passport_settings_cached: () =>
+        return await get_all_passport_settings_cached(@)
+
+    create_passport: (opts) =>
+        return await create_passport(@, opts)
+
+    delete_passport: (opts) =>
+        return delete_passport(@, opts)
+
+    passport_exists: (opts) =>
+        return await passport_exists(@, opts)
+
+    update_account_and_passport: (opts) =>
+        return await update_account_and_passport(@, opts)
 
     ###
     Account creation, deletion, existence
@@ -401,7 +389,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             # This should be enough for now since a given user only makes their account through a single
             # server via the persistent websocket...
             @_create_account_passport_keys ?= {}
-            passport_key = @_passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
+            passport_key = _passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
             last = @_create_account_passport_keys[passport_key]
             if last? and new Date() - last <= 60*1000
                 opts.cb("recent attempt to make account with this passport strategy")
@@ -1141,75 +1129,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     unban_user: (opts) =>
         @_set_ban_user(misc.merge(opts, banned:false))
 
-    ###
-    Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.
-    The Schema is slightly redundant, but indexed properly:
-       {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
-    ###
-    _passport_key: (opts) => "#{opts.strategy}-#{opts.id}"
-
-    create_passport: (opts) =>
-        opts= defaults opts,
-            account_id    : required
-            strategy      : required
-            id            : required
-            profile       : required
-            email_address : undefined   # if not set in database and set here (and doesn't conflict with existing account), gets set in database; same for first and last name.
-            first_name    : undefined
-            last_name     : undefined
-            cb         : required   # cb(err)
-        dbg = @_dbg('create_passport')
-        dbg(misc.to_json(opts.profile))
-        async.series([
-            (cb) =>
-                dbg("setting the passport for the account")
-                @_query
-                    query     : "UPDATE accounts"
-                    jsonb_set :
-                        passports : "#{@_passport_key(opts)}" : opts.profile
-                    where     :
-                        "account_id = $::UUID" : opts.account_id
-                    cb        : cb
-            (cb) =>
-                dbg("setting other account info #{opts.email_address}, #{opts.first_name}, #{opts.last_name}")
-                try
-                    await set_account_info_if_possible
-                        db            : @
-                        account_id    : opts.account_id
-                        email_address : opts.email_address
-                        first_name    : opts.first_name
-                        last_name     : opts.last_name
-                    cb()
-                catch err
-                    cb(err)
-        ], opts.cb)
-
-    delete_passport: (opts) =>
-        opts= defaults opts,
-            account_id : required
-            strategy   : required
-            id         : required
-            cb         : required
-        @_dbg('delete_passport')(misc.to_json(opts.profile))
-        @_query
-            query     : "UPDATE accounts"
-            jsonb_set :
-                passports : "#{@_passport_key(opts)}" : null  # delete it
-            where     :
-                "account_id = $::UUID" : opts.account_id
-            cb        : opts.cb
-
-    passport_exists: (opts) =>
-        opts = defaults opts,
-            strategy : required
-            id       : required
-            cb       : required   # cb(err, account_id or undefined)
-        @_query
-            query : "SELECT account_id FROM accounts"
-            where : "(passports->>$::TEXT) IS NOT NULL" : @_passport_key(opts)
-            cb    : (err, result) =>
-                opts.cb(err, result?.rows[0]?.account_id)
-
     _touch_account: (account_id, cb) =>
         if @_throttle('_touch_account', 120, account_id)
             cb()
@@ -1442,11 +1361,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         if exists
                             cb("email_already_taken")
                             return
-                        @_query
-                            query : 'UPDATE accounts'
-                            set   : {email_address: opts.email_address}
-                            where : @_account_where(opts)
-                            cb    : cb
+                        cb()
+            (cb) =>
+                checkEmailExclusiveSSO @, opts.account_id, opts.email_address, (err, exclusive) =>
+                    if err
+                        cb(err)
+                        return
+                    if exclusive
+                        cb("you are not allowed to change your email address or change to this one")
+                        return
+                    cb()
+            (cb) =>
+                @_query
+                    query : 'UPDATE accounts'
+                    set   : {email_address: opts.email_address}
+                    where : @_account_where(opts)
+                    cb    : cb
             (cb) =>
                 @_query
                     query : "SELECT stripe_customer_id FROM accounts"
