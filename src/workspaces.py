@@ -299,6 +299,11 @@ def delete_package_lock(args) -> None:
         p = os.path.join(path, 'package-lock.json')
         if os.path.exists(p):
             os.unlink(p)
+        # See https://github.com/sagemathinc/cocalc/issues/6123
+        # If we don't delete node_modules, then package-lock.json may blow up in size.
+        node_modules = os.path.join(path, 'node_modules')
+        if os.path.exists(node_modules):
+            shutil.rmtree(node_modules)
 
     thread_map(f, [os.path.abspath(path) for path in packages(args)],
                nb_threads=10)
