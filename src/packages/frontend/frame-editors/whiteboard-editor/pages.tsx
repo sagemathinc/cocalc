@@ -128,7 +128,7 @@ export default function Pages() {
                 elements={elementsOnPage}
                 elementsMap={elementsMap}
                 width={width - 2 * HMARGIN}
-                navMap={"map"}
+                navMap={"page"}
                 style={{
                   pointerEvents: "none",
                   background: "white",
