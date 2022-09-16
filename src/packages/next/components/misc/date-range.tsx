@@ -30,8 +30,8 @@ export default function DateRange(props: Props) {
 
   // we round values to exactly midnight, because otherwise e.g. 2022-06-12T23:58:95 will be shown as 2022-06-12
   // that's confusing and causes problems down the road
-  initialValues[0] = roundToMidnight(initialValues[0], 'start');
-  initialValues[1] = roundToMidnight(initialValues[1], 'end');
+  initialValues[0] = roundToMidnight(initialValues[0], "start");
+  initialValues[1] = roundToMidnight(initialValues[1], "end");
 
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
 
@@ -40,6 +40,21 @@ export default function DateRange(props: Props) {
       <DatePicker.RangePicker
         disabled={disabled}
         allowEmpty={[true, true]}
+        renderExtraFooter={() => (
+          <div style={{ marginBottom: "-15px" }}>
+            <div>
+              Select start and end dates above, with the help of the presets below:
+            </div>
+            <ul>
+              <li style={{ marginTop: "-15px" }}>
+                Week = one week starting today
+              </li>
+              <li style={{ marginTop: "-15px" }}>
+                +Week = one week, starting from the selected start date
+              </li>
+            </ul>
+          </div>
+        )}
         ranges={{
           Week: [moment(), moment().add(1, "week")],
           Month: [moment(), moment().add(1, "month")],
