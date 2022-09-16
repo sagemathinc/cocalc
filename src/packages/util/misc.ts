@@ -282,6 +282,11 @@ export function is_valid_uuid_string(uuid?: any): boolean {
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );
 }
+export function assert_valid_account_id(uuid?: any): void {
+  if (!is_valid_uuid_string(uuid)) {
+    throw new Error(`Invalid Account ID: ${uuid}`);
+  }
+}
 export const isValidUUID = is_valid_uuid_string;
 
 export function assertValidAccountID(account_id?: any) {
@@ -402,6 +407,12 @@ export function is_valid_email_address(email: string): boolean {
     return true;
   } else {
     return false;
+  }
+}
+
+export function assert_valid_email_address(email: string): void {
+  if (!is_valid_email_address(email)) {
+    throw Error(`Invalid email address: ${email}`);
   }
 }
 

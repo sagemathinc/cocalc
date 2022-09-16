@@ -1,6 +1,12 @@
-import { Menu, MenuProps } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
+const { Text } = Typography;
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -8,22 +14,24 @@ export default function ConfigMenu({ main }) {
   const router = useRouter();
 
   const items: MenuItem[] = [
-    { label: <b style={{ color: "#666" }}>Licenses</b>, key: "" },
+    { label: <Text strong>Licenses</Text>, key: "" },
     { label: "Manage", key: "managed", icon: <Icon name={"key"} /> },
     { label: "Projects", key: "projects", icon: <Icon name={"edit"} /> },
-    { label: "How Used", key: "how-used", icon: <Icon name={"key"} /> },
+    { label: "How Used", key: "how-used", icon: <Icon name={"graph"} /> },
   ];
+
+  function select(e) {
+    router.push(`/licenses/${e.keyPath[0]}`, undefined, {
+      scroll: false,
+    });
+  }
 
   return (
     <Menu
       mode="horizontal"
       selectedKeys={[main]}
-      style={{ height: "100%" }}
-      onSelect={(e) => {
-        router.push(`/licenses/${e.keyPath[0]}`, undefined, {
-          scroll: false,
-        });
-      }}
+      style={{ height: "100%", marginBottom: "24px" }}
+      onSelect={select}
       items={items}
     />
   );

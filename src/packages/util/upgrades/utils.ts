@@ -7,17 +7,28 @@ import { to_human_list } from "../misc";
 import { DedicatedDisk, DedicatedVM, DISK_NAMES } from "../types/dedicated";
 import { PRICES } from "./dedicated";
 
-export function dedicatedDiskDisplay(disk?: DedicatedDisk): string {
+export function dedicatedDiskDisplay(
+  disk?: DedicatedDisk,
+  variant: "short" | "long" = "long"
+): string {
   if (disk == null) throw new Error("dedicated_disk must be defined");
   if (typeof disk === "boolean") return "";
-  const tokens = [
-    `${disk.size_gb}G size`,
-    `${DISK_NAMES[disk.speed] ?? disk.speed} speed`,
-  ];
-  if (disk.name != null) {
-    tokens.push(`named "${disk.name}"`);
+
+  if (variant === "short") {
+    return to_human_list([
+      `${disk.size_gb}G`,
+      `${DISK_NAMES[disk.speed] ?? disk.speed}`,
+    ]);
+  } else {
+    const tokens = [
+      `${disk.size_gb}G size`,
+      `${DISK_NAMES[disk.speed] ?? disk.speed} speed`,
+    ];
+    if (disk.name != null) {
+      tokens.push(`named "${disk.name}"`);
+    }
+    return to_human_list(tokens);
   }
-  return to_human_list(tokens);
 }
 
 export function dedicatedVmDisplay(v?: DedicatedVM): string {

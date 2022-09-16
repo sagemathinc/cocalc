@@ -60,12 +60,7 @@ export function describeQuotaFromInfo(
   }
 }
 
-export function describe_quota(
-  quota: SiteLicenseQuota & { uptime?: Uptime },
-  short?: boolean
-): string {
-  //console.log(`describe_quota (short=${short})`, quota);
-
+function fixUptime(quota) {
   // regarding quota.uptime: it is assumed that all calls already query using the schema defined
   // in SiteLicenseQuota, but if not, we untangle the uptime field.
   if (quota.uptime != null) {
@@ -74,6 +69,15 @@ export function describe_quota(
     quota.idle_timeout = idle_timeout;
     delete quota.uptime;
   }
+}
+
+export function describe_quota(
+  quota: SiteLicenseQuota & { uptime?: Uptime },
+  short?: boolean
+): string {
+  //console.log(`describe_quota (short=${short})`, quota);
+
+  fixUptime(quota);
 
   const v: string[] = [];
   let intro: string = "";
@@ -92,16 +96,16 @@ export function describe_quota(
   }
 
   if (quota.ram) {
-    v.push(`${quota.ram}GB RAM`);
+    v.push(`${quota.ram}G RAM`);
   }
   if (quota.cpu) {
     v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
   }
   if (quota.disk) {
-    v.push(`${quota.disk}GB disk`);
+    v.push(`${quota.disk}G disk`);
   }
   if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}GB dedicated RAM`);
+    v.push(`${quota.dedicated_ram}G dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
     v.push(
@@ -147,4 +151,71 @@ export function describe_quota(
     v.push("network"); // always provided, because we trust customers.
   }
   return `${intro} ${v.join(", ")}`;
+}
+
+// similar to the above, but very short for the info bar on those store purchase pages.
+// instead of overloading the above with even more special cases, this brings it quickly to the point
+export function describeQuotaOnLine(
+  quota: SiteLicenseQuota & { uptime?: Uptime }
+): string {
+  fixUptime(quota);
+
+  const v: string[] = [];
+
+  if (quota.ram) {
+    v.push(`${quota.ram}G RAM`);
+  }
+  if (quota.cpu) {
+    v.push(`${quota.cpu} ${plural(quota.cpu, "CPU")}`);
+  }
+  if (quota.disk) {
+    v.push(`${quota.disk}G disk`);
+  }
+  if (quota.dedicated_ram) {
+    v.push(`${quota.dedicated_ram}G dedicated RAM`);
+  }
+  if (quota.dedicated_cpu) {
+    v.push(
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
+    );
+  }
+
+  if (
+    typeof quota.dedicated_vm !== "boolean" &&
+    typeof quota.dedicated_vm?.machine === "string"
+  ) {
+    v.push(`Dedicated VM ${dedicatedVmDisplay(quota.dedicated_vm)}`);
+  } else {
+    if (quota.member) {
+      v.push("member");
+    }
+  }
+
+  if (
+    quota.dedicated_disk != null &&
+    typeof quota.dedicated_disk !== "boolean"
+  ) {
+    v.push(
+      `Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk, "short")})`
+    );
+  }
+
+  if (quota.always_running) {
+    v.push("always running");
+  } else {
+    if (quota.idle_timeout != null) {
+      const it = LicenseIdleTimeouts[quota.idle_timeout];
+      if (it != null) {
+        v.push(`${it.labelShort} timeout`);
+      }
+    }
+  }
+
+  if (quota.user) {
+    const isBoost = quota.boost === true;
+    const booster = isBoost ? " booster" : "";
+    v.push(`${capitalize(quota.user)}${booster}`);
+  }
+
+  return `${v.join(", ")}`;
 }

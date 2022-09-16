@@ -1,0 +1,9 @@
+.icon {
+  margin: "0 2.5px";
+  cursor: pointer;
+  transition: 0.1s;
+}
+
+.icon:hover {
+  transform: scale(1.1);
+}

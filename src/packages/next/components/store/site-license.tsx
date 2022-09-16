@@ -15,15 +15,17 @@ import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
+import { useScrollY } from "lib/use-scroll-y";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
+import { computeCost } from "./compute-cost";
+import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, Presets } from "./quota-config-presets";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
-import { computeCost } from "./compute-cost";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -38,15 +40,25 @@ const STYLE: React.CSSProperties = {
 
 export default function SiteLicense() {
   const router = useRouter();
+  const headerRef = useRef<HTMLHeadingElement>(null);
 
   // most likely, user will go to the cart next
   useEffect(() => {
     router.prefetch("/store/cart");
   }, []);
 
+  const [offsetHeader, setOffsetHeader] = useState(0);
+  const scrollY = useScrollY();
+
+  useEffect(() => {
+    if (headerRef.current) {
+      setOffsetHeader(headerRef.current.offsetTop);
+    }
+  }, []);
+
   return (
     <>
-      <h3>
+      <h3 ref={headerRef}>
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Site License in Shopping Cart"
@@ -65,7 +77,7 @@ export default function SiteLicense() {
           then add it to your <A href="/store/cart">shopping cart</A>.
         </p>
       )}
-      <CreateSiteLicense />
+      <CreateSiteLicense showInfoBar={scrollY > offsetHeader} />
     </>
   );
 }
@@ -73,7 +85,7 @@ export default function SiteLicense() {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateSiteLicense() {
+function CreateSiteLicense({ showInfoBar = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -137,6 +149,14 @@ function CreateSiteLicense() {
 
   return (
     <div>
+      <InfoBar
+        show={showInfoBar}
+        cost={cost}
+        router={router}
+        form={form}
+        cartError={cartError}
+        setCartError={setCartError}
+      />
       <Form
         form={form}
         style={STYLE}

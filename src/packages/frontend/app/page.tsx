@@ -10,32 +10,31 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
-import { ProjectsNav } from "../projects/projects-nav";
+import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import { Tooltip } from "antd";
-
 import { COLORS } from "@cocalc/util/theme";
 import { IS_SAFARI, IS_MOBILE, IS_IOS } from "../feature";
-
-import { Button, Navbar, Nav } from "../antd-bootstrap";
+import { Button, Navbar, Nav } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
   useEffect,
   useState,
   useTypedRedux,
-} from "../app-framework";
-import { SiteName } from "../customize";
-import { alert_message } from "../alerts";
-import { Avatar } from "../account/avatar/avatar";
+  CSS,
+} from "@cocalc/frontend/app-framework";
+import { SiteName } from "@cocalc/frontend/customize";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { NavTab } from "./nav-tab";
-import { Loading } from "../components";
+import { Loading } from "@cocalc/frontend/components";
 import { ActiveContent } from "./active-content";
 import { FullscreenButton } from "./fullscreen-button";
 import { VersionWarning, CookieWarning, LocalStorageWarning } from "./warnings";
 import { AppLogo } from "./logo";
 import { ConnectionInfo } from "./connection-info";
 import { ConnectionIndicator } from "./connection-indicator";
-import { FileUsePage } from "../file-use/page";
+import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { NotificationBell } from "./notification-bell";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -51,7 +50,7 @@ const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = IS_PHONE ? 72 : 36;
 const NAV_CLASS = "hidden-xs";
 
-const TOP_BAR_STYLE: React.CSSProperties = {
+const TOP_BAR_STYLE: CSS = {
   display: "flex",
   marginBottom: 0,
   width: "100%",
@@ -63,7 +62,7 @@ const TOP_BAR_STYLE: React.CSSProperties = {
   top: 0,
 } as const;
 
-const FILE_USE_STYLE: React.CSSProperties = {
+const FILE_USE_STYLE: CSS = {
   zIndex: 110,
   marginLeft: "0",
   position: "fixed",
@@ -81,7 +80,7 @@ const FILE_USE_STYLE: React.CSSProperties = {
   height: "90%",
 } as const;
 
-const PROJECTS_STYLE: React.CSSProperties = {
+const PROJECTS_STYLE: CSS = {
   whiteSpace: "nowrap",
   float: "right",
   padding: "10px 7px",
@@ -101,7 +100,7 @@ let page_height: string =
     ? `calc(100vh - env(safe-area-inset-bottom) - ${IS_IOS ? 80 : 20}px)`
     : "100vh";
 
-const PAGE_STYLE: React.CSSProperties = {
+const PAGE_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: page_height, // see note

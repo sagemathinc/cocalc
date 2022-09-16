@@ -21,7 +21,9 @@ interface Props {
   className?: string;
 }
 
-export default function StaticMarkdown({ value, style, className }: Props) {
+export default function StaticMarkdown(props: Props) {
+  const { value, style, className } = props;
+
   // Convert markdown to our slate JSON object representation.
   const slate = markdownToSlate(value);
   const v: JSX.Element[] = [];

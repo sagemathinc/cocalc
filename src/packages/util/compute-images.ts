@@ -12,14 +12,16 @@ import * as schema from "./db-schema";
 export const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
 export const FALLBACK_COMPUTE_IMAGE = schema.FALLBACK_COMPUTE_IMAGE;
 
-type Group = "Main" | "Ubuntu 18.04" | "Ubuntu 20.04" | "Ubuntu 16.04";
-// this defines their ordering
-export const GROUPS: Group[] = [
+// this array defines their ordering
+export const GROUPS = [
   "Main",
   "Ubuntu 20.04",
   "Ubuntu 18.04",
   "Ubuntu 16.04",
-];
+  "Ubuntu 22.04", // TODO: until 22.04 is stable and official, we keep it burried at the end!
+] as const;
+
+type Group = typeof GROUPS[number];
 
 interface ComputeImage {
   title: string;
@@ -30,6 +32,8 @@ interface ComputeImage {
   hidden?: boolean; // NYI
 }
 
+// NOTE: do not remove entries, to preserve rendering user-facing strings for older entries
+//       rather, mark them as {hidden: true}
 export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
   // "default" or "undefined" is what was used for "ubuntu1804" until summer 2020
   // nowdays, DEFAULT_COMPUTE_IMAGE is "ubuntu2004"
@@ -64,9 +68,9 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     group: "Ubuntu 20.04",
   },
   "ubuntu2004-dev": {
-    title: "Ubuntu 20.04 (Experimental)",
-    short: "Experimental",
-    descr: "Cutting-edge software updates (could be broken)",
+    title: "Ubuntu 20.04 (Testing)",
+    short: "Testing",
+    descr: "Upcoming software changes – could be broken!",
     group: "Ubuntu 20.04",
   },
   "ubuntu2004-2020-10-28": {
@@ -110,6 +114,12 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     short: "2022-04-19",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2022-04-19 and no longer updated",
+  },
+  "ubuntu2004-2022-08-17": {
+    title: "Ubuntu 20.04 (2022-08-17)",
+    short: "2022-08-17",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2022-08-17 and no longer updated",
   },
   previous: {
     order: -2,
@@ -175,6 +185,12 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     short: "Old software image",
     descr: "In use until Summer 2018. No longer maintained!",
     group: "Ubuntu 16.04",
+  },
+  "ubuntu2204-dev": {
+    title: "Ubuntu 22.04 (Testing)",
+    short: "Ubuntu 22.04 (Testing)",
+    descr: "Upcoming Ubuntu 22.04 based software stack",
+    group: "Ubuntu 22.04",
   },
 } as const;
 

@@ -3,23 +3,34 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
-import Error from "next/error";
-import Header from "components/landing/header";
+import { MainPages, MainPagesType } from "components/billing/consts";
+import Billing from "components/billing/layout";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
-import Billing from "components/billing/layout";
-import { MainPages } from "components/billing/consts";
-import { Customize } from "lib/customize";
+import Header from "components/landing/header";
+import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import Error from "next/error";
 
-export default function Preferences({ customize, pageNotFound, page }) {
+interface Props {
+  customize: CustomizeType;
+  pageNotFound: boolean;
+  page: [MainPagesType | undefined];
+}
+
+export default function Preferences(props: Props) {
+  const { customize, pageNotFound, page } = props;
   if (pageNotFound) {
     return <Error statusCode={404} />;
   }
+
+  const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";
+
   return (
     <Customize value={customize}>
-      <Head title="Billing" />
+      <Head title={`Billing${subpage}`} />
       <Layout>
         <Header />
         <Billing page={page} />
@@ -48,5 +59,8 @@ export async function getServerSideProps(context) {
     return withCustomize({ context, props: { pageNotFound: true } });
   }
 
-  return await withCustomize({ context, props: { page } });
+  return await withCustomize({
+    context,
+    props: { page },
+  });
 }

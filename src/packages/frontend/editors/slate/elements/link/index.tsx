@@ -3,10 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CSSProperties } from "react";
 import { Text } from "slate";
 import { register, SlateElement } from "../register";
 import { dict } from "@cocalc/util/misc";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+
+export const LINK_STYLE = {
+  backgroundColor: "white",
+  padding: "1px",
+  margin: "-1px", // so the position isn't changed; important when background is white so doesn't look weird.
+  borderRadius: "2px",
+} as CSSProperties;
 
 export interface Link extends SlateElement {
   type: "link";
@@ -25,7 +33,7 @@ register({
     if (AnchorTagComponent != null) {
       return (
         <AnchorTagComponent {...attributes} href={url} title={title}>
-          {children}
+          <span style={LINK_STYLE}>{children}</span>
         </AnchorTagComponent>
       );
     }
@@ -39,7 +47,7 @@ register({
       };
     }
     return (
-      <a {...attributes} {...props} title={title}>
+      <a {...attributes} {...props} title={title} style={LINK_STYLE}>
         {children}
         {isBlank(element) && <span contentEditable={false}>(blank link)</span>}
       </a>

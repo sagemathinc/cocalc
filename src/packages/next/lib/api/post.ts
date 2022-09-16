@@ -1,6 +1,6 @@
 import basePath from "lib/base-path";
-import { join } from "path";
 import LRU from "lru-cache";
+import { join } from "path";
 
 const VERSION = "v2";
 

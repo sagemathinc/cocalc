@@ -244,7 +244,7 @@ function DescriptionColumn({
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describeItem(input)}
+        {describeItem({ info: input })}
       </div>
       <div style={{ marginTop: "5px" }}>
         <Button

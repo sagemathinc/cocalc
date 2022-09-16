@@ -22,10 +22,10 @@ When you want to edit an existing public share, here's the flow of what happens.
 
 */
 
-import { useEffect, useState } from "react";
-import { Button } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Button } from "antd";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import EditOptions from "./edit-options";
 
 export interface Props {

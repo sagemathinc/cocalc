@@ -68,7 +68,7 @@ function Try0({ minimal, onSuccess }: Props) {
   }
 
   return (
-    <div style={{ padding: "0 15px 15px 15px" }}>
+    <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo

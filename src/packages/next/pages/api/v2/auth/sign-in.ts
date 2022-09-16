@@ -16,21 +16,22 @@ Sign in works as follows:
    If not, send an error back.
 */
 
-import { verify } from "password-hash";
 import getPool from "@cocalc/database/pool";
 import {
-  createRememberMeCookie,
   COOKIE_NAME,
+  createRememberMeCookie,
 } from "@cocalc/server/auth/remember-me";
-import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
+import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 import getParams from "lib/api/get-params";
+import { verify } from "password-hash";
+import { Request, Response } from "express";
 // import reCaptcha from "@cocalc/server/auth/recaptcha";
 
-export default async function signIn(req, res) {
+export default async function signIn(req: Request, res: Response) {
   let { email, password } = getParams(req);
   email = email.toLowerCase().trim();
-  const check = signInCheck(email, req.ip);
+  const check: string | undefined = await signInCheck(email, req.ip);
   if (check) {
     res.json({ error: check });
     return;

@@ -27,7 +27,7 @@ export default function Privacy({ customize }) {
         >
           <div style={{ textAlign: "center", color: "#444" }}>
             <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-            <h2>Last Updated: February 20, 2020</h2>
+            <h2>Last Updated: September 15, 2022</h2>
           </div>
           <div style={{ fontSize: "12pt" }}>
             <p>
@@ -1056,9 +1056,9 @@ export default function Privacy({ customize }) {
                 and to submit a complaint regarding Individual data to JAMS, a
                 dispute resolution provider which has locations in the United
                 States and EU, visit{" "}
-                <A href="https://www.jamsadr.com/file-an-eu-us-privacy-shield-or-safe-harbor-claim">
+                <A href="https://www.jamsadr.com/eu-us-privacy-shield">
                   {" "}
-                  www.jamsadr.com/file-an-eu-us-privacy-shield-or-safe-harbor-claim
+                  www.jamsadr.com/eu-us-privacy-shield
                 </A>
                 .{" "}
               </p>{" "}
@@ -1306,8 +1306,23 @@ export default function Privacy({ customize }) {
                     </td>
                     <td> 2020-02-20 </td>
                   </tr>
+                  <tr>
+                    <td>
+                      Updated Sagemath Privacy Policy - revise JAMS link
+                    </td>
+                    <td> 2022-09-15 </td>
+                  </tr>
                 </tbody>
               </table>
+              <p>
+                {" "}
+                A revision control history for this web page can be found at
+                <A href="https://github.com/sagemathinc/cocalc/commits/master/src/packages/next/pages/policies/privacy.tsx">
+                  {" "}
+                  github.com/sagemathinc/cocalc/commits/master/src/packages/next/pages/policies/privacy.tsx
+                </A>
+                .{" "}
+              </p>{" "}
             </div>
             <h1>Questions?</h1>
             <p>

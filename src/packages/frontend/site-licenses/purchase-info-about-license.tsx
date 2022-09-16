@@ -15,7 +15,11 @@ export const LicensePurchaseInfo: React.FC<Props> = ({ license_id }) => {
 
   useEffect(() => {
     if (customer == null) {
-      billing.update_customer();
+      (async () => {
+        try {
+          billing.update_customer();
+        } catch (_err) {}
+      })();
     }
   }, []);
   if (!customer) return <></>;
