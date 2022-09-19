@@ -332,7 +332,7 @@ export function Overview({
     >
       <Canvas
         isNavigator
-        previewMode={IS_TOUCH || navMap != "map"}
+        previewMode={IS_TOUCH || navMap == "preview"}
         margin={margin * scale}
         elements={elements}
         elementsMap={elementsMap}
