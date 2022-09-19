@@ -23,6 +23,7 @@ export interface SiteLicenseQuota {
   // 2. we define the timeout spans indirectly, gives us a bit of room to modify this later on.
   idle_timeout?: "short" | "medium" | "day";
   boost?: boolean; // default false
+  ext_rw?: boolean; // on-prem: make the /ext mountpoint read/writable
 }
 
 // For typescript use of these from user side, we make this available:
