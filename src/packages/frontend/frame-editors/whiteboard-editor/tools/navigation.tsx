@@ -32,6 +32,7 @@ import {
 import { Key } from "./panel";
 import { throttle } from "lodash";
 import useResizeObserver from "use-resize-observer";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 
 // nav panel can take at most this close to edge of full whiteboard.
 // We have to constrain this, because if you change your screen size, then things
@@ -270,7 +271,7 @@ interface MapProps {
   height?: number;
   resize?: { x: number; y: number };
   setResize?: (resize: { x: number; y: number }) => void;
-  navMap?: "preview" | "map";
+  navMap?: "preview" | "map" | "page";
   style?: CSSProperties;
   margin?: number;
   minScale?: number;
@@ -316,6 +317,10 @@ export function Overview({
   if (maxScale && scale > maxScale) {
     scale = maxScale;
   }
+  // We force previewMode on touch devices as well, since
+  // complicated whiteboards crash ipad/ios.  IS_TOUCH is
+  // same as tablet or phone (doesn't include touchscreen laptops).
+  // See https://github.com/sagemathinc/cocalc/issues/6130
   return (
     <div
       style={{
@@ -327,7 +332,7 @@ export function Overview({
     >
       <Canvas
         isNavigator
-        previewMode={navMap == "preview"}
+        previewMode={IS_TOUCH || navMap == "preview"}
         margin={margin * scale}
         elements={elements}
         elementsMap={elementsMap}
