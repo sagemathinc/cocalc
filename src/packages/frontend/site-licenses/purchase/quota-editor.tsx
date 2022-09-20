@@ -82,7 +82,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     adminMode = false,
   } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
-  const is_on_prem = customize_kucalc === KUCALC_ON_PREMISES;
+  const isOnPrem = customize_kucalc === KUCALC_ON_PREMISES;
 
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
@@ -291,7 +291,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_disk(): JSX.Element {
+  function render_disk(): JSX.Element | null {
+    if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -334,7 +335,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_member(): JSX.Element {
+  function render_member(): JSX.Element | null {
+    if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -542,7 +544,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && render_dedicated_cpu()}
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
-      {is_on_prem && render_ext_rw()}
+      {isOnPrem && render_ext_rw()}
     </div>
   );
 };
