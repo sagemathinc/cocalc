@@ -6,6 +6,8 @@
 # Usage:
 #    python3 cocalc-db-sso.py [dump]
 # which issues commands to psql directly, or add "dump" to see what it would do.
+#
+# The conf/info fields are described in src/packages/server/auth/sso/types.ts
 
 from typing_extensions import TypedDict
 from typing import Dict
