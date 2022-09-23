@@ -19,6 +19,7 @@ import { useScrollY } from "lib/use-scroll-y";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
+import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
@@ -149,6 +150,7 @@ function CreateSiteLicense({ showInfoBar = false }) {
 
   return (
     <div>
+      <ApplyLicenseToProject router={router} />
       <InfoBar
         show={showInfoBar}
         cost={cost}

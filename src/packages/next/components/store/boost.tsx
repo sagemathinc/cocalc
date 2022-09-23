@@ -9,7 +9,7 @@ Create a new site license.
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   get_local_storage,
-  set_local_storage
+  set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { COLORS } from "@cocalc/util/theme";
@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
+import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
@@ -254,6 +255,7 @@ function CreateBooster({ showInfoBar = false }) {
         cartError={cartError}
         setCartError={setCartError}
       />
+      <ApplyLicenseToProject router={router} />
       <Form
         form={form}
         style={{

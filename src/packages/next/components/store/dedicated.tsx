@@ -37,6 +37,7 @@ import { sortBy } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
+import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { TitleDescription } from "./title-description";
@@ -707,6 +708,7 @@ function CreateDedicatedResource({ showInfoBar = false }) {
         cartError={cartError}
         setCartError={setCartError}
       />
+      <ApplyLicenseToProject router={router} />
       <Form
         form={form}
         style={{

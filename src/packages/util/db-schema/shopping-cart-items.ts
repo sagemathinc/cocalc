@@ -67,6 +67,10 @@ Table({
       type: "map",
       desc: "Object that describes the product that was placed in the shopping cart.",
     },
+    project_id: {
+      type: "string",
+      desc: "optionally, upon adding a license to the cart, we save the projrect_id for which this license is purchased for.",
+    },
   },
 
   rules: {

@@ -71,7 +71,6 @@ async function purchaseSiteLicense(item: {
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
 
-
 // make sure start/end is properly defined
 // later, when actually saving the range to the database, we will maybe append a portion of the start which is in the past
 function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {

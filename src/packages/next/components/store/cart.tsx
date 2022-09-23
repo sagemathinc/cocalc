@@ -15,8 +15,9 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { capitalize, plural } from "@cocalc/util/misc";
+import { capitalize, isValidUUID, plural } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import License from "components/licenses/license";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -24,7 +25,7 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { isValidElement, useEffect, useMemo, useState } from "react";
 import { computeCost } from "./compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
@@ -83,7 +84,7 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, checked, cost, description, type }) => {
+      render: ({ id, checked, cost, description, type, project_id }) => {
         return (
           <div>
             <CheckboxColumn
@@ -99,6 +100,7 @@ export default function ShoppingCart() {
                 isMounted,
                 reload,
                 type,
+                project_id,
               }}
               compact
             />
@@ -134,7 +136,7 @@ export default function ShoppingCart() {
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description, type }) => (
+      render: (_, { id, cost, description, type, project_id }) => (
         <DescriptionColumn
           {...{
             id,
@@ -145,6 +147,7 @@ export default function ShoppingCart() {
             isMounted,
             reload,
             type,
+            project_id,
           }}
           compact={false}
         />
@@ -331,6 +334,7 @@ interface DCProps {
   isMounted: { current: boolean };
   reload: () => void;
   compact: boolean;
+  project_id?: string;
 }
 
 function DescriptionColumn(props: DCProps) {
@@ -343,6 +347,7 @@ function DescriptionColumn(props: DCProps) {
     isMounted,
     reload,
     compact,
+    project_id,
   } = props;
   const router = useRouter();
   const { input } = cost;
@@ -351,6 +356,58 @@ function DescriptionColumn(props: DCProps) {
 
   const showRunLimitEditor =
     description.type !== "disk" && description.type !== "vm";
+
+  function renderEditRunLimit(): JSX.Element | null {
+    if (!editRunLimit) return null;
+    return (
+      <div
+        style={{
+          border: "1px solid #eee",
+          padding: "15px",
+          margin: "15px 0",
+          background: "white",
+        }}
+      >
+        <Icon
+          name="times"
+          style={{ float: "right" }}
+          onClick={() => {
+            setEditRunLimit(false);
+          }}
+        />
+        <EditRunLimit value={runLimit} onChange={setRunLimit} />
+        <Button
+          type="primary"
+          style={{ marginTop: "15px" }}
+          onClick={async () => {
+            setEditRunLimit(false);
+            await apiPost("/shopping/cart/edit", {
+              id,
+              description: { ...description, run_limit: runLimit },
+            });
+            await reload();
+          }}
+        >
+          Save
+        </Button>
+      </div>
+    );
+  }
+
+  function renderProjectID(): JSX.Element | null {
+    if (!project_id || !isValidUUID(project_id)) return null;
+    return (
+      <Alert
+        type="info"
+        banner={true}
+        message={
+          <>
+            For project: <code>{project_id}</code>
+          </>
+        }
+      />
+    );
+  }
 
   function editableQuota() {
     return (
@@ -370,41 +427,8 @@ function DescriptionColumn(props: DCProps) {
             </>
           )}
         </div>
-        <div>
-          {editRunLimit && (
-            <div
-              style={{
-                border: "1px solid #eee",
-                padding: "15px",
-                margin: "15px 0",
-                background: "white",
-              }}
-            >
-              <Icon
-                name="times"
-                style={{ float: "right" }}
-                onClick={() => {
-                  setEditRunLimit(false);
-                }}
-              />
-              <EditRunLimit value={runLimit} onChange={setRunLimit} />
-              <Button
-                type="primary"
-                style={{ marginTop: "15px" }}
-                onClick={async () => {
-                  setEditRunLimit(false);
-                  await apiPost("/shopping/cart/edit", {
-                    id,
-                    description: { ...description, run_limit: runLimit },
-                  });
-                  await reload();
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          )}
-        </div>
+        {renderEditRunLimit()}
+        {renderProjectID()}
       </div>
     );
   }
