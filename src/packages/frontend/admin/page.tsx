@@ -17,7 +17,7 @@ export const AdminPage: React.FC = React.memo(() => {
   return (
     <div
       style={{
-        overflowY: "scroll",
+        overflowY: "auto",
         overflowX: "hidden",
         padding: "30px 45px",
       }}

@@ -28,14 +28,20 @@ import {
   useState,
   useTypedRedux,
   useIsMountedRef,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
-import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../components";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Space,
+  r_join,
+} from "@cocalc/frontend/components";
 import { actions } from "./actions";
 import { Alert, Button, Popconfirm } from "antd";
 import { License } from "./license";
 import { COLORS } from "@cocalc/util/theme";
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const LICENSE_QUERY = {
   site_licenses: [
