@@ -40,6 +40,7 @@ import base_path from "@cocalc/backend/base-path";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getLogger } from "@cocalc/hub/logger";
 import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
+import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
@@ -272,6 +273,8 @@ export class PassportManager {
     // Define user serialization
     passport.serializeUser((user, done) => done(null, user));
     passport.deserializeUser((user: Express.User, done) => done(null, user));
+
+    await loadSSOConf(this.database);
 
     // this.router endpoints setup
     this.init_strategies_endpoint();
