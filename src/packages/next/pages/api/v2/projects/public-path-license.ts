@@ -6,8 +6,8 @@ apply it to the given project.
 import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { db } from "@cocalc/database";
-import { getProject } from "@cocalc/server/projects/control";
 import getParams from "lib/api/get-params";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 
 export default async function handle(req, res) {
   const { public_path_id, project_id } = getParams(req);
@@ -30,12 +30,7 @@ export default async function handle(req, res) {
       // These are the only conditions under which we would apply a license.
       // Apply site_license_id to project_id.
       await db().add_license_to_project(project_id, site_license_id);
-      // If necessary, restart project to ensure that license gets applied
-      const project = getProject(project_id);
-      const { state } = await project.state();
-      if (state == "starting" || state == "running") {
-        project.restart(); // don't await this -- it could take a long time and isn't necessary to wait for.
-      }
+      restartProjectIfRunning(project_id);
     }
 
     res.json({});

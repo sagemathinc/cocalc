@@ -29,6 +29,7 @@ export interface Item {
   removed?: Date;
   product: ProductType;
   description: ProductDescription;
+  project_id?: string;
 }
 
 Table({
