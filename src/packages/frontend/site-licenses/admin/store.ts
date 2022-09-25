@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Store, redux } from "../../app-framework";
+import { Store, redux } from "@cocalc/frontend/app-framework";
 import { SiteLicensesState } from "./types";
 
 export class SiteLicensesStore extends Store<SiteLicensesState> {}

@@ -13,7 +13,13 @@ Editing a quota
 
 */
 
-import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  React,
+  useMemo,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Space } from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
@@ -21,6 +27,7 @@ import {
   untangleUptime,
   Uptime,
 } from "@cocalc/util/consts/site-license";
+import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -74,6 +81,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     show_advanced_default,
     adminMode = false,
   } = props;
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const isOnPrem = customize_kucalc === KUCALC_ON_PREMISES;
+
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
@@ -99,7 +109,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const isDedicated =
     quota.dedicated_vm != null || quota.dedicated_disk != null;
 
-  function render_cpu() {
+  function render_cpu(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -144,7 +154,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_ram() {
+  function render_ram(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -159,7 +169,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Space />
-          <span style={UNIT_STYLE}>shared GB RAM</span>
+          <span style={UNIT_STYLE}>shared G RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -187,7 +197,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_cpu() {
+  function render_dedicated_cpu(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -236,7 +246,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_ram() {
+  function render_dedicated_ram(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -281,7 +291,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_disk() {
+  function render_disk(): JSX.Element | null {
+    if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -324,7 +335,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_member() {
+  function render_member(): JSX.Element | null {
+    if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -349,6 +361,22 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             )}
           </Col>
         )}
+      </Row>
+    );
+  }
+
+  function render_ext_rw(): JSX.Element {
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control}>
+          <Checkbox
+            checked={quota.ext_rw}
+            disabled={disabled}
+            onChange={(e) => onChange({ ext_rw: e.target.checked })}
+          >
+            on-premises: mount <code>/ext</code> read/writeable
+          </Checkbox>
+        </Col>
       </Row>
     );
   }
@@ -403,7 +431,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_idle_timeout() {
+  function render_idle_timeout(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
@@ -420,7 +448,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_support() {
+  function render_support(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -442,7 +470,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_network() {
+  function render_network(): JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -464,7 +492,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_show_advanced_link() {
+  function render_show_advanced_link(): JSX.Element {
     if (show_advanced) {
       return (
         <a
@@ -485,7 +513,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       );
   }
 
-  function render_dedicated() {
+  function render_dedicated(): JSX.Element {
     return (
       <div style={ROW_STYLE}>
         We also offer <b>dedicated virtual machines</b>, which are usually a
@@ -516,6 +544,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && render_dedicated_cpu()}
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
+      {isOnPrem && render_ext_rw()}
     </div>
   );
 };

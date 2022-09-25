@@ -3,19 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { fromJS, Map, Set } from "immutable";
-import { Actions, redux, TypedMap } from "../../app-framework";
-import { SiteLicensesState, license_field_names, ManagerInfo } from "./types";
-import { store } from "./store";
+import { Actions, redux, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   query,
   server_time,
   user_search,
-} from "../../frame-editors/generic/client";
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
-import { normalize_upgrades_for_save } from "./upgrades";
-import jsonic from "jsonic";
 import { SiteLicense } from "@cocalc/util/types/site-licenses";
+import { fromJS, Map, Set } from "immutable";
+import jsonic from "jsonic";
+import { store } from "./store";
+import { license_field_names, ManagerInfo, SiteLicensesState } from "./types";
+import { normalize_upgrades_for_save } from "./upgrades";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {
@@ -91,6 +92,14 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public async create_new_license(): Promise<void> {
+    const kucalc = redux.getStore("customize").get("kucalc");
+    const isCoCalcCom = kucalc === KUCALC_COCALC_COM;
+    // member hosting and disk quota are not supported on cocalc.com
+    const quota = {
+      cpu: 1,
+      ram: 1,
+      ...(isCoCalcCom ? { member: true, disk: 1 } : undefined),
+    };
     const id = uuid();
     try {
       this.setState({ creating: true });
@@ -103,7 +112,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
             last_used: now,
             activates: now,
             run_limit: 1,
-            quota: { member: true, cpu: 1, disk: 1, ram: 1 },
+            quota,
           },
         },
       });

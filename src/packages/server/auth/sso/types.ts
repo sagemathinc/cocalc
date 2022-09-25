@@ -153,7 +153,7 @@ export interface PassportStrategyDBConfig {
  * - exclusive_domains: a list of domain extensions, matching also subdomains, e.g. ["example.com", "example.org"]
  * would match foo@example.com and bar@baz.example.org
  * The ultimate intention is that users with such email addresses have to go through that authentication mechanism.
- * They're also prevented from linking with other passports.
+ * They're also prevented from linking with other passports, changing email address, or unlinking that passport from their account.
  * That way, the organization behind that SSO mechanism has full control over the user's account.
  * - display: The string that's presented to the user as the name of that SSO strategy.
  * - description: A longer description of the strategy, could be markdown, shown on the dedicated /sso/... pages.

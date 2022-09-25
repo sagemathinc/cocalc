@@ -110,9 +110,9 @@ export const License: React.FC<Props> = (props: Props) => {
         <Row
           key={field}
           style={{
-            borderBottom: "1px solid lightgrey",
+            borderTop: "1px solid lightgrey",
             backgroundColor,
-            padding: editing ? "5px 0" : undefined,
+            padding: editing ? "15px 10px" : "10px",
           }}
         >
           <Col span={4}>{format_as_label(field)}</Col>
@@ -509,7 +509,11 @@ export const License: React.FC<Props> = (props: Props) => {
         </>
       );
     } else {
-      buttons = <Button onClick={() => actions.start_editing(id)}>Edit</Button>;
+      buttons = (
+        <Button bsStyle={"primary"} onClick={() => actions.start_editing(id)}>
+          Edit
+        </Button>
+      );
     }
     return <div style={{ float: "right" }}>{buttons}</div>;
   }
@@ -596,7 +600,7 @@ export const License: React.FC<Props> = (props: Props) => {
       style={{
         border: "1px solid lightgrey",
         borderRadius: "5px",
-        padding: "10px",
+        padding: "0px",
       }}
     >
       {render_buttons()}

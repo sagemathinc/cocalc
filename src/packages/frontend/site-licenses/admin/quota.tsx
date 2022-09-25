@@ -2,12 +2,12 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { fromJS } from "immutable";
-import { React, TypedMap } from "../../app-framework";
-import { license_field_names } from "./types";
-import { actions } from "./actions";
-import { QuotaEditor } from "../purchase/quota-editor";
+import { React, TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { fromJS } from "immutable";
+import { QuotaEditor } from "../purchase/quota-editor";
+import { actions } from "./actions";
+import { license_field_names } from "./types";
 type QuotaMap = TypedMap<SiteLicenseQuota>;
 
 interface Props {
