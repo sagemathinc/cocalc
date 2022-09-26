@@ -8,9 +8,14 @@ import { Alert, Button, Popconfirm } from "antd";
 import { NextRouter } from "next/router";
 import { useLicenseProject } from "./util";
 
-export const ApplyLicenseToProject: React.FC<{ router: NextRouter }> = ({
-  router,
-}) => {
+interface ApplyLicenseToProjectProps {
+  router: NextRouter;
+}
+
+export const ApplyLicenseToProject: React.FC<ApplyLicenseToProjectProps> = (
+  props: ApplyLicenseToProjectProps
+) => {
+  const { router } = props;
   const { upgradeProjectId, upgradeProjectDelete } = useLicenseProject(router);
 
   function body(): JSX.Element {
@@ -36,8 +41,8 @@ export const ApplyLicenseToProject: React.FC<{ router: NextRouter }> = ({
           title={
             <div style={{ maxWidth: "400px" }}>
               Are you sure you want to cancel automatically applying the license
-              to the project after purchasing it? You'll have to apply the
-              license manually later.
+              to the project after purchasing it? Don't forget to apply the
+              license manually.
             </div>
           }
           onConfirm={upgradeProjectDelete}
