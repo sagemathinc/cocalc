@@ -653,19 +653,27 @@ export class PassportManager {
     L(`init_strategy ${name}`);
     if (this.passports == null) throw Error("strategies not initalized!");
     if (name == null) {
-      L(`strategy is null -- aborting initialization`);
+      L(`strategy name is null -- aborting initialization`);
       return;
     }
 
     const confDB = this.passports[name];
     if (confDB == null) {
-      L(`no conf for strategy=${name} in DB -- aborting initialization`);
+      L(`no conf for strategy='${name}' in DB -- aborting initialization`);
       return;
     }
 
     // under the same name, we make it accessible
     const strategyUrl = `${AUTH_BASE}/${name}`;
     const returnUrl = `${strategyUrl}/return`;
+
+    if (confDB.conf == null) {
+      // This happened on *all* of my dev servers, etc.  -- William
+      L(
+        `strategy='${name}' is not properly configured -- aborting initialization`
+      );
+      return;
+    }
 
     const opts = {
       clientID: confDB.conf.clientID,
