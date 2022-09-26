@@ -5,7 +5,7 @@
     "incremental": false,
     "rootDir": "./",
     "outDir": "../dist/src",
-    "target": "es5",
+    "target": "es6",
     "sourceMap": true,
     "allowJs": false,
     "allowSyntheticDefaultImports": true,

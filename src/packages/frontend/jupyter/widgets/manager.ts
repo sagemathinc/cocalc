@@ -4,6 +4,7 @@
  */
 
 import * as base from "@jupyter-widgets/base";
+import { ManagerBase } from "@jupyter-widgets/base-manager";
 import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
@@ -48,7 +49,7 @@ const MAX_DEREF_WAIT_MS = 1000 * 15;
 
 export type SendCommFunction = (string, data) => string;
 
-export class WidgetManager extends base.ManagerBase<HTMLElement> {
+export class WidgetManager extends ManagerBase {
   private ipywidgets_state: IpywidgetsState;
   private setWidgetModelIdState: (
     model_id: string,

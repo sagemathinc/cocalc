@@ -22,14 +22,16 @@ import { Token } from "./types";
 import MarkdownIt from "markdown-it";
 import { OPTIONS } from "./index";
 
-const markdown_it = new MarkdownIt(OPTIONS);
-
 // NOTE: headings can't be nested in markdown, which makes parsing much easier.
 
+let markdown_it: any = undefined;
 export function parseTableOfContents(
   markdown: string,
   state?: { number: number[] }
 ): Entry[] {
+  if (markdown_it == null) {
+    markdown_it = new MarkdownIt(OPTIONS);
+  }
   markdown = parseHeader(markdown).body;
   let id = 0;
   const entries: Entry[] = [];

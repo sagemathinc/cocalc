@@ -560,8 +560,8 @@ export default class PlotView extends DOMWidgetView {
     }
   }
 
-  processPhosphorMessage(msg) {
-    super.processPhosphorMessage.call(this, msg);
+  processLuminoMessage(msg) {
+    super.processLuminoMessage.call(this, msg);
 
     switch (msg.type) {
       case "after-attach":
@@ -577,6 +577,11 @@ export default class PlotView extends DOMWidgetView {
         break;
     }
   }
+
+  processPhosphorMessage(msg) {
+    this.processLuminoMessage(msg);
+  }
+
 
   handleEvent(event) {
     switch (event.type) {
