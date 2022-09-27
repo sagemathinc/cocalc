@@ -10,22 +10,23 @@ right now.  This will have to be a bit more sophisticated when there's
 more products.
 */
 
+import { Icon } from "@cocalc/frontend/components/icon";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import { plural } from "@cocalc/util/misc";
 import { Alert } from "antd";
-import useAPI from "lib/hooks/api";
+import Image from "components/landing/image";
+import License from "components/licenses/license";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
-import { Icon } from "@cocalc/frontend/components/icon";
-import A from "components/misc/A";
-import { plural } from "@cocalc/util/misc";
-import License from "components/licenses/license";
-import { r_join } from "@cocalc/frontend/components/r_join";
+import useAPI from "lib/hooks/api";
 import bella from "public/shopping/bella.png";
-import Image from "components/landing/image";
 
 export default function Congrats() {
   const { result, error } = useAPI("/shopping/cart/recent-purchases", {
     recent: "1 day",
   });
+
   if (error) {
     return <Alert type="error" message={error} />;
   }
@@ -37,39 +38,9 @@ export default function Congrats() {
     return <div>You have no recent purchases.</div>;
   }
 
-  return (
-    <>
-      <div style={{ float: "right" }}>
-        <Image
-          src={bella}
-          width={100}
-          height={141}
-          alt="Picture of a doggie."
-        />
-      </div>
-      <div style={{  fontSize: "12pt" }}>
-        <h1 style={{ fontSize: "24pt" }}>
-          <Icon
-            name="check-circle"
-            style={{ color: "darkgreen", marginRight: "10px" }}
-          />{" "}
-          Order Complete!
-        </h1>
-        Congrats! You recently ordered {result.length >= 2 ? "these" : "this"}{" "}
-        {result.length} <SiteName /> {plural(result.length, "license")}
-        , now what?
-        <br />
-        <div style={{ margin: "15px auto", maxWidth: "700px" }}>
-          {r_join(
-            result.map((item) => (
-              <License
-                key={item.purchased.license_id}
-                license_id={item.purchased.license_id}
-              />
-            ))
-          )}
-        </div>
-        <br />
+  function renderNextSteps(): JSX.Element {
+    return (
+      <>
         <h2>Here are your next steps</h2>
         <ul>
           <li>
@@ -97,13 +68,84 @@ export default function Congrats() {
               check on the status of subscriptions.
             </A>
           </li>
-
           <li>
             If you have questions,{" "}
             <A href="/support/new">create a support ticket</A>. Now that you're
             supporting <SiteName /> we can prioritize your request.
           </li>
         </ul>
+      </>
+    );
+  }
+
+  function renderAutomaticallyApplied(): JSX.Element {
+    const appliedProjects = result.filter((x) => x.project_id != null);
+    const numApplied = appliedProjects.length;
+    if (numApplied == 0) return <></>;
+    return (
+      <>
+        <br />
+        <Alert
+          type="info"
+          message={
+            <>
+              <p>
+                The following {plural(numApplied, "project")} automatically got
+                a license applied:
+              </p>
+              <ul>
+                {appliedProjects.map((x) => (
+                  <li key={x.project_id}>
+                    Project{" "}
+                    <A href={`/projects/${x.project_id}`} external={true}>
+                      {x.project_id}
+                    </A>{" "}
+                    got license <License license_id={x.purchased?.license_id} />
+                    .
+                  </li>
+                ))}
+              </ul>
+            </>
+          }
+        ></Alert>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div style={{ float: "right" }}>
+        <Image
+          src={bella}
+          width={100}
+          height={141}
+          alt="Picture of a doggie."
+        />
+      </div>
+      <div style={{ fontSize: "12pt" }}>
+        <h1 style={{ fontSize: "24pt" }}>
+          <Icon
+            name="check-circle"
+            style={{ color: "darkgreen", marginRight: "10px" }}
+          />{" "}
+          Order Complete!
+        </h1>
+        Congrats! You recently ordered {result.length >= 2 ? "these" : "this"}{" "}
+        {result.length} <SiteName /> {plural(result.length, "license")}:
+        <br />
+        <div style={{ margin: "15px auto", maxWidth: "700px" }}>
+          {r_join(
+            result.map((item) => (
+              <License
+                key={item.purchased.license_id}
+                license_id={item.purchased.license_id}
+              />
+            ))
+          )}
+        </div>
+        {renderAutomaticallyApplied()}
+        <br />
+        {renderNextSteps()}
       </div>
     </>
   );
