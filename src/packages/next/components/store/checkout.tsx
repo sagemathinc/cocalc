@@ -9,7 +9,7 @@ Checkout -- finalize purchase and pay.
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { copy_without as copyWithout } from "@cocalc/util/misc";
+import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import { Alert, Button, Col, Row, Table } from "antd";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
@@ -105,13 +105,23 @@ function Checkout() {
     }
   }
 
+  function renderProjectID(project_id: string): JSX.Element | null {
+    if (!project_id || !isValidUUID(project_id)) return null;
+    return (
+      <div>
+        For project: <code>{project_id}</code>
+      </div>
+    );
+  }
+
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ cost, description }) => {
+      render: ({ cost, description, project_id }) => {
         return (
           <div>
             <DescriptionColumn cost={cost} description={description} />
+            {renderProjectID(project_id)}
             <div>
               <b style={{ fontSize: "11pt" }}>
                 <DisplayCost cost={cost} simple oneLine />
@@ -135,8 +145,11 @@ function Checkout() {
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description }) => (
-        <DescriptionColumn cost={cost} description={description} />
+      render: (_, { cost, description, project_id }) => (
+        <>
+          <DescriptionColumn cost={cost} description={description} />{" "}
+          {renderProjectID(project_id)}
+        </>
       ),
     },
     {

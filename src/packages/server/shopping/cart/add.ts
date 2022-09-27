@@ -24,15 +24,20 @@ import { getItem } from "./get";
 export default async function addToCart(
   account_id: string,
   product: ProductType,
-  description?: ProductDescription
+  description?: ProductDescription,
+  project_id?: string
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }
+  if (typeof project_id !== "string" || !isValidUUID(project_id)) {
+    project_id = undefined;
+  }
   const pool = getPool();
   const { rowCount } = await pool.query(
-    "INSERT INTO shopping_cart_items (account_id, added, product, description, checked) VALUES($1,NOW(),$2,$3,true)",
-    [account_id, product, description]
+    `INSERT INTO shopping_cart_items (account_id, added, product, description, checked, project_id)
+    VALUES($1, NOW(), $2, $3, true, $4)`,
+    [account_id, product, description, project_id]
   );
   return rowCount;
 }

@@ -3,10 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import {
+  delete_local_storage,
+  get_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseType } from "@cocalc/util/upgrades/shopping";
 import apiPost from "lib/api/post";
+import { LS_KEY_LICENSE_PROJECT } from "./util";
 
 // these are the hidden type fields of the forms
 // regular and boost end up as "quota" types
@@ -91,9 +96,14 @@ export async function addToCart(props: Props) {
         description,
       });
     } else {
+      // we get the project_id from local storage and save it to the new/edited license
+      const project_id = get_local_storage(LS_KEY_LICENSE_PROJECT);
+      delete_local_storage(LS_KEY_LICENSE_PROJECT);
+
       await apiPost("/shopping/cart/add", {
         product: "site-license",
         description,
+        project_id,
       });
     }
     router.push("/store/cart");

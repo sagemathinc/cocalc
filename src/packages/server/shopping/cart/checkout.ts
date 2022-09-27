@@ -17,13 +17,16 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
+import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import purchaseLicense from "@cocalc/server/licenses/purchase";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import {
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
+import { isValidUUID } from "@cocalc/util/misc";
 import { Date0 } from "@cocalc/util/types/store";
 import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 import getCart from "./get";
@@ -43,12 +46,27 @@ export default async function checkout(account_id: string): Promise<void> {
   // Hence it's not possible to add up all prices and then add the discount for all
   // in a single invoice.
   const pool = getPool();
+
+  let restartProjects: Set<string> = new Set();
+
   for (const item of cart) {
+    const { project_id, id } = item;
     const license_id = await purchaseItem(item);
     await pool.query(
       "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
-      [account_id, item.id, { success: true, time: new Date(), license_id }]
+      [account_id, id, { success: true, time: new Date(), license_id }]
     );
+
+    if (typeof project_id == "string" && isValidUUID(project_id)) {
+      await db().add_license_to_project(project_id, license_id);
+      restartProjects.add(project_id);
+    }
+  }
+
+  // there could be several licenses, added to the same or different projects,
+  // hence at the end we kick of a restart for each one of these projects once
+  for (const pid of restartProjects) {
+    restartProjectIfRunning(pid); // we don't wait on this, could take a while…
   }
 }
 
@@ -70,7 +88,6 @@ async function purchaseSiteLicense(item: {
   info.cost = compute_cost(info);
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
-
 
 // make sure start/end is properly defined
 // later, when actually saving the range to the database, we will maybe append a portion of the start which is in the past

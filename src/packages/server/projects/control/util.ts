@@ -12,6 +12,7 @@ import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
+import { getProject } from ".";
 
 const winston = getLogger("project-control:util");
 
@@ -439,5 +440,14 @@ export async function copyPath(
   } else {
     // TODO/NOTE: this will silently not report any errors.
     spawn("rsync", args, { timeout: opts.timeout });
+  }
+}
+
+export async function restartProjectIfRunning(project_id: string) {
+  // If necessary, restart project to ensure that license gets applied
+  const project = getProject(project_id);
+  const { state } = await project.state();
+  if (state == "starting" || state == "running") {
+    project.restart(); // don't await this -- it could take a long time and isn't necessary to wait for.
   }
 }

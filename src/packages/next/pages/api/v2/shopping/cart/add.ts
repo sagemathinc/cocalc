@@ -29,7 +29,7 @@ async function add(req): Promise<number | undefined> {
   if (account_id == null) {
     throw Error("must be signed in to use shopping cart");
   }
-  const { product, description, id, purchased } = getParams(req);
+  const { product, description, id, purchased, project_id } = getParams(req);
   if (id != null) {
     if (purchased) {
       // put copy of it in the cart
@@ -42,5 +42,5 @@ async function add(req): Promise<number | undefined> {
   if (!product) {
     throw Error("if id isn't specified then the product must be set");
   }
-  return await addToCart(account_id, product, description);
+  return await addToCart(account_id, product, description, project_id);
 }

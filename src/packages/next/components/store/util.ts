@@ -3,12 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
+import { isValidUUID } from "@cocalc/util/misc";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
 import moment from "moment";
-import { useMemo } from "react";
+import { NextRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
 import { LicenseTypeInForms } from "./add-to-cart";
 
 // site license type in a form, we have 4 forms hence 4 types
@@ -106,4 +113,59 @@ export function useTimeFixer() {
       fromServerTime,
     };
   }, []);
+}
+
+export const LS_KEY_LICENSE_PROJECT = "store_site_license_project_id";
+const LS_KEY_LICENSE_ASSOCIATION = "store_site_license_association";
+
+/**
+ * We want to make it possible to purchase a license and applying it automatically to a project.
+ * For that, we check if there is a query param "project_id" (and save it in local storage) or just check local storage.
+ */
+export function useLicenseProject(router: NextRouter) {
+  const [upgradeProjectId, setUpgradeProjectId] = useState<
+    string | undefined
+  >();
+
+  useEffect(() => {
+    const { project_id } = router.query;
+    const projectIdLS = get_local_storage(LS_KEY_LICENSE_PROJECT);
+
+    if (typeof project_id === "string" && isValidUUID(project_id)) {
+      setUpgradeProjectId(project_id);
+      set_local_storage(LS_KEY_LICENSE_PROJECT, project_id);
+    } else if (typeof projectIdLS === "string" && isValidUUID(projectIdLS)) {
+      setUpgradeProjectId(projectIdLS);
+    } else {
+      console.warn(`Invalid ?project_id=... query param: '${project_id}'`);
+    }
+  }, []);
+
+  // this removes the project_id from local storage and the query param
+  function upgradeProjectDelete() {
+    delete_local_storage(LS_KEY_LICENSE_PROJECT);
+    setUpgradeProjectId(undefined);
+    const { pathname } = router;
+    const query = router.query;
+    delete query.project_id;
+    router.replace({ pathname, query }, undefined, { shallow: true });
+  }
+
+  // the ID created in the shopping cart, not the actual ID!
+  // when this is called, we kind of "consume" the project_id
+  // and remove it from the query param and local storage
+  function storeLicenseProjectAssociation(id: number) {
+    const project_id = get_local_storage(LS_KEY_LICENSE_PROJECT);
+    if (typeof project_id !== "string" || !isValidUUID(project_id)) {
+      console.warn(`Invalid project_id in local storage: '${project_id}'`);
+    }
+    set_local_storage(LS_KEY_LICENSE_ASSOCIATION, `${id}::${project_id}`);
+    upgradeProjectDelete();
+  }
+
+  return {
+    upgradeProjectId,
+    upgradeProjectDelete,
+    storeLicenseProjectAssociation,
+  };
 }
