@@ -45,6 +45,7 @@ sign_in_check = (opts) ->
     {email, ip, auth_token} = defaults opts,
         email : required
         ip    : required
+        auth_token : undefined
     return throttle.signInCheck(email, ip, auth_token)
 
 exports.sign_in = (opts) ->
