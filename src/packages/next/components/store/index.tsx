@@ -89,10 +89,6 @@ export default function StoreLayout({ page }: Props) {
       );
     }
 
-    if (is_anonymous) {
-      return <Anonymous />;
-    }
-
     return <StorePage />;
   }
 
@@ -100,6 +96,11 @@ export default function StoreLayout({ page }: Props) {
 
   function body() {
     if (main == null) return <Overview />;
+
+    if (is_anonymous) {
+      return <Anonymous />;
+    }
+
     switch (main) {
       case "site-license":
         return <SiteLicense noAccount={noAccount} />;
