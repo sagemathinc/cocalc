@@ -17,6 +17,8 @@ import moment from "moment";
 import { NextRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { LicenseTypeInForms } from "./add-to-cart";
+import { MAX_DISK, MAX_GB_RAM } from "./quota-config";
+import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 
 // site license type in a form, we have 4 forms hence 4 types
 // later, this will be mapped to just "LicenseType", where boost and regular
@@ -170,7 +172,7 @@ export function useLicenseProject(router: NextRouter) {
   };
 }
 
-export function encodeRange(val: [Date | undefined, Date | undefined]): string {
+function encodeRange(val: DateRange): string {
   // the list of val is encoded as YYYY-MM-DD and separated by a comma
   return val
     .map((v) => (v == null ? "" : moment(v).format("YYYY-MM-DD")))
@@ -178,10 +180,127 @@ export function encodeRange(val: [Date | undefined, Date | undefined]): string {
 }
 
 // the inverse of encodeRange
-export function decodeRange(val: string): [Date | undefined, Date | undefined] {
+function decodeRange(val: string): DateRange {
   const [start, end] = val.split("_");
   return [
     start === "" ? undefined : moment(start).toDate(),
     end === "" ? undefined : moment(end).toDate(),
   ];
+}
+
+export function encodeFormValues(router: NextRouter, vals: any): void {
+  const { query } = router;
+  for (const key in vals) {
+    const val = vals[key];
+    if (key === "type" || key === "preset") continue; // we're already on the right page
+    if (val == null) {
+      delete query[key];
+    } else if (key === "range") {
+      query[key] = encodeRange(val);
+    } else {
+      query[key] = val;
+    }
+  }
+  router.replace({ query }, undefined, { shallow: true, scroll: false });
+}
+
+function decodeValue(val): boolean | number | string | DateRange {
+  if (val === "true") return true;
+  if (val === "false") return false;
+  const num = Number(val);
+  if (!isNaN(num)) return num;
+  return val;
+}
+
+// the query looks like this:
+// user=academic&period=monthly&run_limit=1&member=true&uptime=short&cpu=1&ram=2&disk=3
+export function decodeFormValues(router: NextRouter): {
+  [key: string]: string | number | boolean;
+} {
+  const FORM_FIELDS = [
+    "user",
+    "period",
+    "run_limit",
+    "member",
+    "uptime",
+    "cpu",
+    "ram",
+    "disk",
+    "preset",
+  ] as const;
+
+  const data = {};
+  for (const key in router.query) {
+    const val = router.query[key];
+    if (!(FORM_FIELDS as readonly string[]).includes(key)) continue;
+    if (typeof val !== "string") continue;
+    data[key] = key === "range" ? decodeRange(val) : decodeValue(val);
+  }
+
+  // we also have to sanitize the values
+  for (const key in data) {
+    const val = data[key];
+    switch (key) {
+      case "user":
+        if (!["academic", "commercial"].includes(val)) {
+          data[key] = "academic";
+        }
+        break;
+
+      case "period":
+        if (!["monthly", "yearly", "range"].includes(val)) {
+          data[key] = "monthly";
+        }
+        break;
+
+      case "run_limit":
+        // check that val is a number and in the range of 1 to 1000
+        if (typeof val !== "number" || val < 1 || val > MAX_ALLOWED_RUN_LIMIT) {
+          data[key] = 1;
+        }
+        break;
+
+      case "member":
+        if (typeof val !== "boolean") {
+          data[key] = true;
+        }
+        break;
+
+      case "uptime":
+        if (!["short", "medium", "day", "always_running"].includes(val)) {
+          data[key] = "short";
+        }
+        break;
+
+      case "cpu":
+        if (typeof val !== "number" || val < 1 || val > MAX_DISK) {
+          data[key] = 1;
+        }
+        break;
+
+      case "ram":
+        if (typeof val !== "number" || val < 1 || val > MAX_GB_RAM) {
+          data[key] = 1;
+        }
+        break;
+
+      case "disk":
+        if (typeof val !== "number" || val < 1 || val > MAX_DISK) {
+          data[key] = 1;
+        }
+        break;
+
+      default:
+        console.log(`decodingFormValues: unknown key '${key}'`);
+        delete data[key];
+    }
+  }
+
+  // hosting vs. uptime restriction:
+  if (["always_running", "day"].includes(data["uptime"])) {
+    data["member"] = true;
+  }
+
+  console.log(data);
+  return data;
 }

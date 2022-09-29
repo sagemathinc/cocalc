@@ -6,6 +6,7 @@
 /*
 Create a new site license.
 */
+import { isEmpty } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -30,7 +31,7 @@ import { RunLimit } from "./run-limit";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
-import { encodeRange } from "./util";
+import { decodeFormValues, encodeFormValues } from "./util";
 
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
@@ -102,22 +103,7 @@ function CreateSiteLicense({ showInfoBar = false }) {
 
   function onChange() {
     const vals = form.getFieldsValue(true);
-    console.log("vals", vals);
-
-    const q = router.query;
-    for (const key in vals) {
-      const val = vals[key];
-      if (key === "type" || key === "preset") continue; // we're already on the right page
-      if (val == null) {
-        delete q[key];
-      } else if (key === "range") {
-        q[key] = encodeRange(val);
-      } else {
-        q[key] = val;
-      }
-    }
-    router.replace({ query: q }, undefined, { shallow: true });
-
+    encodeFormValues(router, vals);
     setCost(computeCost(vals));
   }
 
@@ -146,8 +132,15 @@ function CreateSiteLicense({ showInfoBar = false }) {
         onChange();
       })();
     } else {
-      const { cpu, ram, disk } = PRESETS["standard"];
-      form.setFieldsValue({ cpu, ram, disk, preset: "standard" });
+      const vals = decodeFormValues(router);
+      if (isEmpty(vals)) {
+        const { cpu, ram, disk } = PRESETS["standard"];
+        form.setFieldsValue({ cpu, ram, disk, preset: "standard" });
+      } else {
+        form.setFieldsValue(vals);
+        setConfigMode("expert");
+        setPresetAdjusted(true);
+      }
     }
     onChange();
   }, []);

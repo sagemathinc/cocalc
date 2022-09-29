@@ -7,6 +7,8 @@ import { Divider, Form } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 
+export const MAX_ALLOWED_RUN_LIMIT = 10000
+
 export function RunLimit({
   showExplanations,
   form,
@@ -79,7 +81,7 @@ export function EditRunLimit({
       min={1}
       disabled={disabled}
       max={300}
-      maxText={10000}
+      maxText={MAX_ALLOWED_RUN_LIMIT}
       onChange={onChange}
       units={"projects"}
       presets={[1, 2, 10, 50, 100, 250, 500]}

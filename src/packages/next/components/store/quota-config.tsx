@@ -12,7 +12,8 @@ import IntegerSlider from "components/misc/integer-slider";
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { Preset, PRESETS, Presets } from "./quota-config-presets";
 
-const MAX_GB_RAM = upgrades.max_per_project.memory / 1000;
+export const MAX_DISK = 15;
+export const MAX_GB_RAM = upgrades.max_per_project.memory / 1000;
 const { Text } = Typography;
 const { TabPane } = Tabs;
 
@@ -75,7 +76,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       </>
     );
   }
-  
+
   /**
    * When a quota is changed, we warn the user that the preset was adjusted. (the text updates, though, since it rerenders every time). Explanation in the details could make no sense, though – that's why this is added.
    */
@@ -153,7 +154,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     // 2022-06: price increase "version 2": minimum disk we sell (also the free quota) is 3gb, not 1gb
     const defaultDisk = 3;
     const minDisk = boost ? 0 : defaultDisk;
-    const maxDisk = 15 - adjMax * defaultDisk;
+    const maxDisk = MAX_DISK - adjMax * defaultDisk;
 
     return (
       <Form.Item
