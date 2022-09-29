@@ -30,6 +30,7 @@ import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
+import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -37,7 +38,12 @@ import { getType } from "./util";
 
 const { Text, Paragraph } = Typography;
 
-export default function Boost() {
+interface Props {
+  noAccount: boolean;
+}
+
+export default function Boost(props: Props) {
+  const { noAccount } = props;
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -80,7 +86,10 @@ export default function Boost() {
           </Typography>
         </Space>
       )}
-      <CreateBooster showInfoBar={scrollY > offsetHeader} />
+      <CreateBooster
+        showInfoBar={scrollY > offsetHeader}
+        noAccount={noAccount}
+      />
     </>
   );
 }
@@ -88,7 +97,7 @@ export default function Boost() {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateBooster({ showInfoBar = false }) {
+function CreateBooster({ showInfoBar = false, noAccount = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -142,7 +151,7 @@ function CreateBooster({ showInfoBar = false }) {
       setConfirmWarning(!!store_boost_confirm);
     }
     const { id } = router.query;
-    if (id != null) {
+    if (!noAccount && id != null) {
       // editing something in the shopping cart
       (async () => {
         try {
@@ -254,8 +263,10 @@ function CreateBooster({ showInfoBar = false }) {
         form={form}
         cartError={cartError}
         setCartError={setCartError}
+        noAccount={noAccount}
       />
       <ApplyLicenseToProject router={router} />
+      <SignInToPurchase noAccount={noAccount} />
       <Form
         form={form}
         style={{
@@ -321,6 +332,7 @@ function CreateBooster({ showInfoBar = false }) {
               cartError={cartError}
               setCartError={setCartError}
               router={router}
+              noAccount={noAccount}
             />
           }
           form={form}
