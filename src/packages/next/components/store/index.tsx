@@ -6,7 +6,6 @@
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
-import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -23,6 +22,7 @@ import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
+import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
 
 const { Content } = Layout;
 
@@ -47,7 +47,7 @@ export default function StoreLayout({ page }: Props) {
     router.prefetch("/store/site-license");
   }, []);
 
-  if (!isCommercial) {
+  function renderNotCommercial(): JSX.Element {
     return (
       <Alert
         showIcon
@@ -66,75 +66,83 @@ export default function StoreLayout({ page }: Props) {
       />
     );
   }
+
+  if (!isCommercial) {
+    return renderNotCommercial();
+  }
+
   if (!profile) {
     return <Loading large center />;
   }
   const { account_id, is_anonymous } = profile;
+  const noAccount = account_id == null;
 
-  if (!account_id) {
-    return (
-      <Alert
-        style={{ margin: "15px auto" }}
-        type="warning"
-        message={
-          <InPlaceSignInOrUp
-            title="Account Configuration"
-            why="to shop in the store"
-            onSuccess={() => {
-              router.reload();
-            }}
-          />
-        }
-      />
-    );
-  }
+  // wrapper, only the pages showing the prices will be shown to the general public or anonymous users
+  function requireAccount(StorePage): JSX.Element {
+    if (noAccount) {
+      return (
+        <Alert
+          style={{ margin: "15px auto" }}
+          type="warning"
+          message={<StoreInplaceSignInOrUp />}
+        />
+      );
+    }
 
-  if (is_anonymous) {
-    return <Anonymous />;
+    return <StorePage />;
   }
 
   const [main] = page;
 
   function body() {
     if (main == null) return <Overview />;
+
+    if (is_anonymous) {
+      return <Anonymous />;
+    }
+
     switch (main) {
       case "site-license":
-        return <SiteLicense />;
+        return <SiteLicense noAccount={noAccount} />;
       case "boost":
-        return <Boost />;
+        return <Boost noAccount={noAccount} />;
       case "dedicated":
-        return <DedicatedResource />;
+        return <DedicatedResource noAccount={noAccount} />;
       case "cart":
-        return <Cart />;
+        return requireAccount(Cart);
       case "checkout":
-        return <Checkout />;
+        return requireAccount(Checkout);
       case "congrats":
-        return <Congrats />;
+        return requireAccount(Congrats);
       default:
         unreachable(main);
     }
   }
 
   // this layout is the same as ../licenses/layout.tsx and ../billing/layout.tsx
-  return (
-    <Layout
-      style={{
-        padding: "0 24px 24px",
-        backgroundColor: "white",
-        color: COLORS.GRAY_D,
-      }}
-    >
-      <Content
+  function renderMain(): JSX.Element {
+    return (
+      <Layout
         style={{
-          margin: 0,
-          minHeight: "60vh",
+          padding: "0 24px 24px",
+          backgroundColor: "white",
+          color: COLORS.GRAY_D,
         }}
       >
-        <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-          <Menu main={main} />
-          {body()}
-        </div>
-      </Content>
-    </Layout>
-  );
+        <Content
+          style={{
+            margin: 0,
+            minHeight: "60vh",
+          }}
+        >
+          <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
+            <Menu main={main} />
+            {body()}
+          </div>
+        </Content>
+      </Layout>
+    );
+  }
+
+  return renderMain();
 }

@@ -40,6 +40,7 @@ import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
+import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -50,7 +51,12 @@ const { Text } = Typography;
 const GCP_DISK_URL =
   "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
 
-export default function DedicatedResource() {
+interface Props {
+  noAccount: boolean;
+}
+
+export default function DedicatedResource(props: Props) {
+  const { noAccount } = props;
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -88,12 +94,15 @@ export default function DedicatedResource() {
           <A href="/store/cart">shopping cart</A>.
         </p>
       )}
-      <CreateDedicatedResource showInfoBar={scrollY > offsetHeader} />
+      <CreateDedicatedResource
+        showInfoBar={scrollY > offsetHeader}
+        noAccount={noAccount}
+      />
     </>
   );
 }
 
-function CreateDedicatedResource({ showInfoBar = false }) {
+function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   // somehow this state is necessary to render the form properly
   const [formType, setFormType] = useState<"disk" | "vm" | null>(null);
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
@@ -250,7 +259,7 @@ function CreateDedicatedResource({ showInfoBar = false }) {
       setShowExplanations(!!store_site_license_show_explanations);
     }
     const { id } = router.query;
-    if (id != null) {
+    if (!noAccount && id != null) {
       // editing something in the shopping cart
       (async () => {
         try {
@@ -693,6 +702,7 @@ function CreateDedicatedResource({ showInfoBar = false }) {
           router={router}
           dedicatedItem={true}
           disabled={disabled}
+          noAccount={noAccount}
         />
       </Form.Item>
     );
@@ -707,8 +717,10 @@ function CreateDedicatedResource({ showInfoBar = false }) {
         form={form}
         cartError={cartError}
         setCartError={setCartError}
+        noAccount={noAccount}
       />
       <ApplyLicenseToProject router={router} />
+      <SignInToPurchase noAccount={noAccount} />
       <Form
         form={form}
         style={{
