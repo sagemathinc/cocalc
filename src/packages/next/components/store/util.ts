@@ -10,9 +10,15 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { isValidUUID } from "@cocalc/util/misc";
-import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
+import {
+  endOfDay,
+  getDays,
+  roundToMidnight,
+  startOfDay,
+} from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
+import { isDate } from "lodash";
 import moment from "moment";
 import { NextRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
@@ -174,20 +180,35 @@ export function useLicenseProject(router: NextRouter) {
   };
 }
 
-function encodeRange(val: DateRange): string {
+function encodeRange(vals: DateRange): string {
   // the list of val is encoded as YYYY-MM-DD and separated by a comma
-  return val
-    .map((v) => (v == null ? "" : moment(v).format("YYYY-MM-DD")))
-    .join("_");
+  // this happens after the "correction" of timestamps in the range selector
+  // that's why here is (yet again) some rounding to the start/end of the day.
+  const start =
+    vals[0] != null
+      ? moment(roundToMidnight(vals[0], "start"))?.format("YYYY-MM-DD")
+      : null;
+  const end =
+    vals[1] != null
+      ? moment(roundToMidnight(vals[1], "end"))?.format("YYYY-MM-DD")
+      : null;
+  if (start != null && end != null) {
+    return [start, end].join("_");
+  } else {
+    return "";
+  }
 }
 
 // the inverse of encodeRange
 function decodeRange(val: string): DateRange {
-  const [start, end] = val.split("_");
-  return [
-    start === "" ? undefined : moment(start).toDate(),
-    end === "" ? undefined : moment(end).toDate(),
-  ];
+  const vals = val.split("_");
+  const [start, end] = [startOfDay(vals[0]), endOfDay(vals[1])];
+  // if start and end are Date objects, return them
+  if (start instanceof Date && end instanceof Date) {
+    return [start, end];
+  } else {
+    return [undefined, undefined];
+  }
 }
 
 export function encodeFormValues(router: NextRouter, vals: any): void {
@@ -228,7 +249,7 @@ export function decodeFormValues(router: NextRouter): {
     "cpu",
     "ram",
     "disk",
-    "preset",
+    "range",
   ] as const;
 
   const data = {};
@@ -252,6 +273,13 @@ export function decodeFormValues(router: NextRouter): {
       case "period":
         if (!["monthly", "yearly", "range"].includes(val)) {
           data[key] = "monthly";
+        }
+        break;
+
+      case "range":
+        // check that val is an array of length 2 and both entries are Date objects
+        if (!Array.isArray(val) || val.length !== 2 || !val.every(isDate)) {
+          data[key] = [undefined, undefined];
         }
         break;
 
