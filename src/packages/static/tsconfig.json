@@ -7,7 +7,7 @@
     "outDir": "dist",
     "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
     "sourceMap": true,
-    "target": "es6",
+    "target": "es5",
   },
   "exclude": [
     "*__test__*",

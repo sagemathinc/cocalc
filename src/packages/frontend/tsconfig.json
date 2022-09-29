@@ -4,9 +4,8 @@
     "incremental": false,
     "rootDir": "./",
     "outDir": "dist",
-    "target": "es6",
+    "target": "es5",
     "sourceMap": true,
-    "module": "es2020",
     "lib": ["es5", "es6", "es2017", "dom"],
     "declaration": false
   },
