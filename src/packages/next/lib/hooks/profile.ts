@@ -1,19 +1,21 @@
 /*
-Hook that uses API to get a given user's profile.
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-If account_id is explicitly given, returns the *public* profile for that users.
+// Hook that uses API to get a given user's profile.
+//
+// If account_id is explicitly given, returns the *public* profile for that users.
+//
+// If account_id is NOT given, returns the *private* profile for the signed in user, or
+// empty object if user not signed in.
 
-If account_id is NOT given, returns the *private* profile for the signed in user, or
-empty object if user not signed in.
-
-*/
-
-import useIsMounted from "./mounted";
-import { len } from "@cocalc/util/misc";
-import { useEffect, useState } from "react";
 import { Profile } from "@cocalc/server/accounts/profile/types";
-import LRU from "lru-cache";
+import { len } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
+import LRU from "lru-cache";
+import { useEffect, useState } from "react";
+import useIsMounted from "./mounted";
 // How often to check for new profile.
 const DEFAULT_CACHE_S = 10;
 
@@ -27,9 +29,8 @@ interface Options {
   account_id?: string;
 }
 
-export default function useProfile({ account_id, noCache }: Options = {}):
-  | Profile
-  | undefined {
+export default function useProfile(opts: Options = {}): Profile | undefined {
+  const { account_id, noCache } = opts;
   const isMounted = useIsMounted();
   const [profile, setProfile] = useState<Profile | undefined>(
     noCache ? undefined : cache.get(account_id ?? "")

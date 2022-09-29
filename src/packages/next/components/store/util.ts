@@ -137,7 +137,9 @@ export function useLicenseProject(router: NextRouter) {
     } else if (typeof projectIdLS === "string" && isValidUUID(projectIdLS)) {
       setUpgradeProjectId(projectIdLS);
     } else {
-      console.warn(`Invalid ?project_id=... query param: '${project_id}'`);
+      if (project_id != null) {
+        console.warn(`Invalid ?project_id=... query param: '${project_id}'`);
+      }
     }
   }, []);
 
