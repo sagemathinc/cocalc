@@ -20,6 +20,7 @@ interface Props {
   setCartError: (error) => void;
   dedicatedItem?: boolean;
   disabled?: boolean;
+  noAccount: boolean;
 }
 
 export function AddBox(props: Props) {
@@ -31,6 +32,7 @@ export function AddBox(props: Props) {
     setCartError,
     dedicatedItem = false,
     disabled = false,
+    noAccount,
   } = props;
 
   if (!cost) return null;
@@ -50,6 +52,34 @@ export function AddBox(props: Props) {
     );
   }
 
+  function renderButton(): JSX.Element | null {
+    if (noAccount) return null;
+
+    return (
+      <div style={{ textAlign: "center" }}>
+        {router.query.id != null && (
+          <Button
+            size="large"
+            style={{ marginRight: "5px" }}
+            onClick={() => router.push("/store/cart")}
+            disabled={disabled}
+          >
+            Cancel
+          </Button>
+        )}
+        <AddToCartButton
+          cartError={cartError}
+          cost={cost}
+          disabled={disabled}
+          form={form}
+          router={router}
+          setCartError={setCartError}
+        />
+        {cartError && <Alert type="error" message={cartError} />}
+      </div>
+    );
+  }
+
   return (
     <div style={{ textAlign: "center" }}>
       <div
@@ -66,27 +96,7 @@ export function AddBox(props: Props) {
       >
         <DisplayCost cost={cost} />
         {costPerProject()}
-        <div style={{ textAlign: "center" }}>
-          {router.query.id != null && (
-            <Button
-              size="large"
-              style={{ marginRight: "5px" }}
-              onClick={() => router.push("/store/cart")}
-              disabled={disabled}
-            >
-              Cancel
-            </Button>
-          )}
-          <AddToCartButton
-            cartError={cartError}
-            cost={cost}
-            disabled={disabled}
-            form={form}
-            router={router}
-            setCartError={setCartError}
-          />
-          {cartError && <Alert type="error" message={cartError} />}
-        </div>
+        {renderButton()}
       </div>
     </div>
   );

@@ -1,5 +1,14 @@
 /*
 This module defines how webpack loads each type of file.
+
+
+See https://github.com/iykekings/react-swc-loader-template for swc-loader configuration.
+We use swc-loader as opposed to other options for consistency with next.js.
+
+We do apply swc-loader to node_modules, since there are "bad" modules out there
+(@jupyter-widgets/* I'm looking at you -- see https://github.com/sagemathinc/cocalc/issues/6128),
+and weird surprises can pop up.  We have to exclude transpiling jquery since otherwise
+we get an infinite recursion on startup, but of course jquery is fine.
 */
 
 module.exports = function (PRODMODE) {
@@ -10,25 +19,14 @@ module.exports = function (PRODMODE) {
 
   return [
     {
-      test: /\.js$/,
-      loader: "esbuild-loader",
-      options: {
-        loader: "jsx",
-        target: "es2015",
-      },
+      test: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
+      loader: "swc-loader",
+      exclude: /.*node_modules\/jquery.*/,
     },
     { test: /\.coffee$/, loader: "coffee-loader" },
     {
       test: /\.cjsx$/,
       use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
-    },
-    {
-      test: /\.tsx?$/,
-      loader: "esbuild-loader",
-      options: {
-        loader: "tsx",
-        target: "es2015",
-      },
     },
     {
       test: /\.less$/,

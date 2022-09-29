@@ -22,6 +22,7 @@ import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
+import { SignInToPurchase } from "./sign-in-to-purchase";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, Presets } from "./quota-config-presets";
@@ -39,7 +40,12 @@ const STYLE: React.CSSProperties = {
   padding: "15px",
 } as const;
 
-export default function SiteLicense() {
+interface Props {
+  noAccount: boolean;
+}
+
+export default function SiteLicense(props: Props) {
+  const { noAccount } = props;
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 
@@ -78,7 +84,10 @@ export default function SiteLicense() {
           then add it to your <A href="/store/cart">shopping cart</A>.
         </p>
       )}
-      <CreateSiteLicense showInfoBar={scrollY > offsetHeader} />
+      <CreateSiteLicense
+        showInfoBar={scrollY > offsetHeader}
+        noAccount={noAccount}
+      />
     </>
   );
 }
@@ -86,7 +95,7 @@ export default function SiteLicense() {
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateSiteLicense({ showInfoBar = false }) {
+function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
@@ -110,8 +119,9 @@ function CreateSiteLicense({ showInfoBar = false }) {
     if (store_site_license_show_explanations != null) {
       setShowExplanations(!!store_site_license_show_explanations);
     }
+
     const { id } = router.query;
-    if (id != null) {
+    if (!noAccount && id != null) {
       // editing something in the shopping cart
       (async () => {
         try {
@@ -145,12 +155,14 @@ function CreateSiteLicense({ showInfoBar = false }) {
       form={form}
       cartError={cartError}
       setCartError={setCartError}
+      noAccount={noAccount}
     />
   );
 
   return (
     <div>
       <ApplyLicenseToProject router={router} />
+      <SignInToPurchase noAccount={noAccount} />
       <InfoBar
         show={showInfoBar}
         cost={cost}
@@ -158,6 +170,7 @@ function CreateSiteLicense({ showInfoBar = false }) {
         form={form}
         cartError={cartError}
         setCartError={setCartError}
+        noAccount={noAccount}
       />
       <Form
         form={form}
