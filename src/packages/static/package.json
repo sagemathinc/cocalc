@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.119.0",
+  "version": "1.120.0",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -53,8 +53,8 @@
     "@cocalc/assets": "^1.9.1",
     "@cocalc/backend": "^1.19.1",
     "@cocalc/cdn": "^1.14.1",
-    "@cocalc/frontend": "^1.85.0",
-    "@cocalc/util": "^1.65.0",
+    "@cocalc/frontend": "^1.86.0",
+    "@cocalc/util": "^1.66.0",
     "@mapbox/node-pre-gyp": "^1.0.9",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^28.1.6",
