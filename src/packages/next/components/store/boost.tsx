@@ -19,6 +19,7 @@ import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
+import { isEmpty } from "lodash";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -34,7 +35,7 @@ import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
-import { getType } from "./util";
+import { decodeFormValues, encodeFormValues, getType } from "./util";
 
 const { Text, Paragraph } = Typography;
 
@@ -123,7 +124,9 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
   }, []);
 
   function onChange() {
-    const conf = { ...form.getFieldsValue(true) };
+    const vals = form.getFieldsValue(true);
+    encodeFormValues(router, vals);
+    const conf = { ...vals };
     conf.type = "boost";
     conf.boost = true;
     setCost(computeCost(conf));
@@ -165,6 +168,11 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
         }
         onChange();
       })();
+    } else {
+      const vals = decodeFormValues(router, "boost");
+      if (!isEmpty(vals)) {
+        form.setFieldsValue(vals);
+      }
     }
     onChange();
   }, []);
@@ -280,7 +288,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onChange={onChange}
+        onValuesChange={onChange}
       >
         {renderConfirmation()}
         <ToggleExplanations

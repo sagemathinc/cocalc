@@ -6,7 +6,6 @@
 /*
 Create a new site license.
 */
-import { isEmpty } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -17,18 +16,19 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
+import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
-import { SignInToPurchase } from "./sign-in-to-purchase";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, Presets } from "./quota-config-presets";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
+import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -142,7 +142,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         onChange();
       })();
     } else {
-      const vals = decodeFormValues(router);
+      const vals = decodeFormValues(router, "regular");
       if (isEmpty(vals)) {
         const { cpu, ram, disk } = PRESETS["standard"];
         form.setFieldsValue({ cpu, ram, disk, preset: "standard" });

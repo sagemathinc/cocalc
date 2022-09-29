@@ -25,6 +25,15 @@ import { useEffect, useMemo, useState } from "react";
 import { LicenseTypeInForms } from "./add-to-cart";
 import { MAX_DISK, MAX_GB_RAM } from "./quota-config";
 import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
+import {
+  DEDICATED_DISK_SPEEDS,
+  DEDICATED_DISK_SIZES,
+  DEFAULT_DEDICATED_DISK_SIZE,
+  DEFAULT_DEDICATED_DISK_SPEED,
+  PRICES,
+  DEFAULT_DEDICATED_VM_MACHINE,
+} from "@cocalc/util/upgrades/dedicated";
+import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
 
 // site license type in a form, we have 4 forms hence 4 types
 // later, this will be mapped to just "LicenseType", where boost and regular
@@ -235,22 +244,38 @@ function decodeValue(val): boolean | number | string | DateRange {
   return val;
 }
 
-// the query looks like this:
-// user=academic&period=monthly&run_limit=1&member=true&uptime=short&cpu=1&ram=2&disk=3
-export function decodeFormValues(router: NextRouter): {
+/** a query looks like this:
+ * user=academic&period=monthly&run_limit=1&member=true&uptime=short&cpu=1&ram=2&disk=3
+ *
+ * NOTE: the support for dedicated disk & vm does not work. the form is too complicated, not no need to support this yet.
+ */
+export function decodeFormValues(
+  router: NextRouter,
+  type: "regular" | "boost" | "dedicated"
+): {
   [key: string]: string | number | boolean;
 } {
-  const FORM_FIELDS = [
-    "user",
-    "period",
-    "run_limit",
-    "member",
-    "uptime",
-    "cpu",
-    "ram",
-    "disk",
-    "range",
-  ] as const;
+  const COMMON_FIELDS = ["user", "period", "range"] as const;
+  const FORM_FIELDS =
+    type === "dedicated"
+      ? [
+          ...COMMON_FIELDS,
+          "disk-size_gb",
+          "disk-name",
+          "disk-speed",
+          "vm-machine",
+        ]
+      : ([
+          ...COMMON_FIELDS,
+          "run_limit",
+          "member",
+          "uptime",
+          "cpu",
+          "ram",
+          "disk",
+        ] as const);
+
+  const minVal = type === "boost" ? 0 : 1;
 
   const data = {};
   for (const key in router.query) {
@@ -303,20 +328,46 @@ export function decodeFormValues(router: NextRouter): {
         break;
 
       case "cpu":
-        if (typeof val !== "number" || val < 1 || val > MAX_DISK) {
+        if (typeof val !== "number" || val < minVal || val > MAX_DISK) {
           data[key] = 1;
         }
         break;
 
       case "ram":
-        if (typeof val !== "number" || val < 1 || val > MAX_GB_RAM) {
+        if (typeof val !== "number" || val < minVal || val > MAX_GB_RAM) {
           data[key] = 1;
         }
         break;
 
       case "disk":
-        if (typeof val !== "number" || val < 1 || val > MAX_DISK) {
+        if (typeof val !== "number" || val < minVal || val > MAX_DISK) {
           data[key] = 1;
+        }
+        break;
+
+      case "disk-size_gb":
+        if (typeof val !== "number" || !DEDICATED_DISK_SIZES.includes(val)) {
+          data[key] = DEFAULT_DEDICATED_DISK_SIZE;
+        }
+        break;
+
+      case "disk-name":
+        try {
+          testDedicatedDiskNameBasic(val);
+        } catch {
+          data[key] = "";
+        }
+        break;
+
+      case "disk-speed":
+        if (!DEDICATED_DISK_SPEEDS.includes(val)) {
+          data[key] = DEFAULT_DEDICATED_DISK_SPEED;
+        }
+        break;
+
+      case "vm-machine":
+        if (PRICES.vms[val] == null) {
+          data[key] = DEFAULT_DEDICATED_VM_MACHINE;
         }
         break;
 
@@ -326,11 +377,31 @@ export function decodeFormValues(router: NextRouter): {
     }
   }
 
-  // hosting vs. uptime restriction:
+  // hosting quality vs. uptime restriction:
   if (["always_running", "day"].includes(data["uptime"])) {
     data["member"] = true;
   }
 
-  console.log(data);
+  if (type === "dedicated") {
+    data["type"] = data["vm-machine"] != null ? "vm" : null;
+
+    // if any key in data starts with "disk-" then set data["type"] to "disk"
+    if (data["type"] == null) {
+      for (const key in data) {
+        if (key.startsWith("disk-")) {
+          data["type"] = "disk";
+          break;
+        }
+      }
+    }
+
+    if (data["type"] === "disk") {
+      data["period"] = "monthly";
+    }
+    if (data["type"] === "vm") {
+      data["period"] = "range";
+    }
+  }
+
   return data;
 }

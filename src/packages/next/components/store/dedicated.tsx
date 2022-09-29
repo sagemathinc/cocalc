@@ -20,6 +20,8 @@ import {
 } from "@cocalc/util/types/dedicated";
 import {
   DEDICATED_DISK_SIZE_INCREMENT,
+  DEFAULT_DEDICATED_DISK_SIZE,
+  DEFAULT_DEDICATED_DISK_SPEED,
   getDedicatedDiskKey,
   MAX_DEDICATED_DISK_SIZE,
   MIN_DEDICATED_DISK_SIZE,
@@ -555,7 +557,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         <Form.Item
           label="Size"
           name="disk-size_gb"
-          initialValue={MIN_DEDICATED_DISK_SIZE + DEDICATED_DISK_SIZE_INCREMENT}
+          initialValue={DEFAULT_DEDICATED_DISK_SIZE}
           extra={
             showExplanations && <>Select the size of the dedicated disk.</>
           }
@@ -576,7 +578,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         <Form.Item
           name="disk-speed"
           label="Speed"
-          initialValue={"standard"}
+          initialValue={DEFAULT_DEDICATED_DISK_SPEED}
           extra={renderDedicatedDiskInfo()}
         >
           <Radio.Group
@@ -733,7 +735,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onChange={onChange}
+        onValuesChange={onChange}
       >
         <ToggleExplanations
           showExplanations={showExplanations}

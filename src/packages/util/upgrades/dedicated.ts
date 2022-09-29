@@ -147,10 +147,12 @@ const MBPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
 export const MIN_DEDICATED_DISK_SIZE = 32;
 export const MAX_DEDICATED_DISK_SIZE = 1024;
 export const DEDICATED_DISK_SIZE_INCREMENT = 32;
+export const DEFAULT_DEDICATED_DISK_SIZE =
+  MIN_DEDICATED_DISK_SIZE + DEDICATED_DISK_SIZE_INCREMENT;
 
 // this must be kept in sync with the numerical slider in next/store/dedicated
 // we also make it readonly to avoid accidental changes
-const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
+export const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
   const v: number[] = [];
   for (
     let i = MIN_DEDICATED_DISK_SIZE;
@@ -164,11 +166,13 @@ const DEDICATED_DISK_SIZES: Readonly<number[]> = (function () {
 
 // ATTN: do not modify/insert/prepend to this list -- only append
 // otherwise you distort the stripe ID!
-const DEDICATED_DISK_SPEEDS: Readonly<DedicatedDiskSpeeds[]> = [
+export const DEDICATED_DISK_SPEEDS: Readonly<DedicatedDiskSpeeds[]> = [
   "standard",
   "balanced",
   "ssd",
 ] as const;
+
+export const DEFAULT_DEDICATED_DISK_SPEED: DedicatedDiskSpeeds = "standard";
 
 export function getDedicatedDiskKey({
   size_gb,
@@ -201,6 +205,12 @@ for (const size_gb of DEDICATED_DISK_SIZES) {
     };
   }
 }
+
+export const DEFAULT_DEDICATED_VM_MACHINE = getSpecAndQuota({
+  family: "n2",
+  memSize: "highmem",
+  cpus: 2,
+}).quota.dedicated_vm;
 
 export const PRICES = {
   vms: VMS,
