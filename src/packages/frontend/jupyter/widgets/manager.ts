@@ -139,6 +139,14 @@ export class WidgetManager extends ManagerBase {
     }
   }
 
+  private async getModel(model_id: string) {
+    try {
+      return await this.getModel(model_id);
+    } catch (_) {
+      return null;
+    }
+  }
+
   private async handle_table_model_state_change(
     model_id: string
   ): Promise<void> {
@@ -155,7 +163,7 @@ export class WidgetManager extends ManagerBase {
       return;
     }
 
-    const model = await this.get_model(model_id);
+    const model = await this.getModel(model_id);
     if (model == null) {
       // create model
       await this.create_new_model(model_id, state);
@@ -202,7 +210,7 @@ export class WidgetManager extends ManagerBase {
     }
     this.state_lock.add(model_id);
     await this.update_model(model_id, changed);
-    const model = await this.get_model(model_id);
+    const model = await this.getModel(model_id);
     if (model != null) {
       await model.state_change;
     }
@@ -242,7 +250,7 @@ export class WidgetManager extends ManagerBase {
     the widget can properly deserialize again, as I learned with k3d, which
     processes everything.
     */
-    const model = await this.get_model(model_id);
+    const model = await this.getModel(model_id);
     if (model == null) return;
     const { buffer_paths } = await this.ipywidgets_state.get_model_buffers(
       model_id
@@ -265,7 +273,7 @@ export class WidgetManager extends ManagerBase {
     const message = this.ipywidgets_state.get_message(model_id);
     if (size(message) == 0) return; // temporary until we have delete functionality
     // console.log("handle_table_model_message_change", message);
-    const model = await this.get_model(model_id);
+    const model = await this.getModel(model_id);
     if (model == null) return;
     model.trigger("msg:custom", message);
   }
@@ -325,7 +333,7 @@ export class WidgetManager extends ManagerBase {
     model_id: string,
     change: ModelState
   ): Promise<void> {
-    const model: base.DOMWidgetModel | undefined = await this.get_model(
+    const model: base.DOMWidgetModel | undefined = await this.getModel(
       model_id
     );
     // console.log("update_model", { model, change });
@@ -422,7 +430,7 @@ export class WidgetManager extends ManagerBase {
     model_id: string,
     serialized_state: any
   ): Promise<void> {
-    if ((await this.get_model(model_id)) != null) {
+    if ((await this.getModel(model_id)) != null) {
       // already created
       return;
     }
@@ -645,7 +653,7 @@ export class WidgetManager extends ManagerBase {
     }
 
     const model_id = val.slice(10);
-    return await this.get_model(model_id);
+    return await this.getModel(model_id);
   }
 
   private async dereference_model_links(state): Promise<boolean> {
