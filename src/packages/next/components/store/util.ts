@@ -169,3 +169,19 @@ export function useLicenseProject(router: NextRouter) {
     storeLicenseProjectAssociation,
   };
 }
+
+export function encodeRange(val: [Date | undefined, Date | undefined]): string {
+  // the list of val is encoded as YYYY-MM-DD and separated by a comma
+  return val
+    .map((v) => (v == null ? "" : moment(v).format("YYYY-MM-DD")))
+    .join("_");
+}
+
+// the inverse of encodeRange
+export function decodeRange(val: string): [Date | undefined, Date | undefined] {
+  const [start, end] = val.split("_");
+  return [
+    start === "" ? undefined : moment(start).toDate(),
+    end === "" ? undefined : moment(end).toDate(),
+  ];
+}

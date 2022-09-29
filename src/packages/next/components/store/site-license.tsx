@@ -30,6 +30,7 @@ import { RunLimit } from "./run-limit";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+import { encodeRange } from "./util";
 
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
@@ -100,7 +101,24 @@ function CreateSiteLicense({ showInfoBar = false }) {
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
   function onChange() {
-    setCost(computeCost(form.getFieldsValue(true)));
+    const vals = form.getFieldsValue(true);
+    console.log("vals", vals);
+
+    const q = router.query;
+    for (const key in vals) {
+      const val = vals[key];
+      if (key === "type" || key === "preset") continue; // we're already on the right page
+      if (val == null) {
+        delete q[key];
+      } else if (key === "range") {
+        q[key] = encodeRange(val);
+      } else {
+        q[key] = val;
+      }
+    }
+    router.replace({ query: q }, undefined, { shallow: true });
+
+    setCost(computeCost(vals));
   }
 
   useEffect(() => {
@@ -166,7 +184,7 @@ function CreateSiteLicense({ showInfoBar = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onChange={onChange}
+        onValuesChange={onChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         <ToggleExplanations
