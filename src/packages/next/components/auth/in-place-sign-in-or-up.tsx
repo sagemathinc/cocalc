@@ -30,7 +30,7 @@ export default function InPlaceSignInOrUp(props: Props) {
       </Divider>
       <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
       <a onClick={() => setShow("sign-up")}>Sign Up</a>
-      {why == null ? "." : <>{why}.</>}
+      {why == null ? "." : <> {why}.</>}
       <br />
       <br />
       {show == "sign-in" && (

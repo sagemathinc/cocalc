@@ -21,11 +21,13 @@ interface Props {
   form: any;
   cartError: string | undefined;
   setCartError: (error) => void;
+  noAccount: boolean;
 }
 
 // this is like a minimal "add box"
 export const InfoBar: React.FC<Props> = (props: Props) => {
-  const { show, cost, router, form, cartError, setCartError } = props;
+  const { show, cost, router, form, cartError, setCartError, noAccount } =
+    props;
 
   if (!show) return null;
 
@@ -54,15 +56,17 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
             </Text>
           </>
         )}
-        <AddToCartButton
-          cartError={cartError}
-          cost={cost}
-          form={form}
-          router={router}
-          setCartError={setCartError}
-          variant={"small"}
-          disabled={disabled}
-        />
+        {!noAccount && (
+          <AddToCartButton
+            cartError={cartError}
+            cost={cost}
+            form={form}
+            router={router}
+            setCartError={setCartError}
+            variant={"small"}
+            disabled={disabled}
+          />
+        )}
       </>
     );
   }
