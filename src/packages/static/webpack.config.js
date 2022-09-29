@@ -108,6 +108,13 @@ require("./src/plugins/define-constants")(registerPlugin, {
   "process.env": {}, // the util polyfill assumes this is defined.
 });
 
+registerPlugin(
+  "define React",
+  new webpack.ProvidePlugin({
+    React: "react",
+  })
+);
+
 if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
 }
@@ -128,16 +135,16 @@ if (useDiskCache) {
 module.exports = {
   cache: useDiskCache
     ? {
-      // This is supposed to cache the in-memory state to disk
-      // so initial startup time is less.  Don't do this in
-      // user home directory on cocalc, since it uses a LOT
-      // of disk IO, which makes everything very slow.
-      type: "filesystem",
-      buildDependencies: {
-        config: [__filename],
-      },
-      cacheDirectory,
-    }
+        // This is supposed to cache the in-memory state to disk
+        // so initial startup time is less.  Don't do this in
+        // user home directory on cocalc, since it uses a LOT
+        // of disk IO, which makes everything very slow.
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+        cacheDirectory,
+      }
     : undefined,
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",

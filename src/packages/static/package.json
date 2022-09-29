@@ -20,7 +20,7 @@
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
-    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput",
+    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput --noEmit",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
@@ -78,6 +78,7 @@
     "entities": "^2.2.0",
     "enzyme": "^3.11.0",
     "enzyme-to-json": "^3.6.2",
+    "esbuild-loader": "^2.20.0",
     "eslint": "^7.31.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^3.4.1",

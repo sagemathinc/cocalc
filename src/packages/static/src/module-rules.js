@@ -9,24 +9,26 @@ module.exports = function (PRODMODE) {
     : "[path][name].nocache.[ext]";
 
   return [
+    {
+      test: /\.js$/,
+      loader: "esbuild-loader",
+      options: {
+        loader: "jsx",
+        target: "es2015",
+      },
+    },
     { test: /\.coffee$/, loader: "coffee-loader" },
     {
       test: /\.cjsx$/,
       use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
     },
     {
-      test: /\.(tsx|ts)$/,
-      use: [
-        {
-          loader: "ts-loader",
-          options: {
-            transpileOnly: true,
-          },
-          // NOTE: Regarding "transpileOnly: true," above we must disable typescript checking, since it is way too slow and uses
-          // too much RAM.  Instead you must use `tsc --watch` directly in another shell,
-          // or an IDE that supports typescript.  For CoCalc, use `npm tsc`.
-        },
-      ],
+      test: /\.tsx?$/,
+      loader: "esbuild-loader",
+      options: {
+        loader: "tsx",
+        target: "es2015",
+      },
     },
     {
       test: /\.less$/,
