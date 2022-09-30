@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.119.0",
+  "version": "1.121.0",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -20,7 +20,7 @@
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
-    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput",
+    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput --noEmit",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
@@ -53,8 +53,8 @@
     "@cocalc/assets": "^1.9.1",
     "@cocalc/backend": "^1.19.1",
     "@cocalc/cdn": "^1.14.1",
-    "@cocalc/frontend": "^1.85.0",
-    "@cocalc/util": "^1.65.0",
+    "@cocalc/frontend": "^1.87.0",
+    "@cocalc/util": "^1.66.0",
     "@mapbox/node-pre-gyp": "^1.0.9",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^28.1.6",
@@ -111,6 +111,7 @@
     "source-map-loader": "^3.0.0",
     "stream-browserify": "^3.0.0",
     "style-loader": "^2.0.0",
+    "swc-loader": "^0.2.3",
     "temp": "^0.9.4",
     "ts-import-plugin": "^1.6.7",
     "ts-jest": "^28.0.7",
