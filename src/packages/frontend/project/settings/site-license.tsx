@@ -11,12 +11,12 @@ import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
-import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 import { Card, Popover } from "antd";
 import { Map } from "immutable";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 
 interface Props {
   project_id: string;
@@ -133,7 +133,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         <br />
         <br />
         <span style={{ fontSize: "13pt" }}>
-          <PurchaseOneLicenseLink />
+          <BuyLicenseForProject project_id={project_id} />
         </span>
       </div>
     </Card>
