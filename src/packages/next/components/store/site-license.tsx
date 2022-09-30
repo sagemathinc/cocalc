@@ -143,11 +143,12 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
+      const dflt = PRESETS["standard"];
       if (isEmpty(vals)) {
-        const { cpu, ram, disk } = PRESETS["standard"];
-        form.setFieldsValue({ cpu, ram, disk, preset: "standard" });
+        form.setFieldsValue({ ...dflt, preset: "standard" });
       } else {
-        form.setFieldsValue(vals);
+        // we have to make sure cpu, mem and disk are set, otherwise there is no "cost"
+        form.setFieldsValue({ ...dflt, ...vals });
         setConfigMode("expert");
         setPresetAdjusted(true);
       }
