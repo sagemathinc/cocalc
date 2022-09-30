@@ -16,18 +16,20 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
+import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
 import { InfoBar } from "./cost-info-bar";
-import { SignInToPurchase } from "./sign-in-to-purchase";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, Presets } from "./quota-config-presets";
+import { decodeFormValues, encodeFormValues } from "./quota-query-params";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
+import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
@@ -109,7 +111,9 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
   function onChange() {
-    setCost(computeCost(form.getFieldsValue(true)));
+    const vals = form.getFieldsValue(true);
+    encodeFormValues(router, vals);
+    setCost(computeCost(vals));
   }
 
   useEffect(() => {
@@ -138,8 +142,16 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         onChange();
       })();
     } else {
-      const { cpu, ram, disk } = PRESETS["standard"];
-      form.setFieldsValue({ cpu, ram, disk, preset: "standard" });
+      const vals = decodeFormValues(router, "regular");
+      const dflt = PRESETS["standard"];
+      if (isEmpty(vals)) {
+        form.setFieldsValue({ ...dflt, preset: "standard" });
+      } else {
+        // we have to make sure cpu, mem and disk are set, otherwise there is no "cost"
+        form.setFieldsValue({ ...dflt, ...vals });
+        setConfigMode("expert");
+        setPresetAdjusted(true);
+      }
     }
     onChange();
   }, []);
@@ -179,7 +191,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
         autoComplete="off"
-        onChange={onChange}
+        onValuesChange={onChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         <ToggleExplanations

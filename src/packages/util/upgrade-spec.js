@@ -34,6 +34,7 @@ exports.DEFAULT_QUOTAS = {
 };
 
 // type must be Upgrades (in @cocalc/util/upgrades/quota)
+// Check src/packages/util/upgrades/consts.ts for values used in the store!!!
 upgrades.max_per_project = {
   disk_quota: 20000,
   memory: 16000,
