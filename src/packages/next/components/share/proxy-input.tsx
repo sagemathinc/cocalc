@@ -18,14 +18,17 @@ export default function ProxyInput() {
       <A href="https://doc.cocalc.com/share.html">
         Share what you create in <SiteName />
       </A>{" "}
-      or paste a URL from anywhere on the web of a notebook, GitHub repo, or
-      markdown file:
+      or paste a URL to a <A href="http://github.com/">GitHub</A> repository,{" "}
+      <A href="https://gist.github.com/">Gist</A> or{" "}
+      <A href="https://cocalc.com/features/jupyter-notebook">
+        Jupyter notebook
+      </A>
+      :
       <Input.Search
         style={{ marginTop: "10px" }}
-        size="large"
-        placeholder="URL to notebook or GitHub username or GitHub username/repo or Gist id"
+        placeholder="URL to GitHub repository, Gist or Jupyter notebook"
         allowClear
-        enterButton="Enter"
+        enterButton="View GitHub Repo, Gist or Notebook"
         onSearch={(url) => {
           try {
             router.push(urlToProxyURL(url));
