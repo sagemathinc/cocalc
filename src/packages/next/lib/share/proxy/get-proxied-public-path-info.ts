@@ -16,11 +16,17 @@ export default async function getProxiedPublicPathInfo(
       segments == null ? url : join(url, ...segments.slice(1))
     );
   }
-  if (url.startsWith("url/")) {
-    return await getPublicPathInfoUrl(url);
-  }
   if (url.startsWith("gist/")) {
     return await getPublicPathInfoGist(url);
   }
-  throw Error(`unknown proxy url schema -- "${url}"`);
+  // This is disabled now since it is easy for spammers to take advantage of this,
+  // and also when people paste general URL's in they are almost never the actual
+  // raw url of a notebook, but instead a general HTML page that has something like
+  // a notebook in it, and they just get confused.
+  //   if (url.startsWith("url/")) {
+  //     return await getPublicPathInfoUrl(url);
+  //   }
+  throw Error(
+    `unsupported proxy url schema -- "${url}" -- url must be hosted on GitHub`
+  );
 }

@@ -38,7 +38,7 @@ export default async function handle(req, res) {
     const info = await getProxiedPublicPathInfo(url);
     if (info.contents?.content == null) {
       throw Error(
-        "copying of directories (e.g., GitHub repos) is not implemented"
+        "copying of directories (e.g., full GitHub repos) is not implemented; copy an individual file instead"
       );
     }
     const i = url.lastIndexOf("/");

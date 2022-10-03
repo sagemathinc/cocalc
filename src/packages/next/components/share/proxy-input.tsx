@@ -18,22 +18,19 @@ export default function ProxyInput() {
       <A href="https://doc.cocalc.com/share.html">
         Share what you create in <SiteName />
       </A>{" "}
-      or paste a URL to a <A href="http://github.com/">GitHub</A> repository,{" "}
-      <A href="https://gist.github.com/">Gist</A> or{" "}
-      <A href="https://cocalc.com/features/jupyter-notebook">
-        Jupyter notebook
-      </A>
+      or paste a URL to a <A href="http://github.com/">GitHub</A> repository or{" "}
+      <A href="https://gist.github.com/">Gist</A>
       :
       <Input.Search
         style={{ marginTop: "10px" }}
-        placeholder="URL to GitHub repository, Gist or Jupyter notebook"
+        placeholder="URL to GitHub repository or Gist"
         allowClear
-        enterButton="View GitHub Repo, Gist or Notebook"
+        enterButton="View GitHub Repository or Gist"
         onSearch={(url) => {
           try {
             router.push(urlToProxyURL(url));
           } catch (err) {
-            setError(`Please enter a valid URL -- ${err}`);
+            setError(`${err}`);
           }
         }}
       />
@@ -56,6 +53,11 @@ export default function ProxyInput() {
 //     - gist
 //     - github user or repo
 //     - general URL fallback, if none of the above apply
+//
+// NOTE: we implemented general URL's.  HOWEVER spammers use this to
+// automate creating large numbers of links from cocalc to their bullshit
+// pages to improve their SEO ranking.  Thus we restrict only to github.
+//
 function urlToProxyURL(url: string): string {
   const { host, pathname } = new URL(url);
   if (host == new URL(document.URL).host) {
@@ -66,6 +68,6 @@ function urlToProxyURL(url: string): string {
   } else if (host == "gist.github.com") {
     return `/gist${pathname}`;
   } else {
-    return `/url/${host}${pathname}`;
+    throw Error("The URL most be to content on github.com.");
   }
 }
