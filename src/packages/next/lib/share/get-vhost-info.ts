@@ -44,8 +44,12 @@ export default async function getVirtualHostInfo(
   // Get the database entry that describes the public path with given vhost.
   // NOTE: we are assuming there is at most one with a given vhost.  If there
   // are more, behavior is not defined, but that will get logged.
-  const query =
-    "SELECT project_id, path, auth, cross_origin_isolation FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
+  // As an optimization, we also check if vhost is null, to quickly remove the majority of entries (gives a 1000x speedup in prod).
+  const query = `SELECT project_id, path, auth, cross_origin_isolation
+    FROM public_paths
+    WHERE disabled IS NOT TRUE
+      AND vhost IS NOT NULL
+      AND $1::TEXT=ANY(string_to_array(vhost,','))`;
   // logger.debug('query = ', query);
 
   try {
