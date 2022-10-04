@@ -23,7 +23,7 @@ export const GROUPS = [
 
 type Group = typeof GROUPS[number];
 
-interface ComputeImage {
+export interface ComputeImage {
   title: string;
   short: string; // a shorter title, show this when you also show the group
   descr: string;
