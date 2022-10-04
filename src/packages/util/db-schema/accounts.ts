@@ -174,6 +174,7 @@ Table({
       "last_active DESC NULLS LAST",
       "lti_id",
       "unlisted",
+      "((passports IS NOT NULL))",
     ],
     pg_unique_indexes: [
       "api_key", // we use the map api_key --> account_id, so it better be unique

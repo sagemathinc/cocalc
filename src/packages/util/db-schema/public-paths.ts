@@ -163,6 +163,11 @@ Table({
     pg_indexes: [
       "project_id",
       "url",
+      "last_edited",
+      "vhost",
+      "disabled",
+      "unlisted",
+      "authenticated",
       "(substring(project_id::text from 1 for 1))",
       "(substring(project_id::text from 1 for 2))",
     ],
