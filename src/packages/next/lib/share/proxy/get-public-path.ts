@@ -21,7 +21,7 @@ import * as sha1 from "sha1";
 import { fileInGist } from "./api";
 
 export function shouldUseProxy(owner: string): boolean {
-  return owner == "github" || owner == "gist" || owner == "url";
+  return owner == "github" || owner == "gist";
 }
 
 const QUERY = `SELECT id, project_id, path, url, description, counter::INT, last_edited,
