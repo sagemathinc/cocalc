@@ -30,6 +30,8 @@ export interface ComputeImage {
   group: Group;
   order?: number;
   hidden?: boolean; // NYI
+  tag?: string;
+  registry?: string;
 }
 
 // NOTE: do not remove entries, to preserve rendering user-facing strings for older entries

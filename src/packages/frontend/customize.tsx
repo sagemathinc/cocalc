@@ -7,6 +7,12 @@
 
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
+  ComputeImage,
+  COMPUTE_IMAGES,
+  DEFAULT_COMPUTE_IMAGE,
+  GROUPS,
+} from "@cocalc/util/compute-images";
+import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
   KUCALC_ON_PREMISES,
@@ -16,7 +22,7 @@ import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";
 import { gtag_id } from "@cocalc/util/theme";
 import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
-import { List } from "immutable";
+import { fromJS, List } from "immutable";
 import { join } from "path";
 import {
   Actions,
@@ -71,6 +77,12 @@ defaults._is_configured = false; // will be true after set via call to server
 // what I did below.
 // type SiteSettings = { [k in keyof SiteSettingsConfig]: any  };
 
+export type SoftwareEnvironments = TypedMap<{
+  groups: List<string>;
+  default: string;
+  environments: Map<string, ComputeImage>;
+}>;
+
 export interface CustomizeState {
   is_commercial: boolean;
   ssh_gateway: boolean;
@@ -113,6 +125,7 @@ export interface CustomizeState {
   // use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
   country: string;
   // flag to signal data stored in the Store.
+  software: SoftwareEnvironments;
   _is_configured: boolean;
 }
 
@@ -164,8 +177,14 @@ async function init_customize() {
     max_delay: 30000,
   });
 
-  const { configuration, registration, strategies } = customize;
+  const {
+    configuration,
+    registration,
+    strategies,
+    software = null,
+  } = customize;
   process_customize(configuration);
+  process_software(software);
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });
@@ -191,7 +210,7 @@ function process_customize(obj) {
 
 // "obj" are the already processed values from the database
 // this function is also used by hub-landing!
-export function set_customize(obj) {
+function set_customize(obj) {
   // console.log('set_customize obj=\n', JSON.stringify(obj, null, 2));
 
   // set some special cases, backwards compatibility
@@ -199,6 +218,20 @@ export function set_customize(obj) {
 
   obj._is_configured = true;
   actions.setState(obj);
+}
+
+function process_software(software) {
+  if (software != null) {
+    actions.setState({ software });
+  } else {
+    actions.setState({
+      software: fromJS({
+        default: DEFAULT_COMPUTE_IMAGE,
+        groups: GROUPS,
+        environments: COMPUTE_IMAGES,
+      }),
+    });
+  }
 }
 
 interface HelpEmailLink {

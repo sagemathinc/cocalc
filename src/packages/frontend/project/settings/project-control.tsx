@@ -39,6 +39,7 @@ import { RestartProject } from "./restart-project";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
+
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 interface ReactProps {
@@ -48,6 +49,8 @@ interface ReactProps {
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+
+  const software_envs = useTypedRedux("customize", "software");
 
   //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
   const [compute_image, set_compute_image] = useState<string>(
@@ -351,6 +354,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   return (
     <SettingBox title="Project control" icon="gears">
+      <pre>{JSON.stringify(software_envs?.toJS(), null, 2)}</pre>
       <LabeledRow key="state" label="State" style={rowstyle(true)}>
         {render_state()}
       </LabeledRow>
