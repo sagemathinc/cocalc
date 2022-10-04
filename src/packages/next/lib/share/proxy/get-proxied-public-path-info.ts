@@ -2,10 +2,11 @@
 // to already exist in the database.
 
 import getPublicPathInfoGithub from "./get-public-path-info-github";
-import getPublicPathInfoUrl from "./get-public-path-info-url";
 import getPublicPathInfoGist from "./get-public-path-info-gist";
 import { join } from "path";
-``;
+
+// disabled -- see comment below
+// import getPublicPathInfoUrl from "./get-public-path-info-url";
 
 export default async function getProxiedPublicPathInfo(
   url: string,
