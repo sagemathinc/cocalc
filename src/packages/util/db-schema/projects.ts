@@ -31,6 +31,7 @@ Table({
       "((state IS NULL))", // not coverd by the above
       "((settings ->> 'always_running'))", // to quickly know which projects have this setting
       "((run_quota ->> 'always_running'))", // same reason as above
+      "site_license", // for queries across projects related to site_license#>>{license_id}
     ],
 
     user_query: {
