@@ -94,7 +94,10 @@ Table({
       "time",
       "scheduled",
       "((started IS NULL))",
+      "((started IS NOT NULL))",
       "((finished IS NULL))",
+      "((finished IS NOT NULL))",
+      "((error IS NOT NULL))",
     ],
   },
 });

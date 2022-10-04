@@ -191,7 +191,11 @@ export async function passport_exists(
   try {
     const result = await db.async_query({
       query: "SELECT account_id FROM accounts",
-      where: { "(passports->>$::TEXT) IS NOT NULL": _passport_key(opts) },
+      where: [
+        // this uses the corresponding index to only scan a subset of all accounts!
+        "passports IS NOT NULL",
+        { "(passports->>$::TEXT) IS NOT NULL": _passport_key(opts) },
+      ],
     });
     const account_id = result?.rows[0]?.account_id;
     if (opts.cb != null) {
