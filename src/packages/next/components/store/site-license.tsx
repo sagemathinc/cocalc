@@ -112,7 +112,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
 
   function onChange() {
     const vals = form.getFieldsValue(true);
-    encodeFormValues(router, vals);
+    encodeFormValues(router, vals, "regular");
     setCost(computeCost(vals));
   }
 

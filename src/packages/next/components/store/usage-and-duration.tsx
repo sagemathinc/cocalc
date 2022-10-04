@@ -174,12 +174,7 @@ export function UsageAndDuration(props: Props) {
           label="Period"
           extra={renderDurationExplanation()}
         >
-          <Radio.Group
-            disabled={disabled}
-            onChange={(e) => {
-              form.setFieldsValue({ period: e.target.value });
-            }}
-          >
+          <Radio.Group disabled={disabled}>
             <Space direction="vertical" style={{ margin: "5px 0" }}>
               {renderSubsOptions()}
               {renderRangeOption()}
