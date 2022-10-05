@@ -10,7 +10,7 @@ const desc = {
   ask_jupyter_kernel: `Each time you create a new Jupyter notebook, by default it will ask which kernel to use.
 If you disable this option, then new notebooks will open using the kernel that you most recently explicitly
 selected.  You can of course change the kernel of any notebook at any time in the Kernel dropdown menu.`,
-  disable_jupyter_virtualization: `By default Jupyter notebooks are rendered using "virtualization", so only the visible cells are actually rendered.   If you select this option, then we instead render entire notebook. This is potentially much slower but may address some issues.  You must close and open your notebook to see the change.`,
+  disable_jupyter_virtualization: `By default Jupyter notebooks are rendered using "virtualization" or "windowing", so only the visible cells are actually rendered.   If you select this option, then we instead render entire notebook. This is potentially much slower but may address some subtle issues.  You must close and open your notebook to see the change.`,
   jupyter_classic: `CoCalc includes a mode where it embeds
 the classical Jupyter notebook in an iframe and installs a plugin to enable realtime collaboration.
 However, collaboration does not work as well as in the default Jupyter editor.`,
