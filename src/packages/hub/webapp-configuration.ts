@@ -10,12 +10,10 @@
 // (allows whitelabeling).
 
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import {
-  getSoftwareEnvironments,
-  SoftwareEnvConfig,
-} from "@cocalc/server/software-envs";
+import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import debug from "debug";

@@ -3,17 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// this is tied to the back-end setup of cocalc.com
-
-import { defaults, required } from "./misc";
+// this is tied to the back-end setup of cocalc.com and only used if
+// the "/customize" endpoint does not send a suitable "software" field.
+// check frontend/customize.tsx for more details.
 
 import * as schema from "./db-schema";
 
-export const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
-export const FALLBACK_COMPUTE_IMAGE = schema.FALLBACK_COMPUTE_IMAGE;
+const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
 
 // this array defines their ordering
-export const GROUPS = [
+const GROUPS = [
   "Main",
   "Ubuntu 20.04",
   "Ubuntu 18.04",
@@ -24,19 +23,25 @@ export const GROUPS = [
 type Group = typeof GROUPS[number];
 
 export interface ComputeImage {
+  id: string; // the key under which it is stored in the database
   title: string;
   short: string; // a shorter title, show this when you also show the group
   descr: string;
-  group: Group;
+  group: string;
   order?: number;
-  hidden?: boolean; // NYI
-  tag?: string;
-  registry?: string;
+  hidden?: boolean;
+  tag: string;
+  registry: string;
+}
+
+interface ComputeImageProd
+  extends Omit<ComputeImage, "id" | "tag" | "registry"> {
+  group: Group;
 }
 
 // NOTE: do not remove entries, to preserve rendering user-facing strings for older entries
 //       rather, mark them as {hidden: true}
-export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
+const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   // "default" or "undefined" is what was used for "ubuntu1804" until summer 2020
   // nowdays, DEFAULT_COMPUTE_IMAGE is "ubuntu2004"
   default: {
@@ -196,9 +201,8 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
   },
 } as const;
 
-export function get_compute_images(opts) {
-  opts = defaults(opts, { cb: required });
-  opts.cb(undefined, COMPUTE_IMAGES);
-}
-
-export const is_valid = (name) => COMPUTE_IMAGES[name] != null;
+export const FALLBACK_SOFTWARE_ENV = {
+  default: DEFAULT_COMPUTE_IMAGE,
+  groups: GROUPS,
+  environments: COMPUTE_IMAGES,
+} as const;

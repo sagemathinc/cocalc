@@ -24,12 +24,12 @@ import { webapp_client } from "../webapp-client";
 import { set_window_title } from "../browser";
 import { once } from "@cocalc/util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
 import { StudentProjectFunctionality } from "../course/configuration/customize-student-project-functionality";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -335,6 +335,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
   }): Promise<string> {
+    const dflt_img = redux.getStore("customize").getIn(["software", "default"]);
+
     const opts2: {
       title: string;
       description: string;
@@ -343,7 +345,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
-      image: DEFAULT_COMPUTE_IMAGE,
+      image: dflt_img ?? DEFAULT_COMPUTE_IMAGE,
       start: false,
     });
     if (!opts2.image) {

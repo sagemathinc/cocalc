@@ -43,19 +43,16 @@
      "launch/[shared_id]/path/to/doc/in/a/share"
 */
 
-import { redux } from "../app-framework";
-import { query } from "../frame-editors/generic/client";
-import { webapp_client } from "../webapp-client";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux } from "@cocalc/frontend/app-framework";
+import { ANON_PROJECT_TITLE } from "@cocalc/frontend/client/anonymous-setup";
+import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { CSILauncher } from "@cocalc/frontend/launch/custom-image";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { callback2, once, retry_until_success } from "@cocalc/util/async-utils";
+import { FALLBACK_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { len, uuid } from "@cocalc/util/misc";
-import { alert_message } from "../alerts";
-import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
-import {
-  is_valid as is_valid_comp_img,
-  FALLBACK_COMPUTE_IMAGE,
-} from "@cocalc/util/compute-images";
-import { CSILauncher } from "../launch/custom-image";
-import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 
 type Relationship =
   | "collaborator" // user is a collaborator on the shared project (so just directly open the shared project)
@@ -220,6 +217,13 @@ export class ShareLauncher {
     });
   }
 
+  private async is_valid_comp_img(img: string): Promise<boolean> {
+    const cs = redux.getStore("customize");
+    await cs.until_configured();
+    const envs = cs.getIn(["software", "environments"]);
+    return !!envs.get(img);
+  }
+
   private async create_target_project({
     title,
     compute_image,
@@ -236,7 +240,7 @@ export class ShareLauncher {
           throw new Error(`image ${compute_image} does not exist`);
         }
         return project_id;
-      } else if (is_valid_comp_img(compute_image)) {
+      } else if (await this.is_valid_comp_img(compute_image)) {
         // This is one of the standard software images
         const actions = redux.getActions("projects");
         console.log("creating anonymous default image project");
@@ -313,7 +317,7 @@ export class ShareLauncher {
     });
 
     await webapp_client.project_client.copy_path_between_projects({
-      public: true,  // uses the shared files for the source, NOT the source project! This is very differenet in KuCalc.
+      public: true, // uses the shared files for the source, NOT the source project! This is very differenet in KuCalc.
       src_project_id: project_id,
       src_path: path,
       target_project_id,

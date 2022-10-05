@@ -7,13 +7,10 @@
 Actions that are specific to the shared project.
 */
 
-import { redux } from "../../app-framework";
-
+import { redux } from "@cocalc/frontend/app-framework";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
-
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { Datastore, EnvVars } from "../../projects/actions";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -170,8 +167,8 @@ export class SharedProjectActions {
     if (!shared_project_id) {
       return; // no shared project
     }
-    const img_id =
-      store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
+    const dflt_img = redux.getStore("customize").getIn(["software", "default"]);
+    const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(shared_project_id);
     await actions.set_compute_image(img_id);
   }

@@ -3,35 +3,46 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux, useState } from "../app-framework";
-import { Divider } from "antd";
 import {
-  Row,
+  React,
+  redux,
+  useMemo,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  Markdown,
+  SearchInput,
+  Space,
+} from "@cocalc/frontend/components";
+import {
+  CompanyName,
+  HelpEmailLink,
+  SiteName,
+} from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Divider } from "antd";
+import { join } from "path";
+import {
   Col,
-  FormGroup,
   ControlLabel,
+  FormGroup,
   ListGroup,
   ListGroupItem,
   Radio,
+  Row,
 } from "react-bootstrap";
-import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
-import { SiteName, CompanyName, HelpEmailLink } from "../customize";
-import { Markdown, SearchInput, Icon, Space } from "../components";
-import { unreachable } from "@cocalc/util/misc";
+import { ComputeImage, ComputeImages, ComputeImageTypes } from "./init";
 import {
-  CUSTOM_SOFTWARE_HELP_URL,
-  custom_image_name,
-  is_custom_image,
   compute_image2basename,
+  custom_image_name,
+  CUSTOM_SOFTWARE_HELP_URL,
+  is_custom_image,
 } from "./util";
-import { COLORS } from "@cocalc/util/theme";
-import {
-  DEFAULT_COMPUTE_IMAGE,
-  COMPUTE_IMAGES as STANDARD_COMPUTE_IMAGES,
-} from "@cocalc/util/compute-images";
-import { join } from "path";
-import { ComputeImageSelector } from "../project/settings/compute-image-selector";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
@@ -64,8 +75,10 @@ export function derive_project_img_name(
   custom_software: SoftwareEnvironmentState
 ): string {
   const { image_type, image_selected } = custom_software;
+  const customize = redux.getStore("customize");
+  const dflt_software_img = customize.getIn(["software", "default"]);
   if (image_selected == null || image_type == null) {
-    return DEFAULT_COMPUTE_IMAGE;
+    return dflt_software_img;
   }
   switch (image_type) {
     case "custom":
@@ -75,7 +88,7 @@ export function derive_project_img_name(
       return image_selected;
     default:
       unreachable(image_type);
-      return DEFAULT_COMPUTE_IMAGE; // make TS happy
+      return dflt_software_img; // make TS happy
   }
 }
 
@@ -91,6 +104,12 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images"
+  );
+  const customize_software = useTypedRedux("customize", "software");
+  const software_images = customize_software.get("environments");
+  const dflt_software_img = useMemo(
+    () => customize_software.get("default"),
+    [customize_software]
   );
 
   const [search_img, set_search_img] = useState<string>("");
@@ -113,7 +132,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
 
   // initialize selection, if there is a default image set
   React.useEffect(() => {
-    if (default_image == null || default_image === DEFAULT_COMPUTE_IMAGE) {
+    if (default_image == null || default_image === dflt_software_img) {
       // do nothing, that's the initial state already!
     } else if (is_custom_image(default_image)) {
       if (images == null) return;
@@ -126,8 +145,8 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       }
     } else {
       // must be standard image
-      const img = STANDARD_COMPUTE_IMAGES[default_image];
-      const display = img != null ? img.title ?? "" : "";
+      const img = software_images.get(default_image);
+      const display = img != null ? img.get("title") ?? "" : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -336,10 +355,10 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     return (
       <Col sm={12}>
         <ComputeImageSelector
-          selected_image={image_selected ?? DEFAULT_COMPUTE_IMAGE}
+          selected_image={image_selected ?? dflt_software_img}
           layout={"horizontal"}
           onSelect={(img) => {
-            const display = STANDARD_COMPUTE_IMAGES[img].title;
+            const display = software_images.get(img)?.get("title");
             set_state(img, display, "standard");
           }}
         />

@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
   redux,
@@ -26,21 +27,16 @@ import {
   CUSTOM_IMG_PREFIX,
   CUSTOM_SOFTWARE_HELP_URL,
 } from "@cocalc/frontend/custom-software/util";
-import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "@cocalc/util/compute-images";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
-import { fromJS } from "immutable";
-import { Alert, Button, ButtonToolbar } from "react-bootstrap";
-import { alert_message } from "../../alerts";
+import { Button, ButtonToolbar } from "react-bootstrap";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
-
-const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 interface ReactProps {
   project: Project;
@@ -49,8 +45,6 @@ interface ReactProps {
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
-
-  const software_envs = useTypedRedux("customize", "software");
 
   //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
   const [compute_image, set_compute_image] = useState<string>(
@@ -250,16 +244,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     );
   }
 
-  function render_select_compute_image_error() {
-    const err = COMPUTE_IMAGES.get("error");
-    return (
-      <Alert bsStyle="warning" style={{ margin: "10px" }}>
-        <h4>Problem loading compute images</h4>
-        <code>{err}</code>
-      </Alert>
-    );
-  }
-
   function render_custom_compute_image() {
     return (
       <div style={{ color: "#666" }}>
@@ -308,10 +292,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return <Loading />;
     }
 
-    if (COMPUTE_IMAGES.has("error")) {
-      return render_select_compute_image_error();
-    }
-
     // this will at least return a suitable default value
     const selected_image = compute_image;
 
@@ -354,7 +334,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   return (
     <SettingBox title="Project control" icon="gears">
-      <pre>{JSON.stringify(software_envs?.toJS(), null, 2)}</pre>
       <LabeledRow key="state" label="State" style={rowstyle(true)}>
         {render_state()}
       </LabeledRow>

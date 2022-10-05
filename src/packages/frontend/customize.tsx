@@ -5,25 +5,6 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import {
-  ComputeImage,
-  COMPUTE_IMAGES,
-  DEFAULT_COMPUTE_IMAGE,
-  GROUPS,
-} from "@cocalc/util/compute-images";
-import {
-  KUCALC_COCALC_COM,
-  KUCALC_DISABLED,
-  KUCALC_ON_PREMISES,
-  site_settings_conf,
-} from "@cocalc/util/db-schema/site-defaults";
-import { dict, YEAR } from "@cocalc/util/misc";
-import * as theme from "@cocalc/util/theme";
-import { gtag_id } from "@cocalc/util/theme";
-import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
-import { fromJS, List } from "immutable";
-import { join } from "path";
 import {
   Actions,
   rclass,
@@ -34,7 +15,7 @@ import {
   Store,
   TypedMap,
   useTypedRedux,
-} from "./app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   build_date,
@@ -44,9 +25,27 @@ import {
   smc_version,
   Space,
   UNIT,
-} from "./components";
-import { appBasePath } from "./customize/app-base-path";
-export { TermsOfService } from "./customize/terms-of-service";
+} from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import {
+  ComputeImage,
+  FALLBACK_SOFTWARE_ENV,
+} from "@cocalc/util/compute-images";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+  KUCALC_ON_PREMISES,
+  site_settings_conf,
+} from "@cocalc/util/db-schema/site-defaults";
+import { dict, YEAR } from "@cocalc/util/misc";
+import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
+import * as theme from "@cocalc/util/theme";
+import { gtag_id } from "@cocalc/util/theme";
+import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
+import { fromJS, List, Map } from "immutable";
+import { join } from "path";
+export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -80,7 +79,7 @@ defaults._is_configured = false; // will be true after set via call to server
 export type SoftwareEnvironments = TypedMap<{
   groups: List<string>;
   default: string;
-  environments: Map<string, ComputeImage>;
+  environments: Map<string, TypedMap<ComputeImage>>;
 }>;
 
 export interface CustomizeState {
@@ -222,14 +221,15 @@ function set_customize(obj) {
 
 function process_software(software) {
   if (software != null) {
+    // this checks the data coming in from the "/customize" endpoint.
+    // Next step is to convert it to immutable and store it in the customize store.
+    software = sanitizeSoftwareEnv({ software }, (msg) =>
+      console.log(`sanitizeSoftwareEnv: ${msg}`)
+    );
     actions.setState({ software });
   } else {
     actions.setState({
-      software: fromJS({
-        default: DEFAULT_COMPUTE_IMAGE,
-        groups: GROUPS,
-        environments: COMPUTE_IMAGES,
-      }),
+      software: fromJS(FALLBACK_SOFTWARE_ENV),
     });
   }
 }
