@@ -104,7 +104,11 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     await Promise.all(
       Object.keys(site_licenses).map(async function (license_id) {
         try {
-          infos[license_id] = await site_license_public_info(license_id, force);
+          const info = await site_license_public_info(license_id, force);
+          if (info == null) {
+            throw new Error(`license ${license_id} not found`);
+          }
+          infos[license_id] = info;
         } catch (err) {
           errors[license_id] = `${err}`;
         }

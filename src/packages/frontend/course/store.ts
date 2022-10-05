@@ -952,13 +952,16 @@ export class CourseStore extends Store<CourseState> {
     const license_ids = this.getIn(["settings", "site_license_id"]) ?? "";
     for (const license_id of license_ids.split(",")) {
       if (!license_id) continue;
-      const { expires, run_limit } = await site_license_public_info(
-        license_id,
-        force
-      );
-      const expired = !!(expires && expires <= new Date());
-      const runLimit = run_limit ? run_limit : 999999999999999; // effectively unlimited
-      licenses[license_id] = { expired, runLimit };
+      try {
+        const license_info = await site_license_public_info(license_id, force);
+        if (license_info == null) continue;
+        const { expires, run_limit } = license_info;
+        const expired = !!(expires && expires <= new Date());
+        const runLimit = run_limit ? run_limit : 999999999999999; // effectively unlimited
+        licenses[license_id] = { expired, runLimit };
+      } catch (err) {
+        console.warn(`Error getting license info for ${license_id}`, err);
+      }
     }
     return licenses;
   }

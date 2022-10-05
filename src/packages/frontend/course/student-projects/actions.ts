@@ -700,6 +700,7 @@ export class StudentProjectsActions {
     }
 
     const licenses = await store.getLicenses(force);
+
     let licenseRunLimits: { [license_id: string]: number } | undefined =
       undefined;
 

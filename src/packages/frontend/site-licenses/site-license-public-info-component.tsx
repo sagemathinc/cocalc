@@ -35,7 +35,6 @@ import { LICENSE_ACTIVATION_RULES } from "./rules";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
 
-
 interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
@@ -182,6 +181,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     let success = false;
     try {
       info = await site_license_public_info(license_id, force);
+      if (info == null) throw new Error(`no info about license ${license_id}`);
       success = true;
     } catch (err) {
       if (!isMountedRef.current) return;

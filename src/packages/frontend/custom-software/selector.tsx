@@ -23,6 +23,7 @@ import {
 } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Divider } from "antd";
@@ -105,6 +106,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     "compute_images",
     "images"
   );
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_images = customize_software.get("environments");
   const dflt_software_img = useMemo(
@@ -320,6 +322,8 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_custom() {
+    if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+
     if (images == null || images.size == 0) {
       return "There are no customized software environments available.";
     } else {

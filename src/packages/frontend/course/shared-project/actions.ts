@@ -145,10 +145,14 @@ export class SharedProjectActions {
       // since instructor may want to augment license with another.
       const site_license_id = store.getIn(["settings", "site_license_id"]);
       if (site_license_id) {
-        await actions.add_site_license_to_project(
-          shared_project_id,
-          site_license_id
-        );
+        try {
+          await actions.add_site_license_to_project(
+            shared_project_id,
+            site_license_id
+          );
+        } catch (err) {
+          console.warn(`error adding site license to shared project -- ${err}`);
+        }
       }
 
       // Also set the compute image

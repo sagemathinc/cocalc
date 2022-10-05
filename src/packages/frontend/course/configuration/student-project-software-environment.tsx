@@ -25,7 +25,10 @@ import {
 } from "@cocalc/frontend/custom-software/util";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { Alert, Button, Card, Divider, Radio } from "antd";
 import { ConfigurationActions } from "./actions";
 
@@ -213,7 +216,11 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   }
 
   // this selector only make sense for cocalc.com
-  if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+  if (
+    customize_kucalc !== KUCALC_COCALC_COM &&
+    customize_kucalc !== KUCALC_ON_PREMISES
+  )
+    return null;
 
   return (
     <Card
