@@ -9,11 +9,13 @@ import { DownOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { MenuProps, Typography } from "antd";
 import { Button, Dropdown, Menu } from "antd";
 import { fromJS } from "immutable";
-import type { MenuProps } from "antd";
+const { Text } = Typography;
 type MenuItem = Required<MenuProps>["items"][number];
 
 const title = (x) => x.get("short") ?? x.get("title") ?? x.get("id") ?? "";
@@ -47,26 +49,10 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 ) => {
   const { selected_image, onFocus, onBlur, onSelect, layout } = props;
 
-  /*
-  software_envs = {
-    "groups": [
-      "Legacy",
-      "Standard"
-    ],
-    "default": "ubuntu2004-1",
-    "environments": {
-      "ubuntu1804": {
-        "id": "ubuntu1804",
-        "group": "Legacy",
-        "registry": "docker.io/my-cocalc-registry",
-        "tag": "project-1804-20220101",
-        "title": "Ubuntu 18.04",
-        "descr": ""
-      },
-      ...
-    }
-*/
-  const software_envs = useTypedRedux("customize", "software");
+  const software_envs: SoftwareEnvironments = useTypedRedux(
+    "customize",
+    "software"
+  );
 
   if (software_envs == null) {
     return <Loading />;
@@ -90,11 +76,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     return COMPUTE_IMAGES.filter(
       (item) => item.get("group") === group && !item.get("hidden", false)
     )
-      .map((img, key) => ({
-        key,
-        title: img.get("descr"),
-        label: img.get("short") ?? img.get("title"),
-      }))
+      .map((img, key) => {
+        const registry = img.get("registry");
+        const tag = img.get("tag");
+        const extra = registry && tag ? ` (${registry}:${tag})` : "";
+        const descr = `${img.get("descr")}${extra}`;
+        return {
+          key,
+          title: descr,
+          label: img.get("short") ?? img.get("title"),
+        };
+      })
       .valueSeq()
       .toJS();
   }
@@ -146,7 +138,16 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 
   function render_info(italic: boolean) {
     const desc = compute_image_info(selected_image, "descr");
-    return <span>{italic ? <i>{desc}</i> : desc}</span>;
+    const registry = compute_image_info(selected_image, "registry");
+    const tag = compute_image_info(selected_image, "tag");
+    const extra = registry && tag ? `(${registry}:${tag})` : null;
+
+    return (
+      <Text italic={italic}>
+        {desc}
+        {extra ? <Text type="secondary"> {extra}</Text> : null}
+      </Text>
+    );
   }
 
   switch (layout) {

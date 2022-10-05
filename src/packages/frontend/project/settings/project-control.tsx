@@ -27,7 +27,10 @@ import {
   CUSTOM_IMG_PREFIX,
   CUSTOM_SOFTWARE_HELP_URL,
 } from "@cocalc/frontend/custom-software/util";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
@@ -225,7 +228,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_select_compute_image_row() {
-    if (customize_kucalc !== KUCALC_COCALC_COM) {
+    if (![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)) {
       return;
     }
     return (

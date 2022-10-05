@@ -30,8 +30,8 @@ export interface ComputeImage {
   group: string;
   order?: number;
   hidden?: boolean;
-  tag: string;
-  registry: string;
+  tag?: string;
+  registry?: string;
 }
 
 interface ComputeImageProd

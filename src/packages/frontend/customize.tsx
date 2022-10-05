@@ -223,8 +223,8 @@ function process_software(software) {
   if (software != null) {
     // this checks the data coming in from the "/customize" endpoint.
     // Next step is to convert it to immutable and store it in the customize store.
-    software = sanitizeSoftwareEnv({ software }, (msg) =>
-      console.log(`sanitizeSoftwareEnv: ${msg}`)
+    software = sanitizeSoftwareEnv({ software }, (...msg) =>
+      console.log("sanitizeSoftwareEnv:", ...msg)
     );
     actions.setState({ software });
   } else {

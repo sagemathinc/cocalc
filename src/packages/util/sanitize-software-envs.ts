@@ -23,7 +23,7 @@ export interface SoftwareEnvConfig {
  */
 export function sanitizeSoftwareEnv(
   { software, registry }: { software: any; registry?: string },
-  L: (msg) => void
+  L: (...msg) => void
 ): SoftwareEnvConfig | null {
   const envs = software["environments"] as { [key: string]: ComputeImage };
 
@@ -37,14 +37,20 @@ export function sanitizeSoftwareEnv(
 
   for (const key of Object.keys(envs)) {
     const env = envs[key];
-    if (env["tag"] == null || typeof env["tag"] !== "string") {
-      L(`WARNING: Environment ${key} has no "tag" field -- ignoring`);
-      delete envs[key];
-      continue;
-    }
     env["id"] = key;
-    env["registry"] = fallback(env["registry"], registry);
-    const group = fallback(env["group"], "Standard");
+
+    // if no registry is set, we're only using the id/key and the data
+    // if the registry is set (in particular for on-prem) we use registry:tag to set the image
+    if (registry != null) {
+      if (typeof env["tag"] !== "string") {
+        L(`WARNING: Environment ${key} has no "tag" field -- ignoring`);
+        delete envs[key];
+        continue;
+      }
+      env["registry"] = fallback(env["registry"], registry);
+    }
+
+    const group = fallback(env["group"], "General");
     env["group"] = group;
     env["title"] = fallback(env["title"], env["tag"], key);
     env["descr"] = fallback(env["descr"], "");

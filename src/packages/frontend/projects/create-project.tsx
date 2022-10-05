@@ -19,6 +19,7 @@ import {
   redux,
   useEffect,
   useIsMountedRef,
+  useMemo,
   useRef,
   useState,
   useTypedRedux,
@@ -29,15 +30,15 @@ import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
-import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
-import { isValidUUID } from "@cocalc/util/misc";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -71,6 +72,12 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+
+  // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
+  const show = useMemo(
+    () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
+    [customize_kucalc]
+  );
 
   const [form] = Form.useForm();
 
@@ -275,7 +282,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   function render_advanced_toggle(): JSX.Element | undefined {
     // we only support custom images on cocalc.com
-    if (customize_kucalc !== KUCALC_COCALC_COM) return;
+    if (!show) return;
     if (show_advanced) return;
     return (
       <div style={TOGGLE_STYLE}>
@@ -291,12 +298,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   }
 
   function render_add_license_toggle(): JSX.Element | undefined {
-    // onprem and cocalc.com use licenses to adjust quota configs
-    if (
-      customize_kucalc !== KUCALC_COCALC_COM &&
-      customize_kucalc !== KUCALC_ON_PREMISES
-    )
-      return;
+    if (!show) return;
     if (show_add_license) return;
     return (
       <div style={TOGGLE_STYLE}>

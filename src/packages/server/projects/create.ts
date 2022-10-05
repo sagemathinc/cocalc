@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getPool from "@cocalc/database/pool";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";

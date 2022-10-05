@@ -108,9 +108,16 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   );
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
-  const software_images = customize_software.get("environments");
-  const dflt_software_img = useMemo(
-    () => customize_software.get("default"),
+  const [dflt_software_img, software_images] = useMemo(
+    () => [
+      customize_software.get("default"),
+      customize_software.get("environments"),
+    ],
+    [customize_software]
+  );
+
+  const haveSoftwareImages: boolean = useMemo(
+    () => (customize_software.get("environments")?.size ?? 0) > 0,
     [customize_software]
   );
 
@@ -284,6 +291,29 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_default_explanation(): JSX.Element {
+    if (customize_kucalc === KUCALC_COCALC_COM) {
+      return (
+        <>
+          large repository of software, well tested – maintained by{" "}
+          <CompanyName />, running <SiteName />.{" "}
+          <a
+            href={join(appBasePath, "doc/software.html")}
+            target={"_blank"}
+            rel={"noopener"}
+          >
+            More info...
+          </a>
+        </>
+      );
+    } else {
+      const dflt_img = software_images.get(dflt_software_img);
+      const descrDefault =
+        dflt_img?.get("descr") ?? "large repository of software";
+      return <>{descrDefault} (choose this one if in doubt)</>;
+    }
+  }
+
   function render_default() {
     return (
       <Radio
@@ -293,20 +323,31 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           set_state(undefined, undefined, "default");
         }}
       >
-        <b>Default</b>: large repository of software, well tested – maintained
-        by <CompanyName />, running <SiteName />.{" "}
-        <a
-          href={join(appBasePath, "doc/software.html")}
-          target={"_blank"}
-          rel={"noopener"}
-        >
-          More info...
-        </a>
+        <b>Default</b>: {render_default_explanation()}
       </Radio>
     );
   }
 
+  function render_standard_explanation(): JSX.Element {
+    if (customize_kucalc === KUCALC_COCALC_COM) {
+      return (
+        <>
+          <b>Standard</b>: upcoming and archived versions of the "Default"
+          software environment.
+        </>
+      );
+    } else {
+      return (
+        <>
+          <b>Specialized</b>: alternative software environments for specific
+          purposes.
+        </>
+      );
+    }
+  }
+
   function render_standard() {
+    if (!haveSoftwareImages) return;
     return (
       <Radio
         checked={image_type === "standard"}
@@ -315,8 +356,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           set_state(undefined, undefined, "standard");
         }}
       >
-        <b>Standard</b>: upcoming and archived versions of the "Default"
-        software environment.
+        {render_standard_explanation()}
       </Radio>
     );
   }

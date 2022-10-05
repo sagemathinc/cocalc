@@ -5,7 +5,7 @@
 
 // This is used by the hub to adjust the "customization" variable for the user visible site, and also by manage in on-prem, to actually get the associated configuration
 
-import debug from "debug";
+import getLogger from "@cocalc/backend/logger";
 import { constants } from "fs";
 import { access, readFile } from "fs/promises";
 import { join } from "path";
@@ -14,7 +14,9 @@ import {
   SoftwareEnvConfig,
 } from "@cocalc/util/sanitize-software-envs";
 
-const L = debug("hub:webapp-config");
+const logger = getLogger("hub:webapp-config");
+const L = logger.debug;
+const W = logger.warn;
 
 let cache: SoftwareEnvConfig | false | null = null;
 
@@ -36,14 +38,14 @@ async function readConfig(): Promise<SoftwareEnvConfig | null> {
   const registryFn = join(dir, "registry");
 
   if (!(await isReadable(softwareFn))) {
-    L(
+    W(
       `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${softwareFn} does not exist`
     );
     return null;
   }
 
   if (!(await isReadable(registryFn))) {
-    L(
+    W(
       `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${registryFn} does not exist`
     );
     return null;
@@ -55,9 +57,12 @@ async function readConfig(): Promise<SoftwareEnvConfig | null> {
   // parse the content of softwareFn as json
   try {
     const software = JSON.parse((await readFile(softwareFn)).toString());
-    return sanitizeSoftwareEnv({ software, registry }, L);
+    const sanitized = sanitizeSoftwareEnv({ software, registry }, (...msg) =>
+      L(...msg)
+    );
+    return sanitized;
   } catch (err) {
-    L(`WARNING: ${softwareFn} is not a valid JSON file -- ${err}`);
+    W(`WARNING: ${softwareFn} is not a valid JSON file -- ${err}`);
     return null;
   }
 }
