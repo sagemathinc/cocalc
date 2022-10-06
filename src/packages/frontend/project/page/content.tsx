@@ -32,7 +32,7 @@ import { Loading } from "../../components";
 import { editor_id } from "../utils";
 import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import { webapp_client } from "../../webapp-client";
-import { DeletedFile } from "../deleted-file";
+import DeletedFile from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";
 import { Explorer } from "../explorer";
 import { ProjectNew } from "../new";
@@ -133,11 +133,7 @@ export const TabContent: React.FC<TabContentProps> = ({
         />
       );
     case "new":
-      return (
-        <ProjectNew
-          project_id={project_id}
-        />
-      );
+      return <ProjectNew project_id={project_id} />;
     case "log":
       return <ProjectLog project_id={project_id} />;
     case "search":
