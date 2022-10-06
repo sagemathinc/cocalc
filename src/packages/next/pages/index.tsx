@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { Layout } from "antd";
 import Path from "components/app/path";
@@ -235,11 +236,9 @@ export default function Home(props: Props) {
 export async function getServerSideProps(context) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
   const pool = getPool("long");
-  const { rows } = await pool.query(
-    "select value from server_settings where name='share_server'"
-  );
+  const { share_server } = await getServerSettings();
   let publicPaths;
-  if (rows.length > 0 && rows[0].value == "yes") {
+  if (share_server) {
     const { rows } = await pool.query(
       `SELECT id, path, url, description, ${timeInSeconds("last_edited")},
     counter::INT,

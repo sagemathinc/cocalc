@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
 import { Alert, Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
@@ -32,15 +33,24 @@ export default function FileUseViewer({
   account_id,
   unseen_mentions_size,
 }: Props) {
-  const [search, setSearch] = useState<string>("");
+  const [search, _setSearch] = useState<string>("");
   const [cursor, setCursor] = useState<number>(0); // cursor position
   const numMissingRef = useRef<number>(0);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const visibleListRef = useRef<iList<FileUseInfoMap> | null>(null);
+  const { inc } = useCounter();
+
+  function setSearch(search?) {
+    visibleListRef.current = null;
+    get_visible_list(search);
+    _setSearch(search);
+  }
 
   useEffect(() => {
     visibleListRef.current = null;
-  }, [file_use_list, search]);
+    get_visible_list();
+    inc();
+  }, [file_use_list]);
 
   function render_how_many_hidden_by_search() {
     get_visible_list(); // make sure num_missing is updated.
@@ -129,11 +139,12 @@ export default function FileUseViewer({
     );
   }
 
-  function get_visible_list(): iList<FileUseInfoMap> {
+  function get_visible_list(_search?: string): iList<FileUseInfoMap> {
     if (visibleListRef.current == null) {
       visibleListRef.current = file_use_list;
-      if (search) {
-        const s = search_split(search.toLowerCase());
+      const theSearch = _search ?? search;
+      if (theSearch) {
+        const s = search_split(theSearch.toLowerCase());
         visibleListRef.current = visibleListRef.current.filter((info) =>
           search_match(info.get("search"), s)
         );
@@ -193,13 +204,11 @@ export default function FileUseViewer({
   return (
     <div className={"smc-vfill smc-file-use-viewer"}>
       <VisibleMDLG>
-        <h3 style={{ margin: "15px" }}>@Mentions</h3>
+        <h3 style={{ margin: "15px" }}>Mentions</h3>
       </VisibleMDLG>
       {link}
       <VisibleMDLG>
-        <h3 style={{ margin: "15px" }}>
-          Recent edits and chats by you and your collaborators
-        </h3>
+        <h3 style={{ margin: "15px" }}>Recently edited documents and chat</h3>
       </VisibleMDLG>
       <Row key="top" style={{ marginBottom: "5px" }}>
         <Col sm={9}>{render_search_box()}</Col>

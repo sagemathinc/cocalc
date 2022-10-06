@@ -37,22 +37,13 @@ interface Props {
 }
 
 export class FileUseInfo extends Component<Props, {}> {
-  shouldComponentUpdate(nextProps: Props): boolean {
-    return (
-      this.props.info !== nextProps.info ||
-      this.props.cursor !== nextProps.cursor ||
-      this.props.user_map !== nextProps.user_map ||
-      this.props.project_map !== nextProps.project_map
-    );
-  }
-
   render_users() {
     if (this.props.info.get("users") == null) return;
     const v: Rendered[] = [];
     // only list users who have actually done something aside from mark read/seen this file
     const users: any[] = [];
     this.props.info.get("users").forEach((user, _) => {
-      if (user != null && user.get("last_edited")) {
+      if (user != null && (user.get("last_edited") || user.get("last_used"))) {
         users.push(user.toJS());
       }
     });
@@ -63,9 +54,12 @@ export class FileUseInfo extends Component<Props, {}> {
           account_id={user.account_id}
           name={user.account_id === this.props.account_id ? "You" : undefined}
           user_map={this.props.user_map}
-          last_active={user.last_edited}
+          last_active={user.last_edited ? user.last_edited : user.last_used}
         />
       );
+    }
+    if (v.length == 0) {
+      return <>nobody yet</>;
     }
     return r_join(v);
   }
@@ -118,6 +112,7 @@ export class FileUseInfo extends Component<Props, {}> {
   render_project(): Rendered {
     return (
       <ProjectTitle
+        style={{ background: "white", padding: "0px 5px", borderRadius: "3px" }}
         key="project"
         project_id={this.props.info.get("project_id")}
       />

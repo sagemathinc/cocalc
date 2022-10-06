@@ -34,7 +34,20 @@ export const useIFrameContext: () => IFrameContextType = () => {
   return useContext(IFrameContext);
 };
 
-const EXTRA_CELLS = 2;
+// 3 extra cells:
+//  - iframe cell  (hidden at top)
+//  - style cell   (hidden at top)
+//  - padding (at the bottom)
+const EXTRA_TOP_CELLS = 2;
+const EXTRA_BOTTOM_CELLS = 1;
+
+// the extra bottom cell at the very end
+// See https://github.com/sagemathinc/cocalc/issues/6141 for a discussion
+// of why this.  It's the best I could come up with that was very simple
+// to understand and a mix of other options.
+const BOTTOM_PADDING_CELL = (
+  <div style={{ height: "50vh", minHeight: "400px" }}></div>
+);
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -252,14 +265,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       if (index == null) return;
       if (scroll == "cell visible force") {
         virtuosoRef.current?.scrollIntoView({
-          index: index + EXTRA_CELLS,
+          index: index + EXTRA_TOP_CELLS,
         });
       } else if (scroll == "cell visible") {
         // We ONLY scroll if the cell is not in the visible
         // range -- otherwise if the cell is halfway off the screen...
         // TODO: this is really just a stupid hack that doesn't fully work,
         // and I will have to implement something better.
-        const n = index + EXTRA_CELLS;
+        const n = index + EXTRA_TOP_CELLS;
         if (
           n < virtuosoRangeRef.current.startIndex ||
           n > virtuosoRangeRef.current.endIndex
@@ -272,12 +285,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }
       } else if (scroll == "cell top") {
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_CELLS,
+          index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
         requestAnimationFrame(() =>
           virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_CELLS,
+            index: index + EXTRA_TOP_CELLS,
           })
         );
       }
@@ -285,24 +298,24 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       if (scroll == "list up") {
         const index = virtuosoRangeRef.current?.startIndex;
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_CELLS,
+          index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
         requestAnimationFrame(() =>
           virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_CELLS,
+            index: index + EXTRA_TOP_CELLS,
             align: "end",
           })
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_CELLS,
+          index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
         requestAnimationFrame(() =>
           virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_CELLS,
+            index: index + EXTRA_TOP_CELLS,
             align: "start",
           })
         );
@@ -449,16 +462,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       return;
     }
-    // index + EXTRA_CELLS because of iframe and style cells
+    // index + EXTRA_TOP_CELLS because of iframe and style cells
     // the offset+1 is I think compensating for a bug maybe in
     // virtuoso or our use of it.
     virtuosoRef.current?.scrollToIndex({
-      index: index + EXTRA_CELLS,
+      index: index + EXTRA_TOP_CELLS,
       offset: offset + 1,
     });
     requestAnimationFrame(() => {
       virtuosoRef.current?.scrollToIndex({
-        index: index + EXTRA_CELLS,
+        index: index + EXTRA_TOP_CELLS,
         offset: offset + 1,
       });
     });
@@ -511,7 +524,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         <Virtuoso
           ref={virtuosoRef}
           onClick={actions != null && complete != null ? on_click : undefined}
-          topItemCount={EXTRA_CELLS}
+          topItemCount={EXTRA_TOP_CELLS}
           style={{
             fontSize: `${font_size}px`,
             height: "100%",
@@ -519,7 +532,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           }}
           totalCount={
             cell_list.size +
-            EXTRA_CELLS /* +EXTRA_CELLS due to the iframe cell and style cell at the top */
+            EXTRA_TOP_CELLS /* +EXTRA_TOP_CELLS due to the iframe cell and style cell at the top */ +
+            EXTRA_BOTTOM_CELLS
           }
           itemSize={(el) => {
             // We capture measured heights -- see big coment above the
@@ -562,15 +576,17 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
                   <style>{allStyles}</style>
                 </div>
               );
+            } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
+              return BOTTOM_PADDING_CELL;
             }
-            const key = cell_list.get(index - EXTRA_CELLS);
+            const key = cell_list.get(index - EXTRA_TOP_CELLS);
             if (key == null) return null;
             const is_last: boolean = key === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             return (
               <DivTempHeight height={h ? `${h}px` : undefined}>
                 {render_insert_cell(key, "above")}
-                {render_cell(key, false, index - EXTRA_CELLS)}
+                {render_cell(key, false, index - EXTRA_TOP_CELLS)}
                 {is_last ? render_insert_cell(key, "below") : undefined}
               </DivTempHeight>
             );
@@ -601,6 +617,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         v.push(render_insert_cell(id, "below"));
       }
     }
+    v.push(BOTTOM_PADDING_CELL);
 
     body = (
       <div

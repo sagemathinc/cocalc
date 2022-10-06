@@ -43,13 +43,14 @@ import { redux, ProjectActions, ProjectStore } from "../app-framework";
 import { ProjectStoreState } from "../project_store";
 import React from "react";
 import * as types from "./actions-and-stores";
+import useDeepCompareEffect from "use-deep-compare-effect";
 
 export function useReduxNamedStore(path: string[]) {
   const [value, set_value] = React.useState(() => {
     return redux.getStore(path[0])?.getIn(path.slice(1) as any) as any;
   });
 
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     if (path[0] == "") {
       // Special case -- we allow passing "" for the name of the store and get out undefined.
       // This is useful when using the useRedux hook but when the name of the store isn't known initially.
@@ -87,11 +88,12 @@ export function useReduxNamedStore(path: string[]) {
     };
     f.is_mounted = true;
     store.on("change", f);
+    f();
     return () => {
       f.is_mounted = false;
       store.removeListener("change", f);
     };
-  }, [path[0]]);
+  }, [path]);
 
   return value;
 }
@@ -103,7 +105,7 @@ function useReduxProjectStore(path: string[], project_id: string) {
       .getIn(path as [string, string, string, string, string])
   );
 
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     const store = redux.getProjectStore(project_id);
     let last_value = value;
     const f = (obj) => {
@@ -123,11 +125,12 @@ function useReduxProjectStore(path: string[], project_id: string) {
     };
     f.is_mounted = true;
     store.on("change", f);
+    f(store);
     return () => {
       f.is_mounted = false;
       store.removeListener("change", f);
     };
-  }, []);
+  }, [path, project_id]);
 
   return value;
 }
@@ -145,7 +148,7 @@ function useReduxEditorStore(
       ?.getIn(path as [string, string, string, string, string])
   );
 
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     let store = redux.getEditorStore(project_id, filename, is_public);
     let last_value = value;
     const f = (obj) => {
@@ -157,6 +160,7 @@ function useReduxEditorStore(
       }
     };
     f.is_mounted = true;
+    f(store);
     if (store != null) {
       store.on("change", f);
     } else {
@@ -186,7 +190,7 @@ function useReduxEditorStore(
       f.is_mounted = false;
       store?.removeListener("change", f);
     };
-  }, []);
+  }, [path, project_id, filename]);
 
   return value;
 }

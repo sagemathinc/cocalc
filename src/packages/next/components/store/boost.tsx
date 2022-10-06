@@ -126,7 +126,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
 
   function onChange() {
     const vals = form.getFieldsValue(true);
-    encodeFormValues(router, vals);
+    encodeFormValues(router, vals, "boost");
     const conf = { ...vals };
     conf.type = "boost";
     conf.boost = true;

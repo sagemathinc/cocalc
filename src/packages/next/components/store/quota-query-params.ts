@@ -57,11 +57,47 @@ function decodeRange(val: string): DateRange {
   }
 }
 
-export function encodeFormValues(router: NextRouter, vals: any): void {
+const COMMON_FIELDS = ["user", "period", "range"] as const;
+
+const REGULAR_FIELDS = [
+  ...COMMON_FIELDS,
+  "run_limit",
+  "member",
+  "uptime",
+  "cpu",
+  "ram",
+  "disk",
+] as const;
+
+const DEDICATED_FIELDS = [
+  ...COMMON_FIELDS,
+  "disk-size_gb",
+  "disk-name",
+  "disk-speed",
+  "vm-machine",
+] as const;
+
+function getFormFields(
+  type: "regular" | "boost" | "dedicated"
+): readonly string[] {
+  switch (type) {
+    case "regular":
+    case "boost":
+      return REGULAR_FIELDS;
+    case "dedicated":
+      return DEDICATED_FIELDS;
+  }
+}
+
+export function encodeFormValues(
+  router: NextRouter,
+  vals: any,
+  type: "regular" | "boost" | "dedicated"
+): void {
   const { query } = router;
   for (const key in vals) {
+    if (!getFormFields(type).includes(key)) continue;
     const val = vals[key];
-    if (key === "type" || key === "preset") continue; // we're already on the right page
     if (val == null) {
       delete query[key];
     } else if (key === "range") {
@@ -103,32 +139,13 @@ export function decodeFormValues(
 ): {
   [key: string]: string | number | boolean;
 } {
-  const COMMON_FIELDS = ["user", "period", "range"] as const;
-  const FORM_FIELDS =
-    type === "dedicated"
-      ? [
-          ...COMMON_FIELDS,
-          "disk-size_gb",
-          "disk-name",
-          "disk-speed",
-          "vm-machine",
-        ]
-      : ([
-          ...COMMON_FIELDS,
-          "run_limit",
-          "member",
-          "uptime",
-          "cpu",
-          "ram",
-          "disk",
-        ] as const);
-
   const P = type === "boost" ? BOOST : REGULAR;
+  const fields: readonly string[] = getFormFields(type);
 
   const data = {};
   for (const key in router.query) {
     const val = router.query[key];
-    if (!(FORM_FIELDS as readonly string[]).includes(key)) continue;
+    if (!fields.includes(key)) continue;
     if (typeof val !== "string") continue;
     data[key] = key === "range" ? decodeRange(val) : decodeValue(val);
   }
@@ -138,7 +155,7 @@ export function decodeFormValues(
     const val = data[key];
     switch (key) {
       case "user":
-        if (!["academic", "commercial"].includes(val)) {
+        if (!["academic", "business"].includes(val)) {
           data[key] = "academic";
         }
         break;
