@@ -12,7 +12,7 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 interface Props {
   project_id: string;
   path: string;
-  onOpen: Function;
+  onOpen?: Function;
 }
 
 export default function DeletedFile({ project_id, path, onOpen }: Props) {
@@ -26,7 +26,7 @@ export default function DeletedFile({ project_id, path, onOpen }: Props) {
     const store = redux.getProjectStore(project_id);
     const listings = store.get_listings();
     await listings.undelete(path);
-    onOpen();
+    onOpen?.();
   }, []);
 
   useEffect(() => {

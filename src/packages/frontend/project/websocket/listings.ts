@@ -235,6 +235,7 @@ export class Listings extends EventEmitter {
 
   // Does a call to the project to directly determine whether or
   // not the given path exists.  This doesn't depend on the table.
+  // Can throw an exception if it can't contact the project.
   public async exists(path: string): Promise<boolean> {
     return (
       (
@@ -242,6 +243,7 @@ export class Listings extends EventEmitter {
           project_id: this.project_id,
           command: "test",
           args: ["-e", path],
+          err_on_exit: false,
         })
       ).exit_code == 0
     );
