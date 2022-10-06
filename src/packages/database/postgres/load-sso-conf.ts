@@ -6,7 +6,7 @@
 import { Client } from "pg";
 import getLogger from "@cocalc/backend/logger";
 import { PostgreSQL } from "@cocalc/database/postgres/types";
-import { lstat, readFile } from "fs/promises";
+import { lstat, readFile , realpath } from "fs/promises";
 
 const L = getLogger("auth:sso:import-sso-configuration").debug;
 
@@ -26,7 +26,9 @@ export async function loadSSOConf(db: PostgreSQL): Promise<void> {
 
   // test if the path at SSO_JSON is a regular file and is readable
   try {
-    const stats = await lstat(SSO_JSON);
+    // the file could be a symlink, we have to resolve it
+    const ssofn = await realpath(SSO_JSON)
+    const stats = await lstat(ssofn);
     if (!stats.isFile()) {
       L(`SSO configuration file ${SSO_JSON} is not a regular file`);
       return;
