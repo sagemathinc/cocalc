@@ -422,25 +422,25 @@ export class ProjectStore extends Store<ProjectStoreState> {
           listing = filtered;
         }
 
-        const map = {};
-        for (var x of listing) {
-          map[x.name] = x;
+        const file_map = {};
+        for (const v of listing) {
+          file_map[v.name] = v;
         }
 
-        x = {
+        const data = {
           listing,
           public: {},
           path: this.get("current_path"),
-          file_map: map,
+          file_map,
         };
 
-        _compute_public_files(
-          x,
+        mutate_data_to_compute_public_files(
+          data,
           this.get("stripped_public_paths"),
           this.get("current_path")
         );
 
-        return x;
+        return data;
       },
     },
 
@@ -453,8 +453,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
             (() => {
               const result: any[] = [];
               const object = public_paths.toJS();
-              for (const _ in object) {
-                const x = object[_];
+              for (const id in object) {
+                const x = object[id];
                 result.push(misc.copy_without(x, ["id", "project_id"]));
               }
               return result;
@@ -701,32 +701,31 @@ function compute_snapshot_display_names(listing): void {
 }
 
 // Mutates data to include info on public paths.
-function _compute_public_files(data, public_paths, current_path) {
+function mutate_data_to_compute_public_files(data, public_paths, current_path) {
   const { listing } = data;
   const pub = data.public;
   if (public_paths != null && public_paths.size > 0) {
     const head = current_path ? current_path + "/" : "";
     const paths: string[] = [];
     const public_path_data = {};
-    for (var x of public_paths.toJS()) {
+    for (const x of public_paths.toJS()) {
+      if (x.disabled) {
+        // Do not include disabled paths.  Otherwise, it causes this confusing bug:
+        //    https://github.com/sagemathinc/cocalc/issues/6159
+        continue;
+      }
       public_path_data[x.path] = x;
       paths.push(x.path);
     }
-    return (() => {
-      const result: any = [];
-      for (x of listing) {
-        const full = head + x.name;
-        const p = misc.containing_public_path(full, paths);
-        if (p != null) {
-          x.public = public_path_data[p];
-          x.is_public = !x.public.disabled;
-          result.push((pub[x.name] = public_path_data[p]));
-        } else {
-          result.push(undefined);
-        }
+    for (const x of listing) {
+      const full = head + x.name;
+      const p = misc.containing_public_path(full, paths);
+      if (p != null) {
+        x.public = public_path_data[p];
+        x.is_public = !x.public.disabled;
+        pub[x.name] = public_path_data[p];
       }
-      return result;
-    })();
+    }
   }
 }
 
