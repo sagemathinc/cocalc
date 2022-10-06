@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Card, Button } from "antd";
+import { useEffect, useCallback, useState } from "react";
+import { Modal } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
-import { Space } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
@@ -16,38 +16,42 @@ interface Props {
 }
 
 export default function DeletedFile({ project_id, path, onOpen }: Props) {
+  const [open, setOpen] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
-  const filename = path_split(path).tail;
+  const { tail: filename } = path_split(path);
+
+  const openFile = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    setOpen(false);
+    const store = redux.getProjectStore(project_id);
+    const listings = store.get_listings();
+    await listings.undelete(path);
+    onOpen();
+  }, []);
+
+  useEffect(() => {
+    const store = redux.getProjectStore(project_id);
+    const listings = store.get_listings();
+    (async () => {
+      if (await listings.exists(path)) {
+        openFile();
+      }
+    })();
+  }, []);
+
   return (
     <div className="smc-vfill" style={{ background: "#aaa" }}>
-      <Card
+      <Modal
+        visible={open}
         title={`Open previously deleted file "${filename}"?`}
-        style={{ margin: "auto" }}
+        onOk={openFile}
+        onCancel={() => {
+          setOpen(false);
+          redux.getProjectActions(project_id).close_tab(path);
+        }}
       >
         After you open {path}, use TimeTravel to get past versions.
-        <br />
-        <br />
-        <div style={{ float: "right" }}>
-          <Button
-            onClick={() => redux.getProjectActions(project_id).close_tab(path)}
-          >
-            Cancel
-          </Button>
-          <Space />
-          <Button
-            onClick={async () => {
-              const store = redux.getProjectStore(project_id);
-              const listings = store.get_listings();
-              await listings.undelete(path);
-              if (!isMountedRef.current) return;
-              onOpen();
-            }}
-            type="primary"
-          >
-            Open
-          </Button>
-        </div>
-      </Card>
+      </Modal>
     </div>
   );
 }
