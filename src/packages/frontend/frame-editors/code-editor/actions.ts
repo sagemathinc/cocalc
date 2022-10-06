@@ -1304,7 +1304,7 @@ export class Actions<
   }
 
   // TODO: might also specify args.
-  _get_most_recent_shell_id(command: string | undefined): string | undefined {
+  _get_most_recent_shell_id(command?: string): string | undefined {
     return this._get_most_recent_active_frame_id(
       (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
@@ -2341,6 +2341,14 @@ export class Actions<
     }
   }
 
+  //////////////////////////////////////////
+  // shell and get_shell_spec:
+  //    This is currently ONLY used by Jupyter to provide a command line console
+  //    using the running kernel.  It's too opaque for editing code files.
+  //    For that we will instead have a "Run" button. See
+  //        https://github.com/sagemathinc/cocalc/issues/6160
+  //////////////////////////////////////////
+
   // Overload this in a derived class to have a possibly more complicated spec.
   protected async get_shell_spec(
     id: string
@@ -2382,6 +2390,28 @@ export class Actions<
         command,
         args,
       });
+    }
+    if (no_switch) return;
+
+    // De-maximize if in full screen mode.
+    this.unset_frame_full();
+
+    // Have to wait until after editor gets created, and
+    // probably also event that caused this open.
+    await delay(1);
+    if (this._state == "closed") return;
+    this.set_active_id(shell_id);
+  }
+
+  public async terminal(id: string, no_switch: boolean = false): Promise<void> {
+    // Check if there is already a terminal with the given command,
+    // and if so, just focus it.
+    // (TODO: might also specify args.)
+    let shell_id: string | undefined = this._get_most_recent_shell_id();
+    if (shell_id == null) {
+      // No such terminal already, so we make one and focus it.
+      shell_id = this.split_frame("col", id, "terminal");
+      if(shell_id == null) return;
     }
     if (no_switch) return;
 

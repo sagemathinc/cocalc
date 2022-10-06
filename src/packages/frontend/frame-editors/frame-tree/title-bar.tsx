@@ -1281,6 +1281,27 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_terminal(): Rendered {
+    if (
+      !is_visible("terminal") ||
+      is_public ||
+      student_project_functionality.disableTerminals
+    ) {
+      return;
+    }
+    return (
+      <Button
+        key={"terminal"}
+        bsSize={button_size()}
+        onClick={() => props.actions.terminal(props.id)}
+        title={button_title("terminal", "Open a command line terminal")}
+      >
+        <Icon name={"terminal"} />{" "}
+        <VisibleMDLG>{button_text("terminal")}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_shell(): Rendered {
     if (
       !is_visible("shell") ||
@@ -1403,6 +1424,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_count_words());
     v.push(render_kick_other_users_out());
     v.push(render_format());
+    v.push(render_terminal());
     v.push(render_shell());
     v.push(render_print());
     v.push(render_table_of_contents());
