@@ -7,7 +7,6 @@ import { join } from "path";
 import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { path_split, trunc } from "@cocalc/util/misc";
 import copyPublicPath from "lib/share/copy-public-path";
 import Loading from "components/share/loading";
@@ -19,17 +18,23 @@ import SelectProject from "components/project/select";
 import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
 import RunApp from "components/app/path";
+import useCustomize from "lib/use-customize";
 
-export default function ChooseProject({
-  id,
-  src_project_id,
-  path,
-  url,
-  relativePath,
-  image,
-  description,
-}) {
+interface Props {
+  id;
+  src_project_id;
+  path;
+  url;
+  relativePath;
+  image;
+  description;
+}
+
+export default function ChooseProject(props: Props) {
+  const { id, src_project_id, path, url, relativePath, image, description } =
+    props;
   const isMounted = useIsMounted();
+  const { defaultComputeImage } = useCustomize();
   const [project, setProject] = useState<
     { project_id: string; title: string } | undefined
   >(undefined);
@@ -100,7 +105,7 @@ export default function ChooseProject({
         {!errorCopying && copying == "after" && project?.project_id && (
           <RunApp start project_id={project.project_id} path={targetPath} />
         )}
-        {image && image != DEFAULT_COMPUTE_IMAGE && (
+        {image && image != defaultComputeImage && (
           <div>
             We recommend that you create a new project, since this public path
             uses the non-default image "{image}".

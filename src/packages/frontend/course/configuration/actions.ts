@@ -339,8 +339,10 @@ export class ConfigurationActions {
     this.course_actions.shared_project.set_project_compute_image();
   }
 
-  public set_software_environment(state: SoftwareEnvironmentState): void {
-    const image = derive_project_img_name(state);
+  public async set_software_environment(
+    state: SoftwareEnvironmentState
+  ): Promise<void> {
+    const image = await derive_project_img_name(state);
     this.set_compute_image(image);
   }
 

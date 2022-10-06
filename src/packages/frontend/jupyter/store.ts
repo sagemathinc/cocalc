@@ -527,11 +527,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  jupyter_kernel_key = (): string => {
+  jupyter_kernel_key = async (): Promise<string> => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const customize_store = this.redux.getStore("customize");
-    const dflt_img = customize_store.getIn(["software", "default"]);
+    const dflt_img = await this.redux.getStore("customize").getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
       dflt_img ?? DEFAULT_COMPUTE_IMAGE

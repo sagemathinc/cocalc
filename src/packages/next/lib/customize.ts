@@ -25,6 +25,7 @@ interface Customize extends ServerCustomize {
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   sandboxProjectId?: string; // a sandbox project to put on landing pages...
   githubProjectId?: string; // proxy github urls
+  defaultComputeImage?: string; // default compute image, e.g. used when creating new projects from a share
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

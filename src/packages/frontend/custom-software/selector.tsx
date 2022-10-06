@@ -72,12 +72,13 @@ export interface SoftwareEnvironmentState {
 
 // this is used in create-project and course/configuration/actions
 // this derives the proper image name from the image type & image selection of SoftwareEnvironmentState
-export function derive_project_img_name(
+export async function derive_project_img_name(
   custom_software: SoftwareEnvironmentState
-): string {
+): Promise<string> {
   const { image_type, image_selected } = custom_software;
-  const customize = redux.getStore("customize");
-  const dflt_software_img = customize.getIn(["software", "default"]);
+  const dflt_software_img = await redux
+    .getStore("customize")
+    .getDefaultComputeImage();
   if (image_selected == null || image_type == null) {
     return dflt_software_img;
   }

@@ -65,7 +65,7 @@ export class StudentProjectsActions {
     const id = this.course_actions.set_activity({
       desc: `Create project for ${store.get_student_name(student_id)}.`,
     });
-    const dflt_img = redux.getStore("customize").getIn(["software", "default"]);
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
     let project_id: string;
     try {
       project_id = await redux.getActions("projects").create_project({
@@ -608,9 +608,7 @@ export class StudentProjectsActions {
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    const customize_store = redux.getStore("customize");
-    if (customize_store == null) return;
-    const dflt_img = customize_store.getIn(["software", "default"]);
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
     const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(student_project_id);
     await actions.set_compute_image(img_id);

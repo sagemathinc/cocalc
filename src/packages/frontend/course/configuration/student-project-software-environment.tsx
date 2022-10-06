@@ -122,9 +122,9 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
               state.image_type === "custom" && state.image_selected == null
             }
             type="primary"
-            onClick={() => {
+            onClick={async () => {
               set_changing(false);
-              actions.set_software_environment(state);
+              await actions.set_software_environment(state);
             }}
           >
             Save

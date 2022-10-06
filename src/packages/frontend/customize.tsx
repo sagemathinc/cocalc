@@ -32,6 +32,7 @@ import {
   ComputeImage,
   FALLBACK_SOFTWARE_ENV,
 } from "@cocalc/util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -139,6 +140,11 @@ export class CustomizeStore extends Store<CustomizeState> {
     if (hosts == null) return [];
     return hosts.toJS();
   }
+
+  async getDefaultComputeImage(): Promise<string> {
+    await this.until_configured();
+    return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
+  }
 }
 
 export class CustomizeActions extends Actions<CustomizeState> {}
@@ -182,8 +188,8 @@ async function init_customize() {
     strategies,
     software = null,
   } = customize;
-  process_customize(configuration);
   process_software(software);
+  process_customize(configuration); // this sets _is_configured to true
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });

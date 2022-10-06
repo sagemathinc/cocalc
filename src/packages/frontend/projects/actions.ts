@@ -335,7 +335,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
   }): Promise<string> {
-    const dflt_img = redux.getStore("customize").getIn(["software", "default"]);
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
 
     const opts2: {
       title: string;

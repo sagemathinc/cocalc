@@ -42,7 +42,6 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc";
@@ -2511,9 +2510,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = client_db.sha1(project_id, path);
 
     const projects_store = redux.getStore("projects");
-    const compute_image =
+    const dflt_compute_img = await redux.getStore("customize").getDefaultComputeImage()
+
+    const compute_image :string =
       projects_store.getIn(["project_map", project_id, "compute_image"]) ??
-      DEFAULT_COMPUTE_IMAGE;
+      dflt_compute_img;
 
     const table = this.redux.getProjectTable(project_id, "public_paths");
     let obj: undefined | Map<string, any> = table._table.get(id);

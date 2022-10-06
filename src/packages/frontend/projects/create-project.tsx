@@ -130,7 +130,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     try {
       project_id = await actions.create_project({
         title: title_text,
-        image: derive_project_img_name(custom_software),
+        image: await derive_project_img_name(custom_software),
         start: false, // do NOT want to start, due to apply_default_upgrades
       });
     } catch (err) {
