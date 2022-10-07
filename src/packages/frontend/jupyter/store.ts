@@ -9,7 +9,6 @@ The Store
 
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { Syntax } from "@cocalc/util/code-formatter";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
 import { fromJS, List, Map, OrderedMap, Set } from "immutable";
 import { Store } from "../app-framework";
@@ -530,10 +529,12 @@ export class JupyterStore extends Store<JupyterStoreState> {
   jupyter_kernel_key = async (): Promise<string> => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const dflt_img = await this.redux.getStore("customize").getDefaultComputeImage();
+    const dflt_img = await this.redux
+      .getStore("customize")
+      .getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      dflt_img ?? DEFAULT_COMPUTE_IMAGE
+      dflt_img
     );
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);

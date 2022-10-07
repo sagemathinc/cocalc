@@ -12,8 +12,7 @@ import { Icon, Loading, Space } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { MenuProps, Typography } from "antd";
-import { Button, Dropdown, Menu } from "antd";
+import { Button, Dropdown, Menu, MenuProps, Typography } from "antd";
 import { fromJS } from "immutable";
 const { Text } = Typography;
 type MenuItem = Required<MenuProps>["items"][number];
@@ -58,24 +57,25 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     return <Loading />;
   }
 
-  const COMPUTE_IMAGES = fromJS(software_envs.get("environments")).sort(
+  const computeEnvs = fromJS(software_envs.get("environments")).sort(
     img_sorter
   );
 
-  const DEFAULT_COMPUTE_IMAGE = software_envs.get("default");
+  const defaultComputeImg = software_envs.get("default");
   const GROUPS: string[] = software_envs.get("groups").toJS();
 
   function compute_image_info(name, type) {
-    return COMPUTE_IMAGES.getIn([name, type]);
+    return computeEnvs.getIn([name, type]);
   }
 
-  const default_title = compute_image_info(DEFAULT_COMPUTE_IMAGE, "title");
+  const default_title = compute_image_info(defaultComputeImg, "title");
   const selected_title = compute_image_info(selected_image, "title");
 
   function render_menu_children(group: string): MenuItem[] {
-    return COMPUTE_IMAGES.filter(
-      (item) => item.get("group") === group && !item.get("hidden", false)
-    )
+    return computeEnvs
+      .filter(
+        (item) => item.get("group") === group && !item.get("hidden", false)
+      )
       .map((img, key) => {
         const registry = img.get("registry");
         const tag = img.get("tag");
@@ -125,7 +125,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   function render_doubt() {
-    if (selected_image === DEFAULT_COMPUTE_IMAGE) {
+    if (selected_image === defaultComputeImg) {
       return undefined;
     } else {
       return (

@@ -3,33 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import json_stable from "json-stable-stringify";
-import { redux, Actions } from "../app-framework";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
+import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
+import { markdown_to_html } from "@cocalc/frontend/markdown";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
+import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { once } from "@cocalc/util/async-utils";
 import {
   assert_uuid,
   copy,
+  defaults,
   is_valid_uuid_string,
   len,
-  defaults,
   server_minutes_ago,
 } from "@cocalc/util/misc";
+import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { Upgrades } from "@cocalc/util/upgrades/types";
 import { Set } from "immutable";
+import json_stable from "json-stable-stringify";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
-import { alert_message } from "../alerts";
-import { markdown_to_html } from "../markdown";
-import { Upgrades } from "@cocalc/util/upgrades/types";
-import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
-import { webapp_client } from "../webapp-client";
-import { set_window_title } from "../browser";
-import { once } from "@cocalc/util/async-utils";
-import { COCALC_MINIMAL } from "../fullscreen";
-import { allow_project_to_run } from "../project/client-side-throttle";
-import { site_license_public_info } from "../site-licenses/util";
-import { StudentProjectFunctionality } from "../course/configuration/customize-student-project-functionality";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -335,7 +334,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
   }): Promise<string> {
-    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
+    const image = await redux.getStore("customize").getDefaultComputeImage();
 
     const opts2: {
       title: string;
@@ -345,7 +344,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
-      image: dflt_img ?? DEFAULT_COMPUTE_IMAGE,
+      image,
       start: false,
     });
     if (!opts2.image) {
