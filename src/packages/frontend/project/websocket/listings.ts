@@ -190,7 +190,7 @@ export class Listings extends EventEmitter {
     const { head, tail } = path_split(filename);
     if (head != "" && this.is_deleted(head)) {
       // recursively check if filename is contained in a
-      // directory tree that go deleted.
+      // directory tree that got deleted.
       return true;
     }
     let x;
@@ -203,6 +203,50 @@ export class Listings extends EventEmitter {
     const deleted = x.get("deleted");
     if (deleted == null) return false;
     return deleted.indexOf(tail) != -1;
+  }
+
+  // Returns true if the path exists **according to the table**.
+  // This is orthogonal to whether or not the file was deleted,
+  // and also can be out of sync with the filesystem for a moment,
+  // or longer if not watching.  Returns undefined if things not
+  // initialized for containing path.    Make sure you understand
+  // what this does and doesn't do.
+  // I'm not using this code anywhere as far as I know, but I wrote
+  // it so leaving it here commented out.
+  /*
+  public existsSync(path: string): boolean | undefined {
+    const { head, tail } = path_split(path);
+    let x;
+    try {
+      x = this.get_record(head);
+    } catch (err) {
+      return undefined;
+    }
+    const listing = x?.get("listing");
+    if (listing == null) return false;
+    for (const entry of listing) {
+      if (entry?.get("name") == tail) {
+        return true;
+      }
+    }
+    return false;
+  }
+  */
+
+  // Does a call to the project to directly determine whether or
+  // not the given path exists.  This doesn't depend on the table.
+  // Can throw an exception if it can't contact the project.
+  public async exists(path: string): Promise<boolean> {
+    return (
+      (
+        await webapp_client.exec({
+          project_id: this.project_id,
+          command: "test",
+          args: ["-e", path],
+          err_on_exit: false,
+        })
+      ).exit_code == 0
+    );
   }
 
   // Returns:
@@ -406,7 +450,7 @@ export class Listings extends EventEmitter {
   private get_record(path: string): ImmutableListing | undefined {
     const x = this.get_table().get(JSON.stringify([this.project_id, path]));
     if (x == null) return x;
-    return (x as unknown) as ImmutableListing; // coercing to fight typescript.
+    return x as unknown as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.

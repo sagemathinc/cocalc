@@ -109,7 +109,7 @@ function useReduxProjectStore(path: string[], project_id: string) {
     const store = redux.getProjectStore(project_id);
     let last_value = value;
     const f = (obj) => {
-      if (!f.is_mounted) return; // see comment for useReduxNamedStore
+      if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
       const new_value = obj.getIn(path);
       if (last_value !== new_value) {
         /*
@@ -152,7 +152,7 @@ function useReduxEditorStore(
     let store = redux.getEditorStore(project_id, filename, is_public);
     let last_value = value;
     const f = (obj) => {
-      if (!f.is_mounted) return; // see comment for useReduxNamedStore
+      if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
       const new_value = obj.getIn(path);
       if (last_value !== new_value) {
         last_value = new_value;

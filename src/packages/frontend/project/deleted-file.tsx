@@ -3,53 +3,55 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Card, Button } from "antd";
-import { redux, Component, Rendered } from "../app-framework";
-import { Space } from "../components";
+import { useEffect, useCallback, useState } from "react";
+import { Modal } from "antd";
+import { redux } from "@cocalc/frontend/app-framework";
 import { path_split } from "@cocalc/util/misc";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 interface Props {
   project_id: string;
   path: string;
-  onOpen: Function;
+  onOpen?: Function;
 }
 
-export class DeletedFile extends Component<Props> {
-  private is_mounted: boolean = true;
+export default function DeletedFile({ project_id, path, onOpen }: Props) {
+  const [open, setOpen] = useState<boolean>(true);
+  const isMountedRef = useIsMountedRef();
+  const { tail: filename } = path_split(path);
 
-  private cancel(): void {
-    redux.getProjectActions(this.props.project_id).close_tab(this.props.path);
-  }
-
-  componentWillUnmount(): void {
-    this.is_mounted = false;
-  }
-
-  private async open(): Promise<void> {
-    const store = redux.getProjectStore(this.props.project_id);
+  const openFile = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    setOpen(false);
+    const store = redux.getProjectStore(project_id);
     const listings = store.get_listings();
-    await listings.undelete(this.props.path);
-    if (!this.is_mounted) return;
-    this.props.onOpen();
-  }
+    await listings.undelete(path);
+    onOpen?.();
+  }, []);
 
-  public render(): Rendered {
-    const path = path_split(this.props.path).tail;
-    return (
-      <div className="smc-vfill" style={{ background: "#aaa" }}>
-        <Card title={`Open previously deleted file ${path}?`} style={{ margin: "auto" }}>
-          After you open {path}, use TimeTravel to get past versions.
-          <br />
-          <br />
-          <div style={{ float: "right" }}>
-            <Button onClick={() => this.cancel()}>Cancel</Button>
-            <Space />
-            <Button onClick={() => this.open()} type="primary">
-              Open
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const store = redux.getProjectStore(project_id);
+    const listings = store.get_listings();
+    (async () => {
+      if (await listings.exists(path)) {
+        openFile();
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="smc-vfill" style={{ background: "#aaa" }}>
+      <Modal
+        visible={open}
+        title={`Open previously deleted file "${filename}"?`}
+        onOk={openFile}
+        onCancel={() => {
+          setOpen(false);
+          redux.getProjectActions(project_id).close_tab(path);
+        }}
+      >
+        After you open {path}, use TimeTravel to get past versions.
+      </Modal>
+    </div>
+  );
 }

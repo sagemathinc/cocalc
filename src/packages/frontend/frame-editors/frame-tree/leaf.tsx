@@ -4,13 +4,23 @@
  */
 
 import { Map, Set } from "immutable";
-import { Rendered, React, useRedux, CSS } from "@cocalc/frontend/app-framework";
+import {
+  Rendered,
+  React,
+  useEffect,
+  useRedux,
+  useState,
+  CSS,
+} from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 import { Actions } from "../code-editor/actions";
 import { EditorDescription, EditorState, NodeDesc } from "./types";
 import { AccountState } from "@cocalc/frontend/account/types";
+
+import { webapp_client } from "../../webapp-client";
+import DeletedFile from "@cocalc/frontend/project/deleted-file";
 
 const ERROR_STYLE: CSS = {
   maxWidth: "100%",
@@ -111,6 +121,28 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo((props: Props) => {
     name,
     "gutter_markers"
   );
+
+  const [isDeleted, setIsDeleted] = useState<boolean>(false);
+
+  useEffect(() => {
+    const p = desc.get("path");
+    if (p == null) return;
+    if (webapp_client.file_client.is_deleted(p, project_id)) {
+      setIsDeleted(true);
+    }
+  }, [desc.get("path")]);
+
+  if (isDeleted) {
+    return (
+      <DeletedFile
+        project_id={project_id}
+        path={path}
+        onOpen={() => {
+          setIsDeleted(false);
+        }}
+      />
+    );
+  }
 
   function render_leaf(): Rendered {
     if (!is_loaded) return <Loading theme="medium" />;
