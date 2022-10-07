@@ -526,7 +526,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  jupyter_kernel_key = async (): Promise<string> => {
+  public async jupyter_kernel_key(): Promise<string> {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
     const dflt_img = await this.redux
@@ -539,5 +539,5 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
-  };
+  }
 }
