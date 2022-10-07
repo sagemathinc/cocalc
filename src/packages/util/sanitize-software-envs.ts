@@ -17,7 +17,7 @@ export interface SoftwareEnvConfig {
 }
 
 /**
- * Check that the "software environment" object is valid, set defaults, etc.
+ * Check that the "software environment" object is valid, set defaults, default exists, etc.
  *
  * If there is a problem, it logs it to the given logger and returns "null"
  */
@@ -33,7 +33,7 @@ export function sanitizeSoftwareEnv(
   }
 
   // make sure this is an array of strings
-  const groups = (software["groups"] ?? []).map((x) => `${x}`) as string[];
+  const groups: string[] = (software["groups"] ?? []).map((x) => `${x}`);
 
   for (const key of Object.keys(envs)) {
     const env = envs[key];
@@ -55,7 +55,11 @@ export function sanitizeSoftwareEnv(
     env["title"] = fallback(env["title"], env["tag"], key);
     env["descr"] = fallback(env["descr"], "");
     env["order"] = typeof env["order"] === "number" ? env["order"] : 0;
-    env["hidden"] = !!env["hidden"];
+    if (!!env["hidden"]) {
+      env["hidden"] = true;
+    } else {
+      delete env["hidden"];
+    }
 
     // if group is not in groups, add it
     if (!groups.includes(group)) {
@@ -70,7 +74,11 @@ export function sanitizeSoftwareEnv(
   }
 
   const swDflt = software["default"];
-  const dflt = typeof swDflt === "string" ? swDflt : Object.keys(envs)[0];
+  // we check that the default is a string and that it exists in envs
+  const dflt =
+    typeof swDflt === "string" && envs[swDflt] != null
+      ? swDflt
+      : Object.keys(envs)[0];
 
   return { groups, default: dflt, environments: envs };
 }
