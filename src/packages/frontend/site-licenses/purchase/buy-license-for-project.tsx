@@ -6,22 +6,32 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { Button } from "antd";
 import { join } from "path";
 
-export const BuyLicenseForProject: React.FC<{ project_id: string }> = (props: {
-  project_id: string;
-}) => {
+interface Props {
+  project_id?: string;
+}
+
+export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
   const { project_id } = props;
-  const base = join(appBasePath, "store", "site-license");
-  const url = `${base}?project_id=${project_id}`;
+
+  function url(): string {
+    const base = join(appBasePath, "store", "site-license");
+    if (is_valid_uuid_string(project_id)) {
+      return `${base}?project_id=${project_id}`;
+    } else {
+      return base;
+    }
+  }
 
   return (
     <Button
       type="primary"
       icon={<Icon name="shopping-cart" />}
       onClick={() => {
-        open_new_tab(url);
+        open_new_tab(url());
       }}
     >
       Buy a license ...

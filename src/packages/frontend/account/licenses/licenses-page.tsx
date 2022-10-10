@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { A } from "@cocalc/frontend/components";
+import { Footer } from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import { Alert } from "antd";
+import { join } from "path";
+import { AboutLicenses } from "./about-licenses";
 import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
-import { AboutLicenses } from "./about-licenses";
-import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
-import { Footer } from "@cocalc/frontend/customize";
-import { A } from "@cocalc/frontend/components";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
-import { Alert } from "antd";
 
 export const LicensesPage: React.FC = () => {
   return (
@@ -29,7 +29,7 @@ export const LicensesPage: React.FC = () => {
       />
       <AboutLicenses />
       <br />
-      <PurchaseOneLicenseLink />
+      <BuyLicenseForProject />
       <br />
       <ManagedLicenses />
       <br />
