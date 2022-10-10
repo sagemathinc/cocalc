@@ -9,6 +9,7 @@ import { open_new_tab } from "@cocalc/frontend/misc";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { Button } from "antd";
 import { join } from "path";
+import { useTypedRedux } from "../../app-framework";
 
 interface Props {
   project_id?: string;
@@ -16,6 +17,8 @@ interface Props {
 
 export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
   const { project_id } = props;
+
+  const commercial = useTypedRedux("customize", "commercial");
 
   function url(): string {
     const base = join(appBasePath, "store", "site-license");
@@ -26,15 +29,19 @@ export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
     }
   }
 
-  return (
-    <Button
-      type="primary"
-      icon={<Icon name="shopping-cart" />}
-      onClick={() => {
-        open_new_tab(url());
-      }}
-    >
-      Buy a license ...
-    </Button>
-  );
+  if (!commercial) {
+    return null;
+  } else {
+    return (
+      <Button
+        type="primary"
+        icon={<Icon name="shopping-cart" />}
+        onClick={() => {
+          open_new_tab(url());
+        }}
+      >
+        Buy a license ...
+      </Button>
+    );
+  }
 };

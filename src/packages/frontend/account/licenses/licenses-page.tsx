@@ -29,7 +29,9 @@ export const LicensesPage: React.FC = () => {
       />
       <AboutLicenses />
       <br />
-      <BuyLicenseForProject />
+      <div>
+        <BuyLicenseForProject />
+      </div>
       <br />
       <ManagedLicenses />
       <br />
