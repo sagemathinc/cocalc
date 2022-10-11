@@ -3,27 +3,28 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_valid_uuid_string, len } from "@cocalc/util/misc";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { TypedMap } from "@cocalc/util/types/typed-map";
+import {
+  isSiteLicenseQuotaSetting,
+  LicenseStatus,
+  licenseToGroupKey,
+  quota_with_reasons as compute_total_quota_with_reasons,
+  QuotaSetting,
+  SiteLicenseQuotaSetting,
+  SiteLicenses,
+  siteLicenseSelectionKeys,
+  Reasons,
+} from "@cocalc/util/upgrades/quota";
 import { Map } from "immutable";
 import { isEqual, sortBy } from "lodash";
-import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { TypedMap } from "@cocalc/util/types/typed-map";
-import { is_valid_uuid_string, len } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
+import { PostgreSQL } from "../types";
 import { number_of_running_projects_using_license } from "./analytics";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 type QuotaMap = TypedMap<SiteLicenseQuota>;
-import {
-  quota as compute_total_quota,
-  SiteLicenseQuotaSetting,
-  QuotaSetting,
-  SiteLicenses,
-  LicenseStatus,
-  siteLicenseSelectionKeys,
-  licenseToGroupKey,
-  isSiteLicenseQuotaSetting,
-} from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
 const LOGGER_NAME = "site-license-hook";
@@ -251,6 +252,7 @@ class SiteLicenseHook {
     // and fill that in.
     const nextLicense: SiteLicenses = {};
     const allValidLicenses = await this.getAllValidLicenses();
+    const reasons: Reasons = {};
 
     // it's important to start testing with regular licenses by decreasing priority
     for (const license_id of this.orderedSiteLicenseIDs(allValidLicenses)) {
@@ -266,24 +268,37 @@ class SiteLicenseHook {
 
       if (status === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
+        this.dbg.silly(
+          `upgrades by ${license_id}=${JSON.stringify(
+            upgrades
+          )} | settings=${JSON.stringify(
+            this.project.settings
+          )} | users=${JSON.stringify(this.project.users)}`
+        );
 
         this.dbg.verbose(`computing run quotas by adding ${license_id}...`);
-        const run_quota = compute_total_quota(
+        const { quota: run_quota } = compute_total_quota_with_reasons(
           this.project.settings,
           this.project.users,
           nextLicense
         );
-        const run_quota_with_license = compute_total_quota(
-          this.project.settings,
-          this.project.users,
-          {
-            ...nextLicense,
-            ...{ [license_id]: upgrades },
-          }
-        );
+        const { quota: run_quota_with_license, reasons: newReasons } =
+          compute_total_quota_with_reasons(
+            this.project.settings,
+            this.project.users,
+            {
+              ...nextLicense,
+              ...{ [license_id]: upgrades },
+            }
+          );
+
+        Object.apply(reasons, newReasons);
+
         this.dbg.silly(`run_quota=${JSON.stringify(run_quota)}`);
         this.dbg.silly(
-          `run_quota_with_license=${JSON.stringify(run_quota_with_license)}`
+          `run_quota_with_license=${JSON.stringify(
+            run_quota_with_license
+          )} | reason=${newReasons}`
         );
         if (!isEqual(run_quota, run_quota_with_license)) {
           this.dbg.info(
@@ -296,14 +311,17 @@ class SiteLicenseHook {
           this.dbg.info(
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`
           );
-          nextLicense[license_id] = { status: "ineffective" };
+          nextLicense[license_id] = {
+            status: "ineffective",
+            reason: reasons[license_id],
+          };
         }
       } else {
         // license is not valid, all other cases:
         // Note: in an earlier version we did delete an expired license. We don't do this any more,
         // but instead record that it is expired and tell the user about it.
         this.dbg.info(`Disabling license "${license_id}" -- status=${status}`);
-        nextLicense[license_id] = { status }; // no upgrades or quotas!
+        nextLicense[license_id] = { status, reason: status }; // no upgrades or quotas!
       }
     }
     return nextLicense;

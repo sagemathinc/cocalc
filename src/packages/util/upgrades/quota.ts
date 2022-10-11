@@ -134,6 +134,13 @@ export interface Upgrades {
   ephemeral_disk: number;
 }
 
+export type Reason = LicenseStatus | "dedicated_vm" | "hosting_incompatible";
+
+// collect the explanation, why a certain license is inactive
+export interface Reasons {
+  [license_id: string]: Reason;
+}
+
 // this is onprem specific only!
 // this server setting configuration "default_quotas" is stored in the database
 // and used by the manage process to configure default quotas of projects.
@@ -200,7 +207,10 @@ export function licenseStatusProvidesUpgrades(status?: LicenseStatus) {
 
 // it could be null in the moment when a license is removed via the UI
 export type QuotaSetting =
-  | ((Upgrades | SiteLicenseQuotaSetting | {}) & { status?: LicenseStatus })
+  | ((Upgrades | SiteLicenseQuotaSetting | {}) & {
+      status?: LicenseStatus;
+      reason?: Reason; // why the status has this state, especially if ineffective
+    })
   | null;
 
 export type SiteLicenses = {
@@ -318,13 +328,15 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
   );
 }
 
-function select_dedicated_vm(site_licenses: SiteLicenses): DedicatedVM | null {
+function select_dedicated_vm(
+  site_licenses: SiteLicenses
+): { id: string; vm: DedicatedVM } | null {
   // if there is a dedicated_vm upgrade, pick the first one
-  for (const val of Object.values(site_licenses)) {
+  for (const [id, val] of Object.entries(site_licenses)) {
     if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_vm != null) {
       const vm = val.quota.dedicated_vm;
       if (typeof vm !== "boolean" && typeof vm?.machine === "string") {
-        return vm;
+        return { id, vm };
       }
     }
   }
@@ -482,7 +494,10 @@ function selectMatchingLicenses(
   return pickGroup();
 }
 
-function selectSiteLicenses(site_licenses: SiteLicenses): {
+function selectSiteLicenses(
+  site_licenses: SiteLicenses,
+  reasons?: Reasons
+): {
   site_licenses: SiteLicenses;
   dedicated_disks?: DedicatedDisk[];
   dedicated_vm?: DedicatedVM;
@@ -490,10 +505,21 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
   // this "extracts" all dedicated disk upgrades from the site_licenses map
   const dedicated_disks = select_dedicated_disks(site_licenses);
   // and here we extract the dedicated VM quota
-  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
+  const dedicated_vm = select_dedicated_vm(site_licenses);
   // if there is a dedicated VM, we ignore all site licenses.
   if (dedicated_vm != null) {
-    return { site_licenses: {}, dedicated_disks, dedicated_vm };
+    const { id, vm } = dedicated_vm;
+
+    // iterate over all keys in site_licenses, and set reason[key] = "dedicated_vm" for all keys that are not id
+    if (reasons != null) {
+      Object.keys(site_licenses).forEach((key) => {
+        if (key !== id) {
+          reasons[key] = "dedicated_vm";
+        }
+      });
+    }
+
+    return { site_licenses: {}, dedicated_disks, dedicated_vm: vm };
   }
 
   // will only return "regular" site licenses
@@ -507,6 +533,16 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
       Object.assign(all, boosts.selected);
     }
   }
+
+  // for all keys in site_licenses: if it is not in "all" then set reason[key] = "hosting_incompatible"
+  if (reasons != null) {
+    Object.keys(site_licenses).forEach((key) => {
+      if (all[key] == null) {
+        reasons[key] = "hosting_incompatible";
+      }
+    });
+  }
+
   return { site_licenses: all, dedicated_disks };
 }
 
@@ -778,6 +814,21 @@ export function quota(
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas
 ): Quota {
+  const { quota } = quota_with_reasons(
+    settings_arg,
+    users_arg,
+    site_licenses,
+    site_settings
+  );
+  return quota;
+}
+
+export function quota_with_reasons(
+  settings_arg?: Settings,
+  users_arg?: Users,
+  site_licenses?: SiteLicenses,
+  site_settings?: SiteSettingsQuotas
+): { quota: Quota; reasons: { [key: string]: string } } {
   // empirically, this is sometimes a string -- we want this to be a number, though!
   if (typeof settings_arg?.disk_quota === "string") {
     settings_arg.disk_quota = to_int(settings_arg.disk_quota);
@@ -802,18 +853,20 @@ export function quota(
     ...(site_settings?.max_upgrades ?? {}),
   });
 
-  // pick only valid licenses
+  // pick only valid licenses – i.e. not expired, exhausted, or future
   site_licenses = pickValidLicenses(site_licenses);
 
   // site_licenses will at least be an empty dict object
   site_licenses = prepareSiteLicenses(site_licenses);
+
+  const reasons: Reasons = {};
 
   // we might not consider all of them!
   const {
     site_licenses: site_licenses_selected,
     dedicated_disks = [],
     dedicated_vm = false,
-  } = selectSiteLicenses(site_licenses);
+  } = selectSiteLicenses(site_licenses, reasons);
 
   site_licenses = Object.freeze(site_licenses_selected);
 
@@ -840,10 +893,13 @@ export function quota(
     }
 
     return {
-      ...ZERO_QUOTA,
-      ...dedicated_quota,
-      dedicated_vm,
-      dedicated_disks,
+      quota: {
+        ...ZERO_QUOTA,
+        ...dedicated_quota,
+        dedicated_vm,
+        dedicated_disks,
+      },
+      reasons,
     };
   }
 
@@ -857,7 +913,7 @@ export function quota(
   });
 
   total_quota.dedicated_disks = dedicated_disks;
-  return total_quota;
+  return { quota: total_quota, reasons: reasons };
 }
 
 // Compute the contribution to quota coming from the quota field of the site licenses.

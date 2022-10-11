@@ -3,6 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import {
+  React,
+  redux,
+  useEffect,
+  useIsMountedRef,
+  usePrevious,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { trunc, unreachable } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -15,15 +24,6 @@ import { Alert, Button, Popconfirm, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
 import { alert_message } from "../alerts";
-import {
-  React,
-  redux,
-  useEffect,
-  useIsMountedRef,
-  usePrevious,
-  useState,
-} from "@cocalc/frontend/app-framework";
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfo } from "./site-license-public-info-component";
 import { SiteLicensePublicInfo as Info, SiteLicenses } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
@@ -47,6 +47,7 @@ interface TableRow {
   expires?: Date;
   expired: boolean; // true if expired, with a bit of heuristics
   status: LicenseStatus; // see calcStatus for what's going on
+  reason?: string; // expand Reason to an acutal explanation
 }
 
 export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
@@ -137,6 +138,15 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
+  function getReason(v): string {
+    const reason = v.reason;
+    if (typeof reason === "string") {
+      return reason;
+    } else {
+      return "";
+    }
+  }
+
   // derive table row data from site license and fetched infos
   useEffect(() => {
     if (infos == null) return;
@@ -162,6 +172,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             title: v?.title,
             description: v?.description,
             status,
+            reason: getReason(v),
             is_manager: v.is_manager ?? false,
             activates: v.activates,
             expires: v.expires,
@@ -209,10 +220,11 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     const status: LicenseStatus = rec.status ?? "valid";
     const color = renderStatusColor(status);
     const info = LicenseStatusOptions[status];
+    const reason = rec.reason;
     const text = status === "expired" ? status.toUpperCase() : status;
     const style = status === "expired" ? { fontSize: "110%" } : {};
     return (
-      <Tooltip title={info}>
+      <Tooltip title={`${info} ${reason == ""}`}>
         <Tag style={style} color={color}>
           {text}
         </Tag>
