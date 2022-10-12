@@ -5,10 +5,10 @@
 
 /* Link to purchasing a license */
 
-import { useTypedRedux, redux } from "../../app-framework";
-import { PurchaseOneLicense } from "./purchase";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, Space } from "@cocalc/frontend/components";
 import { Button } from "antd";
-import { Icon, Space } from "../../components";
+import { PurchaseOneLicense } from "./purchase";
 
 export const PurchaseOneLicenseLink: React.FC = () => {
   const expand = useTypedRedux("account", "show_purchase_form") ?? false;

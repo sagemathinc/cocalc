@@ -4,7 +4,7 @@
  */
 
 // CoCalc libraries
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { contains_url, days_ago, plural } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 // React libraries and Components
@@ -16,8 +16,8 @@ import {
   useActions,
   useStore,
   useTypedRedux,
-} from "../../app-framework";
-import { Button, ButtonGroup, Checkbox } from "../../antd-bootstrap";
+} from "@cocalc/frontend/app-framework";
+import { Button, ButtonGroup, Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { Alert, Card, Row, Col } from "antd";
 // CoCalc Components
 import {
@@ -30,10 +30,10 @@ import {
   TextInput,
   TimeAgo,
   ErrorDisplay,
-} from "../../components";
+} from "@cocalc/frontend/components";
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
-import { ProjectMap } from "../../todo-types";
+import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { CourseSettingsRecord, CourseStore } from "../store";
 import { HelpBox } from "./help-box";
 

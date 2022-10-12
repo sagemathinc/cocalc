@@ -7,20 +7,19 @@
 Actions specific to manipulating the student projects that students have in a course.
 */
 
-import { delay } from "awaiting";
-import { CourseActions } from "../actions";
-import { CourseStore } from "../store";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
-import { len, keys, copy, days_ago } from "@cocalc/util/misc";
-import { SITE_NAME } from "@cocalc/util/theme";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
-import { UpgradeGoal } from "../types";
-import { run_in_all_projects, Result } from "./run-in-all-projects";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
-import { map as awaitMap } from "awaiting";
+import { copy, days_ago, keys, len } from "@cocalc/util/misc";
+import { SITE_NAME } from "@cocalc/util/theme";
+import { delay, map as awaitMap } from "awaiting";
+import { CourseActions } from "../actions";
+import { CourseStore, DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import { UpgradeGoal } from "../types";
+import { Result, run_in_all_projects } from "./run-in-all-projects";
 
 // for tasks that are "easy" to run in parallel, e.g. starting projects
 export const MAX_PARALLEL_TASKS = 30;
@@ -708,9 +707,12 @@ export class StudentProjectsActions {
       len(licenses) > 1
     ) {
       const hasSharedProject = !!store.getIn(["settings", "shared_project_id"]);
+      const upgradeHostProject =
+        store.getIn(["settings", "license_upgrade_host_project"]) ??
+        DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
       licenseRunLimits = {};
-      // get the run limit for each license, but subtract for course project
-      // and shared project.
+      // get the run limit for each license, but subtract for course project (if upgraded)
+      // and shared project (if it exists).
       for (const license_id in licenses) {
         if (licenses[license_id].expired) {
           // license is expired, so consider limit
@@ -719,7 +721,9 @@ export class StudentProjectsActions {
           licenseRunLimits[license_id] = 0;
         } else {
           licenseRunLimits[license_id] =
-            licenses[license_id].runLimit - 1 - (hasSharedProject ? 1 : 0);
+            licenses[license_id].runLimit -
+            (upgradeHostProject ? 1 : 0) -
+            (hasSharedProject ? 1 : 0);
         }
       }
     }
@@ -768,6 +772,24 @@ export class StudentProjectsActions {
         project_map = redux.getStore("projects").get("project_map");
       }
 
+      // we make sure no leftover licenses are used by deleted student projects
+      const deletedIDs = store.get_student_ids({ deleted: true });
+      for (const deleted_student_id of deletedIDs) {
+        i += 1;
+        const idDel: number = this.course_actions.set_activity({
+          desc: `Configuring deleted student project ${i} of ${deletedIDs.length}`,
+        });
+        await this.configure_project({
+          student_id: deleted_student_id,
+          student_project_id: undefined,
+          force_send_invite_by_email: false,
+          license_id: "", // no license for a deleted project
+        });
+        this.course_actions.set_activity({ id: idDel });
+        await delay(0); // give UI, etc. a solid chance to render
+      }
+
+      i = 0;
       for (const student_id of ids) {
         if (this.course_actions.is_closed()) return;
         i += 1;
@@ -775,6 +797,7 @@ export class StudentProjectsActions {
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
         let license_id: string | undefined = undefined;
+        // if licenseRunLimits is set, we distribute the licenses in "serial" mode
         if (licenseRunLimits != null) {
           // licenses being allocated globally.
           // What is there now for this project?
@@ -788,21 +811,19 @@ export class StudentProjectsActions {
             "site_license",
           ]);
           let already_done: boolean = false;
-          if (store.get_student(student_id)?.get("deleted")) {
-            // remove license if student is deleted
-            license_id = "";
-            already_done = true;
-          }
+          // go through all licenses attached to the student project and only keep the first one that still has > 0 seats left.
           for (const id in site_license) {
             if (licenseRunLimits[id] != null) {
               licenseRunLimits[id] -= 1;
               if (licenseRunLimits[id] >= 0) {
                 already_done = true;
+                license_id = id; // we pick this license for this project
+                break;
               }
             }
           }
           if (!already_done) {
-            license_id = "";
+            license_id = ""; // fallback, no license seat left
             // choose an available license
             for (const id in licenseRunLimits) {
               if (licenseRunLimits[id] > 0) {
@@ -817,7 +838,7 @@ export class StudentProjectsActions {
           student_id,
           student_project_id: undefined,
           force_send_invite_by_email: force,
-          license_id,
+          license_id, // if undefined, all known licenses will be applied to this student project
         });
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
