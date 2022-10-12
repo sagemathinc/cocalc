@@ -44,5 +44,8 @@ Table({
     time: {
       type: "timestamp",
     },
+    expire: {
+      type: "timestamp",
+    },
   },
 });

@@ -1487,6 +1487,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             email_address : required
             ip_address    : required
+            ttl           : required
             cb            : required   # cb(err)
         @_query
             query  : 'INSERT INTO password_reset_attempts'
@@ -1495,6 +1496,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 "email_address :: TEXT "     : opts.email_address
                 "ip_address    :: INET"      : opts.ip_address
                 "time          :: TIMESTAMP" : "NOW()"
+                "expire        :: TIMESTAMP" : expire_time(opts.ttl)
             cb     : opts.cb
 
     count_password_reset_attempts: (opts) =>
