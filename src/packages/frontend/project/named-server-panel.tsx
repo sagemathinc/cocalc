@@ -46,7 +46,7 @@ extensions.`,
   },
   code: {
     longName: "Visual Studio Code",
-    description: `Visal Studio Code is a source-code editor made by Microsoft. Features
+    description: `Visual Studio Code is a source-code editor made by Microsoft. Features
 include support for debugging, syntax highlighting, intelligent
 code completion, snippets, code refactoring, and embedded Git.`,
     usesBasePath: false,
