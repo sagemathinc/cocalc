@@ -10,26 +10,26 @@ Client account creation and deletion
 const MAX_ACCOUNTS_PER_30MIN = 150;
 const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 
-const auth = require("../auth");
-import { parseDomain, ParseResultType } from "parse-domain";
+const auth = require("@cocalc/hub/auth");
+import passwordHash from "@cocalc/backend/auth/password-hash";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { getLogger } from "@cocalc/hub/logger";
+import apiKeyAction from "@cocalc/server/api/manage";
+import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { CreateAccount } from "@cocalc/util/message-types";
 import {
-  walltime,
-  lower_email_address,
-  required,
   defaults,
   is_valid_email_address,
   len,
+  lower_email_address,
+  required,
+  walltime,
 } from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { callback2 } from "@cocalc/util/async-utils";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import apiKeyAction from "@cocalc/server/api/manage";
-import { have_active_registration_tokens, get_passports } from "../utils";
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
-import { getLogger } from "@cocalc/hub/logger";
-import passwordHash from "@cocalc/backend/auth/password-hash";
+import { parseDomain, ParseResultType } from "parse-domain";
+import { get_passports, have_active_registration_tokens } from "../utils";
 
 const winston = getLogger("create-account");
 
