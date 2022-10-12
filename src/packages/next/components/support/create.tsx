@@ -437,8 +437,9 @@ function Instructions() {
   return (
     <div>
       <p>
-        If you still need help, create a support ticket below. Support is
-        currently available in <b>English and German</b> only.
+        If the above links don't help you solve your problem, please create a
+        support ticket below. Support is currently available in{" "}
+        <b>English and German</b> only.
       </p>
     </div>
   );
@@ -448,7 +449,7 @@ function FAQ() {
   return (
     <div>
       {" "}
-      <h2>Frequently Asked Questions</h2>
+      <h2>Helpful Links</h2>
       <Alert
         message={""}
         style={{ margin: "20px 30px" }}
@@ -456,9 +457,15 @@ function FAQ() {
         description={
           <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
             <li>
+              I just want to{" "}
+              <A href="https://github.com/sagemathinc/cocalc/discussions">
+                search other questions or start a discussion about CoCalc...
+              </A>
+            </li>
+            <li>
               {" "}
               <A href="https://doc.cocalc.com/howto/missing-project.html">
-                My file or project is gone?
+                My file or project is gone...
               </A>{" "}
             </li>
             <li>
@@ -469,20 +476,15 @@ function FAQ() {
               </A>{" "}
               or{" "}
               <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
-                crashing
+                crashing...
               </A>
-              ?{" "}
             </li>
             <li>
               {" "}
               I have{" "}
               <A href="https://doc.cocalc.com/howto/sage-question.html">
-                questions about SageMath.
+                questions about SageMath...
               </A>
-            </li>
-            <li>
-              I just need to{" "}
-              <A href="https://discord.gg/nEHs2GK">quickly chat</A>.
             </li>
           </ul>
         }

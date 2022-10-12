@@ -11,7 +11,7 @@ import {
 } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
-import { Icon, Loading, SearchInput } from "../components";
+import { A, Icon, Loading, SearchInput } from "../components";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
@@ -70,6 +70,10 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     }
     return (
       <div>
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          Join a discussion about CoCalc on GitHub
+        </A>{" "}
+        or add collaborators to this project:
         <AddCollaborators project_id={project_id} autoFocus />
         <div style={{ color: "#666" }}>
           (Collaborators have access to all files in this project.)
