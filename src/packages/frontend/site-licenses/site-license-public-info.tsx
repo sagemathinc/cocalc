@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { QuestionCircleOutlined } from "@ant-design/icons";
 import {
   React,
   redux,
@@ -11,7 +12,7 @@ import {
   usePrevious,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { trunc, unreachable } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -19,8 +20,10 @@ import {
   isLicenseStatus,
   LicenseStatus,
   LicenseStatusOptions,
+  Reason,
+  ReasonsExplanation,
 } from "@cocalc/util/upgrades/quota";
-import { Alert, Button, Popconfirm, Table, Tag, Tooltip } from "antd";
+import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
 import { alert_message } from "../alerts";
@@ -47,7 +50,7 @@ interface TableRow {
   expires?: Date;
   expired: boolean; // true if expired, with a bit of heuristics
   status: LicenseStatus; // see calcStatus for what's going on
-  reason?: string; // expand Reason to an acutal explanation
+  reason?: string | null; // expand Reason to an actual explanation
 }
 
 export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
@@ -138,12 +141,52 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
-  function getReason(v): string {
-    const reason = v.reason;
-    if (typeof reason === "string") {
-      return reason;
-    } else {
-      return "";
+  function getReason(k, status: LicenseStatus): string | undefined {
+    const licenseInfo = site_licenses?.[k];
+    if (licenseInfo == null) return;
+
+    // special case: tell user why it is active, when valid
+    switch (status) {
+      case "active": {
+        const activates = infos?.[k]?.activates;
+        const run_limit = infos?.[k]?.run_limit ?? 1;
+        if (activates instanceof Date) {
+          const end = activates.toISOString().slice(0, 10);
+          return `The license activated on ${end}, is still active, and its run limit of ${run_limit} is not exhausted.`;
+        }
+        return;
+      }
+
+      case "exhausted": {
+        const run_limit = infos?.[k]?.run_limit ?? 1;
+        return `The run limit of ${run_limit} is exhausted. Other projects, which are upgraded by this license, have to stop in order to make it possible to activate this license for this project.`;
+      }
+
+      case "future": {
+        const activates = infos?.[k]?.activates;
+        if (activates instanceof Date) {
+          const end = activates.toISOString().slice(0, 10);
+          return `The license will activate on ${end}.`;
+        }
+        return;
+      }
+    }
+
+    // below, this is mainly to dissect the status "ineffective".
+
+    const reason: Reason | undefined = licenseInfo.get("reason");
+    if (reason == null) return;
+    if (ReasonsExplanation[reason] != null) {
+      return ReasonsExplanation[reason];
+    }
+
+    switch (reason) {
+      case "expired": // elaborate why expired
+        const expires = infos?.[k]?.expires;
+        if (expires instanceof Date) {
+          const end = expires.toISOString().slice(0, 10);
+          return `The license expired on ${end}.`;
+        }
     }
   }
 
@@ -172,7 +215,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             title: v?.title,
             description: v?.description,
             status,
-            reason: getReason(v),
+            reason: getReason(k, status),
             is_manager: v.is_manager ?? false,
             activates: v.activates,
             expires: v.expires,
@@ -217,18 +260,22 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatus(rec: TableRow) {
+    // this prevents briefly showing invlid/expired, despite being valid
+    if (loading) return <Loading />;
     const status: LicenseStatus = rec.status ?? "valid";
     const color = renderStatusColor(status);
     const info = LicenseStatusOptions[status];
-    const reason = rec.reason;
     const text = status === "expired" ? status.toUpperCase() : status;
     const style = status === "expired" ? { fontSize: "110%" } : {};
+    const extra = rec.reason && {
+      content: <div style={{ maxWidth: "300px" }}>{rec.reason}</div>,
+    };
     return (
-      <Tooltip title={`${info} ${reason == ""}`}>
+      <Popover title={info} trigger={["hover", "click"]} {...extra}>
         <Tag style={style} color={color}>
-          {text}
+          {text} {rec.reason && <QuestionCircleOutlined />}
         </Tag>
-      </Tooltip>
+      </Popover>
     );
   }
 

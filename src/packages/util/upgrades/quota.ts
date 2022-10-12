@@ -134,13 +134,6 @@ export interface Upgrades {
   ephemeral_disk: number;
 }
 
-export type Reason = LicenseStatus | "dedicated_vm" | "hosting_incompatible";
-
-// collect the explanation, why a certain license is inactive
-export interface Reasons {
-  [license_id: string]: Reason;
-}
-
 // this is onprem specific only!
 // this server setting configuration "default_quotas" is stored in the database
 // and used by the manage process to configure default quotas of projects.
@@ -181,6 +174,19 @@ interface SiteSettingsDefaultQuotas {
 
 export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
+}
+
+// collect the explanation, why a certain license is inactive
+export const ReasonsExplanation = {
+  dedicated_vm:
+    "There is another license for hosting this project on a dedicated VM. Licenses providing quota upgrades have no effect.",
+  hosting_incompatible:
+    "This license cannot be activated, because there is at least one other license active, which has a different type of hosting or idle timeout. Only licenses with the same type of hosting and idle timeout can be active at the same time.",
+} as const;
+
+export type Reason = LicenseStatus | keyof typeof ReasonsExplanation;
+export interface Reasons {
+  [license_id: string]: Reason;
 }
 
 // all descriptions should be short sentences, expalining the user what's going on
@@ -913,7 +919,7 @@ export function quota_with_reasons(
   });
 
   total_quota.dedicated_disks = dedicated_disks;
-  return { quota: total_quota, reasons: reasons };
+  return { quota: total_quota, reasons };
 }
 
 // Compute the contribution to quota coming from the quota field of the site licenses.

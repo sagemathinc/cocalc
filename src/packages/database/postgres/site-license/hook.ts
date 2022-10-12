@@ -268,13 +268,6 @@ class SiteLicenseHook {
 
       if (status === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
-        this.dbg.silly(
-          `upgrades by ${license_id}=${JSON.stringify(
-            upgrades
-          )} | settings=${JSON.stringify(
-            this.project.settings
-          )} | users=${JSON.stringify(this.project.users)}`
-        );
 
         this.dbg.verbose(`computing run quotas by adding ${license_id}...`);
         const { quota: run_quota } = compute_total_quota_with_reasons(
@@ -292,13 +285,13 @@ class SiteLicenseHook {
             }
           );
 
-        Object.apply(reasons, newReasons);
+        Object.assign(reasons, newReasons);
 
         this.dbg.silly(`run_quota=${JSON.stringify(run_quota)}`);
         this.dbg.silly(
           `run_quota_with_license=${JSON.stringify(
             run_quota_with_license
-          )} | reason=${newReasons}`
+          )} | reason=${JSON.stringify(newReasons)}`
         );
         if (!isEqual(run_quota, run_quota_with_license)) {
           this.dbg.info(
@@ -309,7 +302,7 @@ class SiteLicenseHook {
           nextLicense[license_id] = { ...upgrades, status: "active" };
         } else {
           this.dbg.info(
-            `Found a valid license "${license_id}", but it provides nothing new so not using it.`
+            `Found a valid license "${license_id}", but it provides nothing new so not using it (reason: ${newReasons[license_id]})`
           );
           nextLicense[license_id] = {
             status: "ineffective",

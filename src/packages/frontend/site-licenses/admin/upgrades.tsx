@@ -3,23 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered, useState } from "../../app-framework";
+import {
+  Component,
+  React,
+  Rendered,
+  TypedMap,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { plural } from "@cocalc/util/misc";
+import { upgrades } from "@cocalc/util/upgrade-spec";
+import { Col, Dropdown, Menu, Row } from "antd";
 import { fromJS, Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-import { upgrades } from "@cocalc/util/upgrade-spec";
-import { Row, Col, Dropdown, Menu } from "antd";
+import { SiteLicensePublicInfo } from "../types";
 import { actions } from "./actions";
-import {
-  license_field_names,
-  upgrade_fields_type,
-  upgrade_fields,
-  isUpgradFieldsType as isUpgradeFieldsType,
-} from "./types";
-import { plural } from "@cocalc/util/misc";
-import { Icon } from "../../components";
 import { INPUT_STYLE } from "./license";
+import {
+  isUpgradFieldsType as isUpgradeFieldsType,
+  license_field_names,
+  upgrade_fields,
+  upgrade_fields_type,
+} from "./types";
 import { presets } from "./upgrade-presets";
-
 interface UpgradeParams {
   display: string;
   unit: string;
@@ -207,13 +213,15 @@ export function normalize_upgrades_for_save(obj: {
 }
 
 export function scale_by_display_factors(
-  upgrades: Map<string, number>
+  upgrades: TypedMap<SiteLicensePublicInfo>
 ): Map<string, number> {
   let x: Map<string, number> = Map();
   for (const [field, val] of upgrades) {
     // this makes sure we only scale upgrade fields, no other ones (e.g. "status")
     if (isUpgradeFieldsType(field)) {
       const factor = params(field).display_factor;
+      // due to isUpgradeFieldsType we know val is a number
+      if (typeof val !== "number") continue;
       x = x.set(field, val * factor);
     }
   }
