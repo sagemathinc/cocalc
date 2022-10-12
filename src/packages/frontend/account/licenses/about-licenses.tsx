@@ -1,5 +1,10 @@
-import { A } from "../../components";
-import { DOC_LICENSE_URL } from "../../billing/data";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { DOC_LICENSE_URL } from "@cocalc/frontend/billing/data";
+import { A } from "@cocalc/frontend/components";
 
 export const AboutLicenses: React.FC = () => {
   return (
