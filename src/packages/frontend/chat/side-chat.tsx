@@ -1,5 +1,4 @@
 import { debounce } from "lodash";
-import { DISCORD_INVITE } from "@cocalc/util/theme";
 
 import {
   redux,
@@ -12,7 +11,7 @@ import {
 } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
-import { A, Icon, Loading, SearchInput } from "../components";
+import { Icon, Loading, SearchInput } from "../components";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
@@ -71,7 +70,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     }
     return (
       <div>
-        Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
         <AddCollaborators project_id={project_id} autoFocus />
         <div style={{ color: "#666" }}>
           (Collaborators have access to all files in this project.)
