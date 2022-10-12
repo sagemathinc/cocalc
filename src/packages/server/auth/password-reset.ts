@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { v4 } from "uuid";
 import getPool from "@cocalc/database/pool";
 import { expireTime } from "@cocalc/database/pool/util";
@@ -26,7 +31,7 @@ export async function createReset(
   // Record that there was an attempt:
   if (ip_address) {
     await pool.query(
-      "INSERT INTO password_reset_attempts(id, email_address,ip_address,time) VALUES($1::UUID,$2::TEXT,$3,NOW())",
+      "INSERT INTO password_reset_attempts(id, email_address,ip_address,time,expire) VALUES($1::UUID,$2::TEXT,$3,NOW(),NOW() + INTERVAL '1 day')",
       [v4(), email_address, ip_address]
     );
   }

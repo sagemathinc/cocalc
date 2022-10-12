@@ -56,6 +56,7 @@ exports.forgot_password = (opts) ->
             opts.database.record_password_reset_attempt
                 email_address : opts.mesg.email_address
                 ip_address    : opts.ip_address
+                ttl           : 24*60*60 # 1 day, enough to check, we only look at one hour in the past
                 cb            : cb
         (cb) ->
             # POLICY 1: We limit the number of password resets that an email address can receive
