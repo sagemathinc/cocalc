@@ -15,22 +15,15 @@ const dataSource = [
     logo: "users",
     description: (
       <>
-        There are <A href="/support/community">many ways</A> to discuss CoCalc
-        with the community.{" "}
-        <A href="https://discord.gg/nEHs2GK">Chat on Discord</A>, start a{" "}
         <A href="https://github.com/sagemathinc/cocalc/discussions">
-          GitHub discussion
-        </A>
-        , view <A href="https://twitter.com/cocalc_com">our Twitter feed</A>,
-        subscribe to{" "}
+          Join a discussion
+        </A>{" "}
+        or{" "}
         <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
-          the mailing list
+          post to the mailing list.{" "}
         </A>
-        , read <A href="http://blog.sagemath.com/">the blog</A>, browse our{" "}
-        <A href="https://github.com/sagemathinc/cocalc/tree/master/src">
-          source code
-        </A>
-        , and more.
+        We also have <A href="https://twitter.com/cocalc_com">a Twitter feed</A>{" "}
+        and <A href="https://about.cocalc.com/cocalcs-blog/">a blog</A>.
       </>
     ),
   },
@@ -95,8 +88,8 @@ export default function Preferences({ customize }) {
           title="Support"
           description={
             <>
-              We provide excellent support for our customers. If you run into a
-              problem, read{" "}
+              We provide superior support to our users and customers. If you run
+              into a problem, read{" "}
               <A href="https://doc.cocalc.com/">our extensive documentation</A>,{" "}
               <A href="/support/community">check online forums and chatrooms</A>{" "}
               or <A href="/support/new">create a support ticket</A>.

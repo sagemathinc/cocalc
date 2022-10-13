@@ -32,8 +32,13 @@ register({
     const { AnchorTagComponent, urlTransform } = useFileContext();
     if (AnchorTagComponent != null) {
       return (
-        <AnchorTagComponent {...attributes} href={url} title={title}>
-          <span style={LINK_STYLE}>{children}</span>
+        <AnchorTagComponent
+          {...attributes}
+          href={url}
+          title={title}
+          style={LINK_STYLE}
+        >
+          {children}
         </AnchorTagComponent>
       );
     }

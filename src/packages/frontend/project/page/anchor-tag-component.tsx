@@ -6,12 +6,13 @@ interface Options {
 }
 
 export default function getAnchorTagComponent({ project_id, path }: Options) {
-  return ({ href, title, children }) => (
+  return ({ href, title, children, style }) => (
     <SmartAnchorTag
       project_id={project_id}
       path={path}
       href={href}
       title={title}
+      style={style}
     >
       {children}
     </SmartAnchorTag>

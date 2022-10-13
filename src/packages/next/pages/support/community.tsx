@@ -11,8 +11,9 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import Blog from "public/info/blog.png";
 import MailingList from "public/info/cocalc-mailing-list.png";
-import Discord from "public/info/discord.png";
+//import Discord from "public/info/discord.png";
 import Facebook from "public/info/facebook.png";
+import LinkedIn from "public/info/linkedin.png";
 import GitHubDiscussions from "public/info/github-discussions.png";
 import Github from "public/info/github.png";
 import Share from "public/info/share.png";
@@ -23,23 +24,41 @@ const imageWidth = "300px";
 
 const dataSource = [
   {
-    link: "https://discord.gg/nEHs2GK",
-    title: (
-      <>
-        <b>Chat</b> about CoCalc on Discord
-      </>
-    ),
-    logo: "comment",
-    image: Discord,
+    link: "https://github.com/sagemathinc/cocalc/discussions",
+    logo: "github",
     imageWidth,
+    image: GitHubDiscussions,
+    title: (
+      <A href="https://github.com/sagemathinc/cocalc/discussions">
+        CoCalc <b>GitHub Discussions</b>
+      </A>
+    ),
     description: (
       <>
-        Visit the <A href="https://discord.gg/nEHs2GK">CoCalc Discord server</A>{" "}
-        to chat with other CoCalc users, ask questions, and give us quick
-        feedback.
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          Search or ask questions and start a discussion about CoCalc here!
+        </A>
       </>
     ),
   },
+  //   {
+  //     link: "https://discord.gg/nEHs2GK",
+  //     title: (
+  //       <>
+  //         <b>Chat</b> about CoCalc on Discord
+  //       </>
+  //     ),
+  //     logo: "comment",
+  //     image: Discord,
+  //     imageWidth,
+  //     description: (
+  //       <>
+  //         Visit the <A href="https://discord.gg/nEHs2GK">CoCalc Discord server</A>{" "}
+  //         to chat with other CoCalc users, ask questions, and give us quick
+  //         feedback.
+  //       </>
+  //     ),
+  //   },
   {
     shareServer: true,
     link: "/share",
@@ -47,9 +66,9 @@ const dataSource = [
     imageWidth,
     image: Share,
     title: (
-      <>
+      <A href="/share">
         <b>Explore</b> Published Files
-      </>
+      </A>
     ),
     description: (
       <>
@@ -69,9 +88,9 @@ const dataSource = [
     imageWidth,
     link: "https://stackoverflow.com/",
     title: (
-      <>
+      <A href={"https://stackexchange.com/sites"}>
         <b>Ask</b> on StackExchange
-      </>
+      </A>
     ),
     description: (
       <>
@@ -103,9 +122,9 @@ const dataSource = [
     image: MailingList,
     imageWidth,
     title: (
-      <>
-        <b>Email</b> via the Google Groups Mailing List
-      </>
+      <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
+        <b>The Google Groups Mailing List</b>
+      </A>
     ),
     description: (
       <>
@@ -124,15 +143,17 @@ const dataSource = [
     imageWidth,
     image: Blog,
     title: (
-      <>
+      <A href="https://about.cocalc.com/cocalcs-blog/">
         <b>Read</b> the CoCalc blog
-      </>
+      </A>
     ),
     description: (
       <>
-        Read about new developments in CoCalc at{" "}
-        <A href="https://blog.cocalc.com/archive.html">the CoCalc blog</A>. You
-        can read about{" "}
+        Read about new developments in{" "}
+        <A href="https://about.cocalc.com/cocalcs-blog/">CoCalc's new blog</A>
+        and check
+        <A href="https://blog.cocalc.com/archive.html">the archives</A>, where
+        you can read about{" "}
         <A href="https://blog.cocalc.com/2018/10/11/collaborative-editing.html">
           how collaborative editing works
         </A>
@@ -154,15 +175,15 @@ const dataSource = [
     imageWidth,
     image: Github,
     title: (
-      <>
+      <A href="https://github.com/sagemathinc/cocalc/commits/master">
         CoCalc's <b>Source Code</b>
-      </>
+      </A>
     ),
     description: (
       <>
         Browse every change to{" "}
         <A href="https://github.com/sagemathinc/cocalc/commits/master">
-          CoCalc source code going back to <b>April 2012</b>
+          CoCalc source code, which goes back to <b>April 2012</b>
         </A>
         , track the status of{" "}
         <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AI-bug+-label%3Ablocked+sort%3Acreated-desc">
@@ -196,9 +217,9 @@ const dataSource = [
     imageWidth,
     image: Twitter,
     title: (
-      <>
-        Follow CoCalc on <b>Twitter</b>
-      </>
+      <A href="https://twitter.com/cocalc_com">
+        CoCalc on <b>Twitter</b>
+      </A>
     ),
     description: (
       <>
@@ -210,14 +231,34 @@ const dataSource = [
     ),
   },
   {
+    link: "https://www.linkedin.com/company/sagemath-inc./",
+    logo: "linkedin",
+    imageWidth,
+    image: LinkedIn,
+    title: (
+      <A href="https://www.linkedin.com/company/sagemath-inc./">
+        CoCalc on <b>LinkedIn</b>
+      </A>
+    ),
+    description: (
+      <>
+        Explore{" "}
+        <A href="https://www.linkedin.com/company/sagemath-inc./">
+          CoCalc on LinkedIn
+        </A>
+        .
+      </>
+    ),
+  },
+  {
     link: "https://www.facebook.com/CoCalcOnline/",
     logo: "facebook",
     imageWidth,
     image: Facebook,
     title: (
-      <>
+      <A href="https://www.facebook.com/CoCalcOnline/">
         CoCalc on <b>Facebook</b>
-      </>
+      </A>
     ),
     description: (
       <>
@@ -225,27 +266,6 @@ const dataSource = [
         <A href="https://www.facebook.com/CoCalcOnline/">Facebook page</A>,
         where you can post something cool you've done using CoCalc, start a
         dicussion, or watch out for announcements.
-      </>
-    ),
-  },
-  {
-    link: "https://github.com/sagemathinc/cocalc/discussions",
-    logo: "github",
-    imageWidth,
-    image: GitHubDiscussions,
-    title: (
-      <>
-        CoCalc <b>GitHub Discussions</b>
-      </>
-    ),
-    description: (
-      <>
-        Discuss CoCalc with the community at the{" "}
-        <A href="https://github.com/sagemathinc/cocalc/discussions">
-          GitHub CoCalc Discussion forum
-        </A>
-        . This is a good place to ask questions, start discussions, and show and
-        tell.
       </>
     ),
   },
