@@ -4,7 +4,7 @@
  */
 
 // get these from sage/misc/latex.py
-// This same info is **also** embedded in packages/util/mathjax-config.js
+// Similar info is **also** embedded in packages/util/mathjax-config.js
 export const macros = {
   "\\Bold": "\\mathbb{#1}",
   "\\ZZ": "\\Bold{Z}",
@@ -26,4 +26,5 @@ export const macros = {
   "\\Qp": "\\QQ_{#1}",
   "\\Zmod": "\\ZZ/#1\\ZZ",
   "\\mbox": "\\text", // see https://github.com/sagemathinc/cocalc/issues/6019
+  "\\DeclareMathOperator": "\\providecommand{#1}{\\operatorname{#2}}",  // see https://github.com/sagemathinc/cocalc/issues/6179#issuecomment-1280002052
 } as const;
