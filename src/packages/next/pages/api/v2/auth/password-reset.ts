@@ -25,7 +25,12 @@ import getParams from "lib/api/get-params";
 
 export default async function passwordReset(req, res) {
   const { email } = getParams(req);
-  const result = await handle(email, req.ip);
+  let result;
+  try {
+    result = await handle(email?.toLowerCase(), req.ip);
+  } catch (err) {
+    result = { error: err.message };
+  }
   res.json(result);
 }
 
@@ -38,7 +43,7 @@ async function handle(email: string, ip: string): Promise<object> {
   // Check that user isn't spamming email.
 
   const n = await recentAttempts(email, ip);
-  if (n > 1) {
+  if (n > 3) {
     return {
       error: `We recently sent multiple password resets for "${email}".  Check your email or wait a while and try later.`,
     };
@@ -52,6 +57,7 @@ async function handle(email: string, ip: string): Promise<object> {
   try {
     await sendPasswordResetEmail(email, id);
   } catch (err) {
+    console.trace(err);
     return {
       error: `Sending password reset email failed -- ${err.message}`,
     };

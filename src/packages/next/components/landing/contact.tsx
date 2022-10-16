@@ -14,10 +14,10 @@ export default function Contact({
   showEmail?: boolean;
 }) {
   const { contactEmail } = useCustomize();
-  if (!contactEmail) return null;
+  if (!contactEmail) return <span>{lower ? "c" : "C"}ontact your site administrator</span>
   return (
     <A href={"mailto:" + contactEmail}>
-      {lower ? "c" : "C"}ontact {showEmail && contactEmail}
+      {lower ? "c" : "C"}ontact {showEmail && contactEmail }
     </A>
   );
 }
