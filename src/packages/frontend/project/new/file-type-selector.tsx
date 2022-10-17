@@ -21,6 +21,8 @@ interface Props {
   children?: React.ReactNode;
 }
 
+export type NamedServerName = "jupyter" | "jupyterlab" | "vscode" | "pluto";
+
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
 export const FileTypeSelector: React.FC<Props> = ({
@@ -29,9 +31,9 @@ export const FileTypeSelector: React.FC<Props> = ({
   project_id,
   children,
 }: Props): JSX.Element | null => {
-  const [showNamedServer, setShowNamedServer] = useState<
-    "" | "jupyter" | "jupyterlab" | "code" | "pluto"
-  >("");
+  const [showNamedServer, setShowNamedServer] = useState<"" | NamedServerName>(
+    ""
+  );
 
   const available_features = useTypedRedux(
     { project_id },
@@ -262,24 +264,28 @@ export const FileTypeSelector: React.FC<Props> = ({
               }}
             />
           )}
-          <NewFileButton
-            name={"VS Code Server..."}
-            icon={"vscode"}
-            on_click={(): void => {
-              showNamedServer == "code"
-                ? setShowNamedServer("")
-                : setShowNamedServer("code");
-            }}
-          />
-          <NewFileButton
-            name={"Pluto server..."}
-            icon={"julia"}
-            on_click={(): void => {
-              showNamedServer == "pluto"
-                ? setShowNamedServer("")
-                : setShowNamedServer("pluto");
-            }}
-          />
+          {available.vscode && (
+            <NewFileButton
+              name={"VS Code Server..."}
+              icon={"vscode"}
+              on_click={(): void => {
+                showNamedServer == "vscode"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("vscode");
+              }}
+            />
+          )}
+          {available.julia && (
+            <NewFileButton
+              name={"Pluto server..."}
+              icon={"julia"}
+              on_click={(): void => {
+                showNamedServer == "pluto"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("pluto");
+              }}
+            />
+          )}
         </Col>
       </Row>
       <Row style={row_style}>

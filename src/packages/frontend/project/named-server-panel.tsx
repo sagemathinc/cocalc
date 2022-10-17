@@ -8,21 +8,24 @@ A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
 
+import { Icon, IconName, SettingBox } from "@cocalc/frontend/components";
+import LinkRetry from "@cocalc/frontend/components/link-retry";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { capitalize } from "@cocalc/util/misc";
 import { join } from "path";
 import React from "react";
-import { Icon, IconName, SettingBox } from "../components";
-import LinkRetry from "../components/link-retry";
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { capitalize } from "@cocalc/util/misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { NamedServerName } from "./new/file-type-selector";
+
+interface Server {
+  longName: string;
+  description: string;
+  usesBasePath: boolean;
+  icon: IconName;
+}
 
 const SPEC: {
-  [name: string]: {
-    longName: string;
-    description: string;
-    usesBasePath: boolean;
-    icon: IconName;
-  };
+  [name in NamedServerName]: Server;
 } = {
   jupyter: {
     longName: "Jupyter Classic Notebook",
@@ -44,7 +47,7 @@ extensions.`,
     usesBasePath: true,
     icon: "ipynb",
   },
-  code: {
+  vscode: {
     longName: "Visual Studio Code",
     description: `Visual Studio Code is a source-code editor made by Microsoft. Features
 include support for debugging, syntax highlighting, intelligent
@@ -58,14 +61,16 @@ code completion, snippets, code refactoring, and embedded Git.`,
     usesBasePath: false,
     icon: "julia",
   },
-};
+} as const;
 
 interface Props {
   project_id: string;
-  name: string;
+  name: NamedServerName;
 }
 
-export const NamedServerPanel: React.FC<Props> = ({ project_id, name }) => {
+export const NamedServerPanel: React.FC<Props> = (props: Props) => {
+  const { project_id, name } = props;
+
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 

@@ -9,21 +9,21 @@
  * The corresponding file in the webapp is @cocalc/frontend/project_configuration.ts
  */
 
-import which from "which";
-import { access as fs_access, constants as fs_constaints } from "fs";
-import { exec as child_process_exec } from "child_process";
-import { promisify } from "util";
-const exec = promisify(child_process_exec);
 import { APPS } from "@cocalc/frontend/frame-editors/x11-editor/apps";
-import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
 import {
-  Configuration,
   Capabilities,
-  MainCapabilities,
+  Configuration,
+  ConfigurationAspect,
   LIBRARY_INDEX_FILE,
+  MainCapabilities,
 } from "@cocalc/frontend/project_configuration";
 import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
+import { exec as child_process_exec } from "child_process";
+import { access as fs_access, constants as fs_constaints } from "fs";
+import { promisify } from "util";
+import which from "which";
+const exec = promisify(child_process_exec);
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -166,6 +166,16 @@ async function get_jq(): Promise<boolean> {
   return await have("jq");
 }
 
+// code-server is VS Code's Sever version, which we use to provide a web-based editor.
+async function get_vscode(): Promise<boolean> {
+  return await have("code-server");
+}
+
+// julia executable, for the programming language, and we also assume that "Pluto" package is installed
+async function get_julia(): Promise<boolean> {
+  return await have("julia");
+}
+
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
 async function get_library(): Promise<boolean> {
@@ -238,6 +248,8 @@ async function capabilities(): Promise<MainCapabilities> {
     x11,
     rmd,
     qmd,
+    vscode,
+    julia,
   ] = await Promise.all([
     get_formatting(),
     get_latex(hashsums),
@@ -250,6 +262,8 @@ async function capabilities(): Promise<MainCapabilities> {
     get_x11(),
     get_rmd(),
     get_quarto(),
+    get_vscode(),
+    get_julia(),
   ]);
   const caps: MainCapabilities = {
     jupyter,
@@ -267,6 +281,8 @@ async function capabilities(): Promise<MainCapabilities> {
     sshd,
     html2pdf,
     pandoc,
+    vscode,
+    julia,
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;

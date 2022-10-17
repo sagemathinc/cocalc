@@ -10,10 +10,10 @@
  * calling certain operations which are not possible (e.g. spellcheck requires aspell)
  */
 
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import { KNITR_EXTS } from "@cocalc/frontend/frame-editors/latex-editor/constants";
+import { WebappClient } from "@cocalc/frontend/webapp-client";
 import { Map as iMap } from "immutable";
-import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
-import { TypedMap } from "./app-framework";
-import { WebappClient } from "./webapp-client";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
@@ -53,6 +53,8 @@ export interface MainCapabilities {
   sshd: boolean;
   html2pdf: boolean; // via chrome/chromium
   pandoc: boolean; // e.g. for docx2md conversion
+  vscode: boolean; // "code-server"
+  julia: boolean; // julia programming language + Pluto package is installed (we assume it)
 }
 
 export interface Available {
@@ -69,6 +71,8 @@ export interface Available {
   library: boolean;
   html2pdf: boolean;
   pandoc: boolean;
+  vscode: boolean;
+  julia: boolean;
   formatting: Capabilities | boolean;
 }
 
@@ -89,6 +93,8 @@ const NO_AVAIL: Readonly<Available> = {
   formatting: false,
   html2pdf: false,
   pandoc: false,
+  vscode: false,
+  julia: false,
 } as const;
 
 export const ALL_AVAIL: Readonly<Available> = {
@@ -106,6 +112,8 @@ export const ALL_AVAIL: Readonly<Available> = {
   formatting: true,
   html2pdf: true,
   pandoc: true,
+  vscode: true,
+  julia: true,
 } as const;
 
 // detecting certain datastructures, only used for TS typing
@@ -205,6 +213,8 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       library: !!capabilities.library,
       html2pdf: capabilities.html2pdf ?? true,
       pandoc: capabilities.pandoc ?? true,
+      vscode: capabilities.vscode ?? true,
+      julia: !!capabilities.julia ?? true,
       formatting,
     };
   } else {

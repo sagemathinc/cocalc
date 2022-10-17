@@ -7,28 +7,27 @@
 API for direct connection to a project; implemented using the websocket.
 */
 
-import { callback } from "awaiting";
-import { Channel, Mesg, NbconvertParams } from "./types";
-import {
-  ConfigurationAspect,
-  Capabilities,
-  Configuration,
-  ProjectConfiguration,
-  isMainConfiguration,
-} from "@cocalc/frontend/project_configuration";
 import { redux } from "@cocalc/frontend/app-framework";
-import { syntax2tool } from "@cocalc/util/code-formatter";
-import {
-  Options as FormatterOptions,
-  Config as FormatterConfig,
-} from "@cocalc/project/formatters";
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,
 } from "@cocalc/frontend/jupyter/nbgrader/api";
+import {
+  Capabilities,
+  Configuration,
+  ConfigurationAspect,
+  isMainConfiguration,
+  ProjectConfiguration,
+} from "@cocalc/frontend/project_configuration";
+import {
+  Config as FormatterConfig,
+  Options as FormatterOptions,
+} from "@cocalc/project/formatters";
+import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-
 import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
+import { Channel, Mesg, NbconvertParams } from "./types";
 
 export class API {
   private conn: any;
