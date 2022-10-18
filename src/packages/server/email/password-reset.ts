@@ -16,8 +16,7 @@ export default async function sendPasswordResetEmail(
     await sendViaSMTP(message, "password_reset");
   } catch (err) {
     console.log(
-      "sending password reset via secondary smtp server failed; trying sendgrid.",
-      err
+      `sending password reset via secondary smtp server failed; trying sendgrid -- ${err}`
     );
     await sendViaSendgrid(message);
   }
