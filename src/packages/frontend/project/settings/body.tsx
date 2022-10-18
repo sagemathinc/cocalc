@@ -260,7 +260,7 @@ export const Body = rclass<ReactProps>(
                 <NamedServerPanel project_id={id} name={"jupyterlab"} />
               )}
               {available.vscode && (
-                <NamedServerPanel project_id={id} name={"vscode"} />
+                <NamedServerPanel project_id={id} name={"code"} />
               )}
               {available.julia && (
                 <NamedServerPanel project_id={id} name={"pluto"} />
