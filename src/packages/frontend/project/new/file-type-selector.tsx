@@ -3,16 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
+import { ALL_AVAIL } from "@cocalc/frontend/project_configuration";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
-
-import { Tip } from "../../components";
-
 import { NamedServerPanel } from "../named-server-panel";
-
 import { NewFileButton } from "./new-file-button";
-import { ALL_AVAIL } from "../../project_configuration";
-import { useTypedRedux, useState } from "../../app-framework";
+import { NamedServerName } from "@cocalc/util/types/servers";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -20,8 +18,6 @@ interface Props {
   project_id: string;
   children?: React.ReactNode;
 }
-
-export type NamedServerName = "jupyter" | "jupyterlab" | "vscode" | "pluto";
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
@@ -269,9 +265,9 @@ export const FileTypeSelector: React.FC<Props> = ({
               name={"VS Code Server..."}
               icon={"vscode"}
               on_click={(): void => {
-                showNamedServer == "vscode"
+                showNamedServer == "code"
                   ? setShowNamedServer("")
-                  : setShowNamedServer("vscode");
+                  : setShowNamedServer("code");
               }}
             />
           )}

@@ -55,6 +55,7 @@ export interface MainCapabilities {
   pandoc: boolean; // e.g. for docx2md conversion
   vscode: boolean; // "code-server"
   julia: boolean; // julia programming language + Pluto package is installed (we assume it)
+  homeDirectory: string | null; // the home directory of the project
 }
 
 export interface Available {
@@ -74,6 +75,7 @@ export interface Available {
   vscode: boolean;
   julia: boolean;
   formatting: Capabilities | boolean;
+  homeDirectory: string | null;
 }
 
 export type AvailableFeatures = TypedMap<Available>;
@@ -95,6 +97,7 @@ const NO_AVAIL: Readonly<Available> = {
   pandoc: false,
   vscode: false,
   julia: false,
+  homeDirectory: null,
 } as const;
 
 export const ALL_AVAIL: Readonly<Available> = {
@@ -114,6 +117,7 @@ export const ALL_AVAIL: Readonly<Available> = {
   pandoc: true,
   vscode: true,
   julia: true,
+  homeDirectory: "/home/user", // sane default
 } as const;
 
 // detecting certain datastructures, only used for TS typing
@@ -216,6 +220,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       vscode: capabilities.vscode ?? true,
       julia: !!capabilities.julia ?? true,
       formatting,
+      homeDirectory: capabilities.homeDirectory,
     };
   } else {
     return NO_AVAIL;

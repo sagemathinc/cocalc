@@ -13,9 +13,9 @@ import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { capitalize } from "@cocalc/util/misc";
+import { NamedServerName } from "@cocalc/util/types/servers";
 import { join } from "path";
 import React from "react";
-import { NamedServerName } from "./new/file-type-selector";
 
 interface Server {
   longName: string;
@@ -24,7 +24,7 @@ interface Server {
   icon: IconName;
 }
 
-const SPEC: {
+export const SPEC: {
   [name in NamedServerName]: Server;
 } = {
   jupyter: {
@@ -47,7 +47,7 @@ extensions.`,
     usesBasePath: true,
     icon: "ipynb",
   },
-  vscode: {
+  code: {
     longName: "Visual Studio Code",
     description: `Visual Studio Code is a source-code editor made by Microsoft. Features
 include support for debugging, syntax highlighting, intelligent
@@ -121,7 +121,7 @@ export const NamedServerPanel: React.FC<Props> = (props: Props) => {
   );
 };
 
-export function serverURL(project_id: string, name: string): string {
+export function serverURL(project_id: string, name: NamedServerName): string {
   return (
     join(
       appBasePath,

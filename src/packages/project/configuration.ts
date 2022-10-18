@@ -21,6 +21,7 @@ import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
 import { exec as child_process_exec } from "child_process";
 import { access as fs_access, constants as fs_constaints } from "fs";
+import { realpath } from "fs/promises";
 import { promisify } from "util";
 import which from "which";
 const exec = promisify(child_process_exec);
@@ -232,6 +233,16 @@ async function get_hashsums(): Promise<Capabilities> {
   };
 }
 
+async function get_homeDirectory(): Promise<string | null> {
+  // realpath is necessary, because in some circumstances the home dir is a symlink
+  const home = process.env.HOME;
+  if (home == null) {
+    return null;
+  } else {
+    return await realpath(home);
+  }
+}
+
 // assemble capabilities object
 async function capabilities(): Promise<MainCapabilities> {
   const sage_info_future = get_sage_info();
@@ -250,6 +261,7 @@ async function capabilities(): Promise<MainCapabilities> {
     qmd,
     vscode,
     julia,
+    homeDirectory,
   ] = await Promise.all([
     get_formatting(),
     get_latex(hashsums),
@@ -264,6 +276,7 @@ async function capabilities(): Promise<MainCapabilities> {
     get_quarto(),
     get_vscode(),
     get_julia(),
+    get_homeDirectory(),
   ]);
   const caps: MainCapabilities = {
     jupyter,
@@ -283,6 +296,7 @@ async function capabilities(): Promise<MainCapabilities> {
     pandoc,
     vscode,
     julia,
+    homeDirectory,
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;
@@ -323,4 +337,7 @@ export async function get_configuration(
 }
 
 // testing: uncomment, and run $ ts-node configuration.ts
-// (async () => { console.log(await x11_apps()); })()
+// (async () => {
+// console.log(await x11_apps());
+// console.log(await capabilities());
+// })();

@@ -77,7 +77,8 @@ export async function tex_to_pdf(opts: {
   if (opts.knitr) {
     opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
-  // TODO: obviously this should happen once -- not constantly!
+  // TODO: obviously this should happen once -- not constantly
+  // Use "available_feature.homeDirectory" instead!
   const HOME = await (
     await project_api(opts.project_id)
   ).eval_code("process.env.HOME");
