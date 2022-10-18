@@ -21,8 +21,8 @@ import {
   useState,
   useRef,
   useEffect,
-} from "./app-framework";
-import { Icon, Tip } from "./components";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -295,7 +295,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       padding: 0,
       margin: "10px",
       minHeight: "40px",
-    };
+    } as const;
 
     return (
       <div style={style}>

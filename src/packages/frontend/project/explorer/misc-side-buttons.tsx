@@ -8,7 +8,7 @@ import {
   ButtonGroup,
   ButtonToolbar,
 } from "@cocalc/frontend/antd-bootstrap";
-import { HiddenSM, Icon, Tip } from "@cocalc/frontend/components";
+import { HiddenSM, Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Available } from "@cocalc/frontend/project_configuration";
@@ -136,7 +136,26 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
           title={`Opens the current directory in a Visual Studio Code IDE server instance, running inside this project. ${SPEC.code.description}`}
           placement="bottom"
         >
-          <Icon name={SPEC.code.icon} /> <HiddenSM>VS Code</HiddenSM>
+          <Icon name={SPEC.code.icon} /> <VisibleLG>VS Code</VisibleLG>
+        </Tip>
+      </LinkRetry>
+    );
+  }
+
+  function render_jupyterlab_button(): JSX.Element | undefined {
+    if (public_view) return;
+    if (!available_features) return;
+    if (!available_features.jupyter_lab) return;
+    // appending /tree/[relative path to home dir]
+    const base = serverURL(project_id, "jupyterlab");
+    const url = `${base}/tree/${current_path ?? ""}`;
+    return (
+      <LinkRetry href={url} mode="button">
+        <Tip
+          title={`Opens the current directory in a JupyterLab server instance, running inside this project. ${SPEC.jupyterlab.description}`}
+          placement="bottom"
+        >
+          <Icon name={SPEC.jupyterlab.icon} /> <VisibleLG>JupyterLab</VisibleLG>
         </Tip>
       </LinkRetry>
     );
@@ -161,6 +180,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       <ButtonGroup>
         {render_library_button()}
         {render_upload_button()}
+        {render_jupyterlab_button()}
         {render_vscode_button()}
       </ButtonGroup>
       <div className="pull-right">
