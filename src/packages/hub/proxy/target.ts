@@ -6,14 +6,16 @@ Throws an error if anything goes wrong, e.g., user doesn't have access
 to this target or the target project isn't running.
 */
 
-import LRU from "lru-cache";
-import { parseReq } from "./parse";
-import getLogger from "../logger";
-import hasAccess from "./check-for-access-to-project";
-const hub_projects = require("../projects");
-import { database } from "../servers/database";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import { NamedServerName } from "@cocalc/util/types/servers";
 import { reuseInFlight } from "async-await-utils/hof";
+import LRU from "lru-cache";
+import getLogger from "../logger";
+import { database } from "../servers/database";
+import hasAccess from "./check-for-access-to-project";
+import { parseReq } from "./parse";
+
+const hub_projects = require("../projects");
 
 const winston = getLogger("proxy: target");
 
@@ -140,7 +142,7 @@ const namedServerPortCache = new LRU<string, number>({
 
 async function _namedServerPort(
   project_id: string,
-  name: string,
+  name: NamedServerName,
   projectControl
 ): Promise<number> {
   const key = project_id + name;

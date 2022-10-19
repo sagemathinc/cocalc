@@ -1,11 +1,17 @@
-import { reuseInFlight } from "async-await-utils/hof";
-import * as message from "@cocalc/util/message";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { getLogger } from "@cocalc/project/logger";
+import * as message from "@cocalc/util/message";
+import { NamedServerName } from "@cocalc/util/types/servers";
+import { reuseInFlight } from "async-await-utils/hof";
 import { start } from "./control";
 
 const winston = getLogger("named-servers");
 
-async function getPort(name: string): Promise<number> {
+async function getPort(name: NamedServerName): Promise<number> {
   winston.debug(`getPort("${name}")`);
   return await start(name);
 }

@@ -3,20 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { EventEmitter } from "events";
-import { List, fromJS } from "immutable";
-import { throttle } from "lodash";
-import { delay } from "awaiting";
+import { redux, TypedMap } from "@cocalc/frontend/app-framework";
+import { exec, query } from "@cocalc/frontend/frame-editors/generic/client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncTable } from "@cocalc/sync/table";
-import { webapp_client } from "../../webapp-client";
-import { redux, TypedMap } from "../../app-framework";
-import { close, merge, path_split } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
-import { deleted_file_variations } from "@cocalc/util/delete-files";
-import { exec, query } from "../../frame-editors/generic/client";
-import { get_directory_listing } from "../directory-listing";
-import { DirectoryListingEntry } from "@cocalc/util/types";
 import { WATCH_TIMEOUT_MS } from "@cocalc/util/db-schema/listings";
+import { deleted_file_variations } from "@cocalc/util/delete-files";
+import { close, merge, path_split } from "@cocalc/util/misc";
+import { DirectoryListingEntry } from "@cocalc/util/types";
+import { delay } from "awaiting";
+import { EventEmitter } from "events";
+import { fromJS, List } from "immutable";
+import { throttle } from "lodash";
+import { get_directory_listing } from "../directory-listing";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 
 type ImmutablePathEntry = TypedMap<DirectoryListingEntry>;
