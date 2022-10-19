@@ -72,9 +72,12 @@ export default function SmartAnchorTag({
     // Fallback: no href target at all, so no special handling needed...
     body = <a title={title}>{children}</a>;
   }
+  // We check the type of style below since this component can receive invalid input from
+  // the user (due to rendering html in markdown), e.g., a string for style, and it
+  // is better to ignore it than crash everything.
   return (
     <span
-      style={style}
+      style={typeof style == "object" ? style : undefined}
       onMouseDown={(e) =>
         // This is so clicking links in something that is drag-n-droppable
         // doesn't trigger dragging:
