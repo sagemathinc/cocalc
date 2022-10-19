@@ -25,7 +25,7 @@ const STYLE = {
 
 export default function Crash() {
   const getSupport = supportURL({
-    subject: "Crash Crashed",
+    subject: "CoCalc Crashed",
     body: "CoCalc is crashing...",
     type: "question",
     hideExtra: true,
@@ -110,7 +110,8 @@ export default function Crash() {
         all details in <A href={getSupport}>a support ticket</A>, via email to{" "}
         <A href={`mailto:${HELP_EMAIL}`}>{HELP_EMAIL}</A>, or consult our{" "}
         <A href={join(appBasePath, "info")}>other support resources</A>. Thank
-        you!
+        you! Unfortunately, if you don't explain how you hit this problem so we can reproduce it, then
+        we probably will not be able to fix it.
       </p>
     </div>
   );
