@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "jsx": "react",
-    "target": "es5",
+    "target": "es2017",
     "sourceMap": true,
     "lib": ["es5", "es6", "es2017", "dom"],
     "strictNullChecks": true,

@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2017",
     "types": ["node"],
     "lib": ["es7"],
     "rootDir": "./",

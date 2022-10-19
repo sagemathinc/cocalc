@@ -17,7 +17,8 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "es5"
+    "target": "es2017",
+    "module": "es2020"
   },
   "watchOptions": {
     "fallbackPolling": "dynamicPriority",
