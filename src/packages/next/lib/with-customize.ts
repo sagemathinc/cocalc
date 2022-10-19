@@ -69,7 +69,7 @@ export default async function withCustomize(
   customize.serverTime = Date.now();
 
   // this is used for creating new projects from a share
-  const softwareEnvs = await getSoftwareEnvironments();
+  const softwareEnvs = await getSoftwareEnvironments("server");
   customize.defaultComputeImage =
     softwareEnvs?.default ?? DEFAULT_COMPUTE_IMAGE;
 

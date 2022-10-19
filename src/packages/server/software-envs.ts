@@ -6,31 +6,38 @@
 // This is used by the hub to adjust the "customization" variable for the user visible site, and also by manage in on-prem, to actually get the associated configuration
 
 import getLogger from "@cocalc/backend/logger";
-import { constants } from "fs";
-import { access, readFile } from "fs/promises";
-import { join } from "path";
 import {
+  Purpose,
   sanitizeSoftwareEnv,
   SoftwareEnvConfig,
 } from "@cocalc/util/sanitize-software-envs";
+import { constants } from "fs";
+import { access, readFile } from "fs/promises";
+import { join } from "path";
 
 const logger = getLogger("hub:webapp-config");
 const L = logger.debug;
 const W = logger.warn;
 
-let cache: SoftwareEnvConfig | false | null = null;
+const cache: { [key in Purpose]: SoftwareEnvConfig | false | null } = {
+  server: null,
+  webapp: null,
+};
 
 /**
  * A configuration for available software environments could be stored at the location of $COCALC_SOFTWARE_ENVIRONMENTS.
  */
-export async function getSoftwareEnvironments(): Promise<SoftwareEnvConfig | null> {
-  if (cache === null) {
-    cache = (await readConfig()) ?? false;
+export async function getSoftwareEnvironments(
+  purpose: Purpose
+): Promise<SoftwareEnvConfig | null> {
+  if (cache[purpose] === null) {
+    cache[purpose] = (await readConfig(purpose)) ?? false;
   }
-  return cache === false ? null : cache;
+  const data = cache[purpose];
+  return data === false ? null : data;
 }
 
-async function readConfig(): Promise<SoftwareEnvConfig | null> {
+async function readConfig(purpose: Purpose): Promise<SoftwareEnvConfig | null> {
   const dir = process.env.COCALC_SOFTWARE_ENVIRONMENTS;
   if (!dir) return null;
   // Check if a file "software.json" and "registry" exist and are readable at the directory "dir":
@@ -57,9 +64,8 @@ async function readConfig(): Promise<SoftwareEnvConfig | null> {
   // parse the content of softwareFn as json
   try {
     const software = JSON.parse((await readFile(softwareFn)).toString());
-    const sanitized = sanitizeSoftwareEnv({ software, registry }, (...msg) =>
-      L(...msg)
-    );
+    const dbg = (...msg) => L(...msg);
+    const sanitized = sanitizeSoftwareEnv({ software, registry }, dbg, purpose);
     return sanitized;
   } catch (err) {
     W(`WARNING: ${softwareFn} is not a valid JSON file -- ${err}`);

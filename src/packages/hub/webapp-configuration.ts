@@ -169,7 +169,7 @@ export class WebappConfiguration {
     const [configuration, registration, software] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
-      getSoftwareEnvironments(),
+      getSoftwareEnvironments("webapp"),
     ]);
     const strategies = this.get_strategies();
     return { configuration, registration, strategies, software };

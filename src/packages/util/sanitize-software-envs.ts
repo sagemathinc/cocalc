@@ -4,11 +4,24 @@
  */
 
 import { ComputeImage } from "@cocalc/util/compute-images";
-import { isEmpty } from "lodash";
+import { isEmpty, pick } from "lodash";
 
 // This sanitization routine checks if the "software environment" information
 // is correct, or sets some defaults, etc.
 // It's used by the frontend in customize.tsx and the backend in server/software-envs.ts
+
+export type Purpose = "server" | "webapp";
+
+const WEBAPP_RELEVANT = [
+  "tag",
+  "title",
+  "registry",
+  "descr",
+  "order",
+  "short",
+  "group",
+  "hidden",
+] as const;
 
 export interface SoftwareEnvConfig {
   default: string;
@@ -19,11 +32,14 @@ export interface SoftwareEnvConfig {
 /**
  * Check that the "software environment" object is valid, set defaults, default exists, etc.
  *
- * If there is a problem, it logs it to the given logger and returns "null"
+ * If there is a problem, it logs it to the given logger and returns "null".
+ *
+ * purpose: "server" returns all values, while "webapp" only filters those, which are relevant for the webapp (and does not expose extra information)
  */
 export function sanitizeSoftwareEnv(
   { software, registry }: { software: any; registry?: string },
-  L: (...msg) => void
+  L: (...msg) => void,
+  purpose: Purpose
 ): SoftwareEnvConfig | null {
   const envs = software["environments"] as { [key: string]: ComputeImage };
 
@@ -36,8 +52,11 @@ export function sanitizeSoftwareEnv(
   const groups: string[] = (software["groups"] ?? []).map((x) => `${x}`);
 
   for (const key of Object.keys(envs)) {
-    const env = envs[key];
-    env["id"] = key;
+    // if purpose is "webapp", only pick these entries in the env object: title, registry, tag, descr, order, short, group
+
+    const env =
+      purpose === "webapp" ? pick(envs[key], WEBAPP_RELEVANT) : envs[key];
+    envs[key] = { ...env, id: key };
 
     // if no registry is set, we're only using the id/key and the data
     // if the registry is set (in particular for on-prem) we use registry:tag to set the image

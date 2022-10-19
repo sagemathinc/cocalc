@@ -40,7 +40,7 @@ export default async function createProject({
     site_license = undefined;
   }
 
-  const envs = await getSoftwareEnvironments();
+  const envs = await getSoftwareEnvironments("server");
 
   await pool.query(
     "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
