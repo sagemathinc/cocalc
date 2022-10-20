@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 This file defines all of the named servers we support.
 
 To add another one, define a new entry in SPEC:
@@ -9,9 +14,11 @@ To add another one, define a new entry in SPEC:
   use process.env so that the env can influence command line options.
 */
 
+import { NamedServerName } from "@cocalc/util/types/servers";
+
 type CommandFunction = (ip: string, port: number, basePath: string) => string;
 
-const SPEC: { [name: string]: CommandFunction } = {
+const SPEC: { [name in NamedServerName]: CommandFunction } = {
   code: (ip: string, port: number) =>
     `code-server --bind-addr=${ip}:${port} --auth=none`,
   jupyter: (ip: string, port: number, basePath: string) =>
@@ -30,7 +37,7 @@ const SPEC: { [name: string]: CommandFunction } = {
     `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
 } as const;
 
-export default function getSpec(name: string): CommandFunction {
+export default function getSpec(name: NamedServerName): CommandFunction {
   const spec = SPEC[name];
   if (spec == null) {
     throw Error(`unknown named server: "${name}"`);

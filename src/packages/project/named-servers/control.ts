@@ -1,18 +1,24 @@
-import { promisify } from "util";
-import { join } from "path";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import basePath from "@cocalc/backend/base-path";
+import { data } from "@cocalc/backend/data";
+import { project_id } from "@cocalc/project/data";
+import { INFO } from "@cocalc/project/info-json";
+import { getLogger } from "@cocalc/project/logger";
+import { NamedServerName } from "@cocalc/util/types/servers";
 import { exec } from "child_process";
 import {
   mkdir as mkdir0,
   readFile as readFile0,
   writeFile as writeFile0,
 } from "fs";
-import { getLogger } from "@cocalc/project/logger";
-import { data } from "@cocalc/backend/data";
-import basePath from "@cocalc/backend/base-path";
-import getSpec from "./spec";
 import getPort from "get-port";
-import { project_id } from "@cocalc/project/data";
-import { INFO } from "@cocalc/project/info-json";
+import { join } from "path";
+import { promisify } from "util";
+import getSpec from "./spec";
 
 const mkdir = promisify(mkdir0);
 const readFile = promisify(readFile0);
@@ -21,7 +27,7 @@ const writeFile = promisify(writeFile0);
 const winston = getLogger("named-servers:control");
 
 // Returns the port or throws an exception.
-export async function start(name: string): Promise<number> {
+export async function start(name: NamedServerName): Promise<number> {
   winston.debug(`start ${name}`);
   const s = await status(name);
   if (s.status == "running") {
@@ -50,7 +56,7 @@ export async function start(name: string): Promise<number> {
 }
 
 async function getCommand(
-  name: string,
+  name: NamedServerName,
   ip: string,
   port: number,
   base: string

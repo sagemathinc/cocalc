@@ -9,21 +9,22 @@
  * The corresponding file in the webapp is @cocalc/frontend/project_configuration.ts
  */
 
-import which from "which";
-import { access as fs_access, constants as fs_constaints } from "fs";
-import { exec as child_process_exec } from "child_process";
-import { promisify } from "util";
-const exec = promisify(child_process_exec);
 import { APPS } from "@cocalc/frontend/frame-editors/x11-editor/apps";
-import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
 import {
-  Configuration,
   Capabilities,
-  MainCapabilities,
+  Configuration,
+  ConfigurationAspect,
   LIBRARY_INDEX_FILE,
+  MainCapabilities,
 } from "@cocalc/frontend/project_configuration";
 import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
+import { exec as child_process_exec } from "child_process";
+import { access as fs_access, constants as fs_constaints } from "fs";
+import { realpath } from "fs/promises";
+import { promisify } from "util";
+import which from "which";
+const exec = promisify(child_process_exec);
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -166,6 +167,16 @@ async function get_jq(): Promise<boolean> {
   return await have("jq");
 }
 
+// code-server is VS Code's Sever version, which we use to provide a web-based editor.
+async function get_vscode(): Promise<boolean> {
+  return await have("code-server");
+}
+
+// julia executable, for the programming language, and we also assume that "Pluto" package is installed
+async function get_julia(): Promise<boolean> {
+  return await have("julia");
+}
+
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
 async function get_library(): Promise<boolean> {
@@ -222,6 +233,16 @@ async function get_hashsums(): Promise<Capabilities> {
   };
 }
 
+async function get_homeDirectory(): Promise<string | null> {
+  // realpath is necessary, because in some circumstances the home dir is a symlink
+  const home = process.env.HOME;
+  if (home == null) {
+    return null;
+  } else {
+    return await realpath(home);
+  }
+}
+
 // assemble capabilities object
 async function capabilities(): Promise<MainCapabilities> {
   const sage_info_future = get_sage_info();
@@ -238,6 +259,9 @@ async function capabilities(): Promise<MainCapabilities> {
     x11,
     rmd,
     qmd,
+    vscode,
+    julia,
+    homeDirectory,
   ] = await Promise.all([
     get_formatting(),
     get_latex(hashsums),
@@ -250,6 +274,9 @@ async function capabilities(): Promise<MainCapabilities> {
     get_x11(),
     get_rmd(),
     get_quarto(),
+    get_vscode(),
+    get_julia(),
+    get_homeDirectory(),
   ]);
   const caps: MainCapabilities = {
     jupyter,
@@ -267,6 +294,9 @@ async function capabilities(): Promise<MainCapabilities> {
     sshd,
     html2pdf,
     pandoc,
+    vscode,
+    julia,
+    homeDirectory,
   };
   const sage = await sage_info_future;
   caps.sage = sage.exists;
@@ -307,4 +337,7 @@ export async function get_configuration(
 }
 
 // testing: uncomment, and run $ ts-node configuration.ts
-// (async () => { console.log(await x11_apps()); })()
+// (async () => {
+// console.log(await x11_apps());
+// console.log(await capabilities());
+// })();
