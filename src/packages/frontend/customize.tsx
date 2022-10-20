@@ -30,6 +30,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
   ComputeImage,
+  FALLBACK_ONPREM_ENV,
   FALLBACK_SOFTWARE_ENV,
 } from "@cocalc/util/compute-images";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
@@ -188,7 +189,8 @@ async function init_customize() {
     strategies,
     software = null,
   } = customize;
-  process_software(software);
+  process_kucalc(configuration);
+  process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
@@ -199,11 +201,13 @@ async function init_customize() {
 
 init_customize();
 
-function process_customize(obj) {
+function process_kucalc(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
   obj.kucalc = validate_kucalc(obj.kucalc);
   obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
+}
 
+function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default) ?? v.default;
@@ -225,17 +229,23 @@ function set_customize(obj) {
   actions.setState(obj);
 }
 
-function process_software(software) {
+function process_software(software, is_cocalc_com) {
+  const dbg = (...msg) => console.log("sanitizeSoftwareEnv:", ...msg);
   if (software != null) {
     // this checks the data coming in from the "/customize" endpoint.
     // Next step is to convert it to immutable and store it in the customize store.
-    const dbg = (...msg) => console.log("sanitizeSoftwareEnv:", ...msg);
     software = sanitizeSoftwareEnv({ software, purpose: "webapp" }, dbg);
     actions.setState({ software });
   } else {
-    actions.setState({
-      software: fromJS(FALLBACK_SOFTWARE_ENV),
-    });
+    if (is_cocalc_com) {
+      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) });
+    } else {
+      software = sanitizeSoftwareEnv(
+        { software: FALLBACK_ONPREM_ENV, purpose: "webapp" },
+        dbg
+      );
+      actions.setState({ software });
+    }
   }
 }
 

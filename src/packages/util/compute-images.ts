@@ -206,3 +206,16 @@ export const FALLBACK_SOFTWARE_ENV = {
   groups: GROUPS,
   environments: COMPUTE_IMAGES,
 } as const;
+
+// this is purely fallback for the case, where the new software env code runs on-prem
+// but no software is setup. it assumes projects were created with the DEFAULT_COMPUTE_IMAGE.
+export const FALLBACK_ONPREM_ENV = {
+  default: DEFAULT_COMPUTE_IMAGE,
+  groups: ["Standard"],
+  environments: {
+    [DEFAULT_COMPUTE_IMAGE]: {
+      title: "Standard",
+      group: "Standard",
+    },
+  },
+} as const;

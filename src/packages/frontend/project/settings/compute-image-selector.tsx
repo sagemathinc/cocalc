@@ -48,13 +48,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 ) => {
   const { selected_image, onFocus, onBlur, onSelect, layout } = props;
 
-  const software_envs: SoftwareEnvironments = useTypedRedux(
+  const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
     "software"
   );
 
-  if (software_envs == null) {
+  if (software_envs === undefined) {
     return <Loading />;
+  }
+
+  if (software_envs === null) {
+    return null;
   }
 
   const computeEnvs = fromJS(software_envs.get("environments")).sort(
@@ -69,7 +73,11 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   function compute_image_title(name) {
-    return compute_image_info(name, "title") ?? compute_image_info(name, "tag");
+    return (
+      compute_image_info(name, "title") ??
+      compute_image_info(name, "tag") ??
+      name // last resort fallback, in case the img configured in the project no longer exists
+    );
   }
 
   const default_title = compute_image_title(defaultComputeImg);

@@ -281,7 +281,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   }
 
   function render_advanced_toggle(): JSX.Element | undefined {
-    // we only support custom images on cocalc.com
+    // we only support custom images on cocalc.com and onprem
     if (!show) return;
     if (show_advanced) return;
     return (
