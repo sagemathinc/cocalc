@@ -215,7 +215,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
-  // this selector only make sense for cocalc.com
+  // this selector only make sense for cocalc.com and cocalc-cloud on-prem
   if (
     customize_kucalc !== KUCALC_COCALC_COM &&
     customize_kucalc !== KUCALC_ON_PREMISES

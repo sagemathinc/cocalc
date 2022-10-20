@@ -5,6 +5,7 @@
 
 import { ComputeImage } from "@cocalc/util/compute-images";
 import { isEmpty, isObject, pick } from "lodash";
+import { DEFAULT_COMPUTE_IMAGE } from "./db-schema/defaults";
 
 // This sanitization routine checks if the "software environment" information
 // is correct, or sets some defaults, etc.
@@ -122,6 +123,11 @@ export function sanitizeSoftwareEnv(
     typeof swDflt === "string" && envs[swDflt] != null
       ? swDflt
       : Object.keys(envs)[0];
+
+  // this is a fallback entry, when projects were created before the software env was configured
+  if (envs[DEFAULT_COMPUTE_IMAGE] == null) {
+    envs[DEFAULT_COMPUTE_IMAGE] = { ...envs[dflt], hidden: true };
+  }
 
   return { groups, default: dflt, environments: envs };
 }
