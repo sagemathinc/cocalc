@@ -4,7 +4,7 @@
  */
 
 import { ComputeImage } from "@cocalc/util/compute-images";
-import { isEmpty, pick } from "lodash";
+import { isEmpty, isObject, pick } from "lodash";
 
 // This sanitization routine checks if the "software environment" information
 // is correct, or sets some defaults, etc.
@@ -23,10 +23,25 @@ const WEBAPP_RELEVANT = [
   "hidden",
 ] as const;
 
+interface Environments {
+  [key: string]: ComputeImage;
+}
+
+// test if an object is an Environments map – does not need to be a precise test, because the sanitization fixes it
+function isEnvironments(envs: Environments): envs is Environments {
+  return isObject(envs) && Object.values(envs).every(isObject);
+}
+
 export interface SoftwareEnvConfig {
   default: string;
   groups: string[];
-  environments: { [key: string]: ComputeImage };
+  environments: Environments;
+}
+
+interface Opts {
+  software: any;
+  purpose: Purpose;
+  registry?: string;
 }
 
 /**
@@ -37,14 +52,20 @@ export interface SoftwareEnvConfig {
  * purpose: "server" returns all values, while "webapp" only filters those, which are relevant for the webapp (and does not expose extra information)
  */
 export function sanitizeSoftwareEnv(
-  { software, registry }: { software: any; registry?: string },
-  L: (...msg) => void,
-  purpose: Purpose
+  opts: Opts,
+  L: (...msg) => void
 ): SoftwareEnvConfig | null {
-  const envs = software["environments"] as { [key: string]: ComputeImage };
+  const { software, registry, purpose } = opts;
+
+  const envs = software["environments"];
 
   if (isEmpty(envs)) {
     L(`No software environments defined`);
+    return null;
+  }
+
+  if (!isEnvironments(envs)) {
+    L(`Software envs must be a map of strings to environment objects`);
     return null;
   }
 
@@ -56,7 +77,6 @@ export function sanitizeSoftwareEnv(
 
     const env =
       purpose === "webapp" ? pick(envs[key], WEBAPP_RELEVANT) : envs[key];
-    envs[key] = { ...env, id: key };
 
     // if no registry is set, we're only using the id/key and the data
     // if the registry is set (in particular for on-prem) we use registry:tag to set the image
@@ -73,12 +93,16 @@ export function sanitizeSoftwareEnv(
     env["group"] = group;
     env["title"] = fallback(env["title"], env["tag"], key);
     env["descr"] = fallback(env["descr"], "");
+    if (!env["descr"]) delete env["descr"];
     env["order"] = typeof env["order"] === "number" ? env["order"] : 0;
+    if (env["order"] === 0) delete env["order"];
     if (!!env["hidden"]) {
       env["hidden"] = true;
     } else {
       delete env["hidden"];
     }
+
+    envs[key] = { ...env, id: key };
 
     // if group is not in groups, add it
     if (!groups.includes(group)) {

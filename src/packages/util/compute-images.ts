@@ -24,9 +24,9 @@ type Group = typeof GROUPS[number];
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
-  title: string;
-  short: string; // a shorter title, show this when you also show the group
-  descr: string;
+  title?: string;
+  short?: string; // a shorter title, show this when you also show the group
+  descr?: string;
   group: string;
   order?: number;
   hidden?: boolean;

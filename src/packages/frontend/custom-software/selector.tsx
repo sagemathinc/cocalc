@@ -296,8 +296,8 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     if (customize_kucalc === KUCALC_COCALC_COM) {
       return (
         <>
-          large repository of software, well tested – maintained by{" "}
-          <CompanyName />, running <SiteName />.{" "}
+          <b>Default</b>: large repository of software, well tested – maintained
+          by <CompanyName />, running <SiteName />.{" "}
           <a
             href={join(appBasePath, "doc/software.html")}
             target={"_blank"}
@@ -309,9 +309,14 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       );
     } else {
       const dflt_img = software_images.get(dflt_software_img);
-      const descrDefault =
-        dflt_img?.get("descr") ?? "large repository of software";
-      return <>{descrDefault} (choose this one if in doubt)</>;
+      const descr = dflt_img?.get("descr") ?? "large repository of software";
+      const t = dflt_img?.get("title");
+      const title = t ? `${t}: ${descr}` : descr;
+      return (
+        <>
+          <b>Standard</b>: {title}
+        </>
+      );
     }
   }
 
@@ -324,7 +329,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           set_state(undefined, undefined, "default");
         }}
       >
-        <b>Default</b>: {render_default_explanation()}
+        {render_default_explanation()}
       </Radio>
     );
   }

@@ -68,8 +68,12 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     return computeEnvs.getIn([name, type]);
   }
 
-  const default_title = compute_image_info(defaultComputeImg, "title");
-  const selected_title = compute_image_info(selected_image, "title");
+  function compute_image_title(name) {
+    return compute_image_info(name, "title") ?? compute_image_info(name, "tag");
+  }
+
+  const default_title = compute_image_title(defaultComputeImg);
+  const selected_title = compute_image_title(selected_image);
 
   function render_menu_children(group: string): MenuItem[] {
     return computeEnvs
