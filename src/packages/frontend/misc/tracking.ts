@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { commercial } from "../customize";
+import { commercial } from "@cocalc/frontend/customize";
 import { gtag_id, sign_up_id } from "@cocalc/util/theme";
 
 // conversion tracking (commercial only)
-export function track_conversion(type: string, amount?): void {
+export function track_conversion(type: string): void {
   if (!commercial) {
     return;
   }
