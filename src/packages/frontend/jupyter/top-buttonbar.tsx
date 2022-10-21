@@ -66,7 +66,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     };
   }
 
-  function render_button(key: string, name: ButtonDescription) {
+  function render_button(_key: string, name: ButtonDescription) {
     let className: string | undefined = undefined;
     let disabled: boolean | undefined = false;
     let label: string | JSX.Element | undefined = "";
