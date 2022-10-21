@@ -4,7 +4,7 @@
  */
 
 import { commercial } from "../customize";
-import { conversion_id, gtag_id, sign_up_id  } from "@cocalc/util/theme";
+import { gtag_id, sign_up_id } from "@cocalc/util/theme";
 
 // conversion tracking (commercial only)
 export function track_conversion(type: string, amount?): void {
@@ -18,9 +18,6 @@ export function track_conversion(type: string, amount?): void {
   let tag: string = "";
   if (type === "create_account") {
     tag = sign_up_id;
-    amount = 1; // that's not true
-  } else if (type === "subscription") {
-    tag = conversion_id;
   } else {
     console.warn(`unknown conversion type: ${type}`);
     return;
@@ -28,7 +25,5 @@ export function track_conversion(type: string, amount?): void {
 
   (window as any).gtag?.("event", "conversion", {
     send_to: `${gtag_id}/${tag}`,
-    value: amount,
-    currency: "USD",
   });
 }

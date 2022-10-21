@@ -448,6 +448,8 @@ export const SystemStatusUrl = join(appBasePath, "info/status");
 async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
+  const ga4 = store.get("google_analytics");
+  if (!ga4) return;
   // 1. Google analytics
   let w: any;
   try {
@@ -468,12 +470,13 @@ async function init_analytics() {
     w.dataLayer.push(arguments);
   };
   w.gtag("js", new Date());
-  w.gtag("config", gtag_id);
+  w.gtag("config", `"${ga4}"`);
   // load tagmanager
-  const jtag = w.document.createElement("script");
-  jtag.src = `https://www.googletagmanager.com/gtag/js?id=${theme.gtag_id}`;
-  jtag.async = true;
-  w.document.getElementsByTagName("head")[0].appendChild(jtag);
+  const gtag = w.document.createElement("script");
+  gtag.src = `https://www.googletagmanager.com/gtag/js?id=${ga4}`;
+  gtag.async = true;
+  gtag.defer = true;
+  w.document.getElementsByTagName("head")[0].appendChild(gtag);
 
   // 2. CoCalc analytics
   const ctag = w.document.createElement("script");

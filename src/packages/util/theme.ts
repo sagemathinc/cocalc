@@ -47,7 +47,6 @@ USA<br>
 // for conversion tracking (commercial only)
 export const gtag_id = "AW-943259268";
 export const sign_up_id = "44ZfCImosncQhP3jwQM";
-export const conversion_id = "zttYCNDZsXcQhP3jwQM";
 
 // documentation
 export const JUPYTER_CLASSIC_MODERN =
