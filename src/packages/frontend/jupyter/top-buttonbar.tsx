@@ -5,22 +5,22 @@
 
 // The static buttonbar at the top.
 
-import { CSS, React, useRedux } from "../app-framework";
-import * as immutable from "immutable";
 import { Button, ButtonGroup, Form } from "@cocalc/frontend/antd-bootstrap";
-import { Tooltip } from "antd";
+import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import {
-  Icon,
-  VisibleMDLG,
-  VisibleLG,
   DropdownMenu,
+  Icon,
   MenuItem,
-} from "../components";
-import { endswith, capitalize } from "@cocalc/util/misc";
-import { Cells, CellType, Usage } from "./types";
-import { ALERT_COLS } from "./usage";
+  VisibleLG,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { capitalize, endswith } from "@cocalc/util/misc";
+import * as immutable from "immutable";
+import { FORMAT_SOURCE_ICON } from "../frame-editors/frame-tree/config";
+import { Cells, CellType, Usage } from "./types";
+import { ALERT_COLS } from "./usage";
 
 type ButtonDescription =
   | string
@@ -96,16 +96,15 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     }
     const focus: boolean = !endswith(obj.m ? obj.m : "", "...");
     return (
-      <Tooltip title={obj.m} placement="bottom" key={key}>
-        <Button
-          className={className}
-          onClick={command(name, focus)}
-          disabled={disabled}
-          style={style}
-        >
-          {obj.i && <Icon name={obj.i} />} {label}
-        </Button>
-      </Tooltip>
+      <Button
+        className={className}
+        onClick={command(name, focus)}
+        disabled={disabled}
+        style={style}
+        title={obj.m}
+      >
+        {obj.i && <Icon name={obj.i} />} {label}
+      </Button>
     );
   }
 
@@ -223,18 +222,15 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_close_and_halt() {
-    const obj = {
-      name: "close and halt",
-      disabled: false,
-      label: <VisibleMDLG>Halt</VisibleMDLG>,
-    };
-    return render_button("close and halt", obj);
-  }
-
-  function render_group_assistant_halt(): JSX.Element {
+  function render_format(): JSX.Element {
+    const help =
+      "Format the syntax of selected cells. Only works, if a formatter is available.";
     return (
-      <ButtonGroup className="hidden-xs">{render_close_and_halt()}</ButtonGroup>
+      <ButtonGroup className="hidden-xs">
+        <Button onClick={() => frameActions.current?.format()} title={help}>
+          <Icon name={FORMAT_SOURCE_ICON} /> <VisibleMDLG>Format</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -272,7 +268,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       <span style={{ marginLeft: "5px" }} />
       {render_select_cell_type()}
       {render_keyboard()}
-      {render_group_assistant_halt()}
+      {render_format()}
       {render_nbgrader()}
     </Form>
   );

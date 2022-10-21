@@ -7,9 +7,13 @@
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { ReactNode } from "react";
-import { List } from "immutable";
 import {
+  Button as AntdBootstrapButton,
+  ButtonGroup,
+  ButtonStyle,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  CSS,
   React,
   Rendered,
   useEffect,
@@ -17,40 +21,30 @@ import {
   useRedux,
   useRef,
   useState,
-  CSS,
-} from "../../app-framework";
-import { is_safari } from "../generic/browser";
-import { Input, InputNumber, Popconfirm } from "antd";
-import { SaveButton } from "./save-button";
-
-const { debounce } = require("underscore");
+} from "@cocalc/frontend/app-framework";
 import {
-  ButtonGroup,
-  Button as AntdBootstrapButton,
-  ButtonStyle,
-} from "../../antd-bootstrap";
-
-import { get_default_font_size } from "../generic/client";
-
-import { IS_MACOS } from "../../feature";
-
-import {
-  r_join,
+  DropdownMenu,
   Icon,
   IconName,
-  VisibleMDLG,
-  Space,
-  DropdownMenu,
   MenuItem,
+  r_join,
+  Space,
+  VisibleMDLG,
 } from "@cocalc/frontend/components";
-
-import { IS_TOUCH } from "../../feature";
-import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
-import { Actions } from "../code-editor/actions";
-import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
+import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
+import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import { Input, InputNumber, Popconfirm } from "antd";
+import { List } from "immutable";
+import { debounce } from "lodash";
+import { ReactNode } from "react";
+import { Actions } from "../code-editor/actions";
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
+import { is_safari } from "../generic/browser";
+import { get_default_font_size } from "../generic/client";
+import { SaveButton } from "./save-button";
+import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -72,9 +66,10 @@ interface EditorActions extends Actions {
   download?: (id: string) => void;
   restart?: () => void;
   rescan_latex_directive?: () => void;
+  halt_jupyter?: () => void;
 }
 
-import { AvailableFeatures } from "../../project_configuration";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -89,7 +84,7 @@ const title_bar_style: CSS = {
   flex: "0 0 auto",
   display: "flex",
   minHeight: "34px",
-};
+} as const;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND_DARK,
@@ -99,13 +94,13 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   flex: "1 1 auto",
   display: "inline-block",
-};
+} as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
   padding: "5px 5px 0 5px",
   fontSize: "10pt",
   float: "right",
-};
+} as const;
 
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
@@ -123,14 +118,14 @@ function connection_status_color(status: ConnectionStatus): string {
 const ICON_STYLE: CSS = {
   width: "20px",
   display: "inline-block",
-};
+} as const;
 
 const close_style: CSS | undefined = IS_TOUCH
   ? undefined
-  : {
+  : ({
       background: "transparent",
       borderColor: "transparent",
-    };
+    } as const);
 
 interface Props {
   actions: FrameActions;
@@ -697,7 +692,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={debounce(
           () => props.editor_actions.paste(props.id, true),
           200,
-          true
+          { leading: true, trailing: false }
         )}
         disabled={read_only}
         bsSize={button_size()}
@@ -1264,6 +1259,19 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_halt_jupyter(): Rendered {
+    if (!is_visible("halt_jupyter")) return;
+    return (
+      <Button
+        key={"halt_jupyter"}
+        bsSize={button_size()}
+        onClick={() => props.editor_actions.halt_jupyter?.()}
+      >
+        <Icon name={"PoweroffOutlined"} /> <VisibleMDLG>Halt</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_print(): Rendered {
     if (!is_visible("print") || student_project_functionality.disableActions) {
       return;
@@ -1419,6 +1427,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       v.push(render_format_group());
     }
+    v.push(render_halt_jupyter());
     v.push(render_edit_init_script());
     v.push(render_clear());
     v.push(render_count_words());
