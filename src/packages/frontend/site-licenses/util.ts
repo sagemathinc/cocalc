@@ -13,7 +13,10 @@ import { copy, trunc_left } from "@cocalc/util/misc";
 // To avoid overfetching, we cache results for *a few seconds*.
 const site_license_public_info_cache = new LRU({ maxAge: 1000 * 15 });
 
-export const site_license_public_info = reuseInFlight(async function (
+export const site_license_public_info: (
+  license_id: string,
+  force?: boolean
+) => Promise<SiteLicensePublicInfo | undefined> = reuseInFlight(async function (
   license_id: string,
   force: boolean = false
 ): Promise<SiteLicensePublicInfo | undefined> {

@@ -9,7 +9,8 @@ export const DEFAULT_FONT_SIZE = 14;
 export const NEW_FILENAMES = "new_filenames";
 export const DEFAULT_NEW_FILENAMES = "iso";
 
-// better make sure the storage server has something available under "default"
+// This is used on cocalc.com, and the storage server has images named "default" and "ubuntu2004"
+// For on-prem, you have to configure the "software environment" configuration, which includes a default image name.
 export const DEFAULT_COMPUTE_IMAGE = "ubuntu2004";
 
 // this is the fallback value to use for the compute image, in case it isn't set

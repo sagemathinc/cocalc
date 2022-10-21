@@ -7,29 +7,33 @@
 
 import { DownOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
-import { Icon, Space } from "@cocalc/frontend/components";
-import {
-  COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
-  DEFAULT_COMPUTE_IMAGE,
-  GROUPS,
-} from "@cocalc/util/compute-images";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Dropdown, Menu } from "antd";
+import { Button, Dropdown, Menu, MenuProps, Typography } from "antd";
 import { fromJS } from "immutable";
+const { Text } = Typography;
+type MenuItem = Required<MenuProps>["items"][number];
+
+const title = (x) => x.get("short") ?? x.get("title") ?? x.get("id") ?? "";
+
+const cmp_title = (a, b) => {
+  const t1: string = title(a);
+  const t2: string = title(b);
+  return t1.toLowerCase() < t2.toLowerCase() ? 1 : -1;
+};
 
 // we want "Default", "Previous", ... to come first, hence "order" trumps "short" title
 const img_sorter = (a, b): number => {
   const o1 = a.get("order", 0);
   const o2 = b.get("order", 0);
   if (o1 == o2) {
-    return a.get("short") < b.get("short") ? 1 : -1;
+    return cmp_title(a, b);
   }
   return o1 > o2 ? 1 : -1;
 };
-
-// only because that's how all the ui code was written.
-const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG).sort(img_sorter);
 
 interface ComputeImageSelectorProps {
   selected_image: string;
@@ -44,42 +48,80 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 ) => {
   const { selected_image, onFocus, onBlur, onSelect, layout } = props;
 
+  const software_envs: SoftwareEnvironments | null = useTypedRedux(
+    "customize",
+    "software"
+  );
+
+  if (software_envs === undefined) {
+    return <Loading />;
+  }
+
+  if (software_envs === null) {
+    return null;
+  }
+
+  const computeEnvs = fromJS(software_envs.get("environments")).sort(
+    img_sorter
+  );
+
+  const defaultComputeImg = software_envs.get("default");
+  const GROUPS: string[] = software_envs.get("groups").toJS();
+
   function compute_image_info(name, type) {
-    return COMPUTE_IMAGES.getIn([name, type]);
+    return computeEnvs.getIn([name, type]);
   }
 
-  const default_title = compute_image_info(DEFAULT_COMPUTE_IMAGE, "title");
-  const selected_title = compute_image_info(selected_image, "title");
-
-  function render_group(group) {
-    const group_images = COMPUTE_IMAGES.filter(
-      (item) => item.get("group") === group && !item.get("hidden", false)
-    );
-    const items = group_images.map((img, key) => (
-      <Menu.Item key={key} title={img.get("descr")}>
-        {img.get("short")}
-      </Menu.Item>
-    ));
-
+  function compute_image_title(name) {
     return (
-      <Menu.ItemGroup title={group} key={group}>
-        {items.valueSeq().toJS()}
-      </Menu.ItemGroup>
+      compute_image_info(name, "title") ??
+      compute_image_info(name, "tag") ??
+      name // last resort fallback, in case the img configured in the project no longer exists
     );
   }
 
-  function onMenuClick(e) {
-    onSelect(e.key);
+  const default_title = compute_image_title(defaultComputeImg);
+  const selected_title = compute_image_title(selected_image);
+
+  function render_menu_children(group: string): MenuItem[] {
+    return computeEnvs
+      .filter(
+        (item) => item.get("group") === group && !item.get("hidden", false)
+      )
+      .map((img, key) => {
+        const registry = img.get("registry");
+        const tag = img.get("tag");
+        const labelStr = img.get("short") ?? img.get("title") ?? key;
+        const label =
+          key === defaultComputeImg ? <Text strong>{labelStr}</Text> : labelStr;
+        const extra = registry && tag ? ` (${registry}:${tag})` : "";
+        const title = `${img.get("descr")}${extra}`;
+        return { key, title, label };
+      })
+      .valueSeq()
+      .toJS();
+  }
+
+  function render_menu_group(group: string): MenuItem {
+    return {
+      key: group,
+      children: render_menu_children(group),
+      label: group,
+      type: "group",
+    };
+  }
+
+  function menu_items(): MenuProps["items"] {
+    return GROUPS.map(render_menu_group);
   }
 
   function render_menu() {
     return (
       <Menu
-        onClick={(e) => onMenuClick(e)}
+        onClick={(e) => onSelect(e.key)}
         style={{ maxHeight: "400px", overflowY: "auto" }}
-      >
-        {GROUPS.map((group) => render_group(group))}
-      </Menu>
+        items={menu_items()}
+      />
     );
   }
 
@@ -94,7 +136,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   }
 
   function render_doubt() {
-    if (selected_image === DEFAULT_COMPUTE_IMAGE) {
+    if (selected_image === defaultComputeImg) {
       return undefined;
     } else {
       return (
@@ -107,7 +149,16 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 
   function render_info(italic: boolean) {
     const desc = compute_image_info(selected_image, "descr");
-    return <span>{italic ? <i>{desc}</i> : desc}</span>;
+    const registry = compute_image_info(selected_image, "registry");
+    const tag = compute_image_info(selected_image, "tag");
+    const extra = registry && tag ? `(${registry}:${tag})` : null;
+
+    return (
+      <Text italic={italic}>
+        {desc}
+        {extra ? <Text type="secondary"> {extra}</Text> : null}
+      </Text>
+    );
   }
 
   switch (layout) {

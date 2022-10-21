@@ -8,13 +8,13 @@
 // and used to configure it in read-only mode. In the future, a natural extension is to explicitly list the datastores
 // that should be inherited, or configure the readonly property. but for now, it's just true or false.
 
-import { React, useTypedRedux, useState } from "../../app-framework";
-import { ConfigurationActions } from "./actions";
-import { Card, Typography, Switch, Form, Button } from "antd";
-import { Datastore } from "../../projects/actions";
+import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { Datastore } from "@cocalc/frontend/projects/actions";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { Icon } from "../../components";
+import { Button, Card, Form, Switch, Typography } from "antd";
 import { List } from "immutable";
+import { ConfigurationActions } from "./actions";
 
 interface Props {
   actions: ConfigurationActions;

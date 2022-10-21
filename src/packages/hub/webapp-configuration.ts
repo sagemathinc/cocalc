@@ -9,17 +9,20 @@
 // This manages the webapp's configuration based on the hostname
 // (allows whitelabeling).
 
-import { parseDomain, ParseResultType } from "parse-domain";
-import debug from "debug";
-const L = debug("hub:webapp-config");
-import { delay } from "awaiting";
-import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PassportManager, get_passport_manager } from "./auth";
-import getServerSettings from "./servers/server-settings";
+import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
+import { delay } from "awaiting";
+import debug from "debug";
+import { parseDomain, ParseResultType } from "parse-domain";
+import { get_passport_manager, PassportManager } from "./auth";
+import getServerSettings from "./servers/server-settings";
 import { have_active_registration_tokens } from "./utils";
+
+const L = debug("hub:webapp-config");
 
 import LRUCache from "lru-cache";
 const CACHE = new LRUCache({ max: 1000, maxAge: 60 * 1000 }); // 1 minutes
@@ -35,6 +38,7 @@ interface Config {
   configuration: any;
   registration: any;
   strategies: object;
+  software: SoftwareEnvConfig | null;
 }
 
 async function get_passport_manager_async(): Promise<PassportManager> {
@@ -162,12 +166,13 @@ export class WebappConfiguration {
   }
 
   private async get_config({ country, host }): Promise<Config> {
-    const [configuration, registration] = await Promise.all([
+    const [configuration, registration, software] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
+      getSoftwareEnvironments("webapp"),
     ]);
     const strategies = this.get_strategies();
-    return { configuration, registration, strategies };
+    return { configuration, registration, strategies, software };
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!

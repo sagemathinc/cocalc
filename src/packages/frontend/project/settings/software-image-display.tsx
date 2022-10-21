@@ -3,17 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { React, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
   compute_image2basename,
   compute_image2name,
   CUSTOM_IMG_PREFIX,
 } from "@cocalc/frontend/custom-software/util";
-import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "@cocalc/util/compute-images";
 import { COLORS } from "@cocalc/util/theme";
-import { fromJS } from "immutable";
-const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 interface DisplayProps {
   image?: string;
@@ -23,6 +20,11 @@ interface DisplayProps {
 // in course/configuration/custom-software-environment
 export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
   const images = useTypedRedux("compute_images", "images");
+  const software = useTypedRedux("customize", "software");
+  const compute_images = useMemo(
+    () => software?.get("environments"),
+    [software]
+  );
   if (images == null) {
     return <Loading />;
   }
@@ -30,7 +32,7 @@ export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
     return <>Default</>;
   }
   if (!image.startsWith(CUSTOM_IMG_PREFIX)) {
-    const img = COMPUTE_IMAGES.get(image);
+    const img = compute_images.get(image);
     if (img == null) {
       return <>{image}</>;
     } else {

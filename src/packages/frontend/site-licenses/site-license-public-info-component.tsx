@@ -185,6 +185,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     let success = false;
     try {
       info = await site_license_public_info(license_id, force);
+      if (info == null) throw new Error(`no info about license ${license_id}`);
       success = true;
     } catch (err) {
       if (!isMountedRef.current) return;

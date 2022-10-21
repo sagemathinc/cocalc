@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getPool from "@cocalc/database/pool";
+import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 
 interface Options {
   account_id: string;
@@ -34,6 +40,8 @@ export default async function createProject({
     site_license = undefined;
   }
 
+  const envs = await getSoftwareEnvironments("server");
+
   await pool.query(
     "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
     [
@@ -42,7 +50,7 @@ export default async function createProject({
       description,
       JSON.stringify(users),
       site_license != null ? JSON.stringify(site_license) : undefined,
-      image ?? DEFAULT_COMPUTE_IMAGE,
+      image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
     ]
   );
   return project_id;
