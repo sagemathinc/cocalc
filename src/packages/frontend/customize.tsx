@@ -445,24 +445,11 @@ export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
 export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
 export const SystemStatusUrl = join(appBasePath, "info/status");
 
-async function init_analytics() {
-  await store.until_configured();
-  if (!store.get("is_commercial")) return;
+// 1. Google analytics
+async function setup_google_analytics(w) {
   const ga4 = store.get("google_analytics");
   if (!ga4) return;
-  // 1. Google analytics
-  let w: any;
-  try {
-    w = window;
-  } catch (_err) {
-    // Make it so this code can be run on the backend...
-    return;
-  }
-  if (w?.document == null) {
-    // Double check that this code can be run on the backend (not in a browser).
-    // see https://github.com/sagemathinc/cocalc-landing/issues/2
-    return;
-  }
+
   // for commercial setup, enable conversion tracking...
   // the gtag initialization
   w.dataLayer = w.dataLayer || [];
@@ -477,13 +464,36 @@ async function init_analytics() {
   gtag.async = true;
   gtag.defer = true;
   w.document.getElementsByTagName("head")[0].appendChild(gtag);
+}
 
-  // 2. CoCalc analytics
+// 2. CoCalc analytics
+function setup_cocalc_analytics(w) {
   const ctag = w.document.createElement("script");
   ctag.src = join(appBasePath, "analytics.js?fqd=false");
   ctag.async = true;
   ctag.defer = true;
   w.document.getElementsByTagName("head")[0].appendChild(ctag);
+}
+
+async function init_analytics() {
+  await store.until_configured();
+  if (!store.get("is_commercial")) return;
+
+  let w: any;
+  try {
+    w = window;
+  } catch (_err) {
+    // Make it so this code can be run on the backend...
+    return;
+  }
+  if (w?.document == null) {
+    // Double check that this code can be run on the backend (not in a browser).
+    // see https://github.com/sagemathinc/cocalc-landing/issues/2
+    return;
+  }
+
+  await setup_google_analytics(w);
+  await setup_cocalc_analytics(w);
 }
 
 init_analytics();
