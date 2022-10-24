@@ -43,7 +43,6 @@ import {
 import { dict, YEAR } from "@cocalc/util/misc";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
-import { gtag_id } from "@cocalc/util/theme";
 import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
@@ -495,6 +494,7 @@ export const SystemStatusUrl = join(appBasePath, "info/status");
 
 // 1. Google analytics
 async function setup_google_analytics(w) {
+  // init_analytics already makes sure store is configured
   const ga4 = store.get("google_analytics");
   if (!ga4) return;
 
@@ -516,6 +516,7 @@ async function setup_google_analytics(w) {
 
 // 2. CoCalc analytics
 function setup_cocalc_analytics(w) {
+  // init_analytics already makes sure store is configured
   const ctag = w.document.createElement("script");
   ctag.src = join(appBasePath, "analytics.js?fqd=false");
   ctag.async = true;
