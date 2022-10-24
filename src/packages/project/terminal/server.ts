@@ -36,9 +36,9 @@ interface Terminal {
 const PREFIX = "terminal:";
 const terminals: { [name: string]: Terminal } = {};
 
-const MAX_HISTORY_LENGTH: number = 1000000;
-const truncate_thresh_ms: number = 2000;
-const check_interval_ms: number = 4000;
+const MAX_HISTORY_LENGTH: number = 10000000;
+const truncate_thresh_ms: number = 10000;
+const check_interval_ms: number = 5000;
 
 // this is used to know which process belongs to which terminal
 export function pid2path(pid: number): string | undefined {
