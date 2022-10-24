@@ -11,7 +11,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import { copy, days_ago, keys, len } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
@@ -65,13 +64,13 @@ export class StudentProjectsActions {
     const id = this.course_actions.set_activity({
       desc: `Create project for ${store.get_student_name(student_id)}.`,
     });
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
     let project_id: string;
     try {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
-        image:
-          store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE,
+        image: store.get("settings").get("custom_image") ?? dflt_img,
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -608,8 +607,8 @@ export class StudentProjectsActions {
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
-    const img_id =
-      store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
+    const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(student_project_id);
     await actions.set_compute_image(img_id);
   }
@@ -698,6 +697,7 @@ export class StudentProjectsActions {
     }
 
     const licenses = await store.getLicenses(force);
+
     let licenseRunLimits: { [license_id: string]: number } | undefined =
       undefined;
 

@@ -34,7 +34,7 @@ required = defaults.required
 
 { quota } = require("@cocalc/util/upgrades/quota")
 
-{ DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/compute-images")
+{ DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/db-schema/defaults")
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 

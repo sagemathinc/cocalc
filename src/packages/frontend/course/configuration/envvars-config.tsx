@@ -53,7 +53,7 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
     setNeedSave(nextVal != inherit);
   }, [nextVal, inherit]);
 
-  // this selector only make sense for cocalc.com and cocalc-cloud
+  // this selector only make sense for cocalc.com and cocalc-cloud on-prem
   if (
     customize_kucalc !== KUCALC_COCALC_COM &&
     customize_kucalc !== KUCALC_ON_PREMISES

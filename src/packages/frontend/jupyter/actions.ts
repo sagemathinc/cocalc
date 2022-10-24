@@ -280,7 +280,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernels = immutable
       .fromJS(data)
       .filter((k) => !k.getIn(["metadata", "cocalc", "disabled"], false));
-    const key = this.store.jupyter_kernel_key();
+    const key: string = await this.store.jupyter_kernel_key();
     jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
@@ -291,13 +291,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_jupyter_kernels = async () => {
     if (this.store == null) return;
-    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
     } else {
       await this.fetch_jupyter_kernels();
     }
-    this.update_select_kernel_data();
+    await this.update_select_kernel_data();
     this.check_select_kernel();
   };
 
@@ -2619,9 +2619,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ check_select_kernel_init: true });
   }
 
-  update_select_kernel_data = (): void => {
+  async update_select_kernel_data(): Promise<void> {
     if (this.store == null) return;
-    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
+    const kernels = jupyter_kernels.get(await this.store.jupyter_kernel_key());
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const [kernels_by_name, kernels_by_language] =
@@ -2644,7 +2644,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       default_kernel,
       closestKernel,
     });
-  };
+  }
 
   set_mode(mode: "escape" | "edit"): void {
     this.deprecated("set_mode", mode);
@@ -2658,15 +2658,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("blur");
   }
 
-  show_select_kernel = (reason: show_kernel_selector_reasons): void => {
-    this.update_select_kernel_data();
+  async show_select_kernel(
+    reason: show_kernel_selector_reasons
+  ): Promise<void> {
+    await this.update_select_kernel_data();
     // we might not have the "kernels" data yet (but we will, once fetching it is complete)
     // the select dialog will show a loading spinner
     this.setState({
       show_kernel_selector_reason: reason,
       show_kernel_selector: true,
     });
-  };
+  }
 
   hide_select_kernel = (): void => {
     this.setState({

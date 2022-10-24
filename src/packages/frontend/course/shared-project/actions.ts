@@ -7,13 +7,10 @@
 Actions that are specific to the shared project.
 */
 
-import { redux } from "../../app-framework";
-
+import { redux } from "@cocalc/frontend/app-framework";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
-
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { Datastore, EnvVars } from "../../projects/actions";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -148,10 +145,14 @@ export class SharedProjectActions {
       // since instructor may want to augment license with another.
       const site_license_id = store.getIn(["settings", "site_license_id"]);
       if (site_license_id) {
-        await actions.add_site_license_to_project(
-          shared_project_id,
-          site_license_id
-        );
+        try {
+          await actions.add_site_license_to_project(
+            shared_project_id,
+            site_license_id
+          );
+        } catch (err) {
+          console.warn(`error adding site license to shared project -- ${err}`);
+        }
       }
 
       // Also set the compute image
@@ -170,8 +171,8 @@ export class SharedProjectActions {
     if (!shared_project_id) {
       return; // no shared project
     }
-    const img_id =
-      store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
+    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
+    const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(shared_project_id);
     await actions.set_compute_image(img_id);
   }

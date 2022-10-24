@@ -5,19 +5,6 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import {
-  KUCALC_COCALC_COM,
-  KUCALC_DISABLED,
-  KUCALC_ON_PREMISES,
-  site_settings_conf,
-} from "@cocalc/util/db-schema/site-defaults";
-import { dict, YEAR } from "@cocalc/util/misc";
-import * as theme from "@cocalc/util/theme";
-import { gtag_id } from "@cocalc/util/theme";
-import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
-import { List } from "immutable";
-import { join } from "path";
 import {
   Actions,
   rclass,
@@ -28,7 +15,7 @@ import {
   Store,
   TypedMap,
   useTypedRedux,
-} from "./app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   build_date,
@@ -38,9 +25,29 @@ import {
   smc_version,
   Space,
   UNIT,
-} from "./components";
-import { appBasePath } from "./customize/app-base-path";
-export { TermsOfService } from "./customize/terms-of-service";
+} from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import {
+  ComputeImage,
+  FALLBACK_ONPREM_ENV,
+  FALLBACK_SOFTWARE_ENV,
+} from "@cocalc/util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_DISABLED,
+  KUCALC_ON_PREMISES,
+  site_settings_conf,
+} from "@cocalc/util/db-schema/site-defaults";
+import { dict, YEAR } from "@cocalc/util/misc";
+import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
+import * as theme from "@cocalc/util/theme";
+import { gtag_id } from "@cocalc/util/theme";
+import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
+import { fromJS, List, Map } from "immutable";
+import { join } from "path";
+export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -70,6 +77,12 @@ defaults._is_configured = false; // will be true after set via call to server
 // so maybe there is a more clever way like this to do it than
 // what I did below.
 // type SiteSettings = { [k in keyof SiteSettingsConfig]: any  };
+
+export type SoftwareEnvironments = TypedMap<{
+  groups: List<string>;
+  default: string;
+  environments: Map<string, TypedMap<ComputeImage>>;
+}>;
 
 export interface CustomizeState {
   is_commercial: boolean;
@@ -113,6 +126,7 @@ export interface CustomizeState {
   // use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
   country: string;
   // flag to signal data stored in the Store.
+  software: SoftwareEnvironments;
   _is_configured: boolean;
 }
 
@@ -126,6 +140,11 @@ export class CustomizeStore extends Store<CustomizeState> {
     const hosts = this.get("iframe_comm_hosts");
     if (hosts == null) return [];
     return hosts.toJS();
+  }
+
+  async getDefaultComputeImage(): Promise<string> {
+    await this.until_configured();
+    return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
 }
 
@@ -164,8 +183,15 @@ async function init_customize() {
     max_delay: 30000,
   });
 
-  const { configuration, registration, strategies } = customize;
-  process_customize(configuration);
+  const {
+    configuration,
+    registration,
+    strategies,
+    software = null,
+  } = customize;
+  process_kucalc(configuration);
+  process_software(software, configuration.is_cocalc_com);
+  process_customize(configuration); // this sets _is_configured to true
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });
@@ -175,11 +201,13 @@ async function init_customize() {
 
 init_customize();
 
-function process_customize(obj) {
+function process_kucalc(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
   obj.kucalc = validate_kucalc(obj.kucalc);
   obj.is_cocalc_com = obj.kucalc == KUCALC_COCALC_COM;
+}
 
+function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default) ?? v.default;
@@ -191,7 +219,7 @@ function process_customize(obj) {
 
 // "obj" are the already processed values from the database
 // this function is also used by hub-landing!
-export function set_customize(obj) {
+function set_customize(obj) {
   // console.log('set_customize obj=\n', JSON.stringify(obj, null, 2));
 
   // set some special cases, backwards compatibility
@@ -199,6 +227,26 @@ export function set_customize(obj) {
 
   obj._is_configured = true;
   actions.setState(obj);
+}
+
+function process_software(software, is_cocalc_com) {
+  const dbg = (...msg) => console.log("sanitizeSoftwareEnv:", ...msg);
+  if (software != null) {
+    // this checks the data coming in from the "/customize" endpoint.
+    // Next step is to convert it to immutable and store it in the customize store.
+    software = sanitizeSoftwareEnv({ software, purpose: "webapp" }, dbg);
+    actions.setState({ software });
+  } else {
+    if (is_cocalc_com) {
+      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) });
+    } else {
+      software = sanitizeSoftwareEnv(
+        { software: FALLBACK_ONPREM_ENV, purpose: "webapp" },
+        dbg
+      );
+      actions.setState({ software });
+    }
+  }
 }
 
 interface HelpEmailLink {

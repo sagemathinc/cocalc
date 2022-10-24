@@ -40,7 +40,7 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format",
+      "halt_jupyter",
       "show_table_of_contents",
       "guide",
       "shell",

@@ -7,34 +7,41 @@
 Render a single project entry, which goes in the list of projects
 */
 
+import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
-  useState,
-  useActions,
-  useRedux,
-  useTypedRedux,
-  useIsMountedRef,
   redux,
-} from "../app-framework";
-import { ProjectUsers } from "./project-users";
-import { AddCollaborators } from "../collaborators";
-import { Row, Col, Well } from "../antd-bootstrap";
-import { Avatar } from "antd";
-import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../components";
-import { id2name } from "../custom-software/init";
+  useActions,
+  useIsMountedRef,
+  useRedux,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { AddCollaborators } from "@cocalc/frontend/collaborators";
 import {
-  CUSTOM_IMG_PREFIX,
+  Icon,
+  Markdown,
+  ProjectState,
+  Space,
+  TimeAgo,
+} from "@cocalc/frontend/components";
+import {
   compute_image2basename,
-} from "../custom-software/util";
+  CUSTOM_IMG_PREFIX,
+} from "@cocalc/frontend/custom-software/util";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "../user-tracking";
+import { Avatar } from "antd";
 import { CSSProperties, useEffect } from "react";
+import { ProjectUsers } from "./project-users";
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
   color: COLORS.GRAY,
   marginTop: "5px",
-};
+} as const;
 
 interface Props {
   project_id: string;
@@ -49,6 +56,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   const [add_collab, set_add_collab] = useState<boolean>(false);
   const images = useTypedRedux("compute_images", "images");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const software = useTypedRedux("customize", "software");
 
   const actions = useActions("projects");
 
@@ -103,13 +112,19 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         </div>
       );
     } else {
-      // official
-      const name = id2name(ci);
-      if (name === "Default") return; // avoid clutter for the default.
+      if (ci === DEFAULT_COMPUTE_IMAGE) return; // avoid clutter for the default.
+      // sanitizeSoftwareEnv ensures the title is set, but maybe there is no image named $ci
+      const name = software.getIn(["environments", ci, "title"]) ?? ci;
+      const descr = software.getIn(["environments", ci, "descr"]) ?? "";
       return (
         <div style={image_name_style}>
-          {name}{" "}
-          <span title="Official image created by CoCalc">(official)</span>
+          <span title={descr}>{name}</span>
+          {kucalc === KUCALC_COCALC_COM && (
+            <>
+              {" "}
+              {<span title="Official image created by CoCalc">(official)</span>}
+            </>
+          )}
         </div>
       );
     }

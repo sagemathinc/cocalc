@@ -3,8 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Set } from "immutable";
-import { delay } from "awaiting";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
+import {
+  CommandDescription,
+  commands,
+} from "@cocalc/frontend/jupyter/commands";
+import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
+import { CellType, Scroll } from "@cocalc/frontend/jupyter/types";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   bind_methods,
   close,
@@ -12,19 +19,12 @@ import {
   is_whitespace,
   lstrip,
 } from "@cocalc/util/misc";
+import { delay } from "awaiting";
+import { Set } from "immutable";
+import { isEqual } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
-import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 require("@cocalc/frontend/jupyter/types");
-import { CellType, Scroll } from "@cocalc/frontend/jupyter/types";
-import {
-  commands,
-  CommandDescription,
-} from "@cocalc/frontend/jupyter/commands";
-import { isEqual } from "lodash";
-import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 export interface EditorFunctions {
   save?: () => string | undefined;
