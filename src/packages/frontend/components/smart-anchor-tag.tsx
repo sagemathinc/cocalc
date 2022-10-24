@@ -10,7 +10,7 @@ element, if enabled (e.g., for links in sticky notes in the
 whiteboard).
 */
 
-import { ReactNode } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { A } from "@cocalc/frontend/components";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -29,6 +29,7 @@ interface Options {
   href?: string;
   title?: string;
   children?: ReactNode;
+  style?: CSSProperties;
 }
 
 export default function SmartAnchorTag({
@@ -37,6 +38,7 @@ export default function SmartAnchorTag({
   children,
   project_id,
   path,
+  style,
 }: Options) {
   // compare logic here with frontend/misc/process-links/generic.ts
   let body;
@@ -70,8 +72,12 @@ export default function SmartAnchorTag({
     // Fallback: no href target at all, so no special handling needed...
     body = <a title={title}>{children}</a>;
   }
+  // We check the type of style below since this component can receive invalid input from
+  // the user (due to rendering html in markdown), e.g., a string for style, and it
+  // is better to ignore it than crash everything.
   return (
     <span
+      style={typeof style == "object" ? style : undefined}
       onMouseDown={(e) =>
         // This is so clicking links in something that is drag-n-droppable
         // doesn't trigger dragging:
@@ -124,6 +130,10 @@ function CoCalcURL({ href, title, children, project_id }) {
     fragmentId,
   } = parseCoCalcURL(href);
   if (target && target_project_id) {
+    // NOTE/WARNING: This is kind of a lazy hack, and means that
+    // this component assumes its immediate child is an a tag!
+    // E.g., to fix something once I wrapped the a tag in a span
+    // to impose style, and it broke this.
     const replaceChildren =
       href == children?.[0]?.props?.element?.text ||
       decodeURI(href) == children?.[0]?.props?.element?.text;

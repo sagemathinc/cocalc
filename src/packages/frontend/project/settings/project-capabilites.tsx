@@ -59,6 +59,8 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["latex", "LaTeX editor"],
         ["html2pdf", "HTML to PDF via Chrome/Chromium"],
         ["pandoc", "File format conversions via pandoc"],
+        ["vscode", "VSCode editor"],
+        ["julia", "Julia programming language"],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;

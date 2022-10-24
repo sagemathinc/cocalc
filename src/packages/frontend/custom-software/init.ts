@@ -55,7 +55,7 @@ export class ComputeImagesActions<
   ComputeImagesState
 > extends Actions<ComputeImagesState> {}
 
-export function id2name(id: string): string {
+function id2name(id: string): string {
   return id.split("-").map(capitalize).join(" ");
 }
 

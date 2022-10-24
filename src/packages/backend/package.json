@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/backend",
-  "version": "1.19.1",
+  "version": "1.20.0",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
     "./database": "./dist/database/index.js",
@@ -26,9 +26,10 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/util": "^1.63.1",
+    "@cocalc/util": "^1.68.0",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
+    "@types/mocha": "^10.0.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",

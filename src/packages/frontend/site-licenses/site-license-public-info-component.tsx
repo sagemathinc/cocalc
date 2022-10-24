@@ -7,6 +7,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
   redux,
+  TypedMap,
   useEffect,
   useIsMountedRef,
   useState,
@@ -26,20 +27,22 @@ import {
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
-import { fromJS, Map } from "immutable";
+import { fromJS } from "immutable";
 import { DebounceInput } from "react-debounce-input";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { LICENSE_ACTIVATION_RULES } from "./rules";
-import { SiteLicensePublicInfo as Info } from "./types";
+import {
+  SiteLicensePublicInfo as Info,
+  SiteLicensePublicInfo as SiteLicensePublicInfoType,
+} from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
-
 
 interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
-  upgrades: Map<string, number> | null;
+  upgrades: TypedMap<SiteLicensePublicInfoType> | null;
   onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false
@@ -182,6 +185,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     let success = false;
     try {
       info = await site_license_public_info(license_id, force);
+      if (info == null) throw new Error(`no info about license ${license_id}`);
       success = true;
     } catch (err) {
       if (!isMountedRef.current) return;
@@ -335,8 +339,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     if (info.quota != null) {
       return render_quota(info.quota);
     }
-    if (info.upgrades?.quota != null) {
-      return render_quota(info.upgrades.quota);
+    const upgades_quota = info.upgrades?.get("quota");
+    if (upgades_quota != null) {
+      return render_quota(upgades_quota);
     }
     if (!info.upgrades) return <div>Provides no upgrades.</div>;
     return (

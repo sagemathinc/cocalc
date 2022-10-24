@@ -3,8 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { Map } from "immutable";
+import { LicenseStatus, Reason, Upgrades } from "@cocalc/util/upgrades/quota";
+
+export type SiteLicenseUpgrades =
+  | Upgrades
+  | { reason?: Reason; status?: LicenseStatus };
 
 export interface SiteLicensePublicInfo {
   id: string;
@@ -13,7 +18,7 @@ export interface SiteLicensePublicInfo {
   activates?: Date;
   expires?: Date;
   run_limit?: number;
-  upgrades?: { [field: string]: number };
+  upgrades?: TypedMap<SiteLicenseUpgrades>;
   is_manager?: boolean;
   managers?: string[];
   running?: number;
@@ -22,5 +27,5 @@ export interface SiteLicensePublicInfo {
 }
 
 export type SiteLicenses = {
-  [license_id: string]: Map<string, number> | null;
+  [license_id: string]: TypedMap<SiteLicensePublicInfo> | null;
 };

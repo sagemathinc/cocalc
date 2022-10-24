@@ -19,7 +19,7 @@ import SageWorksheet from "./sage-worksheet";
 import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/share/index";
-import HTML from "@cocalc/frontend/components/html-ssr";
+//import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
 import { containingPath } from "lib/share/util";
 import getUrlTransform from "lib/share/url-transform";
@@ -100,9 +100,22 @@ export default function FileContents({
   } else if (isMarkdown(ext)) {
     return withFileContext(<Markdown value={content} />);
   } else if (isHTML(ext)) {
-    return withFileContext(
-      <HTML value={content} style={{ width: "100%", height: "100vh" }} />
+    // We use a sandboxed iframe since it is much more likely to be
+    // useful to users than our HTML component.  Most use of our
+    // HTML component with math rendering, etc., is much better done
+    // via a Markdown file.  This makes it easy to show, e.g.,
+    // static k3d plots, which CUP is doing.  HTML files tend to
+    // be independent of cocalc anyways.
+    return (
+      <iframe
+        srcDoc={content}
+        style={{ width: "100%", height: "100vh" }}
+        sandbox="allow-scripts"
+      />
     );
+    //     return withFileContext(
+    //       <HTML value={content} style={{ width: "100%", height: "100vh" }} />
+    //     );
   } else if (ext == "sagews") {
     return withFileContext(<SageWorksheet content={content} />);
   } else if (ext == "ipynb") {

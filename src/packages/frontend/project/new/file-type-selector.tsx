@@ -3,16 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
+import { ALL_AVAIL } from "@cocalc/frontend/project_configuration";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
-
-import { Tip } from "../../components";
-
 import { NamedServerPanel } from "../named-server-panel";
-
 import { NewFileButton } from "./new-file-button";
-import { ALL_AVAIL } from "../../project_configuration";
-import { useTypedRedux, useState } from "../../app-framework";
+import { NamedServerName } from "@cocalc/util/types/servers";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -29,9 +27,9 @@ export const FileTypeSelector: React.FC<Props> = ({
   project_id,
   children,
 }: Props): JSX.Element | null => {
-  const [showNamedServer, setShowNamedServer] = useState<
-    "" | "jupyter" | "jupyterlab" | "code" | "pluto"
-  >("");
+  const [showNamedServer, setShowNamedServer] = useState<"" | NamedServerName>(
+    ""
+  );
 
   const available_features = useTypedRedux(
     { project_id },
@@ -262,24 +260,28 @@ export const FileTypeSelector: React.FC<Props> = ({
               }}
             />
           )}
-          <NewFileButton
-            name={"VS Code Server..."}
-            icon={"vscode"}
-            on_click={(): void => {
-              showNamedServer == "code"
-                ? setShowNamedServer("")
-                : setShowNamedServer("code");
-            }}
-          />
-          <NewFileButton
-            name={"Pluto server..."}
-            icon={"julia"}
-            on_click={(): void => {
-              showNamedServer == "pluto"
-                ? setShowNamedServer("")
-                : setShowNamedServer("pluto");
-            }}
-          />
+          {available.vscode && (
+            <NewFileButton
+              name={"VS Code Server..."}
+              icon={"vscode"}
+              on_click={(): void => {
+                showNamedServer == "code"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("code");
+              }}
+            />
+          )}
+          {available.julia && (
+            <NewFileButton
+              name={"Pluto server..."}
+              icon={"julia"}
+              on_click={(): void => {
+                showNamedServer == "pluto"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("pluto");
+              }}
+            />
+          )}
         </Col>
       </Row>
       <Row style={row_style}>

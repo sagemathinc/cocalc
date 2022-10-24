@@ -7,17 +7,17 @@
 Typescript async/await rewrite of @cocalc/util/client.coffee...
 */
 
-import { webapp_client } from "../../webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
+import { ExecOpts, ExecOutput } from "@cocalc/frontend/client/project";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
+import { callback2 } from "@cocalc/util/async-utils";
+import { Map } from "immutable";
+import { FakeSyncstring } from "./syncstring-fake";
 const schema = require("@cocalc/util/schema");
 const DEFAULT_FONT_SIZE: number =
   require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
-import { redux } from "../../app-framework";
-import { callback2 } from "@cocalc/util/async-utils";
-import { FakeSyncstring } from "./syncstring-fake";
-import { Map } from "immutable";
-import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
-import { ExecOpts, ExecOutput } from "../../client/project";
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
 export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {

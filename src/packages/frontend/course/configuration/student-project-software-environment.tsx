@@ -26,15 +26,11 @@ import {
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
-  COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
-  DEFAULT_COMPUTE_IMAGE,
-} from "@cocalc/util/compute-images";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { Alert, Button, Card, Divider, Radio } from "antd";
-import { fromJS } from "immutable";
 import { ConfigurationActions } from "./actions";
-
-const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";
@@ -53,6 +49,9 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   inherit_compute_image,
 }) => {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const customize_software = useTypedRedux("customize", "software");
+  const software_envs = customize_software.get("environments");
+  const dflt_compute_img = customize_software.get("default");
 
   // by default, we inherit the software image from the project where this course is run from
   const inherit = inherit_compute_image ?? true;
@@ -123,9 +122,9 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
               state.image_type === "custom" && state.image_selected == null
             }
             type="primary"
-            onClick={() => {
+            onClick={async () => {
               set_changing(false);
-              actions.set_software_environment(state);
+              await actions.set_software_environment(state);
             }}
           >
             Save
@@ -154,7 +153,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
   }
 
   function render_description(): Rendered {
-    const img_id = software_image ?? DEFAULT_COMPUTE_IMAGE;
+    const img_id = software_image ?? dflt_compute_img;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
       if (custom_images == null) return;
@@ -164,7 +163,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         descr = img.get("desc");
       }
     } else {
-      const img = COMPUTE_IMAGES.get(img_id);
+      const img = software_envs.get(img_id);
       if (img != null) {
         descr = `<i>(${img.get("descr")})</i>`;
       }
@@ -216,8 +215,12 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
-  // this selector only make sense for cocalc.com
-  if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+  // this selector only make sense for cocalc.com and cocalc-cloud on-prem
+  if (
+    customize_kucalc !== KUCALC_COCALC_COM &&
+    customize_kucalc !== KUCALC_ON_PREMISES
+  )
+    return null;
 
   return (
     <Card

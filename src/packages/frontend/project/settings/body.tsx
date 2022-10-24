@@ -259,8 +259,12 @@ export const Body = rclass<ReactProps>(
               {have_jupyter_lab && (
                 <NamedServerPanel project_id={id} name={"jupyterlab"} />
               )}
-              {<NamedServerPanel project_id={id} name={"code"} />}
-              {<NamedServerPanel project_id={id} name={"pluto"} />}
+              {available.vscode && (
+                <NamedServerPanel project_id={id} name={"code"} />
+              )}
+              {available.julia && (
+                <NamedServerPanel project_id={id} name={"pluto"} />
+              )}
             </Col>
           </Row>
         </div>

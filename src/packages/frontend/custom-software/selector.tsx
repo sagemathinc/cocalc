@@ -3,35 +3,47 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux, useState } from "../app-framework";
-import { Divider } from "antd";
 import {
-  Row,
+  React,
+  redux,
+  useMemo,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  Markdown,
+  SearchInput,
+  Space,
+} from "@cocalc/frontend/components";
+import {
+  CompanyName,
+  HelpEmailLink,
+  SiteName,
+} from "@cocalc/frontend/customize";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Divider } from "antd";
+import { join } from "path";
+import {
   Col,
-  FormGroup,
   ControlLabel,
+  FormGroup,
   ListGroup,
   ListGroupItem,
   Radio,
+  Row,
 } from "react-bootstrap";
-import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
-import { SiteName, CompanyName, HelpEmailLink } from "../customize";
-import { Markdown, SearchInput, Icon, Space } from "../components";
-import { unreachable } from "@cocalc/util/misc";
+import { ComputeImage, ComputeImages, ComputeImageTypes } from "./init";
 import {
-  CUSTOM_SOFTWARE_HELP_URL,
-  custom_image_name,
-  is_custom_image,
   compute_image2basename,
+  custom_image_name,
+  CUSTOM_SOFTWARE_HELP_URL,
+  is_custom_image,
 } from "./util";
-import { COLORS } from "@cocalc/util/theme";
-import {
-  DEFAULT_COMPUTE_IMAGE,
-  COMPUTE_IMAGES as STANDARD_COMPUTE_IMAGES,
-} from "@cocalc/util/compute-images";
-import { join } from "path";
-import { ComputeImageSelector } from "../project/settings/compute-image-selector";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
@@ -60,12 +72,15 @@ export interface SoftwareEnvironmentState {
 
 // this is used in create-project and course/configuration/actions
 // this derives the proper image name from the image type & image selection of SoftwareEnvironmentState
-export function derive_project_img_name(
+export async function derive_project_img_name(
   custom_software: SoftwareEnvironmentState
-): string {
+): Promise<string> {
   const { image_type, image_selected } = custom_software;
+  const dflt_software_img = await redux
+    .getStore("customize")
+    .getDefaultComputeImage();
   if (image_selected == null || image_type == null) {
-    return DEFAULT_COMPUTE_IMAGE;
+    return dflt_software_img;
   }
   switch (image_type) {
     case "custom":
@@ -75,7 +90,7 @@ export function derive_project_img_name(
       return image_selected;
     default:
       unreachable(image_type);
-      return DEFAULT_COMPUTE_IMAGE; // make TS happy
+      return dflt_software_img; // make TS happy
   }
 }
 
@@ -91,6 +106,20 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images"
+  );
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const customize_software = useTypedRedux("customize", "software");
+  const [dflt_software_img, software_images] = useMemo(
+    () => [
+      customize_software.get("default"),
+      customize_software.get("environments"),
+    ],
+    [customize_software]
+  );
+
+  const haveSoftwareImages: boolean = useMemo(
+    () => (customize_software.get("environments")?.size ?? 0) > 0,
+    [customize_software]
   );
 
   const [search_img, set_search_img] = useState<string>("");
@@ -113,7 +142,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
 
   // initialize selection, if there is a default image set
   React.useEffect(() => {
-    if (default_image == null || default_image === DEFAULT_COMPUTE_IMAGE) {
+    if (default_image == null || default_image === dflt_software_img) {
       // do nothing, that's the initial state already!
     } else if (is_custom_image(default_image)) {
       if (images == null) return;
@@ -126,8 +155,8 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       }
     } else {
       // must be standard image
-      const img = STANDARD_COMPUTE_IMAGES[default_image];
-      const display = img != null ? img.title ?? "" : "";
+      const img = software_images.get(default_image);
+      const display = img != null ? img.get("title") ?? "" : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -263,6 +292,34 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_default_explanation(): JSX.Element {
+    if (customize_kucalc === KUCALC_COCALC_COM) {
+      return (
+        <>
+          <b>Default</b>: large repository of software, well tested – maintained
+          by <CompanyName />, running <SiteName />.{" "}
+          <a
+            href={join(appBasePath, "doc/software.html")}
+            target={"_blank"}
+            rel={"noopener"}
+          >
+            More info...
+          </a>
+        </>
+      );
+    } else {
+      const dflt_img = software_images.get(dflt_software_img);
+      const descr = dflt_img?.get("descr") ?? "large repository of software";
+      const t = dflt_img?.get("title");
+      const title = t ? `${t}: ${descr}` : descr;
+      return (
+        <>
+          <b>Standard</b>: {title}
+        </>
+      );
+    }
+  }
+
   function render_default() {
     return (
       <Radio
@@ -272,20 +329,31 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           set_state(undefined, undefined, "default");
         }}
       >
-        <b>Default</b>: large repository of software, well tested – maintained
-        by <CompanyName />, running <SiteName />.{" "}
-        <a
-          href={join(appBasePath, "doc/software.html")}
-          target={"_blank"}
-          rel={"noopener"}
-        >
-          More info...
-        </a>
+        {render_default_explanation()}
       </Radio>
     );
   }
 
+  function render_standard_explanation(): JSX.Element {
+    if (customize_kucalc === KUCALC_COCALC_COM) {
+      return (
+        <>
+          <b>Standard</b>: upcoming and archived versions of the "Default"
+          software environment.
+        </>
+      );
+    } else {
+      return (
+        <>
+          <b>Specialized</b>: alternative software environments for specific
+          purposes.
+        </>
+      );
+    }
+  }
+
   function render_standard() {
+    if (!haveSoftwareImages) return;
     return (
       <Radio
         checked={image_type === "standard"}
@@ -294,13 +362,14 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
           set_state(undefined, undefined, "standard");
         }}
       >
-        <b>Standard</b>: upcoming and archived versions of the "Default"
-        software environment.
+        {render_standard_explanation()}
       </Radio>
     );
   }
 
   function render_custom() {
+    if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+
     if (images == null || images.size == 0) {
       return "There are no customized software environments available.";
     } else {
@@ -336,10 +405,10 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     return (
       <Col sm={12}>
         <ComputeImageSelector
-          selected_image={image_selected ?? DEFAULT_COMPUTE_IMAGE}
+          selected_image={image_selected ?? dflt_software_img}
           layout={"horizontal"}
           onSelect={(img) => {
-            const display = STANDARD_COMPUTE_IMAGES[img].title;
+            const display = software_images.get(img)?.get("title");
             set_state(img, display, "standard");
           }}
         />

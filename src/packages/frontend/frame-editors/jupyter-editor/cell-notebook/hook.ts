@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { NotebookFrameActions } from "./actions";
 import { JupyterEditorActions } from "../actions";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";

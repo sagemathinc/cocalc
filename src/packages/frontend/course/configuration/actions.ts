@@ -7,19 +7,19 @@
 Actions involving configuration of the course.
 */
 
-import { webapp_client } from "../../webapp-client";
-import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { CourseActions, primary_key } from "../actions";
-import { store as projects_store } from "../../projects/store";
-import { redux } from "../../app-framework";
-import { reuseInFlight } from "async-await-utils/hof";
+import { redux } from "@cocalc/frontend/app-framework";
 import {
-  SoftwareEnvironmentState,
   derive_project_img_name,
-} from "../../custom-software/selector";
-import { Datastore, EnvVars } from "../../projects/actions";
-import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+  SoftwareEnvironmentState,
+} from "@cocalc/frontend/custom-software/selector";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
+import { store as projects_store } from "@cocalc/frontend/projects/store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { reuseInFlight } from "async-await-utils/hof";
+import { CourseActions, primary_key } from "../actions";
 import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
+import { StudentProjectFunctionality } from "./customize-student-project-functionality";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -339,8 +339,10 @@ export class ConfigurationActions {
     this.course_actions.shared_project.set_project_compute_image();
   }
 
-  public set_software_environment(state: SoftwareEnvironmentState): void {
-    const image = derive_project_img_name(state);
+  public async set_software_environment(
+    state: SoftwareEnvironmentState
+  ): Promise<void> {
+    const image = await derive_project_img_name(state);
     this.set_compute_image(image);
   }
 

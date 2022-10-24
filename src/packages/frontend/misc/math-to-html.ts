@@ -38,6 +38,9 @@ export default function mathToHtml(
     // But at least this is a good first step.  Also, with this approach you still do see an error if
     // try to define something like \lt that is built in!  There you should use \renewcommand explicitly.
     // Parsing this also helps with opening files in separate tabs, where the same macros get defined.
+
+    // TODO: See https://github.com/KaTeX/KaTeX/blob/main/src/macros.js for how to do this much better!
+    // We can probably just slightly monkey patch how newcommand works... or something.
     err = error.toString();
     if (err?.endsWith("use \\renewcommand")) {
       const i = err.indexOf("redefine ");

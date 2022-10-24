@@ -3,49 +3,57 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import * as immutable from "immutable";
-import * as underscore from "underscore";
-import { rtypes, rclass, redux, TypedMap } from "../../app-framework";
+import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import {
+  rclass,
+  redux,
+  rtypes,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
+import { BillingPage } from "@cocalc/frontend/billing/billing-page";
+import { PayCourseFee } from "@cocalc/frontend/billing/pay-course-fee";
 import {
   A,
   ActivityDisplay,
-  Icon,
-  TimeAgo,
   ErrorDisplay,
+  Icon,
   Loading,
   SettingBox,
-} from "../../components";
-import { CourseProjectExtraHelp } from "../warnings/course-project";
-import { default_ext } from "./file-listing/utils";
-import { BillingPage } from "../../billing/billing-page";
-import { PayCourseFee } from "../../billing/pay-course-fee";
-import { MiniTerminal } from "./mini-terminal";
-import { CustomSoftwareReset } from "../../custom-software/reset-bar";
-import { FileListing } from "./file-listing";
+  TimeAgo,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
+import { ComputeImages } from "@cocalc/frontend/custom-software/init";
+import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
+import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { Library } from "@cocalc/frontend/library";
+import {
+  Available,
+  MainConfiguration,
+} from "@cocalc/frontend/project_configuration";
+import { ProjectActions } from "@cocalc/frontend/project_store";
+import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as immutable from "immutable";
+import React from "react";
+import { Alert, Button, ButtonGroup, Col, Row } from "react-bootstrap";
+import * as underscore from "underscore";
 import AskNewFilename from "../ask-filename";
-import { MainConfiguration, Available } from "../../project_configuration";
-import { PathNavigator } from "./path-navigator";
-import { MiscSideButtons } from "./misc-side-buttons";
+import { CourseProjectExtraHelp } from "../warnings/course-project";
+import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
-import { SearchBar } from "./search-bar";
-import { NewButton } from "./new-button";
-import { ShallowTypedMap } from "../../app-framework/ShallowTypedMap";
-import { ComputeImages } from "../../custom-software/init";
-import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
-import { ProjectActions } from "@cocalc/frontend/project_store";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
-import { AccessErrors } from "./access-errors";
+import { FileListing } from "./file-listing";
+import { default_ext } from "./file-listing/utils";
+import { MiniTerminal } from "./mini-terminal";
+import { MiscSideButtons } from "./misc-side-buttons";
+import { NewButton } from "./new-button";
+import { PathNavigator } from "./path-navigator";
+import { SearchBar } from "./search-bar";
 import { ListingItem } from "./types";
-import { VisibleMDLG } from "@cocalc/frontend/components";
-import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
-import { FileUploadWrapper } from "../../file-upload";
-import { Library } from "../../library";
-import { webapp_client } from "../../webapp-client";
-import { UsersViewing } from "../../account/avatar/users-viewing";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -654,6 +662,7 @@ export const Explorer = rclass(
           {!public_view && (
             <MiscSideButtons
               project_id={this.props.project_id}
+              current_path={this.props.current_path}
               show_hidden={
                 this.props.show_hidden != undefined
                   ? this.props.show_hidden
@@ -666,7 +675,6 @@ export const Explorer = rclass(
               }
               public_view={public_view}
               actions={this.props.actions}
-              show_library={this.props.show_library}
               kucalc={this.props.kucalc}
               available_features={this.props.available_features}
             />

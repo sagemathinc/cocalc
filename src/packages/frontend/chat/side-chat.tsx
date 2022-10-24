@@ -1,5 +1,4 @@
 import { debounce } from "lodash";
-import { DISCORD_INVITE } from "@cocalc/util/theme";
 
 import {
   redux,
@@ -71,7 +70,10 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
     }
     return (
       <div>
-        Stream your screen or chat <A href={DISCORD_INVITE}>using Discord</A>.
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          Join a discussion about CoCalc on GitHub
+        </A>{" "}
+        or add collaborators to this project:
         <AddCollaborators project_id={project_id} autoFocus />
         <div style={{ color: "#666" }}>
           (Collaborators have access to all files in this project.)

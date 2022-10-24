@@ -215,6 +215,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     actions != null ? await actions.format() : await super.format(id);
   }
 
+  halt_jupyter(): void {
+    this.jupyter_actions.confirm_close_and_halt();
+  }
+
   async save(explicit: boolean = true): Promise<void> {
     explicit = explicit; // not used yet -- might be used for "strip trailing whitespace"
 

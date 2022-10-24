@@ -55,7 +55,7 @@ export default function StartupBanner() {
       }}
     >
       {logo ? (
-        <img src={logo} />
+        <img style={{ maxWidth: "50%" }} src={logo} />
       ) : (
         <div
           style={{

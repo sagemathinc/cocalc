@@ -7,16 +7,15 @@
 The Store
 */
 
-import { from_json, cmp, startswith } from "@cocalc/util/misc";
-import { Store } from "../app-framework";
-import { Set, Map, List, OrderedMap, fromJS } from "immutable";
-import { export_to_ipynb } from "./export-to-ipynb";
-import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { Kernels, Kernel } from "./util";
-import { KernelInfo, Cell, CellToolbarName } from "./types";
-import { Syntax } from "@cocalc/util/code-formatter";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
+import { Syntax } from "@cocalc/util/code-formatter";
+import { cmp, from_json, startswith } from "@cocalc/util/misc";
+import { fromJS, List, Map, OrderedMap, Set } from "immutable";
+import { Store } from "../app-framework";
 import { delete_local_storage, get_local_storage } from "../misc/local-storage";
+import { export_to_ipynb } from "./export-to-ipynb";
+import { Cell, CellToolbarName, KernelInfo } from "./types";
+import { Kernel, Kernels } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -527,15 +526,18 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   }
 
-  jupyter_kernel_key = (): string => {
+  public async jupyter_kernel_key(): Promise<string> {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
+    const dflt_img = await this.redux
+      .getStore("customize")
+      .getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      DEFAULT_COMPUTE_IMAGE
+      dflt_img
     );
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
-  };
+  }
 }
