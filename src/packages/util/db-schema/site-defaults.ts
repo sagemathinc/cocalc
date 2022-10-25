@@ -310,7 +310,7 @@ export const site_settings_conf: SiteSettings = {
   },
   google_analytics: {
     name: "Google Analytics",
-    desc: `A Google Analyitcs GA4 tag for tracking usage of your site ("G-...").`,
+    desc: `A Google Analytics GA4 tag for tracking usage of your site ("G-...").`,
     default: "",
     show: only_cocalc_com,
   },
