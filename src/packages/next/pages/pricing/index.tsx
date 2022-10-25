@@ -1,12 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import Footer from "components/landing/footer";
-import Header from "components/landing/header";
 import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import Header from "components/landing/header";
 import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-const dataSource = [
+const dataSource: DataSource = [
   {
     link: "/pricing/products",
     title: "Products",
@@ -68,7 +73,7 @@ const dataSource = [
       </>
     ),
   },
-] as DataSource;
+];
 
 export default function Pricing({ customize }) {
   return (

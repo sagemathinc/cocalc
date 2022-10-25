@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { React } from "@cocalc/frontend/app-framework";
+import { A, IconName, Space } from "@cocalc/frontend/components";
 import { Uptime } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { React } from "../app-framework";
-import { A, IconName, Space } from "../components";
 import {
   DOC_ACCOUNT_LICENSES,
   DOC_LICENSE_URL,

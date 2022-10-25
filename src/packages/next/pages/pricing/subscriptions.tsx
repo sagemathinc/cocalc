@@ -1,13 +1,27 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { Alert, Layout, List } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import A from "components/misc/A";
+import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import {
+  discount_monthly_pct,
+  discount_yearly_pct,
+  MIN_QUOTE,
+} from "@cocalc/util/licenses/purchase/consts";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { round2 } from "@cocalc/util/misc";
+import { Alert, Layout, List } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 interface Item {
   title: string;
@@ -15,55 +29,135 @@ interface Item {
   projects: number;
   disk: number;
   shared_ram: number;
-  dedicated_ram?: number;
   shared_cores: number;
-  dedicated_cores?: number;
   academic?: boolean;
+  uptime?: string;
   monthly?: number;
   yearly?: number;
 }
 
-const data: Item[] = [
-  {
+const hobby: Item = (() => {
+  const conf = { n: 2, disk: 3, ram: 2, cpu: 1, uptime: "short" } as const;
+
+  const info: PurchaseInfo = {
+    type: "quota",
+    user: "academic",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "monthly",
+    start: new Date(),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  };
+
+  const priceM = compute_cost(info);
+  const priceY = compute_cost({ ...info, subscription: "yearly" });
+
+  return {
     title: "Hobbyist",
     icon: "battery-quarter",
-    projects: 2,
-    shared_ram: 1,
-    shared_cores: 1,
-    disk: 1,
-    dedicated_ram: 0,
-    dedicated_cores: 0,
+    projects: conf.n,
+    shared_ram: conf.ram,
+    shared_cores: conf.cpu,
+    disk: conf.disk,
     academic: true,
-    monthly: 6.15,
-    yearly: 69.65,
-  },
-  {
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    monthly: round2(priceM.discounted_cost),
+    yearly: round2(priceY.discounted_cost),
+  };
+})();
+
+const academic: Item = (() => {
+  const conf = {
+    n: 3,
+    disk: 10,
+    ram: 5,
+    cpu: 2,
+    uptime: "day",
+  } as const;
+
+  const info: PurchaseInfo = {
+    type: "quota",
+    user: "academic",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "monthly",
+    start: new Date(),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  };
+
+  const priceM = compute_cost(info);
+  const priceY = compute_cost({ ...info, subscription: "yearly" });
+
+  return {
     title: "Academic Researcher Group",
     icon: "battery-half",
-    projects: 7,
-    shared_ram: 5,
-    dedicated_ram: 1,
-    shared_cores: 2,
-    disk: 10,
+    projects: conf.n,
+    shared_ram: conf.ram,
+    shared_cores: conf.cpu,
+    disk: conf.disk,
     dedicated_cores: 0,
     academic: true,
-    monthly: 73.36,
-    yearly: 831.36,
-  },
-  {
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    monthly: round2(priceM.discounted_cost),
+    yearly: round2(priceY.discounted_cost),
+  };
+})();
+
+const business: Item = (() => {
+  const conf = {
+    n: 5,
+    disk: 5,
+    ram: 4,
+    cpu: 1,
+    uptime: "medium",
+  } as const;
+
+  const info: PurchaseInfo = {
+    type: "quota",
+    user: "business",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "monthly",
+    start: new Date(),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  };
+
+  const priceM = compute_cost(info);
+  const priceY = compute_cost({ ...info, subscription: "yearly" });
+
+  return {
     title: "Business Working Group",
     icon: "battery-full",
-    projects: 3,
-    shared_ram: 3,
-    shared_cores: 1,
-    disk: 5,
-    dedicated_ram: 0,
-    dedicated_cores: 1,
+    projects: conf.n,
+    shared_ram: conf.ram,
+    shared_cores: conf.cpu,
+    disk: conf.disk,
     academic: false,
-    monthly: 157.85,
-    yearly: 1788.95,
-  },
-];
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    monthly: round2(priceM.discounted_cost),
+    yearly: round2(priceY.discounted_cost),
+  };
+})();
+
+const data: Item[] = [hobby, academic, business];
 
 export default function Subscriptions({ customize }) {
   return (
@@ -126,9 +220,10 @@ export default function Subscriptions({ customize }) {
               We list three typical configurations below, which you can{" "}
               <A href="/store/site-license">modify and purchase here</A>. All
               parameters can be adjusted to fit your needs. Listed upgrades are
-              for each project. Exact prices may vary. Below $100, only online
-              purchases are available (no purchase orders). Subscriptions
-              receive a 10% discount for monthly and 15% for yearly periods.
+              for each project. Exact prices may vary. Below ${MIN_QUOTE}, only
+              online purchases are available (no purchase orders). Subscriptions
+              receive a {discount_monthly_pct}% discount for monthly and{" "}
+              {discount_yearly_pct}% for yearly periods.
             </p>
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
@@ -145,14 +240,7 @@ export default function Subscriptions({ customize }) {
                     desc="Shared CPU per project"
                   />
                   <Line amount={item.disk} desc="Disk space per project" />
-                  <Line
-                    amount={item.dedicated_ram}
-                    desc="Dedicated RAM per project"
-                  />
-                  <Line
-                    amount={item.dedicated_cores}
-                    desc="Dedicated CPU per project"
-                  />
+                  <Line amount={item.uptime} desc="Idle timeout" />
                   <Line amount={"Unlimited"} desc="Collaborators" />
                   {item.academic ? (
                     <Line amount="40%" desc="Academic discount" />

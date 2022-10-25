@@ -1,12 +1,17 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { Layout } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Layout } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 export default function OnPrem({ customize }) {
   return (

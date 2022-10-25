@@ -1,13 +1,23 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { List, Layout } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { round2 } from "@cocalc/util/misc";
+import { Layout, List } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 interface Item {
   title: string;
@@ -17,56 +27,149 @@ interface Item {
   duration: string;
   disk: number;
   shared_ram: number;
-  dedicated_ram?: number;
   shared_cores: number;
-  dedicated_cores?: number;
   academic: boolean;
   retail?: number;
   online?: number;
+  uptime?: string;
 }
 
-const data: Item[] = [
-  {
-    title: "5 Day Professional Training",
+const training: Item = (() => {
+  const students = 10;
+  const conf = {
+    n: students + 1,
+    days: 5,
+    ram: 5,
+    disk: 5,
+    cpu: 1,
+    uptime: "medium" as Uptime,
+  } as const;
+
+  const profPrice = compute_cost({
+    type: "quota",
+    user: "business",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "no",
+    start: new Date(),
+    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  } as PurchaseInfo);
+
+  return {
+    title: `${conf.days} Day Professional Training`,
     icon: "battery-quarter",
     teachers: 1,
-    students: 5,
-    duration: "5 days",
-    disk: 5,
-    shared_ram: 2,
-    dedicated_ram: 1,
-    shared_cores: 1,
-    dedicated_cores: 0.5,
+    students,
+    duration: `${conf.days} days`,
+    disk: conf.disk,
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    shared_ram: conf.ram,
+    dedicated_ram: 0,
+    shared_cores: conf.cpu,
+    dedicated_cores: 0,
     academic: false,
-    online: 33.83,
-  },
-  {
-    title: "20 Students for 1 Month",
+    online: round2(profPrice.discounted_cost),
+  };
+})();
+
+const courseSmall: Item = (() => {
+  const students = 10;
+  const conf = {
+    n: students + 1,
+    days: 30,
+    ram: 2,
+    disk: 3,
+    cpu: 1,
+    uptime: "short",
+  } as const;
+
+  const price = compute_cost({
+    type: "quota",
+    user: "academic",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "no",
+    start: new Date(),
+    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  } as PurchaseInfo);
+
+  return {
+    title: `${students} students for ${conf.days} days`,
     icon: "battery-half",
     teachers: 1,
-    students: 20,
-    duration: "1 month",
-    disk: 1,
-    shared_ram: 2,
-    shared_cores: 1,
+    students,
+    duration: `${conf.days} days`,
+    disk: conf.disk,
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    shared_ram: conf.ram,
+    shared_cores: conf.cpu,
     academic: true,
-    retail: 113.03,
-    online: 84.77,
-  },
-  {
-    title: "120 Students for 4 Months",
+    retail: round2(price.cost),
+    online: round2(price.discounted_cost),
+  };
+})();
+
+const courseLarge: Item = (() => {
+  const students = 150;
+  const months = 4;
+  const days = months * 30;
+  const conf = {
+    n: students + 1,
+    days,
+    ram: 2,
+    disk: 3,
+    cpu: 1,
+    uptime: "short",
+  } as const;
+
+  const price = compute_cost({
+    type: "quota",
+    user: "academic",
+    upgrade: "custom",
+    quantity: conf.n,
+    subscription: "no",
+    start: new Date(),
+    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    custom_ram: conf.ram,
+    custom_cpu: conf.cpu,
+    custom_disk: conf.disk,
+    custom_member: true,
+    custom_dedicated_ram: 0,
+    custom_dedicated_cpu: 0,
+    custom_uptime: conf.uptime,
+  } as PurchaseInfo);
+
+  return {
+    title: `${students} Students for ${months} Months`,
     icon: "battery-full",
     teachers: 1,
-    students: 120,
-    duration: "4 months",
-    disk: 1,
-    shared_ram: 1,
-    shared_cores: 1,
+    students,
+    duration: `${days} days`,
+    disk: conf.disk,
+    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
+    shared_ram: conf.ram,
+    shared_cores: conf.cpu,
     academic: true,
-    retail: 2203.41,
-    online: 1652.56,
-  },
-];
+    retail: round2(price.cost),
+    online: round2(price.discounted_cost),
+  };
+})();
+
+const data: Item[] = [training, courseSmall, courseLarge];
 
 export default function Courses({ customize }) {
   return (
@@ -186,11 +289,16 @@ export default function Courses({ customize }) {
                   <Line amount={item.teachers} desc="Teacher" />
                   <Line amount={item.students} desc="Students" />
                   <Line amount={item.duration} desc="Duration" />
+                  <Line amount={item.uptime} desc="Idle timeout" />
                   <Line amount={item.shared_ram} desc="Shared RAM" />
                   <Line amount={item.shared_cores} desc="Shared CPU" />
                   <Line amount={item.disk} desc="Disk space" />
-                  <Line amount={item.dedicated_ram} desc="Dedicated RAM" />
-                  <Line amount={item.dedicated_cores} desc="Dedicated CPU" />
+                  {item.academic && (
+                    <Line
+                      amount={`${discount_pct}%`}
+                      desc="Academic discount"
+                    />
+                  )}
                   <br />
                   <br />
                   <div>

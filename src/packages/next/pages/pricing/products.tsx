@@ -1,12 +1,17 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { Layout } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Layout } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 export default function Products({ customize }) {
   return (
@@ -145,28 +150,26 @@ export default function Products({ customize }) {
               given upgrade schema. You can apply a single license key to an
               unlimited number of projects.
             </p>
-            <p>
-              The following parameters determine the price:
-              <ul style={{ paddingLeft: "20px" }}>
-                <li>The number of projects</li>
-                <li>If you qualify for an academic discount</li>
-                <li>
-                  Upgrade schema per project: a small 1 GB memory / 1 shared CPU
-                  upgrade is fine for basic calculations, but we find that many
-                  data and computational science projects run better with
-                  additional RAM and CPU.
-                </li>
-                <li>
-                  Duration: monthly/yearly subscription or explicit start and
-                  end dates.
-                </li>
-                <li>
-                  Purchase method: online self-service purchasing versus a
-                  purchase order (which may require customized terms of service,
-                  wire transfers, etc.)
-                </li>
-              </ul>
-            </p>
+            <p>The following parameters determine the price:</p>
+            <ul style={{ paddingLeft: "20px" }}>
+              <li>The number of projects</li>
+              <li>If you qualify for an academic discount</li>
+              <li>
+                Upgrade schema per project: a small 1 GB memory / 1 shared CPU
+                upgrade is fine for basic calculations, but we find that many
+                data and computational science projects run better with
+                additional RAM and CPU.
+              </li>
+              <li>
+                Duration: monthly/yearly subscription or explicit start and end
+                dates.
+              </li>
+              <li>
+                Purchase method: online self-service purchasing versus a
+                purchase order (which may require customized terms of service,
+                wire transfers, etc.)
+              </li>
+            </ul>
 
             <br />
             <h2>Frequently Asked Questions</h2>
