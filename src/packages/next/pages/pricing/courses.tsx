@@ -8,13 +8,16 @@ import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { discount_pct } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { round2 } from "@cocalc/util/misc";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { COLORS } from "@cocalc/util/theme";
 import { Layout, List } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import A from "components/misc/A";
+import { LinkToStore, StoreConf } from "components/store/link";
+import { encodeRange } from "components/store/quota-query-params";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -30,29 +33,34 @@ interface Item {
   shared_cores: number;
   academic: boolean;
   retail?: number;
-  online?: number;
+  online: number;
   uptime?: string;
+  conf: StoreConf;
 }
 
 const training: Item = (() => {
   const students = 10;
+  const days = 5;
   const conf = {
-    n: students + 1,
-    days: 5,
+    run_limit: students + 1,
+    user: "business",
+    days,
     ram: 5,
     disk: 5,
     cpu: 1,
     uptime: "medium" as Uptime,
+    start: new Date(),
+    end: new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000),
   } as const;
 
   const profPrice = compute_cost({
     type: "quota",
-    user: "business",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "no",
-    start: new Date(),
-    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    start: conf.start,
+    end: conf.end,
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,
@@ -75,29 +83,34 @@ const training: Item = (() => {
     shared_cores: conf.cpu,
     dedicated_cores: 0,
     academic: false,
-    online: round2(profPrice.discounted_cost),
+    online: profPrice.discounted_cost,
+    conf,
   };
 })();
 
 const courseSmall: Item = (() => {
   const students = 10;
+  const days = 30;
   const conf = {
-    n: students + 1,
-    days: 30,
+    run_limit: students + 1,
+    days,
     ram: 2,
     disk: 3,
     cpu: 1,
     uptime: "short",
+    user: "academic",
+    start: new Date(),
+    end: new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000),
   } as const;
 
   const price = compute_cost({
     type: "quota",
-    user: "academic",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "no",
-    start: new Date(),
-    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    start: conf.start,
+    end: conf.end,
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,
@@ -118,8 +131,9 @@ const courseSmall: Item = (() => {
     shared_ram: conf.ram,
     shared_cores: conf.cpu,
     academic: true,
-    retail: round2(price.cost),
-    online: round2(price.discounted_cost),
+    retail: price.cost,
+    online: price.discounted_cost,
+    conf,
   };
 })();
 
@@ -128,22 +142,25 @@ const courseLarge: Item = (() => {
   const months = 4;
   const days = months * 30;
   const conf = {
-    n: students + 1,
+    run_limit: students + 1,
     days,
+    user: "academic",
     ram: 2,
     disk: 3,
     cpu: 1,
     uptime: "short",
+    start: new Date(),
+    end: new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000),
   } as const;
 
   const price = compute_cost({
     type: "quota",
-    user: "academic",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "no",
-    start: new Date(),
-    end: new Date(new Date().getTime() + conf.days * 24 * 60 * 60 * 1000),
+    start: conf.start,
+    end: conf.end,
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,
@@ -164,8 +181,9 @@ const courseLarge: Item = (() => {
     shared_ram: conf.ram,
     shared_cores: conf.cpu,
     academic: true,
-    retail: round2(price.cost),
-    online: round2(price.discounted_cost),
+    retail: price.cost,
+    online: price.discounted_cost,
+    conf,
   };
 })();
 
@@ -284,54 +302,62 @@ export default function Courses({ customize }) {
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
               dataSource={data}
-              renderItem={(item) => (
-                <PricingItem title={item.title} icon={item.icon}>
-                  <Line amount={item.teachers} desc="Teacher" />
-                  <Line amount={item.students} desc="Students" />
-                  <Line amount={item.duration} desc="Duration" />
-                  <Line amount={item.uptime} desc="Idle timeout" />
-                  <Line amount={item.shared_ram} desc="Shared RAM" />
-                  <Line amount={item.shared_cores} desc="Shared CPU" />
-                  <Line amount={item.disk} desc="Disk space" />
-                  {item.academic && (
-                    <Line
-                      amount={`${discount_pct}%`}
-                      desc="Academic discount"
-                    />
-                  )}
-                  <br />
-                  <br />
-                  <div>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "18pt",
-                        color: "#555",
-                      }}
-                    >
-                      ${item.online}
-                    </span>{" "}
-                  </div>
-                  {item.retail ? (
-                    <div style={{ color: "#888" }}>
-                      (
+              renderItem={(item) => {
+                const conf = {
+                  ...item.conf,
+                  period: "range",
+                  range: encodeRange([item.conf.start, item.conf.end]),
+                };
+                return (
+                  <PricingItem title={item.title} icon={item.icon}>
+                    <Line amount={item.teachers} desc="Teacher" />
+                    <Line amount={item.students} desc="Students" />
+                    <Line amount={item.duration} desc="Duration" />
+                    <Line amount={item.uptime} desc="Idle timeout" />
+                    <Line amount={item.shared_ram} desc="Shared RAM" />
+                    <Line amount={item.shared_cores} desc="Shared CPU" />
+                    <Line amount={item.disk} desc="Disk space" />
+                    {item.academic && (
+                      <Line
+                        amount={`${discount_pct}%`}
+                        desc="Academic discount"
+                      />
+                    )}
+                    <br />
+                    <br />
+                    <div>
                       <span
                         style={{
                           fontWeight: "bold",
-                          fontSize: "14pt",
+                          fontSize: "18pt",
+                          color: COLORS.GRAY_DD,
                         }}
                       >
-                        ${item.retail}
+                        {money(item.online, true)}
                       </span>{" "}
-                      via purchase order)
                     </div>
-                  ) : (
-                    <div>
-                      <span style={{ fontSize: "14pt" }}>&nbsp;</span>
-                    </div>
-                  )}
-                </PricingItem>
-              )}
+                    {item.retail ? (
+                      <div style={{ color: COLORS.GRAY }}>
+                        (
+                        <span
+                          style={{
+                            fontWeight: "bold",
+                            fontSize: "14pt",
+                          }}
+                        >
+                          {money(item.retail, true)}
+                        </span>{" "}
+                        via purchase order)
+                      </div>
+                    ) : (
+                      <div>
+                        <span style={{ fontSize: "14pt" }}>&nbsp;</span>
+                      </div>
+                    )}
+                    <LinkToStore conf={conf} />
+                  </PricingItem>
+                );
+              }}
             />
 
             <h2>Contact us</h2>

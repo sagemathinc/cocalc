@@ -12,13 +12,15 @@ import {
   MIN_QUOTE,
 } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { round2 } from "@cocalc/util/misc";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout, List } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import A from "components/misc/A";
+import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -32,18 +34,26 @@ interface Item {
   shared_cores: number;
   academic?: boolean;
   uptime?: string;
-  monthly?: number;
-  yearly?: number;
+  monthly: number;
+  yearly: number;
+  conf: StoreConf;
 }
 
 const hobby: Item = (() => {
-  const conf = { n: 2, disk: 3, ram: 2, cpu: 1, uptime: "short" } as const;
+  const conf = {
+    run_limit: 2,
+    disk: 3,
+    ram: 2,
+    cpu: 1,
+    uptime: "short",
+    user: "academic",
+  } as const;
 
   const info: PurchaseInfo = {
     type: "quota",
-    user: "academic",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "monthly",
     start: new Date(),
     custom_ram: conf.ram,
@@ -61,31 +71,33 @@ const hobby: Item = (() => {
   return {
     title: "Hobbyist",
     icon: "battery-quarter",
-    projects: conf.n,
+    projects: conf.run_limit,
     shared_ram: conf.ram,
     shared_cores: conf.cpu,
     disk: conf.disk,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: round2(priceM.discounted_cost),
-    yearly: round2(priceY.discounted_cost),
+    monthly: priceM.discounted_cost,
+    yearly: priceY.discounted_cost,
+    conf,
   };
 })();
 
 const academic: Item = (() => {
   const conf = {
-    n: 3,
+    run_limit: 3,
     disk: 10,
     ram: 5,
     cpu: 2,
     uptime: "day",
+    user: "academic",
   } as const;
 
   const info: PurchaseInfo = {
     type: "quota",
-    user: "academic",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "monthly",
     start: new Date(),
     custom_ram: conf.ram,
@@ -103,32 +115,34 @@ const academic: Item = (() => {
   return {
     title: "Academic Researcher Group",
     icon: "battery-half",
-    projects: conf.n,
+    projects: conf.run_limit,
     shared_ram: conf.ram,
     shared_cores: conf.cpu,
     disk: conf.disk,
     dedicated_cores: 0,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: round2(priceM.discounted_cost),
-    yearly: round2(priceY.discounted_cost),
+    monthly: priceM.discounted_cost,
+    yearly: priceY.discounted_cost,
+    conf,
   };
 })();
 
 const business: Item = (() => {
   const conf = {
-    n: 5,
+    run_limit: 5,
     disk: 5,
     ram: 4,
     cpu: 1,
     uptime: "medium",
+    user: "business",
   } as const;
 
   const info: PurchaseInfo = {
     type: "quota",
-    user: "business",
+    user: conf.user,
     upgrade: "custom",
-    quantity: conf.n,
+    quantity: conf.run_limit,
     subscription: "monthly",
     start: new Date(),
     custom_ram: conf.ram,
@@ -146,14 +160,15 @@ const business: Item = (() => {
   return {
     title: "Business Working Group",
     icon: "battery-full",
-    projects: conf.n,
+    projects: conf.run_limit,
     shared_ram: conf.ram,
     shared_cores: conf.cpu,
     disk: conf.disk,
     academic: false,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: round2(priceM.discounted_cost),
-    yearly: round2(priceY.discounted_cost),
+    monthly: priceM.discounted_cost,
+    yearly: priceY.discounted_cost,
+    conf,
   };
 })();
 
@@ -255,10 +270,10 @@ export default function Subscriptions({ customize }) {
                       style={{
                         fontWeight: "bold",
                         fontSize: "18pt",
-                        color: "#555",
+                        color: COLORS.GRAY_DD,
                       }}
                     >
-                      ${item.monthly}
+                      {money(item.monthly, true)}
                     </span>{" "}
                     / month
                   </div>
@@ -267,13 +282,14 @@ export default function Subscriptions({ customize }) {
                       style={{
                         fontWeight: "bold",
                         fontSize: "18pt",
-                        color: "#555",
+                        color: COLORS.GRAY_DD,
                       }}
                     >
-                      ${item.yearly}
+                      {money(item.yearly, true)}
                     </span>{" "}
                     / year
                   </div>
+                  <LinkToStore conf={item.conf} />
                 </PricingItem>
               )}
             />
