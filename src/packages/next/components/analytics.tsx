@@ -10,20 +10,20 @@ import useCustomize from "lib/use-customize";
 function GoogleAnalytics() {
   const { googleAnalytics } = useCustomize();
 
-  const GA_TRACKING_ID = googleAnalytics;
-  if (!GA_TRACKING_ID) return [];
+  const GA4_TRACKING_ID = googleAnalytics;
+  if (!GA4_TRACKING_ID) return [];
   const ga = `\
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GA_TRACKING_ID}');\
+gtag('config', '${GA4_TRACKING_ID}');\
 `;
   return [
     <script
       key={"google-analytics-0"}
       async={true}
       defer={true}
-      src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+      src={`https://www.googletagmanager.com/gtag/js?id=${GA4_TRACKING_ID}`}
     />,
     <script
       key={"google-analytics-1"}

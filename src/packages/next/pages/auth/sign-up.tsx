@@ -4,6 +4,7 @@
  */
 
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
+import { gtag_id, sign_up_id } from "@cocalc/util/theme";
 import { Layout } from "antd";
 import SignUp from "components/auth/sign-up";
 import Footer from "components/landing/footer";
@@ -15,18 +16,36 @@ import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
 export default function SignUpPage({ customize, requiresToken }) {
-  const { siteName } = customize;
+  const { siteName, isCommercial } = customize;
   const router = useRouter();
+
+  function openRoot() {
+    router.push("/");
+  }
+
+  function onSuccess() {
+    if (isCommercial) {
+      setTimeout(openRoot, 2000); // make sure to open root after 2 secs, even if there is an error
+      try {
+        (window as any).gtag?.("event", "conversion", {
+          send_to: `${gtag_id}/${sign_up_id}`,
+          event_callback: openRoot,
+        });
+      } catch (err) {
+        console.warn("error sending gtag event", err);
+      }
+    } else {
+      openRoot();
+    }
+  }
+
   return (
     <Customize value={customize}>
       <Head title={`Sign up for ${siteName}`} />
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp
-            requiresToken={requiresToken}
-            onSuccess={() => router.push("/")}
-          />
+          <SignUp requiresToken={requiresToken} onSuccess={onSuccess} />
           <Footer />
         </Layout.Content>
       </Layout>
