@@ -1,6 +1,12 @@
-import { ReactNode } from "react";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import { Card, List } from "antd";
+import { ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -13,7 +19,7 @@ export default function PricingItem({ icon, children, title }: Props) {
     <List.Item>
       <Card
         headStyle={{ backgroundColor: "#d9edf7" }}
-        style={{ color: "#777" }}
+        style={{ color: COLORS.GRAY }}
         type="inner"
         title={
           <>
@@ -28,15 +34,19 @@ export default function PricingItem({ icon, children, title }: Props) {
   );
 }
 
-const STYLE = { marginRight: "5px", display: "inline-block", color: "#555" };
+const STYLE: React.CSSProperties = {
+  marginRight: "5px",
+  display: "inline-block",
+  color: COLORS.GRAY_DD,
+} as const;
 
-export function Line({
-  amount,
-  desc,
-}: {
+interface Line {
   amount?: string | number;
   desc?: string;
-}) {
+}
+
+export function Line(props: Line) {
+  const { amount, desc } = props;
   if (!amount)
     return (
       <div>

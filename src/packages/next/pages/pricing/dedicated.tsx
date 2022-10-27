@@ -6,7 +6,7 @@
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Layout, Typography } from "antd";
+import { Button, Layout, Typography } from "antd";
 const { Text } = Typography;
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
@@ -18,6 +18,8 @@ import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { MAX_WIDTH } from "lib/config";
+import { listedPrices } from "./_shared";
+import { useRouter } from "next/router";
 
 interface Item {
   title: string;
@@ -77,6 +79,7 @@ const DISK_CONFIGS: Item[] = ICONS.slice(1).map((battery, idx) => {
 
 export default function Products({ customize }) {
   const { siteName } = customize;
+  const router = useRouter();
   return (
     <Customize value={customize}>
       <Head title={"Dedicated virtual machines and disks"} />
@@ -139,6 +142,18 @@ export default function Products({ customize }) {
                 </PricingItem>
               )}
             />
+            <p style={{ textAlign: "center" }}>
+              <Button
+                size={"large"}
+                type={"primary"}
+                onClick={() => router.push("/store/dedicated?type=vm")}
+                icon={<Icon name="shopping-cart" />}
+              >
+                Order a VM license
+              </Button>
+            </p>
+            <br />
+            <hr />
             <br />
             <h2>
               <strong>Dedicated Disks</strong>
@@ -185,6 +200,16 @@ export default function Products({ customize }) {
                 </PricingItem>
               )}
             />
+            <p style={{ textAlign: "center" }}>
+              <Button
+                size={"large"}
+                type={"primary"}
+                onClick={() => router.push("/store/dedicated?type=disk")}
+                icon={<Icon name="shopping-cart" />}
+              >
+                Subscribe for a dedicated disk
+              </Button>
+            </p>
             <p>
               <Icon name="info-circle" /> To ease data transfer, make sure to
               check out how to mount{" "}
@@ -194,6 +219,8 @@ export default function Products({ customize }) {
               into your project as well.
             </p>
           </div>
+          <hr />
+          {listedPrices()}
         </div>
         <Footer />
       </Layout.Content>

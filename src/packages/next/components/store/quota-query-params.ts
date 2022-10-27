@@ -26,7 +26,7 @@ import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
-function encodeRange(vals: DateRange): string {
+export function encodeRange(vals: DateRange): string {
   // the list of val is encoded as YYYY-MM-DD and separated by a comma
   // this happens after the "correction" of timestamps in the range selector
   // that's why here is (yet again) some rounding to the start/end of the day.
