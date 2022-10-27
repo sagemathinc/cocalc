@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Icon } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
 import { Button } from "antd";
 import { useRouter } from "next/router";
@@ -27,7 +28,7 @@ const STYLE: React.CSSProperties = {
   fontWeight: "bold",
   textAlign: "center",
   marginTop: "30px",
-};
+} as const;
 
 export function LinkToStore(props: Props) {
   const { conf } = props;
@@ -42,8 +43,13 @@ export function LinkToStore(props: Props) {
 
   return (
     <div style={STYLE}>
-      <Button size={"large"} type={"primary"} onClick={() => router.push(url)}>
-        Buy
+      <Button
+        size={"large"}
+        type={"default"}
+        onClick={() => router.push(url)}
+        icon={<Icon name="shopping-cart" />}
+      >
+        Select
       </Button>
     </div>
   );

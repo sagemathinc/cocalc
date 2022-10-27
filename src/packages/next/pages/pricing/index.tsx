@@ -65,7 +65,7 @@ const dataSource: DataSource = [
   {
     link: "/pricing/onprem",
     title: "On Premises Installations",
-    logo: "laptop",
+    logo: "network-wired",
     description: (
       <>
         You can run CoCalc on{" "}
@@ -81,7 +81,7 @@ export default function Pricing({ customize }) {
       <Head title="Pricing" />
       <Header page="pricing" />
       <IndexList
-        title="Subscriptions and Pricing"
+        title="Products and Pricing"
         description={
           <>
             You can read more about {customize.siteName} products and

@@ -4,7 +4,6 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout, Typography } from "antd";
 import Footer from "components/landing/footer";
@@ -51,8 +50,8 @@ function Body() {
               CoCalc Docker
             </A>
           </Text>{" "}
-          is a feature complete, but downsized version CoCalc. It can be used on
-          your own laptop, desktop or server. It is suitable for{" "}
+          is a downsized but feature complete version of CoCalc. It can be used
+          on your own laptop, desktop or server. It is suitable for{" "}
           <Text strong>personal use</Text> or a small{" "}
           <Text strong>working group</Text>, e.g. a few researchers in an office
           or lab.
@@ -71,9 +70,9 @@ function Body() {
         to fit your needs.
         <Paragraph></Paragraph>
         <Paragraph>
-          The setup is very easy: CoCalc Docker comes as a pre-packaged single
-          Docker image. All services are included and ready to work out of the
-          box.
+          The <Text strong>setup</Text> is very easy: CoCalc Docker comes as a
+          pre-packaged single <A href={"https://www.docker.com/"}>Docker</A>{" "}
+          image. All services are included and ready to work out of the box.
         </Paragraph>
         <Paragraph>
           The license is business-friendly and costs $999/year.
@@ -89,27 +88,26 @@ function Body() {
           CoCalc Cloud <Icon name="network-wired" style={{ float: "right" }} />
         </h2>
         <Paragraph>
-          This version of CoCalc on-prem runs on a full-fledged{" "}
+          This version of on-prem CoCalc runs on a full-fledged{" "}
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
-          underlying services and their architecture are the same as for the
-          SaaS site at <code>cocalc.com</code>. This means you get the same
-          overall performance, scalability and reliability as for the SaaS site.
+          underlying services and their architecture are the same as the ones
+          that power the main service at cocalc.com. This means you get the same
+          overall performance, scalability and reliability as the main SaaS
+          site.
         </Paragraph>
         <Paragraph>
-          <Text strong>Features:</Text>
+          <Text strong>Features</Text>
           <ul>
             <li>
-              Support for Jupyter Notebooks, a recent version of Sage, Python 3,
-              R, Julia, Octave and LaTeX. Editing code and text-files, Linux
-              terminal, compiling code, and virtual X11 desktop are included as
-              well.
+              Jupyter Notebooks, a recent version of Sage, Python 3, R, Octave
+              and LaTeX. Editing code and text-files, Linux terminal, compiling
+              code, and virtual X11 desktop are included as well. Beyond the
+              standard set of included software, it's also possible to define
+              and build customized software environments.
             </li>
             <li>
-              It's possible to define and build customized software environments
-              for projects.
-            </li>
-            <li>
-              Support for <Text strong>single-sign-on</Text>, in particular SAML
+              Support for <Text strong>single-sign-on</Text>, in particular,
+              includes SAML.
             </li>
             <li>
               The networking is defined by standard{" "}
@@ -120,24 +118,24 @@ function Body() {
             </li>
             <li>
               You can <Text strong>deploy</Text> this solution on your own
-              bare-metal cluster,{" "}
-              <A href={"https://aws.amazon.com/eks/"}>Amazon's AWS EKS</A>, or{" "}
+              bare-metal cluster or managed kubernetes clusters like{" "}
+              <A href={"https://aws.amazon.com/eks/"}>Amazon's AWS EKS</A> or{" "}
               <A href={"https://cloud.google.com/kubernetes-engine"}>
                 Google's GCE GKE
-              </A>{" "}
-              managed kubernetes clusters. Other options should work as well.
+              </A>
+              . Other options should work as well.
             </li>
           </ul>
         </Paragraph>
         <Paragraph>
-          <Text strong>Prerequesites</Text>:
+          <Text strong>Prerequisites</Text>
           <ul>
             <li>
               A <Text strong>Kubernetes cluster</Text> and some experience
-              managing it. We'll give you enough information to be able to
-              manage the services, react to any issues, know the exact resource
-              requirements, and know how to scale the various services to your
-              expected usage.
+              managing it. We'll guide you through the setup and give you enough
+              information to be able to manage the service, react to issues,
+              plan resource requirements, and know how to scale the various
+              services to your expected usage.
             </li>
             <li>
               Some experience working with{" "}
@@ -158,7 +156,7 @@ function Body() {
               database.
             </li>
             <li>
-              And finally regarding storage, a network file-system like{" "}
+              Regarding storage, a network file-system like{" "}
               <Text strong>NFS</Text>, supporting{" "}
               <A
                 href={
@@ -167,12 +165,12 @@ function Body() {
               >
                 ReadWriteMany
               </A>
-              .
+              , will hold the data of all projects.
             </li>
           </ul>
         </Paragraph>
         <Paragraph>
-          The license is business-friendly and{" "}
+          The license is business-friendly and please{" "}
           <A href={`mailto:${helpEmail}`}>contact us</A> for pricing.
         </Paragraph>
       </>
@@ -214,7 +212,7 @@ function Body() {
           }
         />
         {docker()}
-        <hr style={{ margin: "20px 0" }} />
+        <hr style={{ margin: "30px 0" }} />
         {cloud()}
       </div>
     </div>
