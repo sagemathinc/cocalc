@@ -21,7 +21,7 @@ import { encodeRange } from "components/store/quota-query-params";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { listedPrices } from "./_shared";
+import { listedPrices } from "components/share/pricing";
 
 interface Item {
   title: string;

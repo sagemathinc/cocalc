@@ -24,7 +24,7 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { applyLicense, listedPrices, pricingQuestions } from "./_shared";
+import { applyLicense, listedPrices, pricingQuestions } from "components/share/pricing";
 
 interface Item {
   title: string;

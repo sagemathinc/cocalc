@@ -18,7 +18,7 @@ import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { MAX_WIDTH } from "lib/config";
-import { listedPrices } from "./_shared";
+import { listedPrices } from "components/share/pricing";
 import { useRouter } from "next/router";
 
 interface Item {
