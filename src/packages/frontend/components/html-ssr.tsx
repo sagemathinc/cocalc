@@ -152,6 +152,9 @@ export default function HTML({
       // won't work at all, which is one of the main uses for
       // iframes.  A good test is 3d graphics in Sage kernel
       // Jupyter notebooks.
+      // TODO: Except this is a security issue, since
+      // combining allow-scripts & allow-same-origin makes it
+      // possible to remove a lot of sandboxing.
       return (
         <iframe
           src={attribs.src}
