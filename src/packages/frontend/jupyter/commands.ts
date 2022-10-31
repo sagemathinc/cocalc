@@ -243,6 +243,12 @@ export function commands(
       f: () => frame_actions.delete_selected_cells(),
     },
 
+    "delete blank code cells": {
+      // Requested by a user; not in upstream jupyter or any known extension
+      m: "Delete all blank code cells",
+      f: () => jupyter_actions.delete_all_blank_code_cells(),
+    },
+
     "duplicate notebook": {
       m: "Make a copy...",
       f: () => jupyter_actions.file_action("duplicate"),

@@ -26,7 +26,7 @@ export type CellToolbarName =
   | "metadata"
   | "create_assignment";
 
-// TODO -- this is pretty complicated, but will ne nice to nail down.
+// TODO -- this is pretty complicated, but will be nice to nail down.
 export type Cell = immutable.Map<string, any>;
 
 export type Cells = immutable.Map<string, Cell>;

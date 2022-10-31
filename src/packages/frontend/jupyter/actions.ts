@@ -959,6 +959,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.show_not_deletable_error(not_deletable);
   }
 
+  // Delete all blank code cells in the entire notebook.
+  delete_all_blank_code_cells(sync: boolean = true): void {
+    const cells: string[] = [];
+    for (const id of this.store.get_cell_list()) {
+      if (!this.store.is_cell_deletable(id)) {
+        continue;
+      }
+      const cell = this.store.getIn(["cells", id]);
+      if (
+        cell.get("cell_type", "code") == "code" &&
+        cell.get("input", "").trim() == "" &&
+        cell.get("output", []).length == 0
+      ) {
+        cells.push(id);
+      }
+    }
+    this.delete_cells(cells, sync);
+  }
+
   move_selected_cells = (delta: number) => {
     this.deprecated("move_selected_cells", delta);
   };
