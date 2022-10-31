@@ -124,6 +124,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.id = id;
 
     this.terminal = new XTerminal(this.get_xtermjs_options());
+    this.terminal.options.allowProposedApi = true;
 
     this.webLinksAddon = new WebLinksAddon(handleLink);
     this.terminal.loadAddon(this.webLinksAddon);
@@ -250,10 +251,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       settings.get("scrollback", SCROLLBACK) !==
       this.terminal_settings.get("scrollback", SCROLLBACK)
     ) {
-      this.terminal.setOption(
-        "scrollback",
-        settings.get("scrollback", SCROLLBACK)
-      );
+      this.terminal.options.scrollback = settings.get("scrollback", SCROLLBACK);
     }
 
     this.terminal_settings = settings;
@@ -762,11 +760,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   set_font_size(font_size: number): void {
-    this.terminal.setOption("fontSize", font_size);
+    this.terminal.options.fontSize = font_size;
   }
 
   getOption(option: string): any {
-    return this.terminal.getOption(option);
+    return this.terminal.options[option];
   }
 
   measure_size(): void {

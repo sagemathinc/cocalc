@@ -38,7 +38,7 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     foreground: colors[16],
     cursor: colors[16],
     cursorAccent: colors[17],
-    selection: "rgba(128, 128, 160, 0.25)",
+    selectionBackground: "rgba(128, 128, 160, 0.25)",
     black: colors[0],
     red: colors[1],
     green: colors[2],
@@ -56,5 +56,5 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     brightCyan: colors[14],
     brightWhite: colors[15],
   };
-  terminal.setOption("theme", theme);
+  terminal.options.theme = theme;
 }
