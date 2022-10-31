@@ -243,8 +243,9 @@ export function commands(
       f: () => frame_actions.delete_selected_cells(),
     },
 
-    "delete blank code cells": {
+    "delete all blank code cells": {
       // Requested by a user; not in upstream jupyter or any known extension
+      // https://github.com/sagemathinc/cocalc/issues/6194
       m: "Delete all blank code cells",
       f: () => jupyter_actions.delete_all_blank_code_cells(),
     },

@@ -207,6 +207,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           "paste cell below",
           "paste cell and replace",
           "delete cell",
+          "delete all blank code cells",
           "",
           "split cell at cursor",
           "merge cell with previous cell",
