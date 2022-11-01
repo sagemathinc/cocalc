@@ -31,18 +31,17 @@ export async function pythontex(
   output_directory: string | undefined
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
-  const args = ["--jobs", "2"];
-  if (force) {
-    // forced build implies to run all snippets
-    args.push("--rerun=always");
-  }
-  status(`pythontex ${args.join(" ")}`);
+  const rerun = force ? "--rerun=always" : ""; // forced build implies to run all snippets
+  const args = `--jobs 2 ${rerun} '${base}'`;
+  // older ubuntu versions install both, for python2&3. Newer Ubuntu's only install "pythontex" for python3. we prefer the "version 3" variant in both cases.
+  // note: the "which" selection works, because "bash" is true
+  const command = `$(which {pythontex3,pythontex} | head -1) ${args}`;
+  status(`pythontex[3] ${args}`);
   const aggregate = time && !force ? { value: time } : undefined;
   return exec({
     timeout: 360,
     bash: true, // timeout is enforced by ulimit
-    command: "pythontex3",
-    args: args.concat(base),
+    command,
     env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
     project_id: project_id,
     path: output_directory || directory,
