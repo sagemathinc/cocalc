@@ -7,7 +7,7 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-import Ansi from "ansi-to-react";
+import Ansi from "@cocalc/ansi-to-react";
 import { path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";

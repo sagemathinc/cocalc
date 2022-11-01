@@ -7,7 +7,7 @@
 About dialog -- provides info about the Jupyter Notebook
 */
 
-import Ansi from "ansi-to-react";
+import Ansi from "@cocalc/ansi-to-react";
 import { Modal } from "antd";
 import { Icon, A } from "../components";
 import { ShowSupportLink } from "../support";
