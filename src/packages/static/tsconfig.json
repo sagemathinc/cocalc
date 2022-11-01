@@ -3,11 +3,9 @@
   "compilerOptions": {
     "incremental": false,
     "lib": ["es5", "es6", "es2017", "dom"],
-    "module": "es2020",
     "outDir": "dist",
     "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
-    "sourceMap": true,
-    "target": "es5",
+    "sourceMap": true
   },
   "exclude": [
     "*__test__*",
