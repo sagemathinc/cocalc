@@ -91,18 +91,14 @@ export const FacebookStrategyConf: StrategyConf = {
 // You must then put them in the database, via
 //   db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
-export const TwitterWrapper = (
-  { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
-  verify
-) => {
-  // cast to any, because otherwies TypeScript complains:
-  // Only a void function can be called with the 'new' keyword.
-
-  return new TwitterStrategy(
-    { consumerKey, consumerSecret, callbackURL },
+class TwitterWrapper extends TwitterStrategy {
+  constructor(
+    { clientID: consumerKey, clientSecret: consumerSecret, callbackURL },
     verify
-  );
-};
+  ) {
+    super({ consumerKey, consumerSecret, callbackURL }, verify);
+  }
+}
 
 export const TwitterStrategyConf: StrategyConf = {
   name: "twitter",
