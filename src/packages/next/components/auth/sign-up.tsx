@@ -397,12 +397,12 @@ function EmailOrSSO(props: EmailOrSSOProps) {
     <div>
       <p>
         {hideSSO
-          ? "Sign up using your single-sign-on provider"
+          ? "Sign up using your single sign-on provider"
           : strategies.length > 0 && emailSignup
-          ? "Sign up using either your email address or a single-sign-on provider."
+          ? "Sign up using either your email address or a single sign-on provider."
           : emailSignup
           ? "Enter the email address you will use to sign in."
-          : "Sign up using a single sign on provider."}
+          : "Sign up using a single sign-on provider."}
       </p>
       {renderSSO()}
       {emailSignup && (

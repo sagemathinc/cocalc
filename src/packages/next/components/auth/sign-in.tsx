@@ -93,8 +93,8 @@ function SignIn0(props: Props) {
             ? "Sign in"
             : haveSSO
             ? requiredSSO != null
-              ? "Sign in using your single-sign-on provider"
-              : "Sign in using your email address or a single-sign-on provider."
+              ? "Sign in using your single sign-on provider"
+              : "Sign in using your email address or a single sign-on provider."
             : "Sign in using your email address."}
         </div>
         <form>

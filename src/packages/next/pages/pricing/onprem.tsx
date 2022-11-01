@@ -106,7 +106,7 @@ function Body() {
               and build customized software environments.
             </li>
             <li>
-              Support for <Text strong>single-sign-on</Text>, in particular,
+              Support for <Text strong>single sign-on</Text>, in particular,
               includes SAML.
             </li>
             <li>

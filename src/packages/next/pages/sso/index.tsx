@@ -88,7 +88,7 @@ export default function SignupIndex(props: Props) {
         <h1>{SSO_SUBTITLE}</h1>
         <Paragraph>
           Sign up at {customize.siteName} via one of these 3<sup>rd</sup> party
-          single-sign-on mechanisms. You need to have an account at the
+          single sign-on mechanisms. You need to have an account at the
           respective organization in order to complete the sign-up process.
           Usually, this will be the only way you can sign up using your
           organization specific email address.
