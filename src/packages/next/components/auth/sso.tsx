@@ -40,7 +40,7 @@ export function getLink(strategy: string, target?: string): string {
 export default function SSO(props: SSOProps) {
   const { size, style, header } = props;
   const { strategies } = useCustomize();
-  const ssoHREF = useSSOHref(name);
+  const ssoHREF = useSSOHref("sso");
 
   const havePrivateSSO: boolean = useMemo(() => {
     return strategies?.some((s) => !s.public) ?? false;
