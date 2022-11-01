@@ -10,7 +10,7 @@ Provide nice JSON view of the ipynb
 // NOTE: this react-json-view **does** support editing, but the editing isn't great,
 // and using codemirror directly is better for *editing*.
 // react-json-view is very nice for viewing.
-import ReactJson from "react-json-view";
+import ReactJson from "@microlink/react-json-view";
 import { React } from "../app-framework";
 import { JupyterActions } from "./browser-actions";
 import { Loading } from "../components";
