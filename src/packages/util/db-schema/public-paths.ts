@@ -223,7 +223,7 @@ Table({
           project_id: true,
           path: true,
         },
-        check_hook(db, obj, _account_id, project_id, cb) {
+        check_hook(db, obj, _account_id, _project_id, cb) {
           if (!obj["name"]) {
             cb();
             return;
@@ -235,11 +235,11 @@ Table({
             cb(err.toString());
             return;
           }
-          // It's a valid name, so next check that it is unique
+          // It's a valid name, so next check that it is not already in use in this project
           db._query({
             query: "SELECT path FROM public_paths",
             where: {
-              "project_id = $::UUID": project_id,
+              "project_id = $::UUID": obj["project_id"],
               "path != $::TEXT": obj["path"],
               "LOWER(name) = $::TEXT": obj["name"].toLowerCase(),
             },

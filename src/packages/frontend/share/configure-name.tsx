@@ -52,7 +52,7 @@ export default function ConfigureName({ project_id, path }: Props) {
       </span>
       {!name && !choosingName ? (
         <Button
-          style={{ marginLeft: "0px" }}
+          style={{ marginLeft: "15px" }}
           onClick={() => setChoosingName(true)}
         >
           Choose a name...

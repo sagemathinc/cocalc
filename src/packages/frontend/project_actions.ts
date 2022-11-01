@@ -2510,9 +2510,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = client_db.sha1(project_id, path);
 
     const projects_store = redux.getStore("projects");
-    const dflt_compute_img = await redux.getStore("customize").getDefaultComputeImage()
+    const dflt_compute_img = await redux
+      .getStore("customize")
+      .getDefaultComputeImage();
 
-    const compute_image :string =
+    const compute_image: string =
       projects_store.getIn(["project_map", project_id, "compute_image"]) ??
       dflt_compute_img;
 
@@ -2556,6 +2558,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         obj = obj.set(k, opts[k]);
       }
     }
+    if (obj.get("disabled") && obj.get("name")) {
+      // clear the name when disabling a share -- see https://github.com/sagemathinc/cocalc/issues/6172
+      obj = obj.set("name", "");
+    }
+
     table.set(obj);
 
     if (log) {

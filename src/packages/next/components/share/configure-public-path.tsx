@@ -182,7 +182,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
                     setEdited({ ...edited, ...SHARE_FLAGS.AUTHENTICATED });
                     break;
                   case "private":
-                    setEdited({ ...edited, ...SHARE_FLAGS.DISABLED });
+                    setEdited({ ...edited, ...SHARE_FLAGS.DISABLED, name: "" });
                     break;
                 }
               }}
