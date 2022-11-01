@@ -31,7 +31,6 @@ export default async function apiPost(
       throw Error(result.error);
     }
   } catch (err) {
-    console.log(response);
     if (response.statusText == "Not Found") {
       throw Error(`The API endpoint ${path} does not exist`);
     }

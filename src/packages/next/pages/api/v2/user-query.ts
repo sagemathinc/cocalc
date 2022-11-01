@@ -16,6 +16,6 @@ export default async function handle(req, res) {
     const result = await userQuery({ account_id, query });
     res.json({ query: result });
   } catch (err) {
-    res.json({ error: `${err.message}` });
+    res.json({ error: `${err.message ? err.message : err}` });
   }
 }
