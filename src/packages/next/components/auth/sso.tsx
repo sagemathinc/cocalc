@@ -40,6 +40,7 @@ export function getLink(strategy: string, target?: string): string {
 export default function SSO(props: SSOProps) {
   const { size, style, header } = props;
   const { strategies } = useCustomize();
+  const ssoHREF = useSSOHref(name);
 
   const havePrivateSSO: boolean = useMemo(() => {
     return strategies?.some((s) => !s.public) ?? false;
@@ -57,7 +58,7 @@ export default function SSO(props: SSOProps) {
     // a fake entry to point the user to the page for private SSO login options
     const sso: Strategy = {
       name: "sso",
-      display: "institutional Single-Sign-On",
+      display: "institutional Single Sign-On",
       icon: "api",
       backgroundColor: "",
       public: true,
@@ -66,10 +67,10 @@ export default function SSO(props: SSOProps) {
     };
 
     return (
-      <>
-        {"Institutional Single-Sign-On: "}
+      <a href={ssoHREF}>
+        {"Institutional Single Sign-On: "}
         <StrategyAvatar key={"sso"} strategy={sso} size={size ?? 60} />
-      </>
+      </a>
     );
   }
 
@@ -216,7 +217,7 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
       style={{ margin: "15px 0" }}
       type="warning"
       showIcon={false}
-      message={`Single-Sign-On required`}
+      message={`Single Sign-On required`}
       description={
         <>
           <p>
@@ -224,7 +225,7 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
             <AntdLink strong underline href={ssoLink}>
               {strategy.display}
             </AntdLink>{" "}
-            Single-Sign-On strategy.
+            Single Sign-On strategy.
           </p>
           <p style={{ textAlign: "center" }}>
             <StrategyAvatar
@@ -248,6 +249,6 @@ export function useRequiredSSO(
   email: string | undefined
 ): Strategy | undefined {
   return useMemo(() => {
-    return checkRequiredSSO({email, strategies});
+    return checkRequiredSSO({ email, strategies });
   }, [strategies == null, email]);
 }
