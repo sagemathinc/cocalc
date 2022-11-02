@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.94.0",
+  "version": "1.95.0",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -44,7 +44,7 @@
     "@cocalc/ansi-to-react": "^6.0.13",
     "@cocalc/assets": "^1.10.0",
     "@cocalc/cdn": "^1.15.0",
-    "@cocalc/hub": "^1.108.0",
+    "@cocalc/hub": "^1.108.1",
     "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/project": "^1.31.0",
     "@cocalc/sync": "^0.10.0",
