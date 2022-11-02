@@ -3,61 +3,54 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Button,
-  FormGroup,
   FormControl,
+  FormGroup,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import { alert_message } from "../alerts";
-import humanizeList from "humanize-list";
 import {
-  React,
   Component,
-  Rendered,
-  ReactDOM,
-  rtypes,
   rclass,
+  React,
+  ReactDOM,
   redux,
-} from "../app-framework";
-
-import { query } from "../frame-editors/generic/client";
-import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
-import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
+  Rendered,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import {
+  CopyToClipBoard,
+  ErrorDisplay,
+  Icon,
+  LabeledRow,
+  Markdown,
+  Space /*, Tip*/,
+} from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
+import {
+  Config,
+  ConfigValid,
+  RowType,
+} from "@cocalc/util/db-schema/site-defaults";
+import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
-import { ON_PREM_DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
-import { upgrades } from "@cocalc/util/upgrade-spec";
+import { version } from "@cocalc/util/smc-version";
+import { COLORS } from "@cocalc/util/theme";
+import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
+import { Input, InputRef } from "antd";
+import humanizeList from "humanize-list";
+import { isEqual } from "lodash";
+
 const MAX_UPGRADES = upgrades.max_per_project;
 
 const FIELD_DEFAULTS = {
   default_quotas: ON_PREM_DEFAULT_QUOTAS,
   max_upgrades: MAX_UPGRADES,
 } as const;
-
-import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import {
-  ConfigValid,
-  Config,
-  RowType,
-} from "@cocalc/util/db-schema/site-defaults";
-
-import { isEqual } from "lodash";
-
-import { COLORS } from "@cocalc/util/theme";
-
-import { Input, InputRef } from "antd";
-
-import {
-  CopyToClipBoard,
-  Icon,
-  Markdown,
-  ErrorDisplay,
-  LabeledRow,
-  Space /*, Tip*/,
-} from "../components";
-
-import { version } from "@cocalc/util/smc-version";
 
 // We use this for now since antd's rewriting their components
 // in such a way that ReactDOM.findDOMNode no longer applies,
