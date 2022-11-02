@@ -829,6 +829,9 @@ class exports.Client extends EventEmitter
                     @success_to_client(id:mesg.id)
 
     mesg_webapp_error: (mesg) =>
+        # Tell client we got it, thanks:
+        @success_to_client(id:mesg.id)
+        # Now do something with it.
         @dbg('mesg_webapp_error')(mesg.msg)
         mesg = misc.copy_without(mesg, 'event')
         mesg.account_id = @account_id

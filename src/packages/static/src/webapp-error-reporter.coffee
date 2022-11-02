@@ -59,58 +59,74 @@ isWhitelisted = (opts) ->
 
 # this is the final step sending the error report.
 # it gathers additional information about the webapp client.
+currentlySendingError = false;
 sendError = (opts) ->
+    #console.log("sendError", currentlySendingError, opts);
+    if currentlySendingError
+        # errors can be crazy and easily DOS the user's connection.  Since this table is
+        # just something we manually check sometimes, not sending too many errors is
+        # best.  We send at most one at a time.  See https://github.com/sagemathinc/cocalc/issues/5771
+        return
+    currentlySendingError = true
     require.ensure [], =>
-        # console.log 'sendError', opts
-        if isWhitelisted(opts)
-            # Ignore this antd message in browser.
-            return
-        misc = require('@cocalc/util/misc')
-        opts = misc.defaults opts,
-            name            : misc.required
-            message         : misc.required
-            comment         : ''
-            stacktrace      : ''
-            file            : ''
-            path            : ''
-            lineNumber      : -1
-            columnNumber    : -1
-            severity        : 'default'
-        fingerprint = misc.uuidsha1([opts.name, opts.message, opts.comment].join('::'))
-        if fingerprint in already_reported and not DEBUG
-            return
-        already_reported.push(fingerprint)
-        # attaching some additional info
-        feature = require('@cocalc/frontend/feature')
-        opts.user_agent  = navigator?.userAgent
-        opts.browser     = feature.get_browser()
-        opts.mobile      = feature.IS_MOBILE
-        opts.smc_version = SMC_VERSION
-        opts.build_date  = BUILD_DATE
-        opts.smc_git_rev = COCALC_GIT_REVISION
-        opts.uptime      = misc.get_uptime()
-        opts.start_time  = misc.get_start_time_ts()
-        if DEBUG then console.info('error reporter sending:', opts)
         try
-            # During initial load in some situations evidently webapp_client
-            # is not yet initialized, and webapp_client is undefined.  (Maybe
-            # a typescript rewrite of everything relevant will help...).  In
-            # any case, for now we
-            #   https://github.com/sagemathinc/cocalc/issues/4769
-            # As an added bonus, by try/catching and retrying once at least,
-            # we are more likely to get the error report in case of a temporary
-            # network or other glitch....
-            {webapp_client} = require('@cocalc/frontend/webapp-client')   # can possibly be undefined
-            await webapp_client.tracking_client.webapp_error(opts)  # might fail.
-        catch err
-            console.info("failed to report error; trying again in 10 seconds", opts)
-            {delay} = require('awaiting');
-            await delay(10000)
+            #console.log 'sendError', opts
+            if isWhitelisted(opts)
+                #console.log 'sendError: whitelisted'
+                # Ignore this antd message in browser.
+                return
+            misc = require('@cocalc/util/misc')
+            opts = misc.defaults opts,
+                name            : misc.required
+                message         : misc.required
+                comment         : ''
+                stacktrace      : ''
+                file            : ''
+                path            : ''
+                lineNumber      : -1
+                columnNumber    : -1
+                severity        : 'default'
+            fingerprint = misc.uuidsha1([opts.name, opts.message, opts.comment].join('::'))
+            if fingerprint in already_reported and not DEBUG
+                return
+            already_reported.push(fingerprint)
+            # attaching some additional info
+            feature = require('@cocalc/frontend/feature')
+            opts.user_agent  = navigator?.userAgent
+            opts.browser     = feature.get_browser()
+            opts.mobile      = feature.IS_MOBILE
+            opts.smc_version = SMC_VERSION
+            opts.build_date  = BUILD_DATE
+            opts.smc_git_rev = COCALC_GIT_REVISION
+            opts.uptime      = misc.get_uptime()
+            opts.start_time  = misc.get_start_time_ts()
+            if DEBUG then console.info('error reporter sending:', opts)
             try
-                {webapp_client} = require('@cocalc/frontend/webapp-client')
-                await webapp_client.tracking_client.webapp_error(opts)
+                # During initial load in some situations evidently webapp_client
+                # is not yet initialized, and webapp_client is undefined.  (Maybe
+                # a typescript rewrite of everything relevant will help...).  In
+                # any case, for now we
+                #   https://github.com/sagemathinc/cocalc/issues/4769
+                # As an added bonus, by try/catching and retrying once at least,
+                # we are more likely to get the error report in case of a temporary
+                # network or other glitch....
+                console.log 'sendError: import webapp_client'
+
+                {webapp_client} = require('@cocalc/frontend/webapp-client')   # can possibly be undefined
+                # console.log 'sendError: sending error'
+                await webapp_client.tracking_client.webapp_error(opts)  # might fail.
+                # console.log 'sendError: got response'
             catch err
-                console.info("failed to report error", err)
+                console.info("failed to report error; trying again in 30 seconds", err, opts)
+                {delay} = require('awaiting');
+                await delay(30000)
+                try
+                    {webapp_client} = require('@cocalc/frontend/webapp-client')
+                    await webapp_client.tracking_client.webapp_error(opts)
+                catch err
+                    console.info("failed to report error", err)
+        finally
+            currentlySendingError = false
 
 # neat trick to get a stacktrace when there is none
 generateStacktrace = () ->
