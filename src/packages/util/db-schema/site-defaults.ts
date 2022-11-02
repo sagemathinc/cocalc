@@ -35,6 +35,7 @@ export type SiteSettingsKeys =
   | "kucalc"
   | "dns"
   | "ssh_gateway"
+  | "ssh_gateway_dns"
   | "versions"
   | "version_min_project"
   | "version_min_browser"
@@ -97,6 +98,7 @@ export const only_for_password_reset_smtp = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
 export const only_onprem = (conf): boolean =>
   conf.kucalc === KUCALC_ON_PREMISES;
+export const only_ssh_gateway = (conf): boolean => to_bool(conf.ssh_gateway);
 export const only_cocalc_com = (conf): boolean =>
   conf.kucalc === KUCALC_COCALC_COM;
 export const not_cocalc_com = (conf): boolean => !only_cocalc_com(conf);
@@ -105,6 +107,7 @@ export const show_theming_vars = (conf): boolean =>
 export const only_commercial = (conf): boolean =>
   to_bool(fallback(conf, "commercial"));
 export const to_bool = (val): boolean => val === "true" || val === "yes";
+export const to_trimmed_str = (val?: string): string => (val ?? "").trim();
 export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = (val): number => parseInt(val);
 export const only_ints = (val) =>
@@ -121,7 +124,7 @@ export const from_json = (conf): Mapping => {
 };
 
 // TODO a cheap'n'dirty validation is good enough
-//const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts: ToValFunc<string[]> = (hosts) =>
   (hosts ?? "").match(/[a-z0-9.-]+/g) || [];
@@ -132,6 +135,31 @@ const split_strings: ToValFunc<string[]> = (str) =>
 function num_dns_hosts(val): string {
   return `Found ${split_iframe_comm_hosts(val).length} hosts.`;
 }
+
+const commercial_to_val: ToValFunc<boolean> = (
+  val?,
+  conf?: { [key in SiteSettingsKeys]: string }
+) => {
+  // special case: only if we're in cocalc.com production mode, the commercial setting can be true at all
+  const kucalc =
+    conf != null ? fallback(conf, "kucalc") : site_settings_conf.kucalc.default;
+  if (kucalc === KUCALC_COCALC_COM) {
+    return to_bool(val);
+  }
+  return false;
+};
+
+const gateway_dns_to_val: ToValFunc<string> = (
+  val?,
+  conf?: { [key in SiteSettingsKeys]: string }
+): string => {
+  // sensible default, in case ssh gateway dns is not set – fallback to the known value in prod/test or the DNS.
+  const dns: string = to_trimmed_str(conf?.dns ?? "");
+  return (
+    (val ?? "").trim() ||
+    (conf != null && only_cocalc_com(conf) ? `ssh.${dns}` : dns)
+  );
+};
 
 export const KUCALC_DISABLED = "no";
 export const KUCALC_COCALC_COM = "yes";
@@ -154,6 +182,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Domain name",
     desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
+    to_val: to_trimmed_str,
     //valid: valid_dns_name,
   },
   theming: {
@@ -319,17 +348,7 @@ export const site_settings_conf: SiteSettings = {
     desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. **IMPORTANT:** *You must restart your server after changing this setting for it to take effect.*",
     default: "no",
     valid: only_booleans,
-    to_val: (val, conf: { [key in SiteSettingsKeys]: string }) => {
-      // special case: only if we're in cocalc.com production mode, the commercial setting can be true at all
-      const kucalc =
-        conf != null
-          ? fallback(conf, "kucalc")
-          : site_settings_conf.kucalc.default;
-      if (kucalc === KUCALC_COCALC_COM) {
-        return to_bool(val);
-      }
-      return false;
-    },
+    to_val: commercial_to_val,
     show: only_cocalc_com,
   },
   max_trial_projects: {
@@ -374,6 +393,14 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  ssh_gateway_dns: {
+    name: "SSH Gateway's DNS",
+    desc: "This is the DNS name of the SSH gateway server. It is used to construct the SSH login to connect to a project. In doubt, set this to the DNS value.",
+    default: "",
+    valid: valid_dns_name,
+    show: only_ssh_gateway,
+    to_val: gateway_dns_to_val,
   },
   iframe_comm_hosts: {
     name: "IFrame embedding",
