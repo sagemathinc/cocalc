@@ -40,7 +40,7 @@ import {
   KUCALC_ON_PREMISES,
   site_settings_conf,
 } from "@cocalc/util/db-schema/site-defaults";
-import { dict, YEAR } from "@cocalc/util/misc";
+import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
@@ -86,6 +86,7 @@ export type SoftwareEnvironments = TypedMap<{
 export interface CustomizeState {
   is_commercial: boolean;
   ssh_gateway: boolean;
+  ssh_gateway_dns: string; // e.g. "ssh.cocalc.com"
   account_creation_email_instructions: string;
   commercial: boolean;
   default_quotas: TypedMap<DefaultQuotaSetting>;
@@ -207,11 +208,10 @@ function process_kucalc(obj) {
 }
 
 function process_customize(obj) {
+  const obj_orig = deep_copy(obj);
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
-    obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default) ?? v.default;
-    // the "to_val" processing already happened server-side for obj[k],
-    // but NOT for v.default!
+    obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
   set_customize(obj);
 }

@@ -5,11 +5,14 @@
 
 import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
 import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
-import { React, redux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { replace } from "lodash";
 import { Project } from "./types";
+import { Typography } from "antd";
+
+const { Text, Paragraph } = Typography;
 
 interface Props {
   project: Project;
@@ -18,6 +21,8 @@ interface Props {
 
 export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
   const { project } = props;
+
+  const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
 
   const project_id = project.get("project_id");
 
@@ -28,19 +33,32 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
 
   function render_ssh_notice() {
     const user = replace(project_id, /-/g, "");
-    const addr = `${user}@ssh.cocalc.com`;
+    const text = `${user}@${ssh_gateway_dns}`;
     return (
-      <div>
-        <span>Use the following username@host to connect to this project:</span>
-        <pre>{addr}</pre>
-        <a
-          href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key"
-          target="_blank"
-          rel="noopener"
+      <>
+        <hr />
+        <Paragraph>
+          Use the following <Text code>username@host</Text> to connect to this
+          project:
+        </Paragraph>
+        <Paragraph
+          copyable={{ text }}
+          style={{
+            whiteSpace: "nowrap",
+            overflowX: "auto",
+            textAlign: "center",
+          }}
         >
-          <Icon name="life-ring" /> How to create SSH keys
-        </a>
-      </div>
+          <Text strong code>
+            {text}
+          </Text>
+        </Paragraph>
+        <Paragraph>
+          <A href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key">
+            <Icon name="life-ring" /> How to create SSH keys
+          </A>
+        </Paragraph>
+      </>
     );
   }
 
@@ -51,27 +69,31 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
   ]);
 
   return (
-      <SSHKeyList ssh_keys={ssh_keys} project_id={project.get("project_id")}>
-        <div>
+    <SSHKeyList ssh_keys={ssh_keys} project_id={project.get("project_id")}>
+      <>
+        <p>
+          Easily access this project directly via SSH by adding an ssh public
+          key here.
+        </p>
+        <p>
+          The project <Text strong>must be running</Text> in order to be able to
+          connect and any changes take <Text strong>about 30 seconds</Text> to
+          take effect.
+        </p>
+      </>
+      <SSHKeyAdder
+        add_ssh_key={add_ssh_key}
+        toggleable={true}
+        style={{ marginBottom: "10px" }}
+        extra={
           <p>
-            Easily access this project directly via ssh by adding an ssh public
-            key here.
-          </p>
-          <p>
-            It takes <b>about 30 seconds</b> for any changes to take effect.
-          </p>
-          <p>
-            If you want to use the same ssh key for all your projects, add a key
+            If you want to use the same SSH key for all your projects, add it
             using the "SSH keys" tab under Account Settings. If you have done
-            that, there is no need to also configure an ssh key here.
+            that, there is no need to also configure an SSH key here.
           </p>
-        </div>
-        <SSHKeyAdder
-          add_ssh_key={add_ssh_key}
-          toggleable={true}
-          style={{ marginBottom: "10px" }}
-        />
-        {render_ssh_notice()}
-      </SSHKeyList>
+        }
+      />
+      {render_ssh_notice()}
+    </SSHKeyList>
   );
 });

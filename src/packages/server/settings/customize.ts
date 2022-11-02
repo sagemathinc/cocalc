@@ -24,6 +24,7 @@ export interface Customize {
   isCommercial?: boolean;
   kucalc?: KucalcValues;
   sshGateway?: boolean;
+  sshGatewayDNS?: string;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -87,6 +88,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     kucalc: settings.kucalc,
     sshGateway: settings.ssh_gateway,
+    sshGatewayDNS: settings.ssh_gateway_dns,
 
     anonymousSignup: settings.anonymous_signup,
     emailSignup: settings.email_signup,

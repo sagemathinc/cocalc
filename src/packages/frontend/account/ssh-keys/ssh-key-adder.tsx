@@ -76,13 +76,11 @@ interface Props {
   add_ssh_key: Function;
   toggleable?: boolean;
   style?: React.CSSProperties;
+  extra?: JSX.Element;
 }
 
-export const SSHKeyAdder: React.FC<Props> = ({
-  add_ssh_key,
-  toggleable,
-  style,
-}) => {
+export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
+  const { add_ssh_key, toggleable, style, extra } = props;
   const [key_title, set_key_title] = useState<string>("");
   const [key_value, set_key_value] = useState<string>("");
   const [show_panel, set_show_panel] = useState<boolean>(false);
@@ -133,6 +131,7 @@ export const SSHKeyAdder: React.FC<Props> = ({
         }
         style={style}
       >
+        {extra && extra}
         <form onSubmit={submit_form}>
           <FormGroup>
             Title
