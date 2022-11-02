@@ -181,6 +181,7 @@ export interface Channel {
   readyState: number;
   write(x: any): boolean;
   on(event: string, f: Function): void;
+  removeAllListeners(): void;
   end(): void;
   close(): void;
   connect(): void;

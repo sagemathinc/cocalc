@@ -36,6 +36,7 @@ import {
 import { open_init_file } from "./init-file";
 import { ConnectionStatus } from "../frame-tree/types";
 import { file_associations } from "../../file-associations";
+import { Channel } from "@cocalc/frontend/project/websocket/types";
 
 declare const $: any;
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
@@ -80,7 +81,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
-  private conn?: any;
+  private conn?: Channel;
   private touch_interval: any; // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
   public is_visible: boolean = false;
@@ -261,7 +262,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.assert_not_closed();
 
     this.last_geom = undefined;
-    if (this.conn !== undefined) {
+    if (this.conn != null) {
       this.disconnect();
     }
     try {
@@ -295,6 +296,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       this.connect();
       return;
+    }
+    if (this.conn == null) {
+      throw Error("bug");
     }
 
     // Delete any data or state in terminal before receiving new data.
