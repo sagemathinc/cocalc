@@ -96,7 +96,8 @@ jupyter = JUPYTER()
 
 def _jkmagic(kernel_name, **kwargs):
     r"""
-    Called when user issues `my_kernel = jupyter("kernel_name")` from a cell, not intended to be called directly by user.
+    Called when user issues `my_kernel = jupyter("kernel_name")` from a cell.
+    These are not intended to be called directly by user.
 
     Start a jupyter kernel and create a sagews function for it. See docstring for class JUPYTER above.
     Based on http://jupyter-client.readthedocs.io/en/latest/api/index.html
@@ -107,7 +108,7 @@ def _jkmagic(kernel_name, **kwargs):
 
     """
     # CRITICAL: We import these here rather than at module scope, since they can take nearly a second
-    # i CPU time to import.
+    # of CPU time to import.
     import jupyter_client  # TIMING: takes a bit of time
     from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
     from six.moves.queue import Empty  # TIMING: cheap
@@ -119,8 +120,6 @@ def _jkmagic(kernel_name, **kwargs):
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(
             kernel_name=kernel_name)
-        import sage.interfaces.cleaner
-        sage.interfaces.cleaner.cleaner(km.kernel.pid, "km.kernel.pid")
         import atexit
         atexit.register(km.shutdown_kernel)
         atexit.register(kc.hb_channel.close)
