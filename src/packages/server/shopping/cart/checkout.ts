@@ -84,7 +84,7 @@ async function purchaseSiteLicense(item: {
   account_id: string;
   description: SiteLicenseDescriptionDB;
 }): Promise<string> {
-  const info = getPurchseInfo(item.description);
+  const info = getPurchaseInfo(item.description);
   info.cost = compute_cost(info);
   return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
@@ -104,16 +104,15 @@ function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {
   return [start, end];
 }
 
-function getPurchseInfo(description: SiteLicenseDescriptionDB): PurchaseInfo {
-  const conf = description; // name clash with "desription.description"
+function getPurchaseInfo(conf: SiteLicenseDescriptionDB): PurchaseInfo {
   conf.type = conf.type ?? "quota"; // backwards compatibility
+
+  const { title, description } = conf;
 
   switch (conf.type) {
     case "quota":
       const {
         type,
-        title,
-        description,
         user,
         run_limit,
         period,
