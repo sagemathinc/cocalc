@@ -55,7 +55,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["jupyter_notebook", "Classical Jupyter Notebook"],
         ["jupyter_lab", "Jupyter Lab"],
         ["library", "Library of documents"],
-        ["x11", "Graphical applications"],
+        ["x11", "Graphical Linux applications (X11 Desktop)"],
         ["latex", "LaTeX editor"],
         ["html2pdf", "HTML to PDF via Chrome/Chromium"],
         ["pandoc", "File format conversions via pandoc"],
