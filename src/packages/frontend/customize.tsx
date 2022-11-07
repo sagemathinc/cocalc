@@ -87,6 +87,7 @@ export interface CustomizeState {
   is_commercial: boolean;
   ssh_gateway: boolean;
   ssh_gateway_dns: string; // e.g. "ssh.cocalc.com"
+  ssh_gateway_fingerprint: string; // e.g. "SHA256:a8284..."
   account_creation_email_instructions: string;
   commercial: boolean;
   default_quotas: TypedMap<DefaultQuotaSetting>;

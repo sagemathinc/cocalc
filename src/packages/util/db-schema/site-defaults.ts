@@ -36,6 +36,7 @@ export type SiteSettingsKeys =
   | "dns"
   | "ssh_gateway"
   | "ssh_gateway_dns"
+  | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
   | "version_min_browser"
@@ -401,6 +402,13 @@ export const site_settings_conf: SiteSettings = {
     valid: valid_dns_name,
     show: only_ssh_gateway,
     to_val: gateway_dns_to_val,
+  },
+  ssh_gateway_fingerprint: {
+    name: "SSH Gateway's Fingerprint",
+    desc: "Tell users the fingerprint of the SSH gateway server. This is used to verify that the SSH gateway server is the one they expect. E.g., `SHA256:8fa43247...`",
+    default: "",
+    show: only_ssh_gateway,
+    to_val: to_trimmed_str,
   },
   iframe_comm_hosts: {
     name: "IFrame embedding",

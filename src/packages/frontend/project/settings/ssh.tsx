@@ -23,12 +23,27 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
   const { project } = props;
 
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
+  const ssh_gateway_fingerprint = useTypedRedux(
+    "customize",
+    "ssh_gateway_fingerprint"
+  );
 
   const project_id = project.get("project_id");
 
   function add_ssh_key(opts) {
     opts.project_id = project_id;
     redux.getActions("projects").add_ssh_key_to_project(opts);
+  }
+
+  function render_fingerprint() {
+    // we ignore empty strings as well
+    if (!ssh_gateway_fingerprint) return;
+    return (
+      <Paragraph>
+        The server's fingerprint is: <Text code>{ssh_gateway_fingerprint}</Text>
+        .
+      </Paragraph>
+    );
   }
 
   function render_ssh_notice() {
@@ -44,15 +59,15 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
         <Paragraph
           copyable={{ text }}
           style={{
-            whiteSpace: "nowrap",
-            overflowX: "auto",
             textAlign: "center",
+            fontSize: "115%",
           }}
         >
           <Text strong code>
             {text}
           </Text>
         </Paragraph>
+        {render_fingerprint()}
         <Paragraph>
           <A href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key">
             <Icon name="life-ring" /> How to create SSH keys
