@@ -14,7 +14,6 @@ import { program as commander, Option } from "commander";
 import { callback2 } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
-import { init as initMemory } from "@cocalc/backend/memory";
 import basePath from "@cocalc/backend/base-path";
 import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
@@ -126,9 +125,6 @@ async function startServer(): Promise<void> {
     // record that something blocked:
     winston.debug(`BLOCKED for ${ms}ms`);
   });
-
-  // Log heap memory usage info
-  initMemory(winston.debug);
 
   // Wait for database connection to work.  Everything requires this.
   await retry_until_success({

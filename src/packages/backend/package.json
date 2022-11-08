@@ -25,7 +25,6 @@
     "../util"
   ],
   "dependencies": {
-    "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/util": "^1.72.0",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
