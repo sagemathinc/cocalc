@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.95.2",
+  "version": "1.95.3",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -42,13 +42,13 @@
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
     "@cocalc/ansi-to-react": "^6.0.13",
-    "@cocalc/assets": "^1.10.0",
-    "@cocalc/cdn": "^1.15.0",
-    "@cocalc/hub": "^1.108.3",
+    "@cocalc/assets": "^1.10.1",
+    "@cocalc/cdn": "^1.15.1",
+    "@cocalc/hub": "^1.108.4",
     "@cocalc/local-storage-lru": "^2.1.1",
-    "@cocalc/project": "^1.31.0",
-    "@cocalc/sync": "^0.10.0",
-    "@cocalc/util": "^1.72.2",
+    "@cocalc/project": "^1.31.1",
+    "@cocalc/sync": "^0.10.1",
+    "@cocalc/util": "^1.72.3",
     "@jupyter-widgets/base": "^4.1.1",
     "@jupyter-widgets/controls": "^3.1.0",
     "@jupyter-widgets/output": "^4.1.0",
