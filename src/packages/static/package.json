@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.129.2",
+  "version": "1.129.3",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -50,11 +50,11 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/static",
   "dep-notes": "WARNING: is-plain-object dep is needed for slate in frontend, or an ancient version gets installed here.",
   "devDependencies": {
-    "@cocalc/assets": "^1.10.0",
-    "@cocalc/backend": "^1.21.0",
-    "@cocalc/cdn": "^1.15.0",
-    "@cocalc/frontend": "^1.95.2",
-    "@cocalc/util": "^1.72.2",
+    "@cocalc/assets": "^1.10.1",
+    "@cocalc/backend": "^1.21.1",
+    "@cocalc/cdn": "^1.15.1",
+    "@cocalc/frontend": "^1.95.3",
+    "@cocalc/util": "^1.72.3",
     "@mapbox/node-pre-gyp": "^1.0.9",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^28.1.6",
