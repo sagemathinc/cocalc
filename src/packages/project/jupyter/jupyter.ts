@@ -194,7 +194,7 @@ export class JupyterKernel
 
   private stderr: string = "";
   private _path: string;
-  private _actions: any;
+  private _actions?: JupyterActions;
   private _state: string;
   private _directory: string;
   private _filename: string;
@@ -672,7 +672,7 @@ export class JupyterKernel
 
   // This is like execute_code, but async and returns all the results,
   // and does not use the internal execution queue.
-  // This is used for unit testing and interactive work at the terminal.
+  // This is used for unit testing and interactive work at the terminal and nbgrader.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {
@@ -876,6 +876,9 @@ export class JupyterKernel
   }
 
   process_comm_message_from_kernel(mesg): void {
+    if (this._actions == null) {
+      return;
+    }
     const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
     this._actions.process_comm_message_from_kernel(mesg);
@@ -885,7 +888,7 @@ export class JupyterKernel
     model_id: string,
     buffer_path: string
   ): Buffer | undefined {
-    return this._actions.syncdb.ipywidgets_state.getBuffer(
+    return this._actions?.syncdb.ipywidgets_state?.getBuffer(
       model_id,
       buffer_path
     );
