@@ -9,6 +9,10 @@
 
 import * as schema from "./db-schema";
 
+// WARNING! Do not remove this from the public api.  **It is used by kucalc
+// in the (closed source) manage-actions Kubernetes backend.**
+export const FALLBACK_COMPUTE_IMAGE = schema.FALLBACK_COMPUTE_IMAGE;
+
 const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
 
 // this array defines their ordering
