@@ -57,7 +57,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
           {title}
         </h1>
-        <p>{description}</p>
+        <p style={{ fontSize: "13pt" }}>{description}</p>
         <DataList dataSource={filtedDataSource} />
       </div>
     </Layout.Content>
@@ -105,9 +105,15 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                   </A>
                 )
               }
-              title={<A href={item.link}>{item.title}</A>}
+              title={
+                <A href={item.link} style={{ fontSize: "16pt" }}>
+                  {item.title}
+                </A>
+              }
               description={
-                <span style={{ color: "#666" }}>{item.description}</span>
+                <span style={{ color: "#555", fontSize: "12pt" }}>
+                  {item.description}
+                </span>
               }
             />
           </List.Item>

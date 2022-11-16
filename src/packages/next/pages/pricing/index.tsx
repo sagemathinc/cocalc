@@ -13,6 +13,17 @@ import withCustomize from "lib/with-customize";
 
 const dataSource: DataSource = [
   {
+    link: "/store",
+    title: "Store",
+    logo: "shopping-cart",
+    description: (
+      <>
+        Purchase a license for upgrades or dedicated resources at{" "}
+        <A href="/store">the store</A>.
+      </>
+    ),
+  },
+  {
     link: "/pricing/products",
     title: "Products",
     logo: "credit-card",
@@ -84,8 +95,10 @@ export default function Pricing({ customize }) {
         title="Products and Pricing"
         description={
           <>
-            You can read more about {customize.siteName} products and
-            subscriptions below or <A href="/store">visit the store</A>.
+            You can read more about {customize.siteName}{" "}
+            <A href="/pricing/products">products</A> and{" "}
+            <A href="/pricing/subscriptions">subscriptions</A> below or{" "}
+            <A href="/store">visit the store</A>.
           </>
         }
         dataSource={dataSource}
