@@ -18,6 +18,26 @@ import { NamedServerName } from "@cocalc/util/types/servers";
 
 type CommandFunction = (ip: string, port: number, basePath: string) => string;
 
+// Disables JupyterLab RTC since it is still very buggy, unfortunately.
+/*
+Reported:
+1. The steps I’ve taken:
+* Start a JupyterLabs Notebook server from my project settings
+* In the server, open & edit a Jupyter Notebook w/ Python 3 system-wide kernel
+* (Optional) Shutdown project/close browser tab
+* Walk away, return 30+ minutes later
+* (Optional) Restart project/server
+* Edit already open notebook, try to save/export/download
+
+2. What happened:
+Editing the notebook behaves as usual (code runs), I can access the file system, interact with a terminal, but any changes I make to this already-open notebook won’t save.
+
+I also saw almost exactly this happen in the JupyterLab weekly meeting
+with the latest beta in early November (that was even worse, since refreshing
+maybe didn't even work).
+*/
+const JUPYTERLAB_RTC = false;
+
 const SPEC: { [name in NamedServerName]: CommandFunction } = {
   code: (ip: string, port: number) =>
     `code-server --bind-addr=${ip}:${port} --auth=none`,
@@ -32,7 +52,9 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
       process.env.COCALC_JUPYTER_LAB_iopub_data_rate_limit ?? 2000000
     } --NotebookApp.iopub_msg_rate_limit=${
       process.env.COCALC_JUPYTER_LAB_iopub_msg_rate_limit ?? 50
-    } --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True --NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js --NotebookApp.base_url=${basePath} --ip=${ip} --port=${port} --collaborative`,
+    } --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True --NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js --NotebookApp.base_url=${basePath} --ip=${ip} --port=${port} ${
+      JUPYTERLAB_RTC ? "--collaborative" : ""
+    }`,
   pluto: (ip: string, port: number) =>
     `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
 } as const;
