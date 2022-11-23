@@ -331,7 +331,9 @@ export default function Message(props: Props) {
   function on_send(): void {
     if (props.actions == null) return;
     const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
-    if (mesg !== newest_content(props.message)) {
+    const value = newest_content(props.message);
+    if (mesg !== value) {
+      set_edited_message(mesg);
       props.actions.send_edit(props.message, mesg);
     } else {
       props.actions.set_editing(props.message, false);
@@ -362,7 +364,6 @@ export default function Message(props: Props) {
         height={"auto"}
         onChange={(value) => {
           edited_message_ref.current = value;
-          set_edited_message(value);
         }}
       />
     );
