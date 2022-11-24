@@ -15,7 +15,6 @@ import { Button, Popover } from "antd";
 import memoizeOne from "memoize-one";
 import { Col, Row } from "react-bootstrap";
 import { url_href } from "../../utils";
-import { CopyButton } from "./copy-button";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
@@ -43,7 +42,6 @@ interface Props {
   current_path: string;
   actions: ProjectActions;
   no_select: boolean;
-  public_view: boolean;
   link_target?: string;
 }
 
@@ -158,18 +156,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  const generate_on_copy_click = memoizeOne((full_path: string) => {
-    return generate_click_for("copy", full_path, props.actions);
-  });
-
   const generate_on_share_click = memoizeOne((full_path: string) => {
     return generate_click_for("share", full_path, props.actions);
   });
 
   function render_public_file_info() {
-    if (props.public_view) {
-      return <CopyButton on_click={generate_on_copy_click(full_path())} />;
-    } else if (props.is_public) {
+    if (props.is_public) {
       return <PublicButton on_click={generate_on_share_click(full_path())} />;
     }
   }

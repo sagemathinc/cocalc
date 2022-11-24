@@ -23,7 +23,6 @@ interface Props {
   current_path: string;
   kucalc?: string;
   project_id: string;
-  public_view?: boolean;
   show_hidden?: boolean;
   show_masked?: boolean;
 }
@@ -35,7 +34,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     current_path,
     kucalc,
     project_id,
-    public_view,
     show_hidden,
     show_masked,
   } = props;
@@ -93,7 +91,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_backup(): JSX.Element | undefined {
     // NOTE -- snapshots aren't available except in "kucalc" version
     // -- they are complicated nontrivial thing that isn't usually setup...
-    if (public_view || kucalc !== "yes") {
+    if (kucalc !== "yes") {
       return;
     }
     return (
@@ -111,7 +109,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   };
 
   function render_library_button(): JSX.Element | undefined {
-    if (public_view) return;
     // library only exists on kucalc, for now.
     if (!available_features?.library) return;
     if (kucalc !== "yes") return;
@@ -123,7 +120,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   function render_vscode_button(): JSX.Element | undefined {
-    if (public_view) return;
     if (!available_features) return;
     const { vscode, homeDirectory } = available_features;
     if (!vscode || !homeDirectory) return;
@@ -143,7 +139,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   function render_jupyterlab_button(): JSX.Element | undefined {
-    if (public_view) return;
     if (!available_features) return;
     if (!available_features.jupyter_lab) return;
     // appending /tree/[relative path to home dir]

@@ -38,7 +38,6 @@ interface ReactProps {
   file_action: FileAction;
   current_path: string;
   project_id: string;
-  public_view?: boolean;
   file_map: object;
   actions: ProjectActions;
   displayed_listing?: object;
@@ -89,12 +88,10 @@ export const ActionBox = rclass<ReactProps>(
       super(props);
       this.state = {
         copy_destination_directory: "",
-        copy_destination_project_id: this.props.public_view
-          ? ""
-          : this.props.project_id,
+        copy_destination_project_id: this.props.project_id,
         move_destination: "",
         new_name: this.props.new_name,
-        show_different_project: this.props.public_view,
+        show_different_project: false,
       };
       this.pre_styles = {
         marginBottom: "15px",
@@ -546,7 +543,7 @@ export const ActionBox = rclass<ReactProps>(
         this.props.project_id !== destination_project_id
       ) {
         this.props.actions.copy_paths_between_projects({
-          public: this.props.public_view,
+          public: false,
           src_project_id: this.props.project_id,
           src: paths,
           target_project_id: destination_project_id,
@@ -615,7 +612,7 @@ export const ActionBox = rclass<ReactProps>(
     render_copy(): JSX.Element {
       const { size } = this.props.checked_files;
       const signed_in = this.props.get_user_type() === "signed_in";
-      if (this.props.public_view && !signed_in) {
+      if (!signed_in) {
         return (
           <div>
             <LoginLink />

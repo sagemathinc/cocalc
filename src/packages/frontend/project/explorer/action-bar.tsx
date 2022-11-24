@@ -32,7 +32,6 @@ interface Props {
   listing: { name: string; isdir: boolean }[];
   page_number: number;
   page_size: number;
-  public_view: boolean;
   current_path?: string;
   project_map?: immutable.Map<string, string>;
   images?: ComputeImages;
@@ -260,9 +259,6 @@ export const ActionBar: React.FC<Props> = (props) => {
     } else {
       // multiple items selected
       action_buttons = ["download", "compress", "delete", "move", "copy"];
-    }
-    if (props.public_view) {
-      action_buttons = ["copy", "download"];
     }
     return (
       <ButtonGroup>

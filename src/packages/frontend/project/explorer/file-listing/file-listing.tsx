@@ -40,7 +40,6 @@ interface Props {
   file_search: string;
   checked_files: immutable.Set<string>;
   current_path: string;
-  public_view: boolean;
   create_folder: (switch_over?: boolean) => void; // TODO: should be action!
   create_file: (ext?: string, switch_over?: boolean) => void; // TODO: should be action!
   selected_file_index?: number;
@@ -62,7 +61,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     file_map,
     checked_files,
     current_path,
-    public_view,
     create_folder,
     create_file,
     selected_file_index,
@@ -140,7 +138,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         current_path={current_path}
         actions={actions}
         no_select={shift_is_down}
-        public_view={public_view}
         link_target={link_target}
       />
     );
@@ -199,7 +196,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         name={name}
         current_path={current_path}
         actions={actions}
-        public_view={public_view}
         file_search={file_search}
         create_folder={create_folder}
         create_file={create_file}
@@ -226,7 +222,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
           flexDirection: "column",
         }}
       >
-        {!public_view && render_terminal_mode()}
+        {render_terminal_mode()}
         {listing.length > 0 && (
           <ListingHeader
             active_file_sort={active_file_sort}

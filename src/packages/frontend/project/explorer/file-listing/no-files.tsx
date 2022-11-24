@@ -21,7 +21,6 @@ interface Props {
   actions: ProjectActions;
   create_folder: () => void;
   create_file: () => void;
-  public_view?: boolean;
   file_search: string;
   current_path?: string;
   project_id: string;
@@ -46,7 +45,6 @@ export const NoFiles: React.FC<Props> = (props: Props) => {
     actions,
     create_folder,
     create_file,
-    public_view,
     file_search = "",
     // current_path,
     project_id,
@@ -107,7 +105,7 @@ export const NoFiles: React.FC<Props> = (props: Props) => {
       <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
         <span style={{ fontSize: "20px" }}>No files found</span>
         <hr />
-        {!public_view ? render_create_button(actual_new_filename) : undefined}
+        {render_create_button(actual_new_filename)}
         <HelpAlert
           file_search={file_search}
           actual_new_filename={actual_new_filename}

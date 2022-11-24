@@ -11,7 +11,6 @@ interface Props {
   path: string;
   quotas: any;
   is_commercial: boolean;
-  public_view: boolean;
   is_logged_in: boolean;
 }
 
@@ -20,13 +19,12 @@ export function FetchDirectoryErrors({
   path,
   quotas,
   is_commercial,
-  public_view,
   is_logged_in,
 }: Props): JSX.Element {
   switch (error) {
     case "not_public":
       return (
-        <AccessErrors public_view={public_view} is_logged_in={is_logged_in} />
+        <AccessErrors is_logged_in={is_logged_in} />
       );
     case "no_dir":
       return (

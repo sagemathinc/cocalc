@@ -318,7 +318,7 @@ export const Explorer = rclass(
       }
     }
 
-    render_files_action_box(file_map?, public_view?) {
+    render_files_action_box(file_map?) {
       if (file_map == undefined) {
         return;
       }
@@ -329,7 +329,6 @@ export const Explorer = rclass(
             checked_files={this.props.checked_files}
             current_path={this.props.current_path}
             project_id={this.props.project_id}
-            public_view={public_view}
             file_map={file_map}
             new_name={this.props.new_name}
             actions={this.props.actions}
@@ -365,14 +364,13 @@ export const Explorer = rclass(
       );
     }
 
-    render_files_actions(listing, public_view, project_is_running) {
+    render_files_actions(listing, project_is_running) {
       return (
         <ActionBar
           project_id={this.props.project_id}
           checked_files={this.props.checked_files}
           page_number={this.props.page_number}
           page_size={this.file_listing_page_size()}
-          public_view={public_view}
           current_path={this.props.current_path}
           listing={listing}
           project_map={this.props.project_map}
@@ -478,20 +476,14 @@ export const Explorer = rclass(
       }
     }
 
-    render_access_error(public_view: boolean) {
-      return (
-        <AccessErrors
-          public_view={public_view}
-          is_logged_in={!!this.props.is_logged_in}
-        />
-      );
+    render_access_error() {
+      return <AccessErrors is_logged_in={!!this.props.is_logged_in} />;
     }
 
     render_file_listing(
       listing: ListingItem[] | undefined,
       file_map,
-      fetch_directory_error: any,
-      public_view: boolean
+      fetch_directory_error: any
     ) {
       if (fetch_directory_error) {
         // TODO: the refresh button text is inconsistant
@@ -504,7 +496,6 @@ export const Explorer = rclass(
                 this.props.project_id
               )}
               is_commercial={require("@cocalc/frontend/customize").commercial}
-              public_view={public_view}
               is_logged_in={!!this.props.is_logged_in}
             />
             <br />
@@ -526,7 +517,6 @@ export const Explorer = rclass(
               complete: () => this.props.actions.fetch_directory_listing(),
             }}
             config={{ clickable: ".upload-button" }}
-            disabled={public_view}
             style={{
               flex: "1 0 auto",
               display: "flex",
@@ -541,7 +531,6 @@ export const Explorer = rclass(
               file_search={this.props.file_search}
               checked_files={this.props.checked_files}
               current_path={this.props.current_path}
-              public_view={public_view}
               actions={this.props.actions}
               create_file={this.create_file}
               create_folder={this.create_folder}
@@ -574,7 +563,6 @@ export const Explorer = rclass(
     }
 
     render_control_row(
-      public_view: boolean,
       visible_listing: ListingItem[] | undefined
     ): JSX.Element {
       return (
@@ -609,76 +597,68 @@ export const Explorer = rclass(
               }
               create_file={this.create_file}
               create_folder={this.create_folder}
-              public_view={public_view}
             />
           </div>
-          {!public_view && (
+          <div
+            style={{
+              flex: "0 1 auto",
+              marginRight: "10px",
+              marginBottom: "15px",
+            }}
+            className="cc-project-files-create-dropdown"
+          >
+            {this.render_new_file()}
+          </div>
+          <div className="cc-project-files-path-nav">
+            <PathNavigator project_id={this.props.project_id} />
+          </div>
+          <>
             <div
               style={{
                 flex: "0 1 auto",
                 marginRight: "10px",
                 marginBottom: "15px",
               }}
-              className="cc-project-files-create-dropdown"
             >
-              {this.render_new_file()}
+              <UsersViewing project_id={this.props.project_id} />
             </div>
-          )}
-          <div className="cc-project-files-path-nav">
-            <PathNavigator project_id={this.props.project_id} />
-          </div>
-          {!public_view && (
-            <>
-              <div
-                style={{
-                  flex: "0 1 auto",
-                  marginRight: "10px",
-                  marginBottom: "15px",
-                }}
-              >
-                <UsersViewing project_id={this.props.project_id} />
+            <VisibleMDLG>
+              <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
+                <MiniTerminal
+                  current_path={this.props.current_path}
+                  project_id={this.props.project_id}
+                  actions={this.props.actions}
+                  show_close_x={false}
+                />
               </div>
-              <VisibleMDLG>
-                <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
-                  <MiniTerminal
-                    current_path={this.props.current_path}
-                    project_id={this.props.project_id}
-                    actions={this.props.actions}
-                    show_close_x={false}
-                  />
-                </div>
-              </VisibleMDLG>
-            </>
-          )}
+            </VisibleMDLG>
+          </>
         </div>
       );
     }
 
-    render_project_files_buttons(public_view: boolean): JSX.Element {
+    render_project_files_buttons(): JSX.Element {
       return (
         <div
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
-          {!public_view && (
-            <MiscSideButtons
-              project_id={this.props.project_id}
-              current_path={this.props.current_path}
-              show_hidden={
-                this.props.show_hidden != undefined
-                  ? this.props.show_hidden
-                  : false
-              }
-              show_masked={
-                this.props.show_masked != undefined
-                  ? this.props.show_masked
-                  : true
-              }
-              public_view={public_view}
-              actions={this.props.actions}
-              kucalc={this.props.kucalc}
-              available_features={this.props.available_features}
-            />
-          )}
+          <MiscSideButtons
+            project_id={this.props.project_id}
+            current_path={this.props.current_path}
+            show_hidden={
+              this.props.show_hidden != undefined
+                ? this.props.show_hidden
+                : false
+            }
+            show_masked={
+              this.props.show_masked != undefined
+                ? this.props.show_masked
+                : true
+            }
+            actions={this.props.actions}
+            kucalc={this.props.kucalc}
+            available_features={this.props.available_features}
+          />
         </div>
       );
     }
@@ -740,9 +720,6 @@ export const Explorer = rclass(
         project_is_running = false;
       }
 
-      // enables/disables certain aspects if project is viewed publicly by a non-collaborator
-      const public_view = my_group === "public";
-
       const displayed_listing = this.props.displayed_listing;
       const { listing, file_map } = displayed_listing;
       const directory_error = displayed_listing.error;
@@ -779,7 +756,7 @@ export const Explorer = rclass(
               : undefined}
             {this.render_error()}
             {this.render_activity()}
-            {this.render_control_row(public_view, visible_listing)}
+            {this.render_control_row(visible_listing)}
             {this.props.ext_selection != null && (
               <AskNewFilename project_id={this.props.project_id} />
             )}
@@ -792,14 +769,10 @@ export const Explorer = rclass(
                 }}
               >
                 {listing != undefined
-                  ? this.render_files_actions(
-                      listing,
-                      public_view,
-                      project_is_running
-                    )
+                  ? this.render_files_actions(listing, project_is_running)
                   : undefined}
               </div>
-              {this.render_project_files_buttons(public_view)}
+              {this.render_project_files_buttons()}
             </div>
 
             {project_is_running
@@ -810,7 +783,7 @@ export const Explorer = rclass(
 
             {this.props.checked_files.size > 0 &&
             this.props.file_action != undefined ? (
-              <Row>{this.render_files_action_box(file_map, public_view)}</Row>
+              <Row>{this.render_files_action_box(file_map)}</Row>
             ) : undefined}
           </div>
           <div
@@ -821,14 +794,10 @@ export const Explorer = rclass(
               padding: "0 5px 5px 5px",
             }}
           >
-            {public_view && !directory_error
-              ? this.render_access_error(public_view)
-              : undefined}
             {this.render_file_listing(
               visible_listing,
               file_map,
-              directory_error,
-              public_view
+              directory_error
             )}
             {listing != undefined
               ? this.render_paging_buttons(

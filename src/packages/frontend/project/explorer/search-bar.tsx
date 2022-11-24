@@ -25,7 +25,6 @@ interface Props {
   selected_file_index?: number;
   file_creation_error?: string;
   num_files_displayed?: number;
-  public_view: boolean;
   disabled?: boolean;
   ext_selection?: string;
 }
@@ -44,7 +43,6 @@ export const SearchBar = React.memo((props: Props) => {
     selected_file_index = 0,
     file_creation_error,
     num_files_displayed = 0,
-    public_view,
     disabled = false,
     ext_selection,
   } = props;
@@ -207,7 +205,7 @@ export const SearchBar = React.memo((props: Props) => {
     if (current_path == null) {
       return;
     }
-    if (value[0] === TERM_MODE_CHAR && !public_view) {
+    if (value[0] === TERM_MODE_CHAR) {
       const command = value.slice(1, value.length);
       execute_command(command);
     } else if (selected_file) {
