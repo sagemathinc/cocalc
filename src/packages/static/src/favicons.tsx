@@ -1,4 +1,4 @@
-// Specify the favicion.
+// Specify the favicon.
 
 import { Helmet } from "react-helmet";
 import { join } from "path";

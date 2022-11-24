@@ -1,31 +1,19 @@
 {
   "name": "@cocalc/static",
-  "workspaces": [
-    "../assets",
-    "../backend",
-    "../cdn",
-    "../frontend",
-    "../util"
-  ],
+  "workspaces": ["../assets", "../backend", "../cdn", "../frontend", "../util"],
   "version": "1.129.6",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
-  "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
-  },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
-    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput --noEmit",
+    "tsc": "cd src && npx tsc --watch --pretty --preserveWatchOutput",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
-    "clean": "rm -rf dist",
-    "build": "npm run clean && ./production-build.py"
+    "clean": "rm -rf dist dist-ts",
+    "build": "npm run clean && cd src && npx tsc && cd .. && ./production-build.py",
+    "test": "npx jest dist-ts",
+    "prepublishOnly": "npm test"
   },
   "repository": {
     "type": "git",
@@ -47,6 +35,11 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
+  "jest": {
+    "moduleNameMapper": {
+      ".+\\.(svg|css)$": "identity-obj-proxy"
+    }
+  },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/static",
   "dep-notes": "WARNING: is-plain-object dep is needed for slate in frontend, or an ancient version gets installed here.",
   "devDependencies": {
@@ -57,7 +50,7 @@
     "@cocalc/util": "^1.72.4",
     "@mapbox/node-pre-gyp": "^1.0.9",
     "@types/enzyme": "^3.10.8",
-    "@types/jest": "^28.1.6",
+    "@types/jest": "^28.1.8",
     "@types/jquery": "^3.5.5",
     "@types/node": "^14.18.10",
     "@types/react": "^17.0.33",
@@ -88,6 +81,7 @@
     "html-loader": "^2.1.2",
     "html-minify-loader": "^1.4.0",
     "html-webpack-plugin": "^5.5.0",
+    "identity-obj-proxy": "^3.0.0",
     "imports-loader": "^3.0.0",
     "is-obj": "^3.0.0",
     "is-plain-object": "^5.0.0",

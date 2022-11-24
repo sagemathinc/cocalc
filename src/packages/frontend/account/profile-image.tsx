@@ -27,7 +27,7 @@ interface ProfileImageSelectorProps {
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
-  crop: ReactCrop.Crop;
+  crop;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;
@@ -363,7 +363,7 @@ export class ProfileImageSelector extends Component<
  *
  * Returns a Base64 string
  */
-async function getCroppedImg(image, crop: ReactCrop.Crop): Promise<string> {
+async function getCroppedImg(image, crop): Promise<string> {
   // Higher quality cropping upon completion of
   // https://github.com/DominicTobias/react-image-crop/issues/263
   if (crop.width == null || crop.height == null) {

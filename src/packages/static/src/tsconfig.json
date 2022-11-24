@@ -3,9 +3,9 @@
   "compilerOptions": {
     "incremental": false,
     "rootDir": "./",
-    "outDir": "../dist/src",
+    "outDir": "../dist-ts/src",
     "sourceMap": true,
-    "allowJs": false,
+    "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
     "lib": ["es5", "es6", "es2017", "dom"]
