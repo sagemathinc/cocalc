@@ -166,27 +166,3 @@ describe "sanitizing HTML", ->
         saniSafe '<img onload="javascript:alert(1);" src="http://test.com/test.png">', (ret) =>
             expect(ret).toBe(exp)
             done()
-
-describe 'do not allow URLs in names', ->
-    {is_valid_username} = misc2_node
-
-    it 'works for usual names', ->
-        expect(is_valid_username("harald")).toBe(undefined)
-        expect(is_valid_username("ABC FOO-BAR")).toBe(undefined)
-        # DNS-like substrings easily trigger a violation. these are fine, though
-        # this was relaxed in commit cafbf9c900f917
-        expect(is_valid_username("is.test.ok")).toExist() #.toBe(undefined)
-        expect(is_valid_username("is.a.test")).toExist() #.toBe(undefined)
-
-    it 'blocks suspicious names', ->
-        expect(is_valid_username("OPEN http://foo.com")).toExist()
-        expect(is_valid_username("https://earn-money.cc is good" )).toExist()
-        expect(is_valid_username("OPEN mailto:bla@bar.de")).toExist()
-
-    it 'is not fooled to easily', ->
-        expect(is_valid_username("OPEN hTTp://foo.com")).toExist()
-        expect(is_valid_username("httpS://earn-money.cc is good" )).toExist()
-        expect(is_valid_username("OPEN MAILTO:bla@bar.de")).toExist()
-        expect(is_valid_username("test.account.dot")).toInclude("test.account.dot")
-        expect(is_valid_username("no spam EARN-A-LOT-OF.money Now")).toInclude(".money")
-        expect(is_valid_username("spam abc.co earn")).toInclude(".co")

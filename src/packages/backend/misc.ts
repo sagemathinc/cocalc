@@ -13,6 +13,7 @@ of accounts anyways, and users are mostly trusted.
 - 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
 - 2^29 was the biggest that seemed to work with Docker on my crostini pixelbook,
   so shrinking to that.
+- it is always at least 65537 to avoid conflicts with existing users.
 */
 export function getUid(project_id: string): number {
   if (!is_valid_uuid_string(project_id)) {
@@ -32,7 +33,9 @@ export function getUid(project_id: string): number {
 import { re_url, to_human_list } from "@cocalc/util/misc";
 export { contains_url } from "@cocalc/util/misc";
 
-// returns undefined if ok, otherwise an error message
+// returns undefined if ok, otherwise an error message.
+// TODO: this should probably be called "validate_username". It's only used in @cocalc/database right now
+// as a backend double check on the first and last name when creating accounts in the database.
 export function is_valid_username(str: string): string | undefined {
   const name = str.toLowerCase();
 

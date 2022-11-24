@@ -8,8 +8,9 @@
     "example": "examples"
   },
   "scripts": {
+    "build": "./build.sh",
     "test": "npx jest",
-    "build": "./build.sh"
+    "prepublishOnly": "npm test"
   },
   "keywords": ["cocalc"],
   "author": "SageMath, Inc.",
