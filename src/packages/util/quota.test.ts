@@ -3,29 +3,38 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// this tests kucalc's quota function
-//
-// after any change to quota.ts, be a good citizen and run this test or even extend it
-// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts  [--watch]
+/*
+this tests kucalc's quota function
 
-// import * as init from "./init";
-//let db = undefined;
-//const setup = (cb) =>
-//  init.setup(function (err) {
-//    db = init.db();
-//    cb(err);
-//  });
-//const { teardown } = init;
+after any change to quota.ts, be a good citizen and run this test and
+extend it to test whatever you changed too.  In one terminal:
 
-// make TS happy, despite @types/jest is installed
-declare const describe: Function;
-declare const it: Function;
+.../packages/util$ npm run tsc
+
+and in another:
+
+.../packages/util$ npx jest dist/quota.test.js  [--watch]
+
+
+Also generally do this:
+
+.../packages/util$ npm test
+
+*/
 
 import expect from "expect";
-const { quota } = require("@cocalc/util/upgrades/quota");
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
-import { SiteLicenses } from "../types/site-licenses";
+
+// TODO: this hack to make quota of type any is hiding a bug
+// in our testing below.  Replace by the following to see the
+// dozens of type errors.  This is definitely something to be
+// properly fixed, not a bug in testing.
+// import { quota } from "./upgrades/quota";
+import { quota as quota0 } from "./upgrades/quota";
+const quota = quota0 as any;
+
+import { PRICES } from "./upgrades/dedicated";
+import { LicenseIdleTimeoutsKeysOrdered } from "./consts/site-license";
+import { SiteLicenses } from "./types/site-licenses";
 
 describe("main quota functionality", () => {
   it("basics are fine", () => {
