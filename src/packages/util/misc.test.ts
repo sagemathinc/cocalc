@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "../misc";
+import * as misc from "./misc";
 
 describe("rpad_html", () => {
   const rp = misc.rpad_html;
