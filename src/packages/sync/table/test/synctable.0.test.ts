@@ -128,13 +128,13 @@ describe("tests public API of a system_notifications SyncTable", () => {
   });
 
   // @ts-ignore
-  test("a change event", async (done) => {
+  test("a change event", (done) => {
     synctable.once("change", (keys) => {
       expect(keys).toEqual(["123e4567-e89b-12d3-a456-426655440001"]);
       done();
     });
     synctable.set({ id: notifications[1].id, priority: "medium" });
-    await synctable.save();
+    synctable.save();
   });
 
   test("closing the synctable", async () => {

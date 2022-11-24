@@ -2856,7 +2856,7 @@ export class SyncDoc extends EventEmitter {
   // Immediately alert all watchers of all changes since
   // last time.
   private emit_change(): void {
-    this.emit("change", this.doc.changes(this.before_change));
+    this.emit("change", this.doc?.changes(this.before_change));
     this.before_change = this.doc;
   }
 
