@@ -10,18 +10,13 @@
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
-    "test": "npx jest ./dist"
+    "test": "npx jest ./dist",
+    "prepublishOnly": "npm test"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../util"
-  ],
+  "workspaces": [".", "../util"],
   "dependencies": {
     "@cocalc/util": "^1.72.3",
     "async": "^1.5.2",

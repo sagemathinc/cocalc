@@ -35,7 +35,9 @@
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npx jest ./dist",
+    "prepublishOnly": "npm test"
   },
   "repository": {
     "type": "git",
@@ -93,5 +95,10 @@
     "tslib": "^2.3.1",
     "typescript": "^4.7.4",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.2.3",
+    "jest": "^29.3.1",
+    "react-test-renderer": "^17.0.2"
   }
 }

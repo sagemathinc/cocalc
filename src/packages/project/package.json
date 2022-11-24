@@ -17,13 +17,7 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    ".",
-    "../backend",
-    "../frontend",
-    "../sync",
-    "../util"
-  ],
+  "workspaces": [".", "../backend", "../frontend", "../sync", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.21.1",
     "@cocalc/frontend": "^1.95.3",
@@ -92,12 +86,11 @@
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/"
+    "test": "npx jest dist/",
+    "prepublishOnly": "npm test"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

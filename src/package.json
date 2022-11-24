@@ -18,7 +18,7 @@
     "database": "cd dev/project && ./start_postgres.py",
     "version-check": "./workspaces.py version-check",
     "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c",
-    "test": "./workspaces.py npm test --packages=frontend,project,util,sync"
+    "test": "./workspaces.py npm test --packages=frontend,project,util,sync,next"
   },
   "repository": {
     "type": "git",

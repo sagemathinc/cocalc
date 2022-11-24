@@ -15,7 +15,8 @@
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist"
+    "test": "npx jest dist",
+    "prepublishOnly": "npm test"
   },
   "author": "SageMath, Inc.",
   "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
