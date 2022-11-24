@@ -14,7 +14,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { setDefaultSize, Tool } from "./tools/spec";
+import { setDefaultSize, Tool } from "./tools/desc";
 import {
   Data,
   Element,

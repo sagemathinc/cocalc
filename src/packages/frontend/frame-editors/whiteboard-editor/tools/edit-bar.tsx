@@ -14,11 +14,11 @@ import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
 import { getPageSpan } from "../math";
-import { ConfigParams, TOOLS } from "./spec";
+import { ConfigParams, TOOLS } from "./desc";
 import { copyToClipboard } from "./clipboard";
 import LockButton, { isLocked } from "./lock-button";
 import HideButton, { isHidden } from "./hide-button";
-import { ELEMENTS } from "../elements/spec";
+import { ELEMENTS } from "../elements/desc";
 
 import {
   DEFAULT_FONT_SIZE,

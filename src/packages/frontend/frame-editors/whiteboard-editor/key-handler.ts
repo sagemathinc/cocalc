@@ -5,7 +5,7 @@ The official Photoshop keyboard shortcuts are here and can be useful inspiration
 */
 
 import { Actions } from "./actions";
-import { TOOLS, Tool } from "./tools/spec";
+import { TOOLS, Tool } from "./tools/desc";
 import { DEFAULT_FONT_SIZE } from "./tools/defaults";
 import { centerOfRect } from "./math";
 

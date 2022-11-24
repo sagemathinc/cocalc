@@ -23,7 +23,7 @@ import Position from "./position";
 import { isLocked } from "./tools/lock-button";
 import { isHidden } from "./tools/hide-button";
 import Cursors from "./cursors";
-import { ELEMENTS } from "./elements/spec";
+import { ELEMENTS } from "./elements/desc";
 import { useWheel } from "@use-gesture/react";
 
 import {

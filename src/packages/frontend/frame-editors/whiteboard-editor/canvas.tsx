@@ -58,7 +58,7 @@ import {
   CSSProperties,
 } from "react";
 import { Element, ElementType, ElementsMap, Point, Rect } from "./types";
-import { Tool, TOOLS } from "./tools/spec";
+import { Tool, TOOLS } from "./tools/desc";
 import RenderElement from "./elements/render";
 import RenderReadOnlyElement from "./elements/render-static";
 import RenderEdge from "./elements/edge";

@@ -8,7 +8,7 @@ import { CSSProperties, ReactNode, useEffect } from "react";
 import { Button, Tooltip, Typography } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
-import { TOOLS, Tool } from "./spec";
+import { TOOLS, Tool } from "./desc";
 import { useFrameContext } from "../hooks";
 import { MAX_ELEMENTS } from "../math";
 import { SELECTED } from "./common";
