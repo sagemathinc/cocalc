@@ -18,7 +18,7 @@ import {
 import getPort from "get-port";
 import { join } from "path";
 import { promisify } from "util";
-import getSpec from "./spec";
+import getSpec from "./list";
 
 const mkdir = promisify(mkdir0);
 const readFile = promisify(readFile0);

@@ -17,13 +17,7 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    ".",
-    "../backend",
-    "../frontend",
-    "../sync",
-    "../util"
-  ],
+  "workspaces": [".", "../backend", "../frontend", "../sync", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.21.1",
     "@cocalc/frontend": "^1.95.3",
@@ -58,7 +52,6 @@
     "lean-client-js-node": "^1.2.12",
     "lru-cache": "^6.0.0",
     "mkdirp": "^1.0.4",
-    "mocha": "^10.0.0",
     "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.28",
@@ -82,21 +75,21 @@
     "@types/better-sqlite3": "^7.6.0",
     "@types/body-parser": "^1.19.0",
     "@types/express": "^4.17.13",
+    "@types/jest": "^29.2.3",
     "@types/jquery": "^3.5.5",
-    "@types/mocha": "^10.0.0",
     "@types/node": "^14.18.10",
     "coffeescript": "^2.5.1",
+    "jest": "^29.3.1",
     "typescript": "^4.7.4"
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
-    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput"
+    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
+    "test": "npx jest dist/"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
