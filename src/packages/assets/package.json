@@ -3,19 +3,15 @@
   "version": "1.10.1",
   "description": "The static assets (images, code, etc.) for the CoCalc frontend.",
   "main": "index.js",
-  "workspaces": [
-    "../backend"
-  ],
+  "workspaces": ["../backend"],
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npx jest",
     "build": "./build.sh"
   },
-  "keywords": [
-    "cocalc"
-  ],
+  "keywords": ["cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
@@ -24,6 +20,7 @@
   },
   "devDependencies": {
     "@cocalc/backend": "^1.21.1",
+    "jest": "^29.3.1",
     "uglify-js": "^3.14.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/assets",
