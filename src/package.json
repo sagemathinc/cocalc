@@ -17,7 +17,8 @@
     "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
     "database": "cd dev/project && ./start_postgres.py",
     "version-check": "./workspaces.py version-check",
-    "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c"
+    "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c",
+    "test": "./workspaces.py npm test --packages=frontend"
   },
   "repository": {
     "type": "git",
