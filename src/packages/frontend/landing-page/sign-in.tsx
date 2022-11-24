@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { Markdown } from "@cocalc/frontend/components";
 import { ErrorDisplay } from "@cocalc/frontend/components/error-display";
@@ -43,10 +45,6 @@ export const SignIn: React.FC<Props> = (props) => {
   // don't make too clever, since we want user to see errors.
   function sign_in(): void {
     actions.sign_in(email, password);
-  }
-
-  function display_forgot_password(): void {
-    actions.setState({ show_forgot_password: true });
   }
 
   function render_error(): JSX.Element | undefined {
@@ -144,12 +142,8 @@ export const SignIn: React.FC<Props> = (props) => {
           <Col xs={7} xsOffset={5} style={{ paddingLeft: 15 }}>
             <div style={{ marginTop: "1ex" }}>
               <a
-                onClick={display_forgot_password}
-                style={{
-                  color: props.color,
-                  cursor: "pointer",
-                  fontSize: forgot_font_size(),
-                }}
+                style={{ fontSize: forgot_font_size(), color: "white" }}
+                href={join(appBasePath, "/auth/password-reset")}
               >
                 Forgot Password?
               </a>

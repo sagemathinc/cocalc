@@ -36,8 +36,6 @@ import { join } from "path";
 import { A, UNIT } from "../components";
 import { QueryParams } from "../misc/query-params";
 import { Connecting } from "./connecting";
-import { ForgotPassword } from "./forgot-password";
-import { ResetPassword } from "./reset-password";
 import { SignIn } from "./sign-in";
 
 const DESC_FONT = "sans-serif";
@@ -45,16 +43,9 @@ const DESC_FONT = "sans-serif";
 interface Props {
   strategies?: immutable.List<TypedMap<PassportStrategyFrontend>>;
   exclusive_sso_domains?: Set<string>;
-  sign_up_error?: immutable.Map<string, any>;
   sign_in_error?: string;
   signing_in?: boolean;
-  signing_up?: boolean;
-  forgot_password_error?: string;
-  forgot_password_success?: string;
-  show_forgot_password?: boolean;
   token?: boolean;
-  reset_key?: string;
-  reset_password_error?: string;
   remember_me?: boolean;
   has_remember_me?: boolean;
   has_account?: boolean;
@@ -124,34 +115,10 @@ class LandingPage extends Component<Props & reduxProps, State> {
     };
   }
 
-  private render_password_reset(): Rendered {
-    const reset_key = this.props.reset_key;
-    if (!reset_key) {
-      return;
-    }
-    return (
-      <ResetPassword
-        reset_key={reset_key}
-        reset_password_error={this.props.reset_password_error}
-        help_email={this.props.help_email}
-      />
-    );
-  }
 
   private render_forgot_password(): Rendered {
-    if (!this.props.show_forgot_password) {
-      return;
-    }
     return (
-      <ForgotPassword
-        initial_email_address={
-          this.props.sign_in_email_address != null
-            ? this.props.sign_in_email_address
-            : ""
-        }
-        forgot_password_error={this.props.forgot_password_error}
-        forgot_password_success={this.props.forgot_password_success}
-      />
+      <a href={join(appBasePath, "/auth/password-reset")}>Forgot Password?</a>
     );
   }
 
@@ -243,7 +210,6 @@ class LandingPage extends Component<Props & reduxProps, State> {
     return (
       <div style={{ margin: UNIT }}>
         {this.render_launch_action()}
-        {this.render_password_reset()}
         {this.render_forgot_password()}
         <Row style={main_row_style} className={"visible-xs"}>
           <SignIn
