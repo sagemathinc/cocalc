@@ -54,7 +54,7 @@ export type ComputeComponents = {
   [lang in LanguageName]: {
     [name: string]: {
       name: string;
-      url: string;
+      url?: string;
       descr?: string;
       summary?: string;
     } | null;
