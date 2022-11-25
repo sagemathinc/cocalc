@@ -3,13 +3,11 @@
   "version": "1.15.1",
   "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
   "main": "dist/index.js",
-  "keywords": [
-    "cdn",
-    "cocalc"
-  ],
+  "keywords": ["cdn", "cocalc"],
   "devDependencies": {
     "bootstrap": "=3.4.1",
     "codemirror": "^5.65.3",
+    "jest": "^29.3.1",
     "katex": "^0.15.0",
     "mathjax": "^2.7.9",
     "pdfjs-dist": "^2.13.216",
@@ -17,7 +15,9 @@
   },
   "scripts": {
     "build": "rm -rf dist && mkdir -p dist && ./setup.py",
-    "postinstall": "./postinstall.js"
+    "postinstall": "./postinstall.js",
+    "test": "npx jest",
+    "prepublishOnly": "npm test"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/cdn",
   "repository": {
