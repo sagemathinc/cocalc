@@ -178,6 +178,7 @@ def uuidsha1(data):
 
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
+
     def __init__(self, conn):
         # avoid common mistake -- conn is supposed to be from socket.socket...
         assert not isinstance(conn, ConnectionJSON)
@@ -303,6 +304,7 @@ def truncate_text_warn(s, max_size, name):
 
 
 class Message(object):
+
     def _new(self, event, props={}):
         m = {'event': event}
         for key, val in props.items():
@@ -329,28 +331,28 @@ class Message(object):
         return self._new('execute_javascript', locals())
 
     def output(
-            self,
-            id,
-            stdout=None,
-            stderr=None,
-            code=None,
-            html=None,
-            javascript=None,
-            coffeescript=None,
-            interact=None,
-            md=None,
-            tex=None,
-            d3=None,
-            file=None,
-            raw_input=None,
-            obj=None,
-            once=None,
-            hide=None,
-            show=None,
-            events=None,
-            clear=None,
-            delete_last=None,
-            done=False  # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
+        self,
+        id,
+        stdout=None,
+        stderr=None,
+        code=None,
+        html=None,
+        javascript=None,
+        coffeescript=None,
+        interact=None,
+        md=None,
+        tex=None,
+        d3=None,
+        file=None,
+        raw_input=None,
+        obj=None,
+        once=None,
+        hide=None,
+        show=None,
+        events=None,
+        clear=None,
+        delete_last=None,
+        done=False  # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
     ):
         m = self._new('output')
         m['id'] = id
@@ -469,6 +471,7 @@ def client1(port, hostname):
 
 
 class BufferedOutputStream(object):
+
     def __init__(self, f, flush_size=4096, flush_interval=.1):
         self._f = f
         self._buf = ''
@@ -517,6 +520,7 @@ class BufferedOutputStream(object):
 
 # This will *have* to be re-done using Cython for speed.
 class Namespace(dict):
+
     def __init__(self, x):
         self._on_change = {}
         self._on_del = {}
@@ -586,6 +590,7 @@ class Namespace(dict):
 
 
 class TemporaryURL:
+
     def __init__(self, url, ttl):
         self.url = url
         self.ttl = ttl
@@ -799,7 +804,7 @@ class Salvus(object):
             height=None,
             frame=True,  # True/False or {'color':'black', 'thickness':.4, 'labels':True, 'fontsize':14, 'draw':True,
             #                'xmin':?, 'xmax':?, 'ymin':?, 'ymax':?, 'zmin':?, 'zmax':?}
-            background=None,
+        background=None,
             foreground=None,
             spin=False,
             aspect_ratio=None,
@@ -953,7 +958,7 @@ class Salvus(object):
             from the project:
                    /project-id/raw/path/to/filename
             This will only work if the file is not deleted; however, arbitrarily
-            large files can be streamed this way.
+            large files can be streamed this way.  This is useful for animations.
 
         This function creates an output message {file:...}; if the user saves
         a worksheet containing this message, then any referenced blobs are made
@@ -962,17 +967,26 @@ class Salvus(object):
         The uuid is based on the Sha-1 hash of the file content (it is computed using the
         function sage_server.uuidsha1).  Any two files with the same content have the
         same Sha1 hash.
+
+        The file does NOT have to be in the HOME directory.
         """
         filename = unicode8(filename)
         if raw:
             info = self.project_info()
             path = os.path.abspath(filename)
             home = os.environ['HOME'] + '/'
+
+            if not path.startswith(home):
+                # Attempt to use the $HOME/.smc/root symlink instead:
+                path = os.path.join(os.environ['HOME'], '.smc', 'root',
+                                    path.lstrip('/'))
+
             if path.startswith(home):
                 path = path[len(home):]
             else:
                 raise ValueError(
-                    "can only send raw files in your home directory")
+                    "can only send raw files in your home directory -- path='%s'"
+                    % path)
             url = os.path.join('/', info['base_url'].strip('/'),
                                info['project_id'], 'raw', path.lstrip('/'))
             if show:
@@ -1800,6 +1814,7 @@ def drop_privileges(id, home, transient, username):
 
 
 class MessageQueue(list):
+
     def __init__(self, conn):
         self.queue = []
         self.conn = conn
@@ -2194,10 +2209,10 @@ def serve(port, host, extra_imports=False):
                 'modes', 'octave', 'pandoc', 'perl', 'plot3d_using_matplotlib',
                 'prun', 'python_future_feature', 'py3print_mode', 'python',
                 'python3', 'r', 'raw_input', 'reset', 'restore', 'ruby',
-                'runfile', 'sage_eval', 'scala', 'scala211',
-                'script', 'search_doc', 'search_src', 'sh', 'show',
-                'show_identifiers', 'singular_kernel', 'time', 'timeit',
-                'typeset_mode', 'var', 'wiki'
+                'runfile', 'sage_eval', 'scala', 'scala211', 'script',
+                'search_doc', 'search_src', 'sh', 'show', 'show_identifiers',
+                'singular_kernel', 'time', 'timeit', 'typeset_mode', 'var',
+                'wiki'
         ]:
             namespace[name] = getattr(sage_salvus, name)
 
