@@ -86,7 +86,7 @@
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/",
+    "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user npx jest dist/",
     "prepublishOnly": "npm test"
   },
   "author": "SageMath, Inc.",
