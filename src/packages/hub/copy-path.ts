@@ -62,6 +62,7 @@ function err2str(err: string | { message?: string }) {
     return `ERROR: ${to_json(err)}`;
   }
 }
+export const test_err2str = err2str;
 
 // transforms copy_op data from the database to the specific object we want to return
 function row_to_copy_op(copy_op): CopyOp {
