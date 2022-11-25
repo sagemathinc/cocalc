@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.32.0",
+  "version": "1.32.1",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
@@ -17,10 +17,16 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [".", "../backend", "../frontend", "../sync", "../util"],
+  "workspaces": [
+    ".",
+    "../backend",
+    "../frontend",
+    "../sync",
+    "../util"
+  ],
   "dependencies": {
     "@cocalc/backend": "^1.21.1",
-    "@cocalc/frontend": "^1.95.3",
+    "@cocalc/frontend": "^1.95.4",
     "@cocalc/sync": "^0.10.1",
     "@cocalc/util": "^1.72.4",
     "@types/lru-cache": "^5.1.1",
@@ -90,7 +96,9 @@
     "prepublishOnly": "npm test"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
