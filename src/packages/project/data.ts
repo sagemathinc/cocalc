@@ -20,6 +20,8 @@ export const projectPidFile = join(data, "project.pid");
 export const startTimestampFile = join(data, "start-timestamp.txt");
 export const sessionIDFile = join(data, "session-id.txt");
 export const rootSymlink = join(data, "root");
+export const SSH_LOG = join(data, "sshd.log");
+export const SSH_ERR = join(data, "sshd.err");
 export const secretToken =
   process.env.COCALC_SECRET_TOKEN ?? join(data, "secret_token");
 
