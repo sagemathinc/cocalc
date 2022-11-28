@@ -3,6 +3,11 @@
 
 name: Make all packages and run their unit tests
 
+# newer commits in the same PR abort running ones for the same workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["master"]
