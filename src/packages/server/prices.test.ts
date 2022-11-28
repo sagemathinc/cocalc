@@ -5,9 +5,6 @@
 
 // test produce ID and pricing
 
-// NOTE: many of the tests below are currently BROKEN, which is why they are marked
-// with **skipped**.  See https://github.com/sagemathinc/cocalc/issues/6218
-
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import {
   PurchaseInfo,
@@ -16,7 +13,12 @@ import {
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
-import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
+import {
+  endOfDay,
+  getDays,
+  startOfDay,
+  roundToMidnight,
+} from "@cocalc/util/stripe/timecalcs";
 import expect from "expect";
 import { unitAmount } from "./licenses/purchase/charge";
 import { getProductId } from "./licenses/purchase/product-id";
@@ -56,7 +58,7 @@ describe("product id and compute cost", () => {
     ).toBeLessThan(0.01);
   });
 
-  it.skip.each([
+  it.each([
     [1, 13333, 1],
     [2, 13333, 10],
     [3, 13333, 10], // the point is, unit price is independent of quantity
@@ -64,10 +66,10 @@ describe("product id and compute cost", () => {
     [5, 13333, 100],
     [6, 13333, 5],
     [7, 13333, 100],
-    [8, 13430, 5],
-    [9, 14930, 10],
-    [10, 16400, 1],
-    [15, 23900, 1],
+    [8, 14329, 5],
+    [9, 15921, 10],
+    [10, 17500, 1],
+    [15, 25500, 1],
   ])("compute price days %p → price %p", (days, price, quantity) => {
     price /= 100;
     const info2 = {
@@ -131,20 +133,49 @@ describe("start/end of day", () => {
   const d = new Date("2022-04-04 14:31:00");
   const s = "2022-04-04 14:31:00";
 
-  it.skip("start", () => {
+  it("start", () => {
     expect(startOfDay(d)).toEqual(new Date("2022-04-04 00:00:00.000Z"));
   });
 
-  it.skip("end", () => {
+  it("end", () => {
     expect(endOfDay(d)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
   });
 
-  it.skip("start on string", () => {
+  it("start on string", () => {
     expect(startOfDay(s)).toEqual(new Date("2022-04-04 00:00:00.000Z"));
   });
 
-  it.skip("end on string", () => {
+  it("end on string", () => {
     expect(endOfDay(s)).toEqual(new Date("2022-04-04 23:59:59.999Z"));
+  });
+});
+
+describe("roundToMidnight", () => {
+  const am = new Date("2022-04-04 1:01:00");
+  const pm = new Date("2022-04-04 14:31:00");
+
+  it("am/side=start", () => {
+    expect(roundToMidnight(am, "start")).toEqual(
+      new Date("2022-04-04T00:00:00.000Z")
+    );
+  });
+
+  it("am/side=end", () => {
+    expect(roundToMidnight(am, "end")).toEqual(
+      new Date("2022-04-03T23:59:59.999Z")
+    );
+  });
+
+  it("pm/side=start", () => {
+    expect(roundToMidnight(pm, "start")).toEqual(
+      new Date("2022-04-05T00:00:00.000Z")
+    );
+  });
+
+  it("pm/side=end", () => {
+    expect(roundToMidnight(pm, "end")).toEqual(
+      new Date("2022-04-04T23:59:59.999Z")
+    );
   });
 });
 
