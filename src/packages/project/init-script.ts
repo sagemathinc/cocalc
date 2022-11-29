@@ -29,8 +29,8 @@ export async function run() {
     await access(initScript, constants.R_OK);
     info(`running "${initScript}"`);
 
-    const out = openSync(change_filename_extension(initScript, "log"), "a");
-    const err = openSync(change_filename_extension(initScript, "err"), "a");
+    const out = openSync(change_filename_extension(initScript, "log"), "w");
+    const err = openSync(change_filename_extension(initScript, "err"), "w");
 
     const initProcess = spawn("bash", [initScript], {
       detached: true,
