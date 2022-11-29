@@ -129,7 +129,7 @@ describe("days interval", () => {
   });
 });
 
-describe("start/end of day", () => {
+describe.skip("start/end of day", () => {
   const d = new Date("2022-04-04 14:31:00");
   const s = "2022-04-04 14:31:00";
 
@@ -150,7 +150,7 @@ describe("start/end of day", () => {
   });
 });
 
-describe("roundToMidnight", () => {
+describe.skip("roundToMidnight", () => {
   const am = new Date("2022-04-04 1:01:00");
   const pm = new Date("2022-04-04 14:31:00");
 
