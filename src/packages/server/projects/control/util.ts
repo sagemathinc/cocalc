@@ -83,12 +83,16 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   const cwd = join(root, "packages/project");
   winston.debug(`"npx cocalc-project --daemon" from "${cwd}" with uid=${uid}`);
   await promisify((cb: Function) => {
-    const child = spawn("npx", ["cocalc-project", "--daemon"], {
-      env,
-      cwd,
-      uid,
-      gid: uid,
-    });
+    const child = spawn(
+      "npx",
+      ["cocalc-project", "--daemon", "--init", "project_init.sh"],
+      {
+        env,
+        cwd,
+        uid,
+        gid: uid,
+      }
+    );
     child.on("error", (err) => {
       winston.debug(`project daemon error ${err}`);
       cb(err);
