@@ -31,10 +31,10 @@ export default async function init() {
   }
 
   projectSetup.configure();
-  projectSetup.set_extra_env();
+  const envVars = projectSetup.set_extra_env();
 
   if (options.sshd) {
-    sshd.init();
+    sshd.init(envVars);
   }
 
   await dedicatedDisks.init();
