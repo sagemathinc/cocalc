@@ -13,6 +13,7 @@ interface Options {
   kucalc: boolean;
   testFirewall: boolean;
   daemon: boolean;
+  sshd: boolean;
 }
 
 let options = {
@@ -22,6 +23,7 @@ let options = {
   testFirewall: false,
   kucalc: false,
   daemon: false,
+  sshd: false,
 } as Options;
 
 export { options };
@@ -47,6 +49,10 @@ program
     options.hostname
   )
   .option("--kucalc", "Running in the kucalc environment")
+  .option(
+    "--sshd",
+    "Start the SSH daemon (setup script and configuration must be present)"
+  )
   .option(
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information *is* accessible"
