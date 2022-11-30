@@ -30,22 +30,21 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-
-      - name: cache npm modules
-        id: cache-npm
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-npm
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ matrix.node-version }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-${{ matrix.node-version }}
-            ${{ runner.os }}-${{ env.cache-name }}-
-            ${{ runner.os }}-
-
-      - name: cache status
-        run: echo "${{ steps.cache-npm.outputs.cache-hit }}"
+          # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
+          cache: "npm"
+          cache-dependency-path: |
+            src/packages/frontend/package-lock.json
+            src/packages/backend/package-lock.json
+            src/packages/hub/package-lock.json
+            src/packages/util/package-lock.json
+            src/packages/sync/package-lock.json
+            src/packages/assets/package-lock.json
+            src/packages/project/package-lock.json
+            src/packages/server/package-lock.json
+            src/packages/static/package-lock.json
+            src/packages/database/package-lock.json
+            src/packages/next/package-lock.json
+            src/packages/cdn/package-lock.json
 
       - run: cd src; npm run make
       - run: cd src; npm run test
