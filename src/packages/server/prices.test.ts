@@ -24,6 +24,10 @@ import { unitAmount } from "./licenses/purchase/charge";
 import { getProductId } from "./licenses/purchase/product-id";
 import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 
+// TODO: some tests are ignored if the machine is not running on UTC.
+// Ideally, this is taken into account, but that's not implemented.
+const isUTC = new Date().getTimezoneOffset() === 0;
+
 describe("product id and compute cost", () => {
   const info1: Omit<PurchaseInfoQuota, "quantity"> = {
     type: "quota",
@@ -111,6 +115,7 @@ describe("days interval", () => {
     };
     expect(getDays(info)).toEqual(6);
   });
+
   it("entire day counts (slightly less)", () => {
     const info = {
       start: startOfDay(new Date("2022-04-01 12:23:00")),
@@ -129,7 +134,9 @@ describe("days interval", () => {
   });
 });
 
-describe.skip("start/end of day", () => {
+describe("start/end of day", () => {
+  if (!isUTC) return;
+
   const d = new Date("2022-04-04 14:31:00");
   const s = "2022-04-04 14:31:00";
 
@@ -150,7 +157,9 @@ describe.skip("start/end of day", () => {
   });
 });
 
-describe.skip("roundToMidnight", () => {
+describe("roundToMidnight", () => {
+  if (!isUTC) return;
+
   const am = new Date("2022-04-04 1:01:00");
   const pm = new Date("2022-04-04 14:31:00");
 
