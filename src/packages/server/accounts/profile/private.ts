@@ -33,5 +33,6 @@ export default async function getPrivateProfile(
     name: rows[0].name,
     is_admin,
     is_anonymous,
+    email_address: rows[0].email_address,
   };
 }

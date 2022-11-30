@@ -12,6 +12,7 @@ import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
+import useProfile from "lib/hooks/profile";
 
 interface Props {
   showExplanations?: boolean;
@@ -22,6 +23,13 @@ interface Props {
   duration?: "all" | "subscriptions" | "monthly" | "yearly" | "range";
   discount?: boolean;
   extraDuration?: ReactNode;
+}
+
+function isAcademic(s?: string): boolean {
+  if (!s) return false;
+  if (s.endsWith(".edu")) return true;
+  if (s.endsWith(".ac.uk")) return true;
+  return false;
 }
 
 export function UsageAndDuration(props: Props) {
@@ -36,14 +44,18 @@ export function UsageAndDuration(props: Props) {
     extraDuration,
   } = props;
 
+  const profile = useProfile();
+
   const { toServerTime } = useTimeFixer();
 
   function renderUsage() {
-    if (!showUsage) return;
+    if (!showUsage || profile == null) return;
     return (
       <Form.Item
         name="user"
-        initialValue="academic"
+        initialValue={
+          isAcademic(profile?.email_address) ? "academic" : "business"
+        }
         label={"Type of Usage"}
         extra={
           showExplanations ? (
@@ -56,12 +68,12 @@ export function UsageAndDuration(props: Props) {
       >
         <Radio.Group disabled={disabled}>
           <Space direction="vertical" style={{ margin: "5px 0" }}>
+            <Radio value={"business"}>
+              Business - for commercial purposes
+            </Radio>
             <Radio value={"academic"}>
               Academic - students, teachers, academic researchers, non-profit
               organizations and hobbyists (40% discount)
-            </Radio>
-            <Radio value={"business"}>
-              Business - for commercial business purposes
             </Radio>
           </Space>{" "}
         </Radio.Group>

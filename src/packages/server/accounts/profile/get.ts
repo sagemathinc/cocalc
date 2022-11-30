@@ -1,3 +1,7 @@
+/*
+Get the *PUBLIC* profile of a user.
+*/
+
 import getPool from "@cocalc/database/pool";
 import { Profile } from "./types";
 
@@ -6,6 +10,7 @@ export default async function getProfile(
   noCache: boolean = false
 ): Promise<Profile> {
   const pool = getPool(noCache ? undefined : "long");
+  // Do not put anything private in this query!!!!
   const { rows } = await pool.query(
     "SELECT first_name, last_name, profile, name FROM accounts WHERE account_id=$1",
     [account_id]

@@ -7,4 +7,5 @@ export interface Profile {
   name?: string;
   is_admin?: boolean;
   is_anonymous?: boolean;
+  email_address?: string;
 }
