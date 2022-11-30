@@ -57,13 +57,15 @@ export function configure() {
 }
 
 // Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
-export function set_extra_env(): void {
+export function set_extra_env(): { [key: string]: string } | undefined {
   sage_aarch64_hack();
 
   if (!process.env.COCALC_EXTRA_ENV) {
     L("set_extra_env: nothing provided");
     return;
   }
+
+  const ret: { [key: string]: string } = {};
   try {
     const env64 = process.env.COCALC_EXTRA_ENV;
     const raw = Buffer.from(env64, "base64").toString("utf8");
@@ -80,14 +82,16 @@ export function set_extra_env(): void {
         }
         // this is the meat of all this – this should happen after cleanup()!
         process.env[k] = v;
+        ret[k] = v;
       }
     }
   } catch (err) {
     // we report and ignore errors
-    return L(
+    L(
       `ERROR set_extra_env -- cannot process '${process.env.COCALC_EXTRA_ENV}' -- ${err}`
     );
   }
+  return ret;
 }
 
 // this should happen before set_extra_env
