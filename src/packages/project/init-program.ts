@@ -14,6 +14,7 @@ interface Options {
   testFirewall: boolean;
   daemon: boolean;
   sshd: boolean;
+  init: string;
 }
 
 let options = {
@@ -24,6 +25,7 @@ let options = {
   kucalc: false,
   daemon: false,
   sshd: false,
+  init: "",
 } as Options;
 
 export { options };
@@ -52,6 +54,10 @@ program
   .option(
     "--sshd",
     "Start the SSH daemon (setup script and configuration must be present)"
+  )
+  .option(
+    "--init [string]",
+    "Runs the given script via bash and redirects output to .log and .err files."
   )
   .option(
     "--test-firewall",

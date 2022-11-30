@@ -9,6 +9,7 @@ import * as projectSetup from "./project-setup";
 import { activate as initAutorenice } from "./autorenice";
 import * as dedicatedDisks from "./dedicated-disks";
 import * as sshd from "./sshd";
+import * as initScript from "./init-script";
 import { getLogger } from "./logger";
 
 export default async function init() {
@@ -31,11 +32,13 @@ export default async function init() {
   }
 
   projectSetup.configure();
-  projectSetup.set_extra_env();
+  const envVars = projectSetup.set_extra_env();
 
   if (options.sshd) {
-    sshd.init();
+    sshd.init(envVars);
   }
 
   await dedicatedDisks.init();
+
+  initScript.run();
 }
