@@ -15,6 +15,7 @@ interface Props {
   defaultTitle?: string;
   start?: boolean; // start as soon as it is created.
   onCreate: (project: { project_id: string; title: string }) => void;
+  public_path_id?: string; // if given, project is being created in order to use this public path, so a license might be applied.
 }
 
 export default function CreateProject({
@@ -23,6 +24,7 @@ export default function CreateProject({
   defaultTitle,
   start,
   onCreate,
+  public_path_id,
 }: Props) {
   const [title, setTitle] = useState<string>(defaultTitle ?? "");
   const [project_id, setProjectID] = useState<string>("");
@@ -35,7 +37,11 @@ export default function CreateProject({
     setError("");
     setState("creating");
     try {
-      const response = await apiPost("/projects/create", { title, image });
+      const response = await apiPost("/projects/create", {
+        title,
+        image,
+        public_path_id,
+      });
       if (response.error) {
         throw Error(response.error);
       }
@@ -111,7 +117,7 @@ export default function CreateProject({
             type={title ? "primary" : undefined}
             onClick={() => create(title)}
           >
-            <Icon name="plus-circle"/> Create New Project
+            <Icon name="plus-circle" /> Create New Project
           </Button>
         )}
       </Space>

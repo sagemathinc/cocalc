@@ -45,6 +45,7 @@ export default function ChooseProject(props: Props) {
   const [showListing, setShowListing] = useState<boolean>(false);
   const [hideSelect, setHideSelect] = useState<boolean>(false);
   const [hideCreate, setHideCreate] = useState<boolean>(false);
+  const [createdProject, setCreatedProject] = useState<boolean>(false);
   const targetPath = url
     ? path_split(join(path, relativePath)).tail
     : join(path, relativePath);
@@ -62,11 +63,15 @@ export default function ChooseProject(props: Props) {
       if (project == null) throw Error("no target specified");
       setCopying("starting");
       setHideSelect(true);
-      // Possibly upgrade the project using a public_path license
-      await api("/projects/public-path-license", {
-        public_path_id: id,
-        project_id: project.project_id,
-      });
+      if (!createdProject) {
+        // Possibly upgrade the project using a public_path license. Only do this if we
+        // didn't just create the project, since in that case the license would already
+        // be applied during creation.
+        await api("/projects/public-path-license", {
+          public_path_id: id,
+          project_id: project.project_id,
+        });
+      }
       // Start the *target* project!
       await api("/projects/start", { project_id: project.project_id });
       if (!isMounted.current) return;
@@ -116,8 +121,10 @@ export default function ChooseProject(props: Props) {
             image={image}
             label="In a new project"
             start={true}
+            public_path_id={id}
             defaultTitle={url ? targetPath : description}
             onCreate={(project) => {
+              setCreatedProject(true);
               setProject(project);
               setHideSelect(true);
               setHideCreate(true);
@@ -128,6 +135,7 @@ export default function ChooseProject(props: Props) {
           <SelectProject
             label="In one of your existing projects"
             onChange={({ project_id, title }) => {
+              setCreatedProject(false);
               setProject({ project_id, title });
               setHideCreate(true);
             }}

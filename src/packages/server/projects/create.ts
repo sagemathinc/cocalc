@@ -8,6 +8,7 @@ import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
+import { associatedLicense } from "@cocalc/server/licenses/public-path";
 
 interface Options {
   account_id: string;
@@ -15,6 +16,7 @@ interface Options {
   description?: string;
   image?: string;
   license?: string;
+  public_path_id?: string; // may imply use of a license
 }
 
 export default async function createProject({
@@ -23,6 +25,7 @@ export default async function createProject({
   description,
   image,
   license,
+  public_path_id,
 }: Options) {
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a valid uuid");
@@ -31,10 +34,20 @@ export default async function createProject({
   const pool = getPool();
   const users = { [account_id]: { group: "owner" } };
   let site_license;
+  if (public_path_id) {
+    const site_license_id = await associatedLicense(public_path_id);
+    if (site_license_id) {
+      if (!license) {
+        license = site_license_id;
+      } else {
+        license = license + "," + site_license_id;
+      }
+    }
+  }
   if (license) {
     site_license = {};
-    for (const x in license.split(",")) {
-      site_license[x] = {};
+    for (const license_id of license.split(",")) {
+      site_license[license_id] = {};
     }
   } else {
     site_license = undefined;

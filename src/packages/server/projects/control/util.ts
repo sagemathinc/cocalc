@@ -444,7 +444,9 @@ export async function copyPath(
 }
 
 export async function restartProjectIfRunning(project_id: string) {
-  // If necessary, restart project to ensure that license gets applied
+  // If necessary, restart project to ensure that license gets applied.
+  // This is not bullet proof in all cases, e.g., for a newly created project,
+  // and it is better to apply the license when creating the project if possible.
   const project = getProject(project_id);
   const { state } = await project.state();
   if (state == "starting" || state == "running") {
