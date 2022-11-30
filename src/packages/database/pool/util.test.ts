@@ -10,7 +10,8 @@ test("use the timeInSeconds code gen function", () => {
 import { expireTime } from "./util";
 
 test("using expireTime to compute a time in the future", () => {
-  const now = new Date().valueOf();
-  const now10 = expireTime(10).valueOf();
-  expect(now10 - now).toBeCloseTo(10000);
+  const now = new Date().getTime();
+  const now10 = expireTime(10).getTime();
+  // sometimes, this is off by one. expect.toBeCloseTo only checks after the decimal point
+  expect(Math.abs(now10 - now - 10000)).toBeLessThanOrEqual(1);
 });
