@@ -25,7 +25,6 @@ import {
   PolicyPricingPageUrl,
 } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { Alert } from "antd";
 import { Map } from "immutable";
 import { join } from "path";
 import { PaymentMethods } from "./payment-methods";
@@ -187,36 +186,24 @@ export const BillingPage = rclass<ReactProps>(
     private render_alert(): Rendered {
       if (this.props.for_course) return;
       return (
-        <Alert
-          showIcon
-          style={{ margin: "30px auto", fontSize: "125%" }}
-          icon={
-            <span style={{ fontSize: "150%", margin: "30px" }}>&#x26A0;</span>
-          }
-          type="warning"
-          message={
-            <>
-              The old purchasing page is no longer available. Instead, visit
-              these pages:
-              <br />
-              <ul>
-                <li>
-                  <A href={join(appBasePath, "pricing")}>Pricing</A>: get an
-                  overview about all offered products.
-                </li>
-                <li>
-                  <A href={join(appBasePath, "store")}>Store</A>: purchase
-                  license upgrades, boosts, dedicated resources, etc.
-                </li>
-                <li>
-                  <A href={join(appBasePath, "billing")}>Billing</A>:
-                  information about your purchases, ongoing subscriptions,
-                  credit cards, invoices, etc.
-                </li>
-              </ul>
-            </>
-          }
-        />
+        <div style={{ fontSize: "14pt" }}>
+          <h3>Purchases</h3>
+          <ul>
+            <li>
+              <A href={join(appBasePath, "store")}>Visit the Store</A>: purchase
+              license upgrades, boosts, dedicated resources, etc.
+            </li>
+            <li>
+              <A href={join(appBasePath, "pricing")}>Pricing Overview</A>: get an
+              overview about all offered products.
+            </li>
+            <li>
+              <A href={join(appBasePath, "billing")}>Billing Information</A>: information
+              about your purchases, ongoing subscriptions, credit cards,
+              invoices, etc.
+            </li>
+          </ul>
+        </div>
       );
     }
 
