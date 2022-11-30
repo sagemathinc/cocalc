@@ -235,12 +235,12 @@ export const PublicPaths: React.FC = () => {
       <Alert
         showIcon
         style={{ maxWidth: "600px", margin: "30px auto" }}
-        type="warning"
+        type="info"
         message={
           <>
-            This is the old public files page (which still works).{" "}
+            This is an overview of your public files.{" "}
             <A href={join(appBasePath, "share", "accounts", account_id)}>
-              Try the new page...
+              Visit this page for more details...
             </A>
           </>
         }

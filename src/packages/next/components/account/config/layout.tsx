@@ -69,12 +69,12 @@ export default function ConfigLayout({ page }: Props) {
       <div style={{ float: "right", marginBottom: "15px" }}>
         <Alert
           showIcon
-          type="warning"
+          type="info"
           message={
             <>
-              This is the new config page.{" "}
+              This is the account configuration page.{" "}
               <A href={join(basePath, "settings")} external>
-                There is an old page...
+                You can also adjust key preferences in the main app...
               </A>
             </>
           }
