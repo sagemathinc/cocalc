@@ -32,12 +32,10 @@ export async function run() {
     const out = openSync(change_filename_extension(initScript, "log"), "w");
     const err = openSync(change_filename_extension(initScript, "err"), "w");
 
-    const initProcess = spawn("bash", [initScript], {
-      detached: true,
+    // we don't detach the process, because otherwise it stays around when restarting the project
+    spawn("bash", [initScript], {
       stdio: ["ignore", out, err],
     });
-
-    initProcess.unref();
   } catch {
     info(`"${initScript}" does not exist`);
   }
