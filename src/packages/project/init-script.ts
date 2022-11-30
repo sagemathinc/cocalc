@@ -27,6 +27,12 @@ export async function run() {
 
   try {
     await access(initScript, constants.R_OK);
+  } catch {
+    info(`"${initScript}" does not exist`);
+    return;
+  }
+
+  try {
     info(`running "${initScript}"`);
 
     const out = openSync(change_filename_extension(initScript, "log"), "w");
@@ -36,7 +42,7 @@ export async function run() {
     spawn("bash", [initScript], {
       stdio: ["ignore", out, err],
     });
-  } catch {
-    info(`"${initScript}" does not exist`);
+  } catch (err) {
+    info(`Problem running "${initScript}" -- ${err}`);
   }
 }
