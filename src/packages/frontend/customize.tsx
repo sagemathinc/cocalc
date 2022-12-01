@@ -85,6 +85,7 @@ export type SoftwareEnvironments = TypedMap<{
 
 export interface CustomizeState {
   is_commercial: boolean;
+  datastore: boolean;
   ssh_gateway: boolean;
   ssh_gateway_dns: string; // e.g. "ssh.cocalc.com"
   ssh_gateway_fingerprint: string; // e.g. "SHA256:a8284..."
@@ -212,7 +213,8 @@ function process_customize(obj) {
   const obj_orig = deep_copy(obj);
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
-    obj[k] = obj[k] ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
+    obj[k] =
+      obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
   set_customize(obj);
 }

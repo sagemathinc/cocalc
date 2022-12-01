@@ -22,7 +22,10 @@ import { Project } from "./types";
 import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { Datastore } from "./datastore";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { SettingBox } from "../../components";
 import { AddCollaborators } from "../../collaborators";
 
@@ -56,6 +59,7 @@ interface ReduxProps {
   // from customize
   kucalc: string;
   ssh_gateway: boolean;
+  datastore: boolean;
 
   // from projects
   get_course_info: Function;
@@ -82,6 +86,7 @@ export const Body = rclass<ReactProps>(
         customize: {
           kucalc: rtypes.string,
           ssh_gateway: rtypes.bool,
+          datastore: rtypes.bool,
         },
         projects: {
           get_course_info: rtypes.func,
@@ -143,6 +148,9 @@ export const Body = rclass<ReactProps>(
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
       const student = getStudentProjectFunctionality(this.props.project_id);
+      const showDatastore =
+        this.props.kucalc === KUCALC_COCALC_COM ||
+        (this.props.kucalc === KUCALC_ON_PREMISES && this.props.datastore);
       return (
         <div>
           {commercial &&
@@ -225,7 +233,7 @@ export const Body = rclass<ReactProps>(
                 key="environment"
                 project_id={this.props.project_id}
               />
-              {this.props.kucalc === KUCALC_COCALC_COM && (
+              {showDatastore && (
                 <Datastore key="datastore" project_id={this.props.project_id} />
               )}
               <ProjectCapabilities
