@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.94.1",
+  "version": "0.95.0",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -37,7 +37,7 @@
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
     "lint": "next lint",
     "test": "npx jest ./dist",
-    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\^ && npm test"
+    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && npm test"
   },
   "repository": {
     "type": "git",
