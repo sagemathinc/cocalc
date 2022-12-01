@@ -25,7 +25,10 @@ import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { DedicatedDisk,  DedicatedResources } from "@cocalc/util/types/dedicated";
+import {
+  DedicatedDisk,
+  DedicatedResources,
+} from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import { Button, Card, Typography } from "antd";
