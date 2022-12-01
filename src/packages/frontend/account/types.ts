@@ -15,7 +15,7 @@ export interface AccountState {
   active_page: string;
   user_type: string;
   account_id: string;
-  groups?: string[];
+  groups?: List<string>;
   terminal: Map<string, any>;
   first_name?: string;
   last_name?: string;

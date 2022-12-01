@@ -20,6 +20,7 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
+import { List } from "immutable";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 import { Icon, SettingBox } from "../../components";
@@ -62,7 +63,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
     props;
 
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
-  const groups = useTypedRedux("account", "groups") ?? [];
+  const groups = useTypedRedux("account", "groups") ?? List<string>();
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -160,7 +161,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             project={project}
             actions={redux.getActions("projects")}
             user_map={user_map}
-            account_groups={groups}
+            account_groups={groups.toJS()}
             upgrades_you_can_use={upgrades_you_can_use}
             upgrades_you_applied_to_all_projects={
               upgrades_you_applied_to_all_projects
