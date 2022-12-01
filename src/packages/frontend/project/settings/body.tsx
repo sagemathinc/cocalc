@@ -8,6 +8,7 @@ import {
   AddCollaborators,
   CurrentCollaboratorsPanel,
 } from "@cocalc/frontend/collaborators";
+import { Icon, SettingBox } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { commercial } from "@cocalc/frontend/customize";
 import {
@@ -15,6 +16,7 @@ import {
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
 import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
@@ -23,8 +25,6 @@ import { is_different } from "@cocalc/util/misc";
 import { List } from "immutable";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
-import { Icon, SettingBox } from "../../components";
-import { webapp_client } from "../../webapp-client";
 import { NamedServerPanel } from "../named-server-panel";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
