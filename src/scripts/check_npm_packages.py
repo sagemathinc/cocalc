@@ -28,6 +28,9 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 # whitelisting typescript is temporary really just for @cocalc/util -- see https://github.com/sagemathinc/cocalc/issues/5888
 
 whitelist: Final[List[str]] = [
+    '@types/jest',  # no need for testing infrastructure to be aligned regarding versions.
+    'jest',
+    'ts-jest',
     'async',
     'immutable',
     'entities'  # it breaks when you upgrade in static to 4.x

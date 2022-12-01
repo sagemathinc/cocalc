@@ -62,7 +62,7 @@
     "mime": "^1.3.4",
     "mkdirp": "^1.0.4",
     "moment": "^2.29.4",
-    "next": "^12.3.0",
+    "next": "12.3.4",
     "nodemailer": "^6.7.0",
     "nyc": "^15.1.0",
     "parse-domain": "^5.0.0",
@@ -112,7 +112,7 @@
     "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user  --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\^ && npm test"
   },
   "repository": {
     "type": "git",

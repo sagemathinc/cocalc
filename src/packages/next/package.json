@@ -37,7 +37,7 @@
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
     "lint": "next lint",
     "test": "npx jest ./dist",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\^ && npm test"
   },
   "repository": {
     "type": "git",
@@ -80,7 +80,7 @@
     "cookies": "^0.8.0",
     "express": "^4.17.1",
     "lru-cache": "^6.0.0",
-    "next": "^12.3.0",
+    "next": "12.3.4",
     "node-fetch": "^3.2.10",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
