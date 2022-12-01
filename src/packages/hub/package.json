@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.109.1",
+  "version": "1.110.0",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -24,7 +24,7 @@
     "@cocalc/cdn": "^1.15.1",
     "@cocalc/database": "^0.34.1",
     "@cocalc/frontend": "^1.96.1",
-    "@cocalc/next": "^0.94.1",
+    "@cocalc/next": "^0.95.0",
     "@cocalc/server": "^0.44.1",
     "@cocalc/static": "^1.130.1",
     "@cocalc/util": "^1.72.4",
@@ -112,7 +112,7 @@
     "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user  --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\^ && npm test"
+    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && npm test"
   },
   "repository": {
     "type": "git",
