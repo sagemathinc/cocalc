@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Alert, Upload } from "antd";
-import ImgCrop from "antd-img-crop";
+import ImgCrop from "@cocalc/antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
 

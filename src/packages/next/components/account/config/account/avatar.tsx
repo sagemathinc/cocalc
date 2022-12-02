@@ -11,7 +11,7 @@ import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
-import ImgCrop from "antd-img-crop";
+import ImgCrop from "@cocalc/antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
 import Code from "components/landing/code";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
@@ -209,7 +209,12 @@ function EditImage({ value, email_address, onChange }) {
                 if (!e.target?.result) return; // typescript
                 const src = e.target.result as string;
                 onChange(
-                  await imageToDataURL(src, AVATAR_SIZE, AVATAR_SIZE, "image/png")
+                  await imageToDataURL(
+                    src,
+                    AVATAR_SIZE,
+                    AVATAR_SIZE,
+                    "image/png"
+                  )
                 );
               },
               false

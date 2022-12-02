@@ -61,6 +61,7 @@
   ],
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
+    "@cocalc/antd-img-crop": "^4.5.5",
     "@cocalc/assets": "^1.10.1",
     "@cocalc/backend": "^1.21.1",
     "@cocalc/cdn": "^1.15.1",
@@ -72,7 +73,6 @@
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.2",
     "antd": "^4.24.0",
-    "antd-img-crop": "^4.2.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "base-64": "^1.0.0",
