@@ -7,12 +7,13 @@ import Link from "next/link";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import { join } from "path";
-import { Layout } from "antd";
+import { Button, Layout } from "antd";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
 import AccountNavTab from "components/account/navtab";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const GAP = "4%";
 
@@ -59,6 +60,17 @@ export default function Header({ page, subPage }: Props) {
           textAlign: "center",
         }}
       >
+        {isCommercial && (
+          <Button
+            type="primary"
+            size="large"
+            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            title="Ask a question"
+            style={{ float: "left" }}
+          >
+            <Icon name="question-circle" /> Ask Us Anything!
+          </Button>
+        )}{" "}
         <A href="/">
           {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
           <div

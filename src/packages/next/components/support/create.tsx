@@ -109,7 +109,7 @@ export default function Create() {
       >
         {" "}
         <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
-          Create a New Support Ticket
+          {router.query.title ?? "Create a New Support Ticket"}
         </h1>
         {router.query.hideExtra != "true" && (
           <>
@@ -151,7 +151,7 @@ export default function Create() {
               <Status done={subject} /> Subject
             </b>
             <Input
-              placeholder="Summarize what this ticket is about..."
+              placeholder="Summarize what this is about..."
               onChange={(e) => setSubject(e.target.value)}
               defaultValue={subject}
             />
@@ -205,11 +205,9 @@ export default function Create() {
             </div>
           </VSpace>
           <p style={{ marginTop: "30px" }}>
-            After submitting this ticket, you'll receive a link, which you
-            should save until you receive a confirmation email. You can also{" "}
-            <A href="/support/tickets">
-              check the status of your support tickets
-            </A>
+            After submitting this, you'll receive a link, which you should save
+            until you receive a confirmation email. You can also{" "}
+            <A href="/support/tickets">check the status of your tickets here</A>
             .
           </p>
 
