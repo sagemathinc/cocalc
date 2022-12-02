@@ -31,7 +31,7 @@ interface Props {
   project_state?: "opened" | "running" | "starting" | "stopping"; //  -- only show memory usage when project_state == 'running'
   user_map: object;
   quota_params: object; // from the schema
-  account_groups: any[];
+  account_groups: string[];
   total_project_quotas?: object; // undefined if viewing as admin
   site_license_upgrades?: object;
   all_upgrades_to_this_project?: object;

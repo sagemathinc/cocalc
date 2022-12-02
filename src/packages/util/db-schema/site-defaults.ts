@@ -34,6 +34,7 @@ export type SiteSettingsKeys =
   | "google_analytics"
   | "kucalc"
   | "dns"
+  | "datastore"
   | "ssh_gateway"
   | "ssh_gateway_dns"
   | "ssh_gateway_fingerprint"
@@ -107,7 +108,8 @@ export const show_theming_vars = (conf): boolean =>
   to_bool(fallback(conf, "theming"));
 export const only_commercial = (conf): boolean =>
   to_bool(fallback(conf, "commercial"));
-export const to_bool = (val): boolean => val === "true" || val === "yes";
+export const to_bool = (val): boolean =>
+  val === "true" || val === "yes" || (typeof val === "boolean" && val);
 export const to_trimmed_str = (val?: string): string => (val ?? "").trim();
 export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = (val): number => parseInt(val);
@@ -366,6 +368,14 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,
+  },
+  datastore: {
+    name: "Datastore",
+    desc: "Show the 'Cloud storage & remote file-systems' panel in the project settings",
+    default: "yes",
+    valid: only_booleans,
+    show: only_onprem,
+    to_val: to_bool,
   },
   onprem_quota_heading: {
     name: "On-prem Quotas",

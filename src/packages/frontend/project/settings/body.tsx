@@ -3,39 +3,42 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import * as misc from "@cocalc/util/misc";
-import { Icon } from "../../components";
-import { NonMemberProjectWarning } from "../warnings/non-member";
-import { NoNetworkProjectWarning } from "../warnings/no-network";
-import { redux, rtypes, rclass } from "../../app-framework";
-import { CurrentCollaboratorsPanel } from "../../collaborators";
-import { NamedServerPanel } from "../named-server-panel";
-import { AboutBox } from "./about-box";
-import { UpgradeUsage } from "./upgrade-usage";
-import { HideDeleteBox } from "./hide-delete-box";
-import { SagewsControl } from "./sagews-control";
-import { ProjectCapabilities } from "./project-capabilites";
-import { ProjectControl } from "./project-control";
-import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
-import { Project } from "./types";
-import { SSHPanel } from "./ssh";
-import { Environment } from "./environment";
-import { Datastore } from "./datastore";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { SettingBox } from "../../components";
-import { AddCollaborators } from "../../collaborators";
-
-import { webapp_client } from "../../webapp-client";
-import { Col, Row } from "react-bootstrap";
-
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  AddCollaborators,
+  CurrentCollaboratorsPanel,
+} from "@cocalc/frontend/collaborators";
+import { Icon, SettingBox } from "@cocalc/frontend/components";
+import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { commercial } from "@cocalc/frontend/customize";
 import {
   is_available,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
+import { is_different } from "@cocalc/util/misc";
+import { List } from "immutable";
+import React from "react";
+import { Col, Row } from "react-bootstrap";
+import { NamedServerPanel } from "../named-server-panel";
+import { NoNetworkProjectWarning } from "../warnings/no-network";
+import { NonMemberProjectWarning } from "../warnings/non-member";
+import { AboutBox } from "./about-box";
+import { Datastore } from "./datastore";
+import { Environment } from "./environment";
+import { HideDeleteBox } from "./hide-delete-box";
+import { ProjectCapabilities } from "./project-capabilites";
+import { ProjectControl } from "./project-control";
+import { SagewsControl } from "./sagews-control";
 import SavingProjectSettingsError from "./saving-project-settings-error";
+import { SSHPanel } from "./ssh";
+import { Project } from "./types";
+import { UpgradeUsage } from "./upgrade-usage";
 
 interface ReactProps {
   project_id: string;
@@ -48,227 +51,183 @@ interface ReactProps {
   name: string;
 }
 
-interface ReduxProps {
-  // from account
-  get_total_upgrades: Function;
-  groups: string[];
+const is_same = (prev: ReactProps, next: ReactProps) => {
+  return !(
+    is_different(prev, next, ["project", "user_map", "project_map"]) ||
+    (next.customer != null && !next.customer.equals(prev.customer))
+  );
+};
 
-  // from customize
-  kucalc: string;
-  ssh_gateway: boolean;
+export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
+  const { project_id, account_id, project, user_map, email_address, name } =
+    props;
 
-  // from projects
-  get_course_info: Function;
-  get_total_upgrades_you_have_applied: Function;
-  get_upgrades_you_applied_to_project: Function;
-  get_total_project_quotas: Function;
-  get_upgrades_to_project: Function;
-  compute_images: Map<string, any>;
-  all_projects_have_been_loaded: boolean;
+  const get_total_upgrades = redux.getStore("account").get_total_upgrades;
+  const groups = useTypedRedux("account", "groups") ?? List<string>();
 
-  // context specific
-  configuration: ProjectConfiguration;
-  available_features: object;
-}
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
+  const datastore = useTypedRedux("customize", "datastore");
 
-export const Body = rclass<ReactProps>(
-  class Body extends React.Component<ReactProps & ReduxProps> {
-    public static reduxProps({ name }) {
-      return {
-        account: {
-          get_total_upgrades: rtypes.func,
-          groups: rtypes.array,
-        },
-        customize: {
-          kucalc: rtypes.string,
-          ssh_gateway: rtypes.bool,
-        },
-        projects: {
-          get_course_info: rtypes.func,
-          get_total_upgrades_you_have_applied: rtypes.func,
-          get_upgrades_you_applied_to_project: rtypes.func,
-          get_total_project_quotas: rtypes.func,
-          get_upgrades_to_project: rtypes.func,
-          compute_images: rtypes.immutable.Map,
-          all_projects_have_been_loaded: rtypes.bool,
-        },
-        [name]: {
-          configuration: rtypes.immutable,
-          available_features: rtypes.object,
-        },
-      };
-    }
+  const projects_store = redux.getStore("projects");
+  const {
+    get_course_info,
+    get_total_upgrades_you_have_applied,
+    get_upgrades_you_applied_to_project,
+    get_total_project_quotas,
+    get_upgrades_to_project,
+  } = projects_store;
 
-    shouldComponentUpdate(props) {
-      return (
-        misc.is_different(this.props, props, [
-          "project",
-          "user_map",
-          "project_map",
-          "compute_images",
-          "configuration",
-          "available_features",
-          "all_projects_have_been_loaded",
-        ]) ||
-        (props.customer != undefined &&
-          !props.customer.equals(this.props.customer))
-      );
-    }
+  const all_projects_have_been_loaded = useTypedRedux(
+    "projects",
+    "all_projects_have_been_loaded"
+  );
 
-    render() {
-      // get the description of the share, in case the project is being shared
-      const id = this.props.project_id;
+  const configuration: ProjectConfiguration | undefined = useTypedRedux(
+    { project_id },
+    "configuration"
+  );
 
-      const upgrades_you_can_use = this.props.get_total_upgrades();
+  // get the description of the share, in case the project is being shared
+  const id = project_id;
 
-      const course_info = this.props.get_course_info(this.props.project_id);
-      const upgrades_you_applied_to_all_projects =
-        this.props.get_total_upgrades_you_have_applied();
-      const upgrades_you_applied_to_this_project =
-        this.props.get_upgrades_you_applied_to_project(id);
-      const total_project_quotas = this.props.get_total_project_quotas(id); // only available for non-admin for now.
-      const all_upgrades_to_this_project =
-        this.props.get_upgrades_to_project(id);
-      const store = redux.getStore("projects");
-      const site_license_upgrades =
-        store.get_total_site_license_upgrades_to_project(this.props.project_id);
-      const site_license_ids: string[] = store.get_site_license_ids(
-        this.props.project_id
-      );
-      const dedicated_resources = store.get_total_site_license_dedicated(
-        this.props.project_id
-      );
+  const upgrades_you_can_use = get_total_upgrades();
 
-      const available = is_available(this.props.configuration);
-      const have_jupyter_lab = available.jupyter_lab;
-      const have_jupyter_notebook = available.jupyter_notebook;
-      const student = getStudentProjectFunctionality(this.props.project_id);
-      return (
-        <div>
-          {commercial &&
-          total_project_quotas != undefined &&
-          !total_project_quotas.member_host ? (
-            <NonMemberProjectWarning
-              upgrade_type="member_host"
-              upgrades_you_can_use={upgrades_you_can_use}
-              upgrades_you_applied_to_all_projects={
-                upgrades_you_applied_to_all_projects
-              }
-              course_info={course_info}
-              account_id={webapp_client.account_id}
-              email_address={this.props.email_address}
+  const course_info = get_course_info(project_id);
+  const upgrades_you_applied_to_all_projects =
+    get_total_upgrades_you_have_applied();
+  const upgrades_you_applied_to_this_project =
+    get_upgrades_you_applied_to_project(id);
+  const total_project_quotas = get_total_project_quotas(id); // only available for non-admin for now.
+  const all_upgrades_to_this_project = get_upgrades_to_project(id);
+  const store = redux.getStore("projects");
+  const site_license_upgrades =
+    store.get_total_site_license_upgrades_to_project(project_id);
+  const site_license_ids: string[] = store.get_site_license_ids(project_id);
+  const dedicated_resources =
+    store.get_total_site_license_dedicated(project_id);
+
+  const available = is_available(configuration);
+  const have_jupyter_lab = available.jupyter_lab;
+  const have_jupyter_notebook = available.jupyter_notebook;
+  const student = getStudentProjectFunctionality(project_id);
+  const showDatastore =
+    kucalc === KUCALC_COCALC_COM ||
+    (kucalc === KUCALC_ON_PREMISES && datastore);
+
+  return (
+    <div>
+      {commercial &&
+      total_project_quotas != undefined &&
+      !total_project_quotas.member_host ? (
+        <NonMemberProjectWarning
+          upgrade_type="member_host"
+          upgrades_you_can_use={upgrades_you_can_use}
+          upgrades_you_applied_to_all_projects={
+            upgrades_you_applied_to_all_projects
+          }
+          course_info={course_info}
+          account_id={webapp_client.account_id}
+          email_address={email_address}
+        />
+      ) : undefined}
+      {commercial &&
+      total_project_quotas != undefined &&
+      !total_project_quotas.network ? (
+        <NoNetworkProjectWarning
+          upgrade_type="network"
+          upgrades_you_can_use={upgrades_you_can_use}
+          upgrades_you_applied_to_all_projects={
+            upgrades_you_applied_to_all_projects
+          }
+        />
+      ) : undefined}
+      <h1 style={{ marginTop: "0px" }}>
+        <Icon name="wrench" /> Project Settings
+      </h1>
+      <SavingProjectSettingsError project_id={project_id} />
+      <Row>
+        <Col sm={6}>
+          <AboutBox
+            project_id={id}
+            project_title={project.get("title") ?? ""}
+            description={project.get("description") ?? ""}
+            created={project.get("created")}
+            name={project.get("name")}
+            actions={redux.getActions("projects")}
+          />
+          <UpgradeUsage
+            project_id={id}
+            project={project}
+            actions={redux.getActions("projects")}
+            user_map={user_map}
+            account_groups={groups.toJS()}
+            upgrades_you_can_use={upgrades_you_can_use}
+            upgrades_you_applied_to_all_projects={
+              upgrades_you_applied_to_all_projects
+            }
+            upgrades_you_applied_to_this_project={
+              upgrades_you_applied_to_this_project
+            }
+            total_project_quotas={total_project_quotas}
+            all_upgrades_to_this_project={all_upgrades_to_this_project}
+            all_projects_have_been_loaded={all_projects_have_been_loaded}
+            site_license_upgrades={site_license_upgrades}
+            site_license_ids={site_license_ids}
+            dedicated_resources={dedicated_resources}
+          />
+
+          <HideDeleteBox
+            key="hidedelete"
+            project={project}
+            actions={redux.getActions("projects")}
+          />
+          {!student.disableSSH &&
+          (ssh_gateway || kucalc === KUCALC_COCALC_COM) ? (
+            <SSHPanel
+              key="ssh-keys"
+              project={project}
+              account_id={account_id}
             />
           ) : undefined}
-          {commercial &&
-          total_project_quotas != undefined &&
-          !total_project_quotas.network ? (
-            <NoNetworkProjectWarning
-              upgrade_type="network"
-              upgrades_you_can_use={upgrades_you_can_use}
-              upgrades_you_applied_to_all_projects={
-                upgrades_you_applied_to_all_projects
-              }
-            />
-          ) : undefined}
-          <h1 style={{ marginTop: "0px" }}>
-            <Icon name="wrench" /> Project Settings
-          </h1>
-          <SavingProjectSettingsError project_id={this.props.project_id} />
-          <Row>
-            <Col sm={6}>
-              <AboutBox
-                project_id={id}
-                project_title={this.props.project.get("title") ?? ""}
-                description={this.props.project.get("description") ?? ""}
-                created={this.props.project.get("created")}
-                name={this.props.project.get("name")}
-                actions={redux.getActions("projects")}
-              />
-              <UpgradeUsage
-                project_id={id}
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-                user_map={this.props.user_map}
-                account_groups={this.props.groups}
-                upgrades_you_can_use={upgrades_you_can_use}
-                upgrades_you_applied_to_all_projects={
-                  upgrades_you_applied_to_all_projects
-                }
-                upgrades_you_applied_to_this_project={
-                  upgrades_you_applied_to_this_project
-                }
-                total_project_quotas={total_project_quotas}
-                all_upgrades_to_this_project={all_upgrades_to_this_project}
-                all_projects_have_been_loaded={
-                  this.props.all_projects_have_been_loaded
-                }
-                site_license_upgrades={site_license_upgrades}
-                site_license_ids={site_license_ids}
-                dedicated_resources={dedicated_resources}
-              />
-
-              <HideDeleteBox
-                key="hidedelete"
-                project={this.props.project}
-                actions={redux.getActions("projects")}
-              />
-              {!student.disableSSH &&
-              (this.props.ssh_gateway ||
-                this.props.kucalc === KUCALC_COCALC_COM) ? (
-                <SSHPanel
-                  key="ssh-keys"
-                  project={this.props.project}
-                  account_id={this.props.account_id}
-                />
-              ) : undefined}
-              <Environment
-                key="environment"
-                project_id={this.props.project_id}
-              />
-              {this.props.kucalc === KUCALC_COCALC_COM && (
-                <Datastore key="datastore" project_id={this.props.project_id} />
-              )}
-              <ProjectCapabilities
-                name={this.props.name}
-                key={"capabilities"}
-                project={this.props.project}
-                project_id={this.props.project_id}
-              />
-            </Col>
-            <Col sm={6}>
-              <CurrentCollaboratorsPanel
-                key="current-collabs"
-                project={this.props.project}
-                user_map={this.props.user_map}
-              />
-              {!student.disableCollaborators && (
-                <SettingBox
-                  title="Add new collaborators"
-                  icon="UserAddOutlined"
-                >
-                  <AddCollaborators
-                    project_id={this.props.project.get("project_id")}
-                  />
-                </SettingBox>
-              )}
-              <ProjectControl key="control" project={this.props.project} />
-              <SagewsControl key="worksheet" project={this.props.project} />
-              {have_jupyter_notebook && (
-                <NamedServerPanel project_id={id} name={"jupyter"} />
-              )}
-              {have_jupyter_lab && (
-                <NamedServerPanel project_id={id} name={"jupyterlab"} />
-              )}
-              {available.vscode && (
-                <NamedServerPanel project_id={id} name={"code"} />
-              )}
-              {available.julia && (
-                <NamedServerPanel project_id={id} name={"pluto"} />
-              )}
-            </Col>
-          </Row>
-        </div>
-      );
-    }
-  }
-);
+          <Environment key="environment" project_id={project_id} />
+          {showDatastore && (
+            <Datastore key="datastore" project_id={project_id} />
+          )}
+          <ProjectCapabilities
+            name={name}
+            key={"capabilities"}
+            project={project}
+            project_id={project_id}
+          />
+        </Col>
+        <Col sm={6}>
+          <CurrentCollaboratorsPanel
+            key="current-collabs"
+            project={project}
+            user_map={user_map}
+          />
+          {!student.disableCollaborators && (
+            <SettingBox title="Add new collaborators" icon="UserAddOutlined">
+              <AddCollaborators project_id={project.get("project_id")} />
+            </SettingBox>
+          )}
+          <ProjectControl key="control" project={project} />
+          <SagewsControl key="worksheet" project={project} />
+          {have_jupyter_notebook && (
+            <NamedServerPanel project_id={id} name={"jupyter"} />
+          )}
+          {have_jupyter_lab && (
+            <NamedServerPanel project_id={id} name={"jupyterlab"} />
+          )}
+          {available.vscode && (
+            <NamedServerPanel project_id={id} name={"code"} />
+          )}
+          {available.julia && (
+            <NamedServerPanel project_id={id} name={"pluto"} />
+          )}
+        </Col>
+      </Row>
+    </div>
+  );
+}, is_same);

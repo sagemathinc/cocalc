@@ -675,9 +675,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       <>
         <span>
           Cloud storage & remote file-systems
-          <sup>
-            <i>beta</i>
-          </sup>
         </span>
         <Button
           icon={<ReloadOutlined />}
