@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.110.1",
+  "version": "1.110.2",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -36,7 +36,6 @@
     "@types/nodemailer": "^6.4.4",
     "@types/react": "^17.0.33",
     "@types/uuid": "^8.3.1",
-    "antd-img-crop": "^4.2.4",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
