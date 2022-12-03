@@ -38,8 +38,8 @@ export default function Tickets() {
         </h1>
         <p style={{ fontSize: "12pt" }}>
           Check the status of your support tickets here or{" "}
-          <A href="/support/new">create a new ticket</A>. Newly created
-          tickets do not appear here for a few minutes.
+          <A href="/support/new">create a new ticket</A>. Newly created tickets
+          do not appear here for a few minutes.
         </p>
         {error && (
           <Alert
@@ -81,7 +81,7 @@ const COLOR = {
 };
 
 function statusToColor(status: string): string {
-  return COLOR[status] ?? "yellow";
+  return COLOR[status] ?? "#f5ca00";
 }
 
 function Ticket({ ticket }) {
@@ -131,18 +131,51 @@ function Ticket({ ticket }) {
   );
 }
 
-const STATUS_TIP = {
-  pending: "We are waiting for your response.",
-  new: "We are looking at your support request but have not responded yet.",
-  open: "We are trying to solve your support request.",
-  solved: "We consider this support request solved.",
+// Note that this is what to show from the POV of the user.
+// See https://github.com/sagemathinc/cocalc/issues/6239
+
+interface StatusDescription {
+  title: string;
+  label: string;
+  color: string;
+}
+
+const STATUS: { [status: string]: StatusDescription } = {
+  pending: {
+    title: "We are waiting for your response.",
+    label: "AWAITING YOUR REPLY",
+    color: "#f5ca00",
+  },
+  new: {
+    title: "We are looking at your support request but have not responded yet.",
+    label: "NEW",
+    color: "#59bbe0" /* blue */,
+  },
+  open: {
+    title: "We are trying to solve your support request.",
+    label: "OPEN",
+    color: "#59bbe0",
+  },
+  solved: {
+    title: "This support request has been solved.",
+    label: "SOLVED",
+    color: "#666",
+  },
 };
 
 function Status({ status }) {
+  const { title, label, color } = STATUS[status] ?? {
+    title: "",
+    label: "Status",
+    color: "blue",
+  };
   return (
-    <Tooltip title={STATUS_TIP[status]}>
-      <Tag color={statusToColor(status)} style={{ fontSize: "12pt" }}>
-        {capitalize(status)}
+    <Tooltip title={title}>
+      <Tag
+        color={color}
+        style={{ fontSize: "12pt", color: "white" }}
+      >
+        {label}
       </Tag>
     </Tooltip>
   );
