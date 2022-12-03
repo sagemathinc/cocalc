@@ -19,7 +19,7 @@ export default function Preferences({ customize, page }) {
     <Customize value={customize}>
       <Head title={`Store${subpage}`} />
       <Layout>
-        <Header />
+        <Header page={"store"} />
         <Store page={page} />
         <Footer />
       </Layout>

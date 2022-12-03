@@ -172,10 +172,7 @@ export default function Home(props: Props) {
                   <A style={topLinkStyle} href="/support">
                     Support
                   </A>{" "}
-                  <A style={topLinkStyle} href="/info/status">
-                    Status
-                  </A>{" "}
-                  <A style={topLinkStyle} href="https://doc.cocalc.com">
+                  <A style={topLinkStyle} href="/info">
                     Docs
                   </A>
                 </>

@@ -99,31 +99,32 @@ export default function Header({ page, subPage }: Props) {
             href={join(basePath, "projects")}
             title={"View your projects"}
           >
-            Projects
+            Your Projects
           </a>
         )}
         {landingPages && (
           <>
+            {isCommercial && (
+              <A
+                href="/store"
+                style={page == "store" ? SelectedStyle : LinkStyle}
+              >
+                Store
+              </A>
+            )}
             <A
               href="/features/"
               style={page == "features" ? SelectedStyle : LinkStyle}
             >
               Features
             </A>
-            <A
+            {/* <A
               href="/software"
               style={page == "software" ? SelectedStyle : LinkStyle}
             >
               Software
             </A>
-            {isCommercial && (
-              <A
-                href="/pricing"
-                style={page == "pricing" ? SelectedStyle : LinkStyle}
-              >
-                Pricing
-              </A>
-            )}
+            */}
           </>
         )}
         {!landingPages && termsOfServiceURL && (
@@ -138,18 +139,10 @@ export default function Header({ page, subPage }: Props) {
         <A
           style={page == "info" ? SelectedStyle : LinkStyle}
           href="/info"
-          title="Information and links to resources for learning more about CoCalc"
+          title="Documentation and links to resources for learning more about CoCalc"
         >
-          Info
+          Docs
         </A>
-        {(landingPages || imprintOrPolicies) && (
-          <A
-            href="/policies"
-            style={page == "policies" ? SelectedStyle : LinkStyle}
-          >
-            Policies
-          </A>
-        )}
         {shareServer && (
           <Link href={"/share/public_paths/page/1"}>
             <a

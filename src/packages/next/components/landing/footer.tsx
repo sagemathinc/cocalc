@@ -32,10 +32,10 @@ export default function Footer() {
     termsOfServiceURL,
     contactEmail,
     landingPages,
-    zendesk,
     imprint,
-    policies,
     onCoCalcCom,
+    isCommercial,
+    imprintOrPolicies,
   } = useCustomize();
 
   function organization(): JSX.Element {
@@ -61,12 +61,11 @@ export default function Footer() {
     >
       <div>
         <Item first>{siteName ?? "CoCalc"}</Item>
-        {onCoCalcCom && <Item>
-          <A href="https://about.cocalc.com/">About</A>
-        </Item>}
-        <Item>
-          <A href="https://cocalc.com">CoCalc</A>
-        </Item>
+        {onCoCalcCom && (
+          <Item>
+            <A href="https://about.cocalc.com/">About</A>
+          </Item>
+        )}
         {renderOrganization()}
         {!landingPages && termsOfServiceURL && (
           <Item>
@@ -78,19 +77,24 @@ export default function Footer() {
             <Contact showEmail={false} />
           </Item>
         )}
-        {zendesk && (
-          <Item>
-            <A href="/support/new">Support Ticket</A>
-          </Item>
-        )}
         {imprint && (
           <Item>
             <A href="/policies/imprint">Imprint</A>
           </Item>
         )}
-        {policies && (
+        {(landingPages || imprintOrPolicies) && (
           <Item>
             <A href="/policies/policies">Policies</A>
+          </Item>
+        )}
+        {isCommercial && (
+          <Item>
+            <A href="/pricing">Products and Pricing</A>
+          </Item>
+        )}
+        {landingPages && (
+          <Item>
+            <A href="/software">Software</A>
           </Item>
         )}
         <Item>

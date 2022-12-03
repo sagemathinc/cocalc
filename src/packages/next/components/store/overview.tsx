@@ -26,11 +26,12 @@ export default function Overview() {
   return (
     <div style={OVERVIEW_STYLE}>
       <Icon style={OVERVIEW_LARGE_ICON} name="shopping-cart" />
-
       <h2 style={{ marginBottom: "30px" }}>
         Welcome to the <SiteName /> Store!
       </h2>
-
+      <div style={{ fontSize: "13pt" }}>
+        Shop below or explore an <A href="/pricing">overview of products and pricing</A>.
+      </div>
       <OverviewRow>
         <Product
           icon="key"

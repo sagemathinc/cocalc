@@ -20,7 +20,7 @@ const software = {
 const features = {
   index: {},
   "jupyter-notebook": { label: "Jupyter" },
-  "whiteboard": {label: "Whiteboard"},
+  whiteboard: { label: "Whiteboard" },
   "latex-editor": { label: "LaTeX" },
   linux: { label: "Linux" },
   python: { label: "Python" },
@@ -86,6 +86,7 @@ const PAGES = {
   "sign-in": sign_in,
   try: {},
   support,
+  store: {},
 };
 
 export type Page = keyof typeof PAGES | "account";

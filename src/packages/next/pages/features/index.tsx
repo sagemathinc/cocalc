@@ -57,7 +57,7 @@ const dataSource = [
       <>
         Use Python in CoCalc for data science, statistics, mathematics, physics,
         machine learning. Many{" "}
-        <A href="/software/python">packages are included in CoCalc</A>!
+        <A href="/software/python">Python packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -82,7 +82,8 @@ const dataSource = [
     description: (
       <>
         Use Jupyter notebooks with the R kernel, the R command line, X11
-        graphics, <LaTeX /> with Knitr and RMarkdown, and more.
+        graphics, <LaTeX /> with Knitr and RMarkdown, and more. Many{" "}
+        <A href="/software/r">R packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -131,7 +132,8 @@ const dataSource = [
         Run <A href="https://www.gnu.org/software/octave/">GNU Octave</A> on
         CoCalc – the syntax is largely compatible with MATLAB
         <sup>®</sup>. Use Jupyter notebooks, write programs, and display X11
-        graphics.
+        graphics. Many{" "}
+        <A href="/software/octave">Octave packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -147,7 +149,8 @@ const dataSource = [
         <A href="/features/jupyter-notebook">Jupyter</A> notebooks. Edit Julia
         code and run it in <A href="/features/terminal">a terminal</A> or
         notebook. <A href="/features/teaching">Teach classes using nbgrader</A>{" "}
-        with the Julia kernel.
+        with the Julia kernel. Many{" "}
+        <A href="/software/julia">Julia packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -230,8 +233,8 @@ const dataSource = [
           Course management
         </A>
         , <A href="https://doc.cocalc.com/tasks.html">Task management</A>,{" "}
-        <A href="https://doc.cocalc.com/chat.html">Chat</A>,
-        {" "}<A href="https://about.cocalc.com/">and more...</A>
+        <A href="https://doc.cocalc.com/chat.html">Chat</A>,{" "}
+        <A href="https://about.cocalc.com/">and more...</A>
       </>
     ),
   },
@@ -250,8 +253,10 @@ export default function Features({ customize }) {
               These pages are an overview of what CoCalc is able to do. You can
               also{" "}
               <A href="https://about.cocalc.com">
-                learn about our mission, developers and features...
-              </A>
+                learn about our mission, developers and features,
+              </A>{" "}
+              <A href="/software">browse installed software</A>, and{" "}
+              <A href="/share">see how other people are using CoCalc</A>.
             </>
           }
           dataSource={dataSource}
