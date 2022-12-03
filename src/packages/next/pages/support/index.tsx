@@ -10,24 +10,6 @@ import IndexList, { DataSource } from "components/landing/index-list";
 
 const dataSource = [
   {
-    link: "/support/community",
-    title: "CoCalc Community Support",
-    logo: "users",
-    description: (
-      <>
-        <A href="https://github.com/sagemathinc/cocalc/discussions">
-          Join a discussion
-        </A>{" "}
-        or{" "}
-        <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
-          post to the mailing list.{" "}
-        </A>
-        We also have <A href="https://twitter.com/cocalc_com">a Twitter feed</A>{" "}
-        and <A href="https://about.cocalc.com/cocalcs-blog/">a blog</A>.
-      </>
-    ),
-  },
-  {
     link: "/support/new",
     title: "Create a New Support Ticket",
     logo: "medkit",
@@ -38,7 +20,7 @@ const dataSource = [
         <A href="/support/new">
           <b>create a support ticket</b>
         </A>
-        .
+        .  You do NOT have to be a paying customer to open a ticket, though we prioritize customer requests.
       </>
     ),
   },
@@ -54,6 +36,24 @@ const dataSource = [
           <b>status of your support tickets</b>
         </A>
         .
+      </>
+    ),
+  },
+  {
+    link: "/support/community",
+    title: "CoCalc Community Support",
+    logo: "users",
+    description: (
+      <>
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          Join a discussion
+        </A>{" "}
+        or{" "}
+        <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
+          post to the mailing list.{" "}
+        </A>
+        We also have <A href="https://twitter.com/cocalc_com">a Twitter feed</A>{" "}
+        and <A href="https://about.cocalc.com/cocalcs-blog/">a blog</A>.
       </>
     ),
   },
@@ -88,8 +88,8 @@ export default function Preferences({ customize }) {
           title="Support"
           description={
             <>
-              We provide superior support to our users and customers. If you run
-              into a problem, read{" "}
+              We provide extremely good support to our users and customers. If
+              you run into a problem, read{" "}
               <A href="https://doc.cocalc.com/">our extensive documentation</A>,{" "}
               <A href="/support/community">check online forums and chatrooms</A>{" "}
               or <A href="/support/new">create a support ticket</A>.
