@@ -49,7 +49,7 @@ export function UsageAndDuration(props: Props) {
   const { toServerTime } = useTimeFixer();
 
   function renderUsage() {
-    if (!showUsage || profile == null) return;
+    if (!showUsage) return;
     return (
       <Form.Item
         name="user"
