@@ -91,7 +91,7 @@ export function computeCost(
         throw Error("must be a quota upgrade license");
       }
       const {
-        user,
+        user = "business", // workaround for https://github.com/sagemathinc/cocalc/issues/6241 (does not fix root problem)
         run_limit,
         period,
         range,
