@@ -63,6 +63,7 @@
     "mkdirp": "^1.0.4",
     "moment": "^2.29.4",
     "next": "12.3.4",
+    "nocodb": "^0.100.2",
     "nodemailer": "^6.7.0",
     "nyc": "^15.1.0",
     "parse-domain": "^5.0.0",
