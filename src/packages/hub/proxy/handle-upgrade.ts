@@ -71,7 +71,7 @@ export default function init(
     cache.set(target, proxy);
 
     // taken from https://github.com/http-party/node-http-proxy/issues/1401
-    proxy.on("proxyRes", function (proxyRes, req, res) {
+    proxy.on("proxyRes", function (proxyRes) {
       //console.log(
       //  "Raw [target] response",
       //  JSON.stringify(proxyRes.headers, true, 2)
