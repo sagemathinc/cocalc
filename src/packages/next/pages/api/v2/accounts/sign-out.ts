@@ -5,7 +5,8 @@ This invalidates 1 or more remember me cookies for
 the account that is making the API request.
 */
 
-import getAccountId, { getRememberMeHash } from "lib/account/get-account";
+import getAccountId from "lib/account/get-account";
+import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import {
   deleteRememberMe,
   deleteAllRememberMe,

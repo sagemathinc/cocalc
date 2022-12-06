@@ -4,10 +4,8 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import generateHash from "@cocalc/server/auth/hash";
-import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/server/auth/remember-me";
-import Cookies from "cookies";
 import { getAccountIdFromApiKey } from "@cocalc/server/auth/api";
+import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 
 // Return account_id if they are signed in.
 // If not, returns undefined.
@@ -50,17 +48,4 @@ export default async function getAccountId(
     return;
   }
   return account_id;
-}
-
-export function getRememberMeHash(req): string | undefined {
-  const cookies = new Cookies(req);
-  const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
-  if (!rememberMe) {
-    return;
-  }
-  const x: string[] = rememberMe.split("$");
-  if (x.length !== 4) {
-    throw Error("badly formatted remember_me cookie");
-  }
-  return generateHash(x[0], x[1], parseInt(x[2]), x[3]).slice(0, 127);
 }
