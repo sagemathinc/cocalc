@@ -241,7 +241,7 @@ export async function initAnalytics(
       dns_parsed.type !== ParseResultType.Listed
     ) {
       // cache for 6 hours -- max-age has unit seconds
-      res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
+      res.header("Cache-Control", `private, max-age=${6 * 60 * 60}, must-revalidate`);
       res.write("// NOOP");
       res.end();
       return;
@@ -249,7 +249,7 @@ export async function initAnalytics(
 
     // write response script
     // this only runs once, hence no caching
-    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.header("Cache-Control", "no-cache, no-store");
     //analytics_cookie(DNS, res)
 
     const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(

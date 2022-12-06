@@ -262,12 +262,12 @@ exports.init_health_metrics = (raw_server, project_id) ->
     # Setup health and metrics (no url base prefix needed)
     raw_server.use '/health', (req, res) ->
         res.setHeader("Content-Type", "text/plain")
-        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+        res.setHeader('Cache-Control', 'no-cache, no-store')
         res.send('OK')
 
     # prometheus text format -- https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
     raw_server.use '/metrics', (req, res) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
-        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+        res.header('Cache-Control', 'no-cache, no-store')
         part1 = exports.prometheus_metrics(project_id)
         res.send(part1 + '\n' + (await prom_client.register.metrics()) + '\n')
