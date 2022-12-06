@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
 import {
   useEffect,
   useMemo,
@@ -23,6 +22,7 @@ import {
   upgrade2quota_key,
   Upgrades,
 } from "@cocalc/util/upgrades/quota";
+import { Map } from "immutable";
 import { fromPairs, isEqual } from "lodash";
 import { IdleTimeoutPct, PercentBar, renderBoolean } from "./components";
 import {
@@ -37,7 +37,7 @@ import {
 
 export function useRunQuota(
   project_id: string,
-  projectIsRunning
+  projectIsRunning: boolean | null
 ): DisplayQuota {
   const [runQuota, setRunQuota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
@@ -45,8 +45,9 @@ export function useRunQuota(
   // NOTE: even if project is NOT running, we do know the run quota
   // the problem is this information is not accurate, because only upon
   // startup the validity of a license is determined.
+  // Still: if we don't set projectIsRunning, we use the stale information
   const next = useMemo(() => {
-    if (rq == null || !projectIsRunning) {
+    if (rq == null || projectIsRunning === false) {
       return {};
     } else {
       return rq
