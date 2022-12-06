@@ -63,10 +63,12 @@ export const IdleTimeoutPct: React.FC<{
   }
 };
 
-export function renderBoolean(val) {
+export function renderBoolean(val, running: boolean) {
+  const color = (c) => (running ? c : COLORS.GRAY_L);
+
   if (val) {
-    return <CheckCircleTwoTone twoToneColor={COLORS.ANTD_GREEN} />;
+    return <CheckCircleTwoTone twoToneColor={color(COLORS.ANTD_GREEN)} />;
   } else {
-    return <CloseCircleTwoTone twoToneColor={COLORS.ANTD_RED} />;
+    return <CloseCircleTwoTone twoToneColor={color(COLORS.ANTD_RED)} />;
   }
 }

@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map } from "immutable";
+import { fromPairs, isEqual } from "lodash";
+
 import {
   useEffect,
   useMemo,
@@ -22,8 +25,6 @@ import {
   upgrade2quota_key,
   Upgrades,
 } from "@cocalc/util/upgrades/quota";
-import { Map } from "immutable";
-import { fromPairs, isEqual } from "lodash";
 import { IdleTimeoutPct, PercentBar, renderBoolean } from "./components";
 import {
   booleanValueStr,
@@ -196,7 +197,7 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
     const val = runQuota.get(key);
     return {
       display: booleanValueStr(val),
-      element: renderBoolean(val),
+      element: renderBoolean(val, true), // due to how this is used, we can assume the project is running
     };
   }
 
