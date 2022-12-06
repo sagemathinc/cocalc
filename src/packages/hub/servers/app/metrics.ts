@@ -68,7 +68,7 @@ export function initMetricsEndpoint(router: Router) {
 
   router.get(endpoint, async (_req, res) => {
     res.header("Content-Type", "text/plain");
-    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.header("Cache-Control", "no-cache, no-store");
     if (!(await isEnabled(pool))) {
       res.json({
         error:

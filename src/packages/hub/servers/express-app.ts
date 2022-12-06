@@ -89,7 +89,10 @@ export default async function init(opts: Options): Promise<{
   // Various files such as the webpack static content should be cached long-term,
   // and we use this function to set appropriate headers at various points below.
   const cacheLongTerm = (res) => {
-    res.setHeader("Cache-Control", `public, max-age=${MAX_AGE}`);
+    res.setHeader(
+      "Cache-Control",
+      `public, max-age=${MAX_AGE}, must-revalidate'`
+    );
     res.setHeader(
       "Expires",
       new Date(Date.now().valueOf() + MAX_AGE).toUTCString()
@@ -97,7 +100,10 @@ export default async function init(opts: Options): Promise<{
   };
 
   const cacheShortTerm = (res) => {
-    res.setHeader("Cache-Control", `public, max-age=${SHORT_AGE}`);
+    res.setHeader(
+      "Cache-Control",
+      `public, max-age=${SHORT_AGE}, must-revalidate`
+    );
     res.setHeader(
       "Expires",
       new Date(Date.now().valueOf() + SHORT_AGE).toUTCString()

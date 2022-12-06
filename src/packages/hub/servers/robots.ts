@@ -5,7 +5,7 @@ export default function getHandler() {
   return async (_req, res) => {
     const settings = await get_server_settings(database); // don't worry -- this is cached.
     res.header("Content-Type", "text/plain");
-    res.header("Cache-Control", "private, no-cache, must-revalidate");
+    res.header("Cache-Control", "public, max-age=3600, must-revalidate");
     if (!settings.landing_pages) {
       // Default: -- disable everything except /share.
       res.write(`User-agent: *
