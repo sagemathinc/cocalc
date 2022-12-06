@@ -56,7 +56,12 @@ export function untangleUptime(uptime?: Uptime): {
   idle_timeout: Keys;
 } {
   if (uptime == null) {
-    throw new Error(`uptime must be defined`);
+    // Let's just support this and have it default to short, since obviously
+    // by explicitly allowing uptime? via typescript, we can't even tell there
+    // is a problem from typescript errors.  See
+    //    https://github.com/sagemathinc/cocalc/issues/6257
+    // for how this bug causes a lot of trouble.
+    return { always_running: false, idle_timeout: "short" };
   }
   if (uptime == "always_running") {
     return { always_running: true, idle_timeout: "day" };
