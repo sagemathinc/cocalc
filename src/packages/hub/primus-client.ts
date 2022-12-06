@@ -7,12 +7,12 @@ export default function setupPrimusClient(router, primus): void {
   const primus_min_js: string = UglifyJS.minify(primus_js).code;
   router.get("/primus.js", (_, res) => {
     res.header("Content-Type", "text/javascript");
-    res.header("Cache-Control", `private, max-age=${60 * 60}`);
+    res.header("Cache-Control", `private, max-age=${60 * 60}, must-revalidate`);
     res.send(primus_js);
   });
   router.get("/primus.min.js", (_, res) => {
     res.header("Content-Type", "text/javascript");
-    res.header("Cache-Control", `private, max-age=${60 * 60}`);
+    res.header("Cache-Control", `private, max-age=${60 * 60}, must-revalidate`);
     res.send(primus_min_js);
   });
 }
