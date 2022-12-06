@@ -11,7 +11,7 @@ import { ProjectControlFunction } from "@cocalc/server/projects/control";
 const winston = getLogger("proxy: handle-upgrade");
 
 interface Options {
-  projectControl : ProjectControlFunction;
+  projectControl: ProjectControlFunction;
   isPersonal: boolean;
 }
 
@@ -69,6 +69,23 @@ export default function init(
       timeout: 3000,
     });
     cache.set(target, proxy);
+
+    // taken from https://github.com/http-party/node-http-proxy/issues/1401
+    proxy.on("proxyRes", function (proxyRes) {
+      //console.log(
+      //  "Raw [target] response",
+      //  JSON.stringify(proxyRes.headers, true, 2)
+      //);
+
+      proxyRes.headers["x-reverse-proxy"] = "custom-proxy";
+      proxyRes.headers["cache-control"] = "no-cache, no-store";
+
+      //console.log(
+      //  "Updated [proxied] response",
+      //  JSON.stringify(proxyRes.headers, true, 2)
+      //);
+    });
+
     proxy.on("error", (err) => {
       winston.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.del(target);

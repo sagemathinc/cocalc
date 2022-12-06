@@ -333,7 +333,7 @@ export class PassportManager {
       const path = require("path").join(base_path, "app");
       const url = `${DOMAIN_URL}${path}`;
       res.header("Content-Type", "text/html");
-      res.header("Cache-Control", "private, no-cache, must-revalidate");
+      res.header("Cache-Control", "no-cache, no-store");
       if (
         !(req.query.token && req.query.email) ||
         typeof req.query.email !== "string" ||

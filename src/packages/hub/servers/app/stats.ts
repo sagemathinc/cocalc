@@ -10,7 +10,7 @@ export default function init(router: Router) {
       res.json({ error: "not connected to database" });
       return;
     }
-    res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.header("Cache-Control", "no-cache, no-store");
     try {
       const stats = await callback2(database.get_stats, {
         update: false, // never update in hub b/c too slow. instead, run $ hub --update_stats via a cronjob every minute
