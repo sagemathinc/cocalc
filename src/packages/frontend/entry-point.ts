@@ -15,9 +15,6 @@ import { COCALC_MINIMAL } from "./fullscreen";
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
 
-// Initialize server stats redux store
-import "./server-stats";
-
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";
 

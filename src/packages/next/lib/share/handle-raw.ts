@@ -12,6 +12,8 @@ import DirectoryListing from "serve-index";
 import { getExtension, isSha1Hash } from "./util";
 import { pathFromID } from "./path-to-files";
 import LRU from "lru-cache";
+import ms from "ms";
+const MAX_AGE = Math.round(ms("15 minutes") / 1000);
 
 interface Options {
   id: string;
@@ -40,6 +42,7 @@ async function handleRequest(opts: Options): Promise<void> {
     download,
     next,
   } = opts;
+  res.setHeader("Cache-Control", `public, max-age=${MAX_AGE}`);
 
   if (!isSha1Hash(id)) {
     throw Error(`id=${id} is not a sha1 hash`);
