@@ -8,12 +8,16 @@
 // and used to configure it in read-only mode. In the future, a natural extension is to explicitly list the datastores
 // that should be inherited, or configure the readonly property. but for now, it's just true or false.
 
+import { Button, Card, Form, Switch, Typography } from "antd";
+import { List } from "immutable";
+
 import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { Datastore } from "@cocalc/frontend/projects/actions";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { Button, Card, Form, Switch, Typography } from "antd";
-import { List } from "immutable";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { ConfigurationActions } from "./actions";
 
 interface Props {
@@ -24,6 +28,7 @@ interface Props {
 export const DatastoreConfig: React.FC<Props> = (props: Props) => {
   const { actions, datastore } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const customize_datastore = useTypedRedux("customize", "datastore");
   const [need_save, set_need_save] = useState<boolean>(false);
 
   // by default, we inherit the datastore configuration
@@ -43,8 +48,12 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
     actions.set_datastore(next_val);
   }
 
-  // this selector only make sense for cocalc.com
-  if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+  // this selector only make sense for cocalc.com or onprem with datastore enabled
+  const showDatastore =
+    customize_kucalc === KUCALC_COCALC_COM ||
+    (customize_kucalc === KUCALC_ON_PREMISES && customize_datastore);
+
+  if (!showDatastore) return null;
 
   function render_control() {
     return (
@@ -69,22 +78,25 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <Card
-      title={
-        <>
-          <Icon name="database" /> Cloud storage & remote file systems
-        </>
-      }
-    >
-      <p>
-        If enabled, all student projects will have{" "}
-        <Typography.Text strong>read-only</Typography.Text> access to the same
-        cloud stores and remote file systems as this instructor project. To
-        configure them, please check this project's settings for more details.
-        Any changes to the configuration of this project will be reflected after
-        the next start of a student project.
-      </p>
-      {render_control()}
-    </Card>
+    <>
+      <br />
+      <Card
+        title={
+          <>
+            <Icon name="database" /> Cloud storage & remote file systems
+          </>
+        }
+      >
+        <p>
+          If enabled, all student projects will have{" "}
+          <Typography.Text strong>read-only</Typography.Text> access to the same
+          cloud stores and remote file systems as this instructor project. To
+          configure them, please check this project's settings for more details.
+          Any changes to the configuration of this project will be reflected
+          after the next start of a student project.
+        </p>
+        {render_control()}
+      </Card>
+    </>
   );
 };
