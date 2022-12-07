@@ -109,23 +109,25 @@ export default function Software(props: Props) {
   return (
     <Customize value={customize}>
       <Head title="Python Libraries in CoCalc" />
-      <Header page="software" subPage="python" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div style={STYLE_PAGE_WIDE}>
-          {renderTop()}
-          <SoftwareLibraries
-            spec={spec}
-            inventory={inventory}
-            components={components}
-            libWidthPct={40}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="software" subPage="python" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <div style={STYLE_PAGE_WIDE}>
+            {renderTop()}
+            <SoftwareLibraries
+              spec={spec}
+              inventory={inventory}
+              components={components}
+              libWidthPct={40}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

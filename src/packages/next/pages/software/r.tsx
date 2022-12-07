@@ -86,30 +86,34 @@ export default function R(props: Props) {
   return (
     <Customize value={customize}>
       <Head title="R Packages in CoCalc" />
-      <Header page="software" subPage="r" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div style={STYLE_PAGE}>
-          <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            Installed R Statistical Software Packages
-          </h1>
-          {renderIntro()}
-          {renderBox()}
-          <h2>R Statistical Software Environments</h2>
-          <ul>{renderEnvs()}</ul>
-          <SoftwareInfo info={execInfo} showHeader={false} />
-          <SoftwareLibraries
-            spec={spec}
-            inventory={inventory}
-            components={components}
-            libWidthPct={60}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="software" subPage="r" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <div style={STYLE_PAGE}>
+            <h1
+              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+            >
+              Installed R Statistical Software Packages
+            </h1>
+            {renderIntro()}
+            {renderBox()}
+            <h2>R Statistical Software Environments</h2>
+            <ul>{renderEnvs()}</ul>
+            <SoftwareInfo info={execInfo} showHeader={false} />
+            <SoftwareLibraries
+              spec={spec}
+              inventory={inventory}
+              components={components}
+              libWidthPct={60}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

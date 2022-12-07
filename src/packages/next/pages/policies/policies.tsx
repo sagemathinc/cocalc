@@ -16,16 +16,18 @@ export default function Policies({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Policies" />
-      <Header page="policies" subPage="policies" />
-      <Row>
-        <Col
-          xs={{ span: 12, offset: 6 }}
-          style={{ marginTop: "30px", marginBottom: "30px" }}
-        >
-          {policies && <SanitizedMarkdown value={policies} />}
-        </Col>
-      </Row>
-      <Footer />
+      <Layout>
+        <Header page="policies" subPage="policies" />
+        <Row>
+          <Col
+            xs={{ span: 12, offset: 6 }}
+            style={{ marginTop: "30px", marginBottom: "30px" }}
+          >
+            {policies && <SanitizedMarkdown value={policies} />}
+          </Col>
+        </Row>
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

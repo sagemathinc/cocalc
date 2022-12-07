@@ -115,13 +115,15 @@ export default function Policies({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Policies" />
-      <Header page="policies" />
-      <IndexList
-        title={`${customize.siteName} Policies`}
-        description={description}
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="policies" />
+        <IndexList
+          title={`${customize.siteName} Policies`}
+          description={description}
+          dataSource={dataSource}
+        />
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

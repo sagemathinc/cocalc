@@ -104,13 +104,15 @@ export default function Software({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Software" />
-      <Header page="software" />
-      <IndexList
-        title="Available Software"
-        description="These pages contain information about available software on CoCalc."
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="software" />
+        <IndexList
+          title="Available Software"
+          description="These pages contain information about available software on CoCalc."
+          dataSource={dataSource}
+        />
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

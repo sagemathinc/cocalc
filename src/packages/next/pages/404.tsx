@@ -8,7 +8,7 @@ import { join } from "path";
 import Head from "next/head";
 import Footer from "components/landing/footer";
 import LandingHeader from "components/landing/header";
-import { Layout as AntdLayout } from "antd";
+import { Layout } from "antd";
 import basePath from "lib/base-path";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
@@ -34,9 +34,9 @@ export default function Custom404() {
         <meta name="robots" content="noindex,nofollow" />
         <link rel="icon" href={favicon} />
       </Head>
-      <AntdLayout>
+      <Layout>
         <LandingHeader />
-        <AntdLayout.Content style={{ background: "white" }}>
+        <Layout.Content style={{ background: "white" }}>
           <div
             style={{
               color: "#555",
@@ -65,9 +65,9 @@ export default function Custom404() {
               </a>
             </div>
           </div>
-        </AntdLayout.Content>
+        </Layout.Content>
         <Footer />
-      </AntdLayout>
+      </Layout>
     </>
   );
 }

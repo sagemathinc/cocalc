@@ -11,32 +11,34 @@ export default function AccessibilityPage({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Accessibility" />
-      <Header page="policies" subPage="accessibility" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div
+      <Layout>
+        <Header page="policies" subPage="accessibility" />
+        <Layout.Content
           style={{
-            maxWidth: MAX_WIDTH,
-            margin: "15px auto",
-            padding: "15px",
             backgroundColor: "white",
           }}
         >
-          <div style={{ textAlign: "center", color: "#444" }}>
-            <h1 style={{ fontSize: "28pt" }}>
-              CoCalc Voluntary Product Accessibility Template (VPAT)
-            </h1>
-            <h2>Last Updated: July 3, 2019</h2>
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "15px auto",
+              padding: "15px",
+              backgroundColor: "white",
+            }}
+          >
+            <div style={{ textAlign: "center", color: "#444" }}>
+              <h1 style={{ fontSize: "28pt" }}>
+                CoCalc Voluntary Product Accessibility Template (VPAT)
+              </h1>
+              <h2>Last Updated: July 3, 2019</h2>
+            </div>
+            <div style={{ fontSize: "12pt", overflowX: "auto" }}>
+              <Accessibility />
+            </div>
           </div>
-          <div style={{ fontSize: "12pt", overflowX: "auto" }}>
-            <Accessibility />
-          </div>
-        </div>
-        <Footer />
-      </Layout.Content>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

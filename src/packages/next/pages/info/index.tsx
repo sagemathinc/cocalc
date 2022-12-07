@@ -6,6 +6,7 @@ import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
+import { Layout } from "antd";
 
 const dataSource = [
   {
@@ -52,17 +53,21 @@ export default function Info({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Info" />
-      <Header page="info" />
-      <IndexList
-        title={
-          <>
-            Information about <SiteName />
-          </>
-        }
-        description={<>Information and links to resources for learning more.</>}
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="info" />
+        <IndexList
+          title={
+            <>
+              Information about <SiteName />
+            </>
+          }
+          description={
+            <>Information and links to resources for learning more.</>
+          }
+          dataSource={dataSource}
+        />
+        <Footer />
+      </Layout>
     </Customize>
   );
 }

@@ -16,16 +16,18 @@ export default function Imprint({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Policies" />
-      <Header page="policies" subPage="imprint" />
-      <Row>
-        <Col
-          xs={{ span: 12, offset: 6 }}
-          style={{ marginTop: "30px", marginBottom: "30px" }}
-        >
-          {imprint && <SanitizedMarkdown value={imprint} />}
-        </Col>
-      </Row>
-      <Footer />
+      <Layout>
+        <Header page="policies" subPage="imprint" />
+        <Row>
+          <Col
+            xs={{ span: 12, offset: 6 }}
+            style={{ marginTop: "30px", marginBottom: "30px" }}
+          >
+            {imprint && <SanitizedMarkdown value={imprint} />}
+          </Col>
+        </Row>
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

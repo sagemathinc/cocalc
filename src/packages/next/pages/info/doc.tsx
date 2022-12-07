@@ -100,38 +100,40 @@ export default function Help({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="CoCalc Documentation" />
-      <Header page="info" subPage="doc" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div
+      <Layout>
+        <Header page="info" subPage="doc" />
+        <Layout.Content
           style={{
-            maxWidth: MAX_WIDTH,
-            margin: "15px auto",
-            padding: "15px",
             backgroundColor: "white",
           }}
         >
-          <IndexList
-            title={
-              <>
-                <Icon name="life-saver" style={{ marginRight: "30px" }} />
-                CoCalc - Documentation
-              </>
-            }
-            description={
-              <>
-                There are many ways that you can connect with the broader CoCalc
-                community.
-              </>
-            }
-            dataSource={data}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "15px auto",
+              padding: "15px",
+              backgroundColor: "white",
+            }}
+          >
+            <IndexList
+              title={
+                <>
+                  <Icon name="life-saver" style={{ marginRight: "30px" }} />
+                  CoCalc - Documentation
+                </>
+              }
+              description={
+                <>
+                  There are many ways that you can connect with the broader
+                  CoCalc community.
+                </>
+              }
+              dataSource={data}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }
