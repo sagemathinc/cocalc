@@ -44,10 +44,11 @@ interface Props {
 
 export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, project_state, dedicated_resources } = props;
+  const projectIsRunning = project_state === "running";
   //const projectStatus = project.get("status");
   const currentUsage = useCurrentUsage({ project_id });
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const runQuota = useRunQuota(project_id, project_state === "running");
+  const runQuota = useRunQuota(project_id, null);
   const maxUpgrades = useMaxUpgrades();
   const displayedFields = useDisplayedFields();
 
@@ -89,10 +90,10 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         quotaDedicated: getQuotaDedicated(name),
         maximum: maxUpgrades?.[name] ?? "N/A",
         maxDedicated: getMaxDedicated(name),
-        usage: project_state === "running" ? currentUsage?.[key] : undefined,
+        usage: currentUsage?.[key],
       };
     });
-  }, [runQuota, currentUsage, maxUpgrades, project_state === "running"]);
+  }, [runQuota, currentUsage, maxUpgrades, projectIsRunning]);
 
   function renderExtraMaximum(record: QuotaData): JSX.Element | undefined {
     if (SHOW_MAX.includes(record.key)) {
@@ -201,7 +202,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function renderUsage(record: QuotaData): JSX.Element | undefined {
-    if (project_state != "running") return;
+    if (!projectIsRunning) return;
     // the usage of a boolean quota is always the same as its value
     if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
     const usage: Usage = record.usage;
@@ -212,17 +213,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function renderQuotaLimit(record: QuotaData) {
-    if (project_state != "running") {
-      return (
-        <Tip
-          tip={`The project is currently not running. Start the project to see the effective quotas.`}
-        >
-          <PoweroffOutlined style={{ color: COLORS.GRAY_L }} />
-        </Tip>
-      );
-    }
-
     const val = record["quota"];
+
+    const style = projectIsRunning ? {} : { color: COLORS.GRAY_L };
 
     if (record.key === "idle_timeout" && val === "&infin;") {
       return (
@@ -233,16 +226,34 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     }
 
     if (typeof val === "boolean") {
-      return renderBoolean(val);
+      return renderBoolean(val, projectIsRunning);
     } else if (typeof val === "number") {
       if (record.key === "idle_timeout") {
         return val;
       }
     } else {
       return (
-        <Text strong={true}>
+        <Text strong={true} style={style}>
           <NoWrap>{val}</NoWrap>
         </Text>
+      );
+    }
+  }
+
+  function renderValueColumnTitle(): JSX.Element {
+    if (projectIsRunning) {
+      return (
+        <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">
+          Value
+        </QuestionMarkText>
+      );
+    } else {
+      return (
+        <Tip
+          tip={`The project is currently not running. The data is stale from the last run. Start the project to see the effective quotas.`}
+        >
+          Value <PoweroffOutlined style={{ color: COLORS.ANTD_RED_WARN }} />
+        </Tip>
       );
     }
   }
@@ -284,11 +295,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         />
         <Table.Column<QuotaData>
           key="key"
-          title={
-            <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">
-              Value
-            </QuestionMarkText>
-          }
+          title={renderValueColumnTitle()}
           dataIndex="limit"
           render={(_, record) => renderQuotaLimit(record)}
           width={"25%"}

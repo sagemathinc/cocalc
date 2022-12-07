@@ -11,40 +11,46 @@ Markdown editor
 // rather than a directory for each file.
 const AUX_FILE_EXT = "upload";
 
-import { isEqual } from "lodash";
-import { join } from "path";
-import * as CodeMirror from "codemirror";
-type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  ReactDOM,
+  redux,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { useProjectHasInternetAccess } from "@cocalc/frontend/project/settings/has-internet-access-hook";
 import {
   aux_file,
   len,
   path_split,
-  trunc_middle,
   trunc,
+  trunc_middle,
 } from "@cocalc/util/misc";
-import { IS_MOBILE } from "../../feature";
-import { A } from "../../components";
-import { useTypedRedux, useRedux, redux, ReactDOM } from "../../app-framework";
+import * as CodeMirror from "codemirror";
+import { debounce, isEqual } from "lodash";
+import { join } from "path";
 import {
   CSSProperties,
   MutableRefObject,
-  RefObject,
   ReactNode,
+  RefObject,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { Dropzone, FileUploadWrapper } from "../../file-upload";
-import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
-import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
-import { debounce } from "lodash";
-import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { submit_mentions } from "./mentions";
 import { EditorFunctions } from "./multimode";
+
+type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
@@ -111,46 +117,47 @@ interface Props {
   compact?: boolean;
 }
 
-export function MarkdownInput({
-  project_id,
-  path,
-  value,
-  enableUpload,
-  onUploadStart,
-  onUploadEnd,
-  enableMentions,
-  submitMentionsRef,
-  style,
-  onChange,
-  saveDebounceMs,
-  getValueRef,
-  onShiftEnter,
-  onEscape,
-  onBlur,
-  onFocus,
-  placeholder,
-  height,
-  instructionsStyle,
-  extraHelp,
-  hideHelp,
-  fontSize,
-  autoFocus,
-  cmOptions,
-  selectionRef,
-  onUndo,
-  onRedo,
-  onSave,
-  onCursors,
-  cursors,
-  divRef,
-  onCursorTop,
-  onCursorBottom,
-  isFocused,
-  registerEditor,
-  unregisterEditor,
-  refresh,
-  compact,
-}: Props) {
+export function MarkdownInput(props: Props) {
+  const {
+    project_id,
+    path,
+    value,
+    enableUpload,
+    onUploadStart,
+    onUploadEnd,
+    enableMentions,
+    submitMentionsRef,
+    style,
+    onChange,
+    saveDebounceMs,
+    getValueRef,
+    onShiftEnter,
+    onEscape,
+    onBlur,
+    onFocus,
+    placeholder,
+    height,
+    instructionsStyle,
+    extraHelp,
+    hideHelp,
+    fontSize,
+    autoFocus,
+    cmOptions,
+    selectionRef,
+    onUndo,
+    onRedo,
+    onSave,
+    onCursors,
+    cursors,
+    divRef,
+    onCursorTop,
+    onCursorBottom,
+    isFocused,
+    registerEditor,
+    unregisterEditor,
+    refresh,
+    compact,
+  } = props;
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
@@ -637,9 +644,7 @@ export function MarkdownInput({
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    if (!redux.getStore("projects").has_internet_access(project_id)) {
-      return <span> (enable the Internet Access upgrade to send emails)</span>;
-    }
+    return <EnableInternetAccess project_id={project_id} />;
   }
 
   function render_mobile_instructions() {
@@ -930,5 +935,15 @@ function upload_link(
     // some files (e.g,. word doc files) our markdown renderer inexplicably
     // does NOT render them as links!?  a tags work though.
     return `<a href=\"${target}\">${file.name}</a>`;
+  }
+}
+
+function EnableInternetAccess({ project_id }: { project_id: string }) {
+  const haveInternetAccess = useProjectHasInternetAccess(project_id);
+
+  if (!haveInternetAccess) {
+    return <span> (enable the Internet Access upgrade to send emails)</span>;
+  } else {
+    return null;
   }
 }
