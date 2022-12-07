@@ -12,9 +12,12 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
-import { CSSProperties, useRef } from "react";
-import { Alert, Button } from "antd";
-import { redux, React, useMemo, useTypedRedux } from "../app-framework";
+import {
+  React,
+  redux,
+  useMemo,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   Delay,
@@ -23,15 +26,17 @@ import {
   Space,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { DOC_TRIAL } from "./trial-banner";
-import { allow_project_to_run } from "./client-side-throttle";
 import { server_seconds_ago } from "@cocalc/util/misc";
+import { Alert, Button } from "antd";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { allow_project_to_run } from "./client-side-throttle";
+import { DOC_TRIAL } from "./trial-banner";
 
 interface Props {
   project_id: string;
 }
 
-const STYLE = {
+const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
   color: "#666666",
@@ -39,13 +44,26 @@ const STYLE = {
   borderBottom: "1px solid grey",
   borderTop: "1px solid grey",
   paddingBottom: "10px",
-} as CSSProperties;
+} as const;
 
 export const StartButton: React.FC<Props> = ({ project_id }) => {
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
+  const [allowed, setAllowed] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    const check_allowed = async () => {
+      setAllowed(await allow_project_to_run(project_id));
+    };
+
+    check_allowed().catch((err) => {
+      console.error("unable to check if project is allowed to run", err);
+      setAllowed(true); // assume it is allowed
+    });
+  }, []);
+
   const state = useMemo(() => {
     const state = project_map?.getIn([project_id, "state"]);
     if (state != null) {
@@ -118,41 +136,43 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   }
 
   function render_not_allowed() {
-    return (
-      <VisibleMDLG>
-        <Alert
-          style={{ margin: "10px 20%" }}
-          message={
-            <span style={{ fontWeight: 500, fontSize: "14pt" }}>
-              Too many trial projects!
-            </span>
-          }
-          type="error"
-          description={
-            <span style={{ fontSize: "12pt" }}>
-              Unfortunately, there are too many{" "}
-              <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right now
-              and paying customers have priority. Try running your trial project
-              later or{" "}
-              <a
-                onClick={() => {
-                  redux.getActions("page").set_active_tab("account");
-                  redux.getActions("account").set_active_tab("licenses");
-                }}
-              >
-                <u>upgrade using a license</u>.
-              </a>
-            </span>
-          }
-        />
-      </VisibleMDLG>
-    );
+    // only show this warning if we got a clear answer that it is not allowed to run
+    if (allowed === false)
+      return (
+        <VisibleMDLG>
+          <Alert
+            style={{ margin: "10px 20%" }}
+            message={
+              <span style={{ fontWeight: 500, fontSize: "14pt" }}>
+                Too many trial projects!
+              </span>
+            }
+            type="error"
+            description={
+              <span style={{ fontSize: "12pt" }}>
+                Unfortunately, there are too many{" "}
+                <A href={DOC_TRIAL}>trial projects</A> running on CoCalc right
+                now and paying customers have priority. Try running your trial
+                project later or{" "}
+                <a
+                  onClick={() => {
+                    redux.getActions("page").set_active_tab("account");
+                    redux.getActions("account").set_active_tab("licenses");
+                  }}
+                >
+                  <u>upgrade using a license</u>.
+                </a>
+              </span>
+            }
+          />
+        </VisibleMDLG>
+      );
   }
 
   function render_start_project_button() {
     const enabled =
       state == null ||
-      (allow_project_to_run(project_id) &&
+      (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
     return (
       <div>
@@ -170,8 +190,6 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
       </div>
     );
   }
-
-  const allowed = allow_project_to_run(project_id);
 
   // In case user is admin viewing another user's project, we provide a
   // special mode.
