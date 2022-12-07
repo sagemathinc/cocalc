@@ -4,9 +4,12 @@
  */
 
 import { delay } from "awaiting";
-import { React, useRedux } from "../../app-framework";
+import { React, useRedux } from "@cocalc/frontend/app-framework";
 import { JupyterEditorActions } from "./actions";
-import { TableOfContents as TOC, TableOfContentsEntryList } from "../../components";
+import {
+  TableOfContents as TOC,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 
 interface Props {
   font_size: number;

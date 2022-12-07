@@ -55,7 +55,13 @@ export const TableOfContents: React.FC<Props> = React.memo(
               <Icon name={icon} style={{ marginLeft: "10px", color: "#666" }} />
             )}
           </span>
-          <a style={{ display: "inline-block", marginBottom: "-1em" }}>
+          <a
+            style={{
+              display: "inline-block",
+              marginBottom: "-1em",
+              marginLeft: "10px",
+            }}
+          >
             <Markdown value={"&nbsp;" + value} />
           </a>
         </div>

@@ -10,7 +10,7 @@ The stopwatch and timer component
 import { CSSProperties, useEffect, useState } from "react";
 import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import moment from "moment";
+import dayjs from "dayjs";
 import { Button, Row, Col, Modal, TimePicker, Tooltip } from "antd";
 import {
   DeleteTwoTone,
@@ -119,7 +119,7 @@ export default function Stopwatch(props: StopwatchProps) {
             onChange={(time) => {
               if (time != null) {
                 setCountdown(
-                  time.seconds() + time.minutes() * 60 + time.hours() * 60 * 60
+                  time.second() + time.minute() * 60 + time.hour() * 60 * 60
                 );
                 // timeout so the setcountdown can fully propagate through flux; needed for whiteboard
                 setTimeout(() => props.clickButton("reset"), 0);
@@ -396,11 +396,11 @@ export default function Stopwatch(props: StopwatchProps) {
 
 export function getCountdownMoment(countdown: number | undefined) {
   let amount = Math.round(countdown ?? 0);
-  const m = moment();
-  m.seconds(amount % 60);
+  const m = dayjs();
+  m.second(amount % 60);
   amount = (amount - (amount % 60)) / 60;
-  m.minutes(amount % 60);
+  m.minute(amount % 60);
   amount = (amount - (amount % 60)) / 60;
-  m.hours(amount);
+  m.hour(amount);
   return m;
 }

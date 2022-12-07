@@ -14,12 +14,12 @@
 import { React } from "../app-framework";
 
 import { DatePicker } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 
 export function DateTimePicker(props: {
   placeholder?: string;
   value?: any;
-  onChange?: (date: moment.Moment | null, dateString: string) => void;
+  onChange?: (date: dayjs.Dayjs | null, dateString: string) => void;
   onFocus?: Function;
   onBlur?: Function;
   open?: boolean;
@@ -36,7 +36,7 @@ export function DateTimePicker(props: {
     props2.open = props.open;
   }
   if (props.value != null) {
-    props2.value = moment(props.value);
+    props2.value = dayjs(props.value);
   } else {
     props2.value = null;
   }
