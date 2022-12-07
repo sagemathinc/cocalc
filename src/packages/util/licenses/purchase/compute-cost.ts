@@ -39,7 +39,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
-  // dedicagted cases above should eliminate an unknown user
+  // dedicated cases above should eliminate an unknown user.
   if (user !== "academic" && user !== "business") {
     throw new Error(`unknown user ${user}`);
   }

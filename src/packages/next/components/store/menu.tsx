@@ -19,26 +19,20 @@ export default function ConfigMenu({ main }) {
     });
   }
 
-  function renderNew() {
-    if (new Date().getTime() > new Date("2022-09-01").getTime()) return;
-
-    return (
-      <Text italic>
-        <sup>new</sup>
-      </Text>
-    );
-  }
-
   const items: MenuItem[] = [
     { label: <Text strong>Store</Text>, key: "" },
-    { label: "Site License", key: "site-license", icon: <Icon name="key" /> },
     {
-      label: <>Boost {renderNew()}</>,
+      label: "Quota Upgrade License",
+      key: "site-license",
+      icon: <Icon name="key" />,
+    },
+    {
+      label: "License Booster",
       key: "boost",
       icon: <Icon name="rocket" />,
     },
     {
-      label: <>Dedicated {renderNew()}</>,
+      label: "Dedicated VM or Disk",
       key: "dedicated",
       icon: <Icon name="dedicated" />,
     },

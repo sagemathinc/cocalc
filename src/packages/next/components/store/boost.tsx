@@ -68,16 +68,16 @@ export default function Boost(props: Props) {
       <h3 ref={headerRef}>
         <Icon name={"rocket"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
-          ? "Edit Boost License in Shopping Cart"
-          : "Buy a Boost License"}
+          ? "Edit License Booster in Shopping Cart"
+          : "Buy a License Booster"}
       </h3>
       {router.query.id == null && (
         <Space direction="vertical" style={{ marginBottom: "20px" }}>
           <Typography>
-            A Boost License adds additional quotas to an already existing, valid
-            and currently active regular Site License. A common use case is to
-            increase the memory limit after you already bought a Site License.
-            Create a boost using the form below then add it to your{" "}
+            A License Booster adds additional quotas to an already existing,
+            valid and currently active regular Site License. A common use case
+            is to increase the memory limit after you already bought a Site
+            License. Create a boost using the form below then add it to your{" "}
             <A href="/store/cart">shopping cart</A>.
           </Typography>
           <Typography>

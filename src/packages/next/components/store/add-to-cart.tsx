@@ -12,6 +12,7 @@ import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseType } from "@cocalc/util/upgrades/shopping";
 import apiPost from "lib/api/post";
 import { LS_KEY_LICENSE_PROJECT } from "./util";
+import { ALL_FIELDS } from "./quota-query-params";
 
 // these are the hidden type fields of the forms
 // regular and boost end up as "quota" types
@@ -35,6 +36,13 @@ export async function addToCart(props: Props) {
   } = {
     ...form.getFieldsValue(true),
   };
+
+  // exclude extra fields that are for UI only. See https://github.com/sagemathinc/cocalc/issues/6258
+  for (const field in description) {
+    if (!ALL_FIELDS.has(field)) {
+      delete description[field];
+    }
+  }
 
   // unload the type parameter
   switch (description.type) {
