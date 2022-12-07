@@ -87,6 +87,7 @@ const PAGES = {
   try: {},
   support,
   store: {},
+  crm: {},
 };
 
 export type Page = keyof typeof PAGES | "account";

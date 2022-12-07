@@ -16,6 +16,8 @@ const winston = getLogger("nocodb");
 import { pghost } from "@cocalc/backend/data";
 import dbPassword from "@cocalc/database/pool/password";
 
+const NOCODB_ENDPOINT = "crm/db";
+
 export default async function initNocoDB(app: Application, httpServer: Server) {
   let Noco;
   try {
@@ -27,7 +29,7 @@ export default async function initNocoDB(app: Application, httpServer: Server) {
     winston.info("NocoDB is not installed");
     return;
   }
-  const base = join(basePath, "nocodb");
+  const base = join(basePath, NOCODB_ENDPOINT);
   winston.info(`Initializing the NocoDB server at ${base}`);
   await prepForNocodb();
   const nocoHandler = await Noco.init({}, httpServer, app);
