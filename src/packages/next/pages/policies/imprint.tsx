@@ -10,6 +10,7 @@ import Head from "components/landing/head";
 import Footer from "components/landing/footer";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Customize } from "lib/customize";
+import { Layout } from "antd";
 
 export default function Imprint({ customize }) {
   const { imprint } = customize;

@@ -10,6 +10,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
+import { Layout } from "antd";
 
 const dataSourceCoCalcCom = [
   {

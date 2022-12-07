@@ -514,7 +514,9 @@ export default function Privacy({ customize }) {
                       Android
                     </A>{" "}
                     and{" "}
-                    <A href="https://support.apple.com/en-us/HT202074">iOS</A>.{" "}
+                    <A href="https://support.apple.com/en-us/HT202074">
+                      iOS
+                    </A>.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="third-party-websites-social-media-platforms-and-software-development-kits">
@@ -931,7 +933,9 @@ export default function Privacy({ customize }) {
                       Android
                     </A>{" "}
                     and{" "}
-                    <A href="https://support.apple.com/en-us/HT202074">iOS</A>.{" "}
+                    <A href="https://support.apple.com/en-us/HT202074">
+                      iOS
+                    </A>.{" "}
                   </p>{" "}
                   <p>
                     {" "}
@@ -1298,9 +1302,8 @@ export default function Privacy({ customize }) {
                 </h1>
                 {/* @ts-ignore */}
                 <table
-                  border="1px"
-                  cellpadding="5px"
-                  style={{ margin: "auto" }}
+                  cellPadding="5px"
+                  style={{ margin: "auto", border: "1px solid black" }}
                 >
                   <thead>
                     <tr>
