@@ -96,10 +96,7 @@ export function UsageAndDuration(props: Props) {
     return (
       <>
         {(range?.[0] == null || range?.[1] == null) && (
-          <div
-            className="ant-form-item-explain-error"
-            style={{ textAlign: "center" }}
-          >
+          <div style={{ textAlign: "center", color: "#ff4d4f" }}>
             Please enter a range of dates.
           </div>
         )}

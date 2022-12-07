@@ -22,12 +22,12 @@ export default function ConfigMenu({ main }) {
   const items: MenuItem[] = [
     { label: <Text strong>Store</Text>, key: "" },
     {
-      label: "Quota Upgrade License",
+      label: "Quota Upgrade",
       key: "site-license",
       icon: <Icon name="key" />,
     },
     {
-      label: "License Booster",
+      label: "Booster",
       key: "boost",
       icon: <Icon name="rocket" />,
     },

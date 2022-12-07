@@ -4,7 +4,7 @@
  */
 
 import { DatePicker } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import { CSSProperties, useState } from "react";
 import { DateRangeType, Date0 } from "@cocalc/util/types/store";
 import { roundToMidnight } from "@cocalc/util/stripe/timecalcs";
@@ -35,6 +35,28 @@ export default function DateRange(props: Props) {
 
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
 
+  const presets = [
+    { label: "Week", value: [dayjs(), dayjs().add(1, "week")] },
+    { label: "Month", value: [dayjs(), dayjs().add(1, "month")] },
+    { label: "Year", value: [dayjs(), dayjs().add(1, "year")] },
+    {
+      label: "+ Week",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(1, "week")],
+    },
+    {
+      label: "+ Month",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(1, "month")],
+    },
+    {
+      label: "+ Three Months",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(3, "months")],
+    },
+    {
+      label: "+ Four Months",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(4, "months")],
+    },
+  ];
+
   return (
     <div style={style}>
       <DatePicker.RangePicker
@@ -43,7 +65,8 @@ export default function DateRange(props: Props) {
         renderExtraFooter={() => (
           <div style={{ marginBottom: "-15px" }}>
             <div>
-              Select start and end dates above, with the help of the presets below:
+              Select start and end dates above, with the help of the presets
+              below:
             </div>
             <ul>
               <li style={{ marginTop: "-15px" }}>
@@ -55,28 +78,11 @@ export default function DateRange(props: Props) {
             </ul>
           </div>
         )}
-        ranges={{
-          Week: [moment(), moment().add(1, "week")],
-          Month: [moment(), moment().add(1, "month")],
-          Year: [moment(), moment().add(1, "year")],
-          "+ Week": [moment(dateRange[0]), moment(dateRange[0]).add(1, "week")],
-          "+ Month": [
-            moment(dateRange[0]),
-            moment(dateRange[0]).add(1, "month"),
-          ],
-          "+ Three Months": [
-            moment(dateRange[0]),
-            moment(dateRange[0]).add(3, "months"),
-          ],
-          "+ Four Months": [
-            moment(dateRange[0]),
-            moment(dateRange[0]).add(4, "months"),
-          ],
-        }}
+        presets={presets as any}
         value={
           [
-            dateRange[0] ? moment(dateRange[0]) : undefined,
-            dateRange[1] ? moment(dateRange[1]) : undefined,
+            dateRange[0] ? dayjs(dateRange[0]) : undefined,
+            dateRange[1] ? dayjs(dateRange[1]) : undefined,
           ] as any
         }
         onChange={(value) => {
@@ -91,10 +97,10 @@ export default function DateRange(props: Props) {
           noPast || maxDaysInFuture
             ? (date) => {
                 if (!date) return false;
-                if (noPast && date <= moment().subtract(1, "days")) return true;
+                if (noPast && date <= dayjs().subtract(1, "days")) return true;
                 if (
                   maxDaysInFuture &&
-                  date >= moment().add(maxDaysInFuture, "days")
+                  date >= dayjs().add(maxDaysInFuture, "days")
                 )
                   return true;
                 return false;
