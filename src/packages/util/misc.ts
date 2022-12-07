@@ -33,6 +33,7 @@ export { done, done1, done2 } from "./done";
 export {
   cmp,
   cmp_Date,
+  cmp_dayjs,
   cmp_moment,
   cmp_array,
   timestamp_cmp,
@@ -1627,7 +1628,7 @@ export function containing_public_path(
     // array so "of"
     // @ts-ignore
     for (const p of paths) {
-      if (p == null) continue;  // the typescript typings evidently aren't always exactly right
+      if (p == null) continue; // the typescript typings evidently aren't always exactly right
       if (p === "") {
         // the whole project is public, which matches everything
         return "";

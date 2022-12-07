@@ -323,9 +323,9 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
                 if (time != null) {
                   set(
                     "countdown",
-                    time.seconds() +
-                      time.minutes() * 60 +
-                      time.hours() * 60 * 60
+                    time.second() +
+                      time.minute() * 60 +
+                      time.hour() * 60 * 60
                   );
                 } else {
                   set("countdown", null);

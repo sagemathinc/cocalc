@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.73.1",
+  "version": "1.75.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -34,11 +34,11 @@
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
+    "dayjs": "^1.11.7",
     "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
-    "moment": "^2.29.4",
     "prop-types": "^15.7.2",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",

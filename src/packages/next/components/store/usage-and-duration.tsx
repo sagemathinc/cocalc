@@ -68,9 +68,7 @@ export function UsageAndDuration(props: Props) {
       >
         <Radio.Group disabled={disabled}>
           <Space direction="vertical" style={{ margin: "5px 0" }}>
-            <Radio value={"business"}>
-              Business - for commercial purposes
-            </Radio>
+            <Radio value={"business"}>Business - for commercial purposes</Radio>
             <Radio value={"academic"}>
               Academic - students, teachers, academic researchers, non-profit
               organizations and hobbyists (40% discount)
@@ -94,19 +92,27 @@ export function UsageAndDuration(props: Props) {
   function renderRangeSelector(getFieldValue) {
     const period = getFieldValue("period");
     if (period !== "range") return;
+    const range = getFieldValue("range");
     return (
-      <DateRange
-        disabled={disabled}
-        noPast
-        maxDaysInFuture={365 * 4}
-        style={{ margin: "5px 0 30px", textAlign: "center" }}
-        initialValues={getFieldValue("range")}
-        onChange={(range) => {
-          range = fixRangeSelector(range);
-          form.setFieldsValue({ range });
-          onChange();
-        }}
-      />
+      <>
+        {(range?.[0] == null || range?.[1] == null) && (
+          <div style={{ textAlign: "center", color: "#ff4d4f" }}>
+            Please enter a range of dates.
+          </div>
+        )}
+        <DateRange
+          disabled={disabled}
+          noPast
+          maxDaysInFuture={365 * 4}
+          style={{ margin: "5px 0 30px", textAlign: "center" }}
+          initialValues={getFieldValue("range")}
+          onChange={(range) => {
+            range = fixRangeSelector(range);
+            form.setFieldsValue({ range });
+            onChange();
+          }}
+        />
+      </>
     );
   }
 

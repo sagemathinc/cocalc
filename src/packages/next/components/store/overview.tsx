@@ -35,7 +35,7 @@ export default function Overview() {
       <OverviewRow>
         <Product
           icon="key"
-          title="Site License Upgrade"
+          title="Quota Upgrade License"
           href="/store/site-license"
         >
           Upgrade your project, remove the warning banner, get internet access,

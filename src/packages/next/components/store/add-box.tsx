@@ -31,18 +31,20 @@ export function AddBox(props: Props) {
     cartError,
     setCartError,
     dedicatedItem = false,
-    disabled = false,
     noAccount,
   } = props;
+  let disabled = props.disabled ?? false;
 
-  if (!cost) return null;
-  // if any of the fields in cost that start with the string "cost" are NaN, return null
-  if (Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))) {
-    return null;
+  // if any of the fields in cost that start with the string "cost" are NaN, disable submission:
+  if (
+    !cost ||
+    Object.keys(cost).some((k) => k.startsWith("cost") && isNaN(cost[k]))
+  ) {
+    disabled = true;
   }
 
   function costPerProject() {
-    if (!cost) throw new Error(`cost is undefined, should not happen.`);
+    if (!cost) return null;
     if (!["quota", "regular", "boost"].includes(cost.input.type as string)) {
       return;
     }
@@ -94,8 +96,8 @@ export function AddBox(props: Props) {
           fontSize: "12pt",
         }}
       >
-        <DisplayCost cost={cost} />
-        {costPerProject()}
+        {cost && <DisplayCost cost={cost} />}
+        {cost && costPerProject()}
         {renderButton()}
       </div>
     </div>
@@ -118,12 +120,13 @@ export function AddToCartButton(props: CartButtonProps) {
     form,
     router,
     setCartError,
-    disabled = false,
     cartError,
     variant = "primary",
   } = props;
 
   const style = variant === "primary" ? { marginTop: "5px" } : {};
+  const disabled =
+    (props.disabled ?? false) || !!cartError || cost == null || cost.cost === 0;
 
   return (
     <Button
@@ -132,9 +135,13 @@ export function AddToCartButton(props: CartButtonProps) {
       htmlType="submit"
       style={style}
       onClick={() => addToCart({ form, setCartError, router })}
-      disabled={disabled || !!cartError || cost == null || cost.cost === 0}
+      disabled={disabled}
     >
-      {router.query.id != null ? "Save Changes" : "Add to Cart"}
+      {disabled
+        ? "Finish configuring the license..."
+        : router.query.id != null
+        ? "Save Changes"
+        : "Add to Cart"}
     </Button>
   );
 }
