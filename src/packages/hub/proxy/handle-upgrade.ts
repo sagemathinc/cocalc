@@ -8,7 +8,7 @@ import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
-const winston = getLogger("proxy: handle-upgrade");
+const winston = getLogger("proxy:handle-upgrade");
 
 interface Options {
   projectControl: ProjectControlFunction;
@@ -27,8 +27,8 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
-    const dbg = (m) => {
-      winston.silly(`${req.url}: ${m}`);
+    const dbg = (...m) => {
+      winston.silly(`${req.url}: ${m[0]}`, ...m.slice(1));
     };
     dbg("got upgrade request");
     if (!isPersonal && versionCheckFails(req)) {
@@ -51,6 +51,8 @@ export default function init(
     dbg(`got ${host}, ${port}`);
 
     const target = `ws://${host}:${port}`;
+    dbg(`target = ${target}`);
+
     if (internal_url != null) {
       req.url = internal_url;
     }
@@ -61,7 +63,6 @@ export default function init(
       return;
     }
 
-    dbg(`target = ${target}`);
     dbg("not using cache");
     const proxy = createProxyServer({
       ws: true,
@@ -71,29 +72,40 @@ export default function init(
     cache.set(target, proxy);
 
     // taken from https://github.com/http-party/node-http-proxy/issues/1401
-    proxy.on("proxyRes", function (proxyRes) {
-      //console.log(
-      //  "Raw [target] response",
-      //  JSON.stringify(proxyRes.headers, true, 2)
-      //);
+    proxy.on("proxyRes", (proxyRes) => {
+      dbg("handleProxyUpgradeRequest/proxyRes: before", proxyRes.headers);
 
       proxyRes.headers["x-reverse-proxy"] = "custom-proxy";
       proxyRes.headers["cache-control"] = "no-cache, no-store";
 
-      //console.log(
-      //  "Updated [proxied] response",
-      //  JSON.stringify(proxyRes.headers, true, 2)
-      //);
+      dbg("handleProxyUpgradeRequest/proxyRes: after", proxyRes.headers);
+    });
+
+
+    // taken from https://github.com/http-party/node-http-proxy/issues/1401
+    // this event hook does not exist for websockets. either no point or not implemented upstream.
+    // proxy.on("proxyRes", (proxyRes) => {
+    //   dbg("handleProxyUpgradeRequest/proxyRes: before", proxyRes.headers);
+    //   proxyRes.headers["x-reverse-proxy"] = "custom-proxy";
+    //   proxyRes.headers["cache-control"] = "no-cache, no-store";
+    //   dbg("handleProxyUpgradeRequest/proxyRes: after", proxyRes.headers);
+    // });
+
+    proxy.on("proxyReqWs", (proxyReqWs) => {
+      proxyReqWs.setHeader("Cache-Control", "no-cache, no-store");
+      //dbg("handleProxyUpgradeRequest/proxyReqWs: after", proxyReqWs.getHeaders());
     });
 
     proxy.on("error", (err) => {
       winston.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.del(target);
     });
+
     proxy.on("close", () => {
       dbg("websocket proxy close, so removing from cache");
       cache.del(target);
     });
+
     proxy.ws(req, socket, head);
   }
 
