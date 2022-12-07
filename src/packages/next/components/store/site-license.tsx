@@ -80,10 +80,11 @@ export default function SiteLicense(props: Props) {
           </A>{" "}
           allow you to upgrade any number of projects to run more quickly, have
           network access, more disk space, memory, or run on a dedicated
-          computer. Site licenses can be for a wide range of sizes, ranging from
-          a single hobbyist project to thousands of simultaneous users across an
-          entire department of school. Create a license using the form below
-          then add it to your <A href="/store/cart">shopping cart</A>.
+          computer. Quota upgrade licenses can be for a wide range of sizes,
+          ranging from a single hobbyist project to thousands of simultaneous
+          users across an entire department of school. Create a license using
+          the form below then add it to your{" "}
+          <A href="/store/cart">shopping cart</A>.
         </p>
       )}
       <CreateSiteLicense

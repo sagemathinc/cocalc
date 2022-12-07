@@ -89,6 +89,10 @@ function getFormFields(
   }
 }
 
+export const ALL_FIELDS : Set<string> = new Set(
+  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat(["type" as any])
+);
+
 export function encodeFormValues(
   router: NextRouter,
   vals: any,

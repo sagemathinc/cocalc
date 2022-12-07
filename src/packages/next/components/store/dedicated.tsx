@@ -179,7 +179,6 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
           break;
       }
     } catch (err) {
-      console.log(`error computing cost: ${err}`);
       setCost(undefined);
     }
   }
@@ -321,6 +320,10 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
       >
         <Radio.Group
           onChange={(e) => {
+            // Clear error whenever changing this selection to something.
+            // See comment in validateDedicatedDiskName about how this
+            // isn't great.
+            setCartError("");
             setType(e.target.value);
           }}
         >
@@ -477,10 +480,15 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
         try {
           await testDedicatedDiskName(name);
           setDiskNameValid(true);
-          return Promise.resolve();
+          // WARNING! This is obviously not good code in general, since we're clearing all
+          // errors if the disk name happens to be valid.
+          // It's OK for now since this is the only field we do validation with, and
+          // any other error would  be, e.g., in submission of the form to the backend.
+          setCartError("");
         } catch (err) {
+          setCartError(err.message);
           setDiskNameValid(false);
-          return Promise.reject(err.message);
+          throw err;
         }
       },
     };
@@ -686,11 +694,10 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   }
 
   function renderCost() {
-    if (cost == null) return;
-    const { input } = cost;
-    if (input == null) return;
-
+    const input = cost?.input;
     const disabled =
+      cost == null ||
+      input == null ||
       (input.type === "vm" && (input.start == null || input.end == null)) ||
       (input.type === "disk" && !diskNameValid);
 

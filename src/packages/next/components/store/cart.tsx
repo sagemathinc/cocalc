@@ -50,7 +50,19 @@ export default function ShoppingCart() {
     const x: any[] = [];
     let subTotal = 0;
     for (const item of cart.result) {
-      item.cost = computeCost(item.description);
+      try {
+        item.cost = computeCost(item.description);
+      } catch (err) {
+        // sadly computeCost is buggy, or rather - it crashes because of other bugs.
+        // It's much better to
+        // have something not in the cart and an error than to make the cart and
+        // store just be 100% broken
+        // forever for a user!
+        // That said, I've fixed every bug I could find and tested things, so hopefully
+        // this doesn't come up.
+        console.warn("Invalid item in cart -- not showing", item);
+        continue;
+      }
       if (item.checked) {
         subTotal += item.cost.discounted_cost;
       }
@@ -247,7 +259,7 @@ function TotalCost({ items }) {
   let discounted_cost = 0;
   let n = 0;
   for (const { cost, checked } of items) {
-    if (checked) {
+    if (checked && cost != null) {
       discounted_cost += cost.discounted_cost;
       n += 1;
     }
