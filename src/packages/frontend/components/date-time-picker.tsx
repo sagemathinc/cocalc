@@ -11,12 +11,12 @@
        https://ant.design/components/date-picker/
 */
 
-import { React } from "../app-framework";
-
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 
-export function DateTimePicker(props: {
+import { React } from "@cocalc/frontend/app-framework";
+
+interface Props {
   placeholder?: string;
   value?: any;
   onChange?: (date: dayjs.Dayjs | null, dateString: string) => void;
@@ -24,30 +24,48 @@ export function DateTimePicker(props: {
   onBlur?: Function;
   open?: boolean;
   style?: React.CSSProperties;
-}) {
+  format?: string; // refer to day.js, see https://ant.design/components/date-picker#components-date-picker-demo-format and https://day.js.org/docs/en/display/format
+}
+
+export function DateTimePicker(props: Props) {
+  const {
+    placeholder,
+    value,
+    onChange,
+    onFocus,
+    onBlur,
+    open,
+    style,
+    format = "YYYY-MM-DD HH:mm Z",
+  } = props;
+
   const props2: any = {
     showTime: true,
-    format: "LLL",
-    placeholder: props.placeholder,
-    onChange: props.onChange,
-    style: props.style,
+    format,
+    placeholder,
+    onChange: onChange,
+    style,
   };
-  if (props.open != null) {
-    props2.open = props.open;
+
+  if (open != null) {
+    props2.open = open;
   }
-  if (props.value != null) {
-    props2.value = dayjs(props.value);
+
+  if (value != null) {
+    props2.value = dayjs(value);
   } else {
     props2.value = null;
   }
-  if (props.onFocus != null || props.onBlur != null) {
+
+  if (onFocus != null || onBlur != null) {
     props2.onOpenChange = (status) => {
-      if (status && props.onFocus != null) {
-        props.onFocus();
-      } else if (!status && props.onBlur != null) {
-        props.onBlur();
+      if (status && onFocus != null) {
+        onFocus();
+      } else if (!status && onBlur != null) {
+        onBlur();
       }
     };
   }
+
   return <DatePicker {...props2} />;
 }

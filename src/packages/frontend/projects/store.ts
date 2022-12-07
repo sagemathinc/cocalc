@@ -2,39 +2,35 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-
-import LRU from "lru-cache";
 import { List, Map, Set } from "immutable";
-import { isEmpty } from "lodash";
-import { redux, Store, TypedMap } from "../app-framework";
-import { webapp_client } from "../webapp-client";
+import { fromPairs, isEmpty } from "lodash";
+import LRU from "lru-cache";
+
+import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
+import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
+import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  coerce_codomain_to_numbers,
-  map_sum,
-  copy,
   cmp,
+  coerce_codomain_to_numbers,
+  copy,
+  is_valid_uuid_string,
   keys,
   len,
+  map_sum,
   months_before,
   parse_number_input,
-  is_valid_uuid_string,
 } from "@cocalc/util/misc";
-import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
-import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import { site_license_quota } from "@cocalc/util/upgrades/quota";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { fromPairs } from "lodash";
+import { site_license_quota } from "@cocalc/util/upgrades/quota";
+import { Upgrades } from "@cocalc/util/upgrades/types";
+
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
 );
-
-import { Upgrades } from "@cocalc/util/upgrades/types";
-import { has_internet_access } from "../upgrades/upgrade-utils";
-
-import { WebsocketState } from "../project/websocket/websocket-state";
-import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 
 export type Project = Map<string, any>;
 export type ProjectMap = Map<string, Project>;
@@ -631,10 +627,6 @@ export class ProjectsStore extends Store<ProjectsState> {
       }
     });
     return v;
-  }
-
-  public has_internet_access(project_id: string): boolean {
-    return has_internet_access(project_id);
   }
 
   // Returns true if the project should be visible with the specified filters selected

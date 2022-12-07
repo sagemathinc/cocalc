@@ -740,11 +740,11 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             />
             <br />
             <Parallel name={name} />
-            <br />
             <DatastoreConfig
               actions={actions.configuration}
               datastore={settings.get("datastore")}
             />
+            <br />
             <EnvironmentVariablesConfig
               actions={actions.configuration}
               envvars={settings.get("envvars")}

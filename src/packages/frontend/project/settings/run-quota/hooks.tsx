@@ -4,6 +4,8 @@
  */
 
 import { Map } from "immutable";
+import { fromPairs, isEqual } from "lodash";
+
 import {
   useEffect,
   useMemo,
@@ -23,7 +25,6 @@ import {
   upgrade2quota_key,
   Upgrades,
 } from "@cocalc/util/upgrades/quota";
-import { fromPairs, isEqual } from "lodash";
 import { IdleTimeoutPct, PercentBar, renderBoolean } from "./components";
 import {
   booleanValueStr,
@@ -37,7 +38,7 @@ import {
 
 export function useRunQuota(
   project_id: string,
-  projectIsRunning
+  projectIsRunning: boolean | null
 ): DisplayQuota {
   const [runQuota, setRunQuota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
@@ -45,8 +46,9 @@ export function useRunQuota(
   // NOTE: even if project is NOT running, we do know the run quota
   // the problem is this information is not accurate, because only upon
   // startup the validity of a license is determined.
+  // Still: if we don't set projectIsRunning, we use the stale information
   const next = useMemo(() => {
-    if (rq == null || !projectIsRunning) {
+    if (rq == null || projectIsRunning === false) {
       return {};
     } else {
       return rq
@@ -195,7 +197,7 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
     const val = runQuota.get(key);
     return {
       display: booleanValueStr(val),
-      element: renderBoolean(val),
+      element: renderBoolean(val, true), // due to how this is used, we can assume the project is running
     };
   }
 
@@ -256,8 +258,8 @@ export function useDisplayedFields() {
             // show all rows on cocalc.com
             return true;
           case KUCALC_ON_PREMISES:
-            // there is no member hosting
-            return "member_host" !== key;
+            // there is no member hosting and no disk quota
+            return "member_host" !== key && "disk_quota" !== key;
           case KUCALC_DISABLED:
             // there is not much to show
             return "mintime" === key || "always_running" === key;
