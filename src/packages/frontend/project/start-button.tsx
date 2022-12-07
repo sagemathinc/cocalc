@@ -12,6 +12,9 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
+import { Alert, Button } from "antd";
+import { CSSProperties, useRef } from "react";
+
 import {
   React,
   redux,
@@ -27,9 +30,7 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
-import { Alert, Button } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { allow_project_to_run } from "./client-side-throttle";
+import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { DOC_TRIAL } from "./trial-banner";
 
 interface Props {
@@ -51,18 +52,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
-  const [allowed, setAllowed] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
-    const check_allowed = async () => {
-      setAllowed(await allow_project_to_run(project_id));
-    };
-
-    check_allowed().catch((err) => {
-      console.error("unable to check if project is allowed to run", err);
-      setAllowed(true); // assume it is allowed
-    });
-  }, []);
+  const allowed = useAllowedFreeProjectToRun(project_id);
 
   const state = useMemo(() => {
     const state = project_map?.getIn([project_id, "state"]);

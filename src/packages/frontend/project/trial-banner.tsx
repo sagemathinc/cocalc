@@ -12,18 +12,18 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
 import {
   SiteLicenseInput,
   useManagedLicenses,
 } from "@cocalc/frontend/site-licenses/input";
+import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 import { Alert } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { allow_project_to_run } from "./client-side-throttle";
+import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
-import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -156,6 +156,7 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
 
     const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
     const managedLicenses = useManagedLicenses();
+    const allow_run = useAllowedFreeProjectToRun(project_id);
 
     const age_ms: number = server_time().getTime() - proj_created;
     const ageDays = age_ms / (24 * 60 * 60 * 1000);
@@ -192,8 +193,7 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
         </>
       );
 
-      const allow_run = allow_project_to_run(project_id);
-      if (!allow_run) {
+      if (allow_run === false) {
         return (
           <span>
             {trial_project} - There are too many free trial projects running

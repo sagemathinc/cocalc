@@ -5,7 +5,7 @@
 
 import { join } from "path";
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 /*
@@ -111,4 +111,19 @@ export async function allow_project_to_run(
 
   // got nothing:
   return false;
+}
+
+export function useAllowedFreeProjectToRun(
+  project_id: string
+): boolean | undefined {
+  const [allowed, setAllowed] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    allow_project_to_run(project_id)
+      .then(setAllowed)
+      .catch((err) => {
+        console.error("error in useAllowedFreeProjectToRun", err);
+        setAllowed(true); // we assume it is ok to run a project
+      });
+  }, [project_id]);
+  return allowed;
 }

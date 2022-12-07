@@ -380,7 +380,7 @@ export class ProjectClient {
     const state = redux.getStore("projects")?.get_state(project_id);
     if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
       // not trying to view project as admin so do some checks
-      if (!allow_project_to_run(project_id)) return;
+      if (!await allow_project_to_run(project_id)) return;
       if (!this.client.is_signed_in()) {
         // silently ignore if not signed in
         return;
