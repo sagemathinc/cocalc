@@ -63,18 +63,20 @@ export default function Executables(props: Props) {
   return (
     <Customize value={customize}>
       <Head title="Executables in CoCalc" />
-      <Header page="software" subPage="executables" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div style={STYLE_PAGE_WIDE}>
-          {renderInfo()}
-          <ExecutablesTable executablesSpec={executablesSpec} />
-        </div>
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="software" subPage="executables" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <div style={STYLE_PAGE_WIDE}>
+            {renderInfo()}
+            <ExecutablesTable executablesSpec={executablesSpec} />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

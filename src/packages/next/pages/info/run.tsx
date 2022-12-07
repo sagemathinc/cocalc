@@ -49,38 +49,40 @@ export default function Help({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Run CoCalc" />
-      <Header page="info" subPage="run" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div
+      <Layout>
+        <Header page="info" subPage="run" />
+        <Layout.Content
           style={{
-            maxWidth: MAX_WIDTH,
-            margin: "15px auto",
-            padding: "15px",
             backgroundColor: "white",
           }}
         >
-          <IndexList
-            title={
-              <>
-                <Icon name="laptop" style={{ marginRight: "30px" }} />
-                Other Ways to Run CoCalc
-              </>
-            }
-            description={
-              <>
-                In addition to using CoCalc via the website cocalc.com, there
-                are several other ways to run CoCalc.
-              </>
-            }
-            dataSource={data}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "15px auto",
+              padding: "15px",
+              backgroundColor: "white",
+            }}
+          >
+            <IndexList
+              title={
+                <>
+                  <Icon name="laptop" style={{ marginRight: "30px" }} />
+                  Other Ways to Run CoCalc
+                </>
+              }
+              description={
+                <>
+                  In addition to using CoCalc via the website cocalc.com, there
+                  are several other ways to run CoCalc.
+                </>
+              }
+              dataSource={data}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

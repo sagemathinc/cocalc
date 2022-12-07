@@ -10,6 +10,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
+import { Layout } from "antd";
 
 const dataSourceCoCalcCom = [
   {
@@ -115,13 +116,15 @@ export default function Policies({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Policies" />
-      <Header page="policies" />
-      <IndexList
-        title={`${customize.siteName} Policies`}
-        description={description}
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="policies" />
+        <IndexList
+          title={`${customize.siteName} Policies`}
+          description={description}
+          dataSource={dataSource}
+        />
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

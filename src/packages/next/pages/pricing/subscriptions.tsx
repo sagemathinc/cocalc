@@ -24,7 +24,11 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { applyLicense, listedPrices, pricingQuestions } from "components/share/pricing";
+import {
+  applyLicense,
+  listedPrices,
+  pricingQuestions,
+} from "components/share/pricing";
 
 interface Item {
   title: string;
@@ -196,15 +200,17 @@ export default function Subscriptions({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Subscriptions" />
-      <Header page="pricing" subPage="subscriptions" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <Body />
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="pricing" subPage="subscriptions" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <Body />
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

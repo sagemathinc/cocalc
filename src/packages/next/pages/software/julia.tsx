@@ -78,28 +78,32 @@ export default function Julia(props: Props) {
   return (
     <Customize value={customize}>
       <Head title="Julia Packages in CoCalc" />
-      <Header page="software" subPage="julia" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div style={STYLE_PAGE}>
-          <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            Installed Julia Packages
-          </h1>
-          {renderIntro()}
-          {renderInfoBox()}
-          <SoftwareInfo info={execInfo} />
-          <SoftwareLibraries
-            spec={spec}
-            inventory={inventory}
-            components={components}
-            libWidthPct={60}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="software" subPage="julia" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <div style={STYLE_PAGE}>
+            <h1
+              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+            >
+              Installed Julia Packages
+            </h1>
+            {renderIntro()}
+            {renderInfoBox()}
+            <SoftwareInfo info={execInfo} />
+            <SoftwareLibraries
+              spec={spec}
+              inventory={inventory}
+              components={components}
+              libWidthPct={60}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>{" "}
+      </Layout>
     </Customize>
   );
 }

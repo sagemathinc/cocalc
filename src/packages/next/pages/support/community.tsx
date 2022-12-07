@@ -275,41 +275,43 @@ export default function Connect({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Community Support" />
-      <Header page="support" subPage="community" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div
+      <Layout>
+        <Header page="support" subPage="community" />
+        <Layout.Content
           style={{
-            maxWidth: MAX_WIDTH,
-            margin: "15px auto",
-            padding: "15px",
             backgroundColor: "white",
           }}
         >
-          <div style={{ textAlign: "center", color: "#444" }}>
-            <h1 style={{ fontSize: "28pt" }}></h1>
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "15px auto",
+              padding: "15px",
+              backgroundColor: "white",
+            }}
+          >
+            <div style={{ textAlign: "center", color: "#444" }}>
+              <h1 style={{ fontSize: "28pt" }}></h1>
+            </div>
+            <IndexList
+              title={
+                <>
+                  <Icon name="users" style={{ marginRight: "30px" }} />
+                  Connect with the Cocalc Community
+                </>
+              }
+              description={
+                <>
+                  There are many ways that you can connect with the broader
+                  CoCalc community.
+                </>
+              }
+              dataSource={dataSource}
+            />
           </div>
-          <IndexList
-            title={
-              <>
-                <Icon name="users" style={{ marginRight: "30px" }} />
-                Connect with the Cocalc Community
-              </>
-            }
-            description={
-              <>
-                There are many ways that you can connect with the broader CoCalc
-                community.
-              </>
-            }
-            dataSource={dataSource}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

@@ -19,15 +19,17 @@ export default function Products({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Products" />
-      <Header page="pricing" subPage="products" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <Body />
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="pricing" subPage="products" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <Body />
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

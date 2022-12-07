@@ -73,28 +73,32 @@ export default function Octave(props: Props) {
   return (
     <Customize value={customize}>
       <Head title="Octave Packages in CoCalc" />
-      <Header page="software" subPage="octave" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div style={STYLE_PAGE}>
-          <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            GNU Octave Scientific Programming Packages
-          </h1>
-          {renderInfo()}
-          {renderBox()}
-          <SoftwareInfo info={execInfo} />
-          <SoftwareLibraries
-            spec={spec}
-            inventory={inventory}
-            components={components}
-            libWidthPct={60}
-          />
-        </div>
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="software" subPage="octave" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <div style={STYLE_PAGE}>
+            <h1
+              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+            >
+              GNU Octave Scientific Programming Packages
+            </h1>
+            {renderInfo()}
+            {renderBox()}
+            <SoftwareInfo info={execInfo} />
+            <SoftwareLibraries
+              spec={spec}
+              inventory={inventory}
+              components={components}
+              libWidthPct={60}
+            />
+          </div>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

@@ -10,6 +10,7 @@ import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { Layout } from "antd";
 
 const dataSource: DataSource = [
   {
@@ -90,20 +91,22 @@ export default function Pricing({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Pricing" />
-      <Header page="pricing" />
-      <IndexList
-        title="Products and Pricing"
-        description={
-          <>
-            You can read more about {customize.siteName}{" "}
-            <A href="/pricing/products">products</A> and{" "}
-            <A href="/pricing/subscriptions">subscriptions</A> below or{" "}
-            <A href="/store">visit the store</A>.
-          </>
-        }
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="pricing" />
+        <IndexList
+          title="Products and Pricing"
+          description={
+            <>
+              You can read more about {customize.siteName}{" "}
+              <A href="/pricing/products">products</A> and{" "}
+              <A href="/pricing/subscriptions">subscriptions</A> below or{" "}
+              <A href="/store">visit the store</A>.
+            </>
+          }
+          dataSource={dataSource}
+        />
+        <Footer />
+      </Layout>
     </Customize>
   );
 }

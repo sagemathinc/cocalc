@@ -194,15 +194,17 @@ export default function Courses({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Course licenses" />
-      <Header page="pricing" subPage="courses" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <Body />
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="pricing" subPage="courses" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <Body />
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

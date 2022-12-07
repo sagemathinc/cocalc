@@ -20,15 +20,17 @@ export default function OnPrem({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="On Premises Offerings" />
-      <Header page="pricing" subPage="onprem" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <Body />
-        <Footer />
-      </Layout.Content>
+      <Layout>
+        <Header page="pricing" subPage="onprem" />
+        <Layout.Content
+          style={{
+            backgroundColor: "white",
+          }}
+        >
+          <Body />
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }

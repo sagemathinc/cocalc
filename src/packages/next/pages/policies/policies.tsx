@@ -10,22 +10,25 @@ import Head from "components/landing/head";
 import Footer from "components/landing/footer";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Customize } from "lib/customize";
+import { Layout } from "antd";
 
 export default function Policies({ customize }) {
   const { policies } = customize;
   return (
     <Customize value={customize}>
       <Head title="Policies" />
-      <Header page="policies" subPage="policies" />
-      <Row>
-        <Col
-          xs={{ span: 12, offset: 6 }}
-          style={{ marginTop: "30px", marginBottom: "30px" }}
-        >
-          {policies && <SanitizedMarkdown value={policies} />}
-        </Col>
-      </Row>
-      <Footer />
+      <Layout>
+        <Header page="policies" subPage="policies" />
+        <Row>
+          <Col
+            xs={{ span: 12, offset: 6 }}
+            style={{ marginTop: "30px", marginBottom: "30px" }}
+          >
+            {policies && <SanitizedMarkdown value={policies} />}
+          </Col>
+        </Row>
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

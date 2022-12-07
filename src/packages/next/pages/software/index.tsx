@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -104,13 +105,15 @@ export default function Software({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Software" />
-      <Header page="software" />
-      <IndexList
-        title="Available Software"
-        description="These pages contain information about available software on CoCalc."
-        dataSource={dataSource}
-      />
-      <Footer />
+      <Layout>
+        <Header page="software" />
+        <IndexList
+          title="Available Software"
+          description="These pages contain information about available software on CoCalc."
+          dataSource={dataSource}
+        />
+        <Footer />{" "}
+      </Layout>
     </Customize>
   );
 }

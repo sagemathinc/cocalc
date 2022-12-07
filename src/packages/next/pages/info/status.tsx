@@ -15,31 +15,33 @@ export default function Stats({ customize, stats }) {
   return (
     <Customize value={customize}>
       <Head title="System Activity Status" />
-      <Header page="info" subPage="status" />
-      <Layout.Content
-        style={{
-          backgroundColor: "white",
-        }}
-      >
-        <div
+      <Layout>
+        <Header page="info" subPage="status" />
+        <Layout.Content
           style={{
-            maxWidth: MAX_WIDTH,
-            margin: "15px auto",
-            padding: "15px",
             backgroundColor: "white",
           }}
         >
-          <div style={{ textAlign: "center", color: "#444" }}>
-            <h1 style={{ fontSize: "28pt" }}>
-              <Icon name="dashboard" style={{ marginRight: "30px" }} />
-              {siteName} - System Activity Status
-            </h1>
-            <p>Track how heavily {siteName} is being used.</p>
+          <div
+            style={{
+              maxWidth: MAX_WIDTH,
+              margin: "15px auto",
+              padding: "15px",
+              backgroundColor: "white",
+            }}
+          >
+            <div style={{ textAlign: "center", color: "#444" }}>
+              <h1 style={{ fontSize: "28pt" }}>
+                <Icon name="dashboard" style={{ marginRight: "30px" }} />
+                {siteName} - System Activity Status
+              </h1>
+              <p>Track how heavily {siteName} is being used.</p>
+            </div>
+            {stats != null ? <Statistics stats={stats} /> : "(not available)"}
           </div>
-          {stats != null ? <Statistics stats={stats} /> : "(not available)"}
-        </div>
-        <Footer />
-      </Layout.Content>
+          <Footer />
+        </Layout.Content>
+      </Layout>
     </Customize>
   );
 }
