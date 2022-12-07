@@ -2,7 +2,7 @@ import ReactDOM from "react-dom";
 import { CSSProperties, FC, ReactNode, useEffect, useRef } from "react";
 import { getStyle } from "./text-static";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Comment } from "antd";
+import { Comment } from "@ant-design/compatible";
 import { Element } from "../types";
 import { cmp } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";

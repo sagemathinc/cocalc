@@ -18,7 +18,7 @@ import {
 import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
-import { cmp_moment, round1, secure_random_token } from "@cocalc/util/misc";
+import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import {
@@ -34,7 +34,7 @@ import {
 } from "antd";
 import { List } from "immutable";
 import { pick, sortBy } from "lodash";
-import moment from "moment";
+import dayjs from "dayjs";
 
 interface Token {
   key?: string; // used in the table, not for the database
@@ -44,7 +44,7 @@ interface Token {
   descr?: string;
   limit?: number;
   counter?: number; // readonly
-  expires?: moment.Moment; // DB uses Date objects, watch out!
+  expires?: dayjs.Dayjs; // DB uses Date objects, watch out!
 }
 
 function use_registration_tokens() {
@@ -64,7 +64,7 @@ function use_registration_tokens() {
   const [form] = Form.useForm();
 
   // we load the data in a map, indexed by the token
-  // dates are converted to moment.js on the fly
+  // dates are converted to dayjs on the fly
   async function load() {
     let result: any;
     set_loading(true);
@@ -84,7 +84,7 @@ function use_registration_tokens() {
       const data = {};
       let warn_signup = true;
       for (const x of result.query.registration_tokens) {
-        if (x.expires) x.expires = moment(x.expires);
+        if (x.expires) x.expires = dayjs(x.expires);
         x.active = !x.disabled;
         data[x.token] = x;
         // we have at least one active token → no need to warn user
@@ -123,17 +123,16 @@ function use_registration_tokens() {
     }
   }, [editing]);
 
-  // saving a specific token value converts moment.js back to pure Date objects
+  // saving a specific token value converts dayjs back to pure Date objects
   // we also record the last saved token as a template for the next add operation
   async function save(val): Promise<void> {
-    // antd wraps the time in a moment.js object
+    // antd wraps the time in a dayjs object
     const val_orig: Token = { ...val };
     if (editing != null) set_editing(null);
 
     // data preparation
-    if (val.expires != null && moment.isMoment(val.expires)) {
-      // https://momentjs.com/docs/#/displaying/as-javascript-date/
-      val.expires = moment(val.expires).toDate();
+    if (val.expires != null && dayjs.isDayjs(val.expires)) {
+      val.expires = dayjs(val.expires).toDate();
     }
     val.disabled = !val.active;
     val = pick(val, [
@@ -154,7 +153,7 @@ function use_registration_tokens() {
           registration_tokens: val,
         },
       });
-      // we save the original one, with moment-js in it!
+      // we save the original one, with dayjs in it!
       set_last_saved(val_orig);
       set_saving(false);
       await load();
@@ -445,7 +444,7 @@ export const RegistrationToken: React.FC<{}> = () => {
             dataIndex="expires"
             sortDirections={["ascend", "descend"]}
             render={(v) => (v != null ? v.fromNow() : "never")}
-            sorter={(a, b) => cmp_moment(a.expires, b.expires, true)}
+            sorter={(a, b) => cmp_dayjs(a.expires, b.expires, true)}
           />
 
           <Table.Column<Token>

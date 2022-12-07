@@ -13,6 +13,8 @@ import { join } from "path";
 import getAccount from "@cocalc/server/auth/get-account";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 const winston = getLogger("nocodb");
+import { pghost } from "@cocalc/backend/data";
+import dbPassword from "@cocalc/database/pool/password";
 
 export default async function initNocoDB(app: Application, httpServer: Server) {
   let Noco;
@@ -27,6 +29,7 @@ export default async function initNocoDB(app: Application, httpServer: Server) {
   }
   const base = join(basePath, "nocodb");
   winston.info(`Initializing the NocoDB server at ${base}`);
+  await prepForNocodb();
   const nocoHandler = await Noco.init({}, httpServer, app);
   const handler = async (req, res) => {
     // We block all requests that aren't from a signed in admin.
@@ -43,6 +46,29 @@ export default async function initNocoDB(app: Application, httpServer: Server) {
     nocoHandler(req, res);
   };
   app.use(base, handler);
+}
+
+/*  TODO
+  // Create a PostgreSQL user for nocodb to use.
+~/cocalc/src$ createuser nocodb
+~/cocalc/src$ createdb --owner nocodb nocodb
+
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO nocodb;
+*/
+
+async function prepForNocodb() {
+  // As best I can tell, the only way to configure Noco is via setting env vars. That's fine, we do that here.
+  // See https://docs.nocodb.com/getting-started/installation/
+  process.env.DB_QUERY_LIMIT_DEFAULT = "50";
+  process.env.NC_DB_JSON = JSON.stringify({
+    client: "pg",
+    connection: {
+      password: dbPassword(),
+      user: "nocodb",
+      host: pghost,
+      database: "nocodb",
+    },
+  });
 }
 
 async function ensureAdmin(req, res, base) {

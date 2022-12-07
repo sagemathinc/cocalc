@@ -56,7 +56,7 @@ import {
   Menu,
   Row,
 } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import { join } from "path";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
@@ -129,13 +129,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     set_start_state(date);
   }
 
-  const [end, set_end_state] = useState<Date>(
-    moment().add(1, "month").toDate()
-  );
+  const [end, set_end_state] = useState<Date>(dayjs().add(1, "month").toDate());
 
   function set_end(date: Date) {
     const today = endOfDay(date);
-    const two_years = moment(start).add(2, "year").toDate();
+    const two_years = dayjs(start).add(2, "year").toDate();
     if (date <= today) {
       date = today;
     } else if (date >= two_years) {
@@ -395,7 +393,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function set_end_date(x): void {
     set_end(
-      moment(start)
+      dayjs(start)
         .subtract(1, "day")
         .add(x.n as any, x.key)
         .toDate()
@@ -413,7 +411,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     // range of dates: start date -- end date
     // TODO: use "midnight UTC", or should we just give a
     // day grace period on both ends (?).
-    const value = [moment(start), moment(end)];
+    const value = [dayjs(start), dayjs(end)];
     const presets: JSX.Element[] = [];
     for (const { label, desc } of LENGTH_PRESETS) {
       presets.push(

@@ -6,7 +6,7 @@
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import { StartEndDatesWithStrings } from "@cocalc/util/licenses/purchase/types";
 import { DateRangeOptional } from "@cocalc/util/types/store";
-import moment, { Moment } from "moment";
+import dayjs, { Dayjs } from "dayjs";
 
 // this does NOT round to start/end of the day.
 // take special care if you do this in the front-end, because if server-time is off by a significant amount,
@@ -25,27 +25,27 @@ export function getDays({ start, end }: StartEndDatesWithStrings): number {
 
 // round date to start of day (local user time)
 export function startOfDay(date: Date | string): Date {
-  return moment(date).startOf("day").toDate();
+  return dayjs(date).startOf("day").toDate();
 }
 
 // round date to the end of the day (local user time)
 export function endOfDay(date: Date | string): Date {
-  return moment(date).endOf("day").toDate();
+  return dayjs(date).endOf("day").toDate();
 }
 
 // this rounds to the nearest "start" or "end" of a day, either rounded to the very end or start of the day
 // this is important when you use a date range selector,
 // because e.g. 2022-08-13T23:59:99 is interpreted as the 13th, although (with rounding) it's the 14th
 export function roundToMidnight(
-  date: Moment | Date | string | undefined,
+  date: Dayjs | Date | string | undefined,
   side: "start" | "end"
 ): Date | undefined {
   if (date == null) return date;
-  const ts = moment(date).add(12, "hours").startOf("day");
+  const ts = dayjs(date).add(12, "hours").startOf("day");
   if (side === "end") {
     // we go back a minute to almost-fully-round to the end of the day.
     // this makes a difference when displaying it for the start/end ranges
-    return ts.subtract("1", "minute").endOf("day").toDate();
+    return ts.subtract(1, "minute").endOf("day").toDate();
   } else {
     return ts.toDate();
   }

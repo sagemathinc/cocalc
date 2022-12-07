@@ -48,6 +48,10 @@ export function cmp_moment(a?, b?, null_last = false): number {
   return cmp_Date(a?.toDate(), b?.toDate(), null_last);
 }
 
+export function cmp_dayjs(a?, b?, null_last = false): number {
+  return cmp_Date(a?.toDate(), b?.toDate(), null_last);
+}
+
 export function cmp_array(a, b): number {
   const end = Math.max(a.length, b.length);
   for (let i = 0; i < end; i++) {

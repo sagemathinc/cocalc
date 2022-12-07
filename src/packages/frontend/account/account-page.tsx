@@ -166,19 +166,6 @@ export const AccountPage: React.FC = () => {
           {active_page === "billing" && <BillingPage is_simplified={false} />}
         </Tab>
       );
-      v.push(
-        <Tab
-          key="upgrades"
-          eventKey="upgrades"
-          title={
-            <span>
-              <Icon name="arrow-circle-up" /> Upgrades
-            </span>
-          }
-        >
-          {active_page === "upgrades" && <UpgradesPage />}
-        </Tab>
-      );
     }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
       v.push(
@@ -223,6 +210,21 @@ export const AccountPage: React.FC = () => {
         {active_page === "public-files" && <PublicPaths />}
       </Tab>
     );
+
+    v.push(
+      <Tab
+        key="upgrades"
+        eventKey="upgrades"
+        title={
+          <span>
+            <Icon name="arrow-circle-up" /> Upgrades
+          </span>
+        }
+      >
+        {active_page === "upgrades" && <UpgradesPage />}
+      </Tab>
+    );
+
     return v;
   }
 
