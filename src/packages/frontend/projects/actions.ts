@@ -893,7 +893,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   // return true, if it actually started the project
   public async start_project(project_id: string): Promise<boolean> {
-    if (!allow_project_to_run(project_id)) {
+    if (!(await allow_project_to_run(project_id))) {
       return false;
     }
     const state = store.get_state(project_id);
@@ -970,7 +970,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async restart_project(project_id: string): Promise<void> {
-    if (!allow_project_to_run(project_id)) {
+    if (!(await allow_project_to_run(project_id))) {
       return;
     }
     this.project_log(project_id, {

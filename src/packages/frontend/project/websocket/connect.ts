@@ -12,21 +12,22 @@ wat once, and hence we make many Primus websocket connections
 simultaneously to the same domain.  It does work, but not without an ugly hack.
 */
 
-import { join } from "path";
 import { reuseInFlight } from "async-await-utils/hof";
+import { callback, delay } from "awaiting";
+import { ajax, globalEval } from "jquery";
+import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { allow_project_to_run } from "../client-side-throttle";
 import { API } from "./api";
+import { set_project_websocket_state, WebsocketState } from "./websocket-state";
 const {
   callback2,
   once,
   retry_until_success,
 } = require("@cocalc/util/async-utils"); // so also works on backend.
-import { callback, delay } from "awaiting";
-import { ajax, globalEval } from "jquery";
-import { redux } from "../../app-framework";
-import { set_project_websocket_state, WebsocketState } from "./websocket-state";
-import { webapp_client } from "../../webapp-client";
-import { allow_project_to_run } from "../client-side-throttle";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const connections = {};
 
@@ -36,7 +37,7 @@ const connections = {};
 let READING_PRIMUS_JS = false;
 
 async function wait_for_project_to_start(project_id: string) {
-  if (!allow_project_to_run(project_id)) {
+  if (!(await allow_project_to_run(project_id))) {
     throw Error("not allowing right now");
   }
   // also check if the project is supposedly running and if
@@ -131,7 +132,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
                   if (do_eval) {
                     try {
                       await globalEval(data);
-                    } catch(err) {
+                    } catch (err) {
                       cb(err);
                       return;
                     }
