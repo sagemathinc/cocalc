@@ -258,8 +258,8 @@ export function useDisplayedFields() {
             // show all rows on cocalc.com
             return true;
           case KUCALC_ON_PREMISES:
-            // there is no member hosting
-            return "member_host" !== key;
+            // there is no member hosting and no disk quota
+            return "member_host" !== key && "disk_quota" !== key;
           case KUCALC_DISABLED:
             // there is not much to show
             return "mintime" === key || "always_running" === key;

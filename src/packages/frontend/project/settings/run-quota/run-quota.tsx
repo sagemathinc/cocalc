@@ -202,7 +202,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function renderUsage(record: QuotaData): JSX.Element | undefined {
-    if (projectIsRunning) return;
+    if (!projectIsRunning) return;
     // the usage of a boolean quota is always the same as its value
     if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
     const usage: Usage = record.usage;
