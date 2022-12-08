@@ -5,7 +5,7 @@ import { make_valid_name } from "@cocalc/util/misc";
 
 const log = getLogger("db:schema:indexes");
 
-export async function createIndexesQueries(
+export function createIndexesQueries(
   table: string
 ): { name: string; query: string; unique: boolean }[] {
   const schema = SCHEMA[table];
@@ -16,7 +16,7 @@ export async function createIndexesQueries(
   if (schema.fields.expire != null && !v.includes("expire")) {
     v.push("expire");
   }
-  const queries: string[] = [];
+  const queries: { name: string; query: string; unique: boolean }[] = [];
   for (let query of v) {
     query = query.trim();
     const name = `${table}_${make_valid_name(query)}_idx`; // this first, then...
@@ -38,8 +38,9 @@ export async function createIndexesQueries(
   return queries;
 }
 
-async function createIndexes(table: string): Promise<void> {
+export async function createIndexes(table: string): Promise<void> {
   log.debug("createIndexes", table, " creating SQL query");
+  const pool = getPool();
   for (const { name, query, unique } of createIndexesQueries(table)) {
     // Shorthand index is just the part in parens.
     // 2020-10-12: it makes total sense to add CONCURRENTLY to this index command to avoid locking up the table,

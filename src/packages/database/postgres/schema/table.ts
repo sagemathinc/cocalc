@@ -7,11 +7,11 @@ import { createIndexes } from "./indexes";
 
 const log = getLogger("db:schema:table");
 
-function primaryKeys(table: string): string[] {
+export function primaryKeys(table: string): string[] {
   return client_db.primary_keys(table);
 }
 
-function primaryKey(table: string): string {
+export function primaryKey(table: string): string {
   const v = primaryKeys(table);
   if (v.length != 1) {
     throw Error(
@@ -21,7 +21,7 @@ function primaryKey(table: string): string {
   return v[0];
 }
 
-async function createTable(table: string): Promise<void> {
+export async function createTable(table: string): Promise<void> {
   log.debug("createTable", table, " creating SQL query");
   const schema = SCHEMA[table];
   if (!schema) {

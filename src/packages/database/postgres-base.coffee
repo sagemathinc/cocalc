@@ -48,6 +48,7 @@ data = require("@cocalc/backend/data")
 required = defaults.required
 
 {SCHEMA, client_db} = require('@cocalc/util/schema')
+{primaryKey, primaryKeys} = require('@cocalc/util/schema/table')
 
 metrics = require('./metrics')
 
@@ -956,14 +957,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb(undefined, (row.column_name for row in result.rows))
 
     _primary_keys: (table) =>
-        return client_db.primary_keys(table)
+        return primaryKeys(table)
 
     # Return *the* primary key, assuming unique; otherwise raise an exception.
     _primary_key: (table) =>
-        v = @_primary_keys(table)
-        if v.length != 1
-            throw Error("compound primary key tables not yet supported")
-        return v[0]
+        return primaryKey(table)
 
     _throttle: (name, time_s, key...) =>
         key = misc.to_json(key)

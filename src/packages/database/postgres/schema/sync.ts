@@ -74,6 +74,7 @@ async function alterColumnOfTable(
   if (info.pg_check) {
     desc += " " + info.pg_check;
   }
+  const pool = getPool();
   if (action == "alter") {
     log.debug("alterColumnOfTable", table, "alter this column's type:", col);
     await pool.query(
@@ -93,6 +94,11 @@ async function syncTableSchemaColumns(table: string): Promise<void> {
 
   dbg("getting column type info info...");
   const columnTypeInfo = await getColumnTypeInfo(table);
+
+  const schema = SCHEMA[table];
+  if (schema == null) {
+    throw Error(`invalid table - ${table}`);
+  }
 
   dbg("altering collumns that need a change...");
   for (const column in schema.fields) {
@@ -168,7 +174,6 @@ async function syncTableSchemaIndexes(table: string): Promise<void> {
 
   const goalIndexes = createIndexesQueries(table);
   const goalIndexNames = new Set<string>();
-  const tasks = [];
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
     if (!curIndexes.has(x.name)) {
@@ -210,7 +215,7 @@ function getMissingTables(allTables: Set<string>): Set<string> {
 }
 
 export async function syncSchema(): Promise<void> {
-  const dbg = (...args) => log.debug("syncSchema", "table = ", table, ...args);
+  const dbg = (...args) => log.debug("syncSchema", ...args);
   dbg();
 
   const allTables = await getAllTables();
@@ -219,6 +224,7 @@ export async function syncSchema(): Promise<void> {
   // indexes the first time around.
   const missingTables = await getMissingTables(allTables);
   for (const table of missingTables) {
+    dbg("create missing table", table);
     await createTable(table);
   }
   // For each table that already exists and is in the schema,
@@ -234,6 +240,7 @@ export async function syncSchema(): Promise<void> {
       continue;
     }
     // not newly created and in the schema so check if anything changed
+    dbg("sync existing table", table);
     await syncTableSchema(table);
   }
 }

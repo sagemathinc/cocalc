@@ -8,15 +8,11 @@
     "./pool": "./dist/pool/index.js",
     "./pool/*": "./dist/pool/*.js",
     "./postgres/*": "./dist/postgres/*.js",
+    "./postgres/schema/*": "./dist/postgres/schema/*.js",
     "./projects/*": "./dist/projects/*.js",
     "./user-query": "./dist/user-query/index.js"
   },
-  "workspaces": [
-    "./",
-    "../backend",
-    "../server",
-    "../util"
-  ],
+  "workspaces": ["./", "../backend", "../server", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.21.1",
     "@cocalc/server": "^0.43.5",
@@ -59,10 +55,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": [
-    "postgresql",
-    "cocalc"
-  ],
+  "keywords": ["postgresql", "cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {
