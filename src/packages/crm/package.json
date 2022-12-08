@@ -1,0 +1,35 @@
+{
+  "name": "@cocalc/crm",
+  "version": "1.0.0",
+  "description": "CoCalc: backend server support for CRM functionality",
+  "workspaces": ["./", "../hub", "../backend", "../database", "../server"],
+  "main": "./dist/index.js",
+  "dependencies": {
+    "@cocalc/backend": "^1.21.1",
+    "@cocalc/database": "^0.34.1",
+    "@cocalc/server": "^0.44.1",
+    "express": "^4.17.1",
+    "nocodb": "^0.100.2"
+  },
+  "files": ["dist/**", "README.md", "package.json"],
+  "devDependencies": {
+    "@types/node": "^18.11.11",
+    "typescript": "^4.9.4"
+  },
+  "scripts": {
+    "build": "npm ci && tsc",
+    "tsc": "tsc  --watch  --pretty --preserveWatchOutput",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "keywords": ["crm", "cocalc"],
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/cocalc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/crm"
+}
