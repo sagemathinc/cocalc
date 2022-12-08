@@ -3,10 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
-
 import { redux, useEffect, useState } from "@cocalc/frontend/app-framework";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { getServerStatsCached } from "@cocalc/frontend/lib/server-stats";
 
 /*
 Client-side throttling of running projects in blocked countries.  This may or may not be the
@@ -38,10 +36,7 @@ async function too_many_free_projects(): Promise<boolean> {
   if (not_in_blocked_country()) return false;
 
   try {
-    const statsRaw = await fetch(join(appBasePath, "stats"));
-    const stats: {
-      running_projects?: { free?: number };
-    } = await statsRaw.json();
+    const stats = await getServerStatsCached();
     const running_projects = stats?.running_projects?.free ?? 0;
     const free_limit =
       redux.getStore("customize")?.get("max_trial_projects") ?? 0;
