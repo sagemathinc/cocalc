@@ -6,34 +6,14 @@
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
-import { Icon } from "../components";
 import { NavItem } from "react-bootstrap";
 import { blur_active_element } from "./util";
+import { Badge } from "antd";
 
 interface Props {
   active: boolean;
   on_click?: () => void;
 }
-
-const COUNT_STYLE: React.CSSProperties = {
-  fontSize: "10pt",
-  color: COLORS.FG_RED,
-  position: "absolute",
-  left: "16px",
-  top: "11px",
-  fontWeight: 700,
-  background: "transparent",
-};
-
-const TWO_DIGIT_COUNT_STYLE: React.CSSProperties = {
-  ...COUNT_STYLE,
-  ...{
-    left: "15.8px",
-    background: COLORS.GRAY_L,
-    borderRadius: "50%",
-    border: "2px solid lightgrey",
-  },
-};
 
 const OUTER_STYLE: React.CSSProperties = {
   position: "relative",
@@ -67,21 +47,17 @@ export const NotificationBell: React.FC<Props> = React.memo(
       >
         <div
           style={{
-            padding: "10px",
+            padding: "6px",
             fontSize: "18pt",
             cursor: "pointer",
           }}
         >
-          <Icon
-            name="bell-o"
+          <Badge
+            showZero
+            color={count == 0 ? "#999" : undefined}
+            count={count}
             className={count > 0 ? "smc-bell-notification" : ""}
-            style={count > 0 ? { color: COLORS.FG_RED } : undefined}
           />
-          {count > 0 && (
-            <span style={count > 9 ? TWO_DIGIT_COUNT_STYLE : COUNT_STYLE}>
-              {count}
-            </span>
-          )}
         </div>
       </NavItem>
     );
