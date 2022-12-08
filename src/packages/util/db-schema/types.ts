@@ -121,6 +121,7 @@ interface Fields {
         desc?: string;
         pg_type?: string;
         unique?: boolean;
+        crm?: boolean; // if true then this field is made available to the CRM.
       };
 }
 

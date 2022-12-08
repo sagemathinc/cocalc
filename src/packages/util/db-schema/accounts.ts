@@ -18,10 +18,12 @@ Table({
     account_id: {
       type: "uuid",
       desc: "The uuid that determines the user account",
+      crm: true,
     },
     created: {
       type: "timestamp",
       desc: "When the account was created.",
+      crm: true,
     },
     created_by: {
       type: "string",
@@ -40,6 +42,7 @@ Table({
     deleted: {
       type: "boolean",
       desc: "True if the account has been deleted.",
+      crm: true,
     },
     name: {
       type: "string",
@@ -51,6 +54,7 @@ Table({
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
       desc: "The email address of the user.  This is optional, since users may instead be associated to passport logins.",
       unique: true,
+      crm: true,
     }, // only one record in database can have this email address (if given)
     email_address_before_delete: {
       type: "string",
@@ -84,11 +88,13 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)", // some limit (actually around 3000) is required for indexing
       desc: "The first name of this user.",
+      crm: true,
     },
     last_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this user.",
+      crm: true,
     },
     banned: {
       type: "boolean",
@@ -113,10 +119,12 @@ Table({
     last_active: {
       type: "timestamp",
       desc: "When this user was last active.",
+      crm: true,
     },
     stripe_customer_id: {
       type: "string",
       desc: "The id of this customer in the stripe billing system.",
+      crm: true,
     },
     stripe_customer: {
       type: "map",
