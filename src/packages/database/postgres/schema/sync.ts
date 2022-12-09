@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import getPool from "@cocalc/database/pool";
+import { getClient, Client } from "@cocalc/database/pool";
 import type { DBSchema, TableSchema } from "./types";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
@@ -7,25 +7,25 @@ import { createIndexesQueries } from "./indexes";
 import { createTable } from "./table";
 const log = getLogger("db:schema:sync");
 
-async function syncTableSchema(schema: TableSchema): Promise<void> {
+async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
   const dbg = (...args) => log.debug("syncTableSchema", schema.name, ...args);
   dbg();
   if (schema.virtual) {
     dbg("nothing to do -- table is virtual");
     return;
   }
-  await syncTableSchemaColumns(schema);
-  await syncTableSchemaIndexes(schema);
+  await syncTableSchemaColumns(db, schema);
+  await syncTableSchemaIndexes(db, schema);
 }
 
 async function getColumnTypeInfo(
+  db: Client,
   table: string
 ): Promise<{ [column_name: string]: string }> {
   // may from column to type info
   const columns: { [column_name: string]: string } = {};
 
-  const pool = getPool();
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     "SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name=$1",
     [table]
   );
@@ -42,6 +42,7 @@ async function getColumnTypeInfo(
 }
 
 async function alterColumnOfTable(
+  db: Client,
   schema: TableSchema,
   action: "alter" | "add",
   column: string
@@ -62,7 +63,6 @@ async function alterColumnOfTable(
   if (info.pg_check) {
     desc += " " + info.pg_check;
   }
-  const pool = getPool();
   if (action == "alter") {
     log.debug(
       "alterColumnOfTable",
@@ -70,20 +70,23 @@ async function alterColumnOfTable(
       "alter this column's type:",
       col
     );
-    await pool.query(
+    await db.query(
       `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`
     );
   } else if (action == "add") {
     log.debug("alterColumnOfTable", schema.name, "add this column:", col);
-    await pool.query(`ALTER TABLE ${qTable} ADD COLUMN ${col} ${desc}`);
+    await db.query(`ALTER TABLE ${qTable} ADD COLUMN ${col} ${desc}`);
   } else {
     throw Error(`unknown action '${action}`);
   }
 }
 
-async function syncTableSchemaColumns(schema: TableSchema): Promise<void> {
+async function syncTableSchemaColumns(
+  db: Client,
+  schema: TableSchema
+): Promise<void> {
   log.debug("syncTableSchemaColumns", "table = ", schema.name);
-  const columnTypeInfo = await getColumnTypeInfo(schema.name);
+  const columnTypeInfo = await getColumnTypeInfo(db, schema.name);
 
   for (const column in schema.fields) {
     const info = schema.fields[column];
@@ -102,21 +105,22 @@ async function syncTableSchemaColumns(schema: TableSchema): Promise<void> {
     }
     if (cur_type == null) {
       // column is in our schema, but not in the actual database
-      await alterColumnOfTable(schema, "add", column);
+      await alterColumnOfTable(db, schema, "add", column);
     } else if (cur_type !== goal_type) {
       if (goal_type.includes("[]") || goal_type.includes("varchar")) {
         // NO support for array or varchar schema changes (even detecting)!
         continue;
       }
-      await alterColumnOfTable(schema, "alter", column);
+      await alterColumnOfTable(db, schema, "alter", column);
     }
   }
 }
 
-async function getCurrentIndexes(table: string): Promise<Set<string>> {
-  const pool = getPool();
-
-  const { rows } = await pool.query(
+async function getCurrentIndexes(
+  db: Client,
+  table: string
+): Promise<Set<string>> {
+  const { rows } = await db.query(
     "SELECT c.relname AS name FROM pg_class AS a JOIN pg_index AS b ON (a.oid = b.indrelid) JOIN pg_class AS c ON (c.oid = b.indexrelid) WHERE a.relname=$1",
     [table]
   );
@@ -130,30 +134,33 @@ async function getCurrentIndexes(table: string): Promise<Set<string>> {
 }
 
 async function updateIndex(
+  db: Client,
   table: string,
   action: "create" | "delete",
   name: string,
   query?: string
 ): Promise<void> {
   log.debug("updateIndex", { table, action, name });
-  const pool = getPool();
   if (action == "create") {
     // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
-    await pool.query(`CREATE INDEX ${name} ON ${table} ${query}`);
+    await db.query(`CREATE INDEX ${name} ON ${table} ${query}`);
   } else if (action == "delete") {
-    await pool.query(`DROP INDEX ${name}`);
+    await db.query(`DROP INDEX ${name}`);
   } else {
     // typescript would catch this, but just in case:
     throw Error(`BUG: unknown action ${name}`);
   }
 }
 
-async function syncTableSchemaIndexes(schema: TableSchema): Promise<void> {
+async function syncTableSchemaIndexes(
+  db: Client,
+  schema: TableSchema
+): Promise<void> {
   const dbg = (...args) =>
     log.debug("syncTableSchemaIndexes", "table = ", schema.name, ...args);
   dbg();
 
-  const curIndexes = await getCurrentIndexes(schema.name);
+  const curIndexes = await getCurrentIndexes(db, schema.name);
   dbg("curIndexes", curIndexes);
 
   // these are the indexes we are supposed to have
@@ -164,26 +171,25 @@ async function syncTableSchemaIndexes(schema: TableSchema): Promise<void> {
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
     if (!curIndexes.has(x.name)) {
-      await updateIndex(schema.name, "create", x.name, x.query);
+      await updateIndex(db, schema.name, "create", x.name, x.query);
     }
   }
   for (const name of curIndexes) {
     // only delete indexes that end with _idx; don't want to delete, e.g., pkey primary key indexes.
     if (name.endsWith("_idx") && !goalIndexNames.has(name)) {
-      await updateIndex(schema.name, "delete", name);
+      await updateIndex(db, schema.name, "delete", name);
     }
   }
 }
 
 // Names of all tables owned by the current user.
-async function getAllTables(): Promise<Set<string>> {
-  const pool = getPool();
-  const { rows } = await pool.query(
+async function getAllTables(db: Client): Promise<Set<string>> {
+  const { rows } = await db.query(
     "SELECT tablename FROM pg_tables WHERE tableowner = current_user"
   );
   const v = new Set<string>();
-  for (const { table_name } of rows) {
-    v.add(table_name);
+  for (const { tablename } of rows) {
+    v.add(tablename);
   }
   return v;
 }
@@ -204,38 +210,57 @@ function getMissingTables(
   return missing;
 }
 
-export async function syncSchema(dbSchema: DBSchema): Promise<void> {
-  const dbg = (...args) => log.debug("syncSchema", ...args);
+export async function syncSchema(
+  dbSchema: DBSchema,
+  role?: string
+): Promise<void> {
+  const dbg = (...args) => log.debug("syncSchema", { role }, ...args);
   dbg();
 
-  const allTables = await getAllTables();
+  // We use a single connection for the schema update so that it's possible
+  // to set the role for that connection without causing any side effects
+  // elsewhere.
+  const db = getClient();
+  try {
+    await db.connect();
+    if (role) {
+      // change to that user for the rest of this connection.
+      await db.query(`SET ROLE ${role}`);
+    }
 
-  // Create from scratch any missing tables -- usually this creates all tables and
-  // indexes the first time around.
-  const missingTables = await getMissingTables(dbSchema, allTables);
-  for (const table of missingTables) {
-    dbg("create missing table", table);
-    const schema = dbSchema[table];
-    if (schema == null) {
-      throw Error("BUG -- inconsistent schema");
+    const allTables = await getAllTables(db);
+
+    // Create from scratch any missing tables -- usually this creates all tables and
+    // indexes the first time around.
+    const missingTables = await getMissingTables(dbSchema, allTables);
+    for (const table of missingTables) {
+      dbg("create missing table", table);
+      const schema = dbSchema[table];
+      if (schema == null) {
+        throw Error("BUG -- inconsistent schema");
+      }
+      await createTable(db, schema);
     }
-    await createTable(schema);
-  }
-  // For each table that already exists and is in the schema,
-  // ensure that the columns are correct,
-  // have the correct type, and all indexes exist.
-  for (const table of allTables) {
-    if (missingTables.has(table)) {
-      // already handled above -- we created this table just a moment ago
-      continue;
+    // For each table that already exists and is in the schema,
+    // ensure that the columns are correct,
+    // have the correct type, and all indexes exist.
+    for (const table of allTables) {
+      if (missingTables.has(table)) {
+        // already handled above -- we created this table just a moment ago
+        continue;
+      }
+      const schema = dbSchema[table];
+      if (schema == null) {
+        // table not in our schema at all -- ignore
+        continue;
+      }
+      // not newly created and in the schema so check if anything changed
+      dbg("sync existing table", table);
+      await syncTableSchema(db, schema);
     }
-    const schema = dbSchema[table];
-    if (schema == null) {
-      // table not in our schema at all -- ignore
-      continue;
-    }
-    // not newly created and in the schema so check if anything changed
-    dbg("sync existing table", table);
-    await syncTableSchema(schema);
+  } catch (err) {
+    dbg("FAILED to sync schema ", { role }, err);
+  } finally {
+    db.end();
   }
 }

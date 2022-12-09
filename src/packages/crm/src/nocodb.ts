@@ -12,9 +12,11 @@ import { Application, Request } from "express";
 import { join } from "path";
 import getAccount from "@cocalc/server/auth/get-account";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
-const winston = getLogger("nocodb");
 import { pghost } from "@cocalc/backend/data";
 import dbPassword from "@cocalc/database/pool/password";
+import syncSchema from "./schema";
+
+const winston = getLogger("nocodb");
 
 export default async function initNocoDB(
   app: Application,
@@ -24,13 +26,16 @@ export default async function initNocoDB(
   let Noco;
   try {
     Noco = require("nocodb").Noco;
-  } catch (_) {
+  } catch (err) {
     // We use require instead of import and support nocodb
     // not being installed.  That's because it's AGPL and
     // some on prem customers might ant an AGPL-free cocalc install.
-    winston.info("NocoDB is not installed");
+    winston.info("NocoDB is not installed", err);
     return;
   }
+  winston.info("Synchronizing CRM schema...");
+  await syncSchema();
+
   const base = join(basePath, endpoint);
   winston.info(`Initializing the NocoDB server at ${base}`);
   await prepForNocodb();

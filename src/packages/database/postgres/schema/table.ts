@@ -2,7 +2,7 @@ import { client_db } from "@cocalc/util/schema";
 import getLogger from "@cocalc/backend/logger";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
-import getPool from "@cocalc/database/pool";
+import { Client } from "@cocalc/database/pool";
 import { createIndexes } from "./indexes";
 import type { TableSchema } from "./types";
 
@@ -22,7 +22,10 @@ export function primaryKey(table: string | TableSchema): string {
   return v[0];
 }
 
-export async function createTable(schema: TableSchema): Promise<void> {
+export async function createTable(
+  db: Client,
+  schema: TableSchema
+): Promise<void> {
   log.debug("createTable", schema.name, " creating SQL query");
   if (schema.virtual) {
     throw Error(`table '${schema.name}' is virtual`);
@@ -45,7 +48,6 @@ export async function createTable(schema: TableSchema): Promise<void> {
     ", "
   )}, PRIMARY KEY(${primary_keys.join(", ")}))`;
   log.debug("createTable", schema.name, " running query...", query);
-  const pool = getPool();
-  await pool.query(query);
-  await createIndexes(schema);
+  await db.query(query);
+  await createIndexes(db, schema);
 }

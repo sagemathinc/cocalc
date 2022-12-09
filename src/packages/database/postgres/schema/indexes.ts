@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import getPool from "@cocalc/database/pool";
+import { Client } from "@cocalc/database/pool";
 import type { TableSchema } from "./types";
 import { make_valid_name } from "@cocalc/util/misc";
 
@@ -34,9 +34,11 @@ export function createIndexesQueries(
   return queries;
 }
 
-export async function createIndexes(schema: TableSchema): Promise<void> {
+export async function createIndexes(
+  db: Client,
+  schema: TableSchema
+): Promise<void> {
   log.debug("createIndexes", schema.name, " creating SQL query");
-  const pool = getPool();
   for (const { name, query, unique } of createIndexesQueries(schema)) {
     // Shorthand index is just the part in parens.
     // 2020-10-12: it makes total sense to add CONCURRENTLY to this index command to avoid locking up the table,
@@ -48,6 +50,6 @@ export async function createIndexes(schema: TableSchema): Promise<void> {
       schema.name
     } ${query}`;
     log.debug("createIndexes -- creating ", name, " using ", fullQuery);
-    await pool.query(fullQuery);
+    await db.query(fullQuery);
   }
 }

@@ -185,6 +185,13 @@ Table({
       "((passports IS NOT NULL))",
       "((ssh_keys IS NOT NULL))", // used by ssh-gateway to speed up getting all users
     ],
+    crm_indexes: [
+      "(lower(first_name) text_pattern_ops)",
+      "(lower(last_name)  text_pattern_ops)",
+      "(lower(email_address)  text_pattern_ops)",
+      "created",
+      "last_active DESC NULLS LAST",
+    ],
     pg_unique_indexes: [
       "api_key", // we use the map api_key --> account_id, so it better be unique
       "LOWER(name)", // ensure user-assigned name is case sensitive globally unique

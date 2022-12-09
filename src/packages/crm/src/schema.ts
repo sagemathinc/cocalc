@@ -7,9 +7,8 @@ import type {
   TableSchema as TableSchema0,
 } from "@cocalc/util/db-schema";
 import { SCHEMA } from "@cocalc/util/db-schema";
-import { copy_with, copy_without, deep_copy } from "@cocalc/util/misc";
+import { copy_with, copy_without } from "@cocalc/util/misc";
 import { syncSchema } from "@cocalc/database/postgres/schema";
-import getPool from "@cocalc/database/pool";
 
 type TableSchema = TableSchema0<any>;
 
@@ -32,13 +31,18 @@ function crmSchema(): DBSchema {
     const schema = SCHEMA[name];
     const fields = crmFields(schema);
     if (fields.length == 0) continue;
-    crm[name] = copy_without(schema, ["fields"]);
-    crm[name].fields = copy_with(schema.fields, fields);
+    const crm_name = `crm_${name}`;
+    crm[crm_name] = {
+      ...copy_without(schema, ["fields", "pg_indexes", "pg_unique_indexes"]),
+      fields: copy_with(schema.fields, fields),
+      pg_indexes: schema.crm_indexes, // we use the crm_indexes field for the indexes; we don't make unique indexes, since no need.
+      name: crm_name,
+    };
   }
   return crm;
 }
 
-async function syncCRMSchema(): Promise<void> {
+export default async function syncCRMSchema(): Promise<void> {
   const crm = crmSchema();
-  await syncSchema(crm, "crm");
+  await syncSchema(crm, "nocodb");
 }
