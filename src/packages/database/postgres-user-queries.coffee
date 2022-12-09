@@ -535,12 +535,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     _user_set_query_where: (r) =>
         where = {}
         for primary_key in @_primary_keys(r.db_table)
-            type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
             value = r.query[primary_key]
-            if type == 'TIMESTAMP' and not misc.is_date(value)
-                # Javascript is better at parsing its own dates than PostgreSQL
-                value = new Date(value)
-            where["#{primary_key}=$::#{type}"] = value
+            if SCHEMA[r.db_table].fields[primary_key].noCoerce
+                where["#{primary_key}=$"] = value
+            else
+                type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
+                if type == 'TIMESTAMP' and not misc.is_date(value)
+                    # Javascript is better at parsing its own dates than PostgreSQL
+                    value = new Date(value)
+                where["#{primary_key}=$::#{type}"] = value
         return where
 
     _user_set_query_values: (r) =>
@@ -548,7 +551,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         s = SCHEMA[r.db_table]
         for key, value of r.query
             type = pg_type(s?.fields?[key])
-            if type?
+            if type? and not s?.fields?[key]?.noCoerce
                 if type == 'TIMESTAMP' and not misc.is_date(value)
                     # (as above) Javascript is better at parsing its own dates than PostgreSQL
                     value = new Date(value)

@@ -434,6 +434,7 @@ Table({
       type: "integer",
       desc: "Automatically generated sequential id that uniquely determines this person.",
       pg_type: "SERIAL UNIQUE",
+      noCoerce: true,
     },
     created: {
       type: "timestamp",
@@ -453,8 +454,8 @@ Table({
     },
     email_addresses: {
       type: "array",
-      pg_type: "VARCHAR(254)[]",
-      desc: "Array of 0 or more email addresses for this person.",
+      pg_type: "VARCHAR(1000)",
+      desc: "Email addresses for this person, separated by commas",
     },
     account_ids: {
       type: "array",
@@ -488,9 +489,6 @@ Table({
           last_name: true,
           email_addresses: true,
           account_ids: true,
-        },
-        required_fields: {
-          created: true,
         },
       },
     },

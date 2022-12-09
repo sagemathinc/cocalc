@@ -122,6 +122,7 @@ interface Fields {
         pg_type?: string;
         unique?: boolean;
         crm?: boolean; // if true then this field is made available to the CRM.
+        noCoerce?: boolean; // if true, don't coerce to this type when doing set query
       };
 }
 

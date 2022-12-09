@@ -40,6 +40,7 @@ Table({
       desc: "Automatically generated sequential id that uniquely determines this item.",
       pg_type: "SERIAL UNIQUE",
       crm: true,
+      noCoerce: true,
     },
     account_id: {
       type: "uuid",
