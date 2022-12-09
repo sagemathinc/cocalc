@@ -4,6 +4,7 @@
  */
 
 export { SCHEMA } from "./types";
+export type { DBSchema, TableSchema } from "./types";
 
 // The tables
 import "./account-creation-actions";
@@ -43,6 +44,7 @@ import "./shopping-cart-items";
 import "./stats";
 import "./storage-servers";
 import "./system-notifications";
+import "./syncstring-schema";
 import "./tracking";
 import "./usage-info";
 import "./webapp-errors";

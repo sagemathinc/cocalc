@@ -96,7 +96,7 @@ export function Table<F extends Fields>({
       );
     }
   }
-  const T: TableSchema<F> = { ...rules, fields };
+  const T: TableSchema<F> = { name, ...rules, fields };
   SCHEMA[name] = T;
 }
 
@@ -128,10 +128,13 @@ interface Fields {
 interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
+    required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
-    pg_where?: (string | { [key: string]: any })[];
+    pg_where?:
+      | (string | { [key: string]: any })[]
+      | ((obj: any, db: any) => any[]);
     pg_where_load?: (string | { [key: string]: any })[]; // used instead of pg_where if server is under "heavy load"
-    pg_changefeed?: string;
+    pg_changefeed?: string | Function;
     remove_from_query?: string[];
     admin?: boolean;
     options?: any; // [{ limit: 1 }]
@@ -169,6 +172,7 @@ interface UserOrProjectQuery<F extends Fields> {
     //
     // old_val is the matching result from QUERY that will be replaced
 
+    options?: { delete: true }[];
     /**
      * 0. CHECK: Runs before doing any further processing; has callback, so this
      * provides a generic way to quickly check whether or not this query is allowed
@@ -240,7 +244,8 @@ interface UserOrProjectQuery<F extends Fields> {
   };
 }
 
-interface TableSchema<F extends Fields> {
+export interface TableSchema<F extends Fields> {
+  name: string;
   desc?: string;
   primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   fields?: F; // the fields -- required if virtual is not set.
@@ -258,7 +263,7 @@ interface TableSchema<F extends Fields> {
 }
 
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
-type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields">;
+type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields" | "name">;
 
 import { SiteSettings, SiteSettingsKeys } from "./site-defaults";
 import { SettingsExtras, SiteSettingsExtrasKeys } from "./site-settings-extras";
