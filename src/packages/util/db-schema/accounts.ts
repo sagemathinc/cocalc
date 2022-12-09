@@ -426,3 +426,73 @@ Table({
   },
   fields: schema.accounts.fields,
 });
+
+Table({
+  name: "crm_people",
+  fields: {
+    id: {
+      type: "integer",
+      desc: "Automatically generated sequential id that uniquely determines this person.",
+      pg_type: "SERIAL UNIQUE",
+    },
+    created: {
+      type: "timestamp",
+      desc: "When the account was created.",
+      crm: true,
+    },
+    first_name: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "The first name of this person.",
+    },
+    last_name: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "The last name of this person.",
+      crm: true,
+    },
+    email_addresses: {
+      type: "array",
+      pg_type: "VARCHAR(254)[]",
+      desc: "Array of 0 or more email addresses for this person.",
+    },
+    account_ids: {
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "Array of 0 or more accounts that this person may have.",
+    },
+  },
+  rules: {
+    desc: "People",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          id: null,
+          created: null,
+          email_addresses: null,
+          first_name: null,
+          last_name: null,
+          account_ids: null,
+        },
+        options: [{ limit: 100 }],
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          created: true,
+          first_name: true,
+          last_name: true,
+          email_addresses: true,
+          account_ids: true,
+        },
+        required_fields: {
+          created: true,
+        },
+      },
+    },
+  },
+});
