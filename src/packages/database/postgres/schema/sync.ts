@@ -5,7 +5,6 @@ import { quoteField } from "./util";
 import { pgType } from "./pg-type";
 import { createIndexesQueries } from "./indexes";
 import { createTable } from "./table";
-
 const log = getLogger("db:schema:sync");
 
 async function syncTableSchema(schema: TableSchema): Promise<void> {
@@ -176,11 +175,11 @@ async function syncTableSchemaIndexes(schema: TableSchema): Promise<void> {
   }
 }
 
-// Names of all tables actually in the database public schema.
+// Names of all tables owned by the current user.
 async function getAllTables(): Promise<Set<string>> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+    "SELECT tablename FROM pg_tables WHERE tableowner = current_user"
   );
   const v = new Set<string>();
   for (const { table_name } of rows) {
@@ -236,7 +235,7 @@ export async function syncSchema(dbSchema: DBSchema): Promise<void> {
       continue;
     }
     // not newly created and in the schema so check if anything changed
-    dbg("sync existing table", { table, schema });
+    dbg("sync existing table", table);
     await syncTableSchema(schema);
   }
 }

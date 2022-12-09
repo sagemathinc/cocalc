@@ -9,7 +9,7 @@ import {
   pguser as user,
 } from "@cocalc/backend/data";
 
-import { Pool } from "pg";
+import { Client, Pool } from "pg";
 import getCachedPool, { Length } from "./cached";
 import dbPassword from "./password";
 import { getLogger } from "@cocalc/backend/logger";
@@ -20,7 +20,6 @@ export * from "./util";
 let pool: Pool | undefined = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
-
   if (cacheLength != null) {
     return getCachedPool(cacheLength);
   }
@@ -29,4 +28,8 @@ export default function getPool(cacheLength?: Length): Pool {
     pool = new Pool({ password: dbPassword(), user, host, database });
   }
   return pool;
+}
+
+export function getClient(): Client {
+  return new Client({ password: dbPassword(), user, host, database });
 }
