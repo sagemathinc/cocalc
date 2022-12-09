@@ -14,10 +14,34 @@ import A from "components/misc/A";
 
 const dataSource = [
   {
+    link: "/crm/people",
+    title: "People",
+    logo: "users",
+    description: <>Browse, edit and create people</>,
+  },
+  {
+    link: "/crm/orgs",
+    title: "Organizations",
+    logo: "home",
+    description: <>Browse, edit and create organizations</>,
+  },
+  {
     link: "/crm/accounts",
     title: "Accounts",
     logo: "users",
     description: <>Browse accounts</>,
+  },
+  {
+    link: "/crm/licenses",
+    title: "Licenses",
+    logo: "key",
+    description: <>Browse licenses</>,
+  },
+  {
+    link: "/crm/carts",
+    title: "Shopping carts",
+    logo: "cart",
+    description: <>Browse shopping carts</>,
   },
 ] as DataSource;
 
