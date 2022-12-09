@@ -1,17 +1,18 @@
-import { SCHEMA, client_db } from "@cocalc/util/schema";
+import { client_db } from "@cocalc/util/schema";
 import getLogger from "@cocalc/backend/logger";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
 import getPool from "@cocalc/database/pool";
 import { createIndexes } from "./indexes";
+import type { TableSchema } from "./types";
 
 const log = getLogger("db:schema:table");
 
-export function primaryKeys(table: string): string[] {
+export function primaryKeys(table: string | TableSchema): string[] {
   return client_db.primary_keys(table);
 }
 
-export function primaryKey(table: string): string {
+export function primaryKey(table: string | TableSchema): string {
   const v = primaryKeys(table);
   if (v.length != 1) {
     throw Error(
@@ -21,18 +22,14 @@ export function primaryKey(table: string): string {
   return v[0];
 }
 
-export async function createTable(table: string): Promise<void> {
-  log.debug("createTable", table, " creating SQL query");
-  const schema = SCHEMA[table];
-  if (!schema) {
-    throw Error(`no table '${table}' in schema`);
-  }
+export async function createTable(schema: TableSchema): Promise<void> {
+  log.debug("createTable", schema.name, " creating SQL query");
   if (schema.virtual) {
-    throw Error(`table '${table}' is virtual`);
+    throw Error(`table '${schema.name}' is virtual`);
     return;
   }
   const columns: string[] = [];
-  const primary_keys = primaryKeys(table);
+  const primary_keys = primaryKeys(schema);
   for (const column in schema.fields) {
     const info = schema.fields[column];
     let s = `${quoteField(column)} ${pgType(info)}`;
@@ -44,11 +41,11 @@ export async function createTable(table: string): Promise<void> {
     }
     columns.push(s);
   }
-  const query = `CREATE TABLE ${table} (${columns.join(
+  const query = `CREATE TABLE ${schema.name} (${columns.join(
     ", "
   )}, PRIMARY KEY(${primary_keys.join(", ")}))`;
-  log.debug("createTable", table, " running query...", query);
+  log.debug("createTable", schema.name, " running query...", query);
   const pool = getPool();
   await pool.query(query);
-  await createIndexes(table);
+  await createIndexes(schema);
 }

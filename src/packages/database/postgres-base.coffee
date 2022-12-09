@@ -40,7 +40,7 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { syncSchema } = require('./postgres/schema')
 { pgType } = require('./postgres/schema/pg-type')
 { quoteField } = require('./postgres/schema/util')
-{primaryKey, primaryKeys} = require('./postgres/schema/table')
+{ primaryKey, primaryKeys } = require('./postgres/schema/table')
 
 misc_node = require('@cocalc/backend/misc_node')
 data = require("@cocalc/backend/data")
@@ -978,7 +978,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     # range of cases, *might be* be able to change the data type of a column.
     update_schema: (opts) =>
         try
-            await syncSchema();
+            await syncSchema(SCHEMA);
             opts.cb?()
         catch err
             opts.cb?(err)

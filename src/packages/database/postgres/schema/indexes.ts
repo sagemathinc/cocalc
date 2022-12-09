@@ -1,17 +1,13 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { SCHEMA } from "@cocalc/util/schema";
+import type { TableSchema } from "./types";
 import { make_valid_name } from "@cocalc/util/misc";
 
 const log = getLogger("db:schema:indexes");
 
 export function createIndexesQueries(
-  table: string
+  schema: TableSchema
 ): { name: string; query: string; unique: boolean }[] {
-  const schema = SCHEMA[table];
-  if (schema == null) {
-    throw Error(`invalid table - ${table}`);
-  }
   const v = schema.pg_indexes ?? [];
   if (schema.fields.expire != null && !v.includes("expire")) {
     v.push("expire");
@@ -19,7 +15,7 @@ export function createIndexesQueries(
   const queries: { name: string; query: string; unique: boolean }[] = [];
   for (let query of v) {
     query = query.trim();
-    const name = `${table}_${make_valid_name(query)}_idx`; // this first, then...
+    const name = `${schema.name}_${make_valid_name(query)}_idx`; // this first, then...
     if (query[0] !== "(") {
       // do this **after** making name, since it uses query before parens.
       query = `(${query})`;
@@ -29,7 +25,7 @@ export function createIndexesQueries(
   const w = schema.pg_unique_indexes ?? [];
   for (let query of w) {
     query = query.trim();
-    const name = `${table}_${make_valid_name(query)}_unique_idx`;
+    const name = `${schema.name}_${make_valid_name(query)}_unique_idx`;
     if (query[0] !== "(") {
       query = `(${query})`;
     }
@@ -38,20 +34,20 @@ export function createIndexesQueries(
   return queries;
 }
 
-export async function createIndexes(table: string): Promise<void> {
-  log.debug("createIndexes", table, " creating SQL query");
+export async function createIndexes(schema: TableSchema): Promise<void> {
+  log.debug("createIndexes", schema.name, " creating SQL query");
   const pool = getPool();
-  for (const { name, query, unique } of createIndexesQueries(table)) {
+  for (const { name, query, unique } of createIndexesQueries(schema)) {
     // Shorthand index is just the part in parens.
     // 2020-10-12: it makes total sense to add CONCURRENTLY to this index command to avoid locking up the table,
     // but the first time we tried this in production (postgres 10), it just made "invalid" indices.
     // the problem might be that several create index commands were issued rapidly, which threw this off
     // So, for now, it's probably best to either create them manually first (concurrently) or be
     // aware that this does lock up briefly.
-    const fullQuery = `CREATE ${
-      unique ? "UNIQUE" : ""
-    } INDEX ${name} ON ${table} ${query}`;
-    log.debug("createIndexes -- creating ", name, ' using ', fullQuery);
+    const fullQuery = `CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${
+      schema.name
+    } ${query}`;
+    log.debug("createIndexes -- creating ", name, " using ", fullQuery);
     await pool.query(fullQuery);
   }
 }

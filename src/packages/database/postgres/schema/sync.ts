@@ -1,6 +1,6 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { SCHEMA } from "@cocalc/util/schema";
+import type { DBSchema, TableSchema } from "./types";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
 import { createIndexesQueries } from "./indexes";
@@ -8,22 +8,15 @@ import { createTable } from "./table";
 
 const log = getLogger("db:schema:sync");
 
-async function syncTableSchema(table: string): Promise<void> {
-  const dbg = (...args) => log.debug("syncTableSchema", table, ...args);
+async function syncTableSchema(schema: TableSchema): Promise<void> {
+  const dbg = (...args) => log.debug("syncTableSchema", schema.name, ...args);
   dbg();
-  const schema = SCHEMA[table];
-  if (schema == null) {
-    dbg(
-      "This is an auxiliary table in the database not in our schema -- just leave it alone!"
-    );
-    return;
-  }
   if (schema.virtual) {
     dbg("nothing to do -- table is virtual");
     return;
   }
-  await syncTableSchemaColumns(table);
-  await syncTableSchemaIndexes(table);
+  await syncTableSchemaColumns(schema);
+  await syncTableSchemaIndexes(schema);
 }
 
 async function getColumnTypeInfo(
@@ -50,18 +43,14 @@ async function getColumnTypeInfo(
 }
 
 async function alterColumnOfTable(
-  table: string,
+  schema: TableSchema,
   action: "alter" | "add",
   column: string
 ): Promise<void> {
-  const schema = SCHEMA[table];
-  if (schema == null) {
-    throw Error(`invalid table - ${table}`);
-  }
   // Note: changing column ordering is NOT supported in PostgreSQL, so
   // it's critical to not depend on it!
   // https://wiki.postgresql.org/wiki/Alter_column_position
-  const qTable = quoteField(table);
+  const qTable = quoteField(schema.name);
 
   const info = schema.fields[column];
   if (info == null) throw Error(`invalid column ${column}`);
@@ -76,31 +65,27 @@ async function alterColumnOfTable(
   }
   const pool = getPool();
   if (action == "alter") {
-    log.debug("alterColumnOfTable", table, "alter this column's type:", col);
+    log.debug(
+      "alterColumnOfTable",
+      schema.name,
+      "alter this column's type:",
+      col
+    );
     await pool.query(
       `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`
     );
   } else if (action == "add") {
-    log.debug("alterColumnOfTable", table, "add this column:", col);
+    log.debug("alterColumnOfTable", schema.name, "add this column:", col);
     await pool.query(`ALTER TABLE ${qTable} ADD COLUMN ${col} ${desc}`);
   } else {
     throw Error(`unknown action '${action}`);
   }
 }
 
-async function syncTableSchemaColumns(table: string): Promise<void> {
-  const dbg = (...args) =>
-    log.debug("syncTableSchemaColumns", "table = ", table, ...args);
+async function syncTableSchemaColumns(schema: TableSchema): Promise<void> {
+  log.debug("syncTableSchemaColumns", "table = ", schema.name);
+  const columnTypeInfo = await getColumnTypeInfo(schema.name);
 
-  dbg("getting column type info info...");
-  const columnTypeInfo = await getColumnTypeInfo(table);
-
-  const schema = SCHEMA[table];
-  if (schema == null) {
-    throw Error(`invalid table - ${table}`);
-  }
-
-  dbg("altering columns that need a change...");
   for (const column in schema.fields) {
     const info = schema.fields[column];
     let cur_type = columnTypeInfo[column]?.toLowerCase();
@@ -118,13 +103,13 @@ async function syncTableSchemaColumns(table: string): Promise<void> {
     }
     if (cur_type == null) {
       // column is in our schema, but not in the actual database
-      await alterColumnOfTable(table, "add", column);
+      await alterColumnOfTable(schema, "add", column);
     } else if (cur_type !== goal_type) {
       if (goal_type.includes("[]") || goal_type.includes("varchar")) {
         // NO support for array or varchar schema changes (even detecting)!
         continue;
       }
-      await alterColumnOfTable(table, "alter", column);
+      await alterColumnOfTable(schema, "alter", column);
     }
   }
 }
@@ -164,29 +149,29 @@ async function updateIndex(
   }
 }
 
-async function syncTableSchemaIndexes(table: string): Promise<void> {
+async function syncTableSchemaIndexes(schema: TableSchema): Promise<void> {
   const dbg = (...args) =>
-    log.debug("syncTableSchemaIndexes", "table = ", table, ...args);
+    log.debug("syncTableSchemaIndexes", "table = ", schema.name, ...args);
   dbg();
 
-  const curIndexes = await getCurrentIndexes(table);
+  const curIndexes = await getCurrentIndexes(schema.name);
   dbg("curIndexes", curIndexes);
 
   // these are the indexes we are supposed to have
 
-  const goalIndexes = createIndexesQueries(table);
+  const goalIndexes = createIndexesQueries(schema);
   dbg("goalIndexes", goalIndexes);
   const goalIndexNames = new Set<string>();
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
     if (!curIndexes.has(x.name)) {
-      await updateIndex(table, "create", x.name, x.query);
+      await updateIndex(schema.name, "create", x.name, x.query);
     }
   }
   for (const name of curIndexes) {
     // only delete indexes that end with _idx; don't want to delete, e.g., pkey primary key indexes.
     if (name.endsWith("_idx") && !goalIndexNames.has(name)) {
-      await updateIndex(table, "delete", name);
+      await updateIndex(schema.name, "delete", name);
     }
   }
 }
@@ -206,10 +191,13 @@ async function getAllTables(): Promise<Set<string>> {
 
 // Determine names of all tables that are in our schema but not in the
 // actual database.
-function getMissingTables(allTables: Set<string>): Set<string> {
+function getMissingTables(
+  dbSchema: DBSchema,
+  allTables: Set<string>
+): Set<string> {
   const missing = new Set<string>();
-  for (const table in SCHEMA) {
-    const s = SCHEMA[table];
+  for (const table in dbSchema) {
+    const s = dbSchema[table];
     if (!allTables.has(table) && !s.virtual && s.durability != "ephemeral") {
       missing.add(table);
     }
@@ -217,7 +205,7 @@ function getMissingTables(allTables: Set<string>): Set<string> {
   return missing;
 }
 
-export async function syncSchema(): Promise<void> {
+export async function syncSchema(dbSchema: DBSchema): Promise<void> {
   const dbg = (...args) => log.debug("syncSchema", ...args);
   dbg();
 
@@ -225,10 +213,14 @@ export async function syncSchema(): Promise<void> {
 
   // Create from scratch any missing tables -- usually this creates all tables and
   // indexes the first time around.
-  const missingTables = await getMissingTables(allTables);
+  const missingTables = await getMissingTables(dbSchema, allTables);
   for (const table of missingTables) {
     dbg("create missing table", table);
-    await createTable(table);
+    const schema = dbSchema[table];
+    if (schema == null) {
+      throw Error("BUG -- inconsistent schema");
+    }
+    await createTable(schema);
   }
   // For each table that already exists and is in the schema,
   // ensure that the columns are correct,
@@ -238,12 +230,13 @@ export async function syncSchema(): Promise<void> {
       // already handled above -- we created this table just a moment ago
       continue;
     }
-    if (SCHEMA[table] == null) {
+    const schema = dbSchema[table];
+    if (schema == null) {
       // table not in our schema at all -- ignore
       continue;
     }
     // not newly created and in the schema so check if anything changed
-    dbg("sync existing table", table);
-    await syncTableSchema(table);
+    dbg("sync existing table", { table, schema });
+    await syncTableSchema(schema);
   }
 }
