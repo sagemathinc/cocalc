@@ -5,6 +5,7 @@
 
 import { Table } from "./types";
 import { checkAccountName } from "./name-rules";
+import { SCHEMA as schema } from "./index";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -408,3 +409,20 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   yeti: "Yeti",
   zenburn: "Zenburn",
 };
+
+Table({
+  name: "crm_accounts",
+  rules: {
+    virtual: "accounts",
+    primary_key: "account_id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table
+        fields: schema.accounts.user_query?.get?.fields ?? {},
+        options: [{ limit: 100 }],
+      },
+    },
+  },
+  fields: schema.accounts.fields,
+});

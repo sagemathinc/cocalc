@@ -32,6 +32,12 @@ const dataSource = [
     description: <>Browse accounts</>,
   },
   {
+    link: "/crm/projects",
+    title: "Projects",
+    logo: "server",
+    description: <>Browse projects</>,
+  },
+  {
     link: "/crm/licenses",
     title: "Licenses",
     logo: "key",
