@@ -454,7 +454,6 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this person.",
-      crm: true,
     },
     email_addresses: {
       type: "array",
@@ -469,6 +468,10 @@ Table({
     deleted: {
       type: "boolean",
       desc: "True if the person has been deleted.",
+    },
+    notes: {
+      type: "string",
+      desc: "Open ended text in markdown about this person.",
     },
   },
   rules: {
@@ -487,6 +490,7 @@ Table({
           last_name: null,
           account_ids: null,
           deleted: null,
+          notes: null,
         },
         options: [{ limit: 100 }],
       },
@@ -501,6 +505,7 @@ Table({
           email_addresses: true,
           account_ids: true,
           deleted: true,
+          notes: true,
         },
         required_fields: {
           last_edited: true,

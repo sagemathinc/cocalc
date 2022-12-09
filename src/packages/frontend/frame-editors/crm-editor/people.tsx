@@ -5,6 +5,7 @@ import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
+import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
 const EditableContext = createContext<any>(null);
 
@@ -20,6 +21,7 @@ function peopleQuery() {
           email_addresses: null,
           account_ids: null,
           deleted: null,
+          notes: null,
         },
       ],
     },
@@ -84,21 +86,6 @@ function EditableText({
 
 const columns = [
   {
-    title: "Id",
-    dataIndex: "id",
-    key: "id",
-    sorter: (a, b) => a.id - b.id,
-  },
-  {
-    title: "Edited",
-    ellipsis: true,
-    dataIndex: "last_edited",
-    key: "last_edited",
-    defaultSortOrder: "descend" as "descend",
-    sorter: (a, b) => cmp_Date(a.last_edited, b.last_edited),
-    render: (_, { last_edited }) => <TimeAgo date={last_edited} />,
-  },
-  {
     title: "First Name",
     dataIndex: "first_name",
     key: "first_name",
@@ -113,6 +100,15 @@ const columns = [
     render: (value, { id }) => (
       <EditableText key={id} id={id} field="last_name" defaultValue={value} />
     ),
+  },
+  {
+    title: "Edited",
+    ellipsis: true,
+    dataIndex: "last_edited",
+    key: "last_edited",
+    defaultSortOrder: "descend" as "descend",
+    sorter: (a, b) => cmp_Date(a.last_edited, b.last_edited),
+    render: (_, { last_edited }) => <TimeAgo date={last_edited} />,
   },
   {
     title: "Email",
@@ -149,11 +145,12 @@ async function getPeople() {
 }
 
 export default function People({}) {
-  const [people, setPeople] = useState<any>([]);
+  const [data, setData] = useState<any[]>([]);
   const { val, inc } = useCounter();
 
   async function refresh() {
-    setPeople(await getPeople());
+    const people = await getPeople();
+    setData(people);
     inc();
   }
 
@@ -172,10 +169,28 @@ export default function People({}) {
   return (
     <EditableContext.Provider value={{ counter: val }}>
       <Table
+        rowKey="id"
         style={{ overflow: "auto", margin: "15px" }}
-        dataSource={people}
+        dataSource={data}
         columns={columns}
         bordered
+        expandable={{
+          expandedRowRender: ({ id, notes }) => (
+            <MultiMarkdownInput
+              value={notes}
+              onChange={async (notes) => {
+                const query = {
+                  crm_people: {
+                    id,
+                    last_edited: new Date(),
+                    notes,
+                  },
+                };
+                await webapp_client.query_client.query({ query });
+              }}
+            />
+          ),
+        }}
         title={() => (
           <>
             <b>People</b>

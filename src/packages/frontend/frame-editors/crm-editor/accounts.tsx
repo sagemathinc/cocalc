@@ -66,6 +66,7 @@ export default function Accounts({}) {
 
   return (
     <Table
+      rowKey="account_id"
       style={{ overflow: "auto", margin: "15px" }}
       dataSource={accounts}
       columns={columns}
