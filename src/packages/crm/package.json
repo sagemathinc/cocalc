@@ -16,8 +16,7 @@
     "@cocalc/database": "^0.34.1",
     "@cocalc/server": "^0.44.1",
     "@cocalc/util": "^1.75.0",
-    "express": "^4.17.1",
-    "nocodb": "^0.100.2"
+    "express": "^4.17.1"
   },
   "files": [
     "dist/**",

@@ -14,26 +14,16 @@ import A from "components/misc/A";
 
 const dataSource = [
   {
-    link: "/crm/db",
-    title: "CRM Database",
-    logo: "database",
-    description: (
-      <>
-        Browse and interact with Customer data via our{" "}
-        <A href="/crm/db">integrated CRM Database</A>.
-        <br />
-        <b>NOTE:</b> This relies on <A href="https://nocodb.com/">NocoDB</A>,
-        which is AGPL licensed, so may not be installed in your site. Contact us
-        to discuss purchasing a non-AGPL license for NocoDB if that is something
-        you need.
-      </>
-    ),
+    link: "/crm/accounts",
+    title: "Accounts",
+    logo: "users",
+    description: <>Browse accounts</>,
   },
 ] as DataSource;
 
 export default function CRM({ customize }) {
   const description = customize.onCoCalcCom
-    ? `Customer and User Relationship Management for ${customize.siteName} administrators.`
+    ? `Customer Relationship Management for ${customize.siteName} administrators.`
     : "";
   return (
     <Customize value={customize}>

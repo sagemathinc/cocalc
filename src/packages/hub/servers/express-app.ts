@@ -23,7 +23,6 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { setupInstrumentation, initMetricsEndpoint } from "./app/metrics";
 import initNext from "./app/next";
-import initNocoDB from "./app/nocodb";
 import initSetCookies from "./app/set-cookies";
 import initStats from "./app/stats";
 import { database } from "./database";
@@ -177,10 +176,6 @@ export default async function init(opts: Options): Promise<{
       httpServer,
       app,
     });
-  }
-
-  if (opts.nocoDB) {
-    await initNocoDB(app, httpServer);
   }
 
   // IMPORTANT:
