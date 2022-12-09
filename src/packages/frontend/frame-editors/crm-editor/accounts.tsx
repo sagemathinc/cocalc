@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Table } from "antd";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
- 
+
 function accountQuery() {
   return {
     query: {
@@ -34,7 +34,6 @@ const columns = [
 
 async function getAccounts() {
   const v = await webapp_client.query_client.query(accountQuery());
-  console.log("v = ", v);
   return v.query.crm_accounts;
 }
 
