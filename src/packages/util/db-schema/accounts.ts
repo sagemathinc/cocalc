@@ -441,6 +441,10 @@ Table({
       desc: "When the account was created.",
       crm: true,
     },
+    last_edited: {
+      type: "timestamp",
+      desc: "When this person was last edited.",
+    },
     first_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -462,6 +466,10 @@ Table({
       pg_type: "UUID[]",
       desc: "Array of 0 or more accounts that this person may have.",
     },
+    deleted: {
+      type: "boolean",
+      desc: "True if the person has been deleted.",
+    },
   },
   rules: {
     desc: "People",
@@ -473,10 +481,12 @@ Table({
         fields: {
           id: null,
           created: null,
+          last_edited: null,
           email_addresses: null,
           first_name: null,
           last_name: null,
           account_ids: null,
+          deleted: null,
         },
         options: [{ limit: 100 }],
       },
@@ -485,10 +495,15 @@ Table({
         fields: {
           id: true,
           created: true,
+          last_edited: true,
           first_name: true,
           last_name: true,
           email_addresses: true,
           account_ids: true,
+          deleted: true,
+        },
+        required_fields: {
+          last_edited: true,
         },
       },
     },

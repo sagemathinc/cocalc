@@ -1,8 +1,12 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useRef, useState } from "react";
-import { Button, Input, Table } from "antd";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { Button, Input, Space, Table } from "antd";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { TimeAgo } from "@cocalc/frontend/components";
+import { cmp_Date } from "@cocalc/util/cmp";
+
+const EditableContext = createContext<any>(null);
 
 function peopleQuery() {
   return {
@@ -10,10 +14,12 @@ function peopleQuery() {
       crm_people: [
         {
           id: null,
+          last_edited: null,
           first_name: null,
           last_name: null,
           email_addresses: null,
           account_ids: null,
+          deleted: null,
         },
       ],
     },
@@ -21,29 +27,46 @@ function peopleQuery() {
 }
 
 function EditableText({
-  value,
-  onChange,
+  defaultValue = "",
+  id,
+  field,
 }: {
-  value?: string;
-  onChange?: (value: string) => void;
+  defaultValue?: string;
+  id: number;
+  field: string;
 }) {
+  const [value, setValue] = useState<string>(defaultValue);
   const [edit, setEdit] = useState<boolean>(false);
   const ref = useRef<any>();
+  const context = useContext(EditableContext);
+
+  useEffect(() => {
+    setValue(defaultValue);
+  }, [context.counter]);
+
+  async function save() {
+    setEdit(false);
+    const query = {
+      crm_people: {
+        id,
+        [field]: ref.current.input.value,
+        last_edited: new Date(),
+      },
+    };
+    await webapp_client.query_client.query({ query });
+  }
 
   if (edit) {
     return (
       <Input
-        autoFocus
         ref={ref}
-        defaultValue={value}
-        onBlur={() => {
-          onChange?.(ref.current.input.value);
-          setEdit(false);
+        autoFocus
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
         }}
-        onPressEnter={() => {
-          onChange?.(ref.current.input.value);
-          setEdit(false);
-        }}
+        onBlur={save}
+        onPressEnter={save}
       />
     );
   } else {
@@ -60,57 +83,47 @@ function EditableText({
 }
 
 const columns = [
-  { title: "Id", dataIndex: "id", key: "id" },
+  {
+    title: "Id",
+    dataIndex: "id",
+    key: "id",
+    sorter: (a, b) => a.id - b.id,
+  },
+  {
+    title: "Edited",
+    ellipsis: true,
+    dataIndex: "last_edited",
+    key: "last_edited",
+    defaultSortOrder: "descend" as "descend",
+    sorter: (a, b) => cmp_Date(a.last_edited, b.last_edited),
+    render: (_, { last_edited }) => <TimeAgo date={last_edited} />,
+  },
   {
     title: "First Name",
     dataIndex: "first_name",
     key: "first_name",
-    render: (value, record) => (
-      <EditableText
-        value={value}
-        onChange={async (newValue) => {
-          if (newValue != value) {
-            await webapp_client.query_client.query({
-              query: { crm_people: { id: record.id, first_name: newValue } },
-            });
-          }
-        }}
-      />
+    render: (value, { id }) => (
+      <EditableText key={id} id={id} field="first_name" defaultValue={value} />
     ),
   },
   {
     title: "Last Name",
     dataIndex: "last_name",
     key: "last_name",
-    render: (value, record) => (
-      <EditableText
-        value={value}
-        onChange={async (newValue) => {
-          if (newValue != value) {
-            await webapp_client.query_client.query({
-              query: { crm_people: { id: record.id, last_name: newValue } },
-            });
-          }
-        }}
-      />
+    render: (value, { id }) => (
+      <EditableText key={id} id={id} field="last_name" defaultValue={value} />
     ),
   },
   {
     title: "Email",
     dataIndex: "email_addresses",
     key: "email_addresses",
-    render: (value, record) => (
+    render: (value, { id }) => (
       <EditableText
-        value={value}
-        onChange={async (newValue) => {
-          if (newValue != value) {
-            await webapp_client.query_client.query({
-              query: {
-                crm_people: { id: record.id, email_addresses: newValue },
-              },
-            });
-          }
-        }}
+        key={id}
+        id={id}
+        defaultValue={value}
+        field="email_addresses"
       />
     ),
   },
@@ -118,7 +131,8 @@ const columns = [
     title: "Accounts",
     dataIndex: "account_ids",
     key: "accounts",
-    render: (_, { account_ids }) => {
+    render: (_, record) => {
+      const { account_ids } = record;
       if (!account_ids) return null;
       const v: any[] = [];
       for (const account_id of account_ids) {
@@ -131,41 +145,47 @@ const columns = [
 
 async function getPeople() {
   const v = await webapp_client.query_client.query(peopleQuery());
-  return v.query.crm_people;
+  return v.query.crm_people.filter((x) => !x.deleted);
 }
 
 export default function People({}) {
   const [people, setPeople] = useState<any>([]);
   const { val, inc } = useCounter();
 
+  async function refresh() {
+    setPeople(await getPeople());
+    inc();
+  }
+
   useEffect(() => {
-    (async () => {
-      setPeople(await getPeople());
-    })();
-  }, [val]);
+    refresh();
+  }, []);
 
   async function addNew() {
     await webapp_client.query_client.query({
-      query: { crm_people: { created: new Date() } },
+      query: { crm_people: { created: new Date(), last_edited: new Date() } },
     });
+    await refresh();
     inc();
   }
 
   return (
-    <div style={{ overflow: "auto", margin: "15px" }}>
-      <Button onClick={inc} style={{ float: "right" }}>
-        Refresh
-      </Button>
-      <Button onClick={addNew} style={{ float: "right" }}>
-        Add
-      </Button>
-      <h1>CoCalc People</h1>
+    <EditableContext.Provider value={{ counter: val }}>
       <Table
+        style={{ overflow: "auto", margin: "15px" }}
         dataSource={people}
         columns={columns}
         bordered
-        title={() => "People"}
+        title={() => (
+          <>
+            <b>People</b>
+            <Space wrap style={{ float: "right" }}>
+              <Button onClick={refresh}>Refresh</Button>
+              <Button onClick={addNew}>Add</Button>
+            </Space>
+          </>
+        )}
       />
-    </div>
+    </EditableContext.Provider>
   );
 }

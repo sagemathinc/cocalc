@@ -712,8 +712,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
 
         if opts.safety_check
-            safety_check = opts.query.toLowerCase()
-            if (safety_check.indexOf('update') != -1 or safety_check.indexOf('delete') != -1)  and  (safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1 and safety_check.indexOf('create') == -1)
+            safety_check = opts.query.toLowerCase().trim()
+            if (safety_check.startsWith('update')  or safety_check.startsWith('delete'))  and  (safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1 and safety_check.indexOf('create') == -1)
                 # This is always a bug.
                 err = "ERROR -- Dangerous UPDATE or DELETE without a WHERE, TRIGGER, or INSERT:  query='#{opts.query}'"
                 dbg(err)
