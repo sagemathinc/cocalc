@@ -40,6 +40,7 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { syncSchema } = require('./postgres/schema')
 { pgType } = require('./postgres/schema/pg-type')
 { quoteField } = require('./postgres/schema/util')
+{primaryKey, primaryKeys} = require('./postgres/schema/table')
 
 misc_node = require('@cocalc/backend/misc_node')
 data = require("@cocalc/backend/data")
@@ -48,7 +49,6 @@ data = require("@cocalc/backend/data")
 required = defaults.required
 
 {SCHEMA, client_db} = require('@cocalc/util/schema')
-{primaryKey, primaryKeys} = require('@cocalc/util/schema/table')
 
 metrics = require('./metrics')
 

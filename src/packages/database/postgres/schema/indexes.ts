@@ -51,6 +51,7 @@ export async function createIndexes(table: string): Promise<void> {
     const fullQuery = `CREATE ${
       unique ? "UNIQUE" : ""
     } INDEX ${name} ON ${table} ${query}`;
+    log.debug("createIndexes -- creating ", name, ' using ', fullQuery);
     await pool.query(fullQuery);
   }
 }

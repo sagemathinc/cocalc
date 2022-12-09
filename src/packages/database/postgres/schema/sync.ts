@@ -100,7 +100,7 @@ async function syncTableSchemaColumns(table: string): Promise<void> {
     throw Error(`invalid table - ${table}`);
   }
 
-  dbg("altering collumns that need a change...");
+  dbg("altering columns that need a change...");
   for (const column in schema.fields) {
     const info = schema.fields[column];
     let cur_type = columnTypeInfo[column]?.toLowerCase();
@@ -138,7 +138,7 @@ async function getCurrentIndexes(table: string): Promise<Set<string>> {
   );
 
   const curIndexes = new Set<string>([]);
-  for (const name of rows) {
+  for (const { name } of rows) {
     curIndexes.add(name);
   }
 
@@ -151,6 +151,7 @@ async function updateIndex(
   name: string,
   query?: string
 ): Promise<void> {
+  log.debug("updateIndex", { table, action, name });
   const pool = getPool();
   if (action == "create") {
     // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
@@ -169,10 +170,12 @@ async function syncTableSchemaIndexes(table: string): Promise<void> {
   dbg();
 
   const curIndexes = await getCurrentIndexes(table);
+  dbg("curIndexes", curIndexes);
 
   // these are the indexes we are supposed to have
 
   const goalIndexes = createIndexesQueries(table);
+  dbg("goalIndexes", goalIndexes);
   const goalIndexNames = new Set<string>();
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
