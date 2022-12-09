@@ -34,6 +34,8 @@ Table({
       "site_license", // for queries across projects related to site_license#>>{license_id}
     ],
 
+    crm_indexes: ["last_edited"],
+
     user_query: {
       get: {
         pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
@@ -138,6 +140,7 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id, which is the primary key that determines the project.",
+      crm: true,
     },
     name: {
       type: "string",
@@ -147,6 +150,7 @@ Table({
     title: {
       type: "string",
       desc: "The short title of the project. Should use no special formatting, except hashtags.",
+      crm: true,
     },
     description: {
       type: "string",
@@ -155,6 +159,7 @@ Table({
     users: {
       type: "map",
       desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
+      crm: true,
     },
     invite: {
       type: "map",
@@ -195,6 +200,7 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.",
+      crm: true,
     },
     last_started: {
       type: "timestamp",
@@ -232,6 +238,7 @@ Table({
       type: "map",
       desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.",
       date: ["pay"],
+      crm: true,
     },
     storage_server: {
       type: "integer",
