@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { cmp_Date } from "@cocalc/util/cmp";
+import { client_db } from "@cocalc/util/db-schema";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
@@ -12,6 +13,12 @@ export function useTable({
   query,
   changes = false,
 }: Options): [any[], () => void, { counter: number; table: string }] {
+  const info = useMemo(() => {
+    const table = Object.keys(query)[0];
+    const primary_key = client_db.primary_keys(table)[0]; // assume only one
+    return { table, primary_key };
+  }, []);
+
   const [data, setData] = useState<any[]>([]);
   const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
@@ -23,7 +30,7 @@ export function useTable({
   refreshRef.current = async (x) => {
     // specific record changed
     for (let i = 0; i < data.length; i++) {
-      if (data[i].id == x.id) {
+      if (data[i][info.primary_key] == x[info.primary_key]) {
         data[i] = { ...data[i], ...x };
         setData([...data]);
         return;
@@ -80,6 +87,6 @@ export function useTable({
     };
   }, [disconnectCounter]);
 
-  const context = { counter, table: Object.keys(query)[0] };
+  const context = { counter, table: info.table };
   return [data, incDisconnectCounter, context];
 }
