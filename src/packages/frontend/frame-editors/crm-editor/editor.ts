@@ -17,21 +17,21 @@ const EDITOR_SPEC = {
     name: "People",
     icon: "users",
     component: People,
-    buttons: set(["decrease_font_size", "increase_font_size", "save"]),
+    buttons: set([]),
   } as EditorDescription,
   accounts: {
     short: "Accounts",
     name: "Accounts",
     icon: "users",
     component: Accounts,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    buttons: set([]),
   } as EditorDescription,
   organizations: {
     short: "Orgs",
     name: "Organizations",
     icon: "home",
     component: Organizations,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    buttons: set([]),
   } as EditorDescription,
 };
 

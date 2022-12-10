@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import { cmp_Date } from "@cocalc/util/cmp";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
 }
 
-export function useTable({ query }: Options) {
+export function useTable({
+  query,
+}: Options): [any[], () => void, { counter: number; table: string }] {
   const [data, setData] = useState<any[]>([]);
   const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
@@ -50,6 +53,9 @@ export function useTable({ query }: Options) {
           // initial response
           x.id = resp.id;
           for (const table in resp.query) {
+            resp.query[table].sort(
+              (a, b) => -cmp_Date(a.last_edited, b.last_edited)
+            );
             setData(resp.query[table]);
             break;
           }
@@ -71,6 +77,6 @@ export function useTable({ query }: Options) {
     };
   }, [disconnectCounter]);
 
-  const context = { counter, table: Object.keys(query) };
+  const context = { counter, table: Object.keys(query)[0] };
   return [data, incDisconnectCounter, context];
 }

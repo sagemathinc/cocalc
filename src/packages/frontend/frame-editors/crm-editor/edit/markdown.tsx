@@ -44,11 +44,13 @@ export function EditableMarkdown({
           onShiftEnter={() => setEdit(false)}
         />
         <Button
+          size="small"
+          style={{ marginTop: "5px" }}
           onClick={() => {
             setEdit(false);
           }}
         >
-          Close
+          Editing
         </Button>
       </div>
     );

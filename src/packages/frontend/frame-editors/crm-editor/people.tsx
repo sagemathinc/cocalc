@@ -1,12 +1,8 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useRef, useState } from "react";
 import { Button, Space, Table } from "antd";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { cloneDeep } from "lodash";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
 import { useTable } from "./changefeed";
 
@@ -85,10 +81,13 @@ export default function People({}) {
   }
 
   // console.log("People", data);
+  //         scroll={{ y: "70vh" }}
+  //         pagination={{ pageSize: 50 }}
 
   return (
     <EditableContext.Provider value={editableContext}>
       <Table
+        size="middle"
         rowKey="id"
         style={{ overflow: "auto", margin: "15px" }}
         dataSource={data}
