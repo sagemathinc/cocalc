@@ -8,23 +8,22 @@ import { cmp_Date } from "@cocalc/util/cmp";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { cloneDeep } from "lodash";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
+import { useTable } from "./changefeed";
 
-function peopleQuery() {
-  return {
-    crm_people: [
-      {
-        id: null,
-        last_edited: null,
-        first_name: null,
-        last_name: null,
-        email_addresses: null,
-        account_ids: null,
-        deleted: null,
-        notes: null,
-      },
-    ],
-  };
-}
+const QUERY = {
+  crm_people: [
+    {
+      id: null,
+      last_edited: null,
+      first_name: null,
+      last_name: null,
+      email_addresses: null,
+      account_ids: null,
+      deleted: null,
+      notes: null,
+    },
+  ],
+};
 
 const columns = [
   {
@@ -87,69 +86,8 @@ const columns = [
   },
 ];
 
-async function getPeople() {
-  const v = await webapp_client.query_client.query({ query: peopleQuery() });
-  return v.query.crm_people.filter((x) => !x.deleted);
-}
-
 export default function People({}) {
-  const [data, setData] = useState<any[]>([]);
-  const { val, inc } = useCounter();
-  const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
-  const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
-
-  refreshRef.current = async (x) => {
-    // specific record changed
-    for (let i = 0; i < data.length; i++) {
-      if (data[i].id == x.id) {
-        data[i] = { ...data[i], ...x };
-        setData([...data]);
-        inc();
-        return;
-      }
-    }
-  };
-
-  useEffect(() => {
-    const x = { id: "" };
-    webapp_client.query_client.query({
-      changes: true,
-      query: peopleQuery(),
-      cb: (err, resp) => {
-        if (err == "disconnect") {
-          incDisconnectCounter();
-          return;
-        }
-        if (err) {
-          // TODO: set some overall error state.
-          console.warn(err);
-          return;
-        }
-        // TODO: err handling, reconnect logic
-        if (resp.action) {
-          // change, e.g., insert or update or delete
-          refreshRef.current(resp.new_val);
-        } else {
-          // initial response
-          x.id = resp.id;
-          setData(resp.query.crm_people.filter((x) => !x.deleted));
-        }
-      },
-    });
-    return () => {
-      // clean up by cancelling the changefeed when
-      // component unmounts
-      if (x.id) {
-        (async () => {
-          try {
-            await webapp_client.query_client.cancel(x.id);
-          } catch (_err) {
-            // many valid reasons to get error here.
-          }
-        })();
-      }
-    };
-  }, [disconnectCounter]);
+  const [data, refresh, editableContext] = useTable({ query: QUERY });
 
   async function addNew() {
     await webapp_client.query_client.query({
@@ -157,11 +95,13 @@ export default function People({}) {
     });
     // just recreates the changefeed so new record gets found, since id is
     // assigned by backend and we don't even know it.
-    incDisconnectCounter();
+    refresh();
   }
 
+  // console.log("People", data);
+
   return (
-    <EditableContext.Provider value={{ counter: val, table: "crm_people" }}>
+    <EditableContext.Provider value={editableContext}>
       <Table
         rowKey="id"
         style={{ overflow: "auto", margin: "15px" }}
@@ -178,7 +118,7 @@ export default function People({}) {
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
               <Button onClick={addNew}>New</Button>
-              <Button onClick={incDisconnectCounter}>Refresh</Button>
+              <Button onClick={refresh}>Refresh</Button>
             </Space>
           </>
         )}
