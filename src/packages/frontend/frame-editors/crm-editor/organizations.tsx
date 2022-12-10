@@ -3,7 +3,7 @@ import { Button, Space, Table } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
-import { useTable } from "./changefeed";
+import { useTable } from "./table";
 
 const QUERY = {
   crm_organizations: [
@@ -55,7 +55,10 @@ const columns = [
 ];
 
 export default function Organizations({}) {
-  const [data, refresh, editableContext] = useTable({ query: QUERY });
+  const [data, refresh, editableContext] = useTable({
+    query: QUERY,
+    changes: true,
+  });
 
   async function addNew() {
     await webapp_client.query_client.query({

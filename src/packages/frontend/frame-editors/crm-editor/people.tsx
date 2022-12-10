@@ -4,7 +4,7 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
-import { useTable } from "./changefeed";
+import { useTable } from "./table";
 
 const QUERY = {
   crm_people: [
@@ -69,7 +69,10 @@ const columns = [
 ];
 
 export default function People({}) {
-  const [data, refresh, editableContext] = useTable({ query: QUERY });
+  const [data, refresh, editableContext] = useTable({
+    query: QUERY,
+    changes: true,
+  });
 
   async function addNew() {
     await webapp_client.query_client.query({

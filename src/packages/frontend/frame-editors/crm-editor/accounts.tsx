@@ -1,10 +1,9 @@
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useState } from "react";
 import { Button, Table } from "antd";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
+import { useTable } from "./table";
+import { EditableContext } from "./edit";
 
 const QUERY = {
   crm_accounts: [
@@ -52,36 +51,29 @@ const columns = [
   { title: "Email", dataIndex: "email_address", key: "email_address" },
 ];
 
-async function getAccounts() {
-  const v = await webapp_client.query_client.query({ query: QUERY });
-  return v.query.crm_accounts;
-}
-
 export default function Accounts({}) {
-  const [accounts, setAccounts] = useState<any>([]);
-  const { val, inc } = useCounter();
-
-  useEffect(() => {
-    (async () => {
-      setAccounts(await getAccounts());
-    })();
-  }, [val]);
+  const [accounts, refresh, editableContext] = useTable({
+    query: QUERY,
+    changes: false,
+  });
 
   return (
-    <Table
-      rowKey="account_id"
-      style={{ overflow: "auto", margin: "15px" }}
-      dataSource={accounts}
-      columns={columns}
-      bordered
-      title={() => (
-        <>
-          <b>Accounts</b>
-          <Button onClick={inc} style={{ float: "right" }}>
-            Refresh
-          </Button>
-        </>
-      )}
-    />
+    <EditableContext.Provider value={editableContext}>
+      <Table
+        rowKey="account_id"
+        style={{ overflow: "auto", margin: "15px" }}
+        dataSource={accounts}
+        columns={columns}
+        bordered
+        title={() => (
+          <>
+            <b>Accounts</b>
+            <Button onClick={refresh} style={{ float: "right" }}>
+              Refresh
+            </Button>
+          </>
+        )}
+      />
+    </EditableContext.Provider>
   );
 }

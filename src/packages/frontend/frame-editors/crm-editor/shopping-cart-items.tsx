@@ -1,11 +1,10 @@
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useState } from "react";
 import { Button, Table } from "antd";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useTable } from "./table";
+import { EditableContext } from "./edit";
 
 const QUERY = {
   crm_shopping_cart_items: [
@@ -80,51 +79,43 @@ const columns = [
   },
 ];
 
-async function getItems() {
-  const v = await webapp_client.query_client.query({ query: QUERY });
-  console.log("v = ", v);
-  return v.query.crm_shopping_cart_items;
-}
-
 export default function ShoppingCartItems({}) {
-  const [data, setItems] = useState<any>([]);
-  const { val, inc } = useCounter();
-
-  useEffect(() => {
-    (async () => {
-      setItems(await getItems());
-    })();
-  }, [val]);
+  const [data, refresh, editableContext] = useTable({
+    query: QUERY,
+    changes: false,
+  });
 
   return (
-    <Table
-      rowKey="id"
-      style={{ overflow: "auto", margin: "15px" }}
-      dataSource={data}
-      columns={columns}
-      bordered
-      title={() => (
-        <>
-          <b>
-            <Icon name="shopping-cart" /> Shopping Cart Items
-          </b>
-          <Button onClick={inc} style={{ float: "right" }}>
-            Refresh
-          </Button>
-        </>
-      )}
-      expandable={{
-        expandedRowRender: ({ purchased, description }) => (
-          <StaticMarkdown
-            value={
-              `#### License: ${purchased?.license_id}` +
-              "\n#### Description\n\n```js\n" +
-              JSON.stringify(description ?? {}, undefined, 2) +
-              "\n```"
-            }
-          />
-        ),
-      }}
-    />
+    <EditableContext.Provider value={editableContext}>
+      <Table
+        rowKey="id"
+        style={{ overflow: "auto", margin: "15px" }}
+        dataSource={data}
+        columns={columns}
+        bordered
+        title={() => (
+          <>
+            <b>
+              <Icon name="shopping-cart" /> Shopping Cart Items
+            </b>
+            <Button onClick={refresh} style={{ float: "right" }}>
+              Refresh
+            </Button>
+          </>
+        )}
+        expandable={{
+          expandedRowRender: ({ purchased, description }) => (
+            <StaticMarkdown
+              value={
+                `#### License: ${purchased?.license_id}` +
+                "\n#### Description\n\n```js\n" +
+                JSON.stringify(description ?? {}, undefined, 2) +
+                "\n```"
+              }
+            />
+          ),
+        }}
+      />
+    </EditableContext.Provider>
   );
 }

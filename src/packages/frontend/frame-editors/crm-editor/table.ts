@@ -5,10 +5,12 @@ import { cmp_Date } from "@cocalc/util/cmp";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
+  changes?: boolean; // if true, automatically updates records loaded during first query.  Doesn't add/remove anything yet though.
 }
 
 export function useTable({
   query,
+  changes = false,
 }: Options): [any[], () => void, { counter: number; table: string }] {
   const [data, setData] = useState<any[]>([]);
   const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
@@ -33,7 +35,7 @@ export function useTable({
     const x = { id: "" };
     // console.log("connecting...", disconnectCounter);
     webapp_client.query_client.query({
-      changes: true,
+      changes,
       query,
       cb: (err, resp) => {
         if (err == "disconnect") {
@@ -54,6 +56,7 @@ export function useTable({
           x.id = resp.id;
           for (const table in resp.query) {
             resp.query[table].sort(
+              // TODO: might not be what we want?
               (a, b) => -cmp_Date(a.last_edited, b.last_edited)
             );
             setData(resp.query[table]);
