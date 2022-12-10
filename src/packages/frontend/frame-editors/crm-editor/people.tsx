@@ -7,7 +7,7 @@ import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
-import { EditableText, EditableContext } from "./editable-text";
+import { EditableMarkdown, EditableText, EditableContext } from "./edit";
 
 function peopleQuery() {
   return {
@@ -120,27 +120,15 @@ export default function People({}) {
         bordered
         expandable={{
           expandedRowRender: ({ id, notes }) => (
-            <MultiMarkdownInput
-              value={notes}
-              onChange={async (notes) => {
-                const query = {
-                  crm_people: {
-                    id,
-                    last_edited: new Date(),
-                    notes,
-                  },
-                };
-                await webapp_client.query_client.query({ query });
-              }}
-            />
+            <EditableMarkdown id={id} field="notes" defaultValue={notes} />
           ),
         }}
         title={() => (
           <>
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
+              <Button onClick={addNew}>New</Button>
               <Button onClick={refresh}>Refresh</Button>
-              <Button onClick={addNew}>Add</Button>
             </Space>
           </>
         )}

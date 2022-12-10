@@ -9,6 +9,7 @@ import { set } from "@cocalc/util/misc";
 
 import People from "./people";
 import Accounts from "./accounts";
+import Organizations from "./organizations";
 
 const EDITOR_SPEC = {
   people: {
@@ -23,6 +24,13 @@ const EDITOR_SPEC = {
     name: "Accounts",
     icon: "users",
     component: Accounts,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  } as EditorDescription,
+  organizations: {
+    short: "Orgs",
+    name: "Organizations",
+    icon: "home",
+    component: Organizations,
     buttons: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 };

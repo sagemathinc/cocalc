@@ -1,8 +1,7 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "antd";
-
-export const EditableContext = createContext<any>(null);
+import { useEditableContext } from "./context";
 
 export function EditableText({
   defaultValue = "",
@@ -16,7 +15,7 @@ export function EditableText({
   const [value, setValue] = useState<string>(defaultValue);
   const [edit, setEdit] = useState<boolean>(false);
   const ref = useRef<any>();
-  const context = useContext(EditableContext);
+  const context = useEditableContext();
 
   useEffect(() => {
     setValue(defaultValue);

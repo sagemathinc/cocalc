@@ -1,14 +1,13 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Button, Input, Space, Table } from "antd";
+import { useEffect, useState } from "react";
+import { Button, Space, Table } from "antd";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
-const EditableContext = createContext<any>(null);
+import { EditableMarkdown, EditableText, EditableContext } from "./edit";
 
-function orgsQuery() {
+function organizationsQuery() {
   return {
     query: {
       crm_organizations: [
@@ -17,7 +16,7 @@ function orgsQuery() {
           last_edited: null,
           name: null,
           people_ids: null,
-          account_ids: null,
+          organization_ids: null,
           deleted: null,
           notes: null,
         },
@@ -49,19 +48,21 @@ const columns = [
     dataIndex: "people_ids",
     key: "accounts",
     render: (_, record) => {
-      const { account_ids } = record;
-      if (!account_ids) return null;
-      const v: any[] = [];
-      for (const account_id of account_ids) {
-        v.push(<Avatar key={account_id} account_id={account_id} />);
-      }
-      return <div>{v}</div>;
+      return <>{JSON.stringify(record.people_ids)}</>;
+    },
+  },
+  {
+    title: "Organizations",
+    dataIndex: "organization_ids",
+    key: "organization_ids",
+    render: (_, record) => {
+      return <>{JSON.stringify(record.organization_ids)}</>;
     },
   },
 ];
 
 async function getOrganizations() {
-  const v = await webapp_client.query_client.query(orgsQuery());
+  const v = await webapp_client.query_client.query(organizationsQuery());
   return v.query.crm_organizations.filter((x) => !x.deleted);
 }
 
@@ -70,7 +71,7 @@ export default function Organizations({}) {
   const { val, inc } = useCounter();
 
   async function refresh() {
-    const people = await getPeople();
+    const people = await getOrganizations();
     setData(people);
     inc();
   }
@@ -101,27 +102,15 @@ export default function Organizations({}) {
         bordered
         expandable={{
           expandedRowRender: ({ id, notes }) => (
-            <MultiMarkdownInput
-              value={notes}
-              onChange={async (notes) => {
-                const query = {
-                  crm_organizations: {
-                    id,
-                    last_edited: new Date(),
-                    notes,
-                  },
-                };
-                await webapp_client.query_client.query({ query });
-              }}
-            />
+            <EditableMarkdown field="notes" id={id} defaultValue={notes} />
           ),
         }}
         title={() => (
           <>
             <b>Organizations</b>
             <Space wrap style={{ float: "right" }}>
+              <Button onClick={addNew}>New</Button>
               <Button onClick={refresh}>Refresh</Button>
-              <Button onClick={addNew}>Add</Button>
             </Space>
           </>
         )}
