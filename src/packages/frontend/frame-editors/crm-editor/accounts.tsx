@@ -44,8 +44,15 @@ const columns = [
     key: "account_id",
     ellipsis: true,
   },
-  { title: "First Name", dataIndex: "first_name", key: "first_name" },
-  { title: "Last Name", dataIndex: "last_name", key: "last_name" },
+  {
+    title: "Name",
+    key: "name",
+    render: (_, { first_name, last_name }) => (
+      <>
+        {first_name} {last_name}
+      </>
+    ),
+  },
   { title: "Email", dataIndex: "email_address", key: "email_address" },
 ];
 
