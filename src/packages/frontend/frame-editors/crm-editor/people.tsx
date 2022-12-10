@@ -15,8 +15,7 @@ const QUERY = {
     {
       id: null,
       last_edited: null,
-      first_name: null,
-      last_name: null,
+      name: null,
       email_addresses: null,
       account_ids: null,
       deleted: null,
@@ -27,27 +26,14 @@ const QUERY = {
 
 const columns = [
   {
-    title: "First Name",
-    dataIndex: "first_name",
-    key: "first_name",
+    title: "Name",
+    dataIndex: "name",
+    key: "name",
     render: (value, { id }) => {
       return (
-        <EditableText
-          key={id}
-          id={id}
-          field="first_name"
-          defaultValue={value}
-        />
+        <EditableText key={id} id={id} field="name" defaultValue={value} />
       );
     },
-  },
-  {
-    title: "Last Name",
-    dataIndex: "last_name",
-    key: "last_name",
-    render: (value, { id }) => (
-      <EditableText key={id} id={id} field="last_name" defaultValue={value} />
-    ),
   },
   {
     title: "Edited",

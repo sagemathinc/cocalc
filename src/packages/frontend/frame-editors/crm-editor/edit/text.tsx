@@ -76,7 +76,13 @@ export function EditableText({
     return (
       <div
         title="Click to edit"
-        style={{ minWidth: "5em", minHeight: "2em", cursor: "text" }}
+        style={{
+          minWidth: "5em",
+          minHeight: "1.5em",
+          cursor: "text",
+          border: value?.trim() ? undefined : "1px solid #eee",
+          borderRadius: "3px",
+        }}
         onClick={() => setEdit(true)}
       >
         {value}

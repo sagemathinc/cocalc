@@ -18,15 +18,10 @@ Table({
       type: "timestamp",
       desc: "When this person was last edited.",
     },
-    first_name: {
+    name: {
       type: "string",
       pg_type: "VARCHAR(254)",
-      desc: "The first name of this person.",
-    },
-    last_name: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The last name of this person.",
+      desc: "The name of this person.",
     },
     email_addresses: {
       type: "array",
@@ -59,8 +54,7 @@ Table({
           created: null,
           last_edited: null,
           email_addresses: null,
-          first_name: null,
-          last_name: null,
+          name: null,
           account_ids: null,
           deleted: null,
           notes: null,
@@ -73,8 +67,7 @@ Table({
           id: true,
           created: true,
           last_edited: true,
-          first_name: true,
-          last_name: true,
+          name: true,
           email_addresses: true,
           account_ids: true,
           deleted: true,
