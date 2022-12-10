@@ -6,7 +6,7 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-
+import { cloneDeep } from "lodash";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
 
 function peopleQuery() {
@@ -31,9 +31,16 @@ const columns = [
     title: "First Name",
     dataIndex: "first_name",
     key: "first_name",
-    render: (value, { id }) => (
-      <EditableText key={id} id={id} field="first_name" defaultValue={value} />
-    ),
+    render: (value, { id }) => {
+      return (
+        <EditableText
+          key={id}
+          id={id}
+          field="first_name"
+          defaultValue={value}
+        />
+      );
+    },
   },
   {
     title: "Last Name",
@@ -48,7 +55,6 @@ const columns = [
     ellipsis: true,
     dataIndex: "last_edited",
     key: "last_edited",
-    defaultSortOrder: "descend" as "descend",
     sorter: (a, b) => cmp_Date(a.last_edited, b.last_edited),
     render: (_, { last_edited }) => <TimeAgo date={last_edited} />,
   },
@@ -82,13 +88,6 @@ const columns = [
 ];
 
 async function getPeople() {
-  webapp_client.query_client.query({
-    changes: true,
-    query: peopleQuery(),
-    cb: (err, change) => {
-      console.log("people ", err, change);
-    },
-  });
   const v = await webapp_client.query_client.query({ query: peopleQuery() });
   return v.query.crm_people.filter((x) => !x.deleted);
 }
@@ -96,23 +95,64 @@ async function getPeople() {
 export default function People({}) {
   const [data, setData] = useState<any[]>([]);
   const { val, inc } = useCounter();
+  const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
 
-  async function refresh() {
-    const people = await getPeople();
-    setData(people);
-    inc();
-  }
+  refreshRef.current = async (x?) => {
+    if (!x) {
+      const people = await getPeople();
+      setData(people);
+      inc();
+    } else {
+      // specific record changed
+      for (let i = 0; i < data.length; i++) {
+        if (data[i].id == x.id) {
+          data[i] = { ...data[i], ...x };
+          setData([...data]);
+          inc();
+          return;
+        }
+      }
+    }
+  };
 
   useEffect(() => {
-    refresh();
+    refreshRef.current();
+  }, []);
+
+  useEffect(() => {
+    const x = { id: "" };
+    webapp_client.query_client.query({
+      changes: true,
+      query: peopleQuery(),
+      cb: (err, resp) => {
+        if (err) {
+          console.warn(err);
+          return;
+        }
+        // TODO: err handling, reconnect logic
+        if (resp.action) {
+          // change, e.g., insert or update or delete
+          refreshRef.current(resp.new_val);
+        } else {
+          // initial response
+          x.id = resp.id;
+        }
+      },
+    });
+    return () => {
+      // clean up by cancelling the changefeed when
+      // component unmounts
+      if (x.id) {
+        webapp_client.query_client.cancel(x.id);
+      }
+    };
   }, []);
 
   async function addNew() {
     await webapp_client.query_client.query({
       query: { crm_people: { created: new Date(), last_edited: new Date() } },
     });
-    await refresh();
-    inc();
+    await refreshRef.current();
   }
 
   return (
@@ -133,7 +173,7 @@ export default function People({}) {
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
               <Button onClick={addNew}>New</Button>
-              <Button onClick={refresh}>Refresh</Button>
+              <Button onClick={() => refreshRef.current()}>Refresh</Button>
             </Space>
           </>
         )}

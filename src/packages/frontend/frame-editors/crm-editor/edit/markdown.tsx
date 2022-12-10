@@ -2,7 +2,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useState } from "react";
 import { useEditableContext } from "./context";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { Markdown } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Button } from "antd";
 
 export function EditableMarkdown({
@@ -67,7 +67,7 @@ export function EditableMarkdown({
         }}
         onClick={() => setEdit(true)}
       >
-        <Markdown value={value.trim() ? value : "Notes..."} />
+        <StaticMarkdown value={value.trim() ? value : "Notes..."} />
       </div>
     );
   }
