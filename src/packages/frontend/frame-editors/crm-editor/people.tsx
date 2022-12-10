@@ -11,20 +11,18 @@ import { EditableMarkdown, EditableText, EditableContext } from "./edit";
 
 function peopleQuery() {
   return {
-    query: {
-      crm_people: [
-        {
-          id: null,
-          last_edited: null,
-          first_name: null,
-          last_name: null,
-          email_addresses: null,
-          account_ids: null,
-          deleted: null,
-          notes: null,
-        },
-      ],
-    },
+    crm_people: [
+      {
+        id: null,
+        last_edited: null,
+        first_name: null,
+        last_name: null,
+        email_addresses: null,
+        account_ids: null,
+        deleted: null,
+        notes: null,
+      },
+    ],
   };
 }
 
@@ -84,22 +82,55 @@ const columns = [
 ];
 
 async function getPeople() {
-  const v = await webapp_client.query_client.query(peopleQuery());
+  webapp_client.query_client.query({
+    changes: true,
+    query: peopleQuery(),
+    cb: (err, change) => {
+      console.log("people ", err, change);
+    },
+  });
+  const v = await webapp_client.query_client.query({ query: peopleQuery() });
   return v.query.crm_people.filter((x) => !x.deleted);
 }
 
 export default function People({}) {
   const [data, setData] = useState<any[]>([]);
   const { val, inc } = useCounter();
-
-  async function refresh() {
-    const people = await getPeople();
-    setData(people);
-    inc();
-  }
+  const id = useRef<string | null>(null);
 
   useEffect(() => {
-    refresh();
+    let cur: any[] = [];
+    webapp_client.query_client.query({
+      changes: true,
+      query: peopleQuery(),
+      cb: (err, resp) => {
+        // TODO: err handling, reconnect logic
+        if (resp.action) {
+          // change, e.g., insert or update or delete
+          const { id } = resp.new_val;
+          for (let i = 0; i < cur.length; i++) {
+            if (cur[i].id == id) {
+              cur[i] = { ...cur[i], ...resp.new_val };
+              setData([...cur]);
+              inc();
+              break;
+            }
+          }
+        } else {
+          // initial response
+          id.current = resp.id;
+          cur = resp.query.crm_people;
+          setData(cur);
+        }
+      },
+    });
+
+    return () => {
+      // clean up by cancelling the changefeed when component unmounts
+      if (id.current != null) {
+        webapp_client.query_client.cancel(id.current);
+      }
+    };
   }, []);
 
   async function addNew() {
@@ -128,7 +159,6 @@ export default function People({}) {
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
               <Button onClick={addNew}>New</Button>
-              <Button onClick={refresh}>Refresh</Button>
             </Space>
           </>
         )}
