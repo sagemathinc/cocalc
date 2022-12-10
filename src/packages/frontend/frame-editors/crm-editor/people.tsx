@@ -96,41 +96,15 @@ async function getPeople() {
 export default function People({}) {
   const [data, setData] = useState<any[]>([]);
   const { val, inc } = useCounter();
-  const id = useRef<string | null>(null);
+
+  async function refresh() {
+    const people = await getPeople();
+    setData(people);
+    inc();
+  }
 
   useEffect(() => {
-    let cur: any[] = [];
-    webapp_client.query_client.query({
-      changes: true,
-      query: peopleQuery(),
-      cb: (err, resp) => {
-        // TODO: err handling, reconnect logic
-        if (resp.action) {
-          // change, e.g., insert or update or delete
-          const { id } = resp.new_val;
-          for (let i = 0; i < cur.length; i++) {
-            if (cur[i].id == id) {
-              cur[i] = { ...cur[i], ...resp.new_val };
-              setData([...cur]);
-              inc();
-              break;
-            }
-          }
-        } else {
-          // initial response
-          id.current = resp.id;
-          cur = resp.query.crm_people;
-          setData(cur);
-        }
-      },
-    });
-
-    return () => {
-      // clean up by cancelling the changefeed when component unmounts
-      if (id.current != null) {
-        webapp_client.query_client.cancel(id.current);
-      }
-    };
+    refresh();
   }, []);
 
   async function addNew() {
@@ -159,6 +133,7 @@ export default function People({}) {
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
               <Button onClick={addNew}>New</Button>
+              <Button onClick={refresh}>Refresh</Button>
             </Space>
           </>
         )}
