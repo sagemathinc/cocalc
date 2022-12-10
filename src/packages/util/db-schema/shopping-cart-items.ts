@@ -12,6 +12,7 @@ query for everything for account with cancelled if everything they decided not t
 
 import { Table } from "./types";
 import { SiteLicenseQuota as Quota } from "../types/site-licenses";
+import { SCHEMA as schema } from "./index";
 
 export type ProductType = "site-license";
 export type ProductDescription = Quota; // just for now.
@@ -88,4 +89,31 @@ Table({
     desc: "Shopping Cart Items",
     primary_key: "id",
   },
+});
+
+Table({
+  name: "crm_shopping_cart_items",
+  rules: {
+    virtual: "shopping_cart_items",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table; not set queries at all by anybody -- that is done via an api.
+        fields: {
+          id: null,
+          account_id: null,
+          added: null,
+          checked: null,
+          removed: null,
+          purchased: null,
+          product: null,
+          description: null,
+          project_id: null,
+        },
+        options: [{ limit: 100 }],
+      },
+    },
+  },
+  fields: schema.shopping_cart_items.fields,
 });

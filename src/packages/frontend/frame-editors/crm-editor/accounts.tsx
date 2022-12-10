@@ -6,21 +6,17 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 
-function accountQuery() {
-  return {
-    query: {
-      crm_accounts: [
-        {
-          account_id: null,
-          first_name: null,
-          last_name: null,
-          email_address: null,
-          last_active: null,
-        },
-      ],
+const QUERY = {
+  crm_accounts: [
+    {
+      account_id: null,
+      first_name: null,
+      last_name: null,
+      email_address: null,
+      last_active: null,
     },
-  };
-}
+  ],
+};
 
 const columns = [
   {
@@ -57,7 +53,7 @@ const columns = [
 ];
 
 async function getAccounts() {
-  const v = await webapp_client.query_client.query(accountQuery());
+  const v = await webapp_client.query_client.query({ query: QUERY });
   return v.query.crm_accounts;
 }
 
