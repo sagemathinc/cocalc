@@ -4,9 +4,9 @@ import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { EditableMarkdown, EditableText, EditableContext } from "./edit";
-import { useTable } from "./table";
+import DBTable from "./db-table";
 
-const QUERY = {
+const query = {
   crm_people: [
     {
       id: null,
@@ -69,48 +69,18 @@ const columns = [
 ];
 
 export default function People({}) {
-  const [data, refresh, editableContext] = useTable({
-    query: QUERY,
-    changes: true,
-  });
-
-  async function addNew() {
-    await webapp_client.query_client.query({
-      query: { crm_people: { created: new Date(), last_edited: new Date() } },
-    });
-    // just recreates the changefeed so new record gets found, since id is
-    // assigned by backend and we don't even know it.
-    refresh();
-  }
-
-  // console.log("People", data);
-  //         scroll={{ y: "70vh" }}
-  //         pagination={{ pageSize: 50 }}
-
   return (
-    <EditableContext.Provider value={editableContext}>
-      <Table
-        size="middle"
-        rowKey="id"
-        style={{ overflow: "auto", margin: "15px" }}
-        dataSource={data}
-        columns={columns}
-        bordered
-        expandable={{
-          expandedRowRender: ({ id, notes }) => (
-            <EditableMarkdown id={id} field="notes" defaultValue={notes} />
-          ),
-        }}
-        title={() => (
-          <>
-            <b>People</b>
-            <Space wrap style={{ float: "right" }}>
-              <Button onClick={addNew}>New</Button>
-              <Button onClick={refresh}>Refresh</Button>
-            </Space>
-          </>
-        )}
-      />
-    </EditableContext.Provider>
+    <DBTable
+      title={"People"}
+      query={query}
+      columns={columns}
+      changes
+      allowCreate
+      expandable={{
+        expandedRowRender: ({ id, notes }) => (
+          <EditableMarkdown id={id} field="notes" defaultValue={notes} />
+        ),
+      }}
+    />
   );
 }

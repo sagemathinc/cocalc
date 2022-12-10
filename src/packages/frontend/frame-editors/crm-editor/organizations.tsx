@@ -1,11 +1,9 @@
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Button, Space, Table } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableMarkdown, EditableText, EditableContext } from "./edit";
-import { useTable } from "./table";
+import { EditableMarkdown, EditableText } from "./edit";
+import DBTable from "./db-table";
 
-const QUERY = {
+const query = {
   crm_organizations: [
     {
       id: null,
@@ -55,43 +53,18 @@ const columns = [
 ];
 
 export default function Organizations({}) {
-  const [data, refresh, editableContext] = useTable({
-    query: QUERY,
-    changes: true,
-  });
-
-  async function addNew() {
-    await webapp_client.query_client.query({
-      query: {
-        crm_organizations: { created: new Date(), last_edited: new Date() },
-      },
-    });
-    refresh();
-  }
-
   return (
-    <EditableContext.Provider value={editableContext}>
-      <Table
-        rowKey="id"
-        style={{ overflow: "auto", margin: "15px" }}
-        dataSource={data}
-        columns={columns}
-        bordered
-        expandable={{
-          expandedRowRender: ({ id, notes }) => (
-            <EditableMarkdown field="notes" id={id} defaultValue={notes} />
-          ),
-        }}
-        title={() => (
-          <>
-            <b>Organizations</b>
-            <Space wrap style={{ float: "right" }}>
-              <Button onClick={addNew}>New</Button>
-              <Button onClick={refresh}>Refresh</Button>
-            </Space>
-          </>
-        )}
-      />
-    </EditableContext.Provider>
+    <DBTable
+      title={"Organizations"}
+      query={query}
+      columns={columns}
+      changes
+      allowCreate
+      expandable={{
+        expandedRowRender: ({ id, notes }) => (
+          <EditableMarkdown id={id} field="notes" defaultValue={notes} />
+        ),
+      }}
+    />
   );
 }

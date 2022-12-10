@@ -1,11 +1,9 @@
-import { Button, Table } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { useTable } from "./table";
-import { EditableContext } from "./edit";
+import DBTable from "./db-table";
 
-const QUERY = {
+const query = {
   crm_accounts: [
     {
       account_id: null,
@@ -52,28 +50,5 @@ const columns = [
 ];
 
 export default function Accounts({}) {
-  const [accounts, refresh, editableContext] = useTable({
-    query: QUERY,
-    changes: false,
-  });
-
-  return (
-    <EditableContext.Provider value={editableContext}>
-      <Table
-        rowKey="account_id"
-        style={{ overflow: "auto", margin: "15px" }}
-        dataSource={accounts}
-        columns={columns}
-        bordered
-        title={() => (
-          <>
-            <b>Accounts</b>
-            <Button onClick={refresh} style={{ float: "right" }}>
-              Refresh
-            </Button>
-          </>
-        )}
-      />
-    </EditableContext.Provider>
-  );
+  return <DBTable title={"Accounts"} query={query} columns={columns} />;
 }

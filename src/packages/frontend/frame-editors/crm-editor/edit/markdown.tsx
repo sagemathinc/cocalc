@@ -35,9 +35,8 @@ export function EditableMarkdown({
   }
 
   return (
-    <div>
+    <div style={{ marginLeft: "30px" }}>
       <Button
-        size="small"
         style={{ marginBottom: "5px" }}
         onClick={() => {
           setEdit(!edit);

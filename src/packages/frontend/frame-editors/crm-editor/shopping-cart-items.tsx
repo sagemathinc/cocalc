@@ -1,12 +1,10 @@
-import { Button, Table } from "antd";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { useTable } from "./table";
-import { EditableContext } from "./edit";
+import DBTable from "./db-table";
 
-const QUERY = {
+const query = {
   crm_shopping_cart_items: [
     {
       id: null,
@@ -80,42 +78,27 @@ const columns = [
 ];
 
 export default function ShoppingCartItems({}) {
-  const [data, refresh, editableContext] = useTable({
-    query: QUERY,
-    changes: false,
-  });
-
   return (
-    <EditableContext.Provider value={editableContext}>
-      <Table
-        rowKey="id"
-        style={{ overflow: "auto", margin: "15px" }}
-        dataSource={data}
-        columns={columns}
-        bordered
-        title={() => (
-          <>
-            <b>
-              <Icon name="shopping-cart" /> Shopping Cart Items
-            </b>
-            <Button onClick={refresh} style={{ float: "right" }}>
-              Refresh
-            </Button>
-          </>
-        )}
-        expandable={{
-          expandedRowRender: ({ purchased, description }) => (
-            <StaticMarkdown
-              value={
-                `#### License: ${purchased?.license_id}` +
-                "\n#### Description\n\n```js\n" +
-                JSON.stringify(description ?? {}, undefined, 2) +
-                "\n```"
-              }
-            />
-          ),
-        }}
-      />
-    </EditableContext.Provider>
+    <DBTable
+      title={
+        <>
+          <Icon name="shopping-cart" /> Shopping Cart Items
+        </>
+      }
+      query={query}
+      columns={columns}
+      expandable={{
+        expandedRowRender: ({ purchased, description }) => (
+          <StaticMarkdown
+            value={
+              `#### License: ${purchased?.license_id}` +
+              "\n#### Description\n\n```js\n" +
+              JSON.stringify(description ?? {}, undefined, 2) +
+              "\n```"
+            }
+          />
+        ),
+      }}
+    />
   );
 }
