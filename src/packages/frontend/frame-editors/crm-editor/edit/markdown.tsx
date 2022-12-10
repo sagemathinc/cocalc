@@ -34,43 +34,41 @@ export function EditableMarkdown({
     await webapp_client.query_client.query({ query });
   }
 
-  if (edit) {
-    return (
-      <div>
+  return (
+    <div>
+      <Button
+        size="small"
+        style={{ marginBottom: "5px" }}
+        onClick={() => {
+          setEdit(!edit);
+        }}
+      >
+        {edit ? "Editing" : "Edit"}
+      </Button>
+      {edit ? (
         <MultiMarkdownInput
           autoFocus
           value={value}
           onChange={save}
           onShiftEnter={() => setEdit(false)}
         />
-        <Button
-          size="small"
-          style={{ marginTop: "5px" }}
-          onClick={() => {
-            setEdit(false);
+      ) : (
+        <div
+          style={{
+            width: "100%",
+            minWidth: "5em",
+            minHeight: "2em",
+            cursor: "text",
+            border: "1px solid #ccc",
+            borderRadius: "5px",
+            padding: "5px 15px",
+            background: "white",
           }}
+          onDoubleClick={() => setEdit(true)}
         >
-          Editing
-        </Button>
-      </div>
-    );
-  } else {
-    return (
-      <div
-        style={{
-          width: "100%",
-          minWidth: "5em",
-          minHeight: "2em",
-          cursor: "text",
-          border: "1px solid #ccc",
-          borderRadius: "5px",
-          padding: "5px 15px",
-          background: "white",
-        }}
-        onClick={() => setEdit(true)}
-      >
-        <StaticMarkdown value={value.trim() ? value : "Notes..."} />
-      </div>
-    );
-  }
+          <StaticMarkdown value={value.trim() ? value : "Notes..."} />
+        </div>
+      )}
+    </div>
+  );
 }
