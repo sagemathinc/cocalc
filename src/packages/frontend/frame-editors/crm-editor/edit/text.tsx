@@ -1,6 +1,6 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useRef, useState } from "react";
-import { Input } from "antd";
+import { Alert, Button, Input } from "antd";
 import { useEditableContext } from "./context";
 
 export function EditableText({
@@ -16,13 +16,14 @@ export function EditableText({
   const [edit, setEdit] = useState<boolean>(false);
   const ref = useRef<any>();
   const context = useEditableContext();
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     setValue(defaultValue);
   }, [context.counter]);
 
   async function save() {
-    setEdit(false);
     const query = {
       [context.table]: {
         id,
@@ -30,21 +31,46 @@ export function EditableText({
         last_edited: new Date(),
       },
     };
-    await webapp_client.query_client.query({ query });
+    try {
+      setError("");
+      setSaving(true);
+      await webapp_client.query_client.query({ query });
+      setEdit(false);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (edit) {
     return (
-      <Input
-        ref={ref}
-        autoFocus
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-        }}
-        onBlur={save}
-        onPressEnter={save}
-      />
+      <>
+        <Input
+          disabled={saving}
+          ref={ref}
+          autoFocus
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+          }}
+          onBlur={save}
+          onPressEnter={save}
+        />
+        {error && (
+          <Alert
+            type="error"
+            message={
+              <>
+                {error}{" "}
+                <Button size="small" onClick={save}>
+                  try again
+                </Button>
+              </>
+            }
+          />
+        )}
+      </>
     );
   } else {
     return (

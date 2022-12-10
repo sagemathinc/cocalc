@@ -95,29 +95,20 @@ async function getPeople() {
 export default function People({}) {
   const [data, setData] = useState<any[]>([]);
   const { val, inc } = useCounter();
+  const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
 
-  refreshRef.current = async (x?) => {
-    if (!x) {
-      const people = await getPeople();
-      setData(people);
-      inc();
-    } else {
-      // specific record changed
-      for (let i = 0; i < data.length; i++) {
-        if (data[i].id == x.id) {
-          data[i] = { ...data[i], ...x };
-          setData([...data]);
-          inc();
-          return;
-        }
+  refreshRef.current = async (x) => {
+    // specific record changed
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].id == x.id) {
+        data[i] = { ...data[i], ...x };
+        setData([...data]);
+        inc();
+        return;
       }
     }
   };
-
-  useEffect(() => {
-    refreshRef.current();
-  }, []);
 
   useEffect(() => {
     const x = { id: "" };
@@ -125,7 +116,12 @@ export default function People({}) {
       changes: true,
       query: peopleQuery(),
       cb: (err, resp) => {
+        if (err == "disconnect") {
+          incDisconnectCounter();
+          return;
+        }
         if (err) {
+          // TODO: set some overall error state.
           console.warn(err);
           return;
         }
@@ -136,6 +132,7 @@ export default function People({}) {
         } else {
           // initial response
           x.id = resp.id;
+          setData(resp.query.crm_people.filter((x) => !x.deleted));
         }
       },
     });
@@ -143,16 +140,24 @@ export default function People({}) {
       // clean up by cancelling the changefeed when
       // component unmounts
       if (x.id) {
-        webapp_client.query_client.cancel(x.id);
+        (async () => {
+          try {
+            await webapp_client.query_client.cancel(x.id);
+          } catch (_err) {
+            // many valid reasons to get error here.
+          }
+        })();
       }
     };
-  }, []);
+  }, [disconnectCounter]);
 
   async function addNew() {
     await webapp_client.query_client.query({
       query: { crm_people: { created: new Date(), last_edited: new Date() } },
     });
-    await refreshRef.current();
+    // just recreates the changefeed so new record gets found, since id is
+    // assigned by backend and we don't even know it.
+    incDisconnectCounter();
   }
 
   return (
@@ -173,7 +178,7 @@ export default function People({}) {
             <b>People</b>
             <Space wrap style={{ float: "right" }}>
               <Button onClick={addNew}>New</Button>
-              <Button onClick={() => refreshRef.current()}>Refresh</Button>
+              <Button onClick={incDisconnectCounter}>Refresh</Button>
             </Space>
           </>
         )}
