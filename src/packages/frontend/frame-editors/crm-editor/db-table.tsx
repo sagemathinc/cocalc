@@ -101,15 +101,7 @@ export default function DBTable({
 
   return (
     <EditableContext.Provider value={editableContext}>
-      <div
-        style={{
-          height: height == null ? "100%" : undefined,
-          overflow: "auto",
-          ...style,
-        }}
-      >
-        {body}
-      </div>
+      <div style={style}>{body}</div>
     </EditableContext.Provider>
   );
 }

@@ -37,7 +37,7 @@ export default function Cards({
   }
   return (
     <Card title={title} style={{ margin: "15px" }}>
-      <div style={{ height, overflow: "auto" }}>{v}</div>
+      <div style={{ height, overflow: "auto", background: "#eee" }}>{v}</div>
     </Card>
   );
 }
