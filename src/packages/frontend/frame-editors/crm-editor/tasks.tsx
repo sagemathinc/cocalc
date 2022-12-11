@@ -1,8 +1,7 @@
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableMarkdown, EditableText } from "./edit";
+import { EditableMarkdown, EditableStatus, EditableText } from "./edit";
 import { register } from "./tables";
-import { Progress } from "antd";
 
 register({
   name: "tasks",
@@ -57,16 +56,15 @@ register({
       title: "Progress",
       dataIndex: "progress",
       key: "progress",
-      render: (_, { progress }) => {
-        // status options for progress bar are:
-        //   'success' 'exception' 'normal' 'active'
-        // Could base this on last_edited and actual status field
-        const status = "active";
+      width: 150,
+      sorter: (a, b) => (a.progress ?? 0) - (b.progress ?? 0),
+      render: (_, { id, progress }) => {
         return (
-          <Progress
-            percent={progress ? progress : 0}
-            status={status}
-            strokeColor={{ from: "#108ee9", to: "#87d068" }}
+          <EditableStatus
+            key={id}
+            id={id}
+            field="progress"
+            defaultValue={progress}
           />
         );
       },

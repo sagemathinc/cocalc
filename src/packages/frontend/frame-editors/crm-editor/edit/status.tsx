@@ -1,19 +1,22 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Input } from "antd";
+import { Alert, Button, Input, Progress } from "antd";
 import { useEditableContext } from "./context";
-import { fieldToLabel } from "../util";
 
-export function EditableText({
-  defaultValue = "",
+export function EditableStatus({
+  defaultValue = 0,
   id,
   field,
+  steps,
+  strokeColor,
 }: {
-  defaultValue?: string;
+  defaultValue?: number;
   id: number;
   field: string;
+  steps?: number;
+  strokeColor?;
 }) {
-  const [value, setValue] = useState<string>(defaultValue);
+  const [value, setValue] = useState<number | string>(defaultValue);
   const [edit, setEdit] = useState<boolean>(false);
   const ref = useRef<any>();
   const context = useEditableContext();
@@ -25,10 +28,13 @@ export function EditableText({
   }, [context.counter]);
 
   async function save() {
+    const percent = parseInt(
+      ref.current.input.value ? ref.current.input.value : "0"
+    );
     const query = {
       [context.table]: {
         id,
-        [field]: ref.current.input.value,
+        [field]: percent,
         last_edited: webapp_client.server_time(),
       },
     };
@@ -74,30 +80,28 @@ export function EditableText({
       </>
     );
   } else {
-    const empty = !value?.trim();
+    // status options for progress bar are:
+    //   'success' 'exception' 'normal' 'active'
+    // Could base this on last_edited and actual status field
+    const percent = parseInt(value ? `${value}` : "0");
+    let status: "normal" | "success" | "active" | "exception" = "normal";
+    if (percent >= 100) {
+      status = "success";
+    } else if (percent >= 50) {
+      status = "active";
+    }
     return (
       <div
         title={`Click to edit ${field}`}
-        style={{
-          display: "inline-block",
-          cursor: "pointer",
-          ...(empty
-            ? {
-                minWidth: "5em",
-                padding: "5px",
-                minHeight: "1.5em",
-                border: "1px solid #eee",
-                borderRadius: "3px",
-              }
-            : undefined),
-        }}
+        style={{ cursor: "pointer" }}
         onClick={() => setEdit(true)}
       >
-        {empty ? (
-          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
-        ) : (
-          value
-        )}
+        <Progress
+          percent={percent}
+          status={status}
+          steps={steps}
+          strokeColor={strokeColor}
+        />
       </div>
     );
   }
