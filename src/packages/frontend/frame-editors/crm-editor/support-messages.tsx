@@ -13,7 +13,7 @@ register({
         ticket_id: null,
         created: null,
         last_edited: null,
-        from: null,
+        from_person_id: null,
         body: null,
         internal: null,
       },
@@ -48,10 +48,15 @@ register({
     },
     {
       title: "From",
-      dataIndex: "from",
-      key: "from",
+      dataIndex: "from_person_id",
+      key: "from_person_id",
       render: (value, { id }) => (
-        <EditableText id={id} field="from" defaultValue={value} />
+        // TODO: hack for now
+        <EditableText
+          id={id}
+          field="from_person_id"
+          defaultValue={`${value}`}
+        />
       ),
     },
     {
@@ -67,7 +72,8 @@ register({
       dataIndex: "internal",
       key: "internal",
       render: (value, { id }) => (
-        <EditableText id={id} field="from" defaultValue={value} />
+        // TODO: need checkbox
+        <EditableText id={id} field="internal" defaultValue={`${value}`} />
       ),
     },
   ],

@@ -287,7 +287,7 @@ Table({
       type: "timestamp",
       desc: "When this message was actually sent.",
     },
-    from: {
+    from_person_id: {
       type: "integer",
       desc: "Person that sent this message.  This in the crm_people table, not a cocalc account.",
     },
@@ -317,7 +317,7 @@ Table({
           ticket_id: null,
           created: null,
           last_edited: null,
-          from: null,
+          from_person_id: null,
           subject: null,
           body: null,
           internal: null,
@@ -331,7 +331,7 @@ Table({
           ticket_id: null,
           created: true,
           last_edited: true,
-          from: true,
+          from_person_id: true,
           subject: true,
           body: true,
           internal: true,
