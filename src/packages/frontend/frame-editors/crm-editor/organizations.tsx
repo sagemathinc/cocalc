@@ -55,6 +55,7 @@ const columns = [
 export default function Organizations({}) {
   return (
     <DBTable
+      view={"table"}
       title={"Organizations"}
       query={query}
       columns={columns}

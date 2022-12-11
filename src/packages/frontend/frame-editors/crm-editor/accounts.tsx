@@ -20,7 +20,11 @@ const columns = [
     title: "Account",
     dataIndex: "account_id",
     key: "avatar",
-    render: (account_id: string) => <Avatar account_id={account_id} />,
+    render: (account_id: string, { first_name, last_name }) => (
+      <>
+        <Avatar account_id={account_id} /> {first_name} {last_name}
+      </>
+    ),
   },
   {
     title: "Active",
@@ -31,24 +35,22 @@ const columns = [
     render: (_, { last_active }) => <TimeAgo date={last_active} />,
     ellipsis: true,
   },
+  { title: "Email", dataIndex: "email_address", key: "email_address" },
   {
     title: "account_id",
     dataIndex: "account_id",
     key: "account_id",
     ellipsis: true,
   },
-  {
-    title: "Name",
-    key: "name",
-    render: (_, { first_name, last_name }) => (
-      <>
-        {first_name} {last_name}
-      </>
-    ),
-  },
-  { title: "Email", dataIndex: "email_address", key: "email_address" },
 ];
 
 export default function Accounts({}) {
-  return <DBTable title={"Accounts"} query={query} columns={columns} />;
+  return (
+    <DBTable
+      view={"cards"}
+      title={"Accounts"}
+      query={query}
+      columns={columns}
+    />
+  );
 }

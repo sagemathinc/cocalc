@@ -6,6 +6,8 @@ import { useTable } from "./table";
 import { client_db } from "@cocalc/util/db-schema";
 import { capitalize, replace_all } from "@cocalc/util/misc";
 
+import Cards from "./cards";
+
 interface Props {
   title?: ReactNode;
   query: object;
@@ -13,6 +15,7 @@ interface Props {
   columns;
   allowCreate?: boolean;
   changes?: boolean;
+  view: "table" | "cards";
 }
 
 export default function DBTable({
@@ -22,6 +25,7 @@ export default function DBTable({
   columns,
   allowCreate,
   changes,
+  view,
 }: Props) {
   const { rowKey, table } = useMemo(() => {
     const table = Object.keys(query)[0];
@@ -48,26 +52,42 @@ export default function DBTable({
     refresh();
   }
 
+  const header = (
+    <>
+      <b>{title ?? capitalize(replace_all(table, "_", " "))}</b>
+      <Space wrap style={{ float: "right", marginTop: "-5px" }}>
+        {allowCreate && <Button onClick={addNew}>New</Button>}
+        {!changes && <Button onClick={refresh}>Refresh</Button>}
+      </Space>
+    </>
+  );
+
+  let body;
+  switch (view) {
+    case "cards":
+      body = (
+        <Cards rowKey={rowKey} data={data} columns={columns} title={header} />
+      );
+      break;
+    default:
+      body = (
+        <Table
+          size="middle"
+          rowKey={rowKey}
+          style={{ overflow: "auto", margin: "15px" }}
+          dataSource={data}
+          columns={columns}
+          bordered
+          expandable={expandable}
+          title={() => header}
+        />
+      );
+      break;
+  }
+
   return (
     <EditableContext.Provider value={editableContext}>
-      <Table
-        size="middle"
-        rowKey={rowKey}
-        style={{ overflow: "auto", margin: "15px" }}
-        dataSource={data}
-        columns={columns}
-        bordered
-        expandable={expandable}
-        title={() => (
-          <>
-            <b>{title ?? capitalize(replace_all(table, "_", " "))}</b>
-            <Space wrap style={{ float: "right" }}>
-              {allowCreate && <Button onClick={addNew}>New</Button>}
-              {!changes && <Button onClick={refresh}>Refresh</Button>}
-            </Space>
-          </>
-        )}
-      />
+      <div style={{ height: "100%", overflow: "auto" }}>{body}</div>
     </EditableContext.Provider>
   );
 }

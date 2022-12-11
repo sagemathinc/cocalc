@@ -80,6 +80,7 @@ const columns = [
 export default function ShoppingCartItems({}) {
   return (
     <DBTable
+      view={"cards"}
       title={
         <>
           <Icon name="shopping-cart" /> Shopping Cart Items

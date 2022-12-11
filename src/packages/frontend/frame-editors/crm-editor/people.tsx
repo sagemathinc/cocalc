@@ -71,6 +71,7 @@ const columns = [
 export default function People({}) {
   return (
     <DBTable
+      view={"cards"}
       title={"People"}
       query={query}
       columns={columns}

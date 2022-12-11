@@ -2,6 +2,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Input } from "antd";
 import { useEditableContext } from "./context";
+import { capitalize, replace_all } from "@cocalc/util/misc";
 
 export function EditableText({
   defaultValue = "",
@@ -73,20 +74,33 @@ export function EditableText({
       </>
     );
   } else {
+    const empty = !value?.trim();
     return (
-      <div
-        title="Click to edit"
+      <span
+        title={`Click to edit ${field}`}
         style={{
-          minWidth: "5em",
-          minHeight: "1.5em",
-          cursor: "text",
-          border: value?.trim() ? undefined : "1px solid #eee",
-          borderRadius: "3px",
+          display: "inline-block",
+          cursor: "pointer",
+          ...(empty
+            ? {
+                minWidth: "5em",
+                padding: "5px",
+                minHeight: "1.5em",
+                border: "1px solid #eee",
+                borderRadius: "3px",
+              }
+            : undefined),
         }}
         onClick={() => setEdit(true)}
       >
-        {value}
-      </div>
+        {empty ? (
+          <span style={{ color: "#aaa" }}>
+            {capitalize(replace_all(field, "_", " "))}...
+          </span>
+        ) : (
+          value
+        )}
+      </span>
     );
   }
 }
