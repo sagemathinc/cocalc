@@ -14,6 +14,7 @@ interface TableDescription {
   expandable?: any; // todo -- same as for antd table
   allowCreate?: boolean;
   changes?: boolean;
+  timeKey?: string;
 }
 
 let tables: { [name: string]: TableDescription };

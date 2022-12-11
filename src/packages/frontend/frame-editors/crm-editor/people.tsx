@@ -19,6 +19,7 @@ register({
         account_ids: null,
         deleted: null,
         notes: null,
+        created: null,
       },
     ],
   },

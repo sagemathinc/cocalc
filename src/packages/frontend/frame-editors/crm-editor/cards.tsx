@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { Card, Tooltip } from "antd";
 
 interface Props {
@@ -21,18 +21,7 @@ export default function Cards({
   const v: ReactNode[] = [];
   for (const elt of data) {
     v.push(
-      <Card
-        key={elt[rowKey]}
-        title={<Data elt={elt} columns={[columns[0]]} />}
-        style={{
-          display: "inline-block",
-          margin: "10px",
-          verticalAlign: "top",
-          ...cardStyle,
-        }}
-      >
-        <Data elt={elt} columns={columns.slice(1)} />
-      </Card>
+      <OneCard elt={elt} rowKey={rowKey} columns={columns} style={cardStyle} />
     );
   }
   return (
@@ -42,14 +31,58 @@ export default function Cards({
   );
 }
 
-function Data({ elt, columns }: { elt: object; columns }) {
+export function OneCard({
+  elt,
+  rowKey,
+  columns,
+  style,
+}: {
+  elt;
+  rowKey: string;
+  columns: object[];
+  style?: CSSProperties;
+}) {
+  return (
+    <Card
+      key={elt[rowKey]}
+      title={<Data elt={elt} columns={[columns[0]]} />}
+      style={{
+        display: "inline-block",
+        margin: "10px",
+        verticalAlign: "top",
+        ...style,
+      }}
+    >
+      <div>
+        <Data elt={elt} columns={columns.slice(1)} />
+      </div>
+    </Card>
+  );
+}
+
+export function Data({
+  elt,
+  columns,
+  noTip,
+}: {
+  elt: object;
+  columns;
+  noTip?: boolean;
+}) {
   const v: ReactNode[] = [];
   for (const column of columns) {
     const text = elt[column.dataIndex];
+    const content = column.render != null ? column.render(text, elt) : text;
     v.push(
-      <Tooltip placement="left" title={column.title} mouseEnterDelay={0.4}>
-        <div>{column.render != null ? column.render(text, elt) : text}</div>
-      </Tooltip>
+      <div key={column.key}>
+        {noTip ? (
+          <span>{content}</span>
+        ) : (
+          <Tooltip placement="left" title={column.title} mouseEnterDelay={0.4}>
+            {content}
+          </Tooltip>
+        )}
+      </div>
     );
   }
   return <>{v}</>;

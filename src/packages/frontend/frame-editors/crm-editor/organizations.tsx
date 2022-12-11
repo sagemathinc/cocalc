@@ -16,6 +16,7 @@ register({
         organization_ids: null,
         deleted: null,
         notes: null,
+        created: null,
       },
     ],
   },

@@ -2,7 +2,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Input } from "antd";
 import { useEditableContext } from "./context";
-import { capitalize, replace_all } from "@cocalc/util/misc";
+import { fieldToLabel } from "../util";
 
 export function EditableText({
   defaultValue = "",
@@ -94,9 +94,7 @@ export function EditableText({
         onClick={() => setEdit(true)}
       >
         {empty ? (
-          <span style={{ color: "#aaa" }}>
-            {capitalize(replace_all(field, "_", " "))}...
-          </span>
+          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
         ) : (
           value
         )}

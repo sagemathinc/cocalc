@@ -41,7 +41,6 @@ export function useTable({
   useEffect(() => {
     const x = { id: "" };
     // console.log("connecting...", disconnectCounter);
-    console.log("doing query", query);
     webapp_client.query_client.query({
       changes,
       query,

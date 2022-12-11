@@ -17,6 +17,7 @@ register({
         last_name: null,
         email_address: null,
         last_active: null,
+        created: null,
       },
     ],
   },

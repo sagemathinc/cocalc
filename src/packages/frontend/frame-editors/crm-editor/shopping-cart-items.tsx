@@ -27,6 +27,7 @@ register({
       title: "Id",
       dataIndex: "id",
       key: "id",
+      render: (id) => <>Item {id}</>,
     },
     {
       title: "Account",

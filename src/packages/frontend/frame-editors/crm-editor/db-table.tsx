@@ -4,9 +4,12 @@ import { Button, Space, Table } from "antd";
 import { EditableContext } from "./edit";
 import { useTable } from "./table-hook";
 import { client_db } from "@cocalc/util/db-schema";
-import { capitalize, replace_all } from "@cocalc/util/misc";
+import { fieldToLabel } from "./util";
 
 import Cards from "./cards";
+import Calendar from "./calendar";
+
+export type View = "cards" | "calendar" | "table";
 
 interface Props {
   title?: ReactNode;
@@ -15,9 +18,10 @@ interface Props {
   columns;
   allowCreate?: boolean;
   changes?: boolean;
-  view?: "table" | "cards";
+  view?: "table" | "cards" | "calendar";
   style?: CSSProperties;
   height?;
+  timeKey?: string;
 }
 
 export default function DBTable({
@@ -30,6 +34,7 @@ export default function DBTable({
   view = "table",
   style,
   height,
+  timeKey,
 }: Props) {
   const { rowKey, table } = useMemo(() => {
     const table = Object.keys(query)[0];
@@ -58,7 +63,7 @@ export default function DBTable({
 
   const header = (
     <>
-      <b>{title ?? capitalize(replace_all(table, "_", " "))}</b>
+      <b>{title ?? fieldToLabel(table)}</b>
       <span style={{ fontWeight: 300 }}>
         {allowCreate ? " (editable)" : " (read only)"}
       </span>
@@ -79,6 +84,18 @@ export default function DBTable({
           data={data}
           columns={columns}
           title={header}
+        />
+      );
+      break;
+    case "calendar":
+      body = (
+        <Calendar
+          style={style}
+          data={data}
+          columns={columns}
+          title={header}
+          timeKey={timeKey}
+          rowKey={rowKey}
         />
       );
       break;
