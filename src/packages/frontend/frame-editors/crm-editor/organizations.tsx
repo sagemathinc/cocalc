@@ -52,10 +52,11 @@ const columns = [
   },
 ];
 
-export default function Organizations({}) {
+export default function Organizations({ view, height }: { view?; height? }) {
   return (
     <DBTable
-      view={"table"}
+      height={height}
+      view={view}
       title={"Organizations"}
       query={query}
       columns={columns}

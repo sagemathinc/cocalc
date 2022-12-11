@@ -18,6 +18,15 @@ export class Actions extends CodeEditorActions {
   _init2(): void {}
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "people" };
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "table",
+      },
+      second: {
+        type: "dashboard",
+      },
+    };
   }
 }

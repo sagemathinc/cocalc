@@ -1,9 +1,8 @@
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Button, Space, Table } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableMarkdown, EditableText, EditableContext } from "./edit";
+import { EditableMarkdown, EditableText } from "./edit";
+
 import DBTable from "./db-table";
 
 const query = {
@@ -68,10 +67,11 @@ const columns = [
   },
 ];
 
-export default function People({}) {
+export default function People({ view, height }: { view?; height? }) {
   return (
     <DBTable
-      view={"cards"}
+      height={height}
+      view={view}
       title={"People"}
       query={query}
       columns={columns}

@@ -77,10 +77,17 @@ const columns = [
   },
 ];
 
-export default function ShoppingCartItems({}) {
+export default function ShoppingCartItems({
+  view,
+  height,
+}: {
+  view?;
+  height?;
+}) {
   return (
     <DBTable
-      view={"cards"}
+      height={height}
+      view={view}
       title={
         <>
           <Icon name="shopping-cart" /> Shopping Cart Items

@@ -7,6 +7,7 @@ interface Props {
   columns: any[];
   title: ReactNode;
   cardStyle?;
+  height?;
 }
 
 export default function Cards({
@@ -15,6 +16,7 @@ export default function Cards({
   columns,
   title,
   cardStyle = { width: "300px" },
+  height,
 }: Props) {
   const v: ReactNode[] = [];
   for (const elt of data) {
@@ -35,7 +37,7 @@ export default function Cards({
   }
   return (
     <Card title={title} style={{ margin: "15px" }}>
-      {v}
+      <div style={{ height, overflow: "auto" }}>{v}</div>
     </Card>
   );
 }

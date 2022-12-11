@@ -44,10 +44,20 @@ const columns = [
   },
 ];
 
-export default function Accounts({}) {
+export default function Accounts({
+  view,
+  style,
+  height,
+}: {
+  view?;
+  style?;
+  height?;
+}) {
   return (
     <DBTable
-      view={"cards"}
+      style={style}
+      height={height}
+      view={view}
       title={"Accounts"}
       query={query}
       columns={columns}

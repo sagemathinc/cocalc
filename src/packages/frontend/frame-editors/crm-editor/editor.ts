@@ -7,38 +7,22 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
 
-import People from "./people";
-import Accounts from "./accounts";
-import ShoppingCartItems from "./shopping-cart-items";
-import Organizations from "./organizations";
+import TableEditor from "./table-editor";
+import Dashboard from "./dashboard";
 
 const EDITOR_SPEC = {
-  people: {
-    short: "People",
-    name: "People",
-    icon: "users",
-    component: People,
+  table: {
+    short: "Table",
+    name: "Table",
+    icon: "database",
+    component: TableEditor,
     buttons: set([]),
   },
-  accounts: {
-    short: "Accounts",
-    name: "Accounts",
-    icon: "users",
-    component: Accounts,
-    buttons: set([]),
-  },
-  organizations: {
-    short: "Orgs",
-    name: "Organizations",
-    icon: "home",
-    component: Organizations,
-    buttons: set([]),
-  },
-  shopping_cart_items: {
-    short: "Shopping",
-    name: "Shopping Cart Items",
-    icon: "shopping-cart",
-    component: ShoppingCartItems,
+  dashboard: {
+    short: "Dashboard",
+    name: "Dashboard",
+    icon: "tachometer-alt",
+    component: Dashboard,
     buttons: set([]),
   },
 } as { [name: string]: EditorDescription };

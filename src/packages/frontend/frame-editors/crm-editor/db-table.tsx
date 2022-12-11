@@ -1,8 +1,8 @@
-import { useMemo, ReactNode } from "react";
+import { useMemo, CSSProperties, ReactNode } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button, Space, Table } from "antd";
 import { EditableContext } from "./edit";
-import { useTable } from "./table";
+import { useTable } from "./table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { capitalize, replace_all } from "@cocalc/util/misc";
 
@@ -15,7 +15,9 @@ interface Props {
   columns;
   allowCreate?: boolean;
   changes?: boolean;
-  view: "table" | "cards";
+  view?: "table" | "cards";
+  style?: CSSProperties;
+  height?;
 }
 
 export default function DBTable({
@@ -25,7 +27,9 @@ export default function DBTable({
   columns,
   allowCreate,
   changes,
-  view,
+  view = "table",
+  style,
+  height,
 }: Props) {
   const { rowKey, table } = useMemo(() => {
     const table = Object.keys(query)[0];
@@ -55,6 +59,9 @@ export default function DBTable({
   const header = (
     <>
       <b>{title ?? capitalize(replace_all(table, "_", " "))}</b>
+      <span style={{ fontWeight: 300 }}>
+        {allowCreate ? " (editable)" : " (read only)"}
+      </span>
       <Space wrap style={{ float: "right", marginTop: "-5px" }}>
         {allowCreate && <Button onClick={addNew}>New</Button>}
         {!changes && <Button onClick={refresh}>Refresh</Button>}
@@ -66,7 +73,13 @@ export default function DBTable({
   switch (view) {
     case "cards":
       body = (
-        <Cards rowKey={rowKey} data={data} columns={columns} title={header} />
+        <Cards
+          height={height}
+          rowKey={rowKey}
+          data={data}
+          columns={columns}
+          title={header}
+        />
       );
       break;
     default:
@@ -80,6 +93,7 @@ export default function DBTable({
           bordered
           expandable={expandable}
           title={() => header}
+          scroll={height ? { y: height } : undefined}
         />
       );
       break;
@@ -87,7 +101,15 @@ export default function DBTable({
 
   return (
     <EditableContext.Provider value={editableContext}>
-      <div style={{ height: "100%", overflow: "auto" }}>{body}</div>
+      <div
+        style={{
+          height: height == null ? "100%" : undefined,
+          overflow: "auto",
+          ...style,
+        }}
+      >
+        {body}
+      </div>
     </EditableContext.Provider>
   );
 }
