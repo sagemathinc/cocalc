@@ -208,8 +208,7 @@ export default function AccountNavTab({ style }: Props) {
           Site Administration
         </A>,
         "settings"
-      ),
-      makeItem("crm", <A href={join(basePath, "crm")}>CRM</A>, "users"),
+      )
     ];
   }
 
