@@ -172,7 +172,7 @@ Table({
 });
 
 Table({
-  name: "crm_support_ticket",
+  name: "crm_support_tickets",
   fields: {
     id: {
       type: "integer",
@@ -187,6 +187,10 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "When this ticket was last changed in some way.",
+    },
+    person_id: {
+      type: "integer",
+      desc: "Id of the person who created this ticket.",
     },
     assignees: {
       type: "array",
@@ -230,6 +234,7 @@ Table({
           id: null,
           created: null,
           last_edited: null,
+          person_id: null,
           assignees: null,
           cc: null,
           tags: null,
@@ -245,6 +250,7 @@ Table({
           id: true,
           created: true,
           last_edited: true,
+          person_id: null,
           assignees: true,
           cc: true,
           tags: true,
@@ -261,7 +267,7 @@ Table({
 });
 
 Table({
-  name: "crm_support_message",
+  name: "crm_support_messages",
   fields: {
     id: {
       type: "integer",
@@ -285,6 +291,11 @@ Table({
       type: "integer",
       desc: "Person that sent this message.  This in the crm_people table, not a cocalc account.",
     },
+    subject: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "Subject of the message. Must be short.",
+    },
     body: {
       type: "string",
       desc: "Actual content of the message.  This is interpretted as markdown.",
@@ -295,7 +306,7 @@ Table({
     },
   },
   rules: {
-    desc: "Support Message",
+    desc: "Support Messages",
     primary_key: "id",
     user_query: {
       get: {
@@ -307,6 +318,7 @@ Table({
           created: null,
           last_edited: null,
           from: null,
+          subject: null,
           body: null,
           internal: null,
         },
@@ -320,6 +332,7 @@ Table({
           created: true,
           last_edited: true,
           from: true,
+          subject: true,
           body: true,
           internal: true,
         },

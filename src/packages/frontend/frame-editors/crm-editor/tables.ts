@@ -5,6 +5,9 @@ import "./organizations";
 import "./people";
 import "./shopping-cart-items";
 
+import "./support-tickets";
+import "./support-messages";
+
 interface TableDescription {
   name: string;
   title: ReactNode;
