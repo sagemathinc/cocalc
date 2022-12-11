@@ -22,10 +22,10 @@ export class Actions extends CodeEditorActions {
       direction: "col",
       type: "node",
       first: {
-        type: "table",
+        type: "people",
       },
       second: {
-        type: "dashboard",
+        type: "accounts",
       },
     };
   }

@@ -1,4 +1,6 @@
+// not sure if will use this...
 import Accounts from "./accounts";
+//import People from "./people";
 
 export default function TableEditor({}) {
   return <Accounts />;
