@@ -5,6 +5,7 @@ import { EditableContext } from "./edit";
 import { useTable } from "./table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "./util";
+import { Icon } from "@cocalc/frontend/components";
 
 import Cards from "./cards";
 import Calendar from "./calendar";
@@ -69,9 +70,17 @@ export default function DBTable({
       <span style={{ fontWeight: 300 }}>
         {allowCreate ? " (editable)" : " (read only)"}
       </span>
-      <Space wrap style={{ float: "right", marginTop: "-5px" }}>
-        {allowCreate && <Button onClick={addNew}>New</Button>}
-        {!changes && <Button onClick={refresh}>Refresh</Button>}
+      <Space wrap style={{ margin: "-5px 0 0 10px" }}>
+        {allowCreate && (
+          <Button onClick={addNew}>
+            <Icon name="plus-circle" /> New
+          </Button>
+        )}
+        {!changes && (
+          <Button onClick={refresh}>
+            <Icon name="refresh" /> Refresh
+          </Button>
+        )}
       </Space>
     </>
   );

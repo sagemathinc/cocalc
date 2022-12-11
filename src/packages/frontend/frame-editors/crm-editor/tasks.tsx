@@ -2,6 +2,7 @@ import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { EditableMarkdown, EditableText } from "./edit";
 import { register } from "./tables";
+import { Progress } from "antd";
 
 register({
   name: "tasks",
@@ -16,6 +17,7 @@ register({
         closed: null,
         last_edited: null,
         status: null,
+        progress: null,
         priority: null,
         related_to: null,
         person_id: null,
@@ -50,6 +52,24 @@ register({
       key: "due_date",
       sorter: (a, b) => cmp_Date(a.due_date, b.due_date),
       render: (_, { due_date }) => <TimeAgo date={due_date} />,
+    },
+    {
+      title: "Progress",
+      dataIndex: "progress",
+      key: "progress",
+      render: (_, { progress }) => {
+        // status options for progress bar are:
+        //   'success' 'exception' 'normal' 'active'
+        // Could base this on last_edited and actual status field
+        const status = "active";
+        return (
+          <Progress
+            percent={progress ? progress : 0}
+            status={status}
+            strokeColor={{ from: "#108ee9", to: "#87d068" }}
+          />
+        );
+      },
     },
     {
       title: "Closed",

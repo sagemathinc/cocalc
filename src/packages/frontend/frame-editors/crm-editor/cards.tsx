@@ -1,3 +1,6 @@
+// TODO: the antd Descriptions component is perhaps better for this?
+//   https://ant.design/components/descriptions
+
 import { CSSProperties, ReactNode } from "react";
 import { Card } from "antd";
 

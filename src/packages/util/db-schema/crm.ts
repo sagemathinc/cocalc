@@ -379,6 +379,10 @@ Table({
       pg_type: "VARCHAR(254)",
       desc: "The status of this task.",
     },
+    progress: {
+      type: "integer",
+      desc: "Progress on this task, as a number from 0 to 100.",
+    },
     priority: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -435,6 +439,7 @@ Table({
           closed: null,
           last_edited: null,
           status: null,
+          progress: null,
           priority: null,
           related_to: null,
           person_id: null,
@@ -457,6 +462,7 @@ Table({
           closed: true,
           last_edited: true,
           status: true,
+          progress: true,
           priority: true,
           related_to: true,
           person_id: true,
