@@ -29,7 +29,7 @@ export function EditableText({
       [context.table]: {
         id,
         [field]: ref.current.input.value,
-        last_edited: new Date(),
+        last_edited: webapp_client.server_time(),
       },
     };
     try {

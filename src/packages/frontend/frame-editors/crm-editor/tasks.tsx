@@ -1,24 +1,30 @@
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableText } from "./edit";
+import { EditableMarkdown, EditableText } from "./edit";
 import { register } from "./tables";
 
 register({
-  name: "support-tickets",
-  title: "Support Tickets",
+  name: "tasks",
+  title: "Tasks",
   query: {
-    crm_support_tickets: [
+    crm_tasks: [
       {
         id: null,
         subject: null,
+        due_date: null,
         created: null,
+        closed: null,
         last_edited: null,
+        status: null,
+        priority: null,
+        related_to: null,
+        person_id: null,
+        created_by: null,
+        last_modified_by: null,
         assignee: null,
         cc: null,
         tags: null,
-        type: null,
-        priority: null,
-        status: null,
+        description: null,
       },
     ],
   },
@@ -38,6 +44,22 @@ register({
       key: "id",
     },
     {
+      title: "Due",
+      ellipsis: true,
+      dataIndex: "due_date",
+      key: "due_date",
+      sorter: (a, b) => cmp_Date(a.due_date, b.due_date),
+      render: (_, { due_date }) => <TimeAgo date={due_date} />,
+    },
+    {
+      title: "Closed",
+      ellipsis: true,
+      dataIndex: "closed",
+      key: "closed",
+      sorter: (a, b) => cmp_Date(a.closed, b.closed),
+      render: (_, { closed }) => <TimeAgo date={closed} />,
+    },
+    {
       title: "Edited",
       ellipsis: true,
       dataIndex: "last_edited",
@@ -50,8 +72,8 @@ register({
       ellipsis: true,
       dataIndex: "created",
       key: "created",
-      sorter: (a, b) => cmp_Date(a.last_edited, b.last_edited),
-      render: (_, { last_edited }) => <TimeAgo date={last_edited} />,
+      sorter: (a, b) => cmp_Date(a.created, b.created),
+      render: (_, { created }) => <TimeAgo date={created} />,
     },
     {
       title: "Assignee",
@@ -78,14 +100,6 @@ register({
       ),
     },
     {
-      title: "Type",
-      dataIndex: "type",
-      key: "type",
-      render: (value, { id }) => (
-        <EditableText key={id} id={id} field="type" defaultValue={value} />
-      ),
-    },
-    {
       title: "Priority",
       dataIndex: "priority",
       key: "priority",
@@ -104,4 +118,13 @@ register({
   ],
   allowCreate: true,
   changes: true,
+  expandable: {
+    expandedRowRender: ({ id, description }) => (
+      <EditableMarkdown
+        id={id}
+        field="description"
+        defaultValue={description}
+      />
+    ),
+  },
 });

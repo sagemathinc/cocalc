@@ -87,7 +87,7 @@ function DataList({ data, columns, rowKey }) {
   const v: ReactNode[] = [];
   for (const elt of data) {
     const c = columns[0];
-    const x = <cards.Data noTip elt={elt} columns={[c]} />;
+    const x = <cards.Data noTitle elt={elt} columns={[c]} />;
     v.push(
       <Popover
         key={elt[rowKey]}

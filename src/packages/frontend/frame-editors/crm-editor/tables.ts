@@ -4,9 +4,9 @@ import "./accounts";
 import "./organizations";
 import "./people";
 import "./shopping-cart-items";
-
 import "./support-tickets";
 import "./support-messages";
+import "./tasks";
 
 interface TableDescription {
   name: string;

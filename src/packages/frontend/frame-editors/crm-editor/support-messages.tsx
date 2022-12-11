@@ -60,14 +60,6 @@ register({
       ),
     },
     {
-      title: "Subject",
-      dataIndex: "subject",
-      key: "subject",
-      render: (value, { id }) => (
-        <EditableText id={id} field="subject" defaultValue={value} />
-      ),
-    },
-    {
       title: "Internal",
       dataIndex: "internal",
       key: "internal",

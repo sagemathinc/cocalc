@@ -180,6 +180,11 @@ Table({
       pg_type: "SERIAL UNIQUE",
       noCoerce: true,
     },
+    subject: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "Subject of the message. Must be short.",
+    },
     created: {
       type: "timestamp",
       desc: "When the support ticket was created.",
@@ -188,19 +193,19 @@ Table({
       type: "timestamp",
       desc: "When this ticket was last changed in some way.",
     },
-    person_id: {
+    created_by: {
       type: "integer",
       desc: "Id of the person who created this ticket.",
     },
-    assignees: {
+    assignee: {
       type: "array",
-      pg_type: "UUID[]",
-      desc: "Zero or more support people that will resolve this ticket.",
+      pg_type: "UUID",
+      desc: "Accounts that will resolve this ticket.",
     },
     cc: {
       type: "array",
       pg_type: "UUID[]",
-      desc: "Zero or more support people that care to be contacted about updates to this ticket.",
+      desc: "Zero or more support accounts that care to be contacted about updates to this ticket.",
     },
     tags: {
       type: "array",
@@ -232,10 +237,11 @@ Table({
         admin: true,
         fields: {
           id: null,
+          subject: null,
           created: null,
+          created_by: null,
           last_edited: null,
-          person_id: null,
-          assignees: null,
+          assignee: null,
           cc: null,
           tags: null,
           type: null,
@@ -248,10 +254,11 @@ Table({
         admin: true,
         fields: {
           id: true,
+          subject: true,
           created: true,
           last_edited: true,
-          person_id: null,
-          assignees: true,
+          created_by: null,
+          assignee: true,
           cc: true,
           tags: true,
           type: true,
@@ -291,11 +298,6 @@ Table({
       type: "integer",
       desc: "Person that sent this message.  This in the crm_people table, not a cocalc account.",
     },
-    subject: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "Subject of the message. Must be short.",
-    },
     body: {
       type: "string",
       desc: "Actual content of the message.  This is interpretted as markdown.",
@@ -318,7 +320,6 @@ Table({
           created: null,
           last_edited: null,
           from_person_id: null,
-          subject: null,
           body: null,
           internal: null,
         },
@@ -332,9 +333,139 @@ Table({
           created: true,
           last_edited: true,
           from_person_id: true,
-          subject: true,
           body: true,
           internal: true,
+        },
+        required_fields: {
+          last_edited: true, // TODO: make automatic on any set query
+        },
+      },
+    },
+  },
+});
+
+Table({
+  name: "crm_tasks",
+  fields: {
+    id: {
+      type: "integer",
+      desc: "Automatically generated sequential id that uniquely determines this task.",
+      pg_type: "SERIAL UNIQUE",
+      noCoerce: true,
+    },
+    subject: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "Short summary of this tasks.",
+    },
+    due_date: {
+      type: "timestamp",
+      desc: "When this task is due.",
+    },
+    created: {
+      type: "timestamp",
+      desc: "When the task was created.",
+    },
+    closed: {
+      type: "timestamp",
+      desc: "When the task was marked as done.",
+    },
+    last_edited: {
+      type: "timestamp",
+      desc: "When this task was last modified.",
+    },
+    status: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "The status of this task.",
+    },
+    priority: {
+      type: "string",
+      pg_type: "VARCHAR(254)",
+      desc: "The priority of this ticket, e.g., low, normal, high, urgent",
+    },
+    related_to: {
+      type: "map",
+      desc: "Object {table:'...', id:number} describing one organization, deal,  lead, etc. that this tasks is related to.",
+    },
+    person_id: {
+      type: "integer",
+      desc: "Person that this tasks is connected with.",
+    },
+    created_by: {
+      type: "uuid",
+      desc: "Account that created this task.",
+    },
+    last_modified_by: {
+      type: "uuid",
+      desc: "Account that last modified this task.",
+    },
+    assignee: {
+      type: "array",
+      pg_type: "UUID",
+      desc: "Accounts that will resolve this task.",
+    },
+    cc: {
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "Zero or more accounts that care to be contacted/notified about updates to this task.",
+    },
+    tags: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tags applied to this ticket.",
+    },
+    description: {
+      type: "string",
+      desc: "Full markdown task description",
+    },
+  },
+  rules: {
+    desc: "Tasks",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          id: null,
+          subject: null,
+          due_date: null,
+          created: null,
+          closed: null,
+          last_edited: null,
+          status: null,
+          priority: null,
+          related_to: null,
+          person_id: null,
+          created_by: null,
+          last_modified_by: null,
+          assignee: null,
+          cc: null,
+          tags: null,
+          description: null,
+        },
+        options: [{ limit: 100 }],
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          subject: true,
+          due_date: true,
+          created: true,
+          closed: true,
+          last_edited: true,
+          status: true,
+          priority: true,
+          related_to: true,
+          person_id: true,
+          created_by: true,
+          last_modified_by: true,
+          assignee: true,
+          cc: true,
+          tags: true,
+          description: true,
         },
         required_fields: {
           last_edited: true, // TODO: make automatic on any set query

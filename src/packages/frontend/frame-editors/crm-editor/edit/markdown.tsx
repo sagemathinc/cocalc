@@ -28,7 +28,7 @@ export function EditableMarkdown({
       [context.table]: {
         id,
         [field]: value,
-        last_edited: new Date(),
+        last_edited: webapp_client.server_time(),
       },
     };
     await webapp_client.query_client.query({ query });

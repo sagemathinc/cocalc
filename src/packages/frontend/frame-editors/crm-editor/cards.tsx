@@ -1,5 +1,5 @@
 import { CSSProperties, ReactNode } from "react";
-import { Card, Tooltip } from "antd";
+import { Card } from "antd";
 
 interface Props {
   rowKey: string;
@@ -45,7 +45,7 @@ export function OneCard({
   return (
     <Card
       key={elt[rowKey]}
-      title={<Data elt={elt} columns={[columns[0]]} />}
+      title={<Data noTitle elt={elt} columns={[columns[0]]} />}
       style={{
         display: "inline-block",
         margin: "10px",
@@ -63,11 +63,11 @@ export function OneCard({
 export function Data({
   elt,
   columns,
-  noTip,
+  noTitle,
 }: {
   elt: object;
   columns;
-  noTip?: boolean;
+  noTitle?;
 }) {
   const v: ReactNode[] = [];
   for (const column of columns) {
@@ -75,13 +75,8 @@ export function Data({
     const content = column.render != null ? column.render(text, elt) : text;
     v.push(
       <div key={column.key}>
-        {noTip ? (
-          <span>{content}</span>
-        ) : (
-          <Tooltip placement="left" title={column.title} mouseEnterDelay={0.4}>
-            {content}
-          </Tooltip>
-        )}
+        {!noTitle && <span style={{ color: "#888" }}>{column.title}: </span>}
+        {content}
       </div>
     );
   }

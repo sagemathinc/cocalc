@@ -55,8 +55,10 @@ export default function DBTable({
   });
 
   async function addNew() {
+    const now = webapp_client.server_time();
+    // todo -- set time on server!
     await webapp_client.query_client.query({
-      query: { [table]: { created: new Date(), last_edited: new Date() } },
+      query: { [table]: { created: now, last_edited: now } },
     });
     refresh();
   }
