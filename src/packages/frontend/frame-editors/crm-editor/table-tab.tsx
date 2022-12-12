@@ -1,8 +1,8 @@
-import { useMemo, ReactNode, useState } from "react";
-import useViews from "./syncdb/use-views";
-import { capitalize, suggest_duplicate_filename } from "@cocalc/util/misc";
+import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
+import useViews, { View } from "./syncdb/use-views";
+import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Dropdown, Select, Tabs } from "antd";
+import { Dropdown, Input, Select, Tabs } from "antd";
 import DBTable from "./db-table";
 import {
   SortableContext,
@@ -23,8 +23,20 @@ interface TabItem {
 const NEW = "__new__";
 
 export default function TableTab(props) {
-  const [views, setView] = useViews(props.name);
+  const [views, saveView, deleteView] = useViews(props.name);
   const { actions, id, desc } = useFrameContext();
+
+  const getView = useCallback(
+    (id: string) => {
+      if (views == null) return;
+      for (const view of views) {
+        if (view.id == id) {
+          return view;
+        }
+      }
+    },
+    [views]
+  );
 
   const viewKey = `data-view-${props.name}`;
   const view = useMemo<string | undefined>(() => {
@@ -35,7 +47,7 @@ export default function TableTab(props) {
     const items: TabItem[] = [];
     for (const { name, id, type } of views ?? []) {
       items.push({
-        label: capitalize(name),
+        label: name,
         key: id,
         children: <DBTable {...props} view={type} />,
       });
@@ -84,7 +96,7 @@ export default function TableTab(props) {
               pos = (views[i].pos + views[i + 1].pos) / 2; // todo -- rescaling when too small.
             }
           }
-          setView({ ...views[activeIndex], pos });
+          saveView({ ...views[activeIndex], pos });
           break;
         }
       }
@@ -120,18 +132,32 @@ export default function TableTab(props) {
                       key={node.key}
                       id={node.key}
                       selected={view == node.key}
+                      getView={getView}
                       onAction={(
                         action: "rename" | "duplicate" | "delete",
                         newName?: string
                       ) => {
-                        for (const v of views) {
-                          // todo -- implement the actions...
-                        }
-                        console.log("do action ", action, " to ", node, {
-                          newName,
-                        });
+                        if (node.key == null) return;
+                        const view = getView(`${node.key}`);
+                        if (view == null) return;
                         if (action == "duplicate") {
-                          suggest_duplicate_filename();
+                          const view2: Partial<View> = { ...view };
+                          delete view2.id;
+                          delete view2.pos;
+                          view2.name = suggest_duplicate_filename(
+                            view2.name ?? "Copy"
+                          );
+                          saveView(view2);
+                          return;
+                        } else if (action == "rename") {
+                          if (newName) {
+                            console.log("saving ", { ...view, name: newName });
+                            saveView({ ...view, name: newName });
+                          }
+                          return;
+                        } else if (action == "delete") {
+                          deleteView(view);
+                          return;
                         }
                       }}
                     >
@@ -150,7 +176,7 @@ export default function TableTab(props) {
 
 function NewView({ dbtable, onCreate }) {
   const [value, setValue] = useState<string | null>(null);
-  const [_, setView] = useViews(dbtable);
+  const [_, saveView] = useViews(dbtable);
   const options = [
     { value: "table", label: "Grid" },
     { value: "cards", label: "Gallery" },
@@ -165,7 +191,7 @@ function NewView({ dbtable, onCreate }) {
       onChange={(type: string) => {
         setValue(type);
         const newView = { type, id: undefined };
-        setView(newView);
+        saveView(newView);
         onCreate(newView.id); // id gets set on creation.
         setValue("");
       }}
@@ -173,7 +199,7 @@ function NewView({ dbtable, onCreate }) {
   );
 }
 
-export function SortableItem({ id, children, selected, onAction }) {
+export function SortableItem({ id, children, selected, onAction, getView }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
 
@@ -182,10 +208,32 @@ export function SortableItem({ id, children, selected, onAction }) {
     transition,
   };
 
+  const [editing, setEditing] = useState<boolean>(false);
+  const inputRef = useRef<any>(null);
+
   // TODO: margins below and using rotated ellipsis is just cheap hack until grab a better "draggable" icon!
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      {children}
+      {editing ? (
+        <Input
+          autoFocus
+          ref={inputRef}
+          style={{ width: "150px", marginLeft: "12px" }}
+          defaultValue={getView(id)?.name}
+          onBlur={() => {
+            const newName = inputRef.current?.input.value;
+            setEditing(false);
+            onAction("rename", newName);
+          }}
+          onPressEnter={() => {
+            const newName = inputRef.current?.input.value;
+            setEditing(false);
+            onAction("rename", newName);
+          }}
+        />
+      ) : (
+        children
+      )}
       {selected && (
         <span style={{ float: "right", marginRight: "10px" }}>
           <Dropdown
@@ -195,7 +243,7 @@ export function SortableItem({ id, children, selected, onAction }) {
                 {
                   key: "rename",
                   label: (
-                    <span onClick={() => onAction("rename", "foo")}>
+                    <span onClick={() => setEditing(true)}>
                       <Icon name="edit" style={{ marginRight: "10px" }} />
                       Rename view
                     </span>

@@ -5,7 +5,7 @@ import { field_cmp } from "@cocalc/util/cmp";
 import type { SetOptional } from "type-fest";
 import { fieldToLabel } from "../util";
 
-interface View {
+export interface View {
   table: "views";
   id: string;
   type: string;
@@ -14,17 +14,20 @@ interface View {
   pos: number;
 }
 
-type SetViewFunction = (View) => void;
+type PartialView = SetOptional<View, "table" | "id" | "dbtable" | "name">;
+
+type SetViewFunction = (PartialView) => void;
+type DeleteViewFunction = (View) => void;
 
 export default function useViews(
   dbtable: string
-): [View[] | null, SetViewFunction] {
+): [View[] | null, SetViewFunction, DeleteViewFunction] {
   const { syncdb } = useSyncdbContext();
-  const [views, setViews] = useState<View[] | null>(null);
+  const [views, saveViews] = useState<View[] | null>(null);
 
   useEffect(() => {
     if (syncdb == null) {
-      setViews([]);
+      saveViews([]);
       return;
     }
 
@@ -35,7 +38,7 @@ export default function useViews(
         .filter((x) => x.get("dbtable") == dbtable)
         .toJS();
       v.sort(field_cmp("pos"));
-      setViews(v);
+      saveViews(v);
     }
 
     function handleChange(keys) {
@@ -63,7 +66,7 @@ export default function useViews(
     };
   }, [syncdb, dbtable]);
 
-  const setView = useMemo(() => {
+  const saveView = useMemo(() => {
     if (syncdb == null)
       return (_view: View) => {
         throw Error("syncdb not yet defined, so can't set view.");
@@ -100,7 +103,7 @@ export default function useViews(
       if (views != null) {
         // ensure change is reflected immediately, rather than going through syncdb.
         views.sort(field_cmp("pos"));
-        setViews([...views]);
+        saveViews([...views]);
       }
 
       syncdb.set(view);
@@ -108,5 +111,16 @@ export default function useViews(
     };
   }, [syncdb, dbtable, views]);
 
-  return [views, setView];
+  const deleteView = useMemo(() => {
+    if (syncdb == null)
+      return (_view: View) => {
+        throw Error("syncdb not yet defined, so can't set view.");
+      };
+    return ({ table, id }) => {
+      syncdb.delete({ table, id });
+      syncdb.commit();
+    };
+  }, [syncdb, dbtable, views]);
+
+  return [views, saveView, deleteView];
 }
