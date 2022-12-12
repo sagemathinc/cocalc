@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSyncdbContext } from "./context";
 import { uuid } from "@cocalc/util/misc";
+import { field_cmp } from "@cocalc/util/cmp";
 import type { SetOptional } from "type-fest";
 import { fieldToLabel } from "../util";
 
@@ -10,6 +11,7 @@ interface View {
   type: string;
   name: string;
   dbtable: string;
+  pos: number;
 }
 
 type SetViewFunction = (View) => void;
@@ -32,6 +34,7 @@ export default function useViews(
         .get({ table: "views" })
         .filter((x) => x.get("dbtable") == dbtable)
         .toJS();
+      v.sort(field_cmp("pos"));
       setViews(v);
     }
 
@@ -80,6 +83,17 @@ export default function useViews(
             break;
           }
         }
+      }
+      if (view.pos == null) {
+        // assign new position
+        view.pos =
+          Math.max(
+            0,
+            ...syncdb
+              .get({ table: "views" })
+              .filter((x) => x.get("dbtable") == dbtable)
+              .map((x) => x.get("pos"))
+          ) + 1;
       }
       syncdb.set(view);
       syncdb.commit();

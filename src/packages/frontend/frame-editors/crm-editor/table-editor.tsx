@@ -1,11 +1,9 @@
 import { getTableDescription, getTables } from "./tables";
-import DBTable from "./db-table";
-import { Select, Tabs } from "antd";
-import { useMemo, ReactNode, useState } from "react";
+import { Tabs } from "antd";
+import { useMemo, ReactNode } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { capitalize } from "@cocalc/util/misc";
 import { SyncdbContext } from "./syncdb/context";
-import useViews from "./syncdb/use-views";
+import TableTab from "./table-tab";
 
 interface TabItem {
   label: ReactNode;
@@ -18,7 +16,7 @@ export default function TableEditor({ actions }) {
     const items: TabItem[] = [];
     for (const name of getTables()) {
       const props = getTableDescription(name);
-      const children = <TabItem {...props} />;
+      const children = <TableTab {...props} />;
       items.push({ label: props.title, key: name, children });
     }
     return items;
@@ -44,77 +42,5 @@ export default function TableEditor({ actions }) {
         />
       </SyncdbContext.Provider>
     </div>
-  );
-}
-
-function TabItem(props) {
-  const [views] = useViews(props.name);
-  const { actions, id, desc } = useFrameContext();
-
-  const viewKey = `data-view-${props.name}`;
-  const view = useMemo<string | undefined>(() => {
-    return desc.get(viewKey, views?.[0]?.id);
-  }, [desc]);
-
-  const items = useMemo(() => {
-    const items: TabItem[] = [];
-    for (const { name, id, type } of views ?? []) {
-      items.push({
-        label: capitalize(name),
-        key: id,
-        children: <DBTable {...props} view={type} />,
-      });
-    }
-    items.push({
-      label: (
-        <NewView
-          dbtable={props.name}
-          onCreate={(view: string) => {
-            actions.set_frame_tree({ id, [viewKey]: view });
-          }}
-        />
-      ),
-      key: "__new__",
-      children: <div style={{ color: "#888" }}>Create a new view.</div>,
-    });
-    return items;
-  }, [views]);
-
-  return (
-    <Tabs
-      tabPosition="left"
-      activeKey={view}
-      onChange={(view: string) => {
-        actions.set_frame_tree({ id, [viewKey]: view });
-      }}
-      size="small"
-      items={items}
-      style={{ margin: "15px" }}
-    />
-  );
-}
-
-function NewView({ dbtable, onCreate }) {
-  const [value, setValue] = useState<string | null>(null);
-  const [_, setView] = useViews(dbtable);
-  const options = [
-    { value: "table", label: "Grid" },
-    { value: "cards", label: "Gallery" },
-    { value: "calendar", label: "Calendar" },
-  ];
-  return (
-    <Select
-      placeholder="New View..."
-      value={value}
-      options={options}
-      style={{ width: "125px" }}
-      onChange={(type: string) => {
-        setValue(type);
-        const newView = { type, id: undefined };
-        setView(newView);
-        onCreate(newView.id); // id gets set on creation.
-        setValue("");
-      }}
-    />
   );
 }
