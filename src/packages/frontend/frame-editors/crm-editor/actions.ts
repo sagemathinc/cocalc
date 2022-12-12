@@ -12,7 +12,7 @@ import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
   protected doctype: string = "syncdb";
-  protected primary_keys: string[] = ["table"];
+  protected primary_keys: string[] = ["table", "id"];
   protected string_cols: string[] = [];
 
   _init2(): void {}

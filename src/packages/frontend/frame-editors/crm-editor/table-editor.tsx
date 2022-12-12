@@ -5,6 +5,7 @@ import { useMemo, ReactNode, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { capitalize } from "@cocalc/util/misc";
+import { SyncdbContext } from "./syncdb/context";
 
 interface TabItem {
   label: ReactNode;
@@ -12,15 +13,7 @@ interface TabItem {
   children: ReactNode;
 }
 
-export default function TableEditor() {
-  return (
-    <div style={{ height: "100%", overflow: "auto" }}>
-      <TableNavigator />
-    </div>
-  );
-}
-
-function TableNavigator() {
+export default function TableEditor({ actions }) {
   const items = useMemo(() => {
     const items: TabItem[] = [];
     for (const name of getTables()) {
@@ -31,22 +24,26 @@ function TableNavigator() {
     return items;
   }, []);
 
-  const { actions, id, desc } = useFrameContext();
+  const { id, desc } = useFrameContext();
   const activeKey = useMemo(() => {
     return desc.get("data-tab", items[0].key);
   }, [desc]);
 
   return (
-    <Tabs
-      type="card"
-      activeKey={activeKey}
-      onChange={(activeKey: string) => {
-        actions.set_frame_tree({ id, "data-tab": activeKey });
-      }}
-      size="small"
-      items={items}
-      style={{ margin: "15px" }}
-    />
+    <div style={{ height: "100%", overflow: "auto" }}>
+      <SyncdbContext.Provider value={{ syncdb: actions._syncstring }}>
+        <Tabs
+          type="card"
+          activeKey={activeKey}
+          onChange={(activeKey: string) => {
+            actions.set_frame_tree({ id, "data-tab": activeKey });
+          }}
+          size="small"
+          items={items}
+          style={{ margin: "15px" }}
+        />
+      </SyncdbContext.Provider>
+    </div>
   );
 }
 
