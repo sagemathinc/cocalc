@@ -54,9 +54,8 @@ export default function TableTab(props) {
 
   function handleDragEnd(event) {
     if (views == null) return;
-    const { active, over } = event;
+    const { active, over, delta } = event;
     if (active.id !== over.id) {
-      console.log("move ", active.id, " to be right before ", over.id);
       let activeIndex = 0;
       for (let j = 0; j < views.length; j++) {
         if (views[j].id == active.id) {
@@ -67,10 +66,20 @@ export default function TableTab(props) {
       for (let i = 0; i < views.length; i++) {
         if (views[i].id == over.id) {
           let pos;
-          if (i == 0) {
-            pos = views[i].pos - 1;
+          if (delta.y <= 0) {
+            // before
+            if (i == 0) {
+              pos = views[i].pos - 1;
+            } else {
+              pos = (views[i].pos + views[i - 1].pos) / 2; // todo -- rescaling when too small.
+            }
           } else {
-            pos = (views[i].pos + views[i - 1].pos) / 2; // todo -- rescaling when too small.
+            // after
+            if (i == views.length - 1) {
+              pos = views[i].pos + 1;
+            } else {
+              pos = (views[i].pos + views[i + 1].pos) / 2; // todo -- rescaling when too small.
+            }
           }
           setView({ ...views[activeIndex], pos });
           break;

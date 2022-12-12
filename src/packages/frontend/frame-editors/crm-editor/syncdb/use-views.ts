@@ -83,6 +83,7 @@ export default function useViews(
             break;
           }
         }
+        views?.push(view as View);
       }
       if (view.pos == null) {
         // assign new position
@@ -95,10 +96,17 @@ export default function useViews(
               .map((x) => x.get("pos"))
           ) + 1;
       }
+
+      if (views != null) {
+        // ensure change is reflected immediately, rather than going through syncdb.
+        views.sort(field_cmp("pos"));
+        setViews([...views]);
+      }
+
       syncdb.set(view);
       syncdb.commit();
     };
-  }, [syncdb, dbtable]);
+  }, [syncdb, dbtable, views]);
 
   return [views, setView];
 }
