@@ -2,7 +2,7 @@ import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
 import useViews, { View } from "./syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Dropdown, Input, Popover, Select, Tabs } from "antd";
+import { Button, Dropdown, Input, Popover, Select, Space, Tabs } from "antd";
 import DBTable from "./db-table";
 import {
   SortableContext,
@@ -50,6 +50,12 @@ export default function TableTab(props) {
   }, [desc]);
 
   const items = useMemo(() => {
+    const createNewView = (type: string) => {
+      const newView = { type, id: undefined };
+      saveView(newView);
+      actions.set_frame_tree({ id, [viewKey]: newView.id });
+    };
+
     const items: TabItem[] = [];
     for (const { name, id, type } of views ?? []) {
       items.push({
@@ -68,7 +74,36 @@ export default function TableTab(props) {
         />
       ),
       key: NEW,
-      children: <div style={{ color: "#888" }}>Create a new view.</div>,
+      children: (
+        <div>
+          Create new view
+          <br />
+          <br />
+          <Space>
+            <Button size="large" onClick={() => createNewView("table")}>
+              <Icon
+                name={TYPE_TO_ICON["table"]}
+                style={{ marginRight: "15px" }}
+              />{" "}
+              Grid
+            </Button>
+            <Button size="large" onClick={() => createNewView("cards")}>
+              <Icon
+                name={TYPE_TO_ICON["cards"]}
+                style={{ marginRight: "15px" }}
+              />{" "}
+              Gallery
+            </Button>
+            <Button size="large" onClick={() => createNewView("calendar")}>
+              <Icon
+                name={TYPE_TO_ICON["calendar"]}
+                style={{ marginRight: "15px" }}
+              />{" "}
+              Calendar
+            </Button>
+          </Space>
+        </div>
+      ),
     });
     return items;
   }, [views]);
@@ -294,7 +329,6 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
             )}
           >
             <Dropdown
-              trigger={["click", "hover"]}
               menu={{
                 items: [
                   {
