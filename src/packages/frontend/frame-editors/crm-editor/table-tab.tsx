@@ -2,7 +2,7 @@ import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
 import useViews, { View } from "./syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Dropdown, Input, Select, Tabs } from "antd";
+import { Dropdown, Input, Popover, Select, Tabs } from "antd";
 import DBTable from "./db-table";
 import {
   SortableContext,
@@ -151,7 +151,6 @@ export default function TableTab(props) {
                           return;
                         } else if (action == "rename") {
                           if (newName) {
-                            console.log("saving ", { ...view, name: newName });
                             saveView({ ...view, name: newName });
                           }
                           return;
@@ -232,49 +231,66 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
           }}
         />
       ) : (
-        children
+        <div
+          style={{
+            maxWidth: "150px",
+            display: "inline-block",
+            overflow: "hidden",
+            marginRight: "10px",
+          }}
+        >
+          {children}
+        </div>
       )}
       {selected && (
         <span style={{ float: "right", marginRight: "10px" }}>
-          <Dropdown
-            trigger={["click"]}
-            menu={{
-              items: [
-                {
-                  key: "rename",
-                  label: (
-                    <span onClick={() => setEditing(true)}>
-                      <Icon name="edit" style={{ marginRight: "10px" }} />
-                      Rename view
-                    </span>
-                  ),
-                },
-                {
-                  key: "duplicate",
-                  label: (
-                    <span onClick={() => onAction("duplicate")}>
-                      <Icon name="copy" style={{ marginRight: "10px" }} />
-                      Duplicate view
-                    </span>
-                  ),
-                },
-                {
-                  key: "delete",
-                  label: (
-                    <span
-                      style={{ color: "#ff4d4f" }}
-                      onClick={() => onAction("delete")}
-                    >
-                      <Icon name="trash" style={{ marginRight: "10px" }} />
-                      Delete view
-                    </span>
-                  ),
-                },
-              ],
-            }}
+          <Popover
+            title={() => (
+              <div style={{ maxWidth: "250px" }}>{getView(id)?.name}</div>
+            )}
+            placement="right"
+            mouseEnterDelay={0.4}
           >
-            <Icon name="caret-down" />
-          </Dropdown>
+            <Dropdown
+              trigger={["click"]}
+              menu={{
+                items: [
+                  {
+                    key: "rename",
+                    label: (
+                      <span onClick={() => setEditing(true)}>
+                        <Icon name="edit" style={{ marginRight: "10px" }} />
+                        Rename view
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "duplicate",
+                    label: (
+                      <span onClick={() => onAction("duplicate")}>
+                        <Icon name="copy" style={{ marginRight: "10px" }} />
+                        Duplicate view
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "delete",
+                    label: (
+                      <span
+                        style={{ color: "#ff4d4f" }}
+                        onClick={() => onAction("delete")}
+                      >
+                        <Icon name="trash" style={{ marginRight: "10px" }} />
+                        Delete view
+                      </span>
+                    ),
+                  },
+                ],
+              }}
+            >
+              <Icon name="caret-down" />
+            </Dropdown>
+          </Popover>
           <span {...listeners} style={{ cursor: "hand" }}>
             <Icon
               name="ellipsis"
