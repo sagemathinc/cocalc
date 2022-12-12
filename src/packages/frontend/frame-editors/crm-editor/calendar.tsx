@@ -63,7 +63,7 @@ export default function CalendarData({
   }, [data, timeKey]);
 
   return (
-    <Card title={title} style={{ margin: "15px", ...style }}>
+    <Card title={title} style={style}>
       <Calendar
         dateCellRender={dateCellRender}
         monthCellRender={monthCellRender}

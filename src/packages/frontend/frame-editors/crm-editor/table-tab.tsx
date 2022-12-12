@@ -12,7 +12,13 @@ import { DndContext } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, IconName } from "@cocalc/frontend/components";
+
+const TYPE_TO_ICON: { [type: string]: IconName } = {
+  table: "table",
+  cards: "address-card",
+  calendar: "calendar",
+};
 
 interface TabItem {
   label: ReactNode;
@@ -160,6 +166,17 @@ export default function TableTab(props) {
                         }
                       }}
                     >
+                      <Icon
+                        style={{
+                          fontSize: "15pt",
+                          marginRight: "-15px",
+                        }}
+                        name={
+                          TYPE_TO_ICON[
+                            getView(`${node.key}`)?.type ?? "table"
+                          ] ?? "table"
+                        }
+                      />
                       {node}
                     </SortableItem>
                   )
@@ -177,9 +194,36 @@ function NewView({ dbtable, onCreate }) {
   const [value, setValue] = useState<string | null>(null);
   const [_, saveView] = useViews(dbtable);
   const options = [
-    { value: "table", label: "Grid" },
-    { value: "cards", label: "Gallery" },
-    { value: "calendar", label: "Calendar" },
+    {
+      value: "table",
+      label: (
+        <>
+          <Icon name={TYPE_TO_ICON["table"]} style={{ marginRight: "15px" }} />{" "}
+          Grid
+        </>
+      ),
+    },
+    {
+      value: "cards",
+      label: (
+        <>
+          <Icon name={TYPE_TO_ICON["cards"]} style={{ marginRight: "15px" }} />{" "}
+          Gallery
+        </>
+      ),
+    },
+    {
+      value: "calendar",
+      label: (
+        <>
+          <Icon
+            name={TYPE_TO_ICON["calendar"]}
+            style={{ marginRight: "15px" }}
+          />{" "}
+          Calendar
+        </>
+      ),
+    },
   ];
   return (
     <Select
@@ -248,11 +292,9 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
             title={() => (
               <div style={{ maxWidth: "250px" }}>{getView(id)?.name}</div>
             )}
-            placement="right"
-            mouseEnterDelay={0.4}
           >
             <Dropdown
-              trigger={["click"]}
+              trigger={["click", "hover"]}
               menu={{
                 items: [
                   {

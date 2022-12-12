@@ -115,7 +115,7 @@ export default function DBTable({
         <Table
           size="middle"
           rowKey={rowKey}
-          style={{ overflow: "auto", margin: "15px" }}
+          style={{ overflow: "auto" }}
           dataSource={data}
           columns={columns}
           bordered
