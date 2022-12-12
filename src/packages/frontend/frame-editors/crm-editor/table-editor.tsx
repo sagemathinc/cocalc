@@ -1,10 +1,20 @@
 import { getTableDescription, getTables } from "./tables";
 import DBTable, { View } from "./db-table";
-import { Radio, Space, Tabs } from "antd";
+import { Button, Radio, Space, Tabs } from "antd";
 import { useMemo, ReactNode, useState } from "react";
 import { SelectTimeKey, defaultTimeKey } from "./time-keys";
+import { Icon } from "@cocalc/frontend/components";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-export default function TableEditor({}) {
+export default function TableEditor() {
+  return (
+    <div style={{ height: "100%", overflow: "auto" }}>
+      <TableNavigator />
+    </div>
+  );
+}
+
+function TableNavigator() {
   const items = useMemo(() => {
     const items: { label: ReactNode; key: string; children: ReactNode }[] = [];
     for (const name of getTables()) {
@@ -15,21 +25,33 @@ export default function TableEditor({}) {
     return items;
   }, []);
 
+  const { actions, id, desc } = useFrameContext();
+  const activeKey = useMemo(() => {
+    return desc.get("data-tab", items[0].key);
+  }, [desc]);
+
   return (
-    <div style={{ height: "100%", overflow: "auto" }}>
-      <Tabs
-        size="small"
-        items={items}
-        style={{ margin: "15px", height: "100%", overflow: "auto" }}
-        tabPosition={"left"}
-      />
-    </div>
+    <Tabs
+      activeKey={activeKey}
+      onChange={(activeKey: string) => {
+        actions.set_frame_tree({ id, "data-tab": activeKey });
+      }}
+      size="small"
+      items={items}
+      style={{ margin: "15px" }}
+      tabPosition="left"
+    />
   );
 }
 
 function TabItem(props) {
-  const [view, setView] = useState<View>("table");
   const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
+
+  const { actions, id, desc } = useFrameContext();
+  const viewKey = `data-view-${props.name}`;
+  const view = useMemo(() => {
+    return desc.get(viewKey, "table");
+  }, [desc]);
 
   return (
     <div>
@@ -37,7 +59,7 @@ function TabItem(props) {
         <Radio.Group
           value={view}
           onChange={(e) => {
-            setView(e.target.value);
+            actions.set_frame_tree({ id, [viewKey]: e.target.value });
             if (e.target.value == "calendar") {
               setTimeKey(defaultTimeKey(props.query));
             } else {
