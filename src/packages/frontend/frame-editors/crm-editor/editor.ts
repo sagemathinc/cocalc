@@ -16,7 +16,7 @@ const EDITOR_SPEC = {
     name: "Tables",
     icon: "database",
     component: TableEditor,
-    buttons: set([]),
+    buttons: set(["save", "undo", "redo"]),
   },
   time_travel,
 } as { [name: string]: EditorDescription };

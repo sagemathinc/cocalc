@@ -1,14 +1,16 @@
 import { useMemo, ReactNode, useState } from "react";
 import useViews from "./syncdb/use-views";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize, suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Select, Tabs } from "antd";
+import { Dropdown, Select, Tabs } from "antd";
 import DBTable from "./db-table";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { DndContext } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon } from "@cocalc/frontend/components";
 
@@ -118,6 +120,20 @@ export default function TableTab(props) {
                       key={node.key}
                       id={node.key}
                       selected={view == node.key}
+                      onAction={(
+                        action: "rename" | "duplicate" | "delete",
+                        newName?: string
+                      ) => {
+                        for (const v of views) {
+                          // todo -- implement the actions...
+                        }
+                        console.log("do action ", action, " to ", node, {
+                          newName,
+                        });
+                        if (action == "duplicate") {
+                          suggest_duplicate_filename();
+                        }
+                      }}
                     >
                       {node}
                     </SortableItem>
@@ -157,10 +173,7 @@ function NewView({ dbtable, onCreate }) {
   );
 }
 
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
-export function SortableItem({ id, children, selected }) {
+export function SortableItem({ id, children, selected, onAction }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
 
@@ -174,16 +187,54 @@ export function SortableItem({ id, children, selected }) {
     <div ref={setNodeRef} style={style} {...attributes}>
       {children}
       {selected && (
-        <span
-          {...listeners}
-          style={{ float: "right", marginRight: "10px", cursor: "hand" }}
-        >
-          <Icon
-            name="ellipsis"
-            rotate="90"
-            style={{ margin: "10px -10px 0 0" }}
-          />
-          <Icon name="ellipsis" rotate="90" />
+        <span style={{ float: "right", marginRight: "10px" }}>
+          <Dropdown
+            trigger={["click"]}
+            menu={{
+              items: [
+                {
+                  key: "rename",
+                  label: (
+                    <span onClick={() => onAction("rename", "foo")}>
+                      <Icon name="edit" style={{ marginRight: "10px" }} />
+                      Rename view
+                    </span>
+                  ),
+                },
+                {
+                  key: "duplicate",
+                  label: (
+                    <span onClick={() => onAction("duplicate")}>
+                      <Icon name="copy" style={{ marginRight: "10px" }} />
+                      Duplicate view
+                    </span>
+                  ),
+                },
+                {
+                  key: "delete",
+                  label: (
+                    <span
+                      style={{ color: "#ff4d4f" }}
+                      onClick={() => onAction("delete")}
+                    >
+                      <Icon name="trash" style={{ marginRight: "10px" }} />
+                      Delete view
+                    </span>
+                  ),
+                },
+              ],
+            }}
+          >
+            <Icon name="caret-down" />
+          </Dropdown>
+          <span {...listeners} style={{ cursor: "hand" }}>
+            <Icon
+              name="ellipsis"
+              rotate="90"
+              style={{ margin: "10px -10px 0 0" }}
+            />
+            <Icon name="ellipsis" rotate="90" />
+          </span>
         </span>
       )}
     </div>

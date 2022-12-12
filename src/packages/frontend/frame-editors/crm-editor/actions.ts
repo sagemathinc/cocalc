@@ -20,4 +20,20 @@ export class Actions extends CodeEditorActions {
   _raw_default_frame_tree(): FrameTree {
     return { type: "tables" };
   }
+
+  undo(_id?: string): void {
+    if (this._syncstring == null) return;
+    this._syncstring.undo();
+    this._syncstring.commit();
+  }
+
+  redo(_id?: string): void {
+    if (this._syncstring == null) return;
+    this._syncstring.redo();
+    this._syncstring.commit();
+  }
+
+  in_undo_mode(): boolean {
+    return this._syncstring?.in_undo_mode();
+  }
 }
