@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { DndContext } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { Icon } from "@cocalc/frontend/components";
 
 interface TabItem {
   label: ReactNode;
@@ -113,7 +114,11 @@ export default function TableTab(props) {
                   node.key == NEW ? (
                     node
                   ) : (
-                    <SortableItem key={node.key} id={node.key}>
+                    <SortableItem
+                      key={node.key}
+                      id={node.key}
+                      selected={view == node.key}
+                    >
                       {node}
                     </SortableItem>
                   )
@@ -155,18 +160,32 @@ function NewView({ dbtable, onCreate }) {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export function SortableItem(props) {
+export function SortableItem({ id, children, selected }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: props.id });
+    useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
+  // TODO: margins below and using rotated ellipsis is just cheap hack until grab a better "draggable" icon!
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {props.children}
+    <div ref={setNodeRef} style={style} {...attributes}>
+      {children}
+      {selected && (
+        <span
+          {...listeners}
+          style={{ float: "right", marginRight: "10px", cursor: "hand" }}
+        >
+          <Icon
+            name="ellipsis"
+            rotate="90"
+            style={{ margin: "10px -10px 0 0" }}
+          />
+          <Icon name="ellipsis" rotate="90" />
+        </span>
+      )}
     </div>
   );
 }
