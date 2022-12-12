@@ -1,6 +1,11 @@
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableMarkdown, EditableStatus, EditableText } from "./edit";
+import {
+  EditableDate,
+  EditableMarkdown,
+  EditableStatus,
+  EditableText,
+} from "./edit";
 import { register } from "./tables";
 
 register({
@@ -35,7 +40,7 @@ register({
       dataIndex: "subject",
       key: "subject",
       render: (value, { id }) => (
-        <EditableText key={id} id={id} field="subject" defaultValue={value} />
+        <EditableText id={id} field="subject" defaultValue={value} />
       ),
       width: 300,
     },
@@ -49,8 +54,16 @@ register({
       ellipsis: true,
       dataIndex: "due_date",
       key: "due_date",
+      width: 200,
       sorter: (a, b) => cmp_Date(a.due_date, b.due_date),
-      render: (_, { due_date }) => <TimeAgo date={due_date} />,
+      render: (_, { id, due_date }) => (
+        <EditableDate
+          defaultValue={due_date}
+          field="due_date"
+          id={id}
+          showTime
+        />
+      ),
     },
     {
       title: "Progress",

@@ -1,34 +1,45 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Input } from "antd";
+import { useEffect, useState } from "react";
+import { Alert, Button, DatePicker } from "antd";
 import { useEditableContext } from "./context";
+import { TimeAgo } from "@cocalc/frontend/components";
+import dayjs from "dayjs";
 import { fieldToLabel } from "../util";
 
-export function EditableText({
-  defaultValue = "",
+export function EditableDate({
+  defaultValue,
   id,
   field,
+  showTime,
 }: {
-  defaultValue?: string;
+  defaultValue?: Date;
   id: number;
   field: string;
+  showTime?;
 }) {
-  const [value, setValue] = useState<string>(defaultValue);
+  const [value, setValue] = useState<dayjs.Dayjs | undefined | null>(
+    defaultValue ? dayjs(defaultValue) : undefined
+  );
   const [edit, setEdit] = useState<boolean>(false);
-  const ref = useRef<any>();
   const context = useEditableContext();
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    setValue(defaultValue);
+    setValue(defaultValue ? dayjs(defaultValue) : undefined);
   }, [context.counter]);
 
   async function save() {
+    if (value == null) {
+      // todo -- this is probably wrong. Need way to remove due date.
+      setError("");
+      setEdit(false);
+      return;
+    }
     const query = {
       [context.table]: {
         id,
-        [field]: ref.current.input.value,
+        [field]: value.toDate(),
         last_edited: webapp_client.server_time(),
       },
     };
@@ -47,16 +58,16 @@ export function EditableText({
   if (edit) {
     return (
       <>
-        <Input
-          disabled={saving}
-          ref={ref}
-          autoFocus
+        <DatePicker
           value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
+          disabled={saving}
+          showTime={showTime}
+          onChange={(date) => {
+            setValue(date);
           }}
+          onOk={save}
           onBlur={save}
-          onPressEnter={save}
+          placeholder={fieldToLabel(field)}
         />
         {error && (
           <Alert
@@ -74,14 +85,13 @@ export function EditableText({
       </>
     );
   } else {
-    const empty = !value?.trim();
     return (
       <div
         title={`Click to edit ${fieldToLabel(field)}`}
         style={{
           display: "inline-block",
           cursor: "pointer",
-          ...(empty
+          ...(!value
             ? {
                 minWidth: "5em",
                 padding: "5px",
@@ -93,11 +103,7 @@ export function EditableText({
         }}
         onClick={() => setEdit(true)}
       >
-        {empty ? (
-          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
-        ) : (
-          value
-        )}
+        {value && <TimeAgo date={value?.toDate()} />}
       </div>
     );
   }
