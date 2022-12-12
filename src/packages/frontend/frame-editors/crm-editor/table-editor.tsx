@@ -1,10 +1,16 @@
 import { getTableDescription, getTables } from "./tables";
 import DBTable, { View } from "./db-table";
-import { Button, Radio, Space, Tabs } from "antd";
+import { Button, Radio, Select, Space, Tabs } from "antd";
 import { useMemo, ReactNode, useState } from "react";
-import { SelectTimeKey, defaultTimeKey } from "./time-keys";
 import { Icon } from "@cocalc/frontend/components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { capitalize } from "@cocalc/util/misc";
+
+interface TabItem {
+  label: ReactNode;
+  key: string;
+  children: ReactNode;
+}
 
 export default function TableEditor() {
   return (
@@ -16,7 +22,7 @@ export default function TableEditor() {
 
 function TableNavigator() {
   const items = useMemo(() => {
-    const items: { label: ReactNode; key: string; children: ReactNode }[] = [];
+    const items: TabItem[] = [];
     for (const name of getTables()) {
       const props = getTableDescription(name);
       const children = <TabItem {...props} />;
@@ -32,6 +38,7 @@ function TableNavigator() {
 
   return (
     <Tabs
+      type="card"
       activeKey={activeKey}
       onChange={(activeKey: string) => {
         actions.set_frame_tree({ id, "data-tab": activeKey });
@@ -39,45 +46,59 @@ function TableNavigator() {
       size="small"
       items={items}
       style={{ margin: "15px" }}
-      tabPosition="left"
     />
   );
 }
 
 function TabItem(props) {
-  const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
-
   const { actions, id, desc } = useFrameContext();
   const viewKey = `data-view-${props.name}`;
   const view = useMemo(() => {
     return desc.get(viewKey, "table");
   }, [desc]);
 
+  const items = useMemo(() => {
+    const items: TabItem[] = [];
+    for (const view of ["table", "cards", "calendar"]) {
+      items.push({
+        label: capitalize(view),
+        key: view,
+        children: <DBTable {...props} view={view} />,
+      });
+    }
+    items.push({
+      label: <SelectNewView />,
+      key: "__new__",
+      children: <div style={{ color: "#888" }}>Create a new view.</div>,
+    });
+    return items;
+  }, []);
+
   return (
-    <div>
-      <Space>
-        <Radio.Group
-          value={view}
-          onChange={(e) => {
-            actions.set_frame_tree({ id, [viewKey]: e.target.value });
-            if (e.target.value == "calendar") {
-              setTimeKey(defaultTimeKey(props.query));
-            } else {
-              setTimeKey(undefined);
-            }
-          }}
-        >
-          <Radio.Button value="table">Table</Radio.Button>
-          <Radio.Button value="cards">Cards</Radio.Button>
-          {defaultTimeKey(props.query) != null && (
-            <Radio.Button value="calendar">Calendar</Radio.Button>
-          )}
-        </Radio.Group>
-        {view == "calendar" && (
-          <SelectTimeKey onChange={setTimeKey} query={props.query} />
-        )}
-      </Space>
-      <DBTable {...props} view={view} timeKey={timeKey} />
-    </div>
+    <Tabs
+      tabPosition="left"
+      activeKey={view}
+      onChange={(view: string) => {
+        actions.set_frame_tree({ id, [viewKey]: view });
+      }}
+      size="small"
+      items={items}
+      style={{ margin: "15px" }}
+    />
+  );
+}
+
+function SelectNewView() {
+  const options = [
+    { value: "table", label: "Grid" },
+    { value: "cards", label: "Gallery" },
+    { value: "calendar", label: "Calendar" },
+  ];
+  return (
+    <Select
+      placeholder="Create..."
+      options={options}
+      style={{ width: "125px" }}
+    />
   );
 }

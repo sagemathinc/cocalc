@@ -1,4 +1,4 @@
-import { useMemo, CSSProperties, ReactNode } from "react";
+import { useMemo, useState, CSSProperties, ReactNode } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button, Space, Table } from "antd";
 import { EditableContext } from "./edit";
@@ -6,6 +6,7 @@ import { useTable } from "./table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "./util";
 import { Icon } from "@cocalc/frontend/components";
+import { SelectTimeKey } from "./time-keys";
 
 import Cards from "./cards";
 import Calendar from "./calendar";
@@ -22,7 +23,6 @@ interface Props {
   view?: "table" | "cards" | "calendar";
   style?: CSSProperties;
   height?;
-  timeKey?: string;
 }
 
 export default function DBTable({
@@ -35,8 +35,8 @@ export default function DBTable({
   view = "table",
   style,
   height,
-  timeKey,
 }: Props) {
+  const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
   const { rowKey, table } = useMemo(() => {
     const table = Object.keys(query)[0];
     if (!table) {
@@ -129,6 +129,9 @@ export default function DBTable({
 
   return (
     <EditableContext.Provider value={editableContext}>
+      {view == "calendar" && (
+        <SelectTimeKey onChange={setTimeKey} query={query} />
+      )}
       <div style={style}>{body}</div>
     </EditableContext.Provider>
   );
