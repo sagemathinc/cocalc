@@ -20,7 +20,7 @@ interface Props {
   columns;
   allowCreate?: boolean;
   changes?: boolean;
-  view?: "table" | "cards" | "calendar";
+  view: "table" | "cards" | "calendar";
   style?: CSSProperties;
   height?;
 }
@@ -32,7 +32,7 @@ export default function DBTable({
   columns,
   allowCreate,
   changes,
-  view = "table",
+  view,
   style,
   height,
 }: Props) {
@@ -66,11 +66,11 @@ export default function DBTable({
 
   const header = (
     <>
-      <b>{title ?? fieldToLabel(table)}</b>
-      <span style={{ fontWeight: 300 }}>
-        {allowCreate ? " (editable)" : " (read only)"}
-      </span>
-      <Space wrap style={{ margin: "-5px 0 0 10px" }}>
+      <Space wrap>
+        <b>{title ?? fieldToLabel(table)}</b>
+        <span style={{ fontWeight: 300 }}>
+          {allowCreate ? " (editable)" : " (read only)"}
+        </span>
         {allowCreate && (
           <Button onClick={addNew}>
             <Icon name="plus-circle" /> New

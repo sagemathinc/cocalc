@@ -24,7 +24,13 @@ export default function Cards({
   const v: ReactNode[] = [];
   for (const elt of data) {
     v.push(
-      <OneCard elt={elt} rowKey={rowKey} columns={columns} style={cardStyle} />
+      <OneCard
+        key={elt[rowKey]}
+        elt={elt}
+        rowKey={rowKey}
+        columns={columns}
+        style={cardStyle}
+      />
     );
   }
   return (

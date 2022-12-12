@@ -6,6 +6,7 @@
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
+import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
 import TableEditor from "./table-editor";
 
@@ -17,6 +18,7 @@ const EDITOR_SPEC = {
     component: TableEditor,
     buttons: set([]),
   },
+  time_travel,
 } as { [name: string]: EditorDescription };
 
 export const Editor = createEditor({
