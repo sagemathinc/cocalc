@@ -1,7 +1,7 @@
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
-import { EditableMarkdown, EditableText } from "./edit";
+import { EditableMarkdown, EditableText } from "../edit";
 import { register } from "./tables";
 
 register({

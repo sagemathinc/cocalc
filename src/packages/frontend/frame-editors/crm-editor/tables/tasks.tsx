@@ -5,7 +5,7 @@ import {
   EditableMarkdown,
   EditableStatus,
   EditableText,
-} from "./edit";
+} from "../edit";
 import { register } from "./tables";
 
 register({
