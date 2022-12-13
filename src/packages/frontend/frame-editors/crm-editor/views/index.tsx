@@ -224,8 +224,14 @@ export default function TableTab(props) {
 }
 
 export function SortableItem({ id, children, selected, onAction, getView }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -262,6 +268,9 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
             display: "inline-block",
             overflow: "hidden",
             marginRight: "10px",
+            boxShadow: isDragging
+              ? "0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)"
+              : undefined,
           }}
         >
           {children}
