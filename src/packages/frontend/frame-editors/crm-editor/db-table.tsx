@@ -7,9 +7,8 @@ import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "./util";
 import { Icon } from "@cocalc/frontend/components";
 import { SelectTimeKey } from "./time-keys";
-
-import Cards from "./cards";
-import Calendar from "./calendar";
+import Cards from "./views/cards";
+import Calendar from "./views/calendar";
 
 export type View = "cards" | "calendar" | "table";
 

@@ -1,9 +1,9 @@
 import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
-import useViews, { View } from "./syncdb/use-views";
+import useViews, { View } from "../syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Button, Dropdown, Input, Popover, Select, Space, Tabs } from "antd";
-import DBTable from "./db-table";
+import DBTable from "../db-table";
 import {
   SortableContext,
   verticalListSortingStrategy,

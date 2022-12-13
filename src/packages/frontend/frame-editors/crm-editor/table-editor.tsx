@@ -3,7 +3,7 @@ import { Tabs } from "antd";
 import { useMemo, ReactNode } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SyncdbContext } from "./syncdb/context";
-import TableTab from "./table-tab";
+import TableTab from "./views/table-tab";
 
 interface TabItem {
   label: ReactNode;
