@@ -131,6 +131,11 @@ Table({
       type: "string",
       desc: "The organizations's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
     },
+    domain: {
+      type: "string",
+      pg_type: "VARCHAR(254)", // todo -- should this be an array of domain names?
+      desc: "Domain name of this org, e.g., math.washington.edu.",
+    },
   },
   rules: {
     desc: "Organizations",
@@ -148,6 +153,7 @@ Table({
           organization_ids: null,
           deleted: null,
           notes: null,
+          domain: null,
         },
         options: [{ limit: 100 }],
       },
@@ -162,6 +168,7 @@ Table({
           organization_ids: true,
           deleted: true,
           notes: true,
+          domain: true,
         },
         required_fields: {
           last_edited: true, // TODO: make automatic on any set query

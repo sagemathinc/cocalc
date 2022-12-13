@@ -14,6 +14,7 @@ register({
         name: null,
         people_ids: null,
         organization_ids: null,
+        domain: null,
         deleted: null,
         notes: null,
         created: null,
@@ -46,7 +47,15 @@ register({
       },
     },
     {
-      title: "Organizations",
+      title: "Domains",
+      dataIndex: "domain",
+      key: "domain",
+      render: (value, { id }) => (
+        <EditableText key={id} id={id} field="domain" defaultValue={value} />
+      ),
+    },
+    {
+      title: "Realted Orgs",
       dataIndex: "organization_ids",
       key: "organization_ids",
       render: (_, record) => {
