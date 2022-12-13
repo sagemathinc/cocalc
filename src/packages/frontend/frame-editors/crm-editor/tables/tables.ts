@@ -1,13 +1,13 @@
 import { ReactNode } from "react";
 
-import "./accounts";
-import "./organizations";
+import "./tasks";
 import "./people";
-import "./projects";
-import "./shopping-cart-items";
+import "./organizations";
 import "./support-tickets";
 import "./support-messages";
-import "./tasks";
+import "./accounts";
+import "./projects";
+import "./shopping-cart-items";
 
 interface TableDescription {
   name: string;

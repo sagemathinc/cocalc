@@ -55,7 +55,14 @@ register({
       dataIndex: "due_date",
       key: "due_date",
       width: 200,
-      sorter: (a, b) => cmp_Date(a.due_date, b.due_date),
+      sorter: (a, b) => {
+        if (a.due_date == null) {
+          return -1;
+        } else if (b.due_date == null) {
+          return 1;
+        }
+        return -cmp_Date(a.due_date, b.due_date);
+      },
       render: (_, { id, due_date }) => (
         <EditableDate
           defaultValue={due_date}
