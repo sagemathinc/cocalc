@@ -9,10 +9,12 @@ interface Options {
   changes?: boolean; // if true, automatically updates records loaded during first query.  Doesn't add/remove anything yet though.
 }
 
-export function useTable({
-  query,
-  changes = false,
-}: Options): [any[], () => void, { counter: number; table: string }] {
+export function useTable({ query, changes = false }: Options): {
+  data: any[];
+  refresh: () => void;
+  editableContext: { counter: number; table: string };
+  error?: string;
+} {
   const info = useMemo(() => {
     const table = Object.keys(query)[0];
     const primary_key = client_db.primary_keys(table)[0]; // assume only one
@@ -20,6 +22,7 @@ export function useTable({
   }, []);
 
   const [data, setData] = useState<any[]>([]);
+  const [error, setError] = useState<string | undefined>(undefined);
   const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
   const { val: counter, inc: incCounter } = useCounter();
@@ -52,7 +55,11 @@ export function useTable({
         if (err) {
           // TODO: set some overall error state.
           console.warn(err);
+          setError(`${err}`);
           return;
+        }
+        if (error) {
+          setError("");
         }
         // TODO: err handling, reconnect logic
         if (resp.action) {
@@ -87,6 +94,6 @@ export function useTable({
     };
   }, [disconnectCounter]);
 
-  const context = { counter, table: info.table };
-  return [data, incDisconnectCounter, context];
+  const editableContext = { counter, table: info.table };
+  return { data, refresh: incDisconnectCounter, editableContext, error };
 }

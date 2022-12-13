@@ -1,6 +1,6 @@
 import { useMemo, useState, CSSProperties, ReactNode } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Button, Space, Table } from "antd";
+import { Alert, Button, Space, Table } from "antd";
 import { EditableContext } from "../edit";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
@@ -48,7 +48,12 @@ export default function DBTable({
     return { rowKey, table };
   }, [query]);
 
-  const [data, refresh, editableContext] = useTable({
+  const {
+    data,
+    refresh,
+    editableContext,
+    error: tableError,
+  } = useTable({
     query,
     changes,
   });
@@ -129,6 +134,13 @@ export default function DBTable({
 
   return (
     <EditableContext.Provider value={editableContext}>
+      {tableError && (
+        <Alert
+          type="error"
+          message="Database Query Error"
+          description={tableError}
+        />
+      )}
       {view == "calendar" && (
         <SelectTimeKey onChange={setTimeKey} query={query} />
       )}

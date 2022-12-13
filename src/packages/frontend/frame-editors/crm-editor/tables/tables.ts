@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import "./accounts";
 import "./organizations";
 import "./people";
+import "./projects";
 import "./shopping-cart-items";
 import "./support-tickets";
 import "./support-messages";

@@ -547,3 +547,31 @@ export interface ProjectState {
   state?: State; // running, stopped, etc.
   time?: Date;
 }
+
+Table({
+  name: "crm_projects",
+  fields: schema.projects.fields,
+  rules: {
+    primary_key: schema.projects.primary_key,
+    virtual: "projects",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        // (without this, users who have read access could read)
+        pg_where: [],
+        options: [{ limit: 100, order_by: "-last_edited" }],
+        fields: {
+          project_id: null,
+          name: null,
+          title: "",
+          description: "",
+          users: {},
+          last_edited: null,
+          created: null,
+          avatar_image_tiny: true,
+          avatar_image_full: true,
+        },
+      },
+    },
+  },
+});
