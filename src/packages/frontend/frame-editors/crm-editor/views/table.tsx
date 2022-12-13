@@ -125,6 +125,7 @@ export default function DBTable({
           expandable={expandable}
           title={() => header}
           scroll={height ? { y: height } : undefined}
+          pagination={false /* disabled for now -- TODO: will use virtuoso instead... */}
         />
       );
       break;
