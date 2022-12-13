@@ -1,9 +1,11 @@
-import { getTableDescription, getTables } from "./tables";
+import { getTables, getTableDescription } from "./tables";
 import { Tabs } from "antd";
 import { useMemo, ReactNode } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SyncdbContext } from "./syncdb/context";
 import Views from "./views";
+import Home from "./home";
+import { Icon } from "@cocalc/frontend/components";
 
 interface TabItem {
   label: ReactNode;
@@ -13,11 +15,17 @@ interface TabItem {
 
 export default function TableEditor({ actions }) {
   const items = useMemo(() => {
-    const items: TabItem[] = [];
-    for (const name of getTables()) {
-      const props = getTableDescription(name);
-      const children = <Views {...props} />;
-      items.push({ label: props.title, key: name, children });
+    const items: TabItem[] = [
+      { label: <Icon name="home" />, key: "home", children: <Home /> },
+    ];
+    for (const table of getTables()) {
+      const children = <Views table={table} />;
+      const { title } = getTableDescription(table);
+      items.push({
+        label: title,
+        key: table,
+        children,
+      });
     }
     return items;
   }, []);

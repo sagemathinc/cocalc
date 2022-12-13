@@ -5,7 +5,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { register } from "./tables";
 
 register({
-  name: "shopping_cart_items",
+  name: "shopping-cart-items",
   title: "Shopping",
   icon: "shopping-cart",
   query: {

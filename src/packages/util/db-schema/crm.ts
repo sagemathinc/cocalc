@@ -86,6 +86,7 @@ Table({
   },
 });
 
+// TODO: add image -- probably want to use blob table (?) but maybe do like with projects. Not sure.
 Table({
   name: "crm_organizations",
   fields: {

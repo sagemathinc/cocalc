@@ -10,6 +10,9 @@ import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/e
 
 import TableEditor from "./table-editor";
 
+// import Whiteboard from "../whiteboard-editor/whiteboard";
+// import { whiteboardButtons } from "../whiteboard-editor/editor";
+
 const EDITOR_SPEC = {
   tables: {
     short: "Tables",
@@ -18,6 +21,13 @@ const EDITOR_SPEC = {
     component: TableEditor,
     buttons: set(["save", "undo", "redo"]),
   },
+  //   whiteboard: {
+  //     short: "Whiteboard",
+  //     name: "Whiteboard",
+  //     icon: "file-image",
+  //     component: Whiteboard,
+  //     buttons: whiteboardButtons,
+  //   },
   time_travel,
 } as { [name: string]: EditorDescription };
 

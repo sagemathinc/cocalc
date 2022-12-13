@@ -1,9 +1,9 @@
 import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
-import useViews, { View } from "../syncdb/use-views";
+import useViews, { View as ViewDescription } from "../syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Button, Card, Dropdown, Input, Popover, Space, Tabs } from "antd";
-import DBTable from "./table";
+import View from "./view";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -28,8 +28,12 @@ interface TabItem {
 
 const NEW = "__new__";
 
-export default function TableTab(props) {
-  const [views, saveView, deleteView] = useViews(props.name);
+interface Props {
+  table: string;
+}
+
+export default function Views({ table }: Props) {
+  const [views, saveView, deleteView] = useViews(table);
   const { actions, id, desc } = useFrameContext();
 
   const getView = useCallback(
@@ -44,7 +48,7 @@ export default function TableTab(props) {
     [views]
   );
 
-  const viewKey = `data-view-${props.name}`;
+  const viewKey = `data-view-${table}`;
   const view = useMemo<string | undefined>(() => {
     return desc.get(viewKey, views?.[0]?.id);
   }, [desc]);
@@ -61,7 +65,7 @@ export default function TableTab(props) {
       items.push({
         label: name,
         key: id,
-        children: <DBTable {...props} view={type} />,
+        children: <View table={table} view={type} />,
       });
     }
     items.push({
@@ -180,7 +184,7 @@ export default function TableTab(props) {
                         const view = getView(`${node.key}`);
                         if (view == null) return;
                         if (action == "duplicate") {
-                          const view2: Partial<View> = { ...view };
+                          const view2: Partial<ViewDescription> = { ...view };
                           delete view2.id;
                           delete view2.pos;
                           view2.name = suggest_duplicate_filename(

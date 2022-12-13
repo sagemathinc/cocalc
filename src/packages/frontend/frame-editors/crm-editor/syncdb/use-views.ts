@@ -4,11 +4,12 @@ import { uuid } from "@cocalc/util/misc";
 import { field_cmp } from "@cocalc/util/cmp";
 import type { SetOptional } from "type-fest";
 import { fieldToLabel } from "../util";
+import type { ViewType } from "../types";
 
 export interface View {
   table: "views";
   id: string;
-  type: string;
+  type: ViewType;
   name: string;
   dbtable: string;
   pos: number;

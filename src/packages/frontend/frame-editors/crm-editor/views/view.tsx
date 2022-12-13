@@ -1,4 +1,4 @@
-import { useMemo, useState, CSSProperties, ReactNode } from "react";
+import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Space, Table } from "antd";
 import { EditableContext } from "../edit";
@@ -10,43 +10,33 @@ import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
 import Calendar from "./calendar";
 import type { ViewType } from "../types";
+import { getTableDescription } from "../tables";
 
 interface Props {
-  title?: ReactNode;
-  query: object;
-  expandable?;
-  columns;
-  allowCreate?: boolean;
-  changes?: boolean;
   view: ViewType;
+  table: string;
   style?: CSSProperties;
-  height?;
+  height?: number | string;
 }
 
-export default function DBTable({
-  title,
-  query,
-  expandable,
-  columns,
-  allowCreate,
-  changes,
-  view,
-  style,
-  height,
-}: Props) {
+export default function View({ table, view, style, height }: Props) {
+  const { title, query, expandable, columns, allowCreate, changes } = useMemo(
+    () => getTableDescription(table),
+    [table]
+  );
+
   const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
-  const { rowKey, table } = useMemo(() => {
-    const table = Object.keys(query)[0];
-    if (!table) {
+  const rowKey = useMemo(() => {
+    const dbtable = Object.keys(query)[0];
+    if (!dbtable) {
       throw Error("invalid query");
     }
-    const keys = client_db.primary_keys(table);
+    const keys = client_db.primary_keys(dbtable);
     if (keys.length != 1) {
       throw Error("must be a unique primary key");
     }
-    const rowKey = keys[0];
-    return { rowKey, table };
-  }, [query]);
+    return keys[0];
+  }, [table]);
 
   const {
     data,
@@ -125,7 +115,9 @@ export default function DBTable({
           expandable={expandable}
           title={() => header}
           scroll={height ? { y: height } : undefined}
-          pagination={false /* disabled for now -- TODO: will use virtuoso instead... */}
+          pagination={
+            false /* disabled for now -- TODO: will use virtuoso instead... */
+          }
         />
       );
       break;
