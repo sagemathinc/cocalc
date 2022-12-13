@@ -1,7 +1,7 @@
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { useMemo } from "react";
 import { Select } from "antd";
-import { fieldToLabel } from "./util";
+import { fieldToLabel } from "../util";
 
 interface Props {
   onChange: (key: string) => void;

@@ -1,15 +1,15 @@
 import { useMemo, useState, CSSProperties, ReactNode } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button, Space, Table } from "antd";
-import { EditableContext } from "./edit";
-import { useTable } from "./table-hook";
+import { EditableContext } from "../edit";
+import { useTable } from "../table-hook";
 import { client_db } from "@cocalc/util/db-schema";
-import { fieldToLabel } from "./util";
+import { fieldToLabel } from "../util";
 import { Icon } from "@cocalc/frontend/components";
 import { SelectTimeKey } from "./time-keys";
-import Gallery from "./views/gallery";
-import Calendar from "./views/calendar";
-import type { ViewType } from "./types";
+import Gallery from "./gallery";
+import Calendar from "./calendar";
+import type { ViewType } from "../types";
 
 interface Props {
   title?: ReactNode;

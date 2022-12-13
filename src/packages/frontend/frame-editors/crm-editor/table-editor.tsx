@@ -3,7 +3,7 @@ import { Tabs } from "antd";
 import { useMemo, ReactNode } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SyncdbContext } from "./syncdb/context";
-import GridView from "./views/grid";
+import Views from "./views";
 
 interface TabItem {
   label: ReactNode;
@@ -16,7 +16,7 @@ export default function TableEditor({ actions }) {
     const items: TabItem[] = [];
     for (const name of getTables()) {
       const props = getTableDescription(name);
-      const children = <GridView {...props} />;
+      const children = <Views {...props} />;
       items.push({ label: props.title, key: name, children });
     }
     return items;

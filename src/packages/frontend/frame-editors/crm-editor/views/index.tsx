@@ -2,8 +2,8 @@ import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
 import useViews, { View } from "../syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Button, Dropdown, Input, Popover, Select, Space, Tabs } from "antd";
-import DBTable from "../db-table";
+import { Button, Card, Dropdown, Input, Popover, Space, Tabs } from "antd";
+import DBTable from "./table";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -66,19 +66,17 @@ export default function TableTab(props) {
     }
     items.push({
       label: (
-        <NewView
-          dbtable={props.name}
-          onCreate={(view: string) => {
-            actions.set_frame_tree({ id, [viewKey]: view });
-          }}
-        />
+        <>
+          <Icon
+            name="plus-circle"
+            style={{ fontSize: "15pt", margin: "0 5px 0 -24px" }}
+          />{" "}
+          New View...
+        </>
       ),
       key: NEW,
       children: (
-        <div>
-          Create new view
-          <br />
-          <br />
+        <Card title="Create new view">
           <Space>
             <Button size="large" onClick={() => createNewView("grid")}>
               <Icon
@@ -102,7 +100,7 @@ export default function TableTab(props) {
               Calendar
             </Button>
           </Space>
-        </div>
+        </Card>
       ),
     });
     return items;
@@ -222,61 +220,6 @@ export default function TableTab(props) {
         )}
       />
     </div>
-  );
-}
-
-function NewView({ dbtable, onCreate }) {
-  const [value, setValue] = useState<string | null>(null);
-  const [_, saveView] = useViews(dbtable);
-  const options = [
-    {
-      value: "grid",
-      label: (
-        <>
-          <Icon name={TYPE_TO_ICON["grid"]} style={{ marginRight: "15px" }} />{" "}
-          Grid
-        </>
-      ),
-    },
-    {
-      value: "gallery",
-      label: (
-        <>
-          <Icon
-            name={TYPE_TO_ICON["gallery"]}
-            style={{ marginRight: "15px" }}
-          />{" "}
-          Gallery
-        </>
-      ),
-    },
-    {
-      value: "calendar",
-      label: (
-        <>
-          <Icon
-            name={TYPE_TO_ICON["calendar"]}
-            style={{ marginRight: "15px" }}
-          />{" "}
-          Calendar
-        </>
-      ),
-    },
-  ];
-  return (
-    <Select
-      placeholder="New View..."
-      value={value}
-      options={options}
-      style={{ width: "125px" }}
-      onChange={(type: string) => {
-        setValue(type);
-        const newView = { type, id: undefined };
-        saveView(newView);
-        onCreate(newView.id); // id gets set on creation.
-        setValue("");
-      }}
-    />
   );
 }
 
