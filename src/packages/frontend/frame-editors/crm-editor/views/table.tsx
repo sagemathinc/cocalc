@@ -2,7 +2,7 @@ import { useMemo, useState, CSSProperties, ReactNode } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button, Space, Table } from "antd";
 import { EditableContext } from "../edit";
-import { useTable } from "../table-hook";
+import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
 import { Icon } from "@cocalc/frontend/components";
