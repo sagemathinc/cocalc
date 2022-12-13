@@ -1,24 +1,21 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Input, Progress } from "antd";
+import { useEffect, useState } from "react";
+import { Alert, Button, InputNumber, Progress } from "antd";
 import { useEditableContext } from "./context";
 
 export function EditableStatus({
   defaultValue = 0,
   id,
   field,
-  steps,
-  strokeColor,
+  steps = 5,
 }: {
   defaultValue?: number;
   id: number;
   field: string;
   steps?: number;
-  strokeColor?;
 }) {
-  const [value, setValue] = useState<number | string>(defaultValue);
+  const [value, setValue] = useState<number>(defaultValue);
   const [edit, setEdit] = useState<boolean>(false);
-  const ref = useRef<any>();
   const context = useEditableContext();
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -28,13 +25,10 @@ export function EditableStatus({
   }, [context.counter]);
 
   async function save() {
-    const percent = parseInt(
-      ref.current.input.value ? ref.current.input.value : "0"
-    );
     const query = {
       [context.table]: {
         id,
-        [field]: percent,
+        [field]: value,
         last_edited: webapp_client.server_time(),
       },
     };
@@ -50,17 +44,47 @@ export function EditableStatus({
     }
   }
 
+  // status options for progress bar are:
+  //   'success' 'exception' 'normal' 'active'
+  // Could base this on last_edited and actual status field
+  const percent = parseInt(value ? `${value}` : "0");
+  let status: "normal" | "success" | "active" | "exception" = "normal";
+  if (percent >= 100) {
+    status = "success";
+  } else if (percent >= 50) {
+    status = "active";
+  } else if (percent >= 20) {
+    status = "normal";
+  }
+  const bar = (
+    <div
+      title={`Click to edit ${field}`}
+      style={{ cursor: "pointer" }}
+      onClick={() => setEdit(true)}
+    >
+      <Progress
+        percent={percent}
+        status={status}
+        steps={steps}
+        strokeColor={status == "success" ? "#52c41a" : undefined}
+      />
+    </div>
+  );
   if (edit) {
+    /* as any in parser below due to antd typing bug? */
     return (
       <>
-        <Input
-          disabled={saving}
-          ref={ref}
+        {bar}
+        <InputNumber
           autoFocus
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-          }}
+          disabled={saving}
+          value={value ?? 0}
+          min={0}
+          step={steps ? 100 / steps : 1}
+          max={100}
+          formatter={(value) => `${value}%`}
+          parser={((value) => value!.replace("%", "")) as any}
+          onChange={setValue as any}
           onBlur={save}
           onPressEnter={save}
         />
@@ -80,29 +104,6 @@ export function EditableStatus({
       </>
     );
   } else {
-    // status options for progress bar are:
-    //   'success' 'exception' 'normal' 'active'
-    // Could base this on last_edited and actual status field
-    const percent = parseInt(value ? `${value}` : "0");
-    let status: "normal" | "success" | "active" | "exception" = "normal";
-    if (percent >= 100) {
-      status = "success";
-    } else if (percent >= 50) {
-      status = "active";
-    }
-    return (
-      <div
-        title={`Click to edit ${field}`}
-        style={{ cursor: "pointer" }}
-        onClick={() => setEdit(true)}
-      >
-        <Progress
-          percent={percent}
-          status={status}
-          steps={steps}
-          strokeColor={strokeColor}
-        />
-      </div>
-    );
+    return bar;
   }
 }
