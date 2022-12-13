@@ -7,10 +7,9 @@ import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "./util";
 import { Icon } from "@cocalc/frontend/components";
 import { SelectTimeKey } from "./time-keys";
-import Cards from "./views/cards";
+import Gallery from "./views/gallery";
 import Calendar from "./views/calendar";
-
-export type View = "cards" | "calendar" | "table";
+import type { ViewType } from "./types";
 
 interface Props {
   title?: ReactNode;
@@ -19,7 +18,7 @@ interface Props {
   columns;
   allowCreate?: boolean;
   changes?: boolean;
-  view: "table" | "cards" | "calendar";
+  view: ViewType;
   style?: CSSProperties;
   height?;
 }
@@ -86,9 +85,9 @@ export default function DBTable({
 
   let body;
   switch (view) {
-    case "cards":
+    case "gallery":
       body = (
-        <Cards
+        <Gallery
           height={height}
           rowKey={rowKey}
           data={data}
@@ -109,7 +108,7 @@ export default function DBTable({
         />
       );
       break;
-    default:
+    case "grid":
       body = (
         <Table
           size="middle"
@@ -124,6 +123,8 @@ export default function DBTable({
         />
       );
       break;
+    default:
+      body = <div>Unsupported view type "{view}"</div>;
   }
 
   return (

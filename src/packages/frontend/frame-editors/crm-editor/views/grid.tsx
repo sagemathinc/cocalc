@@ -15,8 +15,8 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
 
 const TYPE_TO_ICON: { [type: string]: IconName } = {
-  table: "table",
-  cards: "address-card",
+  grid: "table",
+  gallery: "address-card",
   calendar: "calendar",
 };
 
@@ -80,16 +80,16 @@ export default function TableTab(props) {
           <br />
           <br />
           <Space>
-            <Button size="large" onClick={() => createNewView("table")}>
+            <Button size="large" onClick={() => createNewView("grid")}>
               <Icon
-                name={TYPE_TO_ICON["table"]}
+                name={TYPE_TO_ICON["grid"]}
                 style={{ marginRight: "15px" }}
               />{" "}
               Grid
             </Button>
-            <Button size="large" onClick={() => createNewView("cards")}>
+            <Button size="large" onClick={() => createNewView("gallery")}>
               <Icon
-                name={TYPE_TO_ICON["cards"]}
+                name={TYPE_TO_ICON["gallery"]}
                 style={{ marginRight: "15px" }}
               />{" "}
               Gallery
@@ -208,8 +208,8 @@ export default function TableTab(props) {
                         }}
                         name={
                           TYPE_TO_ICON[
-                            getView(`${node.key}`)?.type ?? "table"
-                          ] ?? "table"
+                            getView(`${node.key}`)?.type ?? "grid"
+                          ] ?? "square"
                         }
                       />
                       {node}
@@ -230,19 +230,22 @@ function NewView({ dbtable, onCreate }) {
   const [_, saveView] = useViews(dbtable);
   const options = [
     {
-      value: "table",
+      value: "grid",
       label: (
         <>
-          <Icon name={TYPE_TO_ICON["table"]} style={{ marginRight: "15px" }} />{" "}
+          <Icon name={TYPE_TO_ICON["grid"]} style={{ marginRight: "15px" }} />{" "}
           Grid
         </>
       ),
     },
     {
-      value: "cards",
+      value: "gallery",
       label: (
         <>
-          <Icon name={TYPE_TO_ICON["cards"]} style={{ marginRight: "15px" }} />{" "}
+          <Icon
+            name={TYPE_TO_ICON["gallery"]}
+            style={{ marginRight: "15px" }}
+          />{" "}
           Gallery
         </>
       ),

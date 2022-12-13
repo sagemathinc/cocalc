@@ -1,7 +1,7 @@
 import { CSSProperties, ReactNode, useMemo } from "react";
 import { Calendar, Card, Popover } from "antd";
 import dayjs from "dayjs";
-import * as cards from "./cards";
+import * as gallery from "./gallery";
 
 interface Props {
   timeKey?: string;
@@ -87,13 +87,17 @@ function DataList({ data, columns, rowKey }) {
   const v: ReactNode[] = [];
   for (const elt of data) {
     const c = columns[0];
-    const x = <cards.Data noTitle elt={elt} columns={[c]} />;
+    const x = <gallery.Data noTitle elt={elt} columns={[c]} />;
     v.push(
       <Popover
         key={elt[rowKey]}
         trigger="click"
         content={() => (
-          <cards.OneCard elt={elt} columns={columns.slice(1)} rowKey={rowKey} />
+          <gallery.OneCard
+            elt={elt}
+            columns={columns.slice(1)}
+            rowKey={rowKey}
+          />
         )}
         title={x}
       >
