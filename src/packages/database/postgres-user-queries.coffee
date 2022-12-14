@@ -1229,7 +1229,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # Get rid of undefined fields -- that's the default and wastes memory and bandwidth
                 if x?
                     for obj in x
-                        misc.map_mutate_out_undefined(obj)
+                        misc.map_mutate_out_undefined_and_null(obj)
                 cb(undefined, x)
         @_query(query_opts)
 

@@ -348,7 +348,7 @@ class SyncTable extends EventEmitter
             return
         for x in rows
             k = x[@_primary_key]
-            v = immutable.fromJS(misc.map_without_undefined(x))
+            v = immutable.fromJS(misc.map_without_undefined_and_null(x))
             if not v.equals(@_value.get(k))
                 @_value = @_value.set(k, v)
                 if @_state == 'ready'   # only send out change notifications after ready.

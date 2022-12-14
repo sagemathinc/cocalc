@@ -29,8 +29,12 @@ register({ type: "timestamp", editable: true }, ({ field, obj }) => {
           value={value}
           disabled={saving}
           onChange={setValue}
-          onOk={() => save(obj, value?.toDate())}
-          onBlur={() => save(obj, value?.toDate())}
+          onOk={() => {
+            save(obj, value?.toDate());
+          }}
+          onBlur={() => {
+            save(obj, value?.toDate());
+          }}
           placeholder={fieldToLabel(field)}
         />
         {error}

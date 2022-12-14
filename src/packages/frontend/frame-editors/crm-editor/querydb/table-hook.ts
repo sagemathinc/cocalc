@@ -91,6 +91,7 @@ export function useTable({ query, changes = false }: Options): {
         // TODO: err handling, reconnect logic
         if (resp.action) {
           // change, e.g., insert or update or delete
+          // console.log("changefeed", resp);
           refreshRef.current(resp.new_val);
         } else {
           // initial response

@@ -1082,7 +1082,7 @@ exports.one_result = one_result = (pattern, cb) ->
             when 0
                 cb()
             when 1
-                obj = misc.map_without_undefined(result.rows[0])
+                obj = misc.map_without_undefined_and_null(result.rows[0])
                 if not pattern?
                     cb(undefined, obj)
                     return

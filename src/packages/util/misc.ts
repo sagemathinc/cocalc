@@ -24,8 +24,8 @@ export {
   map_min,
   sum,
   is_zero_map,
-  map_without_undefined,
-  map_mutate_out_undefined,
+  map_without_undefined_and_null,
+  map_mutate_out_undefined_and_null,
 } from "./maps";
 
 export { done, done1, done2 } from "./done";

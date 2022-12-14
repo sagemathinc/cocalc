@@ -163,7 +163,7 @@ export class Changes extends EventEmitter {
     }
     for (const x of results) {
       if (this.match_condition(x)) {
-        misc.map_mutate_out_undefined(x);
+        misc.map_mutate_out_undefined_and_null(x);
         const change: ChangeEvent = { action: "insert", new_val: x };
         this.emit("change", change);
       }

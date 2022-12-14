@@ -43,17 +43,18 @@ export function useEditableContext<ValueType>(field: string): {
   const [error, setError] = useState<string>("");
   const lastSaveRef = useRef<{
     obj: object;
-    value: ValueType | undefined;
+    value: ValueType | null | undefined;
   } | null>(null);
 
   const save = useMemo(() => {
-    return async (obj: object, value: ValueType | undefined) => {
+    // value = undefined/null cause that column to have the value set to NULL in postgres
+    return async (obj: object, value: ValueType | undefined | null) => {
       lastSaveRef.current = { obj, value };
       try {
         setError("");
         setSaving(true);
         // TODO:
-        await context.save(obj, { [field]: value });
+        await context.save(obj, { [field]: value ?? null });
         setEdit(false);
       } catch (err) {
         setError(`${err}`);
