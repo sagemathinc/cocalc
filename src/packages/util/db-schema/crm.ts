@@ -12,7 +12,6 @@ Table({
     created: {
       type: "timestamp",
       desc: "When the person was created.",
-      crm: true,
     },
     last_edited: {
       type: "timestamp",
@@ -99,7 +98,6 @@ Table({
     created: {
       type: "timestamp",
       desc: "When the account was created.",
-      crm: true,
     },
     last_edited: {
       type: "timestamp",
