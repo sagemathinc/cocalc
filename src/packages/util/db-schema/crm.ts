@@ -364,18 +364,35 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "Short summary of this tasks.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
     due_date: {
       type: "timestamp",
       desc: "When this task is due.",
+      render: {
+        type: "timestamp",
+        editable: true,
+      },
     },
     created: {
       type: "timestamp",
       desc: "When the task was created.",
+      render: {
+        type: "timestamp",
+        editable: false,
+      },
     },
     closed: {
       type: "timestamp",
       desc: "When the task was marked as done.",
+      render: {
+        type: "timestamp",
+        editable: false,
+      },
     },
     last_edited: {
       type: "timestamp",
@@ -385,10 +402,20 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The status of this task.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
     progress: {
       type: "integer",
       desc: "Progress on this task, as a number from 0 to 100.",
+      render: {
+        type: "number",
+        percent: true,
+        editable: true,
+      },
     },
     priority: {
       type: "string",
@@ -429,6 +456,11 @@ Table({
     description: {
       type: "string",
       desc: "Full markdown task description",
+      render: {
+        type: "text",
+        editable: true,
+        markdown: true,
+      },
     },
   },
   rules: {

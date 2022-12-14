@@ -35,7 +35,7 @@ interface Number {
   integer?: boolean;
   max?: number;
   min?: number;
-  percent?: number;
+  percent?: boolean;
 }
 
 // no valid way to render -- just render with an error

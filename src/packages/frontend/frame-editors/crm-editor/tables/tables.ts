@@ -52,6 +52,7 @@ export function register(desc: Partial<TableDescription>) {
       desc.columns.push(antdColumn(table, field));
     }
   }
+  console.log(desc.columns);
   tables[desc.name] = desc as TableDescription;
 }
 

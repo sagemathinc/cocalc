@@ -1,6 +1,11 @@
 import { createContext, useContext } from "react";
 
-export const EditableContext = createContext<any>(null);
+export interface EditableContextType {
+  counter?: number;
+  save?: (obj: object, change: object) => Promise<void>;
+}
+
+export const EditableContext = createContext<EditableContextType>({});
 
 export function useEditableContext() {
   return useContext(EditableContext);

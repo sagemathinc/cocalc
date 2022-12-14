@@ -1,12 +1,5 @@
-import { TimeAgo } from "@cocalc/frontend/components";
-import { cmp_Date } from "@cocalc/util/cmp";
-import {
-  EditableDate,
-  EditableMarkdown,
-  EditableStatus,
-  EditableText,
-} from "../edit";
 import { register } from "./tables";
+import { EditableMarkdown } from "../edit";
 
 register({
   name: "tasks",
@@ -34,6 +27,30 @@ register({
       },
     ],
   },
+  allowCreate: true,
+  changes: true,
+  expandable: {
+    expandedRowRender: ({ id, description }) => (
+      <EditableMarkdown
+        id={id}
+        field="description"
+        defaultValue={description}
+      />
+    ),
+  },
+});
+
+/*
+import { TimeAgo } from "@cocalc/frontend/components";
+import { cmp_Date } from "@cocalc/util/cmp";
+
+import {
+  EditableDate,
+  EditableMarkdown,
+  EditableStatus,
+  EditableText,
+} from "../edit";
+
   columns: [
     {
       title: "Subject",
@@ -154,15 +171,4 @@ register({
       ),
     },
   ],
-  allowCreate: true,
-  changes: true,
-  expandable: {
-    expandedRowRender: ({ id, description }) => (
-      <EditableMarkdown
-        id={id}
-        field="description"
-        defaultValue={description}
-      />
-    ),
-  },
-});
+  */

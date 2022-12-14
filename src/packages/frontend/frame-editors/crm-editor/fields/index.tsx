@@ -7,10 +7,15 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { Image, Tooltip } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import EditableTimestamp from "./editable-timestamp";
 
 function getRender(field: string, spec: RenderSpec) {
   if (spec.type == "timestamp") {
-    return ({ obj }) => <TimeAgo date={obj[field]} />;
+    if (spec.editable) {
+      return ({ obj }) => <EditableTimestamp field={field} obj={obj} />;
+    } else {
+      return ({ obj }) => <TimeAgo date={obj[field]} />;
+    }
   }
   if (spec.type == "image") {
     return ({ obj }) => {
@@ -120,6 +125,9 @@ function getWidth(renderSpec: RenderSpec): number | string | undefined {
   }
   if (renderSpec.type == "uuid") {
     return 300;
+  }
+  if (renderSpec.type == "timestamp") {
+    return 250;
   }
   if (renderSpec["ellipsis"]) {
     return renderSpec["width"] ?? 200;
