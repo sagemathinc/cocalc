@@ -4,6 +4,7 @@
  */
 
 import { COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { isAcademic } from "@cocalc/util/misc";
 import { Subscription } from "@cocalc/util/licenses/purchase/types";
 import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRangeType } from "@cocalc/util/types/store";
@@ -23,13 +24,6 @@ interface Props {
   duration?: "all" | "subscriptions" | "monthly" | "yearly" | "range";
   discount?: boolean;
   extraDuration?: ReactNode;
-}
-
-function isAcademic(s?: string): boolean {
-  if (!s) return false;
-  if (s.endsWith(".edu")) return true;
-  if (s.endsWith(".ac.uk")) return true;
-  return false;
 }
 
 export function UsageAndDuration(props: Props) {

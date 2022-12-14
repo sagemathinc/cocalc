@@ -5,6 +5,26 @@
 
 import * as misc from "./misc";
 
+describe("academic domain", () => {
+  const ia = misc.isAcademic;
+
+  test("denies non academics", () => {
+    expect(ia("foo@bar.com")).toBe(false);
+    expect(ia("foo@xxxac.at")).toBe(false);
+    expect(ia("foo@bar.gov")).toBe(false);
+    expect(ia("me@name.ac.com")).toBe(false);
+    expect(ia("foo@name.edu.gov")).toBe(false);
+  });
+
+  test("detects academics", () => {
+    expect(ia("me@name.ac.at")).toBe(true);
+    expect(ia("me@name.ac.il")).toBe(true);
+    expect(ia("name@university.ac.uk")).toBe(true);
+    expect(ia("name+123@sabanciuniv.edu.tr")).toBe(true)
+    expect(ia("student123@stuff.edu")).toBe(true);
+  });
+});
+
 describe("rpad_html", () => {
   const rp = misc.rpad_html;
   const round1 = misc.round1;
