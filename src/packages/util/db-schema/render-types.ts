@@ -1,49 +1,102 @@
-interface RenderBoolean {
+interface AccountAvatar {
+  type: "account_avatar";
+  account_id: string; // column with account_id
+}
+
+interface Array {
+  type: "array";
+  ofType: "text" | "json";
+}
+
+interface Blob {
+  type: "blob";
+}
+
+interface Boolean {
   type: "boolean";
   editable?: boolean;
 }
 
-interface RenderCopyable {
+interface Copyable {
   type: "copyable";
 }
 
-interface RenderImage {
+interface EmailAddress {
+  type: "email_address";
+}
+
+interface Image {
   type: "image";
 }
 
-interface RenderJson {
+interface Number {
+  type: "number";
+  editable?: boolean;
+  integer?: boolean;
+  max?: number;
+  min?: number;
+  percent?: number;
+}
+
+// no valid way to render -- just render with an error
+interface Invalid {
+  type: "invalid";
+}
+
+interface Json {
   type: "json";
   editable?: boolean;
 }
 
-interface RenderProjectLink {
-  type: "projectLink";
-  title?: string; // if rendering has some sort of displayed title
+interface ProjectLink {
+  type: "project_link";
+  project_id: string; // column with project_id
 }
 
-interface RenderText {
+interface Text {
   type: "text";
   maxLen?: number;
-  markdown?: boolean;
   editable?: boolean;
 }
 
-interface RenderTimestamp {
+interface TextEllipsis extends Text {
+  ellipsis: true;
+}
+
+interface TextMarkdown extends Text {
+  markdown: true;
+}
+
+interface Timestamp {
   type: "timestamp";
   editable?: boolean;
 }
 
-interface RenderUsersmap {
+interface UUID {
+  type: "uuid";
+  editable?: boolean;
+}
+
+interface Usersmap {
   type: "usersmap";
   editable?: boolean;
 }
 
-export type Render =
-  | RenderBoolean
-  | RenderCopyable
-  | RenderImage
-  | RenderJson
-  | RenderProjectLink
-  | RenderText
-  | RenderTimestamp
-  | RenderUsersmap;
+export type RenderSpec =
+  | AccountAvatar
+  | Array
+  | Blob
+  | Boolean
+  | Copyable
+  | EmailAddress
+  | Image
+  | Invalid
+  | Json
+  | Number
+  | ProjectLink
+  | Text
+  | TextEllipsis
+  | TextMarkdown
+  | Timestamp
+  | UUID
+  | Usersmap;

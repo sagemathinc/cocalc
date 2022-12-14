@@ -39,6 +39,7 @@ Table({
     notes: {
       type: "string",
       desc: "Open ended text in markdown about this person.",
+      render: { type: "text", markdown: true, editable: true },
     },
     // https://stackoverflow.com/questions/13837258/what-is-an-appropriate-data-type-to-store-a-timezone
     timezone: {

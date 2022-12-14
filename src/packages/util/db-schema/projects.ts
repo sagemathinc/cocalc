@@ -140,7 +140,6 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id, which is the primary key that determines the project.",
-      render: { type: "copyable" },
     },
     name: {
       type: "string",
@@ -151,12 +150,17 @@ Table({
     title: {
       type: "string",
       desc: "The short title of the project. Should use no special formatting, except hashtags.",
-      render: { type: "projectLink", project_id: "project_id", title: "name" },
+      render: { type: "project_link", project_id: "project_id" },
     },
     description: {
       type: "string",
       desc: "A longer textual description of the project.  This can include hashtags and should be formatted using markdown.",
-      render: { type: "text", maxLen: 1024, editable: true, markdown: true },
+      render: {
+        type: "text",
+        maxLen: 1024,
+        editable: true,
+        ellipsis: true,
+      },
     }, // markdown rendering possibly not implemented
     users: {
       type: "map",
@@ -297,11 +301,13 @@ Table({
       render: { type: "boolean", editable: true },
     },
     avatar_image_tiny: {
+      title: "Image",
       type: "string",
       desc: "tiny (32x32) visual image associated with the project. Suitable to include as part of changefeed, since about 3kb.",
       render: { type: "image" },
     },
     avatar_image_full: {
+      title: "Image",
       type: "string",
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
@@ -564,7 +570,7 @@ Table({
         admin: true, // only admins can do get queries on this table
         // (without this, users who have read access could read)
         pg_where: [],
-        options: [{ limit: 100, order_by: "-last_edited" }],
+        options: [{ limit: 300, order_by: "-last_edited" }],
         fields: {
           project_id: null,
           name: null,
@@ -573,8 +579,8 @@ Table({
           users: {},
           last_edited: null,
           created: null,
-          avatar_image_tiny: true,
-          avatar_image_full: true,
+          avatar_image_tiny: null,
+          avatar_image_full: null,
         },
       },
     },

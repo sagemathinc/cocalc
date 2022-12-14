@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { antdColumn } from "../fields";
 
 import "./tasks";
 import "./people";
@@ -22,11 +23,36 @@ interface TableDescription {
 }
 
 let tables: { [name: string]: TableDescription };
-export function register(desc: TableDescription) {
+
+export function register(desc: Partial<TableDescription>) {
   if (tables == null) {
     tables = {};
   }
-  tables[desc.name] = desc;
+  if (desc.columns == null) {
+    desc.columns = [];
+  }
+  const known = new Set<string>();
+  for (const c of desc.columns) {
+    if (c.dataIndex) {
+      known.add(c.dataIndex);
+    }
+  }
+  if (desc.title == null) {
+    throw Error("title must be specified");
+  }
+  if (desc.name == null) {
+    throw Error("name must be specified");
+  }
+  if (desc.query == null) {
+    throw Error("query must be specified");
+  }
+  const table = Object.keys(desc.query)[0];
+  for (const field in desc.query[table][0]) {
+    if (!known.has(field)) {
+      desc.columns.push(antdColumn(table, field));
+    }
+  }
+  tables[desc.name] = desc as TableDescription;
 }
 
 export function getTableDescription(name: string): TableDescription {

@@ -431,7 +431,7 @@ export function plural(number, singular, plural = `${singular}s`) {
   }
 }
 
-const ELLIPSES = "…";
+const ELLIPSIS = "…";
 // "foobar" --> "foo…"
 export function trunc(s, max_length = 1024) {
   if (s == null) {
@@ -444,7 +444,7 @@ export function trunc(s, max_length = 1024) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return s.slice(0, max_length - 1) + ELLIPSES;
+    return s.slice(0, max_length - 1) + ELLIPSIS;
   } else {
     return s;
   }
@@ -467,7 +467,7 @@ export function trunc_middle(s, max_length = 1024) {
   const n = Math.floor(max_length / 2);
   return (
     s.slice(0, n - 1 + (max_length % 2 ? 1 : 0)) +
-    ELLIPSES +
+    ELLIPSIS +
     s.slice(s.length - n)
   );
 }
@@ -484,7 +484,7 @@ export function trunc_left(s, max_length = 1024): string | undefined {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return ELLIPSES + s.slice(s.length - max_length + 1);
+    return ELLIPSIS + s.slice(s.length - max_length + 1);
   } else {
     return s;
   }

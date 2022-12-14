@@ -4,8 +4,8 @@
  */
 
 export { SCHEMA } from "./types";
-export type { DBSchema, TableSchema } from "./types";
-export type { Render } from "./render-types";
+export type { DBSchema, TableSchema, FieldSpec } from "./types";
+export type { RenderSpec } from "./render-types";
 
 // The tables
 import "./account-creation-actions";

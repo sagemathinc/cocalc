@@ -52,6 +52,7 @@ Table({
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
       desc: "The email address of the user.  This is optional, since users may instead be associated to passport logins.",
       unique: true,
+      render: { type: "email_address" },
     }, // only one record in database can have this email address (if given)
     email_address_before_delete: {
       type: "string",
@@ -85,11 +86,13 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)", // some limit (actually around 3000) is required for indexing
       desc: "The first name of this user.",
+      render: { type: "text", maxLen: 254, ellipsis: true },
     },
     last_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this user.",
+      render: { type: "text", maxLen: 254, ellipsis: true },
     },
     banned: {
       type: "boolean",
@@ -130,6 +133,7 @@ Table({
     profile: {
       type: "map",
       desc: "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
+      render: { type: "account_avatar", account_id: "account_id" },
     },
     groups: {
       type: "array",

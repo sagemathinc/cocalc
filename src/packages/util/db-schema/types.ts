@@ -76,7 +76,7 @@ schema.stats =
 
 */
 
-import { Render} from "./render-types";
+import { RenderSpec } from "./render-types";
 
 export const SCHEMA: DBSchema = {};
 
@@ -106,26 +106,29 @@ export interface DBSchema {
   [key: string]: TableSchema<any>;
 }
 
-interface Fields {
+export interface FieldSpec {
+  type:
+    | "uuid"
+    | "timestamp"
+    | "string"
+    | "boolean"
+    | "map"
+    | "array"
+    | "integer"
+    | "number"
+    | "Buffer";
+  desc?: string;
+  title?: string;
+  pg_type?: string;
+  unique?: boolean;
+  noCoerce?: boolean; // if true, don't coerce to this type when doing set query
+  render?: RenderSpec;
+}
+
+export interface Fields {
   [key: string]:
-    | boolean
-    | {
-        type:
-          | "uuid"
-          | "timestamp"
-          | "string"
-          | "boolean"
-          | "map"
-          | "array"
-          | "integer"
-          | "number"
-          | "Buffer";
-        desc?: string;
-        pg_type?: string;
-        unique?: boolean;
-        noCoerce?: boolean; // if true, don't coerce to this type when doing set query
-        render?: Render;
-      };
+    | true // this is set ONLY for fields in virtual tables and means refer to the actual table.
+    | FieldSpec;
 }
 
 interface UserOrProjectQuery<F extends Fields> {
@@ -289,4 +292,3 @@ export type RegistrationTokenSetFields =
 export type RegistrationTokenGetFields = RegistrationTokenSetFields | "counter";
 
 export type AllSiteSettingsKeys = SiteSettingsKeys | SiteSettingsExtrasKeys;
-

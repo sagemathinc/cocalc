@@ -55,7 +55,7 @@ register({
       ),
     },
     {
-      title: "Realted Orgs",
+      title: "Related Orgs",
       dataIndex: "organization_ids",
       key: "organization_ids",
       render: (_, record) => {
