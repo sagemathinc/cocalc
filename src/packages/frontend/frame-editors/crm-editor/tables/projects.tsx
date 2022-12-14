@@ -2,6 +2,7 @@ import { TimeAgo } from "@cocalc/frontend/components";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { Image } from "antd";
 import { register } from "./tables";
+import { tableRender } from "../fields";
 
 register({
   name: "projects",
@@ -55,12 +56,13 @@ register({
       dataIndex: "project_id",
       key: "project_id",
       ellipsis: true,
+      render: tableRender("projects", "project_id"),
     },
     {
       title: "Users",
       dataIndex: "users",
       key: "users",
-      render: (_, { users }) => <>{JSON.stringify(Object.keys(users ?? {}))}</>,
+      render: tableRender("projects", "users"),
     },
   ],
 });
