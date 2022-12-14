@@ -12,6 +12,7 @@ import Gallery from "./gallery";
 import Calendar from "./calendar";
 import type { ViewType } from "../types";
 import { getTableDescription } from "../tables";
+import { SCHEMA } from "@cocalc/util/db-schema";
 
 interface Props {
   view: ViewType;
@@ -50,10 +51,20 @@ export default function View({ table, view, style, height }: Props) {
   });
 
   async function addNew() {
+    const dbtable = Object.keys(query)[0];
     const now = webapp_client.server_time();
-    // todo -- set time on server!
+
+    // todo -- set times and required time fields on server instead
+    const x: any = {};
+    for (const timefield of ["created", "last_edited"]) {
+      if (SCHEMA[dbtable].user_query?.set?.required_fields?.[timefield]) {
+        x[timefield] = now;
+      }
+    }
+
     await webapp_client.query_client.query({
-      query: { [table]: { created: now, last_edited: now } },
+      query: { [dbtable]: x },
+      options: [{ set: true }],
     });
     refresh();
   }

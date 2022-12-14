@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Tooltip } from "antd";
 import { useEditableContext } from "./context";
-import { fieldToLabel } from "../util";
 import { register } from "./register";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
@@ -20,15 +19,12 @@ register({ type: "text", markdown: true }, ({ field, obj }) => (
 register({ type: "text", editable: true }, ({ field, obj }) => {
   const [value, setValue] = useState<string>(obj[field]);
   const ref = useRef<any>();
-  const { save, saving, counter, edit, setEdit, error } = useEditableContext();
+  const { save, saving, counter, edit, error, ClickToEdit } =
+    useEditableContext<string>(field);
 
   useEffect(() => {
     setValue(obj[field]);
   }, [counter]);
-
-  const doSave = useMemo(() => {
-    return () => save(obj, { [field]: ref.current.input.value });
-  }, [obj, field]);
 
   if (edit) {
     return (
@@ -41,38 +37,13 @@ register({ type: "text", editable: true }, ({ field, obj }) => {
           onChange={(e) => {
             setValue(e.target.value);
           }}
-          onBlur={doSave}
-          onPressEnter={doSave}
+          onBlur={() => save(obj, ref.current.input.value)}
+          onPressEnter={() => save(obj, ref.current.input.value)}
         />
         {error}
       </>
     );
   } else {
-    const empty = !value?.trim();
-    return (
-      <div
-        title={`Click to edit ${fieldToLabel(field)}`}
-        style={{
-          display: "inline-block",
-          cursor: "pointer",
-          ...(empty
-            ? {
-                minWidth: "5em",
-                padding: "5px",
-                minHeight: "1.5em",
-                border: "1px solid #eee",
-                borderRadius: "3px",
-              }
-            : undefined),
-        }}
-        onClick={() => setEdit(true)}
-      >
-        {empty ? (
-          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
-        ) : (
-          value
-        )}
-      </div>
-    );
+    return <ClickToEdit empty={!value?.trim()}>{value}</ClickToEdit>;
   }
 });

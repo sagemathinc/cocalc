@@ -32,7 +32,10 @@ export function useTable({ query, changes = false }: Options): {
         // todo -- should move to the backend!
         query[table]["last_edited"] = webapp_client.server_time();
       }
-      await webapp_client.query_client.query({ query });
+      await webapp_client.query_client.query({
+        query,
+        options: [{ set: true }],
+      });
     };
 
     return { table, primary_keys, save };

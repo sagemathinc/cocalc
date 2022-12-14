@@ -1,6 +1,14 @@
-import { Alert, Button } from "antd";
-
-import { createContext, ReactNode, useContext, useRef, useState } from "react";
+import { Alert, Button, Tooltip } from "antd";
+import { fieldToLabel } from "../util";
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 export interface EditableContextType {
   counter: number;
@@ -16,41 +24,53 @@ export const EditableContext = createContext<EditableContextType>({
   save,
 });
 
-export function useEditableContext(): {
+export function useEditableContext<ValueType>(field: string): {
   edit: boolean;
   setEdit: (boolean) => void;
   saving: boolean;
   setSaving: (boolean) => void;
   error?: ReactNode;
-  save: (obj: object, change: object) => Promise<void>;
+  save: (obj: object, value: ValueType | undefined) => Promise<void>;
   counter: number;
+  ClickToEdit: FC<{
+    empty?: boolean;
+    children?;
+  }>;
 } {
   const context = useContext(EditableContext);
   const [edit, setEdit] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const lastSaveRef = useRef<{ obj: object; change: object }>({
-    obj: {},
-    change: {},
-  });
-  async function save(obj: object, change: object) {
-    lastSaveRef.current = { obj, change };
-    try {
-      setError("");
-      setSaving(true);
-      await context.save(obj, change);
-      setEdit(false);
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setSaving(false);
-    }
-  }
+  const lastSaveRef = useRef<{
+    obj: object;
+    value: ValueType | undefined;
+  } | null>(null);
+
+  const save = useMemo(() => {
+    return async (obj: object, value: ValueType | undefined) => {
+      lastSaveRef.current = { obj, value };
+      try {
+        setError("");
+        setSaving(true);
+        // TODO:
+        await context.save(obj, { [field]: value });
+        setEdit(false);
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setSaving(false);
+      }
+    };
+  }, [field]);
+
   return {
     edit,
     setEdit,
     saving,
     setSaving,
+    ClickToEdit: (props) => (
+      <ClickToEdit setEdit={setEdit} field={field} {...props} />
+    ),
     error: error ? (
       <Alert
         type="error"
@@ -60,8 +80,9 @@ export function useEditableContext(): {
             <Button
               size="small"
               onClick={() => {
+                if (lastSaveRef.current == null) return;
                 // slightly worrisome...
-                save(lastSaveRef.current.obj, lastSaveRef.current.change);
+                save(lastSaveRef.current.obj, lastSaveRef.current.value);
               }}
             >
               try again
@@ -73,4 +94,46 @@ export function useEditableContext(): {
     save,
     counter: context.counter,
   };
+}
+
+function ClickToEdit({
+  empty,
+  children,
+  field,
+  setEdit,
+}: {
+  field: string;
+  empty?: boolean;
+  children?;
+  setEdit: (boolean) => void;
+}) {
+  return (
+    <Tooltip
+      title={`Click to edit ${fieldToLabel(field)}`}
+      placement="left"
+      mouseEnterDelay={0.7}
+    >
+      <div
+        style={{
+          display: "inline-block",
+          cursor: "pointer",
+          minWidth: "5em",
+          minHeight: "1.5em",
+          ...(empty
+            ? {
+                border: "1px solid #eee",
+                borderRadius: "3px",
+              }
+            : undefined),
+        }}
+        onClick={() => setEdit(true)}
+      >
+        {empty || children == null || children.length == 0 ? (
+          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
+        ) : (
+          children
+        )}
+      </div>
+    </Tooltip>
+  );
 }
