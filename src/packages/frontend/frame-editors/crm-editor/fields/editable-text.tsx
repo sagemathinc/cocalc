@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import { Alert, Button, DatePicker } from "antd";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Button, Input } from "antd";
 import { useEditableContext } from "../edit/context";
-import { TimeAgo } from "@cocalc/frontend/components";
-import dayjs from "dayjs";
 import { fieldToLabel } from "../util";
 
 interface Props {
@@ -10,30 +8,23 @@ interface Props {
   obj: object;
 }
 
-export default function EditableTimestamp({ field, obj }: Props) {
-  const [value, setValue] = useState<dayjs.Dayjs | undefined | null>(
-    obj[field] ? dayjs(obj[field]) : undefined
-  );
+export default function EditableText({ field, obj }: Props) {
+  const [value, setValue] = useState<string>(obj[field]);
   const [edit, setEdit] = useState<boolean>(false);
+  const ref = useRef<any>();
   const context = useEditableContext();
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    setValue(obj[field] ? dayjs(obj[field]) : undefined);
+    setValue(obj[field]);
   }, [context.counter]);
 
   async function save() {
-    if (value == null) {
-      // todo -- this is probably wrong. Need way to remove due date.
-      setError("");
-      setEdit(false);
-      return;
-    }
     try {
       setError("");
       setSaving(true);
-      await context.save(obj, { [field]: value.toDate() });
+      context.save(obj, { [field]: ref.current.input.value });
       setEdit(false);
     } catch (err) {
       setError(`${err}`);
@@ -45,15 +36,16 @@ export default function EditableTimestamp({ field, obj }: Props) {
   if (edit) {
     return (
       <>
-        <DatePicker
-          value={value}
+        <Input
           disabled={saving}
-          onChange={(date) => {
-            setValue(date);
+          ref={ref}
+          autoFocus
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
           }}
-          onOk={save}
           onBlur={save}
-          placeholder={fieldToLabel(field)}
+          onPressEnter={save}
         />
         {error && (
           <Alert
@@ -71,13 +63,14 @@ export default function EditableTimestamp({ field, obj }: Props) {
       </>
     );
   } else {
+    const empty = !value?.trim();
     return (
       <div
         title={`Click to edit ${fieldToLabel(field)}`}
         style={{
           display: "inline-block",
           cursor: "pointer",
-          ...(!value
+          ...(empty
             ? {
                 minWidth: "5em",
                 padding: "5px",
@@ -89,7 +82,11 @@ export default function EditableTimestamp({ field, obj }: Props) {
         }}
         onClick={() => setEdit(true)}
       >
-        {value && <TimeAgo date={value?.toDate()} />}
+        {empty ? (
+          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
+        ) : (
+          value
+        )}
       </div>
     );
   }

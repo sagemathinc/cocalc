@@ -8,6 +8,7 @@ import { Image, Tooltip } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import EditableTimestamp from "./editable-timestamp";
+import EditableText from "./editable-text";
 
 function getRender(field: string, spec: RenderSpec) {
   if (spec.type == "timestamp") {
@@ -58,6 +59,13 @@ function getRender(field: string, spec: RenderSpec) {
     return ({ obj }) => <A href={`mailto:${obj[field]}`}>{obj[field]}</A>;
   }
   if (spec.type == "text") {
+    if (spec.editable) {
+      if (spec["markdown"]) {
+        // todo
+        return ({ obj }) => <EditableText field={field} obj={obj} />;
+      }
+      return ({ obj }) => <EditableText field={field} obj={obj} />;
+    }
     return ({ obj }) => {
       let body;
       if (spec["markdown"]) {
