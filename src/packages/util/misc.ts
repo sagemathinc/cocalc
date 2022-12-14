@@ -2346,3 +2346,16 @@ export function removeNulls(obj) {
   }
   return obj2;
 }
+
+const academicCountry = new RegExp(/\.(ac|edu)\...$/);
+
+// test if a domain belongs to an academic instition
+// TODO: an exhaustive test must probably use the list at https://github.com/Hipo/university-domains-list
+export function isAcademic(s?: string): boolean {
+  if (!s) return false;
+  const domain = s.split("@")[1];
+  if (!domain) return false;
+  if (domain.endsWith(".edu")) return true;
+  if (academicCountry.test(domain)) return true;
+  return false;
+}
