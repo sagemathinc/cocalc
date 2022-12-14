@@ -1,37 +1,34 @@
-import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Input } from "antd";
-import { useEditableContext } from "../edit/context";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Input, Tooltip } from "antd";
+import { useEditableContext } from "./context";
 import { fieldToLabel } from "../util";
+import { register } from "./register";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-interface Props {
-  field: string;
-  obj: object;
-}
+register({ type: "text" }, ({ field, obj }) => <>{obj[field]}</>);
 
-export default function EditableText({ field, obj }: Props) {
+register({ type: "text", ellipsis: true }, ({ field, obj }) => (
+  <Tooltip title={obj[field]} placement="left">
+    {obj[field]}
+  </Tooltip>
+));
+
+register({ type: "text", markdown: true }, ({ field, obj }) => (
+  <StaticMarkdown value={obj[field] ?? ""} />
+));
+
+register({ type: "text", editable: true }, ({ field, obj }) => {
   const [value, setValue] = useState<string>(obj[field]);
-  const [edit, setEdit] = useState<boolean>(false);
   const ref = useRef<any>();
-  const context = useEditableContext();
-  const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const { save, saving, counter, edit, setEdit, error } = useEditableContext();
 
   useEffect(() => {
     setValue(obj[field]);
-  }, [context.counter]);
+  }, [counter]);
 
-  async function save() {
-    try {
-      setError("");
-      setSaving(true);
-      context.save(obj, { [field]: ref.current.input.value });
-      setEdit(false);
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setSaving(false);
-    }
-  }
+  const doSave = useMemo(() => {
+    return () => save(obj, { [field]: ref.current.input.value });
+  }, [obj, field]);
 
   if (edit) {
     return (
@@ -44,22 +41,10 @@ export default function EditableText({ field, obj }: Props) {
           onChange={(e) => {
             setValue(e.target.value);
           }}
-          onBlur={save}
-          onPressEnter={save}
+          onBlur={doSave}
+          onPressEnter={doSave}
         />
-        {error && (
-          <Alert
-            type="error"
-            message={
-              <>
-                {error}{" "}
-                <Button size="small" onClick={save}>
-                  try again
-                </Button>
-              </>
-            }
-          />
-        )}
+        {error}
       </>
     );
   } else {
@@ -90,4 +75,4 @@ export default function EditableText({ field, obj }: Props) {
       </div>
     );
   }
-}
+});

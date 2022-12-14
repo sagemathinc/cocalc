@@ -1,7 +1,8 @@
 import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Space, Table } from "antd";
-import { EditableContext } from "../edit";
+import { EditableContext as EditableContextOld } from "../edit";
+import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
@@ -127,17 +128,19 @@ export default function View({ table, view, style, height }: Props) {
 
   return (
     <EditableContext.Provider value={editableContext}>
-      {tableError && (
-        <Alert
-          type="error"
-          message="Database Query Error"
-          description={tableError}
-        />
-      )}
-      {view == "calendar" && (
-        <SelectTimeKey onChange={setTimeKey} query={query} />
-      )}
-      <div style={style}>{body}</div>
+      <EditableContextOld.Provider value={editableContext}>
+        {tableError && (
+          <Alert
+            type="error"
+            message="Database Query Error"
+            description={tableError}
+          />
+        )}
+        {view == "calendar" && (
+          <SelectTimeKey onChange={setTimeKey} query={query} />
+        )}
+        <div style={style}>{body}</div>
+      </EditableContextOld.Provider>
     </EditableContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
-// DEPRECATED!
+import { Alert, Button } from "antd";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useRef, useState } from "react";
 
 export interface EditableContextType {
   counter: number;
@@ -21,8 +21,7 @@ export function useEditableContext(): {
   setEdit: (boolean) => void;
   saving: boolean;
   setSaving: (boolean) => void;
-  error: string;
-  setError: (string) => void;
+  error?: ReactNode;
   save: (obj: object, change: object) => Promise<void>;
   counter: number;
 } {
@@ -30,11 +29,16 @@ export function useEditableContext(): {
   const [edit, setEdit] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const lastSaveRef = useRef<{ obj: object; change: object }>({
+    obj: {},
+    change: {},
+  });
   async function save(obj: object, change: object) {
+    lastSaveRef.current = { obj, change };
     try {
       setError("");
       setSaving(true);
-      context.save(obj, change);
+      await context.save(obj, change);
       setEdit(false);
     } catch (err) {
       setError(`${err}`);
@@ -47,8 +51,25 @@ export function useEditableContext(): {
     setEdit,
     saving,
     setSaving,
-    error,
-    setError,
+    error: error ? (
+      <Alert
+        type="error"
+        message={
+          <>
+            {error}{" "}
+            <Button
+              size="small"
+              onClick={() => {
+                // slightly worrisome...
+                save(lastSaveRef.current.obj, lastSaveRef.current.change);
+              }}
+            >
+              try again
+            </Button>
+          </>
+        }
+      />
+    ) : undefined,
     save,
     counter: context.counter,
   };

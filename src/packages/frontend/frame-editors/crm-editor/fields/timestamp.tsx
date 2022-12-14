@@ -5,12 +5,13 @@ import { TimeAgo } from "@cocalc/frontend/components";
 import dayjs from "dayjs";
 import { fieldToLabel } from "../util";
 
-interface Props {
-  field: string;
-  obj: object;
-}
+import { register } from "./register";
 
-export default function EditableTimestamp({ field, obj }: Props) {
+register({ type: "timestamp" }, ({ field, obj }) => (
+  <TimeAgo date={obj[field]} />
+));
+
+register({ type: "timestamp", editable: true }, ({ field, obj }) => {
   const [value, setValue] = useState<dayjs.Dayjs | undefined | null>(
     obj[field] ? dayjs(obj[field]) : undefined
   );
@@ -93,4 +94,4 @@ export default function EditableTimestamp({ field, obj }: Props) {
       </div>
     );
   }
-}
+});

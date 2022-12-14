@@ -2,22 +2,20 @@ import { cmp, cmp_Date } from "@cocalc/util/cmp";
 import { ReactNode } from "react";
 import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
-import { A, CopyToClipBoard, TimeAgo } from "@cocalc/frontend/components";
+import { A, CopyToClipBoard } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
-import { Image, Tooltip } from "antd";
+import { Image } from "antd";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import EditableTimestamp from "./editable-timestamp";
-import EditableText from "./editable-text";
+import { getRegisteredRenderer } from "./register";
 
 function getRender(field: string, spec: RenderSpec) {
-  if (spec.type == "timestamp") {
-    if (spec.editable) {
-      return ({ obj }) => <EditableTimestamp field={field} obj={obj} />;
-    } else {
-      return ({ obj }) => <TimeAgo date={obj[field]} />;
-    }
+  try {
+    const C = getRegisteredRenderer(spec);
+    return ({ obj }) => <C field={field} obj={obj} />;
+  } catch (_err) {
+    // todo  migrate everything to above asap.
   }
+
   if (spec.type == "image") {
     return ({ obj }) => {
       return (
@@ -57,32 +55,6 @@ function getRender(field: string, spec: RenderSpec) {
   }
   if (spec.type == "email_address") {
     return ({ obj }) => <A href={`mailto:${obj[field]}`}>{obj[field]}</A>;
-  }
-  if (spec.type == "text") {
-    if (spec.editable) {
-      if (spec["markdown"]) {
-        // todo
-        return ({ obj }) => <EditableText field={field} obj={obj} />;
-      }
-      return ({ obj }) => <EditableText field={field} obj={obj} />;
-    }
-    return ({ obj }) => {
-      let body;
-      if (spec["markdown"]) {
-        body = <StaticMarkdown value={obj[field] ?? ""} />;
-      } else {
-        body = <>{obj[field]}</>;
-      }
-      if (spec["ellipsis"]) {
-        return (
-          <Tooltip title={obj[field]} placement="left">
-            {body}
-          </Tooltip>
-        );
-      } else {
-        return body;
-      }
-    };
   }
 
   return ({ obj }) => (
