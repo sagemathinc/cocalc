@@ -424,7 +424,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
                                      # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                     # with corresponding params set.  Undefined valued fields are ignored and types may be omitted.
+                                     # with corresponding params set.  Undefined valued fields are ignored and types may
+                                     # be omitted.  Javascript null is not ignored and converts to PostgreSQL NULL.
             conflict  : undefined    # If given, then values must also be given; appends this to query:
                                      #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
                                      # Or, if conflict starts with "ON CONFLICT", then just include as is, e.g.,
@@ -602,7 +603,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 fields = []
                 values = []
                 for field, param of opts.values
-                    if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
+                    if param == undefined
+                        # ignore undefined fields -- makes code cleaner (and makes sense)
                         continue
                     if field.indexOf('::') != -1
                         [field, type] = field.split('::')

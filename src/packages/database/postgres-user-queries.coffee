@@ -551,7 +551,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         s = SCHEMA[r.db_table]
         for key, value of r.query
             type = pg_type(s?.fields?[key])
-            if type? and not s?.fields?[key]?.noCoerce
+            if value? and type? and not s?.fields?[key]?.noCoerce
                 if type == 'TIMESTAMP' and not misc.is_date(value)
                     # (as above) Javascript is better at parsing its own dates than PostgreSQL
                     value = new Date(value)
@@ -592,6 +592,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return r.primary_keys
 
     _user_query_set_upsert: (r, cb) =>
+        # r.dbg("_user_query_set_upsert #{JSON.stringify(r.query)}")
         @_query
             query    : "INSERT INTO #{r.db_table}"
             values   : @_user_set_query_values(r)
@@ -609,7 +610,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 jsonb_merge[k] = v
         set = {}
         for k, v of r.query
-            if v? and k not in r.primary_keys and not jsonb_merge[k]?
+            if k not in r.primary_keys and not jsonb_merge[k]?
                 set[k] = v
         @_query
             query       : "UPDATE #{r.db_table}"
@@ -669,7 +670,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb("set queries against standby not allowed")
             return
         r = @_parse_set_query_opts(opts)
-        #r.dbg("parsed query opts = #{misc.to_json(r)}")
+
+        # Only uncomment for debugging -- too big/verbose/dangerous
+        # r.dbg("parsed query opts = #{JSON.stringify(r)}")
+
         if not r?  # nothing to do
             opts.cb()
             return
@@ -695,7 +699,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if r.instead_of_query?
                     opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
-                    r.instead_of_query @, opts1, cb
+                    r.instead_of_query(@, opts1, cb)
                 else
                     @_user_set_query_main_query(r, cb)
             (cb) =>
