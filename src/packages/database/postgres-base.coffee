@@ -1185,6 +1185,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         when 'delete'
                             @_query
                                 query : "DROP INDEX #{task.name}"
+                                safety_check : false
                                 cb    : cb
                         else
                             cb("unknown action '#{task.action}")
