@@ -3,7 +3,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { cmp_Date } from "@cocalc/util/cmp";
 import { client_db } from "@cocalc/util/db-schema";
-import type { EditableContextType } from "../edit/context";
+import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
 
