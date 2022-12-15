@@ -412,9 +412,9 @@ Table({
       type: "integer",
       desc: "Progress on this task, as a number from 0 to 100.",
       render: {
-        type: "number",
-        percent: true,
+        type: "percent",
         editable: true,
+        steps: 10,
       },
     },
     priority: {

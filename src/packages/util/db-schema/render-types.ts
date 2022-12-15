@@ -35,7 +35,12 @@ interface Number {
   integer?: boolean;
   max?: number;
   min?: number;
-  percent?: boolean;
+}
+
+interface Percent {
+  type: "percent";
+  editable?: boolean;
+  steps?: number;
 }
 
 // no valid way to render -- just render with an error
@@ -93,6 +98,7 @@ export type RenderSpec =
   | Invalid
   | Json
   | Number
+  | Percent
   | ProjectLink
   | Text
   | TextEllipsis

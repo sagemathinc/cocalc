@@ -1,13 +1,23 @@
-import { FC } from "react";
+import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
 import "./text";
 import "./timestamp";
+import "./percent";
 
 // register a react component as being able to render a given RenderSpec
-type RenderComponent = FC<Props>;
-let renderers: { spec: RenderSpec; component: RenderComponent }[];
-export function register(spec: RenderSpec, component: RenderComponent) {
+
+interface Props {
+  field: string;
+  obj: object;
+}
+
+interface Props2 extends Props {
+  spec: RenderSpec;
+}
+
+let renderers: { spec: RenderSpec; component: FC<Props2> }[];
+export function register(spec: RenderSpec, component: FC<Props2>) {
   if (typeof renderers == "undefined") {
     renderers = [{ spec, component }];
   } else {
@@ -15,14 +25,9 @@ export function register(spec: RenderSpec, component: RenderComponent) {
   }
 }
 
-export interface Props {
-  field: string;
-  obj: object;
-}
-
-export function getRegisteredRenderer(spec: RenderSpec): RenderComponent {
+export function getRegisteredRenderer(spec: RenderSpec): FC<Props> {
   let n = 0;
-  let C: RenderComponent | null = null;
+  let C: FC<Props2> | null = null;
   // look for match with most matching keys, e.g., {type:'text', markdown:true} counts higher than {type:'text'}.
   for (const { spec: rspec, component } of renderers) {
     if (providesRenderer(spec, rspec) && Object.keys(rspec).length > n) {
@@ -31,7 +36,8 @@ export function getRegisteredRenderer(spec: RenderSpec): RenderComponent {
     }
   }
   if (C != null) {
-    return C;
+    return ({ obj, field }) =>
+      createElement(C as FC<Props2>, { obj, field, spec });
   }
   throw Error(`no rendererer for spec ${JSON.stringify(spec)} found`);
 }
