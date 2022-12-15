@@ -6,9 +6,12 @@ import "./people";
 import "./organizations";
 import "./support-tickets";
 import "./support-messages";
+
+import "./site-licenses";
 import "./accounts";
 import "./projects";
 import "./shopping-cart-items";
+import "./syncstrings";
 
 interface TableDescription {
   name: string;

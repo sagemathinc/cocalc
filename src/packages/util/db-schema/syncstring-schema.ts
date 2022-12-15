@@ -49,6 +49,7 @@ Table({
       type: "array",
       pg_type: "UUID[]",
       desc: "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors.",
+      render: { type: "accounts" },
     },
     last_snapshot: {
       type: "timestamp",
@@ -163,6 +164,26 @@ Table({
       },
     },
   },
+});
+
+Table({
+  name: "crm_syncstrings",
+  rules: {
+    virtual: "syncstrings",
+    primary_key: "string_id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table
+        fields: {
+          ...schema.syncstrings.user_query?.get?.fields,
+          string_id: null,
+        },
+        options: [{ limit: 100 }],
+      },
+    },
+  },
+  fields: schema.syncstrings.fields,
 });
 
 schema.syncstrings.project_query = deep_copy(schema.syncstrings.user_query);
