@@ -68,8 +68,10 @@ interface TextEllipsis extends Text {
   ellipsis: true;
 }
 
-interface TextMarkdown extends Text {
-  markdown: true;
+interface Markdown {
+  type: "markdown";
+  maxLen?: number;
+  editable?: boolean;
 }
 
 interface Timestamp {
@@ -102,7 +104,7 @@ export type RenderSpec =
   | ProjectLink
   | Text
   | TextEllipsis
-  | TextMarkdown
+  | Markdown
   | Timestamp
   | UUID
   | Usersmap;

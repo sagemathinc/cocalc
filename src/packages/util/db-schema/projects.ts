@@ -156,10 +156,9 @@ Table({
       type: "string",
       desc: "A longer textual description of the project.  This can include hashtags and should be formatted using markdown.",
       render: {
-        type: "text",
+        type: "markdown",
         maxLen: 1024,
         editable: true,
-        ellipsis: true,
       },
     }, // markdown rendering possibly not implemented
     users: {
@@ -581,6 +580,15 @@ Table({
           created: null,
           avatar_image_tiny: null,
           avatar_image_full: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          project_id: true,
+          name: true,
+          title: true,
+          description: true,
         },
       },
     },

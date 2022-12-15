@@ -308,10 +308,19 @@ Table({
     body: {
       type: "string",
       desc: "Actual content of the message.  This is interpretted as markdown.",
+      render: {
+        type: "markdown",
+        editable: true,
+        maxLen: 20000,
+      },
     },
     internal: {
       type: "boolean",
       desc: "If true, the message is internal and only visible to support staff.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
   },
   rules: {
@@ -457,9 +466,8 @@ Table({
       type: "string",
       desc: "Full markdown task description",
       render: {
-        type: "text",
+        type: "markdown",
         editable: true,
-        markdown: true,
       },
     },
   },

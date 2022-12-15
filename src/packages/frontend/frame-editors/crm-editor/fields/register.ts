@@ -1,9 +1,10 @@
 import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
+import "./markdown";
+import "./percent";
 import "./text";
 import "./timestamp";
-import "./percent";
 
 // register a react component as being able to render a given RenderSpec
 

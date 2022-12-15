@@ -1,6 +1,7 @@
 import { Alert, Button, Tooltip } from "antd";
 import { fieldToLabel } from "../util";
 import {
+  CSSProperties,
   createContext,
   FC,
   ReactNode,
@@ -102,11 +103,13 @@ function ClickToEdit({
   children,
   field,
   setEdit,
+  style,
 }: {
   field: string;
   empty?: boolean;
   children?;
   setEdit: (boolean) => void;
+  style?: CSSProperties;
 }) {
   return (
     <Tooltip
@@ -120,17 +123,21 @@ function ClickToEdit({
           cursor: "pointer",
           minWidth: "5em",
           minHeight: "1.5em",
+          maxHeight: "10em",
+          overflowY: "auto",
           ...(empty
             ? {
-                border: "1px solid #eee",
+                border: "1px solid #ddd",
                 borderRadius: "3px",
+                padding: "5px",
               }
             : undefined),
+          ...style,
         }}
         onClick={() => setEdit(true)}
       >
         {empty || children == null || children.length == 0 ? (
-          <span style={{ color: "#aaa" }}>{fieldToLabel(field)}...</span>
+          <span style={{ color: "#888" }}>{fieldToLabel(field)}...</span>
         ) : (
           children
         )}

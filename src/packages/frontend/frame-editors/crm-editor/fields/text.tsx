@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Input, Tooltip } from "antd";
 import { useEditableContext } from "./context";
 import { register } from "./register";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 register({ type: "text" }, ({ field, obj }) => <>{obj[field]}</>);
 
@@ -10,10 +9,6 @@ register({ type: "text", ellipsis: true }, ({ field, obj }) => (
   <Tooltip title={obj[field]} placement="left">
     {obj[field]}
   </Tooltip>
-));
-
-register({ type: "text", markdown: true }, ({ field, obj }) => (
-  <StaticMarkdown value={obj[field] ?? ""} />
 ));
 
 register({ type: "text", editable: true }, ({ field, obj }) => {

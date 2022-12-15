@@ -109,6 +109,9 @@ function getWidth(renderSpec: RenderSpec): number | string | undefined {
   if (renderSpec.type == "timestamp") {
     return 250;
   }
+  if (renderSpec.type == "markdown") {
+    return 400;
+  }
   if (renderSpec["ellipsis"]) {
     return renderSpec["width"] ?? 200;
   }
