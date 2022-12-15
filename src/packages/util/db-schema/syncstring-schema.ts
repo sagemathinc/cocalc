@@ -15,6 +15,7 @@ Table({
     project_id: {
       type: "uuid",
       desc: "id of project that this synchronized string belongs to",
+      render: { type: "project_link" },
     },
     last_active: {
       type: "timestamp",

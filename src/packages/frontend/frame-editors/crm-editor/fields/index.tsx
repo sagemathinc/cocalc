@@ -38,7 +38,7 @@ function getRender(field: string, spec: RenderSpec) {
         onClick={() =>
           redux
             .getActions("projects")
-            .open_project({ project_id: obj[spec.project_id] })
+            .open_project({ project_id: obj[spec.project_id ?? field] })
         }
       >
         {obj[field]}

@@ -63,7 +63,7 @@ interface Purchased {
 
 interface ProjectLink {
   type: "project_link";
-  project_id: string; // column with project_id
+  project_id?: string; // column with project_id
 }
 
 interface Text {
