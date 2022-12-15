@@ -294,6 +294,8 @@ export class Changes extends EventEmitter {
     if (prev_val == null) {
       return { new_val: this_val, action: "insert" }; // not enough info to make a diff
     }
+    this.dbg("new_val_update")(`${JSON.stringify({ this_val, prev_val })}`);
+
     // Send only the fields that changed between
     // prev_val and this_val, along with the primary part.
     const new_val = misc.copy(primary_part);
@@ -306,6 +308,12 @@ export class Changes extends EventEmitter {
         JSON.stringify(this_val[field]) != JSON.stringify(prev_val[field])
       ) {
         new_val[field] = this_val[field];
+      }
+    }
+    for (const field in prev_val) {
+      if (prev_val[field] != null && this_val[field] == null) {
+        // field was deleted / set to null -- we must inform in the update
+        new_val[field] = null;
       }
     }
     return { new_val, action: "update" };
