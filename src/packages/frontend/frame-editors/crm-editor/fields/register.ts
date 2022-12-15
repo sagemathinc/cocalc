@@ -2,8 +2,10 @@ import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
 import "./accounts";
+import "./json";
 import "./markdown";
 import "./percent";
+import "./purchased";
 import "./text";
 import "./timestamp";
 

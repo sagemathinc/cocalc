@@ -63,6 +63,7 @@ Table({
     purchased: {
       type: "map",
       desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?  license_id.",
+      render: { type: "purchased" },
     },
     product: {
       type: "string",
@@ -71,6 +72,7 @@ Table({
     description: {
       type: "map",
       desc: "Object that describes the product that was placed in the shopping cart.",
+      render: { type: "json" },
     },
     project_id: {
       type: "string",

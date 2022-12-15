@@ -57,6 +57,10 @@ interface Json {
   editable?: boolean;
 }
 
+interface Purchased {
+  type: "purchased";
+}
+
 interface ProjectLink {
   type: "project_link";
   project_id: string; // column with project_id
@@ -106,6 +110,7 @@ export type RenderSpec =
   | Json
   | Number
   | Percent
+  | Purchased
   | ProjectLink
   | Text
   | TextEllipsis
