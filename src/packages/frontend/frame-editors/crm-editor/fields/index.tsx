@@ -5,7 +5,6 @@ import { fieldToLabel } from "../util";
 import { A, CopyToClipBoard } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Image } from "antd";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { getRegisteredRenderer } from "./register";
 
 function getRender(field: string, spec: RenderSpec) {
@@ -44,13 +43,6 @@ function getRender(field: string, spec: RenderSpec) {
       >
         {obj[field]}
       </a>
-    );
-  }
-  if (spec.type == "account_avatar") {
-    return ({ obj }) => (
-      <div style={{ textAlign: "center" }}>
-        <Avatar account_id={obj[spec.account_id]} />
-      </div>
     );
   }
   if (spec.type == "email_address") {
@@ -100,8 +92,8 @@ export function antdColumn(
 }
 
 function getWidth(renderSpec: RenderSpec): number | string | undefined {
-  if (renderSpec.type == "account_avatar") {
-    return 48;
+  if (renderSpec.type == "account") {
+    return 64;
   }
   if (renderSpec.type == "uuid") {
     return 300;

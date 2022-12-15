@@ -45,6 +45,8 @@ Table({
     account_id: {
       type: "uuid",
       desc: "account_id of the user whose shopping cart this item is being placed into.",
+      title: "Account",
+      render: { type: "account" },
     },
     added: {
       type: "timestamp",

@@ -1,6 +1,7 @@
 import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
+import "./accounts";
 import "./markdown";
 import "./percent";
 import "./text";

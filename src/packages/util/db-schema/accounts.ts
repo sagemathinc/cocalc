@@ -19,6 +19,8 @@ Table({
     account_id: {
       type: "uuid",
       desc: "The uuid that determines the user account",
+      render: { type: "account" },
+      title: "Account",
     },
     created: {
       type: "timestamp",
@@ -133,7 +135,6 @@ Table({
     profile: {
       type: "map",
       desc: "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
-      render: { type: "account_avatar", account_id: "account_id" },
     },
     groups: {
       type: "array",

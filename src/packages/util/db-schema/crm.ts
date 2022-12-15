@@ -21,16 +21,30 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The name of this person.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
     email_addresses: {
       type: "array",
       pg_type: "VARCHAR(1000)",
       desc: "Email addresses for this person, separated by commas",
+      render: {
+        type: "text",
+        maxLen: 1000,
+        editable: true,
+      },
     },
     account_ids: {
       type: "array",
       pg_type: "UUID[]",
       desc: "Array of 0 or more accounts that this person may have.",
+      render: {
+        type: "accounts",
+        editable: true,
+      },
     },
     deleted: {
       type: "boolean",
@@ -39,12 +53,17 @@ Table({
     notes: {
       type: "string",
       desc: "Open ended text in markdown about this person.",
-      render: { type: "text", markdown: true, editable: true },
+      render: { type: "markdown", editable: true },
     },
     // https://stackoverflow.com/questions/13837258/what-is-an-appropriate-data-type-to-store-a-timezone
     timezone: {
       type: "string",
       desc: "The person's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
   },
   rules: {
@@ -98,7 +117,7 @@ Table({
     },
     created: {
       type: "timestamp",
-      desc: "When the account was created.",
+      desc: "When the organization was created.",
     },
     last_edited: {
       type: "timestamp",
@@ -107,7 +126,12 @@ Table({
     name: {
       type: "string",
       pg_type: "VARCHAR(254)",
-      desc: "The first name of this organization.",
+      desc: "The name of this organization.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
     people_ids: {
       type: "array",
@@ -126,15 +150,28 @@ Table({
     notes: {
       type: "string",
       desc: "Open ended text in markdown about this organization.",
+      render: {
+        type: "markdown",
+        editable: true,
+      },
     },
     timezone: {
       type: "string",
       desc: "The organizations's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
+      render: {
+        type: "text",
+        editable: true,
+      },
     },
     domain: {
       type: "string",
       pg_type: "VARCHAR(254)", // todo -- should this be an array of domain names?
       desc: "Domain name of this org, e.g., math.washington.edu.",
+      render: {
+        type: "text",
+        editable: true,
+        maxLen: 254,
+      },
     },
   },
   rules: {
@@ -191,6 +228,11 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "Subject of the message. Must be short.",
+      render: {
+        type: "text",
+        maxLen: 254,
+        editable: true,
+      },
     },
     created: {
       type: "timestamp",
@@ -205,9 +247,8 @@ Table({
       desc: "Id of the person who created this ticket.",
     },
     assignee: {
-      type: "array",
-      pg_type: "UUID",
-      desc: "Accounts that will resolve this ticket.",
+      type: "uuid",
+      desc: "Account that is responsible for resolving this ticket.",
     },
     cc: {
       type: "array",

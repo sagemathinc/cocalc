@@ -125,6 +125,7 @@ function ClickToEdit({
           minHeight: "1.5em",
           maxHeight: "10em",
           overflowY: "auto",
+          width: "100%",
           ...(empty
             ? {
                 border: "1px solid #ddd",

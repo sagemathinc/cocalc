@@ -1,6 +1,10 @@
-interface AccountAvatar {
-  type: "account_avatar";
-  account_id: string; // column with account_id
+interface Account {
+  type: "account";
+}
+
+// 0 or more account_ids
+interface Accounts {
+  type: "accounts";
 }
 
 interface Array {
@@ -90,7 +94,8 @@ interface Usersmap {
 }
 
 export type RenderSpec =
-  | AccountAvatar
+  | Account
+  | Accounts
   | Array
   | Blob
   | Boolean
