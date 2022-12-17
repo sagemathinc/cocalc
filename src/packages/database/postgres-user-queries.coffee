@@ -542,7 +542,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
                 if type == 'TIMESTAMP' and not misc.is_date(value)
                     # Javascript is better at parsing its own dates than PostgreSQL
-                    value = new Date(value)
+                    # isNaN test so NOW(), etc. work still
+                    x = new Date(value)
+                    if not isNaN(x)
+                        value = x
                 where["#{primary_key}=$::#{type}"] = value
         return where
 
@@ -554,7 +557,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if value? and type? and not s?.fields?[key]?.noCoerce
                 if type == 'TIMESTAMP' and not misc.is_date(value)
                     # (as above) Javascript is better at parsing its own dates than PostgreSQL
-                    value = new Date(value)
+                    x = new Date(value)
+                    if not isNaN(x)
+                        value = x
                 values["#{key}::#{type}"] = value
             else
                 values[key] = value
