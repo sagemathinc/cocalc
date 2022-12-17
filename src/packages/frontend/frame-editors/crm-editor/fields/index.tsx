@@ -68,7 +68,7 @@ function getWidth(renderSpec: RenderSpec): number | string {
     return 300;
   }
   if (renderSpec.type == "timestamp") {
-    return 150;
+    return 200;
   }
   if (renderSpec.type == "percent") {
     return 150;

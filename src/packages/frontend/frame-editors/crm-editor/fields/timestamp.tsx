@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { DatePicker } from "antd";
+import { useEffect, useRef, useState } from "react";
+import { Button, DatePicker, Space } from "antd";
 import { useEditableContext } from "./context";
 import { TimeAgo } from "@cocalc/frontend/components";
 import dayjs from "dayjs";
@@ -25,26 +25,45 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
   const { save, saving, counter, edit, error, ClickToEdit } =
     useEditableContext<Date>(field);
 
+  const ref = useRef<dayjs.Dayjs | undefined | null>(value);
+
   useEffect(() => {
     setValue(obj[field] ? dayjs(obj[field]) : undefined);
   }, [counter]);
 
+  const saveValue = () => {
+    if (ref.current) {
+      save(obj, ref.current.toDate());
+    }
+  };
+
   if (edit) {
     return (
       <>
-        <DatePicker
-          value={value}
-          disabled={saving}
-          onChange={setValue}
-          onOk={() => {
-            save(obj, value?.toDate());
-          }}
-          onBlur={() => {
-            save(obj, value?.toDate());
-          }}
-          placeholder={fieldToLabel(field)}
-        />
-        {error}
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <DatePicker
+            showTime
+            value={value}
+            disabled={saving}
+            onChange={(value) => {
+              ref.current = value;
+              setValue(value);
+            }}
+            onOk={saveValue}
+            onBlur={saveValue}
+            placeholder={fieldToLabel(field)}
+          />
+          {error}
+          <Button
+            disabled={saving}
+            onClick={() => {
+              setValue(null);
+              save(obj, null);
+            }}
+          >
+            Clear
+          </Button>
+        </Space>
       </>
     );
   } else {
