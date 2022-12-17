@@ -77,7 +77,7 @@ function getWidth(renderSpec: RenderSpec): number | string {
     return 250;
   }
   if (renderSpec.type == "markdown") {
-    return 400;
+    return renderSpec.editable ? 800 : 400;
   }
   if (renderSpec["ellipsis"]) {
     return renderSpec["width"] ?? 200;

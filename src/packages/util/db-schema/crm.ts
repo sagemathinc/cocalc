@@ -474,7 +474,7 @@ Table({
       render: {
         type: "percent",
         editable: true,
-        steps: 10,
+        steps: 5,
       },
     },
     priority: {

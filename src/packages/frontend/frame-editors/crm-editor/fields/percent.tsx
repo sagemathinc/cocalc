@@ -34,7 +34,7 @@ render({ type: "percent" }, ({ field, obj, spec }) => {
   const bar = (
     <ClickToEdit>
       <Progress
-        percent={value}
+        percent={value ?? 0}
         status={status}
         steps={spec.steps}
         strokeColor={status == "success" ? "#52c41a" : undefined}
@@ -51,7 +51,7 @@ render({ type: "percent" }, ({ field, obj, spec }) => {
       <InputNumber
         autoFocus
         disabled={saving}
-        value={value ?? 0}
+        value={value}
         min={0}
         step={spec.steps ? 100 / spec.steps : 1}
         max={100}

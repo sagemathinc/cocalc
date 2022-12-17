@@ -34,7 +34,8 @@ export function useEditableContext<ValueType>(field: string): {
   save: (
     obj: object,
     value: ValueType | undefined,
-    moreChanges?: object
+    moreChanges?: object,
+    noClose?: boolean
   ) => Promise<void>;
   counter: number;
   ClickToEdit: FC<{
@@ -56,14 +57,17 @@ export function useEditableContext<ValueType>(field: string): {
     return async (
       obj: object,
       value: ValueType | undefined | null,
-      moreChanges?: object
+      moreChanges?: object,
+      noClose?: boolean
     ) => {
       lastSaveRef.current = { obj, value };
       try {
         setError("");
         setSaving(true);
         await context.save(obj, { [field]: value ?? null, ...moreChanges });
-        setEdit(false);
+        if (!noClose) {
+          setEdit(false);
+        }
       } catch (err) {
         setError(`${err}`);
       } finally {
@@ -130,7 +134,7 @@ function ClickToEdit({
           cursor: "pointer",
           minWidth: "5em",
           minHeight: "1.5em",
-          maxHeight: "10em",
+          maxHeight: "8em",
           overflowY: "auto",
           width: "100%",
           ...(empty
