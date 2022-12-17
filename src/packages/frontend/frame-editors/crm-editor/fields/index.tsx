@@ -70,6 +70,12 @@ function getWidth(renderSpec: RenderSpec): number | string {
   if (renderSpec.type == "timestamp") {
     return 150;
   }
+  if (renderSpec.type == "percent") {
+    return 150;
+  }
+  if (renderSpec.type == "usersmap") {
+    return 250;
+  }
   if (renderSpec.type == "markdown") {
     return 400;
   }

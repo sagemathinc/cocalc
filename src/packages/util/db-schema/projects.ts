@@ -162,6 +162,7 @@ Table({
       },
     }, // markdown rendering possibly not implemented
     users: {
+      title: "Collaborators",
       type: "map",
       desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
       render: { type: "usersmap", editable: true },
