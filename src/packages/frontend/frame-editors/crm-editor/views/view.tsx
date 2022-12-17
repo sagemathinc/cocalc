@@ -113,6 +113,10 @@ export default function View({ table, view, style, height }: Props) {
       );
       break;
     case "grid":
+      let x = 0;
+      for (const c of columns) {
+        x += c.width ?? 0;
+      }
       body = (
         <Table
           size="middle"
@@ -123,7 +127,7 @@ export default function View({ table, view, style, height }: Props) {
           bordered
           expandable={expandable}
           title={() => header}
-          scroll={height ? { y: height } : undefined}
+          scroll={{ x, ...(height ? { y: height } : undefined) }}
           pagination={
             false /* disabled for now -- TODO: will use virtuoso instead... */
           }

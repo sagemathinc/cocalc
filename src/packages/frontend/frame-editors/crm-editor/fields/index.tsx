@@ -57,15 +57,18 @@ export function antdColumn(
   };
 }
 
-function getWidth(renderSpec: RenderSpec): number | string | undefined {
+function getWidth(renderSpec: RenderSpec): number | string {
   if (renderSpec.type == "account") {
     return 64;
   }
   if (renderSpec.type == "uuid") {
     return 300;
   }
+  if (renderSpec.type == "text") {
+    return 300;
+  }
   if (renderSpec.type == "timestamp") {
-    return 250;
+    return 150;
   }
   if (renderSpec.type == "markdown") {
     return 400;
@@ -73,6 +76,7 @@ function getWidth(renderSpec: RenderSpec): number | string | undefined {
   if (renderSpec["ellipsis"]) {
     return renderSpec["width"] ?? 200;
   }
+  return 100;
 }
 
 function getFieldSpec(table: string, field: string): FieldSpec {

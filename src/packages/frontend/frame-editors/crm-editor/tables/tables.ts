@@ -55,7 +55,9 @@ export function register(desc: Partial<TableDescription>) {
       desc.columns.push(antdColumn(table, field));
     }
   }
-  // console.log(desc.columns);
+  if (desc.columns[0] != null) {
+    desc.columns[0].fixed = "left";
+  }
   tables[desc.name] = desc as TableDescription;
 }
 

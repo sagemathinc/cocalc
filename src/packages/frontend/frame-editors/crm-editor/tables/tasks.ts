@@ -6,16 +6,15 @@ register({
   query: {
     crm_tasks: [
       {
-        id: null,
         subject: null,
+        done: null,
+        progress: null,
         description: null,
-        status: null,
         due_date: null,
         created: null,
-        done: null,
         closed: null,
         last_edited: null,
-        progress: null,
+        status: null,
         priority: null,
         related_to: null,
         person_id: null,
@@ -24,6 +23,7 @@ register({
         assignee: null,
         cc: null,
         tags: null,
+        id: null,
       },
     ],
   },

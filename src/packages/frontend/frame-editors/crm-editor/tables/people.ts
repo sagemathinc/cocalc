@@ -8,14 +8,14 @@ register({
   query: {
     crm_people: [
       {
-        id: null,
-        last_edited: null,
         name: null,
         email_addresses: null,
+        last_edited: null,
         account_ids: null,
-        deleted: null,
         notes: null,
         created: null,
+        id: null,
+        deleted: null,
       },
     ],
   },
