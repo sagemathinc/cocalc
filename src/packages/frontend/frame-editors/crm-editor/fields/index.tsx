@@ -2,38 +2,11 @@ import { cmp, cmp_Date } from "@cocalc/util/cmp";
 import { ReactNode } from "react";
 import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
-import { A } from "@cocalc/frontend/components";
-import { redux } from "@cocalc/frontend/app-framework";
 import { getRegisteredRenderer } from "./register";
 
 function getRender(field: string, spec: RenderSpec) {
-  try {
-    const C = getRegisteredRenderer(spec);
-    return ({ obj }) => <C field={field} obj={obj} />;
-  } catch (_err) {
-    // todo  migrate everything to above asap.
-  }
-
-  if (spec.type == "project_link") {
-    return ({ obj }) => (
-      <a
-        onClick={() =>
-          redux
-            .getActions("projects")
-            .open_project({ project_id: obj[spec.project_id ?? field] })
-        }
-      >
-        {obj[field]}
-      </a>
-    );
-  }
-  if (spec.type == "email_address") {
-    return ({ obj }) => <A href={`mailto:${obj[field]}`}>{obj[field]}</A>;
-  }
-
-  return ({ obj }) => (
-    <div>{obj[field] != null ? JSON.stringify(obj[field]) : ""}</div>
-  );
+  const C = getRegisteredRenderer(spec);
+  return ({ obj }) => <C field={field} obj={obj} />;
 }
 
 function getSorter(field: string, renderSpec: RenderSpec) {

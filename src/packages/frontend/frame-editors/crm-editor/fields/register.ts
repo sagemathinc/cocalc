@@ -2,10 +2,13 @@ import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
 import "./accounts";
+import "./email-address";
+import "./fallback";
 import "./image";
 import "./json";
 import "./markdown";
 import "./percent";
+import "./project-link";
 import "./purchased";
 import "./text";
 import "./timestamp";
@@ -32,7 +35,7 @@ export function register(spec: RenderSpec, component: FC<Props2>) {
 }
 
 export function getRegisteredRenderer(spec: RenderSpec): FC<Props> {
-  let n = 0;
+  let n = -1;
   let C: FC<Props2> | null = null;
   // look for match with most matching keys, e.g., {type:'text', markdown:true} counts higher than {type:'text'}.
   for (const { spec: rspec, component } of renderers) {
