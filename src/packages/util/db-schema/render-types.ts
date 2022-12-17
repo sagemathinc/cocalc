@@ -31,6 +31,7 @@ interface EmailAddress {
 
 interface Image {
   type: "image";
+  editable?: boolean;
 }
 
 interface Number {

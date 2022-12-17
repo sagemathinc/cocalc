@@ -4,7 +4,6 @@ import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
 import { A, CopyToClipBoard } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
-import { Image } from "antd";
 import { getRegisteredRenderer } from "./register";
 
 function getRender(field: string, spec: RenderSpec) {
@@ -15,15 +14,7 @@ function getRender(field: string, spec: RenderSpec) {
     // todo  migrate everything to above asap.
   }
 
-  if (spec.type == "image") {
-    return ({ obj }) => {
-      return (
-        <div style={{ textAlign: "center" }}>
-          <Image src={obj[field]} />
-        </div>
-      );
-    };
-  }
+
   if (spec.type == "uuid") {
     return ({ obj }) => (
       <CopyToClipBoard

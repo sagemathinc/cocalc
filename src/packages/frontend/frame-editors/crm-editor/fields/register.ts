@@ -2,6 +2,7 @@ import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
 import "./accounts";
+import "./image";
 import "./json";
 import "./markdown";
 import "./percent";
@@ -52,7 +53,7 @@ function providesRenderer(spec: RenderSpec, rspec: RenderSpec): boolean {
     let a = spec[key];
     const b = rspec[key];
     if (typeof b == "boolean") {
-      a == !!a;
+      a = !!a;
     }
     if (a != b) {
       match = false;

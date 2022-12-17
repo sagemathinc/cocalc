@@ -8,10 +8,10 @@ register({
   query: {
     crm_projects: [
       {
+        title: null,
         avatar_image_tiny: null,
         project_id: null,
         name: null,
-        title: null,
         description: null,
         last_edited: null,
         created: null,
