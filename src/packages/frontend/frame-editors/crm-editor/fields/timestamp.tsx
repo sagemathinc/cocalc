@@ -4,14 +4,21 @@ import { useEditableContext } from "./context";
 import { TimeAgo } from "@cocalc/frontend/components";
 import dayjs from "dayjs";
 import { fieldToLabel } from "../util";
+import { cmp_Date } from "@cocalc/util/cmp";
 
-import { register } from "./register";
+import { render, sorter } from "./register";
 
-register({ type: "timestamp" }, ({ field, obj }) => (
+sorter({ type: "timestamp" }, (a, b) => {
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return cmp_Date(a, b);
+});
+
+render({ type: "timestamp" }, ({ field, obj }) => (
   <TimeAgo date={obj[field]} />
 ));
 
-register({ type: "timestamp", editable: true }, ({ field, obj }) => {
+render({ type: "timestamp", editable: true }, ({ field, obj }) => {
   const [value, setValue] = useState<dayjs.Dayjs | undefined | null>(
     obj[field] ? dayjs(obj[field]) : undefined
   );

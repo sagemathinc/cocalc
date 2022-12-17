@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
-import { register } from "./register";
+import { render } from "./register";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 
-register({ type: "accounts" }, ({ field, obj }) => {
+render({ type: "accounts" }, ({ field, obj }) => {
   const account_ids = obj[field];
   if (!account_ids) return null;
   const v: ReactNode[] = [];
@@ -12,7 +12,7 @@ register({ type: "accounts" }, ({ field, obj }) => {
   return <div>{v}</div>;
 });
 
-register({ type: "account" }, ({ field, obj }) => {
+render({ type: "account" }, ({ field, obj }) => {
   const account_id = obj[field];
   if (!account_id) return null;
   return <Avatar key={account_id} account_id={account_id} />;

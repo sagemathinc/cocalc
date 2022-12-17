@@ -1,18 +1,28 @@
-import { cmp, cmp_Date } from "@cocalc/util/cmp";
 import { ReactNode } from "react";
 import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
-import { getRegisteredRenderer } from "./register";
+import * as register from "./register";
+
+import "./accounts";
+import "./email-address";
+import "./fallback";
+import "./image";
+import "./json";
+import "./markdown";
+import "./percent";
+import "./project-link";
+import "./purchased";
+import "./text";
+import "./timestamp";
+import "./uuid";
 
 function getRender(field: string, spec: RenderSpec) {
-  const C = getRegisteredRenderer(spec);
+  const C = register.getRenderer(spec);
   return ({ obj }) => <C field={field} obj={obj} />;
 }
 
 function getSorter(field: string, renderSpec: RenderSpec) {
-  if (renderSpec.type == "timestamp") {
-    return (obj1, obj2) => cmp_Date(obj1[field], obj2[field]);
-  }
+  const cmp = register.getSorter(renderSpec);
   return (obj1, obj2) => cmp(obj1[field], obj2[field]);
 }
 

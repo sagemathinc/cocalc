@@ -1,18 +1,6 @@
 import { createElement, FC } from "react";
 import { RenderSpec } from "@cocalc/util/db-schema";
 
-import "./accounts";
-import "./email-address";
-import "./fallback";
-import "./image";
-import "./json";
-import "./markdown";
-import "./percent";
-import "./project-link";
-import "./purchased";
-import "./text";
-import "./timestamp";
-import "./uuid";
 
 // register a react component as being able to render a given RenderSpec
 
@@ -26,7 +14,7 @@ interface Props2 extends Props {
 }
 
 let renderers: { spec: RenderSpec; component: FC<Props2> }[];
-export function register(spec: RenderSpec, component: FC<Props2>) {
+export function render(spec: RenderSpec, component: FC<Props2>) {
   if (typeof renderers == "undefined") {
     renderers = [{ spec, component }];
   } else {
@@ -34,12 +22,12 @@ export function register(spec: RenderSpec, component: FC<Props2>) {
   }
 }
 
-export function getRegisteredRenderer(spec: RenderSpec): FC<Props> {
+export function getRenderer(spec: RenderSpec): FC<Props> {
   let n = -1;
   let C: FC<Props2> | null = null;
   // look for match with most matching keys, e.g., {type:'text', markdown:true} counts higher than {type:'text'}.
   for (const { spec: rspec, component } of renderers) {
-    if (providesRenderer(spec, rspec) && Object.keys(rspec).length > n) {
+    if (matches(spec, rspec) && Object.keys(rspec).length > n) {
       n = Object.keys(rspec).length;
       C = component;
     }
@@ -51,7 +39,33 @@ export function getRegisteredRenderer(spec: RenderSpec): FC<Props> {
   throw Error(`no rendererer for spec ${JSON.stringify(spec)} found`);
 }
 
-function providesRenderer(spec: RenderSpec, rspec: RenderSpec): boolean {
+type Sorter = (obj1, obj2) => number;
+let sorters: { spec: RenderSpec; cmp: Sorter }[];
+export function sorter(spec: RenderSpec, cmp: Sorter) {
+  if (typeof sorters == "undefined") {
+    sorters = [{ spec, cmp }];
+  } else {
+    sorters.push({ spec, cmp });
+  }
+}
+
+export function getSorter(spec: RenderSpec): Sorter {
+  let n = -1;
+  let C: Sorter | null = null;
+  // look for match with most matching keys,
+  for (const { spec: rspec, cmp } of sorters) {
+    if (matches(spec, rspec) && Object.keys(rspec).length > n) {
+      n = Object.keys(rspec).length;
+      C = cmp;
+    }
+  }
+  if (C != null) {
+    return C;
+  }
+  throw Error(`no sorter for spec ${JSON.stringify(spec)} found`);
+}
+
+function matches(spec: RenderSpec, rspec: RenderSpec): boolean {
   let match = true;
   for (const key in rspec) {
     let a = spec[key];

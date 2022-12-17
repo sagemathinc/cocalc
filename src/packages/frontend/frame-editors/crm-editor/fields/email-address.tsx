@@ -1,7 +1,7 @@
-import { register } from "./register";
+import { render } from "./register";
 import { A } from "@cocalc/frontend/components";
 
-register({ type: "email_address" }, ({ field, obj, spec }) => {
+render({ type: "email_address" }, ({ field, obj, spec }) => {
   if (spec.type != "email_address") throw Error("bug");
   const address = obj[field];
   if (!address) return null;

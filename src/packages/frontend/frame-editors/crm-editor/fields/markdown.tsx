@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useEditableContext } from "./context";
-import { register } from "./register";
+import { render } from "./register";
 import { Button, Space } from "antd";
 
-register({ type: "markdown", editable: false }, ({ field, obj }) => (
+render({ type: "markdown", editable: false }, ({ field, obj }) => (
   <StaticMarkdown value={obj[field] ?? ""} />
 ));
 
-register({ type: "markdown", editable: true }, ({ field, obj }) => {
+render({ type: "markdown", editable: true }, ({ field, obj }) => {
   const [value, setValue] = useState<string>(obj[field] ?? "");
   const { save, counter, edit, error, ClickToEdit } =
     useEditableContext<string>(field);

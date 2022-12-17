@@ -1,7 +1,7 @@
-import { register } from "./register";
+import { render } from "./register";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-register({ type: "json" }, ({ field, obj }) => {
+render({ type: "json" }, ({ field, obj }) => {
   const json = obj[field];
   if (!json) return null;
   return (

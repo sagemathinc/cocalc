@@ -1,7 +1,7 @@
-import { register } from "./register";
+import { render } from "./register";
 import CopyToClipBoard from "@cocalc/frontend/components/copy-to-clipboard";
 
-register({ type: "uuid", editable: false }, ({ field, obj }) => {
+render({ type: "uuid", editable: false }, ({ field, obj }) => {
   const src = obj[field];
   if (!src) return null;
   return (

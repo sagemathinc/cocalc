@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { InputNumber, Progress } from "antd";
 import { useEditableContext } from "./context";
-import { register } from "./register";
+import { render, sorter } from "./register";
 import { toNumber } from "../util";
+import { cmp } from "@cocalc/util/cmp";
 
-register({ type: "percent" }, ({ field, obj, spec }) => {
+sorter({ type: "percent" }, (a, b) => cmp(a ?? 0, b ?? 0));
+
+render({ type: "percent" }, ({ field, obj, spec }) => {
   if (spec.type != "percent") throw Error("bug");
   const { save, saving, counter, edit, error, ClickToEdit } =
     useEditableContext<number>(field);
