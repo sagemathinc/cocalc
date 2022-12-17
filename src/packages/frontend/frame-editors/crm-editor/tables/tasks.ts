@@ -12,6 +12,7 @@ register({
         status: null,
         due_date: null,
         created: null,
+        done: null,
         closed: null,
         last_edited: null,
         progress: null,

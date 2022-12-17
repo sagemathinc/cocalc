@@ -445,6 +445,15 @@ Table({
         editable: false,
       },
     },
+    done: {
+      type: "boolean",
+      desc: "The task is done.",
+      render: {
+        type: "boolean",
+        editable: true,
+        whenField: "closed",
+      },
+    },
     last_edited: {
       type: "timestamp",
       desc: "When this task was last modified.",
@@ -525,6 +534,7 @@ Table({
           subject: null,
           due_date: null,
           created: null,
+          done: null,
           closed: null,
           last_edited: null,
           status: null,
@@ -548,6 +558,7 @@ Table({
           subject: true,
           due_date: true,
           created: true,
+          done: true,
           closed: true,
           last_edited: true,
           status: true,

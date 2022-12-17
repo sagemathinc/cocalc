@@ -570,17 +570,7 @@ Table({
         // (without this, users who have read access could read)
         pg_where: [],
         options: [{ limit: 300, order_by: "-last_edited" }],
-        fields: {
-          project_id: null,
-          name: null,
-          title: "",
-          description: "",
-          users: {},
-          last_edited: null,
-          created: null,
-          avatar_image_tiny: null,
-          avatar_image_full: null,
-        },
+        fields: schema.projects.user_query.get.fields,
       },
       set: {
         admin: true,
@@ -589,6 +579,7 @@ Table({
           name: true,
           title: true,
           description: true,
+          deleted: true,
         },
       },
     },

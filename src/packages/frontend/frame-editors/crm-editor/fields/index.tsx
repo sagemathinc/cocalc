@@ -4,6 +4,7 @@ import { fieldToLabel } from "../util";
 import * as register from "./register";
 
 import "./accounts";
+import "./boolean";
 import "./email-address";
 import "./fallback";
 import "./image";

@@ -29,8 +29,7 @@ export function useTable({ query, changes = false }: Options): {
         },
       };
       if (SCHEMA[table].user_query?.set?.required_fields?.last_edited) {
-        // todo -- should move to the backend!
-        query[table]["last_edited"] = webapp_client.server_time();
+        query[table]["last_edited"] = "NOW()";
       }
       await webapp_client.query_client.query({
         query,

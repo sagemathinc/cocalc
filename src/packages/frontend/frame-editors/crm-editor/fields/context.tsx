@@ -31,7 +31,11 @@ export function useEditableContext<ValueType>(field: string): {
   saving: boolean;
   setSaving: (boolean) => void;
   error?: ReactNode;
-  save: (obj: object, value: ValueType | undefined) => Promise<void>;
+  save: (
+    obj: object,
+    value: ValueType | undefined,
+    moreChanges?: object
+  ) => Promise<void>;
   counter: number;
   ClickToEdit: FC<{
     empty?: boolean;
@@ -49,13 +53,16 @@ export function useEditableContext<ValueType>(field: string): {
 
   const save = useMemo(() => {
     // value = undefined/null cause that column to have the value set to NULL in postgres
-    return async (obj: object, value: ValueType | undefined | null) => {
+    return async (
+      obj: object,
+      value: ValueType | undefined | null,
+      moreChanges?: object
+    ) => {
       lastSaveRef.current = { obj, value };
       try {
         setError("");
         setSaving(true);
-        // TODO:
-        await context.save(obj, { [field]: value ?? null });
+        await context.save(obj, { [field]: value ?? null, ...moreChanges });
         setEdit(false);
       } catch (err) {
         setError(`${err}`);

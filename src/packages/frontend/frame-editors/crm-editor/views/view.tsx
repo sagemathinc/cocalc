@@ -51,13 +51,11 @@ export default function View({ table, view, style, height }: Props) {
 
   async function addNew() {
     const dbtable = Object.keys(query)[0];
-    const now = webapp_client.server_time();
 
-    // todo -- set times and required time fields on server instead
     const x: any = {};
     for (const timefield of ["created", "last_edited"]) {
       if (SCHEMA[dbtable].user_query?.set?.required_fields?.[timefield]) {
-        x[timefield] = now;
+        x[timefield] = "NOW()";
       }
     }
 

@@ -16,6 +16,7 @@ register({
         last_edited: null,
         created: null,
         users: null,
+        deleted: null,
       },
     ],
   },

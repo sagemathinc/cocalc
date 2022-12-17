@@ -5,6 +5,7 @@ interface Account {
 // 0 or more account_ids
 interface Accounts {
   type: "accounts";
+  editable?: boolean;
 }
 
 interface Array {
@@ -19,6 +20,7 @@ interface Blob {
 interface Boolean {
   type: "boolean";
   editable?: boolean;
+  whenField?: string; // set timestamp of this field when editing to true; clear when false
 }
 
 interface Copyable {
