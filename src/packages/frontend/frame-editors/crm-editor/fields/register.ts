@@ -9,6 +9,7 @@ import "./percent";
 import "./purchased";
 import "./text";
 import "./timestamp";
+import "./uuid";
 
 // register a react component as being able to render a given RenderSpec
 

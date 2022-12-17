@@ -2,7 +2,7 @@ import { cmp, cmp_Date } from "@cocalc/util/cmp";
 import { ReactNode } from "react";
 import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
-import { A, CopyToClipBoard } from "@cocalc/frontend/components";
+import { A } from "@cocalc/frontend/components";
 import { redux } from "@cocalc/frontend/app-framework";
 import { getRegisteredRenderer } from "./register";
 
@@ -14,15 +14,6 @@ function getRender(field: string, spec: RenderSpec) {
     // todo  migrate everything to above asap.
   }
 
-
-  if (spec.type == "uuid") {
-    return ({ obj }) => (
-      <CopyToClipBoard
-        value={obj[field]}
-        style={{ width: "200px", marginRight: "15px" }}
-      />
-    );
-  }
   if (spec.type == "project_link") {
     return ({ obj }) => (
       <a
