@@ -85,6 +85,11 @@ interface Markdown {
   editable?: boolean;
 }
 
+interface Tags {
+  type: "tags";
+  editable?: boolean;
+}
+
 interface Timestamp {
   type: "timestamp";
   editable?: boolean;
@@ -115,6 +120,7 @@ export type RenderSpec =
   | Percent
   | Purchased
   | ProjectLink
+  | Tags
   | Text
   | TextEllipsis
   | Markdown

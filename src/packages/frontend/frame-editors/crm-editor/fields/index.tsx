@@ -13,6 +13,7 @@ import "./markdown";
 import "./percent";
 import "./project-link";
 import "./purchased";
+import "./tags";
 import "./text";
 import "./timestamp";
 import "./uuid";
@@ -69,6 +70,9 @@ function getWidth(renderSpec: RenderSpec): number | string {
   }
   if (renderSpec.type == "timestamp") {
     return 200;
+  }
+  if (renderSpec.type == "tags") {
+    return 150;
   }
   if (renderSpec.type == "percent") {
     return 150;

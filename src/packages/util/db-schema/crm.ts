@@ -510,8 +510,9 @@ Table({
     },
     tags: {
       type: "array",
-      pg_type: "TEXT[]",
+      pg_type: "VARCHAR(100)[]",
       desc: "Tags applied to this ticket.",
+      render: { type: "tags", editable: true },
     },
     description: {
       type: "string",
