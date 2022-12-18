@@ -19,6 +19,15 @@ const PRORITIES_FIELD = {
   render: { type: "priority", editable: true },
 } as FieldSpec;
 
+export const STATUSES = ["new", "open", "pending", "solved"];
+const STATUS_TYPE = `VARCHAR(${MAX_TAG_LENGTH})`;
+const STATUS_FIELD = {
+  type: "string",
+  pg_type: STATUS_TYPE,
+  desc: "Status of this record: " + STATUSES.join(" "),
+  render: { type: "status", editable: true },
+} as FieldSpec;
+
 Table({
   name: "crm_people",
   fields: {
@@ -282,16 +291,13 @@ Table({
       desc: "Zero or more support accounts that care to be contacted about updates to this ticket.",
     },
     tags: TAGS_FIELD,
+    priority: PRORITIES_FIELD,
+    status: STATUS_FIELD,
     type: {
       type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The type of this ticket, e.g., question, incident, problem, task, etc.",
-    },
-    priority: PRORITIES_FIELD,
-    status: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The status of this ticket, e.g., new, open, pending, solved.",
+      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      desc: "The type of this ticket: question, incident, problem, task, etc.",
+      render: { type: "text", editable: true },
     },
   },
   rules: {
@@ -456,6 +462,7 @@ Table({
     },
     closed: {
       type: "timestamp",
+      title: "When closed",
       desc: "When the task was marked as done.",
       render: {
         type: "timestamp",
@@ -475,16 +482,7 @@ Table({
       type: "timestamp",
       desc: "When this task was last modified.",
     },
-    status: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The status of this task.",
-      render: {
-        type: "text",
-        maxLen: 254,
-        editable: true,
-      },
-    },
+    status: STATUS_FIELD,
     progress: {
       type: "integer",
       desc: "Progress on this task, as a number from 0 to 100.",

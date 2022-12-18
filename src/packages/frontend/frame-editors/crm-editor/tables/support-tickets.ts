@@ -7,15 +7,15 @@ register({
     crm_support_tickets: [
       {
         subject: null,
-        id: null,
+        status: null,
         created: null,
         last_edited: null,
         assignee: null,
-        cc: null,
         tags: null,
         type: null,
         priority: null,
-        status: null,
+        cc: null,
+        id: null,
       },
     ],
   },

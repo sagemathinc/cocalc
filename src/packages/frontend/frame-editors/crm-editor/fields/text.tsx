@@ -24,7 +24,8 @@ render({ type: "text", editable: true }, ({ field, obj }) => {
   if (edit) {
     return (
       <>
-        <Input
+        <Input.TextArea
+          autoSize={{ minRows: 2, maxRows: 5 }}
           disabled={saving}
           ref={ref}
           autoFocus
@@ -32,8 +33,8 @@ render({ type: "text", editable: true }, ({ field, obj }) => {
           onChange={(e) => {
             setValue(e.target.value);
           }}
-          onBlur={() => save(obj, ref.current.input.value)}
-          onPressEnter={() => save(obj, ref.current.input.value)}
+          onBlur={() => save(obj, ref.current.value)}
+          onPressEnter={() => save(obj, ref.current.value)}
         />
         {error}
       </>

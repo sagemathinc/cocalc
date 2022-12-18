@@ -74,6 +74,11 @@ interface ProjectLink {
   project_id?: string; // column with project_id
 }
 
+interface Status {
+  type: "status";
+  editable?: boolean;
+}
+
 interface Text {
   type: "text";
   maxLen?: number;
@@ -126,6 +131,7 @@ export type RenderSpec =
   | Priority
   | Purchased
   | ProjectLink
+  | Status
   | Tags
   | Text
   | TextEllipsis

@@ -14,6 +14,7 @@ import "./percent";
 import "./priority";
 import "./project-link";
 import "./purchased";
+import "./status";
 import "./tags";
 import "./text";
 import "./timestamp";
@@ -67,7 +68,7 @@ function getWidth(renderSpec: RenderSpec): number | string {
     return 300;
   }
   if (renderSpec.type == "text") {
-    return 300;
+    return 250;
   }
   if (renderSpec.type == "timestamp") {
     return 200;
@@ -81,11 +82,14 @@ function getWidth(renderSpec: RenderSpec): number | string {
   if (renderSpec.type == "priority") {
     return 180;
   }
+  if (renderSpec.type == "status") {
+    return 132;
+  }
   if (renderSpec.type == "usersmap") {
     return 250;
   }
   if (renderSpec.type == "markdown") {
-    return renderSpec.editable ? 800 : 400;
+    return renderSpec.editable ? 600 : 400;
   }
   if (renderSpec["ellipsis"]) {
     return renderSpec["width"] ?? 200;
