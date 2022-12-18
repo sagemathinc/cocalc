@@ -1,4 +1,14 @@
-import { Table } from "./types";
+import { FieldSpec, Table } from "./types";
+export const MAX_TAG_LENGTH = 30;
+
+const TAG_TYPE = `VARCHAR(${MAX_TAG_LENGTH})[]`;
+
+const TAGS_FIELD = {
+  type: "array",
+  pg_type: TAG_TYPE,
+  desc: "Tags applied to this record.",
+  render: { type: "tags", editable: true },
+} as FieldSpec;
 
 Table({
   name: "crm_people",
@@ -66,6 +76,7 @@ Table({
         editable: true,
       },
     },
+    tags: TAGS_FIELD,
   },
   rules: {
     desc: "People",
@@ -83,6 +94,7 @@ Table({
           account_ids: null,
           deleted: null,
           notes: null,
+          tags: null,
         },
         options: [{ limit: 100 }],
       },
@@ -97,6 +109,7 @@ Table({
           account_ids: true,
           deleted: true,
           notes: true,
+          tags: null,
         },
         required_fields: {
           last_edited: true, // TODO: make automatic on any set query
@@ -174,6 +187,7 @@ Table({
         maxLen: 254,
       },
     },
+    tags: TAGS_FIELD,
   },
   rules: {
     desc: "Organizations",
@@ -192,6 +206,7 @@ Table({
           deleted: null,
           notes: null,
           domain: null,
+          tags: null,
         },
         options: [{ limit: 100 }],
       },
@@ -207,6 +222,7 @@ Table({
           deleted: true,
           notes: true,
           domain: true,
+          tags: true,
         },
         required_fields: {
           last_edited: true, // TODO: make automatic on any set query
@@ -256,11 +272,7 @@ Table({
       pg_type: "UUID[]",
       desc: "Zero or more support accounts that care to be contacted about updates to this ticket.",
     },
-    tags: {
-      type: "array",
-      pg_type: "TEXT[]",
-      desc: "Tags applied to this ticket.",
-    },
+    tags: TAGS_FIELD,
     type: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -508,12 +520,7 @@ Table({
       pg_type: "UUID[]",
       desc: "Zero or more accounts that care to be contacted/notified about updates to this task.",
     },
-    tags: {
-      type: "array",
-      pg_type: "VARCHAR(100)[]",
-      desc: "Tags applied to this ticket.",
-      render: { type: "tags", editable: true },
-    },
+    tags: TAGS_FIELD,
     description: {
       type: "string",
       desc: "Full markdown task description",

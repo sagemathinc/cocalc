@@ -63,3 +63,5 @@ export {
 export { site_settings_conf } from "./site-defaults";
 
 export { client_db } from "./client-db";
+
+export { MAX_TAG_LENGTH } from "./crm";

@@ -12,6 +12,7 @@ register({
         people_ids: null,
         organization_ids: null,
         domain: null,
+        tags: null,
         deleted: null,
         notes: null,
         created: null,

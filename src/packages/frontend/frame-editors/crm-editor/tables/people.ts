@@ -12,6 +12,7 @@ register({
         email_addresses: null,
         last_edited: null,
         account_ids: null,
+        tags: null,
         notes: null,
         created: null,
         id: null,

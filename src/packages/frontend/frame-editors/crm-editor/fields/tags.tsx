@@ -1,10 +1,11 @@
 import { render } from "./register";
-import { Popconfirm, Select, Space, Tag } from "antd";
+import { Button, Popconfirm, Select, Space, Tag } from "antd";
 import sha1 from "sha1";
 import { useEditableContext } from "./context";
 import { Icon } from "@cocalc/frontend/components";
 import { useEffect, useState } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { MAX_TAG_LENGTH } from "@cocalc/util/db-schema";
 
 render({ type: "tags", editable: false }, ({ field, obj }) => {
   const tags = obj[field];
@@ -33,6 +34,10 @@ function nameToColor(name: string): string {
 render({ type: "tags", editable: true }, ({ field, obj }) => {
   const { save, counter, error } = useEditableContext<string[]>(field);
   const [tags, setTags] = useState<null | string[]>(obj[field]);
+
+  //const [adding, setAdding] = useState<boolean>((tags?.length ?? 0) == 0);
+  const adding = true;
+
   useEffect(() => {
     setTags(obj[field]);
   }, [counter]);
@@ -82,24 +87,42 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
               </Tag>
             );
           })}
+          {/*!adding && (
+            <Button
+              size="small"
+              style={{ color: "#c6c6c6" }}
+              onClick={() => setAdding(true)}
+            >
+              <Icon name="plus-circle" /> Add
+            </Button>
+          )*/}
         </div>
       )}
       {error}
-      <AddTags
-        onBlur={async (addedTags: string[]) => {
-          if (addedTags.length == 0) return;
-          const newTags = Array.from(
-            new Set((tags ?? []).concat(addedTags))
-          ).sort();
-          setTags(newTags);
-          try {
-            await save(obj, newTags);
-          } catch (_) {
-            // failed -- revert the change at the UI level.
-            setTags(obj[field]);
-          }
-        }}
-      />
+      {adding && (
+        <AddTags
+          onBlur={async (addedTags: string[]) => {
+            if (addedTags.length == 0) {
+              //setAdding(false);
+              return;
+            }
+            // combine together, eliminate duplicates, truncate too long tags
+            // TODO: We do not sort, since we plan to make tags drag-n-drop sortable
+            // by the client here...
+            const newTags = Array.from(
+              new Set((tags ?? []).concat(addedTags))
+            ).map((tag) => tag.slice(0, MAX_TAG_LENGTH));
+            setTags(newTags);
+            try {
+              await save(obj, newTags);
+              //setAdding(false);
+            } catch (_) {
+              // failed -- revert the change at the UI level.
+              setTags(obj[field]);
+            }
+          }}
+        />
+      )}
     </Space>
   );
 });
@@ -109,12 +132,13 @@ function AddTags({ onBlur }) {
 
   return (
     <Select
+      autoFocus
       size="small"
       value={value}
       maxTagTextLength={30 /* doesn't by-hand input size though */}
       mode="tags"
-      style={{ width: "100%", minWidth: "6em" }}
-      placeholder="Add Tags"
+      style={{ width: "100%", minWidth: "12ex" }}
+      placeholder="Add tags..."
       onBlur={() => {
         onBlur(value);
         setValue([]);
