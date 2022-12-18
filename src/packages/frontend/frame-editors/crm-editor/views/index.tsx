@@ -14,7 +14,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
 
-const TYPE_TO_ICON: { [type: string]: IconName } = {
+export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
   gallery: "address-card",
   calendar: "calendar",
@@ -65,7 +65,7 @@ export default function Views({ table }: Props) {
       items.push({
         label: name,
         key: id,
-        children: <View table={table} view={type} />,
+        children: <View table={table} view={type} name={name} />,
       });
     }
     items.push({

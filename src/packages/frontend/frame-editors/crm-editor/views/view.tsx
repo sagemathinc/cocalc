@@ -1,26 +1,27 @@
 import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Button, Space, Table } from "antd";
+import { Alert, Table } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
-import { Icon } from "@cocalc/frontend/components";
 import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
 import Calendar from "./calendar";
 import type { ViewType } from "../types";
 import { getTableDescription } from "../tables";
 import { SCHEMA } from "@cocalc/util/db-schema";
+import ViewMenu from "./view-menu";
 
 interface Props {
   view: ViewType;
   table: string;
   style?: CSSProperties;
   height?: number | string;
+  name: string;
 }
 
-export default function View({ table, view, style, height }: Props) {
+export default function View({ table, view, style, height, name }: Props) {
   const { title, query, expandable, columns, allowCreate, changes } = useMemo(
     () => getTableDescription(table),
     [table]
@@ -66,27 +67,28 @@ export default function View({ table, view, style, height }: Props) {
     refresh();
   }
 
-  const header = (
-    <>
-      <Space wrap>
-        <b>{title ?? fieldToLabel(table)}</b>
-        <span style={{ fontWeight: 300 }}>
-          {allowCreate ? " (editable)" : " (read only)"}
-        </span>
-        {allowCreate && (
-          <Button onClick={addNew}>
-            <Icon name="plus-circle" /> New
-          </Button>
-        )}
-        {!changes && (
-          <Button onClick={refresh}>
-            <Icon name="refresh" /> Refresh
-          </Button>
-        )}
-      </Space>
-    </>
-  );
+  //   const header = (
+  //     <>
+  //       <Space wrap>
+  //         <b>{title ?? fieldToLabel(table)}</b>
+  //         <span style={{ fontWeight: 300 }}>
+  //           {allowCreate ? " (editable)" : " (read only)"}
+  //         </span>
+  //         {allowCreate && (
+  //           <Button onClick={addNew}>
+  //             <Icon name="plus-circle" /> New
+  //           </Button>
+  //         )}
+  //         {!changes && (
+  //           <Button onClick={refresh}>
+  //             <Icon name="refresh" /> Refresh
+  //           </Button>
+  //         )}
+  //       </Space>
+  //     </>
+  //   );
 
+  const header = <ViewMenu name={name} view={view} />;
   let body;
   switch (view) {
     case "gallery":
