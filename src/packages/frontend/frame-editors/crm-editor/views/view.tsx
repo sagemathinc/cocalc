@@ -1,17 +1,18 @@
 import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Table } from "antd";
+import { Alert, Button, Space, Table } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
-import { fieldToLabel } from "../util";
 import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
 import Calendar from "./calendar";
 import type { ViewType } from "../types";
+import { Icon } from "@cocalc/frontend/components";
 import { getTableDescription } from "../tables";
 import { SCHEMA } from "@cocalc/util/db-schema";
 import ViewMenu from "./view-menu";
+import { fieldToLabel } from "../util";
 
 interface Props {
   view: ViewType;
@@ -67,28 +68,27 @@ export default function View({ table, view, style, height, name }: Props) {
     refresh();
   }
 
-  //   const header = (
-  //     <>
-  //       <Space wrap>
-  //         <b>{title ?? fieldToLabel(table)}</b>
-  //         <span style={{ fontWeight: 300 }}>
-  //           {allowCreate ? " (editable)" : " (read only)"}
-  //         </span>
-  //         {allowCreate && (
-  //           <Button onClick={addNew}>
-  //             <Icon name="plus-circle" /> New
-  //           </Button>
-  //         )}
-  //         {!changes && (
-  //           <Button onClick={refresh}>
-  //             <Icon name="refresh" /> Refresh
-  //           </Button>
-  //         )}
-  //       </Space>
-  //     </>
-  //   );
+  const right = (
+    <Space wrap style={{ float: "right" }}>
+      <b>{title ?? fieldToLabel(table)}</b>
+      {allowCreate && (
+        <Button onClick={addNew}>
+          <Icon name="plus-circle" /> New
+        </Button>
+      )}
+      {!changes && (
+        <Button onClick={refresh}>
+          <Icon name="refresh" /> Refresh
+        </Button>
+      )}
+    </Space>
+  );
 
-  const header = <ViewMenu name={name} view={view} />;
+  const header = (
+    <div>
+      {right} <ViewMenu name={name} view={view} />
+    </div>
+  );
   let body;
   switch (view) {
     case "gallery":
