@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { render, sorter } from "./register";
 import { PRIORITIES } from "@cocalc/util/db-schema/crm";
-import { Button, Progress } from "antd";
+import { Progress, Select } from "antd";
 import { capitalize, cmp } from "@cocalc/util/misc";
 import { blue, red, green, yellow } from "@ant-design/colors";
-import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import { useEditableContext } from "./context";
 
 const COLORS = [green[5], blue[5], yellow[5], red[5]] as any;
 
 const _priorityToNumber: { [priority: string]: number } = {};
-let i = 0;
+let n = 0;
+const options: any[] = [];
 for (const priority of PRIORITIES) {
-  _priorityToNumber[priority] = i;
-  i += 1;
+  _priorityToNumber[priority] = n;
+  options.push({
+    label: <PriorityDisplay n={n} priority={priority} />,
+    value: priority,
+  });
+  n += 1;
 }
 
 function priorityToNumber(priority: string | undefined): number {
@@ -37,20 +41,10 @@ function PriorityDisplay({ priority, n }) {
   );
 }
 
-render({ type: "priority", editable: false }, ({ field, obj }) => {
-  const priority = obj[field];
-  if (priority == null) return null;
-  const n = priorityToNumber(priority);
-  if (n == -1) return null;
-
-  return (
-    <div style={{ width: "100%", display: "inline-block" }}>
-      <PriorityDisplay priority={priority} n={n} />
-    </div>
-  );
-});
-
-render({ type: "priority", editable: true }, ({ field, obj }) => {
+render({ type: "priority" }, ({ field, obj, spec }) => {
+  if (spec.type != "priority") {
+    throw Error("bug");
+  }
   const { counter, save, error } = useEditableContext<string>(field);
   const [priority, setPriority] = useState<string | undefined>(obj[field]);
   const lastSaveRef = useRef<number>(0);
@@ -74,23 +68,14 @@ render({ type: "priority", editable: true }, ({ field, obj }) => {
 
   return (
     <div style={{ width: "100%", display: "inline-block" }}>
-      <Button.Group style={{ fontSize: "8px" }}>
-        <Button
-          style={{ color: "#666" }}
-          size="small"
-          disabled={n <= -1}
-          onClick={() => set(n - 1)}
-          icon={<MinusOutlined />}
-        />
-        <Button
-          style={{ color: "#666" }}
-          size="small"
-          disabled={n >= PRIORITIES.length - 1}
-          onClick={() => set(n + 1)}
-          icon={<PlusOutlined />}
-        />
-      </Button.Group>
-      <PriorityDisplay priority={priority} n={n} />
+      <Select
+        allowClear
+        disabled={!spec.editable}
+        value={priority}
+        style={{ width: "160px", display: "inline-block" }}
+        options={options}
+        onChange={(priority) => set(priorityToNumber(priority))}
+      />
       {error}
     </div>
   );

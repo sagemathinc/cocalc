@@ -78,6 +78,9 @@ function getWidth(renderSpec: RenderSpec): number | string {
   if (renderSpec.type == "percent") {
     return 150;
   }
+  if (renderSpec.type == "priority") {
+    return 180;
+  }
   if (renderSpec.type == "usersmap") {
     return 250;
   }

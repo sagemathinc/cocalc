@@ -6,9 +6,8 @@ register({
   query: {
     crm_organizations: [
       {
-        id: null,
-        last_edited: null,
         name: null,
+        last_edited: null,
         people_ids: null,
         organization_ids: null,
         domain: null,
@@ -16,6 +15,7 @@ register({
         deleted: null,
         notes: null,
         created: null,
+        id: null,
       },
     ],
   },
