@@ -11,7 +11,7 @@ const TAGS_FIELD = {
 } as FieldSpec;
 
 export const PRIORITIES = ["low", "normal", "high", "urgent"];
-const PRIORITY_TYPE = TAG_TYPE; // same as tag; room to grow if needed.
+const PRIORITY_TYPE = `VARCHAR(${MAX_TAG_LENGTH})`;
 const PRORITIES_FIELD = {
   type: "string",
   pg_type: PRIORITY_TYPE,
