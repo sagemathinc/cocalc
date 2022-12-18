@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, DatePicker, Space } from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DatePicker, Space } from "antd";
 import { useEditableContext } from "./context";
 import { TimeAgo } from "@cocalc/frontend/components";
 import dayjs from "dayjs";
@@ -19,57 +19,75 @@ render({ type: "timestamp" }, ({ field, obj }) => (
 ));
 
 render({ type: "timestamp", editable: true }, ({ field, obj }) => {
-  const [value, setValue] = useState<dayjs.Dayjs | undefined | null>(
+  const [value, setValue] = useState<dayjs.Dayjs | undefined>(
     obj[field] ? dayjs(obj[field]) : undefined
   );
-  const { save, saving, counter, edit, error, ClickToEdit } =
-    useEditableContext<Date>(field);
+  const { edit, save, saving, counter, error, ClickToEdit } =
+    useEditableContext<Date | null>(field);
 
-  const ref = useRef<dayjs.Dayjs | undefined | null>(value);
-
+  const lastSaveRef = useRef<number>(0);
   useEffect(() => {
+    if (new Date().valueOf() - lastSaveRef.current <= 10000) {
+      return;
+    }
     setValue(obj[field] ? dayjs(obj[field]) : undefined);
   }, [counter]);
 
-  const saveValue = () => {
-    if (ref.current) {
-      save(obj, ref.current.toDate());
-    }
-  };
+  const timeRef = useRef<dayjs.Dayjs | undefined>(value);
+  const timeOffset = useMemo(() => {
+    return (value: dayjs.Dayjs | undefined) => {
+      if (value == undefined || timeRef.current == undefined) return value;
+      value = value.hour(timeRef.current.hour());
+      value = value.minute(timeRef.current.minute());
+      value = value.second(timeRef.current.second());
+      return value;
+    };
+  }, []);
+  const fullSave = useMemo(() => {
+    return (newValue?) => {
+      lastSaveRef.current = new Date().valueOf();
+      if (newValue === undefined) {
+        // still explicitly allow newValue === null to clear.
+        newValue = value;
+      }
+      newValue = timeOffset(newValue);
+      setValue(newValue ?? null);
+      save(obj, newValue?.toDate() ?? null);
+    };
+  }, [value]);
 
   if (edit) {
     return (
-      <>
-        <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <DatePicker
+          allowClear
+          value={value}
+          disabled={saving}
+          onChange={fullSave}
+          placeholder={fieldToLabel(field)}
+          showToday={true}
+        />
+        {value != null && (
           <DatePicker
-            showTime
-            value={value}
-            disabled={saving}
+            allowClear={false}
+            defaultValue={value}
+            format={"hh:mm:ss A"}
+            picker={"time"}
             onChange={(value) => {
-              ref.current = value;
-              setValue(value);
+              timeRef.current = value ?? undefined;
+              fullSave();
             }}
-            onOk={saveValue}
-            onBlur={saveValue}
-            placeholder={fieldToLabel(field)}
           />
-          {error}
-          <Button
-            disabled={saving}
-            onClick={() => {
-              setValue(null);
-              save(obj, null);
-            }}
-          >
-            Clear
-          </Button>
-        </Space>
-      </>
+        )}
+        {error}
+      </Space>
     );
   } else {
     return (
       <ClickToEdit empty={!value}>
-        {value && <TimeAgo date={value?.toDate()} />}
+        <Space direction="vertical">
+          {value && <TimeAgo date={value.toDate()} />}
+        </Space>
       </ClickToEdit>
     );
   }

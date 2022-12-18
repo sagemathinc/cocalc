@@ -71,7 +71,7 @@ function getWidth(renderSpec: RenderSpec): number | string {
     return 250;
   }
   if (renderSpec.type == "timestamp") {
-    return 200;
+    return 150;
   }
   if (renderSpec.type == "tags") {
     return 150;

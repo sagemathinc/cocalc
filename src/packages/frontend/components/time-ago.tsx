@@ -144,11 +144,12 @@ interface TimeAgoProps {
   style?: CSS;
   date: string | Date | number | undefined;
   minPeriod?: number;
+  time_ago_absolute?: boolean;
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
-    const { popover, placement, tip, live, style, date, minPeriod } = props;
+    const { popover, placement, tip, live, style, date, minPeriod, time_ago_absolute } = props;
 
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
@@ -160,7 +161,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         placement={placement}
         tip={tip}
         live={live}
-        time_ago_absolute={other_settings.get("time_ago_absolute") ?? false}
+        time_ago_absolute={time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false}
         style={style}
         minPeriod={minPeriod}
       />

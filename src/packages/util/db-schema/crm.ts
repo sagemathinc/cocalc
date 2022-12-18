@@ -445,6 +445,7 @@ Table({
       },
     },
     due_date: {
+      title: "Due",
       type: "timestamp",
       desc: "When this task is due.",
       render: {
