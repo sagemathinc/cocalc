@@ -1,5 +1,5 @@
 import { render } from "./register";
-import { Button, Popconfirm, Select, Space, Tag } from "antd";
+import { /*Button, */ Popconfirm, Select, Space, Tag } from "antd";
 import sha1 from "sha1";
 import { useEditableContext } from "./context";
 import { Icon } from "@cocalc/frontend/components";

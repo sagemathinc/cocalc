@@ -64,6 +64,11 @@ interface Purchased {
   type: "purchased";
 }
 
+interface Priority {
+  type: "priority";
+  editable?: boolean;
+}
+
 interface ProjectLink {
   type: "project_link";
   project_id?: string; // column with project_id
@@ -118,6 +123,7 @@ export type RenderSpec =
   | Json
   | Number
   | Percent
+  | Priority
   | Purchased
   | ProjectLink
   | Tags

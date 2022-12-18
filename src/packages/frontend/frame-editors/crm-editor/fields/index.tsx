@@ -11,6 +11,7 @@ import "./image";
 import "./json";
 import "./markdown";
 import "./percent";
+import "./priority";
 import "./project-link";
 import "./purchased";
 import "./tags";

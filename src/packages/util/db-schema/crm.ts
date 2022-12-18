@@ -10,6 +10,15 @@ const TAGS_FIELD = {
   render: { type: "tags", editable: true },
 } as FieldSpec;
 
+export const PRIORITIES = ["low", "normal", "high", "urgent"];
+const PRIORITY_TYPE = TAG_TYPE; // same as tag; room to grow if needed.
+const PRORITIES_FIELD = {
+  type: "string",
+  pg_type: PRIORITY_TYPE,
+  desc: "Priority of this record: " + PRIORITIES.join(" "),
+  render: { type: "priority", editable: true },
+} as FieldSpec;
+
 Table({
   name: "crm_people",
   fields: {
@@ -278,11 +287,7 @@ Table({
       pg_type: "VARCHAR(254)",
       desc: "The type of this ticket, e.g., question, incident, problem, task, etc.",
     },
-    priority: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The priority of this ticket, e.g., low, normal, high, urgent",
-    },
+    priority: PRORITIES_FIELD,
     status: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -489,11 +494,7 @@ Table({
         steps: 5,
       },
     },
-    priority: {
-      type: "string",
-      pg_type: "VARCHAR(254)",
-      desc: "The priority of this ticket, e.g., low, normal, high, urgent",
-    },
+    priority: PRORITIES_FIELD,
     related_to: {
       type: "map",
       desc: "Object {table:'...', id:number} describing one organization, deal,  lead, etc. that this tasks is related to.",
