@@ -3,16 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Pool } from "pg";
+
 import {
   pgdatabase as database,
   pghost as host,
   pguser as user,
 } from "@cocalc/backend/data";
 
-import { Pool } from "pg";
+import { getLogger } from "@cocalc/backend/logger";
+import { STATEMENT_TIMEOUT_MS } from "../consts";
 import getCachedPool, { Length } from "./cached";
 import dbPassword from "./password";
-import { getLogger } from "@cocalc/backend/logger";
+
 const L = getLogger("db:pool");
 
 export * from "./util";
@@ -20,13 +23,20 @@ export * from "./util";
 let pool: Pool | undefined = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
-
   if (cacheLength != null) {
     return getCachedPool(cacheLength);
   }
   if (pool == null) {
-    L.debug(`creating a new Pool`);
-    pool = new Pool({ password: dbPassword(), user, host, database });
+    L.debug(
+      `creating a new Pool(host:${host}, database:${database}, user:${user}, statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`
+    );
+    pool = new Pool({
+      password: dbPassword(),
+      user,
+      host,
+      database,
+      statement_timeout: STATEMENT_TIMEOUT_MS, // fixes https://github.com/sagemathinc/cocalc/issues/6014
+    });
   }
   return pool;
 }
