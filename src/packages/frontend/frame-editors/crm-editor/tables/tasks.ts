@@ -19,6 +19,7 @@ register({
         priority: null,
         related_to: null,
         person_id: null,
+        support_ticket_id: null,
         created_by: null,
         last_modified_by: null,
         assignee: null,

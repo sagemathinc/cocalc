@@ -12,6 +12,7 @@ register({
         last_edited: null,
         assignee: null,
         tags: null,
+        tasks: null,
         type: null,
         priority: null,
         cc: null,
