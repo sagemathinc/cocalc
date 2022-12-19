@@ -6,7 +6,7 @@ import { capitalize, cmp } from "@cocalc/util/misc";
 import { blue, red, green, yellow } from "@ant-design/colors";
 import { useEditableContext } from "./context";
 
-const COLORS = [green[5], blue[5], yellow[5], red[5]] as any;
+const COLORS = [yellow[5], blue[5], green[5], red[5]] as any;
 
 const _priorityToNumber: { [priority: string]: number } = {};
 let n = 0;

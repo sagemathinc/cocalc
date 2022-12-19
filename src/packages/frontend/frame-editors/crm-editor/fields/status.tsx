@@ -3,10 +3,10 @@ import { render, sorter } from "./register";
 import { STATUSES } from "@cocalc/util/db-schema/crm";
 import { Select, Tag } from "antd";
 import { capitalize, cmp } from "@cocalc/util/misc";
-import { blue, red, yellow } from "@ant-design/colors";
+import { blue, green, red, yellow } from "@ant-design/colors";
 import { useEditableContext } from "./context";
 
-const COLORS = [yellow[5], red[5], blue[5], "#888"] as any;
+const COLORS = [yellow[5], red[5], green[5], blue[5], "#888"] as any;
 
 const _statusToNumber: { [status: string]: number } = {};
 let n = 0;

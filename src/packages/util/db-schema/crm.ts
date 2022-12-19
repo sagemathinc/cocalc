@@ -19,7 +19,7 @@ const PRORITIES_FIELD = {
   render: { type: "priority", editable: true },
 } as FieldSpec;
 
-export const STATUSES = ["new", "open", "pending", "solved"];
+export const STATUSES = ["new", "open", "active", "pending", "solved"];
 const STATUS_TYPE = `VARCHAR(${MAX_TAG_LENGTH})`;
 const STATUS_FIELD = {
   type: "string",
