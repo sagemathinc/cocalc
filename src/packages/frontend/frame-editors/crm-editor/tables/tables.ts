@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { antdColumn } from "../fields";
+import { antdColumn, ColumnsType } from "../fields";
 
 import "./tasks";
 import "./people";
@@ -18,7 +18,7 @@ interface TableDescription {
   title: ReactNode;
   icon?: string; // todo: render this..
   query: object;
-  columns: any[];
+  columns: ColumnsType[];
   expandable?: any; // todo -- same as for antd table
   allowCreate?: boolean;
   changes?: boolean;

@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FilterOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Button, Input, Select, Space, Menu, Switch } from "antd";
+import { Button, Divider, Input, Select, Space, Menu, Switch } from "antd";
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
-import { fieldToLabel } from "../util";
 
-export default function ViewMenu({ name, view }) {
-  const items: MenuProps["items"] = [
+export default function ViewMenu({ name, view, columns }) {
+  const items: MenuProps["items"] = useMemo(
+    () => getMenus({ name, view, columns }),
+    [columns, view, name]
+  );
+  return (
+    <Menu triggerSubMenuAction={"click"} mode="horizontal" items={items} />
+  );
+}
+
+function getMenus({ name, view, columns }) {
+  return [
     {
       label: name,
       key: "name",
@@ -15,6 +24,7 @@ export default function ViewMenu({ name, view }) {
       children: [
         {
           type: "group",
+          label: <Divider>Edit</Divider>,
           children: [
             {
               label: "Rename view",
@@ -24,10 +34,16 @@ export default function ViewMenu({ name, view }) {
               label: "Edit view description",
               key: "description",
             },
+            {
+              danger: true,
+              label: "Delete view",
+              key: "delete",
+            },
           ],
         },
         {
           type: "group",
+          label: <Divider>Other</Divider>,
           children: [
             {
               label: "Duplicate view",
@@ -41,6 +57,7 @@ export default function ViewMenu({ name, view }) {
         },
         {
           type: "group",
+          label: <Divider>Download</Divider>,
           children: [
             {
               label: "Download CSV",
@@ -50,10 +67,6 @@ export default function ViewMenu({ name, view }) {
               label: "Download JSON",
               key: "json",
             },
-            {
-              label: "Delete view",
-              key: "delete",
-            },
           ],
         },
       ],
@@ -62,65 +75,33 @@ export default function ViewMenu({ name, view }) {
       label: "Hide fields",
       key: "hide",
       icon: <Icon name="eye-slash" />,
-      children: [
-        {
-          disabled: true,
-          label: <HideToggle field="name" />,
-          key: "name",
-        },
-        {
-          disabled: true,
-          label: <HideToggle field="email_address" />,
-          key: "email_address",
-        },
-        {
-          disabled: true,
-          label: <HideToggle field="last_edited" />,
-          key: "last_edited",
-        },
-        {
-          disabled: true,
-          label: <HideToggle field="tags" />,
-          key: "tags",
-        },
-        {
-          disabled: true,
-          label: <HideShowAll />,
-          key: "hide-show-all",
-        },
-      ],
+      children: columns
+        .map(({ dataIndex, title }) => {
+          return {
+            disabled: true,
+            label: <HideToggle field={dataIndex} title={title} />,
+            key: "name",
+          };
+        })
+        .concat([
+          {
+            disabled: true,
+            label: <HideShowAll />,
+            key: "hide-show-all",
+          },
+        ]),
     },
     {
       label: "Filter",
       key: "SubMenu",
       icon: <FilterOutlined />,
-      children: [
-        {
+      children: columns.map(({ dataIndex, title }) => {
+        return {
           disabled: true,
-          label: <Filter field="name" />,
+          label: <Filter field={dataIndex} title={title} />,
           key: "name",
-        },
-        {
-          disabled: true,
-          label: <Filter field="email_address" />,
-          key: "email_address",
-        },
-        {
-          disabled: true,
-          label: <Filter field="last_edited" />,
-          key: "last_edited",
-        },
-        {
-          disabled: true,
-          label: <Filter field="tags" />,
-          key: "tags",
-        },
-        {
-          disabled: true,
-          label: <div style={{ height: "400px" }} />,
-          key: "blank",
-        },
-      ],
+        };
+      }),
     },
     {
       label: "Group",
@@ -129,20 +110,8 @@ export default function ViewMenu({ name, view }) {
       children: [
         {
           disabled: true,
-          label: <GroupBy />,
+          label: <GroupBy columns={columns} />,
           key: "groupby",
-        },
-        {
-          type: "group",
-          label: (
-            <div
-              style={{
-                height: "400px",
-              }}
-            />
-          ),
-          key: "blank",
-          children: [],
         },
       ],
     },
@@ -153,32 +122,25 @@ export default function ViewMenu({ name, view }) {
       children: [
         {
           disabled: true,
-          label: <SortBy />,
+          label: <SortBy columns={columns} />,
           key: "sortby",
-        },
-        {
-          type: "group",
-          label: (
-            <div
-              style={{
-                height: "400px",
-              }}
-            />
-          ),
-          key: "blank",
-          children: [],
         },
       ],
     },
   ];
-
-  return <Menu mode="horizontal" items={items} />;
 }
 
-function HideToggle({ field }) {
+function HideToggle({ field, title }) {
   return (
     <Space style={{ width: "100%", color: "#666" }}>
-      <Switch size="small" defaultChecked /> {fieldToLabel(field)}
+      <Switch
+        size="small"
+        defaultChecked
+        onChange={() => {
+          console.log("toggle", field);
+        }}
+      />{" "}
+      {title}
     </Space>
   );
 }
@@ -192,7 +154,7 @@ function HideShowAll() {
   );
 }
 
-function Filter({ field }) {
+function Filter({ field, title }) {
   return (
     <Space style={{ width: "100%", color: "#666" }}>
       <div
@@ -202,7 +164,7 @@ function Filter({ field }) {
           width: "100px",
         }}
       >
-        {fieldToLabel(field)}
+        {title}
       </div>
       <Select
         size="small"
@@ -227,12 +189,18 @@ function Filter({ field }) {
           },
         ]}
       />
-      <Input size="small" style={{ width: "100%" }} />
+      <Input
+        size="small"
+        style={{ width: "100%" }}
+        onChange={() => {
+          console.log("change filter for ", field);
+        }}
+      />
     </Space>
   );
 }
 
-function SortBy({}) {
+function SortBy({ columns }) {
   const [field, setField] = useState<string>("");
   const [descending, setDescending] = useState<boolean>(false);
   return (
@@ -243,28 +211,18 @@ function SortBy({}) {
         showSearch
         placeholder="Find a field..."
         filterOption={(input, option) =>
-          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          ((option?.label ?? "") as string)
+            .toLowerCase()
+            .includes(input.toLowerCase())
         }
         onChange={setField}
         optionFilterProp="children"
-        options={[
-          {
-            value: "name",
-            label: "Name",
-          },
-          {
-            value: "email_address",
-            label: "Email Address",
-          },
-          {
-            value: "last_edited",
-            label: "Last Edited",
-          },
-          {
-            value: "tags",
-            label: "Tags",
-          },
-        ]}
+        options={columns.map(({ dataIndex, title }) => {
+          return {
+            value: dataIndex,
+            label: title,
+          };
+        })}
       />
       {field && (
         <Select
@@ -284,7 +242,7 @@ function SortBy({}) {
   );
 }
 
-function GroupBy({}) {
+function GroupBy({ columns }) {
   const [field, setField] = useState<string>("");
   const [descending, setDescending] = useState<boolean>(false);
   return (
@@ -295,28 +253,18 @@ function GroupBy({}) {
         showSearch
         placeholder="Find a field..."
         filterOption={(input, option) =>
-          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          ((option?.label ?? "") as string)
+            .toLowerCase()
+            .includes(input.toLowerCase())
         }
         onChange={setField}
         optionFilterProp="children"
-        options={[
-          {
-            value: "name",
-            label: "Name",
-          },
-          {
-            value: "email_address",
-            label: "Email Address",
-          },
-          {
-            value: "last_edited",
-            label: "Last Edited",
-          },
-          {
-            value: "tags",
-            label: "Tags",
-          },
-        ]}
+        options={columns.map(({ dataIndex, title }) => {
+          return {
+            value: dataIndex,
+            label: title,
+          };
+        })}
       />
       {field && (
         <Select

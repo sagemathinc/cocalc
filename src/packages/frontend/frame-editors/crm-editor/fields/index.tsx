@@ -34,18 +34,21 @@ function getTitle(field: string, fieldSpec: FieldSpec): string {
   return fieldSpec.title ?? fieldToLabel(field);
 }
 
-export function antdColumn(
-  table: string,
-  field: string
-): {
+// This is basically (?) "import type { ColumnsType } from 'antd/es/table'",
+// but somewhat modified to reflect our assumptions and needs.  We're also
+// using this for more than just actual columns.
+export interface ColumnsType {
   title: string;
   dataIndex: string;
   key: string;
   sorter?: (obj1: object, obj2: object) => number;
   render: (text: string, obj: object) => ReactNode;
   ellipsis?: boolean;
-  width?: number | string;
-} {
+  width?: number;
+  fixed?: "left";
+}
+
+export function antdColumn(table: string, field: string): ColumnsType {
   const fieldSpec = getFieldSpec(table, field);
   const renderSpec = getRenderSpec(fieldSpec);
   const Renderer = getRender(field, renderSpec);
@@ -60,7 +63,7 @@ export function antdColumn(
   };
 }
 
-function getWidth(renderSpec: RenderSpec): number | string {
+function getWidth(renderSpec: RenderSpec): number {
   if (renderSpec.type == "account") {
     return 64;
   }

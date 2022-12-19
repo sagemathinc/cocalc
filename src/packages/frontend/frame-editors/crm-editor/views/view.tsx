@@ -86,7 +86,7 @@ export default function View({ table, view, style, height, name }: Props) {
 
   const header = (
     <div>
-      {right} <ViewMenu name={name} view={view} />
+      {right} <ViewMenu name={name} view={view} columns={columns} />
     </div>
   );
   let body;
