@@ -19,7 +19,7 @@ function getMenus({ name, view, columns }) {
   return [
     {
       label: name,
-      key: "name",
+      key: "top-menu",
       icon: <Icon name={TYPE_TO_ICON[view]} />,
       children: [
         {
@@ -80,7 +80,7 @@ function getMenus({ name, view, columns }) {
           return {
             disabled: true,
             label: <HideToggle field={dataIndex} title={title} />,
-            key: "name",
+            key: `hide-field-name-${dataIndex}`,
           };
         })
         .concat([
@@ -99,7 +99,7 @@ function getMenus({ name, view, columns }) {
         return {
           disabled: true,
           label: <Filter field={dataIndex} title={title} />,
-          key: "name",
+          key: `filter-name-${dataIndex}`,
         };
       }),
     },

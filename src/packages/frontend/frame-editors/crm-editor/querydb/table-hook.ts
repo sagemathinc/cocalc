@@ -54,7 +54,7 @@ export function useTable({ query, changes = false }: Options): {
     for (let i = 0; i < data.length; i++) {
       let matches = true;
       for (const primary_key of info.primary_keys) {
-        if (data[i][primary_key] != x[primary_key]) {
+        if (data[i]?.[primary_key] != x?.[primary_key]) {
           matches = false;
           break;
         }

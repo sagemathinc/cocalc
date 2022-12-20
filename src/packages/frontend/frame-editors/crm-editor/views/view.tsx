@@ -56,11 +56,18 @@ export default function View({ table, view, style, height, name }: Props) {
 
     const x: any = {};
     for (const timefield of ["created", "last_edited"]) {
-      if (SCHEMA[dbtable].user_query?.set?.required_fields?.[timefield]) {
+      if (SCHEMA[dbtable].user_query?.set?.fields?.[timefield]) {
         x[timefield] = "NOW()";
       }
     }
 
+    if (dbtable == "crm_tags") {
+      // @ts-ignore -- TODO: need a new editor before it goes into the DB!
+      x.name = "";
+    }
+
+    // TODO: show the error somehow, e.g., for crm_tags adding twice gives
+    // an error...
     await webapp_client.query_client.query({
       query: { [dbtable]: x },
       options: [{ set: true }],

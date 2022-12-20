@@ -28,6 +28,16 @@ const STATUS_FIELD = {
   render: { type: "status", editable: true },
 } as FieldSpec;
 
+const CREATED = {
+  type: "timestamp",
+  desc: "When the record was created.",
+} as FieldSpec;
+
+const LAST_EDITED = {
+  type: "timestamp",
+  desc: "When this record was last edited.",
+} as FieldSpec;
+
 Table({
   name: "crm_people",
   fields: {
@@ -37,14 +47,8 @@ Table({
       pg_type: "SERIAL UNIQUE",
       noCoerce: true,
     },
-    created: {
-      type: "timestamp",
-      desc: "When the person was created.",
-    },
-    last_edited: {
-      type: "timestamp",
-      desc: "When this person was last edited.",
-    },
+    created: CREATED,
+    last_edited: LAST_EDITED,
     name: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -147,14 +151,8 @@ Table({
       pg_type: "SERIAL UNIQUE",
       noCoerce: true,
     },
-    created: {
-      type: "timestamp",
-      desc: "When the organization was created.",
-    },
-    last_edited: {
-      type: "timestamp",
-      desc: "When this person was last edited.",
-    },
+    created: CREATED,
+    last_edited: LAST_EDITED,
     name: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -269,14 +267,8 @@ Table({
         editable: true,
       },
     },
-    created: {
-      type: "timestamp",
-      desc: "When the support ticket was created.",
-    },
-    last_edited: {
-      type: "timestamp",
-      desc: "When this ticket was last changed in some way.",
-    },
+    created: CREATED,
+    last_edited: LAST_EDITED,
     created_by: {
       type: "integer",
       desc: "Id of the person who created this ticket.",
@@ -461,14 +453,8 @@ Table({
         editable: true,
       },
     },
-    created: {
-      type: "timestamp",
-      desc: "When the task was created.",
-      render: {
-        type: "timestamp",
-        editable: false,
-      },
-    },
+    created: CREATED,
+    last_edited: LAST_EDITED,
     closed: {
       type: "timestamp",
       title: "When closed",
@@ -486,10 +472,6 @@ Table({
         editable: true,
         whenField: "closed",
       },
-    },
-    last_edited: {
-      type: "timestamp",
-      desc: "When this task was last modified.",
     },
     status: STATUS_FIELD,
     progress: {
@@ -609,10 +591,24 @@ Table({
 Table({
   name: "crm_tags",
   fields: {
+    id: {
+      type: "integer",
+      desc: "Automatically generated sequential id that uniquely determines this tag.",
+      pg_type: "SERIAL UNIQUE",
+      noCoerce: true,
+    },
     name: {
       type: "string",
-      desc: "The hashtag.",
+      desc: "The name of the tag.",
       pg_type: "VARCHAR(30)",
+      render: { type: "text", editable: true, maxLen: 30 },
+      unique: true,
+    },
+    description: {
+      type: "string",
+      desc: "Description of the tag.",
+      pg_type: "VARCHAR(254)",
+      render: { type: "markdown", editable: true },
     },
     color: {
       type: "string",
@@ -620,27 +616,37 @@ Table({
       pg_type: "VARCHAR(30)",
       render: { type: "color", editable: true },
     },
+    created: CREATED,
+    last_edited: LAST_EDITED,
   },
   rules: {
     desc: "Table of all hashtags across our crm system.",
-    primary_key: "name",
+    primary_key: "id",
     user_query: {
       get: {
         admin: true,
         pg_where: [],
         fields: {
+          id: null,
           name: null,
+          description: null,
           color: null,
+          created: null,
+          last_edited: null,
         },
       },
       set: {
         admin: true,
         fields: {
-          name: null,
-          color: null,
+          id: true,
+          name: true,
+          description: true,
+          color: true,
+          created: true,
+          last_edited: true,
         },
         required_fields: {
-          color: true,
+          last_edited: true, // TODO: make automatic on any set query
         },
       },
     },
