@@ -604,6 +604,13 @@ Table({
       render: { type: "text", editable: true, maxLen: 30 },
       unique: true,
     },
+    icon: {
+      type: "string",
+      desc: "Name of icon to show with tag",
+      pg_type: "VARCHAR(100)", // ???
+      render: { type: "icon", editable: true },
+      unique: true,
+    },
     description: {
       type: "string",
       desc: "Description of the tag.",
@@ -629,6 +636,7 @@ Table({
         fields: {
           id: null,
           name: null,
+          icon: null,
           description: null,
           color: null,
           created: null,
@@ -640,6 +648,7 @@ Table({
         fields: {
           id: true,
           name: true,
+          icon: true,
           description: true,
           color: true,
           created: true,

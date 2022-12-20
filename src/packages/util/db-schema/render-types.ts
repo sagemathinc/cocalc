@@ -55,6 +55,11 @@ interface Percent {
   steps?: number;
 }
 
+interface Icon {
+  type: "icon";
+  editable?: boolean;
+}
+
 // no valid way to render -- just render with an error
 interface Invalid {
   type: "invalid";
@@ -129,6 +134,7 @@ export type RenderSpec =
   | Color
   | Copyable
   | EmailAddress
+  | Icon
   | Image
   | Invalid
   | Json

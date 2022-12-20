@@ -11,12 +11,13 @@ register({
   query: {
     crm_tags: [
       {
-        id: null,
         name: null,
-        description: null,
+        icon: null,
         color: null,
-        created: null,
+        description: null,
         last_edited: null,
+        created: null,
+        id: null,
       },
     ],
   },
