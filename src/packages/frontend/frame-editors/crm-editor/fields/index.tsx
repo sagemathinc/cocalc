@@ -81,7 +81,7 @@ function getWidth(renderSpec: RenderSpec): number {
     return 150;
   }
   if (renderSpec.type == "icon") {
-    return 150;
+    return 100;
   }
   if (renderSpec.type == "percent") {
     return 150;

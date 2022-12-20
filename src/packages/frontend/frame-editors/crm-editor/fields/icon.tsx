@@ -3,6 +3,7 @@ import { Icon, IconName } from "@cocalc/frontend/components";
 import { useEffect, useState } from "react";
 import { useEditableContext } from "./context";
 import IconSelect from "@cocalc/frontend/components/icon-select";
+import { Popover, Tag } from "antd";
 
 render({ type: "icon", editable: false }, ({ field, obj }) => {
   const name = obj[field];
@@ -21,35 +22,41 @@ render({ type: "icon", editable: true }, ({ field, obj, spec }) => {
     setName(obj[field]);
   }, [counter]);
 
-  if (edit) {
-    return (
-      <div>
-        <IconSelect
-          disabled={saving}
-          onSelect={(name) => {
-            setName(name);
-            save(obj, name);
-          }}
-          fontSize="10px"
-          style={{
-            fontSize: "16pt",
-            maxWidth: "100%",
-            maxHeight: "200px",
-            overflowY: "scroll",
-          }}
-        />
-        {error}
-      </div>
-    );
-  } else {
-    return (
-      <ClickToEdit empty={!name?.trim()}>
+  return (
+    <ClickToEdit empty={!name?.trim()}>
+      <Popover
+        open={edit}
+        title={
+          <>
+            Select Icon for tag <Tag color={obj["color"]}>{obj["name"]}</Tag>
+          </>
+        }
+        content={() => {
+          return (
+            <IconSelect
+              disabled={saving}
+              onSelect={(name) => {
+                setName(name);
+                save(obj, name);
+              }}
+              fontSize="10px"
+              style={{
+                fontSize: "18pt",
+                maxWidth: "460px",
+                maxHeight: "60vh",
+                overflowY: "scroll",
+              }}
+            />
+          );
+        }}
+      >
         {name ? (
           <Icon style={{ fontSize: "24pt" }} name={name as IconName} />
         ) : (
           ""
         )}
-      </ClickToEdit>
-    );
-  }
+      </Popover>
+      {error}
+    </ClickToEdit>
+  );
 });
