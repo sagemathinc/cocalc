@@ -7,6 +7,7 @@ import "./accounts";
 import "./boolean";
 import "./email-address";
 import "./fallback";
+import "./icon";
 import "./image";
 import "./json";
 import "./markdown";
@@ -77,6 +78,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 150;
   }
   if (renderSpec.type == "tags") {
+    return 150;
+  }
+  if (renderSpec.type == "icon") {
     return 150;
   }
   if (renderSpec.type == "percent") {

@@ -609,7 +609,6 @@ Table({
       desc: "Name of icon to show with tag",
       pg_type: "VARCHAR(100)", // ???
       render: { type: "icon", editable: true },
-      unique: true,
     },
     description: {
       type: "string",
