@@ -76,7 +76,7 @@ export const Description: React.FC<Props> = React.memo(
         return <></>;
       }
       return (
-        <div onDoubleClick={edit}>
+        <div onDoubleClick={edit} style={{ fontSize: font_size }}>
           <DescriptionRendered
             actions={actions}
             task_id={task_id}
