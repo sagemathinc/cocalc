@@ -23,6 +23,11 @@ interface Boolean {
   whenField?: string; // set timestamp of this field when editing to true; clear when false
 }
 
+interface Color {
+  type: "color";
+  editable?: boolean;
+}
+
 interface Copyable {
   type: "copyable";
 }
@@ -121,6 +126,7 @@ export type RenderSpec =
   | Array
   | Blob
   | Boolean
+  | Color
   | Copyable
   | EmailAddress
   | Image

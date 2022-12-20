@@ -10,8 +10,10 @@ import "./support-messages";
 import "./site-licenses";
 import "./accounts";
 import "./projects";
+import "./public-paths";
 import "./shopping-cart-items";
 import "./syncstrings";
+import "./tags";
 
 interface TableDescription {
   name: string;

@@ -602,3 +602,47 @@ Table({
     },
   },
 });
+
+// Table of all hashtags across our crm system.  Note that these settings
+// are very global.  We may later make a similar table that is scoped to
+// a project, file, user, etc...
+Table({
+  name: "crm_tags",
+  fields: {
+    name: {
+      type: "string",
+      desc: "The hashtag.",
+      pg_type: "VARCHAR(30)",
+    },
+    color: {
+      type: "string",
+      desc: "color",
+      pg_type: "VARCHAR(30)",
+      render: { type: "color", editable: true },
+    },
+  },
+  rules: {
+    desc: "Table of all hashtags across our crm system.",
+    primary_key: "name",
+    user_query: {
+      get: {
+        admin: true,
+        pg_where: [],
+        fields: {
+          name: null,
+          color: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          name: null,
+          color: null,
+        },
+        required_fields: {
+          color: true,
+        },
+      },
+    },
+  },
+});

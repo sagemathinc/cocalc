@@ -126,7 +126,6 @@ export default function View({ table, view, style, height, name }: Props) {
           style={{ overflow: "auto" }}
           dataSource={data}
           columns={columns}
-          bordered
           expandable={expandable}
           title={() => header}
           scroll={{ x, ...(height ? { y: height } : undefined) }}
