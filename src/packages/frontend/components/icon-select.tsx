@@ -11,6 +11,7 @@ const { Search } = Input;
 
 interface Props {
   onSelect?: (name: IconName) => void;
+  onChange?: (search: string) => void;
   defaultSearch?: string;
   search?: string;
   style?: CSSProperties;
@@ -20,6 +21,7 @@ interface Props {
 
 export default function IconSelect({
   onSelect,
+  onChange,
   defaultSearch,
   search: search0,
   style,
@@ -41,8 +43,23 @@ export default function IconSelect({
         placeholder="Search..."
         value={search}
         allowClear
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          onChange?.(e.target.value);
+        }}
         style={{ maxWidth: "400px" }}
+        onPressEnter={() => {
+          // if there are any results, choose the first one
+          const search0 = search.trim().toLowerCase();
+          for (const name of iconNames) {
+            if (name.includes(search0)) {
+              setSearch(name);
+              onChange?.(name);
+              onSelect?.(name);
+              return;
+            }
+          }
+        }}
       />
       <div
         style={{
@@ -85,7 +102,7 @@ function Match({
     <div
       style={{
         display: "inline-block",
-        width: "150px",
+        width: "100px",
         cursor: "pointer",
         whiteSpace: "nowrap",
         overflow: "hidden",

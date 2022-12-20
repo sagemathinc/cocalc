@@ -1,9 +1,9 @@
 import { render } from "./register";
 import { Icon, IconName } from "@cocalc/frontend/components";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditableContext } from "./context";
 import IconSelect from "@cocalc/frontend/components/icon-select";
-import { Popover, Tag } from "antd";
+import { Popover } from "antd";
 
 render({ type: "icon", editable: false }, ({ field, obj }) => {
   const name = obj[field];
@@ -15,34 +15,46 @@ render({ type: "icon", editable: true }, ({ field, obj, spec }) => {
     throw Error("bug");
   }
   const [name, setName] = useState<string>(obj[field]);
-  const { edit, save, saving, counter, error, ClickToEdit } =
+  const { save, saving, counter, error, edit, setEdit } =
     useEditableContext<string>(field);
+  const searchRef = useRef<string>(name);
 
   useEffect(() => {
     setName(obj[field]);
   }, [counter]);
 
   return (
-    <ClickToEdit empty={!name?.trim()}>
+    <span>
       <Popover
         open={edit}
-        title={
-          <>
-            Select Icon for tag <Tag color={obj["color"]}>{obj["name"]}</Tag>
-          </>
-        }
+        onOpenChange={(edit) => {
+          if (edit) {
+            searchRef.current = name;
+          } else {
+            if (!searchRef.current) {
+              save(obj, null);
+            }
+          }
+          setEdit(edit);
+        }}
+        trigger="click"
+        title={<div style={{ textAlign: "center" }}>Select Icon</div>}
         content={() => {
           return (
             <IconSelect
+              defaultSearch={name}
               disabled={saving}
+              onChange={(search) => {
+                searchRef.current = search;
+              }}
               onSelect={(name) => {
                 setName(name);
                 save(obj, name);
               }}
-              fontSize="10px"
+              fontSize="9pt"
               style={{
-                fontSize: "18pt",
-                maxWidth: "460px",
+                fontSize: "20pt",
+                maxWidth: "420px",
                 maxHeight: "60vh",
                 overflowY: "scroll",
               }}
@@ -53,10 +65,10 @@ render({ type: "icon", editable: true }, ({ field, obj, spec }) => {
         {name ? (
           <Icon style={{ fontSize: "24pt" }} name={name as IconName} />
         ) : (
-          ""
+          <span style={{ color: "#999", cursor: "pointer" }}>Icon...</span>
         )}
       </Popover>
       {error}
-    </ClickToEdit>
+    </span>
   );
 });
