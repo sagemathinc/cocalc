@@ -1,17 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { Input, Tooltip } from "antd";
 import { useEditableContext } from "./context";
-import { render } from "./register";
+import { render, RenderProps } from "./register";
+import type { Text } from "@cocalc/util/db-schema/render-types";
+import { Tag } from "./tags";
 
-render({ type: "text" }, ({ field, obj }) => <>{obj[field]}</>);
+interface Props extends RenderProps {
+  spec: Text;
+}
 
-render({ type: "text", ellipsis: true }, ({ field, obj }) => (
+function Static({ field, obj, spec }: Props) {
+  const value = obj[field];
+  if (!value?.trim()) return null;
+  if (spec?.tag) {
+    return (
+      <Tag icon={obj["icon"]} color={obj["color"]}>
+        {value}
+      </Tag>
+    );
+  }
+  return value;
+}
+
+render({ type: "text" }, Static);
+
+render({ type: "text", ellipsis: true }, ({ field, obj, spec }: Props) => (
   <Tooltip title={obj[field]} placement="left">
-    {obj[field]}
+    <Static field={field} obj={obj} spec={spec} />
   </Tooltip>
 ));
 
-render({ type: "text", editable: true }, ({ field, obj }) => {
+render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
   const [value, setValue] = useState<string>(obj[field]);
   const ref = useRef<any>();
   const { save, saving, counter, edit, error, ClickToEdit } =
@@ -39,6 +58,11 @@ render({ type: "text", editable: true }, ({ field, obj }) => {
       </>
     );
   } else {
-    return <ClickToEdit empty={!value?.trim()}>{value}</ClickToEdit>;
+    return (
+      <ClickToEdit empty={!value?.trim()}>
+        {" "}
+        <Static field={field} obj={obj} spec={spec} />
+      </ClickToEdit>
+    );
   }
 });

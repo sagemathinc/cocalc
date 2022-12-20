@@ -89,10 +89,11 @@ interface Status {
   editable?: boolean;
 }
 
-interface Text {
+export interface Text {
   type: "text";
   maxLen?: number;
   editable?: boolean;
+  tag?: boolean;
 }
 
 interface TextEllipsis extends Text {

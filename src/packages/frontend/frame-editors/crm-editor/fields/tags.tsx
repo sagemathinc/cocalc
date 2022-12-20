@@ -1,9 +1,9 @@
 import { render } from "./register";
-import { /*Button, */ Popconfirm, Select, Space, Tag } from "antd";
+import { /*Button, */ Popconfirm, Select, Space, Tag as AntdTag } from "antd";
 import sha1 from "sha1";
 import { useEditableContext } from "./context";
-import { Icon } from "@cocalc/frontend/components";
-import { useEffect, useState } from "react";
+import { Icon, IconName } from "@cocalc/frontend/components";
+import { ReactNode, useEffect, useState } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { MAX_TAG_LENGTH } from "@cocalc/util/db-schema";
 
@@ -14,11 +14,7 @@ render({ type: "tags", editable: false }, ({ field, obj }) => {
     <div style={{ lineHeight: "2em", display: "inline-block" }}>
       {tags.map((name) => {
         const color = nameToColor(name);
-        return (
-          <Tag color={color} style={{ color: avatar_fontcolor(color) }}>
-            {name}
-          </Tag>
-        );
+        return <Tag color={color}>{name}</Tag>;
       })}
     </div>
   );
@@ -48,54 +44,24 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
         <div style={{ lineHeight: "2em", display: "inline-block" }}>
           {tags?.map((name) => {
             const color = nameToColor(name);
-            const style = { color: avatar_fontcolor(color) };
             return (
               <Tag
                 color={color}
-                style={style}
-                closable
-                onClose={(e) => e.preventDefault()}
-                closeIcon={
-                  <Popconfirm
-                    title={
-                      <>
-                        Remove the{" "}
-                        <Tag color={color} style={style}>
-                          {name}
-                        </Tag>
-                        tag?
-                      </>
-                    }
-                    onConfirm={async () => {
-                      const newTags = tags.filter((tag) => tag != name);
-                      setTags(newTags);
-                      try {
-                        await save(obj, newTags);
-                      } catch (_) {
-                        // failed -- revert the change at the UI level.
-                        setTags(obj[field]);
-                      }
-                    }}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <Icon style={style} name="times" />
-                  </Popconfirm>
-                }
+                onClose={async () => {
+                  const newTags = tags.filter((tag) => tag != name);
+                  setTags(newTags);
+                  try {
+                    await save(obj, newTags);
+                  } catch (_) {
+                    // failed -- revert the change at the UI level.
+                    setTags(obj[field]);
+                  }
+                }}
               >
                 {name}
               </Tag>
             );
           })}
-          {/*!adding && (
-            <Button
-              size="small"
-              style={{ color: "#c6c6c6" }}
-              onClick={() => setAdding(true)}
-            >
-              <Icon name="plus-circle" /> Add
-            </Button>
-          )*/}
         </div>
       )}
       {error}
@@ -146,12 +112,58 @@ function AddTags({ onBlur }) {
       onChange={setValue}
       tagRender={({ value: name }) => {
         const color = nameToColor(name);
-        return (
-          <Tag color={color} style={{ color: avatar_fontcolor(color) }}>
-            {name}
-          </Tag>
-        );
+        return <Tag color={color}>{name}</Tag>;
       }}
     />
+  );
+}
+
+export function Tag({
+  icon,
+  color,
+  children,
+  onClose,
+}: {
+  icon?: IconName;
+  color?: string;
+  children?: ReactNode;
+  onClose?: Function;
+}) {
+  const style = color
+    ? {
+        color: avatar_fontcolor(color),
+        backgroundColor: color,
+      }
+    : undefined;
+  const renderedIcon = icon ? <Icon name={icon} style={style} /> : undefined;
+  const renderedTag = (
+    <AntdTag style={style} icon={renderedIcon}>
+      {children}
+    </AntdTag>
+  );
+  if (onClose == null) {
+    return renderedTag;
+  }
+  return (
+    <AntdTag
+      icon={renderedIcon}
+      style={style}
+      closable
+      onClose={(e) => e.preventDefault()}
+      closeIcon={
+        <Popconfirm
+          title={<>Remove the {renderedTag} tag?</>}
+          onConfirm={() => {
+            onClose();
+          }}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Icon style={style} name="times" />
+        </Popconfirm>
+      }
+    >
+      {children}
+    </AntdTag>
   );
 }

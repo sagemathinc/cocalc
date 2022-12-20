@@ -4,6 +4,7 @@ import { antdColumn, ColumnsType } from "../fields";
 import "./tasks";
 import "./people";
 import "./organizations";
+import "./tags";
 import "./support-tickets";
 import "./support-messages";
 
@@ -13,7 +14,6 @@ import "./projects";
 import "./public-paths";
 import "./shopping-cart-items";
 import "./syncstrings";
-import "./tags";
 
 interface TableDescription {
   name: string;

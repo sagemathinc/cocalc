@@ -598,10 +598,11 @@ Table({
       noCoerce: true,
     },
     name: {
+      title: "Tag",
       type: "string",
       desc: "The name of the tag.",
       pg_type: "VARCHAR(30)",
-      render: { type: "text", editable: true, maxLen: 30 },
+      render: { type: "text", editable: true, maxLen: 30, tag: true },
       unique: true,
     },
     icon: {
