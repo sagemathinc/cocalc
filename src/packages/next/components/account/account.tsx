@@ -32,7 +32,7 @@ export default function Account({
   const router = useRouter();
   useEffect(() => {
     if (redirect) {
-      router.push(redirect);
+      router.replace(redirect);
     }
   }, [redirect]);
 

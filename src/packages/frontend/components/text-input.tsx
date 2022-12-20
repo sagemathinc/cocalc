@@ -47,8 +47,8 @@ export const TextInput: React.FC<Props> = React.memo((props: Props) => {
     });
   }, []);
 
-  function saveChange(event) {
-    event.preventDefault();
+  function saveChange(event?) {
+    event?.preventDefault();
     on_change(nextText);
   }
 
@@ -88,7 +88,7 @@ export const TextInput: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <Form name="basic" onFinish={saveChange}>
+    <Form name="basic" onFinish={() => saveChange()}>
       {render_input()}
       {render_save_button()}
     </Form>

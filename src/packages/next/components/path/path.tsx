@@ -99,7 +99,7 @@ export default function PublicPath({
 
   useEffect(() => {
     if (redirect) {
-      router.push(redirect);
+      router.replace(redirect);
     }
   }, [redirect]);
 

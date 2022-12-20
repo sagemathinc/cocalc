@@ -56,10 +56,10 @@ export const ButtonBar: React.FC<Props> = React.memo(
           {spacer}
           <ButtonGroup>
             <Button key="font-increase" onClick={actions.decrease_font_size}>
-              <Icon style={{ fontSize: "7pt" }} name="font" />
+              <Icon name="search-minus" />
             </Button>
             <Button key="font-decrease" onClick={actions.increase_font_size}>
-              <Icon style={{ fontSize: "10pt" }} name="font" />
+              <Icon name="plus" />
             </Button>
           </ButtonGroup>
           {spacer}

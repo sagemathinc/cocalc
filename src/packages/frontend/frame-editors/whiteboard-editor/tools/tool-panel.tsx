@@ -169,7 +169,7 @@ export default function ToolPanel<Params>({
           <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
             {TOOLS[tool].tip}
           </div>
-          <Tooltip title={TOOLS[tool].tip}  mouseEnterDelay={0.7}>
+          <Tooltip title={TOOLS[tool].tip} mouseEnterDelay={0.7}>
             <Button type="text">
               <Icon
                 style={{ color: SELECTED, fontSize: "20px" }}
@@ -323,9 +323,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
                 if (time != null) {
                   set(
                     "countdown",
-                    time.second() +
-                      time.minute() * 60 +
-                      time.hour() * 60 * 60
+                    time.second() + time.minute() * 60 + time.hour() * 60 * 60
                   );
                 } else {
                   set("countdown", null);
@@ -345,6 +343,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
         <IconSelect
           onSelect={(value) => set("icon", value)}
           style={{
+            fontSize: "24pt",
             maxWidth: "100%",
             marginBottom: "10px",
             maxHeight: "35vh",

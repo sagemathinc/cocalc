@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.101.2",
+  "version": "1.101.4",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -48,7 +48,7 @@
     "@cocalc/cdn": "^1.15.1",
     "@cocalc/hub": "^1.117.2",
     "@cocalc/local-storage-lru": "^2.1.1",
-    "@cocalc/project": "^1.34.2",
+    "@cocalc/project": "^1.34.3",
     "@cocalc/sync": "^0.10.1",
     "@cocalc/util": "^1.75.0",
     "@dnd-kit/core": "^6.0.6",

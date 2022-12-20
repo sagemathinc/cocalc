@@ -12,7 +12,7 @@ export default function Icons() {
     <div style={{ margin: "60px" }}>
       <Head title={"CoCalc Icons"} />
       <h1>CoCalc Icons</h1>
-      <IconSelect />
+      <IconSelect style={{ fontSize: "36pt" }} />
     </div>
   );
 }

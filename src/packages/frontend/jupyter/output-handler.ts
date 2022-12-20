@@ -40,6 +40,9 @@ import {
 
 const now = () => server_time().valueOf() - 0;
 
+const MIN_SAVE_INTERVAL_MS = 500;
+const MAX_SAVE_INTERVAL_MS = 45000;
+
 export class OutputHandler extends EventEmitter {
   private _opts: any;
   private _n: number;
@@ -48,6 +51,13 @@ export class OutputHandler extends EventEmitter {
   private _in_more_output_mode: any;
   private _state: any;
   private _stdin_cb: any;
+
+  // Never commit output to send to the frontend more frequently than this.saveIntervalMs
+  // Otherwise, we'll end up with a large number of patches.
+  // We start out with MIN_SAVE_INTERVAL_MS and exponentially back it off to
+  // MAX_SAVE_INTERVAL_MS.
+  private lastSave: number = 0;
+  private saveIntervalMs = MIN_SAVE_INTERVAL_MS;
 
   constructor(opts: any) {
     super();
@@ -178,10 +188,25 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  private _push_mesg = (mesg: any, save = true): void => {
+  private _push_mesg = (mesg: any, save?: boolean): void => {
     if (this._state === "closed") {
       return;
     }
+
+    if (save == null) {
+      const n = now();
+      if (n - this.lastSave > this.saveIntervalMs) {
+        save = true;
+        this.lastSave = n;
+        this.saveIntervalMs = Math.min(
+          MAX_SAVE_INTERVAL_MS,
+          this.saveIntervalMs * 1.1
+        );
+      }
+    } else if (save == true) {
+      this.lastSave = now();
+    }
+
     if (this._opts.cell.output === null) {
       this._opts.cell.output = {};
     }

@@ -681,10 +681,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function get_student(id: string): StudentRecord {
       const student = students.get(id);
-      if (student == undefined) {
+      if (student == null) {
         console.warn(`Tried to access undefined student ${id}`);
       }
-      return student as any;
+      return student as StudentRecord;
     }
 
     function render_student(student_id: string, index: number) {
@@ -697,12 +697,17 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         first: x.first_name,
         last: x.last_name,
       };
+      const student = get_student(student_id);
+      if (student == null) {
+        // temporary and better than crashing
+        return null;
+      }
       return (
         <Student
           background={index % 2 === 0 ? "#eee" : undefined}
           key={student_id}
           student_id={student_id}
-          student={get_student(student_id)}
+          student={student}
           user_map={user_map}
           redux={redux}
           name={name}
