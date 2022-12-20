@@ -7,10 +7,13 @@ import { Tag } from "./tags";
 
 interface Props extends RenderProps {
   spec: Text;
+  value?: string;
 }
 
-function Static({ field, obj, spec }: Props) {
-  const value = obj[field];
+function Static({ field, obj, spec, value }: Props) {
+  if (value == null) {
+    value = obj[field];
+  }
   if (!value?.trim()) return null;
   if (spec?.tag) {
     return (
@@ -19,7 +22,7 @@ function Static({ field, obj, spec }: Props) {
       </Tag>
     );
   }
-  return value;
+  return <>{value}</>;
 }
 
 render({ type: "text" }, Static);
@@ -44,6 +47,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
     return (
       <>
         <Input
+          maxLength={spec.maxLength}
           disabled={saving}
           ref={ref}
           autoFocus
@@ -51,8 +55,14 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
           onChange={(e) => {
             setValue(e.target.value);
           }}
-          onBlur={() => save(obj, ref.current.input.value)}
-          onPressEnter={() => save(obj, ref.current.input.value)}
+          onBlur={() => {
+            setValue(ref.current.input.value);
+            save(obj, ref.current.input.value);
+          }}
+          onPressEnter={() => {
+            setValue(ref.current.input.value);
+            save(obj, ref.current.input.value);
+          }}
         />
         {error}
       </>
@@ -61,7 +71,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
     return (
       <ClickToEdit empty={!value?.trim()}>
         {" "}
-        <Static field={field} obj={obj} spec={spec} />
+        <Static field={field} obj={obj} spec={spec} value={value} />
       </ClickToEdit>
     );
   }

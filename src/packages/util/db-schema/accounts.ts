@@ -88,13 +88,13 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)", // some limit (actually around 3000) is required for indexing
       desc: "The first name of this user.",
-      render: { type: "text", maxLen: 254, ellipsis: true },
+      render: { type: "text", maxLength: 254, ellipsis: true },
     },
     last_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this user.",
-      render: { type: "text", maxLen: 254, ellipsis: true },
+      render: { type: "text", maxLength: 254, ellipsis: true },
     },
     banned: {
       type: "boolean",

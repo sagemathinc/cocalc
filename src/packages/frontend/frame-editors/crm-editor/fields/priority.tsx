@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { render, sorter } from "./register";
 import { PRIORITIES } from "@cocalc/util/db-schema/crm";
 import { Progress, Select } from "antd";
@@ -47,12 +47,7 @@ render({ type: "priority" }, ({ field, obj, spec }) => {
   }
   const { counter, save, error } = useEditableContext<string>(field);
   const [priority, setPriority] = useState<string | undefined>(obj[field]);
-  const lastSaveRef = useRef<number>(0);
   useEffect(() => {
-    if (new Date().valueOf() - lastSaveRef.current <= 10000) {
-      // ignore right after you save to avoid feedback.
-      return;
-    }
     setPriority(obj[field]);
   }, [counter]);
 
@@ -60,7 +55,6 @@ render({ type: "priority" }, ({ field, obj, spec }) => {
 
   const set = useMemo(() => {
     return (n: number) => {
-      lastSaveRef.current = new Date().valueOf();
       setPriority(PRIORITIES[n]);
       save(obj, PRIORITIES[n]);
     };

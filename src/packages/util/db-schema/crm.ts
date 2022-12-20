@@ -55,7 +55,7 @@ Table({
       desc: "The name of this person.",
       render: {
         type: "text",
-        maxLen: 254,
+        maxLength: 254,
         editable: true,
       },
     },
@@ -65,7 +65,7 @@ Table({
       desc: "Email addresses for this person, separated by commas",
       render: {
         type: "text",
-        maxLen: 1000,
+        maxLength: 1000,
         editable: true,
       },
     },
@@ -94,7 +94,7 @@ Table({
       desc: "The person's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
       render: {
         type: "text",
-        maxLen: 254,
+        maxLength: 254,
         editable: true,
       },
     },
@@ -159,7 +159,7 @@ Table({
       desc: "The name of this organization.",
       render: {
         type: "text",
-        maxLen: 254,
+        maxLength: 254,
         editable: true,
       },
     },
@@ -200,7 +200,7 @@ Table({
       render: {
         type: "text",
         editable: true,
-        maxLen: 254,
+        maxLength: 254,
       },
     },
     tags: TAGS_FIELD,
@@ -263,7 +263,7 @@ Table({
       desc: "Subject of the message. Must be short.",
       render: {
         type: "text",
-        maxLen: 254,
+        maxLength: 254,
         editable: true,
       },
     },
@@ -376,7 +376,7 @@ Table({
       render: {
         type: "markdown",
         editable: true,
-        maxLen: 20000,
+        maxLength: 20000,
       },
     },
     internal: {
@@ -440,7 +440,7 @@ Table({
       desc: "Short summary of this tasks.",
       render: {
         type: "text",
-        maxLen: 254,
+        maxLength: 254,
         editable: true,
       },
     },
@@ -602,7 +602,7 @@ Table({
       type: "string",
       desc: "The name of the tag.",
       pg_type: "VARCHAR(30)",
-      render: { type: "text", editable: true, maxLen: 30, tag: true },
+      render: { type: "text", editable: true, maxLength: 30, tag: true },
       unique: true,
     },
     icon: {

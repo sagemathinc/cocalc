@@ -25,11 +25,7 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
   const { edit, save, saving, counter, error, ClickToEdit } =
     useEditableContext<Date | null>(field);
 
-  const lastSaveRef = useRef<number>(0);
   useEffect(() => {
-    if (new Date().valueOf() - lastSaveRef.current <= 10000) {
-      return;
-    }
     setValue(obj[field] ? dayjs(obj[field]) : undefined);
   }, [counter]);
 
@@ -45,7 +41,6 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
   }, []);
   const fullSave = useMemo(() => {
     return (newValue?) => {
-      lastSaveRef.current = new Date().valueOf();
       if (newValue === undefined) {
         // still explicitly allow newValue === null to clear.
         newValue = value;

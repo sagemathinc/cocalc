@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { render, sorter } from "./register";
 import { STATUSES } from "@cocalc/util/db-schema/crm";
 import { Select, Tag } from "antd";
@@ -36,12 +36,7 @@ render({ type: "status" }, ({ field, obj, spec }) => {
   }
   const { counter, save, error } = useEditableContext<string>(field);
   const [status, setStatus] = useState<string>(obj[field] ?? STATUSES[0]);
-  const lastSaveRef = useRef<number>(0);
   useEffect(() => {
-    if (new Date().valueOf() - lastSaveRef.current <= 10000) {
-      // ignore right after you save to avoid feedback.
-      return;
-    }
     setStatus(obj[field] ?? STATUSES[0]);
   }, [counter]);
 
@@ -49,7 +44,6 @@ render({ type: "status" }, ({ field, obj, spec }) => {
 
   const set = useMemo(() => {
     return (n: number) => {
-      lastSaveRef.current = new Date().valueOf();
       setStatus(STATUSES[n]);
       save(obj, STATUSES[n]);
     };

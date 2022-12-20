@@ -5,6 +5,7 @@ import * as register from "./register";
 
 import "./accounts";
 import "./boolean";
+import "./color";
 import "./email-address";
 import "./fallback";
 import "./icon";
@@ -72,6 +73,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 300;
   }
   if (renderSpec.type == "text") {
+    if (renderSpec.tag) {
+      return 150;
+    }
     return 250;
   }
   if (renderSpec.type == "timestamp") {
@@ -81,6 +85,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 150;
   }
   if (renderSpec.type == "icon") {
+    return 64;
+  }
+  if (renderSpec.type == "color") {
     return 64;
   }
   if (renderSpec.type == "percent") {

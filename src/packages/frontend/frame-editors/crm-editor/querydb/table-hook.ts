@@ -18,6 +18,7 @@ export function useTable({ query, changes = false }: Options): {
   editableContext: EditableContextType;
   error?: string;
 } {
+  const lastSaveRef = useRef<number>(0);
   const info = useMemo(() => {
     const table = Object.keys(query)[0];
     const primary_keys = client_db.primary_keys(table);
@@ -31,6 +32,7 @@ export function useTable({ query, changes = false }: Options): {
       if (SCHEMA[table].user_query?.set?.required_fields?.last_edited) {
         query[table]["last_edited"] = "NOW()";
       }
+      lastSaveRef.current = new Date().valueOf();
       await webapp_client.query_client.query({
         query,
         options: [{ set: true }],
@@ -46,6 +48,11 @@ export function useTable({ query, changes = false }: Options): {
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
   const { val: counter, inc: incCounter } = useCounter();
   useEffect(() => {
+    if (new Date().valueOf() - lastSaveRef.current < 1000) {
+      // we don't increment the counter immediately after saving... since often the save
+      // changes this which undoes setting to null in the UI.
+      return;
+    }
     incCounter();
   }, [data]);
 

@@ -91,7 +91,7 @@ interface Status {
 
 export interface Text {
   type: "text";
-  maxLen?: number;
+  maxLength?: number;
   editable?: boolean;
   tag?: boolean;
 }
@@ -102,7 +102,7 @@ interface TextEllipsis extends Text {
 
 interface Markdown {
   type: "markdown";
-  maxLen?: number;
+  maxLength?: number;
   editable?: boolean;
 }
 
