@@ -31,7 +31,7 @@ export default function IconSelect({
   }, [search0]);
 
   return (
-    <div style={style}>
+    <div style={{ fontSize: "24pt", ...style }}>
       <Search
         placeholder="Search..."
         value={search}
@@ -75,20 +75,20 @@ function Match({
   return (
     <div
       style={{
-        fontSize: "15px",
         display: "inline-block",
         width: "150px",
         cursor: "pointer",
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
+        textAlign: "center",
       }}
       onClick={() => onClick(name)}
     >
-      <span style={{ margin: "0 10px" }}>
+      <div style={{ margin: "0 10px" }}>
         <Icon name={name} />
-      </span>
-      <span style={{ fontSize: "12px" }}>{name}</span>
+      </div>
+      <div style={{ fontSize: "11pt" }}>{name}</div>
     </div>
   );
 }
