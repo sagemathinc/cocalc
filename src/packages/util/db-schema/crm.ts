@@ -1,7 +1,7 @@
 import { FieldSpec, Table } from "./types";
 export const MAX_TAG_LENGTH = 30;
 
-const TAG_TYPE = `VARCHAR(${MAX_TAG_LENGTH})[]`;
+const TAG_TYPE = `INTEGER[]`;
 
 const TAGS_FIELD = {
   type: "array",

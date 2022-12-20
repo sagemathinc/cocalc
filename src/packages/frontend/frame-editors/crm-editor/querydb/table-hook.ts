@@ -128,9 +128,11 @@ export function useTable({ query, changes = false }: Options): {
     };
   }, [disconnectCounter]);
 
+  const refresh = incDisconnectCounter;
   const editableContext = {
     counter,
+    refresh,
     ...info,
   };
-  return { data, refresh: incDisconnectCounter, editableContext, error };
+  return { data, refresh, editableContext, error };
 }

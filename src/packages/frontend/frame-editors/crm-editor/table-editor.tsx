@@ -6,6 +6,7 @@ import { SyncdbContext } from "./syncdb/context";
 import Views from "./views";
 import Home from "./home";
 import { Icon } from "@cocalc/frontend/components";
+import { TagsProvider } from "./querydb/tags";
 
 interface TabItem {
   label: ReactNode;
@@ -38,16 +39,18 @@ export default function TableEditor({ actions }) {
   return (
     <div style={{ height: "100%", overflow: "auto" }}>
       <SyncdbContext.Provider value={{ syncdb: actions._syncstring }}>
-        <Tabs
-          type="card"
-          activeKey={activeKey}
-          onChange={(activeKey: string) => {
-            actions.set_frame_tree({ id, "data-tab": activeKey });
-          }}
-          size="small"
-          items={items}
-          style={{ margin: "15px" }}
-        />
+        <TagsProvider>
+          <Tabs
+            type="card"
+            activeKey={activeKey}
+            onChange={(activeKey: string) => {
+              actions.set_frame_tree({ id, "data-tab": activeKey });
+            }}
+            size="small"
+            items={items}
+            style={{ margin: "15px" }}
+          />
+        </TagsProvider>
       </SyncdbContext.Provider>
     </div>
   );

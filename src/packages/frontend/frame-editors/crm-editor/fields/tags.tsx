@@ -1,11 +1,12 @@
 import { render } from "./register";
-import { /*Button, */ Popconfirm, Select, Space, Tag as AntdTag } from "antd";
+import { Button, Popconfirm, Select, Space, Tag as AntdTag } from "antd";
 import sha1 from "sha1";
 import { useEditableContext } from "./context";
 import { Icon, IconName } from "@cocalc/frontend/components";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
-import { MAX_TAG_LENGTH } from "@cocalc/util/db-schema";
+import { TagById } from "./tag-by-id";
+import { useTags, createTag } from "../querydb/tags";
 
 render({ type: "tags", editable: false }, ({ field, obj }) => {
   const tags = obj[field];
@@ -28,60 +29,75 @@ function nameToColor(name: string): string {
 }
 
 render({ type: "tags", editable: true }, ({ field, obj }) => {
-  const { save, counter, error } = useEditableContext<string[]>(field);
-  const [tags, setTags] = useState<null | string[]>(obj[field]);
-
-  //const [adding, setAdding] = useState<boolean>((tags?.length ?? 0) == 0);
-  const adding = true;
+  const { save, counter, error, setError } =
+    useEditableContext<number[]>(field);
+  const [tags, setTags] = useState<null | number[]>(obj[field]);
+  const [adding, setAdding] = useState<boolean>(false);
 
   useEffect(() => {
     setTags(obj[field]);
   }, [counter]);
 
   return (
-    <Space direction="vertical">
+    <Space direction="vertical" style={{ width: "100%" }}>
       {tags != null && tags.length > 0 && (
         <div style={{ lineHeight: "2em", display: "inline-block" }}>
-          {tags?.map((name) => {
-            const color = nameToColor(name);
-            return (
-              <Tag
-                color={color}
-                onClose={async () => {
-                  const newTags = tags.filter((tag) => tag != name);
-                  setTags(newTags);
-                  try {
-                    await save(obj, newTags);
-                  } catch (_) {
-                    // failed -- revert the change at the UI level.
-                    setTags(obj[field]);
-                  }
-                }}
-              >
-                {name}
-              </Tag>
-            );
-          })}
+          {tags?.map((id) => (
+            <TagById
+              confirm
+              id={id}
+              onClose={async () => {
+                const newTags = tags.filter((tag) => tag != id);
+                setTags(newTags);
+                try {
+                  await save(obj, newTags);
+                } catch (_) {
+                  // failed -- revert the change at the UI level.
+                  setTags(obj[field]);
+                }
+              }}
+            />
+          ))}
         </div>
       )}
       {error}
+      {!adding && (
+        <Button
+          size="small"
+          style={{ color: "#888" }}
+          onClick={() => setAdding(true)}
+        >
+          Select Tags...
+        </Button>
+      )}
       {adding && (
         <AddTags
+          currentTags={tags}
           onBlur={async (addedTags: string[]) => {
+            setAdding(false);
             if (addedTags.length == 0) {
-              //setAdding(false);
               return;
             }
-            // combine together, eliminate duplicates, truncate too long tags
-            // TODO: We do not sort, since we plan to make tags drag-n-drop sortable
-            // by the client here...
-            const newTags = Array.from(
-              new Set((tags ?? []).concat(addedTags))
-            ).map((tag) => tag.slice(0, MAX_TAG_LENGTH));
-            setTags(newTags);
+            const newTags = new Set<number>(tags);
+            // create any tags given by non-numerical strings:
+            for (const tag of addedTags) {
+              const id = parseInt(tag);
+              if (isFinite(id)) {
+                newTags.add(id);
+              } else {
+                try {
+                  newTags.add(await createTag(tag));
+                } catch (err) {
+                  setError(`${err}`);
+                  return;
+                }
+              }
+            }
+
+            const v = Array.from(newTags);
+            setTags(v);
             try {
-              await save(obj, newTags);
-              //setAdding(false);
+              await save(obj, v);
             } catch (_) {
               // failed -- revert the change at the UI level.
               setTags(obj[field]);
@@ -93,27 +109,59 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
   );
 });
 
-function AddTags({ onBlur }) {
+function AddTags({
+  currentTags,
+  onBlur,
+}: {
+  currentTags: number[] | null;
+  onBlur: Function;
+}) {
   const [value, setValue] = useState<any>([]);
+  const tags = useTags();
+  const options = useMemo(() => {
+    const cur = new Set<number>(currentTags);
+    const options: { label: ReactNode; value: string; name: string }[] = [];
+    for (const id0 in tags) {
+      const id = parseInt(id0);
+      if (cur.has(id)) continue;
+      options.push({
+        label: <TagById id={id} />,
+        value: id0,
+        name: tags[id0].name.toLowerCase(),
+      });
+    }
+    return options;
+  }, [tags]);
 
   return (
     <Select
       autoFocus
+      allowClear
+      open
+      options={options}
       size="small"
       value={value}
       maxTagTextLength={30 /* doesn't by-hand input size though */}
-      mode="tags"
       style={{ width: "100%", minWidth: "12ex" }}
-      placeholder="Add tags..."
+      mode="tags"
+      placeholder="Select tags..."
       onBlur={() => {
         onBlur(value);
         setValue([]);
       }}
       onChange={setValue}
-      tagRender={({ value: name }) => {
-        const color = nameToColor(name);
-        return <Tag color={color}>{name}</Tag>;
+      tagRender={({ value, onClose }) => {
+        const id = parseInt(value);
+        if (isFinite(id)) {
+          return <TagById id={value} onClose={onClose} />;
+        } else {
+          return <Tag onClose={onClose}>{value}</Tag>;
+        }
       }}
+      showSearch
+      filterOption={(input, option) =>
+        (option?.name ?? "").includes(input.toLowerCase())
+      }
     />
   );
 }
@@ -123,11 +171,13 @@ export function Tag({
   color,
   children,
   onClose,
+  confirm,
 }: {
   icon?: IconName;
   color?: string;
   children?: ReactNode;
-  onClose?: Function;
+  onClose?: Function; // when set, makes it removable
+  confirm?: boolean;
 }) {
   const style = color
     ? {
@@ -149,18 +199,20 @@ export function Tag({
       icon={renderedIcon}
       style={style}
       closable
-      onClose={(e) => e.preventDefault()}
+      onClose={confirm ? (e) => e.preventDefault() : (_) => onClose()}
       closeIcon={
-        <Popconfirm
-          title={<>Remove the {renderedTag} tag?</>}
-          onConfirm={() => {
-            onClose();
-          }}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Icon style={style} name="times" />
-        </Popconfirm>
+        confirm ? (
+          <Popconfirm
+            title={<>Remove the {renderedTag} tag?</>}
+            onConfirm={() => {
+              onClose();
+            }}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Icon style={style} name="times" />
+          </Popconfirm>
+        ) : undefined
       }
     >
       {children}

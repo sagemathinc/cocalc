@@ -74,7 +74,7 @@ function getWidth(renderSpec: RenderSpec): number {
   }
   if (renderSpec.type == "text") {
     if (renderSpec.tag) {
-      return 150;
+      return 200;
     }
     return 250;
   }
@@ -82,7 +82,7 @@ function getWidth(renderSpec: RenderSpec): number {
     return 150;
   }
   if (renderSpec.type == "tags") {
-    return 150;
+    return 200;
   }
   if (renderSpec.type == "icon") {
     return 64;

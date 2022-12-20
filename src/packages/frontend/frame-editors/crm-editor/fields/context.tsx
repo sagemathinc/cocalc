@@ -1,4 +1,4 @@
-import { Alert, Button, Tooltip } from "antd";
+import { Alert, Button, Space, Tooltip } from "antd";
 import { fieldToLabel } from "../util";
 import {
   CSSProperties,
@@ -14,6 +14,7 @@ import {
 export interface EditableContextType {
   counter: number;
   save: (obj: object, change: object) => Promise<void>;
+  refresh: Function;
 }
 
 async function save(_obj: object, _change: object): Promise<void> {
@@ -22,6 +23,7 @@ async function save(_obj: object, _change: object): Promise<void> {
 
 export const EditableContext = createContext<EditableContextType>({
   counter: 0,
+  refresh: () => {},
   save,
 });
 
@@ -31,6 +33,7 @@ export function useEditableContext<ValueType>(field: string): {
   saving: boolean;
   setSaving: (boolean) => void;
   error?: ReactNode;
+  setError: (ReactNode) => void;
   save: (
     obj: object,
     value: ValueType | null,
@@ -84,22 +87,37 @@ export function useEditableContext<ValueType>(field: string): {
     ClickToEdit: (props) => (
       <ClickToEdit setEdit={setEdit} field={field} {...props} />
     ),
+    setError,
     error: error ? (
       <Alert
         type="error"
         message={
           <>
             {error}{" "}
-            <Button
-              size="small"
-              onClick={() => {
-                if (lastSaveRef.current == null) return;
-                // slightly worrisome...
-                save(lastSaveRef.current.obj, lastSaveRef.current.value);
-              }}
-            >
-              try again
-            </Button>
+            <Space>
+              <Button
+                size="small"
+                onClick={() => {
+                  lastSaveRef.current = null;
+                  setEdit(false);
+                  setError("");
+                  context.refresh();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => {
+                  if (lastSaveRef.current == null) return;
+                  // slightly worrisome...
+                  save(lastSaveRef.current.obj, lastSaveRef.current.value);
+                }}
+              >
+                Try Again
+              </Button>
+            </Space>
           </>
         }
       />
