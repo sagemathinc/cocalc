@@ -10,7 +10,7 @@ render({ type: "markdown", editable: false }, ({ field, obj }) => (
   <StaticMarkdown value={obj[field] ?? ""} />
 ));
 
-render({ type: "markdown", editable: true }, ({ field, obj }) => {
+render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
   const [value, setValue] = useState<string>(obj[field] ?? "");
   const { save, counter, edit, error, ClickToEdit } =
     useEditableContext<string>(field);
@@ -40,23 +40,25 @@ render({ type: "markdown", editable: true }, ({ field, obj }) => {
   //     };
   //   }, [obj, edit]);
 
-  // TODO: edit mode should likely be a popover...
+  if (viewOnly) {
+    if (!value?.trim()) return null;
+    return <StaticMarkdown value={value} />;
+  }
+
   return edit ? (
     <Space direction="vertical" style={{ width: "100%" }}>
+      <Button type="primary" onClick={() => save(obj, valueRef.current())}>
+        Save (shift+enter)
+      </Button>
       <MultiMarkdownInput
         getValueRef={valueRef}
         autoFocus
         value={value}
         onChange={(value) => {
           setValue(value);
-          //periodicallySave.current();
         }}
         onShiftEnter={() => save(obj, valueRef.current())}
-        style={{ minHeight: "300px" }}
       />
-      <Button type="primary" onClick={() => save(obj, valueRef.current())}>
-        Save (shift+enter)
-      </Button>
       {error}
     </Space>
   ) : (

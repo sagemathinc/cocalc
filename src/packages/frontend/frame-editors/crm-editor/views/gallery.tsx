@@ -2,7 +2,7 @@
 //   https://ant.design/components/descriptions
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Card, Modal, Space } from "antd";
+import { Card, Modal } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
@@ -36,7 +36,7 @@ export default function Gallery({
   return (
     <Card title={title}>
       <VirtuosoGrid
-        overscan={300}
+        overscan={500}
         style={{ height: height ?? "600px", background: "#ececec" }}
         totalCount={data.length}
         components={{
@@ -89,6 +89,8 @@ export function OneCard({
   return (
     <div>
       <Modal
+        transitionName=""
+        maskTransitionName=""
         footer={null}
         style={{
           maxHeight: "90vh",
@@ -99,13 +101,14 @@ export function OneCard({
         }}
         open={open}
         title={
-          <Space>
-            <Icon name="pencil" /> {title}
-          </Space>
+          <>
+            <Icon name="pencil" style={{ marginRight: "15px" }} /> Edit
+          </>
         }
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
+        {title}
         {data}
       </Modal>
       <ViewOnly>{card}</ViewOnly>

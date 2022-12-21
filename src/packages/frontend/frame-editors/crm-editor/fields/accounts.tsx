@@ -19,10 +19,17 @@ render({ type: "account" }, ({ field, obj }) => {
   return <Avatar key={account_id} account_id={account_id} />;
 });
 
-render({ type: "usersmap" }, ({ field, obj }) => {
+render({ type: "usersmap" }, ({ field, obj, viewOnly }) => {
   const users = obj[field];
   if (!users) return null;
   const data: any[] = [];
+  if (viewOnly) {
+    for (const account_id in users) {
+      data.push(<Avatar key={account_id} account_id={account_id} size={18} />);
+    }
+    return <>{data}</>;
+  }
+
   for (const account_id in users) {
     data.push({ account_id, title: JSON.stringify(users[account_id]) });
   }

@@ -113,7 +113,6 @@ export default function View({ table, view, style, height, name }: Props) {
     case "calendar":
       body = (
         <Calendar
-          style={style}
           data={data}
           columns={columns}
           title={header}
@@ -123,15 +122,7 @@ export default function View({ table, view, style, height, name }: Props) {
       );
       break;
     case "grid":
-      body = (
-        <Grid
-          style={style}
-          data={data}
-          columns={columns}
-          title={header}
-          rowKey={rowKey}
-        />
-      );
+      body = <Grid data={data} columns={columns} title={header} />;
       break;
     default:
       body = <div>Unsupported view type "{view}"</div>;

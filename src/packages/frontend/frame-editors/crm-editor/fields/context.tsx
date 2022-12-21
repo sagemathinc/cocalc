@@ -152,8 +152,6 @@ function ClickToEdit({
           cursor: "pointer",
           minWidth: "5em",
           minHeight: "1.5em",
-          maxHeight: "8em",
-          overflowY: "auto",
           width: "100%",
           ...(empty
             ? {

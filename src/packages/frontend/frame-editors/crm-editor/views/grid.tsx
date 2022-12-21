@@ -1,8 +1,11 @@
-import { CSSProperties, ReactNode } from "react";
-import { Table } from "antd";
+import { CSSProperties, ReactNode, useState } from "react";
+import { TableVirtuoso } from "react-virtuoso";
+import { Card, Modal } from "antd";
+import { ViewOnly } from "../fields/context";
+import { Icon } from "@cocalc/frontend/components";
+import { Data } from "./gallery";
 
 interface Props {
-  rowKey: string;
   data: any[];
   columns: any[];
   title: ReactNode;
@@ -11,28 +14,92 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function Grid({
-  rowKey,
-  data,
-  columns,
-  title,
-  height,
-  style,
-}: Props) {
-  let x = 0;
-  for (const c of columns) {
-    x += c.width ?? 0;
+export default function Grid({ data, columns, title, height, style }: Props) {
+  return (
+    <Card style={style} title={title}>
+      <TableVirtuoso
+        overscan={500}
+        style={{ height: height ?? 600, overflow: "auto" }}
+        data={data}
+        fixedHeaderContent={() => <Header columns={columns} />}
+        itemContent={(index) => (
+          <GridRow data={data[index]} columns={columns} />
+        )}
+      />
+    </Card>
+  );
+}
+
+function GridRow({ data, columns }) {
+  const v: any[] = [];
+  const [open, setOpen] = useState<boolean>(false);
+  for (const column of columns) {
+    const text = data?.[column.dataIndex];
+    const content = column.render != null ? column.render(text, data) : text;
+    const width = column.width ?? 150;
+    const col = (
+      <td
+        onClick={() => setOpen(true)}
+        style={{
+          cursor: "pointer",
+          width,
+          border: "1px solid #eee",
+        }}
+      >
+        <div
+          style={{ width, overflow: "auto", maxHeight: 60, margin: "0 5px" }}
+        >
+          {content}
+        </div>
+      </td>
+    );
+    v.push(col);
   }
   return (
-    <Table
-      size="middle"
-      rowKey={rowKey}
-      style={{ overflow: "auto", ...style }}
-      dataSource={data}
-      columns={columns}
-      title={() => title}
-      scroll={{ x, ...(height ? { y: height } : undefined) }}
-      pagination={false}
-    />
+    <>
+      <ViewOnly>{v}</ViewOnly>
+      <Modal
+        transitionName=""
+        maskTransitionName=""
+        footer={null}
+        style={{
+          maxHeight: "90vh",
+          maxWidth: "90vw",
+          minWidth: "800px",
+          padding: "10px 0",
+        }}
+        open={open}
+        title={
+          <>
+            <Icon name="pencil" style={{ marginRight: "15px" }} /> Edit
+          </>
+        }
+        onOk={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      >
+        <div style={{ overflow: "auto" }}>
+          <Data elt={data} columns={columns} />
+        </div>
+      </Modal>
+    </>
+  );
+}
+
+function Header({ columns }) {
+  return (
+    <tr>
+      {columns.map((column) => (
+        <Column {...column} />
+      ))}
+    </tr>
+  );
+}
+function Column({ width, title }) {
+  return (
+    <th
+      style={{ width: width ?? 150, background: "#FAFAFA", padding: "0 10px" }}
+    >
+      {title}
+    </th>
   );
 }

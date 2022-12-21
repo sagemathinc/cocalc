@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { render, sorter } from "./register";
 import { PRIORITIES } from "@cocalc/util/db-schema/crm";
 import { Progress, Select } from "antd";
@@ -11,12 +11,15 @@ const COLORS = [yellow[5], blue[5], green[5], red[5]] as any;
 const _priorityToNumber: { [priority: string]: number } = {};
 let n = 0;
 const options: any[] = [];
+const priorityDisplay: { [priority: string]: ReactNode } = {};
 for (const priority of PRIORITIES) {
   _priorityToNumber[priority] = n;
+  const label = <PriorityDisplay n={n} priority={priority} />;
   options.push({
-    label: <PriorityDisplay n={n} priority={priority} />,
+    label,
     value: priority,
   });
+  priorityDisplay[priority] = label;
   n += 1;
 }
 
@@ -41,7 +44,7 @@ function PriorityDisplay({ priority, n }) {
   );
 }
 
-render({ type: "priority" }, ({ field, obj, spec }) => {
+render({ type: "priority" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "priority") {
     throw Error("bug");
   }
@@ -62,14 +65,18 @@ render({ type: "priority" }, ({ field, obj, spec }) => {
 
   return (
     <div style={{ width: "100%", display: "inline-block" }}>
-      <Select
-        allowClear
-        disabled={!spec.editable}
-        value={priority}
-        style={{ width: "160px", display: "inline-block" }}
-        options={options}
-        onChange={(priority) => set(priorityToNumber(priority))}
-      />
+      {viewOnly ? (
+        priorityDisplay[priority ?? ""] ?? null
+      ) : (
+        <Select
+          allowClear
+          disabled={!spec.editable}
+          value={priority}
+          style={{ width: "160px", display: "inline-block" }}
+          options={options}
+          onChange={(priority) => set(priorityToNumber(priority))}
+        />
+      )}
       {error}
     </div>
   );

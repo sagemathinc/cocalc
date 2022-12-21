@@ -47,6 +47,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
     return (
       <>
         <Input
+          style={{ width: "100%" }}
           maxLength={spec.maxLength}
           disabled={saving}
           ref={ref}

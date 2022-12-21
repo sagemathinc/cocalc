@@ -41,7 +41,6 @@ function getRender(field: string, spec: RenderSpec) {
   }
   return ({ obj }) => {
     const { viewOnly } = useViewOnlyContext();
-    console.log("in parent", viewOnly);
     return <C field={field} obj={obj} viewOnly={viewOnly} />;
   };
 }
@@ -95,6 +94,9 @@ function getWidth(renderSpec: RenderSpec): number {
     if (renderSpec.tag) {
       return 200;
     }
+    return 250;
+  }
+  if (renderSpec.type == "project_link") {
     return 250;
   }
   if (renderSpec.type == "timestamp") {

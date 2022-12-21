@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { render, sorter } from "./register";
 import { STATUSES } from "@cocalc/util/db-schema/crm";
 import { Select, Tag } from "antd";
@@ -11,12 +11,15 @@ const COLORS = [yellow[5], red[5], green[5], blue[5], "#888"] as any;
 const _statusToNumber: { [status: string]: number } = {};
 let n = 0;
 const options: any[] = [];
+const statusDisplay: { [status: string]: ReactNode } = {};
 for (const status of STATUSES) {
   _statusToNumber[status] = n;
+  const label = <StatusDisplay n={n} status={status} />;
   options.push({
-    label: <StatusDisplay n={n} status={status} />,
+    label,
     value: status,
   });
+  statusDisplay[status] = label;
   n += 1;
 }
 
@@ -30,7 +33,7 @@ function StatusDisplay({ status, n }) {
   return <Tag color={COLORS[n]}>{capitalize(status)}</Tag>;
 }
 
-render({ type: "status" }, ({ field, obj, spec }) => {
+render({ type: "status" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "status") {
     throw Error("bug");
   }
@@ -51,13 +54,17 @@ render({ type: "status" }, ({ field, obj, spec }) => {
 
   return (
     <div style={{ width: "100%", display: "inline-block" }}>
-      <Select
-        disabled={!spec.editable}
-        value={status}
-        style={{ width: "112px", display: "inline-block" }}
-        options={options}
-        onChange={(status) => set(statusToNumber(status))}
-      />
+      {viewOnly ? (
+        statusDisplay[status]
+      ) : (
+        <Select
+          disabled={!spec.editable}
+          value={status}
+          style={{ width: "112px", display: "inline-block" }}
+          options={options}
+          onChange={(status) => set(statusToNumber(status))}
+        />
+      )}
       {error}
     </div>
   );
