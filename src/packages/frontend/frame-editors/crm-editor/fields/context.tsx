@@ -175,3 +175,23 @@ function ClickToEdit({
     </Tooltip>
   );
 }
+
+interface ViewOnlyContextType {
+  viewOnly: boolean;
+}
+
+const ViewOnlyContext = createContext<ViewOnlyContextType>({
+  viewOnly: false,
+});
+
+export function ViewOnly({ children }) {
+  return (
+    <ViewOnlyContext.Provider value={{ viewOnly: true }}>
+      {children}
+    </ViewOnlyContext.Provider>
+  );
+}
+
+export function useViewOnlyContext(): ViewOnlyContextType {
+  return useContext(ViewOnlyContext);
+}

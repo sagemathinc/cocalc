@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { SCHEMA, RenderSpec, FieldSpec } from "@cocalc/util/db-schema";
 import { fieldToLabel } from "../util";
 import * as register from "./register";
+import { useViewOnlyContext } from "./context";
 
 import "./accounts";
 import "./boolean";
@@ -24,6 +25,20 @@ import "./uuid";
 
 function getRender(field: string, spec: RenderSpec) {
   const C = register.getRenderer(spec);
+  if (spec["editable"]) {
+    const ViewOnlyC = register.getRenderer({
+      ...spec,
+      editable: false,
+    } as RenderSpec);
+    return ({ obj }) => {
+      const { viewOnly } = useViewOnlyContext();
+      if (viewOnly) {
+        return <ViewOnlyC field={field} obj={obj} />;
+      } else {
+        return <C field={field} obj={obj} />;
+      }
+    };
+  }
   return ({ obj }) => <C field={field} obj={obj} />;
 }
 

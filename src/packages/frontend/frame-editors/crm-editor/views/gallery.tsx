@@ -2,9 +2,9 @@
 //   https://ant.design/components/descriptions
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Button, Card, Popover } from "antd";
+import { Card, Modal } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
-import { Icon } from "@cocalc/frontend/components";
+import { ViewOnly } from "../fields/context";
 
 interface Props {
   rowKey: string;
@@ -67,27 +67,11 @@ export function OneCard({
   style?: CSSProperties;
 }) {
   const [open, setOpen] = useState<boolean>(false);
-  const title = (
-    <div>
-      {" "}
-      <Button
-        onClick={() => setOpen(!open)}
-        type="link"
-        style={{
-          position: "absolute",
-          right: "-12px",
-          top: "-5px",
-          fontSize: "16pt",
-        }}
-      >
-        <Icon name={!open ? "expand" : "times"} />
-      </Button>
-      <Data noTitle elt={elt} columns={[columns[0]]} />
-    </div>
-  );
+  const title = <Data noTitle elt={elt} columns={[columns[0]]} />;
   const data = <Data elt={elt} columns={columns.slice(1)} />;
   const card = (
     <Card
+      onClick={() => setOpen(true)}
       hoverable
       key={elt[rowKey]}
       title={title}
@@ -102,27 +86,24 @@ export function OneCard({
     </Card>
   );
   return (
-    <Popover
-      open={open}
-      title={title}
-      content={() => {
-        return (
-          <div
-            style={{
-              maxHeight: "90vh",
-              maxWidth: "90vw",
-              minWidth: "400px",
-              overflow: "auto",
-              padding: "10px 0",
-            }}
-          >
-            {data}
-          </div>
-        );
-      }}
-    >
-      {card}
-    </Popover>
+    <div>
+      <Modal
+        style={{
+          maxHeight: "90vh",
+          maxWidth: "90vw",
+          minWidth: "400px",
+          overflow: "auto",
+          padding: "10px 0",
+        }}
+        open={open}
+        title={title}
+        onOk={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      >
+        {data}
+      </Modal>
+      <ViewOnly>{card}</ViewOnly>
+    </div>
   );
 }
 

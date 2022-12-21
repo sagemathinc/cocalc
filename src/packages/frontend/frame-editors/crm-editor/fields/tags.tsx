@@ -1,6 +1,5 @@
 import { render } from "./register";
 import { Button, Popconfirm, Select, Space, Tag as AntdTag } from "antd";
-import sha1 from "sha1";
 import { useEditableContext } from "./context";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { ReactNode, useEffect, useMemo, useState } from "react";
@@ -13,20 +12,12 @@ render({ type: "tags", editable: false }, ({ field, obj }) => {
   if (tags == null) return null;
   return (
     <div style={{ lineHeight: "2em", display: "inline-block" }}>
-      {tags.map((name) => {
-        const color = nameToColor(name);
-        return <Tag color={color}>{name}</Tag>;
-      })}
+      {tags.map((id) => (
+        <TagById id={id} />
+      ))}
     </div>
   );
 });
-
-// color is a function of the name for now, but we will likely make
-// it customizable via a global editable table mapping from tag name to color,
-// and then this is a lookup into that table instead.
-function nameToColor(name: string): string {
-  return `#${sha1(name).slice(0, 6)}`;
-}
 
 render({ type: "tags", editable: true }, ({ field, obj }) => {
   const { save, counter, error, setError } =
