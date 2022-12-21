@@ -6,6 +6,7 @@ import { RenderSpec } from "@cocalc/util/db-schema";
 interface Props {
   field: string;
   obj: object;
+  viewOnly?: boolean;
 }
 
 export interface RenderProps extends Props {
@@ -32,8 +33,8 @@ export function getRenderer(spec: RenderSpec): FC<Props> {
     }
   }
   if (C != null) {
-    return ({ obj, field }) =>
-      createElement(C as FC<RenderProps>, { obj, field, spec });
+    return ({ obj, field, viewOnly }) =>
+      createElement(C as FC<RenderProps>, { obj, field, spec, viewOnly });
   }
   throw Error(`no rendererer for spec ${JSON.stringify(spec)} found`);
 }

@@ -33,13 +33,17 @@ function getRender(field: string, spec: RenderSpec) {
     return ({ obj }) => {
       const { viewOnly } = useViewOnlyContext();
       if (viewOnly) {
-        return <ViewOnlyC field={field} obj={obj} />;
+        return <ViewOnlyC field={field} obj={obj} viewOnly />;
       } else {
         return <C field={field} obj={obj} />;
       }
     };
   }
-  return ({ obj }) => <C field={field} obj={obj} />;
+  return ({ obj }) => {
+    const { viewOnly } = useViewOnlyContext();
+    console.log("in parent", viewOnly);
+    return <C field={field} obj={obj} viewOnly={viewOnly} />;
+  };
 }
 
 function getSorter(field: string, renderSpec: RenderSpec) {

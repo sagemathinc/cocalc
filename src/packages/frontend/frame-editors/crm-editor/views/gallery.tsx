@@ -2,9 +2,10 @@
 //   https://ant.design/components/descriptions
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Card, Modal } from "antd";
+import { Card, Modal, Space } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   rowKey: string;
@@ -88,15 +89,20 @@ export function OneCard({
   return (
     <div>
       <Modal
+        footer={null}
         style={{
           maxHeight: "90vh",
           maxWidth: "90vw",
-          minWidth: "400px",
+          minWidth: "800px",
           overflow: "auto",
           padding: "10px 0",
         }}
         open={open}
-        title={title}
+        title={
+          <Space>
+            <Icon name="pencil" /> {title}
+          </Space>
+        }
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
