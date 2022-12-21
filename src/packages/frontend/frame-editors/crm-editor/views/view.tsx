@@ -1,11 +1,12 @@
 import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Button, Space, Table } from "antd";
+import { Alert, Button, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
 import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
+import Grid from "./grid";
 import Calendar from "./calendar";
 import type { ViewType } from "../types";
 import { Icon } from "@cocalc/frontend/components";
@@ -23,7 +24,7 @@ interface Props {
 }
 
 export default function View({ table, view, style, height, name }: Props) {
-  const { title, query, expandable, columns, allowCreate, changes } = useMemo(
+  const { title, query, columns, allowCreate, changes } = useMemo(
     () => getTableDescription(table),
     [table]
   );
@@ -122,23 +123,13 @@ export default function View({ table, view, style, height, name }: Props) {
       );
       break;
     case "grid":
-      let x = 0;
-      for (const c of columns) {
-        x += c.width ?? 0;
-      }
       body = (
-        <Table
-          size="middle"
-          rowKey={rowKey}
-          style={{ overflow: "auto" }}
-          dataSource={data}
+        <Grid
+          style={style}
+          data={data}
           columns={columns}
-          expandable={expandable}
-          title={() => header}
-          scroll={{ x, ...(height ? { y: height } : undefined) }}
-          pagination={
-            false /* disabled for now -- TODO: will use virtuoso instead... */
-          }
+          title={header}
+          rowKey={rowKey}
         />
       );
       break;

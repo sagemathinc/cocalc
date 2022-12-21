@@ -20,7 +20,7 @@ function ItemContainer({ children }: { children?: ReactNode }) {
   return <div style={{ display: "inline-block" }}>{children}</div>;
 }
 
-export default function Cards({
+export default function Gallery({
   rowKey,
   data,
   columns,
