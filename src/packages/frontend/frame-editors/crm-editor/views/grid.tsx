@@ -39,6 +39,7 @@ function GridRow({ data, columns }) {
     const width = column.width ?? 150;
     const col = (
       <td
+        key={column.key}
         onClick={() => setOpen(true)}
         style={{
           cursor: "pointer",
@@ -97,7 +98,12 @@ function Header({ columns }) {
 function Column({ width, title }) {
   return (
     <th
-      style={{ width: width ?? 150, background: "#FAFAFA", padding: "0 10px" }}
+      style={{
+        width: width ?? 150,
+        background: "#FAFAFA",
+        padding: "10px 5px",
+        border: "1px solid #eee",
+      }}
     >
       {title}
     </th>

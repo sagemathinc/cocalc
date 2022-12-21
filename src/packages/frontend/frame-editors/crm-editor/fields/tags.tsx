@@ -13,7 +13,7 @@ render({ type: "tags", editable: false }, ({ field, obj }) => {
   return (
     <div style={{ lineHeight: "2em", display: "inline-block" }}>
       {tags.map((id) => (
-        <TagById id={id} />
+        <TagById id={id} key={id} />
       ))}
     </div>
   );
