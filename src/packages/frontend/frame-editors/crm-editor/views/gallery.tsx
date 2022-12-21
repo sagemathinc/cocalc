@@ -1,8 +1,10 @@
 // TODO: the antd Descriptions component is perhaps better for this?
 //   https://ant.design/components/descriptions
 
-import { CSSProperties, ReactNode } from "react";
-import { Card } from "antd";
+import { CSSProperties, ReactNode, useState } from "react";
+import { Button, Card, Popover } from "antd";
+import { VirtuosoGrid } from "react-virtuoso";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   rowKey: string;
@@ -13,29 +15,42 @@ interface Props {
   height?;
 }
 
+function ItemContainer({ children }: { children?: ReactNode }) {
+  return <div style={{ display: "inline-block" }}>{children}</div>;
+}
+
 export default function Cards({
   rowKey,
   data,
   columns,
   title,
-  cardStyle = { width: "300px" },
+  cardStyle = {
+    width: "300px",
+    height: "300px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
   height,
 }: Props) {
-  const v: ReactNode[] = [];
-  for (const elt of data) {
-    v.push(
-      <OneCard
-        key={elt[rowKey]}
-        elt={elt}
-        rowKey={rowKey}
-        columns={columns}
-        style={cardStyle}
-      />
-    );
-  }
   return (
     <Card title={title}>
-      <div style={{ height, overflow: "auto", background: "#eee" }}>{v}</div>
+      <VirtuosoGrid
+        overscan={300}
+        style={{ height: height ?? "600px", background: "#ececec" }}
+        totalCount={data.length}
+        components={{
+          Item: ItemContainer,
+        }}
+        itemContent={(index) => (
+          <OneCard
+            key={data[index][rowKey]}
+            elt={data[index]}
+            rowKey={rowKey}
+            columns={columns}
+            style={cardStyle}
+          />
+        )}
+      />
     </Card>
   );
 }
@@ -51,10 +66,31 @@ export function OneCard({
   columns: object[];
   style?: CSSProperties;
 }) {
-  return (
+  const [open, setOpen] = useState<boolean>(false);
+  const title = (
+    <div>
+      {" "}
+      <Button
+        onClick={() => setOpen(!open)}
+        type="link"
+        style={{
+          position: "absolute",
+          right: "-12px",
+          top: "-5px",
+          fontSize: "16pt",
+        }}
+      >
+        <Icon name={!open ? "expand" : "times"} />
+      </Button>
+      <Data noTitle elt={elt} columns={[columns[0]]} />
+    </div>
+  );
+  const data = <Data elt={elt} columns={columns.slice(1)} />;
+  const card = (
     <Card
+      hoverable
       key={elt[rowKey]}
-      title={<Data noTitle elt={elt} columns={[columns[0]]} />}
+      title={title}
       style={{
         display: "inline-block",
         margin: "10px",
@@ -62,10 +98,31 @@ export function OneCard({
         ...style,
       }}
     >
-      <div>
-        <Data elt={elt} columns={columns.slice(1)} />
-      </div>
+      {data}
     </Card>
+  );
+  return (
+    <Popover
+      open={open}
+      title={title}
+      content={() => {
+        return (
+          <div
+            style={{
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              minWidth: "400px",
+              overflow: "auto",
+              padding: "10px 0",
+            }}
+          >
+            {data}
+          </div>
+        );
+      }}
+    >
+      {card}
+    </Popover>
   );
 }
 
@@ -83,7 +140,7 @@ export function Data({
     const text = elt[column.dataIndex];
     const content = column.render != null ? column.render(text, elt) : text;
     v.push(
-      <div key={column.key}>
+      <div key={column.key} style={{ maxWidth: "800px" }}>
         {!noTitle && <span style={{ color: "#888" }}>{column.title}: </span>}
         {content}
       </div>
