@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { search_match, search_split } from "@cocalc/util/misc";
+import { useTags } from "../querydb/tags";
 
 export default function useFilter({ data }: { data: any[] }): {
   filteredData: any[];
   setFilter: (string) => void;
   numHidden: number;
 } {
+  const tags = useTags();
   const [filter, setFilter] = useState<string>("");
   const searchTerms = useMemo(() => {
     return search_split(filter);
@@ -18,7 +20,7 @@ export default function useFilter({ data }: { data: any[] }): {
     // stupid for initial testing
     const v: any[] = [];
     for (const x of data) {
-      if (search_match(toSearch(x), searchTerms)) {
+      if (search_match(toSearch(x, tags), searchTerms)) {
         v.push(x);
       }
     }
@@ -32,6 +34,13 @@ export default function useFilter({ data }: { data: any[] }): {
   };
 }
 
-function toSearch(obj) {
+function toSearch(obj, tags) {
+  if (tags != null && obj["tags"] != null) {
+    obj = { ...obj, tags: toStrings(obj["tags"], tags) };
+  }
   return JSON.stringify(obj).toLowerCase().replace(/"|'\s/g, "");
+}
+
+function toStrings(tagList: number[], tags) {
+  return tagList.map((id) => `#${tags[id]?.name ?? "..."}`);
 }

@@ -2,7 +2,7 @@ import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
 import useViews, { View as ViewDescription } from "../syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Button, Card, Dropdown, Input, Popover, Space, Tabs } from "antd";
+import { Button, Card, Dropdown, Input, Space, Tabs } from "antd";
 import View from "./view";
 import {
   SortableContext,
@@ -282,50 +282,44 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
       )}
       {selected && (
         <span style={{ float: "right", marginRight: "10px" }}>
-          <Popover
-            title={() => (
-              <div style={{ maxWidth: "250px" }}>{getView(id)?.name}</div>
-            )}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "rename",
+                  label: (
+                    <span onClick={() => setEditing(true)}>
+                      <Icon name="edit" style={{ marginRight: "10px" }} />
+                      Rename view
+                    </span>
+                  ),
+                },
+                {
+                  key: "duplicate",
+                  label: (
+                    <span onClick={() => onAction("duplicate")}>
+                      <Icon name="copy" style={{ marginRight: "10px" }} />
+                      Duplicate view
+                    </span>
+                  ),
+                },
+                {
+                  key: "delete",
+                  label: (
+                    <span
+                      style={{ color: "#ff4d4f" }}
+                      onClick={() => onAction("delete")}
+                    >
+                      <Icon name="trash" style={{ marginRight: "10px" }} />
+                      Delete view
+                    </span>
+                  ),
+                },
+              ],
+            }}
           >
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: "rename",
-                    label: (
-                      <span onClick={() => setEditing(true)}>
-                        <Icon name="edit" style={{ marginRight: "10px" }} />
-                        Rename view
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "duplicate",
-                    label: (
-                      <span onClick={() => onAction("duplicate")}>
-                        <Icon name="copy" style={{ marginRight: "10px" }} />
-                        Duplicate view
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "delete",
-                    label: (
-                      <span
-                        style={{ color: "#ff4d4f" }}
-                        onClick={() => onAction("delete")}
-                      >
-                        <Icon name="trash" style={{ marginRight: "10px" }} />
-                        Delete view
-                      </span>
-                    ),
-                  },
-                ],
-              }}
-            >
-              <Icon name="caret-down" />
-            </Dropdown>
-          </Popover>
+            <Icon name="caret-down" />
+          </Dropdown>
           <span {...listeners} style={{ cursor: "hand" }}>
             <Icon
               name="ellipsis"
