@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./app-framework": "./dist/app-framework/index.js",
+    "./app-framework/syncdb": "./dist/app-framework/syncdb/index.js",
     "./components": "./dist/components/index.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",

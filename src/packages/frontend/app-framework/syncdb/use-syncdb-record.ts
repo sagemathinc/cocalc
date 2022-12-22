@@ -1,13 +1,10 @@
 /*
 Hook that is like useState but for one record of the syncdb
 identified by a primary key.
-
-This is pretty generic and has nothing to do with CRM in particular.
-It should get factored out.
 */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSyncdbContext } from "./context";
+import { useSyncdbContext } from "./syncdb-context";
 import { debounce, isEqual } from "lodash";
 
 export default function useSyncdbRecord<T>({
@@ -25,13 +22,14 @@ export default function useSyncdbRecord<T>({
     syncdb?.get_one(key)?.toJS() ?? { ...defaultValue, ...key }
   );
 
-  const lastCommitRef = useRef<T>(defaultValue);
+  const lastCommitRef = useRef<T | null>(null);
 
   const save = useCallback(
     debounce((value: T) => {
       if (syncdb != null) {
-        lastCommitRef.current = { ...value, ...key };
-        syncdb.set(lastCommitRef.current);
+        const x = { ...value, ...key };
+        lastCommitRef.current = x;
+        syncdb.set(x);
         syncdb.commit();
       }
     }, debounceMs),
@@ -54,6 +52,7 @@ export default function useSyncdbRecord<T>({
     const update = () => {
       const val = syncdb?.get_one(key)?.toJS() ?? { ...defaultValue, ...key };
       if (isEqual(val, lastCommitRef.current)) return;
+      lastCommitRef.current = null;
       setValue0(val);
     };
     const handleChange = (keys) => {

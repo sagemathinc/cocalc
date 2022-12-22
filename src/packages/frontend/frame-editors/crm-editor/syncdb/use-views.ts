@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSyncdbContext } from "./context";
+import { useSyncdbContext } from "@cocalc/frontend/app-framework/syncdb";
 import { uuid } from "@cocalc/util/misc";
 import { field_cmp } from "@cocalc/util/cmp";
 import type { SetOptional } from "type-fest";

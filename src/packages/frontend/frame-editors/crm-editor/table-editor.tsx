@@ -2,7 +2,7 @@ import { getTables, getTableDescription } from "./tables";
 import { Tabs } from "antd";
 import { useMemo, ReactNode } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { SyncdbContext } from "./syncdb/context";
+import { SyncdbContext } from "@cocalc/frontend/app-framework/syncdb";
 import Views from "./views";
 import Home from "./home";
 import { Icon } from "@cocalc/frontend/components";

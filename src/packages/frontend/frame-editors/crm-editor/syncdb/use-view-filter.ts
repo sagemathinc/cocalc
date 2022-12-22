@@ -1,6 +1,6 @@
 /* Filter for a specific view, syncd using syncdb. */
 
-import useSyncdbRecord from "./use-syncdb-record";
+import { useSyncdbRecord } from "@cocalc/frontend/app-framework/syncdb";
 import { useCallback } from "react";
 
 const TABLE = "view-filters";
