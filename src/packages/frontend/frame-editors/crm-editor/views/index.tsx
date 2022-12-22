@@ -33,7 +33,7 @@ interface Props {
 }
 
 export default function Views({ table }: Props) {
-  const [views, saveView, deleteView] = useViews(table);
+  const { views, saveView, deleteView } = useViews(table);
   const { actions, id, desc } = useFrameContext();
 
   const getView = useCallback(

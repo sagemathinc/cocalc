@@ -13,6 +13,7 @@ export interface View {
   name: string;
   dbtable: string;
   pos: number;
+  filter?: string;
 }
 
 type PartialView = SetOptional<View, "table" | "id" | "dbtable" | "name">;
@@ -20,26 +21,30 @@ type PartialView = SetOptional<View, "table" | "id" | "dbtable" | "name">;
 type SetViewFunction = (PartialView) => void;
 type DeleteViewFunction = (View) => void;
 
-export default function useViews(
-  dbtable: string
-): [View[] | null, SetViewFunction, DeleteViewFunction] {
+type Views = View[];
+
+export default function useViews(dbtable: string): {
+  views: Views | null;
+  saveView: SetViewFunction;
+  deleteView: DeleteViewFunction;
+} {
   const { syncdb } = useSyncdbContext();
-  const [views, saveViews] = useState<View[] | null>(null);
+  const [views, saveViews] = useState<Views | null>(null);
 
   useEffect(() => {
     if (syncdb == null) {
-      saveViews([]);
+      saveViews(null);
       return;
     }
 
     function update() {
       if (syncdb == null) return; // typescript
-      const v = syncdb
+      const array = syncdb
         .get({ table: "views" })
         .filter((x) => x.get("dbtable") == dbtable)
         .toJS();
-      v.sort(field_cmp("pos"));
-      saveViews(v);
+      array.sort(field_cmp("pos"));
+      saveViews(array);
     }
 
     function handleChange(keys) {
@@ -87,7 +92,9 @@ export default function useViews(
             break;
           }
         }
-        views?.push(view as View);
+        if (views != null) {
+          views.push(view as View);
+        }
       }
       if (view.pos == null) {
         // assign new position
@@ -121,7 +128,7 @@ export default function useViews(
       syncdb.delete({ table, id });
       syncdb.commit();
     };
-  }, [syncdb, dbtable, views]);
+  }, [syncdb]);
 
-  return [views, saveView, deleteView];
+  return { views, saveView, deleteView };
 }
