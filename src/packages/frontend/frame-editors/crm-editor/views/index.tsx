@@ -283,6 +283,7 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
       {selected && (
         <span style={{ float: "right", marginRight: "10px" }}>
           <Dropdown
+            trigger="click"
             menu={{
               items: [
                 {
