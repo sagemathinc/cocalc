@@ -2,13 +2,19 @@ import { useMemo, useState } from "react";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { useTags } from "../querydb/tags";
 
-export default function useFilter({ data }: { data: any[] }): {
+export default function useFilter({
+  data,
+  defaultFilter,
+}: {
+  data: any[];
+  defaultFilter?: string;
+}): {
   filteredData: any[];
   setFilter: (string) => void;
   numHidden: number;
 } {
   const tags = useTags();
-  const [filter, setFilter] = useState<string>("");
+  const [filter, setFilter] = useState<string>(defaultFilter ?? "");
   const searchTerms = useMemo(() => {
     return search_split(filter);
   }, [filter]);

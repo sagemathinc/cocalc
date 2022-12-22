@@ -15,7 +15,7 @@ export default function useFilterInput({ data, id }): {
     filteredData,
     setFilter: setFilter0,
     numHidden,
-  } = useFilter({ data });
+  } = useFilter({ data, defaultFilter: filter });
 
   useEffect(
     debounce(() => {

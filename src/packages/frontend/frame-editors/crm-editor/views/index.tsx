@@ -268,7 +268,7 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
       ) : (
         <div
           style={{
-            maxWidth: "150px",
+            width: "150px",
             display: "inline-block",
             overflow: "hidden",
             marginRight: "10px",

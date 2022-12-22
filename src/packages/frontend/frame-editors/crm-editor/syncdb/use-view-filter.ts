@@ -19,7 +19,9 @@ export default function useViewFilter({
 }): [filter: string, setFilter: (string) => void] {
   const { syncdb } = useSyncdbContext();
 
-  const [filter, setFilter0] = useState<string>("");
+  const [filter, setFilter0] = useState<string>(
+    syncdb?.get_one({ table: TABLE, id })?.get("filter") ?? ""
+  );
 
   const save = useCallback(
     debounce((filter) => {
@@ -49,7 +51,6 @@ export default function useViewFilter({
     };
     update();
     const handleChange = (keys) => {
-      console.log("handleChange", keys?.toJS());
       for (const key of keys) {
         if (key.get("table") == TABLE && key.get("id") == id) {
           update();
