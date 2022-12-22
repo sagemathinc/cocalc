@@ -7,8 +7,6 @@ const STYLE = {
   overflow: "auto",
   display: "inline-block",
   margin: "15px 2.5% 15px 2.5%",
-  border: "1px solid lightgrey",
-  borderRadius: "5px",
 };
 
 export default function Home() {

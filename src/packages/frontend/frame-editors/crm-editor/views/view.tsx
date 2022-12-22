@@ -133,32 +133,36 @@ export default function View({ table, view, style, height, name }: Props) {
 
   return (
     <EditableContext.Provider value={editableContext}>
-      {tableError && (
-        <Alert
-          type="error"
-          message="Database Query Error"
-          description={tableError}
-        />
-      )}
-      {view == "calendar" && (
-        <SelectTimeKey onChange={setTimeKey} query={query} />
-      )}
-      <Space>
-        <Input.Search
-          allowClear
-          placeholder="Filter View..."
-          onSearch={setFilter}
-          enterButton="Search"
-          style={{ width: 300, marginBottom: "5px" }}
-          onChange={debounce((e) => setFilter(e.target.value), 500)}
-        />
-        {numHidden > 0 ? (
-          <b>
-            {numHidden} {plural(numHidden, "result")} not shown
-          </b>
-        ) : undefined}
-      </Space>
-      <div style={style}>{body}</div>
+      <div style={style}>
+        {tableError && (
+          <Alert
+            type="error"
+            message="Database Query Error"
+            description={tableError}
+          />
+        )}
+        {view == "calendar" && (
+          <SelectTimeKey onChange={setTimeKey} query={query} />
+        )}
+        <Space style={{ marginBottom: "5px" }}>
+          <Input.Search
+            allowClear
+            placeholder="Filter View..."
+            onSearch={setFilter}
+            enterButton="Search"
+            style={{ width: 300, marginBottom: "5px" }}
+            onChange={debounce((e) => setFilter(e.target.value), 500)}
+          />
+          {numHidden > 0 ? (
+            <Alert
+              showIcon
+              type="info"
+              message={`${numHidden} ${plural(numHidden, "result")} not shown`}
+            />
+          ) : undefined}
+        </Space>
+        {body}
+      </div>
     </EditableContext.Provider>
   );
 }
