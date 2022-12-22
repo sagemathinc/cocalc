@@ -92,7 +92,7 @@ function getMenus({ name, view, columns }) {
         ]),
     },
     {
-      label: "Filter",
+      label: "Search",
       key: "SubMenu",
       icon: <FilterOutlined />,
       children: columns.map(({ dataIndex, title }) => {

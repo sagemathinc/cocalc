@@ -65,7 +65,7 @@ export default function Views({ table }: Props) {
       items.push({
         label: name,
         key: id,
-        children: <View table={table} view={type} name={name} />,
+        children: <View table={table} view={type} name={name} id={id} />,
       });
     }
     items.push({

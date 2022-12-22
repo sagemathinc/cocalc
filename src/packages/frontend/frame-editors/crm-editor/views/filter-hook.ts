@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { search_match, search_split } from "@cocalc/util/misc";
 
-export function useFilter({ data }: { data: any[] }): {
+export default function useFilter({ data }: { data: any[] }): {
   filteredData: any[];
   setFilter: (string) => void;
   numHidden: number;
