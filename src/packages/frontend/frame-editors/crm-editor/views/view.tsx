@@ -1,4 +1,4 @@
-import { useMemo, useState, CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Input, Space } from "antd";
 import { EditableContext } from "../fields/context";
@@ -17,6 +17,7 @@ import { fieldToLabel } from "../util";
 import { useFilter } from "./filter";
 import { debounce } from "lodash";
 import { plural } from "@cocalc/util/misc";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   view: ViewType;
@@ -42,6 +43,7 @@ export default function View({ table, view, style, height, name }: Props) {
     return keys[0];
   }, [table]);
 
+  // start filter (TODO: this feels ugly).
   const {
     data: data0,
     refresh,
@@ -49,11 +51,34 @@ export default function View({ table, view, style, height, name }: Props) {
     error: tableError,
   } = useTable({ query, changes });
 
+  const { actions, id, desc } = useFrameContext();
+  const filterKey = useMemo(() => {
+    return `data-view-${table}-${name}-filter`;
+  }, [table]);
+
   const {
     filteredData: data,
-    setFilter,
+    setFilter: setFilter0,
     numHidden,
   } = useFilter({ data: data0 });
+  const filterRef = useRef<any>(null);
+
+  const setFilter = useMemo(() => {
+    return (filter: string) => {
+      setFilter0(filter);
+      actions.set_frame_tree({ id, [filterKey]: filter });
+    };
+  }, [setFilter0, filterKey]);
+
+  useEffect(() => {
+    // type of desc.get is not known.
+    const filter = `${desc.get(filterKey) ?? ""}`;
+    setFilter(filter);
+    if (filterRef.current != null) {
+      filterRef.current.value = filter;
+    }
+  }, [filterKey]);
+  // end filter
 
   async function addNew() {
     const dbtable = Object.keys(query)[0];
@@ -146,6 +171,8 @@ export default function View({ table, view, style, height, name }: Props) {
         )}
         <Space style={{ marginBottom: "5px" }}>
           <Input.Search
+            ref={filterRef}
+            defaultValue={desc.get(filterKey) ?? ""}
             allowClear
             placeholder="Filter View..."
             onSearch={setFilter}
