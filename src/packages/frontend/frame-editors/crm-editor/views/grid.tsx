@@ -48,9 +48,7 @@ function GridRow({ data, columns }) {
           border: "1px solid #eee",
         }}
       >
-        <div
-          style={{ width, overflow: "auto", maxHeight: 60, margin: "0 5px" }}
-        >
+        <div style={{ width, overflow: "auto", margin: "0 5px" }}>
           {content}
         </div>
       </td>

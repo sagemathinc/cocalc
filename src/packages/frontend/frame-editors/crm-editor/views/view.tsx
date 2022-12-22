@@ -83,11 +83,9 @@ export default function View({ table, view, style, height, name, id }: Props) {
           <Icon name="plus-circle" /> New
         </Button>
       )}
-      {!changes && (
-        <Button onClick={refresh}>
-          <Icon name="refresh" /> Refresh
-        </Button>
-      )}
+      <Button onClick={refresh}>
+        <Icon name="refresh" /> Refresh
+      </Button>
     </Space>
   );
 

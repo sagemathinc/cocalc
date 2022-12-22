@@ -56,21 +56,43 @@ export function useTable({ query, changes = false }: Options): {
     incCounter();
   }, [data]);
 
-  refreshRef.current = async (x) => {
-    // specific record changed
-    for (let i = 0; i < data.length; i++) {
-      let matches = true;
-      for (const primary_key of info.primary_keys) {
-        if (data[i]?.[primary_key] != x?.[primary_key]) {
-          matches = false;
-          break;
+  refreshRef.current = async ({ old_val, new_val }) => {
+    // console.log("changefeed", { old_val, new_val });
+    // specific record changed, created or deleted
+    if (new_val != null) {
+      for (let i = 0; i < data.length; i++) {
+        let matches = true;
+        for (const primary_key of info.primary_keys) {
+          if (data[i]?.[primary_key] != new_val[primary_key]) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          data[i] = { ...data[i], ...new_val };
+          setData([...data]);
+          return;
         }
       }
-      if (matches) {
-        data[i] = { ...data[i], ...x };
-        setData([...data]);
-        return;
+      // no match -- new value created
+      data.push(new_val);
+    } else if (old_val != null) {
+      // delete
+      for (let i = 0; i < data.length; i++) {
+        let matches = true;
+        for (const primary_key of info.primary_keys) {
+          if (data[i]?.[primary_key] != old_val[primary_key]) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          data.splice(i, 1);
+          setData([...data]);
+          return;
+        }
       }
+      // no match -- don't need to do anything
     }
   };
 
@@ -97,8 +119,7 @@ export function useTable({ query, changes = false }: Options): {
         // TODO: err handling, reconnect logic
         if (resp.action) {
           // change, e.g., insert or update or delete
-          // console.log("changefeed", resp);
-          refreshRef.current(resp.new_val);
+          refreshRef.current(resp);
         } else {
           // initial response
           x.id = resp.id;

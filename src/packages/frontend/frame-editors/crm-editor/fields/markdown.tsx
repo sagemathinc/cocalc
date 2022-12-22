@@ -4,10 +4,13 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useEditableContext } from "./context";
 import { render } from "./register";
 import { Button, Space } from "antd";
-//import { debounce } from "lodash";
+
+const MAX_HEIGHT = 150;
 
 render({ type: "markdown", editable: false }, ({ field, obj }) => (
-  <StaticMarkdown value={obj[field] ?? ""} />
+  <div style={{ maxHeight: MAX_HEIGHT, overflow: "auto" }}>
+    <StaticMarkdown value={obj[field] ?? ""} />
+  </div>
 ));
 
 render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
@@ -42,7 +45,11 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
 
   if (viewOnly) {
     if (!value?.trim()) return null;
-    return <StaticMarkdown value={value} />;
+    return (
+      <div style={{ maxHeight: MAX_HEIGHT, overflow: "auto" }}>
+        <StaticMarkdown value={value} />
+      </div>
+    );
   }
 
   return edit ? (

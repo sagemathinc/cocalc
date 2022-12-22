@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTags } from "../querydb/tags";
 import { Tag } from "./tags";
 
@@ -9,7 +10,9 @@ interface Props {
 
 export function TagById({ id, onClose, confirm }: Props) {
   const tags = useTags();
-  const tag = tags?.[id];
+  const tag = useMemo(() => {
+    return tags?.[id];
+  }, [tags, id]);
   return (
     <Tag
       color={tag?.color}
@@ -17,8 +20,7 @@ export function TagById({ id, onClose, confirm }: Props) {
       onClose={onClose}
       confirm={confirm}
     >
-      {tag == null && (tags != null ? "..." : "Loading...")}
-      {tag?.name}
+      {tag == null ? (tags != null ? "..." : "Loading...") : tag?.name}
     </Tag>
   );
 }

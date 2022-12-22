@@ -35,6 +35,7 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
         <div style={{ lineHeight: "2em", display: "inline-block" }}>
           {tags?.map((id) => (
             <TagById
+              key={id}
               confirm
               id={id}
               onClose={async () => {
