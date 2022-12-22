@@ -180,7 +180,7 @@ Table({
           ...schema.syncstrings.user_query?.get?.fields,
           string_id: null,
         },
-        options: [{ limit: 100 }],
+        options: [{ limit: 100 }, { order_by: "-last_active" }],
       },
     },
   },
@@ -299,6 +299,7 @@ Table({
       type: "string",
       pg_type: "TEXT", // that's what it is in the database now...
       desc: "JSON string that parses to a patch, which transforms the previous version of the syncstring to this version",
+      render: { type: "text" },
     },
     snapshot: {
       type: "string",
@@ -402,6 +403,26 @@ Table({
 });
 
 schema.patches.project_query = schema.patches.user_query;
+
+Table({
+  name: "crm_patches",
+  rules: {
+    virtual: "patches",
+    primary_key: "string_id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table
+        fields: {
+          ...schema.patches.user_query?.get?.fields,
+          string_id: null,
+        },
+        options: [{ limit: 200 }, { order_by: "-time" }],
+      },
+    },
+  },
+  fields: schema.patches.fields,
+});
 
 /*
 TODO: re-implement

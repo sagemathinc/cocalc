@@ -52,7 +52,7 @@ render({ type: "priority" }, ({ field, obj, spec, viewOnly }) => {
   const [priority, setPriority] = useState<string | undefined>(obj[field]);
   useEffect(() => {
     setPriority(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   const n = priorityToNumber(priority);
 

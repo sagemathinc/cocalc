@@ -10,6 +10,7 @@ import "./support-messages";
 
 import "./site-licenses";
 import "./accounts";
+import "./patches";
 import "./projects";
 import "./public-paths";
 import "./shopping-cart-items";

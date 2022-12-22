@@ -1,6 +1,6 @@
 import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Button, Space } from "antd";
+import { Alert, Button, Input, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/table-hook";
 import { client_db } from "@cocalc/util/db-schema";
@@ -14,6 +14,9 @@ import { getTableDescription } from "../tables";
 import { SCHEMA } from "@cocalc/util/db-schema";
 import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
+import { useFilter } from "./filter";
+import { debounce } from "lodash";
+import { plural } from "@cocalc/util/misc";
 
 interface Props {
   view: ViewType;
@@ -36,21 +39,21 @@ export default function View({ table, view, style, height, name }: Props) {
       throw Error("invalid query");
     }
     const keys = client_db.primary_keys(dbtable);
-    if (keys.length != 1) {
-      throw Error("must be a unique primary key");
-    }
     return keys[0];
   }, [table]);
 
   const {
-    data,
+    data: data0,
     refresh,
     editableContext,
     error: tableError,
-  } = useTable({
-    query,
-    changes,
-  });
+  } = useTable({ query, changes });
+
+  const {
+    filteredData: data,
+    setFilter,
+    numHidden,
+  } = useFilter({ data: data0 });
 
   async function addNew() {
     const dbtable = Object.keys(query)[0];
@@ -140,6 +143,21 @@ export default function View({ table, view, style, height, name }: Props) {
       {view == "calendar" && (
         <SelectTimeKey onChange={setTimeKey} query={query} />
       )}
+      <Space>
+        <Input.Search
+          allowClear
+          placeholder="Filter View..."
+          onSearch={setFilter}
+          enterButton="Search"
+          style={{ width: 300, marginBottom: "5px" }}
+          onChange={debounce((e) => setFilter(e.target.value), 500)}
+        />
+        {numHidden > 0 ? (
+          <b>
+            {numHidden} {plural(numHidden, "result")} not shown
+          </b>
+        ) : undefined}
+      </Space>
       <div style={style}>{body}</div>
     </EditableContext.Provider>
   );

@@ -1,9 +1,10 @@
 import { CSSProperties, ReactNode, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { Card, Modal } from "antd";
+import { Card, Divider, Modal } from "antd";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
+import Json from "./json";
 
 interface Props {
   data: any[];
@@ -80,6 +81,8 @@ function GridRow({ data, columns }) {
       >
         <div style={{ overflow: "auto" }}>
           <Data elt={data} columns={columns} />
+          <Divider>Raw Data</Divider>
+          <Json obj={data} />
         </div>
       </Modal>
     </>

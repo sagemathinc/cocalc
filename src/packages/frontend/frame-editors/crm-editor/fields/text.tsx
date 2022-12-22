@@ -41,7 +41,7 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
 
   useEffect(() => {
     setValue(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   if (edit) {
     return (

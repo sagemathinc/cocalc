@@ -19,7 +19,7 @@ render({ type: "boolean", editable: true }, ({ field, obj, spec }) => {
 
   useEffect(() => {
     setValue(!!obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   return (
     <>

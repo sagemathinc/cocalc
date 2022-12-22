@@ -27,7 +27,7 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
 
   useEffect(() => {
     setTags(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   return (
     <Space direction="vertical" style={{ width: "100%" }}>

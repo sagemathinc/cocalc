@@ -2,10 +2,11 @@
 //   https://ant.design/components/descriptions
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Card, Modal } from "antd";
+import { Card, Divider, Modal } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
+import Json from "./json";
 
 interface Props {
   rowKey: string;
@@ -110,6 +111,8 @@ export function OneCard({
       >
         {title}
         {data}
+        <Divider>Raw Data</Divider>
+        <Json obj={elt} />
       </Modal>
       <ViewOnly>{card}</ViewOnly>
     </div>

@@ -27,7 +27,7 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
 
   useEffect(() => {
     setValue(obj[field] ? dayjs(obj[field]) : undefined);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   const timeRef = useRef<dayjs.Dayjs | undefined>(value);
   const timeOffset = useMemo(() => {

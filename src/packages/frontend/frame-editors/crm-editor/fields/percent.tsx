@@ -15,7 +15,7 @@ render({ type: "percent" }, ({ field, obj, spec }) => {
 
   useEffect(() => {
     setValue(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   const status = useMemo<"normal" | "success" | "active" | "exception">(() => {
     // status options for progress bar are:

@@ -88,13 +88,13 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)", // some limit (actually around 3000) is required for indexing
       desc: "The first name of this user.",
-      render: { type: "text", maxLength: 254, ellipsis: true },
+      render: { type: "text", maxLength: 254, editable: true },
     },
     last_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this user.",
-      render: { type: "text", maxLength: 254, ellipsis: true },
+      render: { type: "text", maxLength: 254, editable: true },
     },
     banned: {
       type: "boolean",
@@ -417,7 +417,18 @@ Table({
         pg_where: [],
         admin: true, // only admins can do get queries on this table
         fields: schema.accounts.user_query?.get?.fields ?? {},
-        options: [{ limit: 100 }],
+        options: [{ limit: 200 }, { order_by: "-last_active" }],
+      },
+      set: {
+        admin: true, // only admins can do get queries on this table
+        fields: {
+          account_id: true,
+          name: true,
+          first_name: true,
+          last_name: true,
+          autosave: true,
+          font_size: true,
+        },
       },
     },
   },

@@ -41,7 +41,7 @@ render({ type: "status" }, ({ field, obj, spec, viewOnly }) => {
   const [status, setStatus] = useState<string>(obj[field] ?? STATUSES[0]);
   useEffect(() => {
     setStatus(obj[field] ?? STATUSES[0]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   const n = statusToNumber(status);
 

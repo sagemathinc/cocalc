@@ -25,7 +25,7 @@ render({ type: "color", editable: true }, ({ field, obj, spec }) => {
 
   useEffect(() => {
     setColor(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   return (
     <div style={{textAlign:'center'}}>

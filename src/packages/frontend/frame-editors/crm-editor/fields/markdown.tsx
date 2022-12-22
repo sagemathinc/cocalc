@@ -19,7 +19,7 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
   useEffect(() => {
     // TODO: at least a little 3-way merge when upstream value changes?
     setValue(obj[field] ?? "");
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   // This naive thing doesn't work, of course, since the change triggers
   // updating to upstream.  I've solved this annoying problem a million times
@@ -47,9 +47,6 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
 
   return edit ? (
     <Space direction="vertical" style={{ width: "100%" }}>
-      <Button type="primary" onClick={() => save(obj, valueRef.current())}>
-        Save (shift+enter)
-      </Button>
       <MultiMarkdownInput
         getValueRef={valueRef}
         autoFocus
@@ -59,6 +56,13 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
         }}
         onShiftEnter={() => save(obj, valueRef.current())}
       />
+      <Button
+        size="small"
+        type="primary"
+        onClick={() => save(obj, valueRef.current())}
+      >
+        Save (shift+enter)
+      </Button>
       {error}
     </Space>
   ) : (

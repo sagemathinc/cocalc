@@ -105,6 +105,9 @@ function getWidth(renderSpec: RenderSpec): number {
   if (renderSpec.type == "tags") {
     return 200;
   }
+  if (renderSpec.type == "json") {
+    return 300;
+  }
   if (renderSpec.type == "icon") {
     return 64;
   }

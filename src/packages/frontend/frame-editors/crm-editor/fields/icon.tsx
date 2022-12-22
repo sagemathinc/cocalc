@@ -21,7 +21,7 @@ render({ type: "icon", editable: true }, ({ field, obj, spec }) => {
 
   useEffect(() => {
     setName(obj[field]);
-  }, [counter]);
+  }, [counter, obj[field]]);
 
   return (
     <span>
