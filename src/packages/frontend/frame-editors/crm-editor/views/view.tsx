@@ -141,9 +141,10 @@ export default function View({ table, view, style, height, name, id }: Props) {
           <SelectTimeKey onChange={setTimeKey} query={query} />
         )}
         <Space>
-          <Filter />
+          {Filter}
           {numHidden > 0 ? (
             <Alert
+              style={{ marginBottom: "5px" }}
               showIcon
               type="info"
               message={`${numHidden} ${plural(numHidden, "result")} not shown`}
