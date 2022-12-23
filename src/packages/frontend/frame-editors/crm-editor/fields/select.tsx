@@ -81,9 +81,9 @@ render(
     );
 
     const { counter, save, error } = useEditableContext<string>(field);
-    const [value, setValue] = useState<string>(obj[field] ?? spec.options[0]);
+    const [value, setValue] = useState<string | undefined>(obj[field]);
     useEffect(() => {
-      setValue(obj[field] ?? spec.options[0]);
+      setValue(obj[field]);
     }, [counter, obj[field]]);
 
     const n = valueToNumber(value);
@@ -98,7 +98,11 @@ render(
     return (
       <div style={{ width: "100%", display: "inline-block" }}>
         {viewOnly ? (
-          valueDisplay[value]
+          value == null ? (
+            "(not set)"
+          ) : (
+            valueDisplay[value]
+          )
         ) : (
           <Select
             disabled={!spec.editable}

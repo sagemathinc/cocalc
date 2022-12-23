@@ -5,7 +5,7 @@ export type SortDirection = "ascending" | "descending";
 export default function useSortFields({
   id,
 }: {
-  id: string; // id of a view if the given dbtable.
+  id: string; // id of a view of the given dbtable.
 }): [
   sortFields: string[], // ordered array of "field_name" or "-field_name"
   setSortField: (

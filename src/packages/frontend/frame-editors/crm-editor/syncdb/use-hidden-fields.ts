@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 export default function useHiddenFields({
   id,
 }: {
-  id: string; // id of a view if the given dbtable.
+  id: string; // id of a view of a given dbtable.
 }): [
   hiddenFields: Set<string>,
   setHiddenField: (field: string, hide: boolean) => void

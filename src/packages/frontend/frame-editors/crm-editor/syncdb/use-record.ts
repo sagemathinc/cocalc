@@ -12,7 +12,7 @@ export default function useRecord<T>({
   defaultValue,
 }: {
   table: string;
-  id: string; // id of a view if the given dbtable.
+  id: string; // id of a view of a given db table.
   defaultValue: T;
 }): [record: T, setRecord: (value: T) => void] {
   const [record, setRecord0] = useSyncdbRecord<T>({

@@ -6,7 +6,7 @@ import { useCallback } from "react";
 export default function useViewFilter({
   id,
 }: {
-  id: string; // id of a view if the given dbtable.
+  id: string; // id of a view of a given db table.
 }): [filter: string, setFilter: (string) => void] {
   const [record, setRecord] = useRecord<{
     filter?: string;

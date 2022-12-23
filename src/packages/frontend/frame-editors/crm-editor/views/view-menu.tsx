@@ -1,15 +1,29 @@
 import { useMemo, useState } from "react";
+
+// @ts-ignore
 import { FilterOutlined } from "@ant-design/icons";
+
 import type { MenuProps } from "antd";
-import { Button, Divider, Input, Select, Space, Menu, Switch } from "antd";
+import {
+  Button,
+  Divider,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Menu,
+  Switch,
+} from "antd";
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields, { SortDirection } from "../syncdb/use-sort-fields";
+import useLimit from "../syncdb/use-limit";
 
 export default function ViewMenu({ name, view, columns, id }) {
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
   const [sortFields, setSortField] = useSortFields({ id });
+  const [limit, setLimit] = useLimit({ id });
   const items: MenuProps["items"] = useMemo(
     () =>
       getMenus({
@@ -20,6 +34,8 @@ export default function ViewMenu({ name, view, columns, id }) {
         setHiddenField,
         sortFields,
         setSortField,
+        limit,
+        setLimit,
       }),
     [
       columns,
@@ -30,6 +46,8 @@ export default function ViewMenu({ name, view, columns, id }) {
       setHiddenField,
       sortFields,
       setSortField,
+      limit,
+      setLimit,
     ]
   );
   return (
@@ -45,6 +63,8 @@ function getMenus({
   setHiddenField,
   sortFields,
   setSortField,
+  limit,
+  setLimit,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
   return [
@@ -141,30 +161,30 @@ function getMenus({
           },
         ]),
     },
-    {
-      label: "Search",
-      key: "SubMenu",
-      icon: <FilterOutlined />,
-      children: columns.map(({ dataIndex, title }) => {
-        return {
-          disabled: true,
-          label: <Filter field={dataIndex} title={title} />,
-          key: `filter-name-${dataIndex}`,
-        };
-      }),
-    },
-    {
-      label: "Group",
-      key: "group",
-      icon: <Icon name="group" />,
-      children: [
-        {
-          disabled: true,
-          label: <GroupBy columns={columns} />,
-          key: "groupby",
-        },
-      ],
-    },
+    //     {
+    //       label: "Search",
+    //       key: "SubMenu",
+    //       icon: <FilterOutlined />,
+    //       children: columns.map(({ dataIndex, title }) => {
+    //         return {
+    //           disabled: true,
+    //           label: <Filter field={dataIndex} title={title} />,
+    //           key: `filter-name-${dataIndex}`,
+    //         };
+    //       }),
+    //     },
+    //     {
+    //       label: "Group",
+    //       key: "group",
+    //       icon: <Icon name="group" />,
+    //       children: [
+    //         {
+    //           disabled: true,
+    //           label: <GroupBy columns={columns} />,
+    //           key: "groupby",
+    //         },
+    //       ],
+    //     },
     {
       label:
         sortFields.length == 0 ? (
@@ -203,6 +223,18 @@ function getMenus({
               ]
             : []
         ),
+    },
+    {
+      label: <span style={{ padding: "5px" }}>Limit ({limit})</span>,
+      key: "limit",
+      icon: <Icon name="database" />,
+      children: [
+        {
+          disabled: true,
+          label: <Limit limit={limit} setLimit={setLimit} />,
+          key: "the-limit",
+        },
+      ],
     },
   ];
 }
@@ -248,6 +280,7 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
   );
 }
 
+// @ts-ignore
 function Filter({ field, title }) {
   return (
     <Space style={{ width: "100%", color: "#666" }}>
@@ -368,6 +401,7 @@ function SortBy({ columns, field, setSortField }: SortByProps) {
   );
 }
 
+// @ts-ignore
 function GroupBy({ columns }) {
   const [field, setField] = useState<string>("");
   const [descending, setDescending] = useState<boolean>(false);
@@ -406,6 +440,26 @@ function GroupBy({ columns }) {
           ]}
         />
       )}
+    </Space>
+  );
+}
+
+function Limit({ limit, setLimit }) {
+  return (
+    <Space>
+      <div style={{ color: "#666" }}>Limit on number of results:</div>
+      <InputNumber
+        style={{ marginBottom: "7.5px" /* ugly hack */ }}
+        min={1}
+        max={1000}
+        step={25}
+        defaultValue={limit}
+        onChange={(value) => {
+          if (value) {
+            setLimit(value);
+          }
+        }}
+      />
     </Space>
   );
 }

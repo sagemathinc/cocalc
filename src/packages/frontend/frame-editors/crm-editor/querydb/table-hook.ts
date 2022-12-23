@@ -5,14 +5,15 @@ import { client_db } from "@cocalc/util/db-schema";
 import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
-
-const DEFAULT_LIMIT = 200;
+import { DEFAULT_LIMIT } from "../syncdb/use-limit";
+import { debounce } from "lodash";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
   changes?: boolean; // if true, automatically updates records loaded during first query.  Doesn't add/remove anything yet though.
   sortFields?: string[];
   hiddenFields?: Set<string>;
+  limit?: number;
 }
 
 export function useTable({
@@ -20,6 +21,7 @@ export function useTable({
   changes = false,
   sortFields,
   hiddenFields,
+  limit,
 }: Options): {
   data: any[];
   refresh: () => void;
@@ -105,63 +107,68 @@ export function useTable({
     }
   };
 
-  useEffect(() => {
-    const x = { id: "" };
-    // console.log("connecting...", disconnectCounter);
+  useEffect(
+    debounce(
+      () => {
+        const x = { id: "" };
+        // console.log("connecting...", disconnectCounter);
 
-    const q = getQuery(query, hiddenFields);
-    const options = ([{ limit: DEFAULT_LIMIT }] as any[]).concat(
-      sortOptions(sortFields)
-    );
-    console.log(q, options);
-
-    webapp_client.query_client.query({
-      changes,
-      query: q,
-      options,
-      cb: (err, resp) => {
-        if (err == "disconnect") {
-          incDisconnectCounter();
-          return;
-        }
-        if (err) {
-          // TODO: set some overall error state.
-          console.warn(err);
-          setError(`${err}`);
-          return;
-        }
-        if (error) {
-          setError("");
-        }
-        // TODO: err handling, reconnect logic
-        if (resp.action) {
-          // change, e.g., insert or update or delete
-          refreshRef.current(resp);
-        } else {
-          // initial response
-          x.id = resp.id;
-          for (const table in resp.query) {
-            // exactly one thing in for loop:
-            setData(resp.query[table]);
-            break;
+        const q = getQuery(query, hiddenFields);
+        const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
+          sortOptions(sortFields)
+        );
+        webapp_client.query_client.query({
+          changes,
+          query: q,
+          options,
+          cb: (err, resp) => {
+            if (err == "disconnect") {
+              incDisconnectCounter();
+              return;
+            }
+            if (err) {
+              // TODO: set some overall error state.
+              console.warn(err);
+              setError(`${err}`);
+              return;
+            }
+            if (error) {
+              setError("");
+            }
+            // TODO: err handling, reconnect logic
+            if (resp.action) {
+              // change, e.g., insert or update or delete
+              refreshRef.current(resp);
+            } else {
+              // initial response
+              x.id = resp.id;
+              for (const table in resp.query) {
+                // exactly one thing in for loop:
+                setData(resp.query[table]);
+                break;
+              }
+            }
+          },
+        });
+        return () => {
+          // clean up by cancelling the changefeed when
+          // component unmounts
+          if (x.id) {
+            (async () => {
+              try {
+                await webapp_client.query_client.cancel(x.id);
+              } catch (_err) {
+                // many valid reasons to get error here.
+              }
+            })();
           }
-        }
+        };
       },
-    });
-    return () => {
-      // clean up by cancelling the changefeed when
-      // component unmounts
-      if (x.id) {
-        (async () => {
-          try {
-            await webapp_client.query_client.cancel(x.id);
-          } catch (_err) {
-            // many valid reasons to get error here.
-          }
-        })();
-      }
-    };
-  }, [disconnectCounter, sortFields, hiddenFields]);
+      2000,
+      { leading: true, trailing: true }
+    ),
+    [disconnectCounter, sortFields, hiddenFields, limit]
+  );
 
   const refresh = incDisconnectCounter;
   const editableContext = {

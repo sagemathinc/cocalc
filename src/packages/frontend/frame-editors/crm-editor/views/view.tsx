@@ -18,6 +18,7 @@ import useFilter from "./filter-input";
 import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
+import useLimit from "../syncdb/use-limit";
 
 interface Props {
   view: ViewType;
@@ -37,6 +38,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     changes,
   } = useMemo(() => getTableDescription(table), [table]);
 
+  const [limit] = useLimit({ id });
   const [sortFields] = useSortFields({ id });
   const [hiddenFields] = useHiddenFields({ id });
   const columns = useMemo(() => {
@@ -61,7 +63,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     refresh,
     editableContext,
     error: tableError,
-  } = useTable({ query, changes, sortFields, hiddenFields });
+  } = useTable({ query, changes, sortFields, hiddenFields, limit });
 
   const { filteredData, numHidden, Filter } = useFilter({ data, id });
 
