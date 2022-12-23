@@ -1,7 +1,12 @@
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
-export const MAX_TAG_LENGTH = 30;
+const ID = {
+  type: "integer",
+  desc: "Automatically generated sequential id that uniquely determines this row.",
+  pg_type: "SERIAL UNIQUE",
+  noCoerce: true,
+} as FieldSpec;
 
 const TAG_TYPE = `INTEGER[]`;
 
@@ -50,12 +55,7 @@ const LAST_EDITED = {
 Table({
   name: "crm_people",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this person.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     created: CREATED,
     last_edited: LAST_EDITED,
     name: {
@@ -154,12 +154,7 @@ Table({
 Table({
   name: "crm_organizations",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this organization.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     created: CREATED,
     last_edited: LAST_EDITED,
     name: {
@@ -260,12 +255,7 @@ Table({
 Table({
   name: "crm_support_tickets",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this support ticket.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     subject: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -302,9 +292,9 @@ Table({
     status: STATUS_FIELD,
     type: {
       type: "string",
-      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      pg_type: "VARCHAR(30)",
       desc: "The type of this ticket: question, incident, problem, task, etc.",
-      render: { type: "text", editable: true },
+      render: { type: "text", editable: true, maxLength: 30 },
     },
   },
   rules: {
@@ -357,12 +347,7 @@ Table({
 Table({
   name: "crm_support_messages",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this message.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     ticket_id: {
       type: "integer",
       desc: "Support ticket id that this message is connected to.",
@@ -437,12 +422,7 @@ Table({
 Table({
   name: "crm_tasks",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this task.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     subject: {
       type: "string",
       pg_type: "VARCHAR(254)",
@@ -600,12 +580,7 @@ Table({
 Table({
   name: "crm_tags",
   fields: {
-    id: {
-      type: "integer",
-      desc: "Automatically generated sequential id that uniquely determines this tag.",
-      pg_type: "SERIAL UNIQUE",
-      noCoerce: true,
-    },
+    id: ID,
     name: {
       title: "Tag",
       type: "string",
@@ -671,7 +646,6 @@ Table({
   },
 });
 
-/*
 Table({
   name: "crm_leads",
   fields: {
@@ -694,36 +668,38 @@ Table({
     tags: TAGS_FIELD,
     status: {
       type: "string",
-      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      pg_type: "VARCHAR(30)",
       desc: "Status of this lead",
       render: {
-        type: "enum",
+        type: "select",
         editable: true,
         options: [
-          "Attempted to Contact",
           "Contact in Future",
+          "Attempted to Contact",
           "Contacted",
           "Junk Lead",
           "Lost Lead",
           "Not Contacted",
-          "Pre-Qualified",
+          "Pre Qualified",
           "Not Qualified",
         ],
       },
     },
     rating: {
       type: "string",
-      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      pg_type: "VARCHAR(30)",
       desc: "Rating of this lead",
       render: {
-        type: "enum",
+        type: "select",
         editable: true,
+        priority: true,
         options: [
-          "Acquired",
-          "Active",
-          "Market Failed",
-          "Project Cancelled",
+          "-None-",
           "Shut Down",
+          "Project Cancelled",
+          "Market Failed",
+          "Active",
+          "Acquired",
         ],
       },
     },
@@ -743,12 +719,13 @@ Table({
           id: null,
           created: null,
           last_edited: null,
-          email_addresses: null,
-          name: null,
-          account_ids: null,
+          person_id: null,
           deleted: null,
           notes: null,
           tags: null,
+          status: null,
+          rating: null,
+          annual_revenue: null,
         },
         options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
@@ -758,19 +735,18 @@ Table({
           id: true,
           created: true,
           last_edited: true,
-          name: true,
-          email_addresses: true,
-          account_ids: true,
+          person_id: true,
           deleted: true,
           notes: true,
-          tags: null,
+          tags: true,
+          status: true,
+          rating: true,
+          annual_revenue: true,
         },
         required_fields: {
-          last_edited: true, // TODO: make automatic on any set query
+          last_edited: true,
         },
       },
     },
   },
 });
-
-*/

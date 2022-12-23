@@ -12,7 +12,7 @@ function StatusDisplay({ value, color, n }) {
 function PriorityDisplay({ value, color, n, len }) {
   if (n == -1) return null;
   return (
-    <>
+    <div>
       <Progress
         style={{ marginRight: "5px" }}
         strokeColor={color}
@@ -20,8 +20,8 @@ function PriorityDisplay({ value, color, n, len }) {
         showInfo={false}
         percent={(100 * (n + 1)) / len}
       />
-      <span style={{ color: "#666" }}>{capitalize(value)}</span>
-    </>
+      <div style={{ color: "#666" }}>{capitalize(value)}</div>
+    </div>
   );
 }
 
@@ -94,7 +94,7 @@ render(
           <Select
             disabled={!spec.editable}
             value={value}
-            style={{ display: "inline-block" }}
+            style={{ width: "100%" }}
             options={options}
             onChange={(value) => set(valueToNumber(value))}
           />

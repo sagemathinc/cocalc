@@ -3,6 +3,7 @@ import { antdColumn, ColumnsType } from "../fields";
 
 import "./tasks";
 import "./people";
+import "./leads";
 import "./organizations";
 import "./tags";
 import "./support-tickets";
