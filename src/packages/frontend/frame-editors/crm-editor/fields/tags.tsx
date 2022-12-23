@@ -59,7 +59,7 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
           style={{ color: "#888" }}
           onClick={() => setAdding(true)}
         >
-          Select Tags...
+          Tags...
         </Button>
       )}
       {adding && (

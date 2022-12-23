@@ -76,6 +76,7 @@ export function useTable({ query, changes = false }: Options): {
       }
       // no match -- new value created
       data.push(new_val);
+      setData([...data]);
     } else if (old_val != null) {
       // delete
       for (let i = 0; i < data.length; i++) {
