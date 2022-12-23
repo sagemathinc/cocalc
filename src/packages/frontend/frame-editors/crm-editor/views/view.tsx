@@ -16,6 +16,7 @@ import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
 import useFilter from "./filter-input";
 import { plural } from "@cocalc/util/misc";
+import useHiddenFields from "../syncdb/use-hidden-fields";
 
 interface Props {
   view: ViewType;
@@ -27,10 +28,21 @@ interface Props {
 }
 
 export default function View({ table, view, style, height, name, id }: Props) {
-  const { title, query, columns, allowCreate, changes } = useMemo(
-    () => getTableDescription(table),
-    [table]
-  );
+  const {
+    title,
+    query,
+    columns: allColumns,
+    allowCreate,
+    changes,
+  } = useMemo(() => getTableDescription(table), [table]);
+
+  const [hiddenFields] = useHiddenFields({ id });
+  const columns = useMemo(() => {
+    if (hiddenFields.size == 0) {
+      return allColumns;
+    }
+    return allColumns.filter((x) => !hiddenFields.has(x.dataIndex));
+  }, [hiddenFields, allColumns]);
 
   const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
   const rowKey = useMemo(() => {
@@ -91,7 +103,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
 
   const header = (
     <div>
-      {right} <ViewMenu name={name} view={view} columns={columns} />
+      {right} <ViewMenu name={name} view={view} columns={allColumns} id={id} />
     </div>
   );
   let body;
@@ -103,6 +115,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
+          allColumns={allColumns}
           title={header}
         />
       );
@@ -111,7 +124,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
       body = (
         <Calendar
           data={filteredData}
-          columns={columns}
+          columns={allColumns}
+          allColumns={allColumns}
           title={header}
           timeKey={timeKey}
           rowKey={rowKey}
@@ -119,7 +133,14 @@ export default function View({ table, view, style, height, name, id }: Props) {
       );
       break;
     case "grid":
-      body = <Grid data={filteredData} columns={columns} title={header} />;
+      body = (
+        <Grid
+          data={filteredData}
+          columns={columns}
+          allColumns={allColumns}
+          title={header}
+        />
+      );
       break;
     default:
       body = <div>Unsupported view type "{view}"</div>;

@@ -4,18 +4,21 @@ import type { MenuProps } from "antd";
 import { Button, Divider, Input, Select, Space, Menu, Switch } from "antd";
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
+import useHiddenFields from "../syncdb/use-hidden-fields";
 
-export default function ViewMenu({ name, view, columns }) {
+export default function ViewMenu({ name, view, columns, id }) {
+  const [hiddenFields, setHiddenField] = useHiddenFields({ id });
   const items: MenuProps["items"] = useMemo(
-    () => getMenus({ name, view, columns }),
-    [columns, view, name]
+    () => getMenus({ name, view, columns, hiddenFields, setHiddenField }),
+    [columns, view, name, id, hiddenFields, setHiddenField]
   );
   return (
     <Menu triggerSubMenuAction={"click"} mode="horizontal" items={items} />
   );
 }
 
-function getMenus({ name, view, columns }) {
+function getMenus({ name, view, columns, hiddenFields, setHiddenField }) {
+  const allFields = columns.map((x) => x.dataIndex);
   return [
     {
       label: name,
@@ -76,17 +79,29 @@ function getMenus({ name, view, columns }) {
       key: "hide",
       icon: <Icon name="eye-slash" />,
       children: columns
-        .map(({ dataIndex, title }) => {
+        .map(({ dataIndex: field, title }) => {
           return {
             disabled: true,
-            label: <HideToggle field={dataIndex} title={title} />,
-            key: `hide-field-name-${dataIndex}`,
+            label: (
+              <HideToggle
+                title={title}
+                hidden={hiddenFields.has(field)}
+                onChange={(checked) => setHiddenField(field, !checked)}
+              />
+            ),
+            key: `hide-field-name-${field}`,
           };
         })
         .concat([
           {
             disabled: true,
-            label: <HideShowAll />,
+            label: (
+              <HideShowAll
+                hiddenFields={hiddenFields}
+                setHiddenField={setHiddenField}
+                allFields={allFields}
+              />
+            ),
             key: "hide-show-all",
           },
         ]),
@@ -130,26 +145,43 @@ function getMenus({ name, view, columns }) {
   ];
 }
 
-function HideToggle({ field, title }) {
+function HideToggle({ title, hidden, onChange }) {
   return (
-    <Space style={{ width: "100%", color: "#666" }}>
-      <Switch
-        size="small"
-        defaultChecked
-        onChange={() => {
-          console.log("toggle", field);
-        }}
-      />{" "}
+    <div style={{ width: "100%", color: "#666" }}>
       {title}
-    </Space>
+      <Switch
+        style={{ float: "right", marginTop: "12px" }}
+        size="small"
+        checked={!hidden}
+        onChange={onChange}
+      />
+    </div>
   );
 }
 
-function HideShowAll() {
+function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
   return (
     <Space>
-      <Button>Hide All</Button>
-      <Button>Show All</Button>
+      <Button
+        onClick={() => {
+          for (const field of allFields) {
+            if (!hiddenFields.has(field)) {
+              setHiddenField(field, true);
+            }
+          }
+        }}
+      >
+        Hide All
+      </Button>
+      <Button
+        onClick={() => {
+          for (const field of hiddenFields) {
+            setHiddenField(field, false);
+          }
+        }}
+      >
+        Show All
+      </Button>
     </Space>
   );
 }

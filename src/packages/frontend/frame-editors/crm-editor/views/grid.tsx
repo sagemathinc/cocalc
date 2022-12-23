@@ -9,13 +9,21 @@ import Json from "./json";
 interface Props {
   data: any[];
   columns: any[];
+  allColumns: any[];
   title: ReactNode;
   cardStyle?;
   height?;
   style?: CSSProperties;
 }
 
-export default function Grid({ data, columns, title, height, style }: Props) {
+export default function Grid({
+  data,
+  columns,
+  allColumns,
+  title,
+  height,
+  style,
+}: Props) {
   return (
     <Card style={style} title={title}>
       <TableVirtuoso
@@ -24,14 +32,18 @@ export default function Grid({ data, columns, title, height, style }: Props) {
         data={data}
         fixedHeaderContent={() => <Header columns={columns} />}
         itemContent={(index) => (
-          <GridRow data={data[index]} columns={columns} />
+          <GridRow
+            data={data[index]}
+            columns={columns}
+            allColumns={allColumns}
+          />
         )}
       />
     </Card>
   );
 }
 
-function GridRow({ data, columns }) {
+function GridRow({ data, columns, allColumns }) {
   const v: any[] = [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
@@ -77,7 +89,7 @@ function GridRow({ data, columns }) {
         onCancel={() => setOpen(false)}
       >
         <div style={{ overflow: "auto" }}>
-          <Data elt={data} columns={columns} />
+          <Data elt={data} columns={allColumns} />
           <Divider>Raw Data</Divider>
           <Json obj={data} />
         </div>

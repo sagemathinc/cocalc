@@ -12,6 +12,7 @@ interface Props {
   rowKey: string;
   data: any[];
   columns: any[];
+  allColumns: any[];
   title: ReactNode;
   cardStyle?;
   height?;
@@ -25,6 +26,7 @@ export default function Gallery({
   rowKey,
   data,
   columns,
+  allColumns,
   title,
   cardStyle = {
     width: "300px",
@@ -49,6 +51,7 @@ export default function Gallery({
             elt={data[index]}
             rowKey={rowKey}
             columns={columns}
+            allColumns={allColumns}
             style={cardStyle}
           />
         )}
@@ -61,11 +64,13 @@ export function OneCard({
   elt,
   rowKey,
   columns,
+  allColumns,
   style,
 }: {
   elt;
   rowKey: string;
   columns: object[];
+  allColumns: object[];
   style?: CSSProperties;
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -109,7 +114,7 @@ export function OneCard({
         onCancel={() => setOpen(false)}
       >
         {title}
-        {data}
+        <Data elt={elt} columns={allColumns} />
         <Divider>Raw Data</Divider>
         <Json obj={elt} />
       </Modal>
