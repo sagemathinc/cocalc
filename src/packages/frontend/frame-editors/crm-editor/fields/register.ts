@@ -13,7 +13,7 @@ export interface RenderProps extends Props {
   spec: RenderSpec;
 }
 
-export const ANY = Symbol("__any__");
+export const ANY = Symbol("__any__") as any;
 let renderers: { spec: RenderSpec; component: FC<RenderProps> }[];
 export function render(spec: RenderSpec, component: FC<RenderProps>) {
   if (typeof renderers == "undefined") {
@@ -41,27 +41,28 @@ export function getRenderer(spec: RenderSpec): FC<Props> {
 }
 
 type Sorter = (obj1, obj2) => number;
-let sorters: { spec: RenderSpec; cmp: Sorter }[];
-export function sorter(spec: RenderSpec, cmp: Sorter) {
+type getSorter = (spec: RenderSpec) => Sorter;
+let sorters: { spec: RenderSpec; getCmp: getSorter }[];
+export function sorter(spec: RenderSpec, getCmp: getSorter) {
   if (typeof sorters == "undefined") {
-    sorters = [{ spec, cmp }];
+    sorters = [{ spec, getCmp }];
   } else {
-    sorters.push({ spec, cmp });
+    sorters.push({ spec, getCmp });
   }
 }
 
 export function getSorter(spec: RenderSpec): Sorter {
   let n = -1;
-  let C: Sorter | null = null;
+  let C: getSorter | null = null;
   // look for match with most matching keys,
-  for (const { spec: rspec, cmp } of sorters) {
+  for (const { spec: rspec, getCmp } of sorters) {
     if (matches(spec, rspec) && Object.keys(rspec).length > n) {
       n = Object.keys(rspec).length;
-      C = cmp;
+      C = getCmp;
     }
   }
   if (C != null) {
-    return C;
+    return C(spec);
   }
   throw Error(`no sorter for spec ${JSON.stringify(spec)} found`);
 }

@@ -74,11 +74,6 @@ interface Purchased {
   type: "purchased";
 }
 
-interface Priority {
-  type: "priority";
-  editable?: boolean;
-}
-
 interface ProjectLink {
   type: "project_link";
   project_id?: string; // column with project_id
@@ -89,6 +84,7 @@ interface Select {
   options: string[];
   colors?: string[];
   editable?: boolean;
+  priority?: boolean;
 }
 
 export interface Text {
@@ -143,7 +139,6 @@ export type RenderSpec =
   | Json
   | Number
   | Percent
-  | Priority
   | Purchased
   | ProjectLink
   | Select

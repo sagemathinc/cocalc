@@ -8,4 +8,4 @@ render({} as RenderSpec, ({ field, obj }) => {
   return <div>{value != null ? JSON.stringify(value) : ""}</div>;
 });
 
-sorter({} as RenderSpec, cmp);
+sorter({} as RenderSpec, () => cmp);

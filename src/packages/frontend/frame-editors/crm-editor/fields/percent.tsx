@@ -5,7 +5,7 @@ import { render, sorter } from "./register";
 import { toNumber } from "../util";
 import { cmp } from "@cocalc/util/cmp";
 
-sorter({ type: "percent" }, (a, b) => cmp(a ?? 0, b ?? 0));
+sorter({ type: "percent" }, () => (a, b) => cmp(a ?? 0, b ?? 0));
 
 render({ type: "percent" }, ({ field, obj, spec }) => {
   if (spec.type != "percent") throw Error("bug");

@@ -4,7 +4,7 @@ import { render, sorter } from "./register";
 import { useEffect, useState } from "react";
 import { useEditableContext } from "./context";
 
-sorter({ type: "boolean" }, (a, b) => cmp(!!a, !!b));
+sorter({ type: "boolean" }, () => (a, b) => cmp(!!a, !!b));
 
 render({ type: "boolean", editable: false }, ({ field, obj }) => (
   <Checkbox disabled checked={!!obj[field]} />

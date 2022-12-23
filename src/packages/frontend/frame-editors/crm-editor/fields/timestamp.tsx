@@ -8,7 +8,7 @@ import { cmp_Date } from "@cocalc/util/cmp";
 
 import { render, sorter } from "./register";
 
-sorter({ type: "timestamp" }, (a, b) => {
+sorter({ type: "timestamp" }, () => (a, b) => {
   if (a == null) return 1;
   if (b == null) return -1;
   return cmp_Date(a, b);

@@ -14,7 +14,6 @@ import "./image";
 import "./json";
 import "./markdown";
 import "./percent";
-import "./priority";
 import "./project-link";
 import "./purchased";
 import "./select";
@@ -117,11 +116,8 @@ function getWidth(renderSpec: RenderSpec): number {
   if (renderSpec.type == "percent") {
     return 150;
   }
-  if (renderSpec.type == "priority") {
-    return 180;
-  }
   if (renderSpec.type == "select") {
-    return 132;
+    return 150;
   }
   if (renderSpec.type == "usersmap") {
     return 250;

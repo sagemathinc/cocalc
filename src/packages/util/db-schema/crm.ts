@@ -1,4 +1,6 @@
 import { FieldSpec, Table } from "./types";
+import { blue, green, red, yellow } from "@ant-design/colors";
+
 export const MAX_TAG_LENGTH = 30;
 
 const TAG_TYPE = `INTEGER[]`;
@@ -10,25 +12,28 @@ const TAGS_FIELD = {
   render: { type: "tags", editable: true },
 } as FieldSpec;
 
-export const PRIORITIES = ["low", "normal", "high", "urgent"];
-const PRIORITY_TYPE = `VARCHAR(${MAX_TAG_LENGTH})`;
 const PRORITIES_FIELD = {
   type: "string",
-  pg_type: PRIORITY_TYPE,
-  desc: "Priority of this record: " + PRIORITIES.join(" "),
-  render: { type: "priority", editable: true },
+  pg_type: "VARCHAR(30)",
+  desc: "Priority of this record",
+  render: {
+    type: "select",
+    editable: true,
+    options: ["low", "normal", "high", "urgent"],
+    colors: [yellow[5], blue[5], green[5], red[5]],
+    priority: true,
+  },
 } as FieldSpec;
 
-export const STATUSES = ["new", "open", "active", "pending", "solved"];
-const STATUS_TYPE = `VARCHAR(${MAX_TAG_LENGTH})`;
 const STATUS_FIELD = {
   type: "string",
-  pg_type: STATUS_TYPE,
-  desc: "Status of this record: " + STATUSES.join(" "),
+  pg_type: "VARCHAR(30)",
+  desc: "Status of this record",
   render: {
     type: "select",
     editable: true,
     options: ["new", "open", "active", "pending", "solved"],
+    colors: [yellow[5], red[5], green[5], blue[5], "#888"],
   },
 } as FieldSpec;
 
