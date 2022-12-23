@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { render, sorter } from "./register";
+import { render, sorter, ANY } from "./register";
 import { STATUSES } from "@cocalc/util/db-schema/crm";
 import { Select, Tag } from "antd";
 import { capitalize, cmp } from "@cocalc/util/misc";
@@ -8,46 +8,46 @@ import { useEditableContext } from "./context";
 
 const COLORS = [yellow[5], red[5], green[5], blue[5], "#888"] as any;
 
-const _statusToNumber: { [status: string]: number } = {};
+const _valueToNumber: { [value: string]: number } = {};
 let n = 0;
 const options: any[] = [];
-const statusDisplay: { [status: string]: ReactNode } = {};
-for (const status of STATUSES) {
-  _statusToNumber[status] = n;
-  const label = <StatusDisplay n={n} status={status} />;
+const valueDisplay: { [value: string]: ReactNode } = {};
+for (const value of STATUSES) {
+  _valueToNumber[value] = n;
+  const label = <StatusDisplay n={n} value={value} />;
   options.push({
     label,
-    value: status,
+    value: value,
   });
-  statusDisplay[status] = label;
+  valueDisplay[value] = label;
   n += 1;
 }
 
-function statusToNumber(status: string | undefined): number {
-  if (status == null) return 0;
-  return _statusToNumber[status] ?? 0;
+function valueToNumber(value: string | undefined): number {
+  if (value == null) return 0;
+  return _valueToNumber[value] ?? 0;
 }
 
-function StatusDisplay({ status, n }) {
+function StatusDisplay({ value, n }) {
   if (n == -1) return null;
-  return <Tag color={COLORS[n]}>{capitalize(status)}</Tag>;
+  return <Tag color={COLORS[n]}>{capitalize(value)}</Tag>;
 }
 
-render({ type: "status" }, ({ field, obj, spec, viewOnly }) => {
-  if (spec.type != "status") {
+render({ type: "select", options: ANY }, ({ field, obj, spec, viewOnly }) => {
+  if (spec.type != "select") {
     throw Error("bug");
   }
   const { counter, save, error } = useEditableContext<string>(field);
-  const [status, setStatus] = useState<string>(obj[field] ?? STATUSES[0]);
+  const [value, setValue] = useState<string>(obj[field] ?? STATUSES[0]);
   useEffect(() => {
-    setStatus(obj[field] ?? STATUSES[0]);
+    setValue(obj[field] ?? STATUSES[0]);
   }, [counter, obj[field]]);
 
-  const n = statusToNumber(status);
+  const n = valueToNumber(value);
 
   const set = useMemo(() => {
     return (n: number) => {
-      setStatus(STATUSES[n]);
+      setValue(STATUSES[n]);
       save(obj, STATUSES[n]);
     };
   }, [n]);
@@ -55,14 +55,14 @@ render({ type: "status" }, ({ field, obj, spec, viewOnly }) => {
   return (
     <div style={{ width: "100%", display: "inline-block" }}>
       {viewOnly ? (
-        statusDisplay[status]
+        valueDisplay[value]
       ) : (
         <Select
           disabled={!spec.editable}
-          value={status}
+          value={value}
           style={{ width: "112px", display: "inline-block" }}
           options={options}
-          onChange={(status) => set(statusToNumber(status))}
+          onChange={(value) => set(valueToNumber(value))}
         />
       )}
       {error}
@@ -70,4 +70,6 @@ render({ type: "status" }, ({ field, obj, spec, viewOnly }) => {
   );
 });
 
-sorter({ type: "status" }, (a, b) => cmp(statusToNumber(a), statusToNumber(b)));
+sorter({ type: "select", options: ANY }, (a, b) =>
+  cmp(valueToNumber(a), valueToNumber(b))
+);

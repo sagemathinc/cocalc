@@ -84,8 +84,10 @@ interface ProjectLink {
   project_id?: string; // column with project_id
 }
 
-interface Status {
-  type: "status";
+interface Select {
+  type: "select";
+  options: string[];
+  colors?: string[];
   editable?: boolean;
 }
 
@@ -144,7 +146,7 @@ export type RenderSpec =
   | Priority
   | Purchased
   | ProjectLink
-  | Status
+  | Select
   | Tags
   | Text
   | TextEllipsis

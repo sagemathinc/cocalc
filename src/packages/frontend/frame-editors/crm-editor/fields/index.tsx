@@ -17,7 +17,7 @@ import "./percent";
 import "./priority";
 import "./project-link";
 import "./purchased";
-import "./status";
+import "./select";
 import "./tags";
 import "./text";
 import "./timestamp";
@@ -120,7 +120,7 @@ function getWidth(renderSpec: RenderSpec): number {
   if (renderSpec.type == "priority") {
     return 180;
   }
-  if (renderSpec.type == "status") {
+  if (renderSpec.type == "select") {
     return 132;
   }
   if (renderSpec.type == "usersmap") {

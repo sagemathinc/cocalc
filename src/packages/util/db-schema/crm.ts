@@ -25,7 +25,11 @@ const STATUS_FIELD = {
   type: "string",
   pg_type: STATUS_TYPE,
   desc: "Status of this record: " + STATUSES.join(" "),
-  render: { type: "status", editable: true },
+  render: {
+    type: "select",
+    editable: true,
+    options: ["new", "open", "active", "pending", "solved"],
+  },
 } as FieldSpec;
 
 const CREATED = {
@@ -627,7 +631,7 @@ Table({
     last_edited: LAST_EDITED,
   },
   rules: {
-    desc: "Table of all hashtags across our crm system.",
+    desc: "Table of all tags across our crm system.",
     primary_key: "id",
     user_query: {
       get: {
@@ -661,3 +665,107 @@ Table({
     },
   },
 });
+
+/*
+Table({
+  name: "crm_leads",
+  fields: {
+    id: ID,
+    created: CREATED,
+    last_edited: LAST_EDITED,
+    person_id: {
+      type: "integer",
+      desc: "The person.",
+    },
+    deleted: {
+      type: "boolean",
+      desc: "True if the lead has been deleted.",
+    },
+    notes: {
+      type: "string",
+      desc: "Open ended text in markdown about this lead.",
+      render: { type: "markdown", editable: true },
+    },
+    tags: TAGS_FIELD,
+    status: {
+      type: "string",
+      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      desc: "Status of this lead",
+      render: {
+        type: "enum",
+        editable: true,
+        options: [
+          "Attempted to Contact",
+          "Contact in Future",
+          "Contacted",
+          "Junk Lead",
+          "Lost Lead",
+          "Not Contacted",
+          "Pre-Qualified",
+          "Not Qualified",
+        ],
+      },
+    },
+    rating: {
+      type: "string",
+      pg_type: `VARCHAR(${MAX_TAG_LENGTH})`,
+      desc: "Rating of this lead",
+      render: {
+        type: "enum",
+        editable: true,
+        options: [
+          "Acquired",
+          "Active",
+          "Market Failed",
+          "Project Cancelled",
+          "Shut Down",
+        ],
+      },
+    },
+    annual_revenue: {
+      type: "integer",
+      desc: "Rough estimate of possible annual revenue that could result from this lead.",
+    },
+  },
+  rules: {
+    desc: "People",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          id: null,
+          created: null,
+          last_edited: null,
+          email_addresses: null,
+          name: null,
+          account_ids: null,
+          deleted: null,
+          notes: null,
+          tags: null,
+        },
+        options: [{ limit: 100 }, { order_by: "-last_edited" }],
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          created: true,
+          last_edited: true,
+          name: true,
+          email_addresses: true,
+          account_ids: true,
+          deleted: true,
+          notes: true,
+          tags: null,
+        },
+        required_fields: {
+          last_edited: true, // TODO: make automatic on any set query
+        },
+      },
+    },
+  },
+});
+
+*/

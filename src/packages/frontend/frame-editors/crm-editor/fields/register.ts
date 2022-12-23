@@ -13,6 +13,7 @@ export interface RenderProps extends Props {
   spec: RenderSpec;
 }
 
+export const ANY = Symbol("__any__");
 let renderers: { spec: RenderSpec; component: FC<RenderProps> }[];
 export function render(spec: RenderSpec, component: FC<RenderProps>) {
   if (typeof renderers == "undefined") {
@@ -69,7 +70,13 @@ function matches(spec: RenderSpec, rspec: RenderSpec): boolean {
   let match = true;
   for (const key in rspec) {
     let a = spec[key];
+    if (a == ANY) {
+      continue;
+    }
     const b = rspec[key];
+    if (b == ANY) {
+      continue;
+    }
     if (typeof b == "boolean") {
       a = !!a;
     }
