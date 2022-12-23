@@ -33,12 +33,16 @@ render({ type: "percent" }, ({ field, obj, spec }) => {
 
   const bar = (
     <ClickToEdit>
-      <Progress
-        percent={value ?? 0}
-        status={status}
-        steps={spec.steps}
-        strokeColor={status == "success" ? "#52c41a" : undefined}
-      />
+      {value == null ? (
+        "(not set)"
+      ) : (
+        <Progress
+          percent={value}
+          status={status}
+          steps={spec.steps}
+          strokeColor={status == "success" ? "#52c41a" : undefined}
+        />
+      )}
     </ClickToEdit>
   );
 

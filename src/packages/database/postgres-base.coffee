@@ -693,7 +693,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 dbg(err)
                 opts.cb?(err)
                 return
-            opts.query += " ORDER BY #{opts.order_by} NULLS LAST"
+            opts.query += " ORDER BY #{opts.order_by}"
 
         if opts.limit?
             if not validator.isInt('' + opts.limit, min:0)

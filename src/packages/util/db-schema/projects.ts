@@ -570,7 +570,6 @@ Table({
         admin: true, // only admins can do get queries on this table
         // (without this, users who have read access could read)
         pg_where: [],
-        options: [{ limit: 300, order_by: "-last_edited" }],
         fields: schema.projects.user_query.get.fields,
       },
       set: {

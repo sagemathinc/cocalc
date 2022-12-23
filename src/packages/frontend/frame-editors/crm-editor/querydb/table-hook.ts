@@ -1,18 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import { cmp_Date } from "@cocalc/util/cmp";
 import { client_db } from "@cocalc/util/db-schema";
 import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
 
+const DEFAULT_LIMIT = 200;
+
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
   changes?: boolean; // if true, automatically updates records loaded during first query.  Doesn't add/remove anything yet though.
+  sortFields?: string[];
+  hiddenFields?: Set<string>;
 }
 
-export function useTable({ query, changes = false }: Options): {
+export function useTable({
+  query,
+  changes = false,
+  sortFields,
+  hiddenFields,
+}: Options): {
   data: any[];
   refresh: () => void;
   editableContext: EditableContextType;
@@ -100,9 +108,17 @@ export function useTable({ query, changes = false }: Options): {
   useEffect(() => {
     const x = { id: "" };
     // console.log("connecting...", disconnectCounter);
+
+    const q = getQuery(query, hiddenFields);
+    const options = ([{ limit: DEFAULT_LIMIT }] as any[]).concat(
+      sortOptions(sortFields)
+    );
+    console.log(q, options);
+
     webapp_client.query_client.query({
       changes,
-      query,
+      query: q,
+      options,
       cb: (err, resp) => {
         if (err == "disconnect") {
           incDisconnectCounter();
@@ -125,10 +141,7 @@ export function useTable({ query, changes = false }: Options): {
           // initial response
           x.id = resp.id;
           for (const table in resp.query) {
-            resp.query[table].sort(
-              // TODO: might not be what we want?
-              (a, b) => -cmp_Date(a.last_edited, b.last_edited)
-            );
+            // exactly one thing in for loop:
             setData(resp.query[table]);
             break;
           }
@@ -148,7 +161,7 @@ export function useTable({ query, changes = false }: Options): {
         })();
       }
     };
-  }, [disconnectCounter]);
+  }, [disconnectCounter, sortFields, hiddenFields]);
 
   const refresh = incDisconnectCounter;
   const editableContext = {
@@ -157,4 +170,28 @@ export function useTable({ query, changes = false }: Options): {
     ...info,
   };
   return { data, refresh, editableContext, error };
+}
+
+function sortOptions(sortFields?: string[]) {
+  if (sortFields == null || sortFields.length == 0) {
+    return [];
+  }
+  return sortFields.map((field) => {
+    return { order_by: field };
+  });
+}
+
+function getQuery(query, hiddenFields?: Set<string>) {
+  if (hiddenFields == null || hiddenFields.size == 0) {
+    return query;
+  }
+  const table = Object.keys(query)[0];
+  const primary_keys = client_db.primary_keys(table);
+  const fields = { ...query[table][0] };
+  for (const field of hiddenFields) {
+    if (!primary_keys.includes(field)) {
+      delete fields[field];
+    }
+  }
+  return { [table]: [fields] };
 }

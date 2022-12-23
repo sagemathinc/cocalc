@@ -127,7 +127,6 @@ Table({
           notes: null,
           tags: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,
@@ -228,7 +227,6 @@ Table({
           domain: null,
           tags: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,
@@ -318,7 +316,6 @@ Table({
           priority: null,
           status: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,
@@ -398,7 +395,6 @@ Table({
           body: null,
           internal: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,
@@ -541,7 +537,6 @@ Table({
           tags: null,
           description: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,
@@ -727,7 +722,6 @@ Table({
           rating: null,
           annual_revenue: null,
         },
-        options: [{ limit: 100 }, { order_by: "-last_edited" }],
       },
       set: {
         admin: true,

@@ -344,13 +344,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     when 'only_changes'
                         r.only_changes = !!value
                     when 'limit'
-                        r.limit = value
+                        r.limit = parseInt(value)
                     when 'slice'
                         r.slice = value
                     when 'order_by'
                         if value[0] == '-'
                             value = value.slice(1) + " DESC "
-                        r.order_by = value
+                        if r.order_by
+                            r.order_by = r.order_by + ', ' + value
+                        else
+                            r.order_by = value
                     when 'delete'
                         null
                         # ignore delete here - is parsed elsewhere
@@ -358,6 +361,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
                     else
                         r.err = "unknown option '#{name}'"
+        # Guard rails: no matter what, all queries are capped with a limit of 1000.
+        try
+            if not isFinite(r.limit)
+                r.limit = 1000
+            else if r.limit > 1000
+                r.limit = 1000
+        catch
+            r.limit = 1000
         return r
 
     ###

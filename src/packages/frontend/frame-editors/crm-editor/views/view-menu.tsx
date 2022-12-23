@@ -103,7 +103,14 @@ function getMenus({
       ],
     },
     {
-      label: "Hide fields",
+      label:
+        hiddenFields.size == 0 ? (
+          "Hide fields"
+        ) : (
+          <span style={{ backgroundColor: "lightblue", padding: "5px" }}>
+            Hide fields({hiddenFields.size})
+          </span>
+        ),
       key: "hide",
       icon: <Icon name="eye-slash" />,
       children: columns

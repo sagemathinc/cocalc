@@ -3,6 +3,7 @@ import { Input } from "antd";
 import { debounce } from "lodash";
 import useFilter from "./filter-hook";
 import useViewFilter from "../syncdb/use-view-filter";
+import { plural } from "@cocalc/util/misc";
 
 export default function useFilterInput({ data, id }): {
   filteredData: any[];
@@ -29,14 +30,17 @@ export default function useFilterInput({ data, id }): {
       <Input.Search
         value={filter}
         allowClear
-        placeholder="Filter View..."
+        placeholder={`Filter ${data.length} ${plural(
+          data.length,
+          "Result"
+        )}...`}
         onSearch={setFilter}
         enterButton="Filter"
         style={{ width: 300, marginBottom: "5px" }}
         onChange={(e) => setFilter(e.target.value)}
       />
     ),
-    [id, filter]
+    [id, filter, data.length]
   );
 
   return { filteredData, Filter, numHidden };

@@ -17,6 +17,7 @@ import { fieldToLabel } from "../util";
 import useFilter from "./filter-input";
 import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
+import useSortFields from "../syncdb/use-sort-fields";
 
 interface Props {
   view: ViewType;
@@ -36,6 +37,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     changes,
   } = useMemo(() => getTableDescription(table), [table]);
 
+  const [sortFields] = useSortFields({ id });
   const [hiddenFields] = useHiddenFields({ id });
   const columns = useMemo(() => {
     if (hiddenFields.size == 0) {
@@ -59,7 +61,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     refresh,
     editableContext,
     error: tableError,
-  } = useTable({ query, changes });
+  } = useTable({ query, changes, sortFields, hiddenFields });
 
   const { filteredData, numHidden, Filter } = useFilter({ data, id });
 
@@ -165,8 +167,14 @@ export default function View({ table, view, style, height, name, id }: Props) {
             <Alert
               style={{ marginBottom: "5px" }}
               showIcon
-              type="info"
-              message={`${numHidden} ${plural(numHidden, "result")} not shown`}
+              type="warning"
+              message={`${numHidden} ${plural(
+                numHidden,
+                "result"
+              )} not shown (of ${data.length} ${plural(
+                data.length,
+                "result"
+              )})`}
             />
           ) : undefined}
         </Space>

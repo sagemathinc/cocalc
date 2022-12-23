@@ -417,7 +417,6 @@ Table({
         pg_where: [],
         admin: true, // only admins can do get queries on this table
         fields: schema.accounts.user_query?.get?.fields ?? {},
-        options: [{ limit: 200 }, { order_by: "-last_active" }],
       },
       set: {
         admin: true, // only admins can do get queries on this table
