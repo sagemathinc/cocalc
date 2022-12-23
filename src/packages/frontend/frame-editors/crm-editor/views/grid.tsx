@@ -61,7 +61,6 @@ function GridRow({ data, columns }) {
       <Modal
         transitionName=""
         maskTransitionName=""
-        footer={null}
         style={{
           maxHeight: "90vh",
           maxWidth: "90vw",
