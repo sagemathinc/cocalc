@@ -31,7 +31,7 @@ export default function useFilterInput({ data, id }): {
         allowClear
         placeholder="Filter View..."
         onSearch={setFilter}
-        enterButton="Search"
+        enterButton="Filter"
         style={{ width: 300, marginBottom: "5px" }}
         onChange={(e) => setFilter(e.target.value)}
       />
