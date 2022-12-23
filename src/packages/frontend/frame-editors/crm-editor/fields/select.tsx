@@ -3,6 +3,7 @@ import { render, sorter, ANY } from "./register";
 import { Progress, Select, Tag } from "antd";
 import { capitalize, cmp } from "@cocalc/util/misc";
 import { useEditableContext } from "./context";
+import LRU from "lru-cache";
 
 function StatusDisplay({ value, color, n }) {
   if (n == -1) return null;
@@ -25,7 +26,13 @@ function PriorityDisplay({ value, color, n, len }) {
   );
 }
 
+const parseCache = new LRU<string, any>({ max: 50 });
+
 function parse(spec) {
+  const key = JSON.stringify(spec);
+  if (parseCache.has(key)) {
+    return parseCache.get(key);
+  }
   if (spec.type != "select") {
     throw Error("bug");
   }
@@ -57,7 +64,9 @@ function parse(spec) {
     return _valueToNumber[value] ?? 0;
   }
 
-  return { options, valueDisplay, valueToNumber };
+  const x = { options, valueDisplay, valueToNumber };
+  parseCache.set(key, x);
+  return x;
 }
 
 render(
