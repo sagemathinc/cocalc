@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import useDebounceEffect from "@cocalc/frontend/app-framework/use-debounce-effect";
 import { client_db } from "@cocalc/util/db-schema";
 import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { DEFAULT_LIMIT } from "../syncdb/use-limit";
-import { debounce } from "lodash";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
@@ -120,12 +120,12 @@ export function useTable({
     }
   };
 
-  useEffect(
-    debounce(
-      () => {
+  useDebounceEffect<[number, string[]?, Set<string>?, number?]>(
+    {
+      wait: 1000,
+      options: { leading: true, trailing: true },
+      func: ([_, sortFields, hiddenFields, limit]) => {
         const x = { id: "" };
-        // console.log("connecting...", disconnectCounter);
-
         const q = getQuery(query, hiddenFields);
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
           sortOptions(sortFields)
@@ -179,9 +179,7 @@ export function useTable({
           }
         };
       },
-      2000,
-      { leading: true, trailing: true }
-    ),
+    },
     [disconnectCounter, sortFields, hiddenFields, limit]
   );
 
