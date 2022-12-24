@@ -6,10 +6,7 @@ import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
-import useSortFields, {
-  sortDirections,
-  SortDirection,
-} from "../syncdb/use-sort-fields";
+import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 
 interface Props {
   data: any[];
@@ -19,7 +16,8 @@ interface Props {
   cardStyle?;
   height?;
   style?: CSSProperties;
-  id: string;
+  sortFields;
+  setSortField;
 }
 
 export default function Grid({
@@ -29,7 +27,8 @@ export default function Grid({
   title,
   height,
   style,
-  id,
+  sortFields,
+  setSortField,
 }: Props) {
   return (
     <Card style={style} title={title}>
@@ -37,7 +36,13 @@ export default function Grid({
         overscan={500}
         style={{ height: height ?? 600, overflow: "auto" }}
         data={data}
-        fixedHeaderContent={() => <Header columns={columns} id={id} />}
+        fixedHeaderContent={() => (
+          <Header
+            columns={columns}
+            sortFields={sortFields}
+            setSortField={setSortField}
+          />
+        )}
         itemContent={(index) => (
           <GridRow
             data={data[index]}
@@ -113,8 +118,7 @@ function nextSortState(direction?: SortDirection | null) {
   }
 }
 
-function Header({ id, columns }) {
-  const [sortFields, setSortField] = useSortFields({ id });
+function Header({ columns, sortFields, setSortField }) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
     return sortDirections(sortFields);

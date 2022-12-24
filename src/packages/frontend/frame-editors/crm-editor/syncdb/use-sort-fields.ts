@@ -57,7 +57,7 @@ export default function useSortFields({
     (fields: string[]) => {
       setRecord({ fields: [...fields] });
     },
-    [sortFields, setRecord]
+    [setRecord]
   );
 
   const setSortField = useCallback(

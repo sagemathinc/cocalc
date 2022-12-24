@@ -27,8 +27,14 @@ export function useTable({
   refresh: () => void;
   editableContext: EditableContextType;
   error?: string;
+  loading: boolean;
+  saving: boolean;
 } {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | undefined>(undefined);
   const lastSaveRef = useRef<number>(0);
+
   const info = useMemo(() => {
     const table = Object.keys(query)[0];
     const primary_keys = client_db.primary_keys(table);
@@ -43,17 +49,24 @@ export function useTable({
         query[table]["last_edited"] = "NOW()";
       }
       lastSaveRef.current = new Date().valueOf();
-      await webapp_client.query_client.query({
-        query,
-        options: [{ set: true }],
-      });
+      try {
+        setSaving(true);
+        setError(undefined);
+        await webapp_client.query_client.query({
+          query,
+          options: [{ set: true }],
+        });
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setSaving(false);
+      }
     };
 
     return { table, primary_keys, save };
   }, [query]);
 
   const [data, setData] = useState<any[]>([]);
-  const [error, setError] = useState<string | undefined>(undefined);
   const { val: disconnectCounter, inc: incDisconnectCounter } = useCounter();
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
   const { val: counter, inc: incCounter } = useCounter();
@@ -117,11 +130,13 @@ export function useTable({
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
           sortOptions(sortFields)
         );
+        setLoading(true);
         webapp_client.query_client.query({
           changes,
           query: q,
           options,
           cb: (err, resp) => {
+            setLoading(false);
             if (err == "disconnect") {
               incDisconnectCounter();
               return;
@@ -176,7 +191,7 @@ export function useTable({
     refresh,
     ...info,
   };
-  return { data, refresh, editableContext, error };
+  return { data, refresh, editableContext, error, saving, loading };
 }
 
 function sortOptions(sortFields?: string[]) {

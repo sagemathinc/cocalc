@@ -1,7 +1,7 @@
 import useRecord from "./use-record";
 import { useCallback, useMemo } from "react";
 
-export const DEFAULT_LIMIT = 200;
+export const DEFAULT_LIMIT = 100;
 
 export default function useLimit({
   id,

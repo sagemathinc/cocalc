@@ -2,7 +2,7 @@ import { useMemo, useState, CSSProperties } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Space } from "antd";
 import { EditableContext } from "../fields/context";
-import { useTable } from "../querydb/table-hook";
+import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
 import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
@@ -19,6 +19,7 @@ import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
 import useLimit from "../syncdb/use-limit";
+import { Loading } from "@cocalc/frontend/components";
 
 interface Props {
   view: ViewType;
@@ -38,9 +39,9 @@ export default function View({ table, view, style, height, name, id }: Props) {
     changes,
   } = useMemo(() => getTableDescription(table), [table]);
 
-  const [limit] = useLimit({ id });
-  const [sortFields] = useSortFields({ id });
-  const [hiddenFields] = useHiddenFields({ id });
+  const [limit, setLimit] = useLimit({ id });
+  const [sortFields, setSortField] = useSortFields({ id });
+  const [hiddenFields, setHiddenField] = useHiddenFields({ id });
   const columns = useMemo(() => {
     if (hiddenFields.size == 0) {
       return allColumns;
@@ -63,6 +64,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
     refresh,
     editableContext,
     error: tableError,
+    saving,
+    loading,
   } = useTable({ query, changes, sortFields, hiddenFields, limit });
 
   const { filteredData, numHidden, Filter } = useFilter({ data, id });
@@ -107,7 +110,19 @@ export default function View({ table, view, style, height, name, id }: Props) {
 
   const header = (
     <div>
-      {right} <ViewMenu name={name} view={view} columns={allColumns} id={id} />
+      {right}{" "}
+      <ViewMenu
+        name={name}
+        view={view}
+        columns={allColumns}
+        id={id}
+        limit={limit}
+        setLimit={setLimit}
+        sortFields={sortFields}
+        setSortField={setSortField}
+        hiddenFields={hiddenFields}
+        setHiddenField={setHiddenField}
+      />
     </div>
   );
   let body;
@@ -139,11 +154,12 @@ export default function View({ table, view, style, height, name, id }: Props) {
     case "grid":
       body = (
         <Grid
-          id={id}
           data={filteredData}
           columns={columns}
           allColumns={allColumns}
           title={header}
+          sortFields={sortFields}
+          setSortField={setSortField}
         />
       );
       break;
@@ -154,6 +170,16 @@ export default function View({ table, view, style, height, name, id }: Props) {
   return (
     <EditableContext.Provider value={editableContext}>
       <div style={style}>
+        {loading && (
+          <div style={{ float: "right" }}>
+            <Loading delay={200} text="Loading from database..." />
+          </div>
+        )}
+        {saving && (
+          <div style={{ float: "right" }}>
+            <Loading delay={200} text="Saving to database..." />
+          </div>
+        )}
         {tableError && (
           <Alert
             type="error"

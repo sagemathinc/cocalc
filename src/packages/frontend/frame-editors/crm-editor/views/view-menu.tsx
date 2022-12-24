@@ -16,18 +16,21 @@ import {
 } from "antd";
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
-import useHiddenFields from "../syncdb/use-hidden-fields";
-import useSortFields, {
-  SortDirection,
-  parseSort,
-} from "../syncdb/use-sort-fields";
-import useLimit from "../syncdb/use-limit";
+import { SortDirection, parseSort } from "../syncdb/use-sort-fields";
 import type { ColumnsType } from "../fields";
 
-export default function ViewMenu({ name, view, columns, id }) {
-  const [hiddenFields, setHiddenField] = useHiddenFields({ id });
-  const [sortFields, setSortField] = useSortFields({ id });
-  const [limit, setLimit] = useLimit({ id });
+export default function ViewMenu({
+  name,
+  view,
+  columns,
+  id,
+  limit,
+  setLimit,
+  hiddenFields,
+  setHiddenField,
+  sortFields,
+  setSortField,
+}) {
   const items: MenuProps["items"] = useMemo(
     () =>
       getMenus({

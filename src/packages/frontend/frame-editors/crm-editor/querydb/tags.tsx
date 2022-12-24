@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
-import { useTable } from "./table-hook";
+import { useTable } from "./use-table";
 import { getTableDescription } from "../tables";
 import { IconName } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
