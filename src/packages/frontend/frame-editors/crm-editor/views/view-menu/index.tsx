@@ -2,7 +2,7 @@ import { Menu } from "antd";
 import topMenu from "./top";
 import sortMenu from "./sort";
 import searchMenu from "./search";
-import groupMenu from "./group";
+//import groupMenu from "./group";
 import hideFieldsMenu from "./hide-fields";
 import limitMenu from "./limit";
 
@@ -16,6 +16,8 @@ export default function ViewMenu({
   setHiddenField,
   sortFields,
   setSortField,
+  search,
+  setSearch,
 }) {
   return (
     <Menu
@@ -24,15 +26,15 @@ export default function ViewMenu({
       items={[
         topMenu({ name, view }),
         hideFieldsMenu({
+          columns,
           hiddenFields,
           setHiddenField,
-          columns,
         }),
-        searchMenu({ columns }),
-        groupMenu({ columns }),
+        searchMenu({ columns, search, setSearch }),
+        //groupMenu({ columns }),
         sortMenu({
-          sortFields,
           columns,
+          sortFields,
           setSortField,
         }),
         limitMenu({ limit, setLimit }),

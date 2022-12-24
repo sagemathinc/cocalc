@@ -1,5 +1,6 @@
 import { Button, Space, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components";
+import { plural } from "@cocalc/util/misc";
 
 export default function hideFieldsMenu({
   hiddenFields,
@@ -14,7 +15,7 @@ export default function hideFieldsMenu({
         "Hide fields"
       ) : (
         <span style={{ backgroundColor: "lightblue", padding: "5px" }}>
-          Hide fields({hiddenFields.size})
+          {hiddenFields.size} Hidden {plural(hiddenFields.size, "Field")}
         </span>
       ),
     key: "hide",

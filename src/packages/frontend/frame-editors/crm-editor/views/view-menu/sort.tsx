@@ -3,6 +3,7 @@ import { SortDirection, parseSort } from "../../syncdb/use-sort-fields";
 import type { ColumnsType } from "../../fields";
 import { Button, Select, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
+import { plural } from "@cocalc/util/misc";
 
 export default function sortMenu({ sortFields, columns, setSortField }) {
   return {
@@ -10,8 +11,8 @@ export default function sortMenu({ sortFields, columns, setSortField }) {
       sortFields.length == 0 ? (
         "Sort"
       ) : (
-        <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
-          Sort ({sortFields.length})
+        <span style={{ backgroundColor: "orange", padding: "5px" }}>
+          {sortFields.length} Sort {plural(sortFields.length, "Field")}
         </span>
       ),
     key: "sort",
@@ -36,7 +37,7 @@ export default function sortMenu({ sortFields, columns, setSortField }) {
               {
                 disabled: true,
                 label: <SortBy columns={columns} setSortField={setSortField} />,
-                key: "add",
+                key: "sortby-add",
               },
             ]
           : []

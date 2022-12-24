@@ -19,6 +19,7 @@ import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
 import useLimit from "../syncdb/use-limit";
+import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
 
 interface Props {
@@ -40,6 +41,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
   } = useMemo(() => getTableDescription(table), [table]);
 
   const [limit, setLimit] = useLimit({ id });
+  const [search, setSearch] = useSearch({ id });
   const [sortFields, setSortField] = useSortFields({ id });
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
   const columns = useMemo(() => {
@@ -121,6 +123,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
         setSortField={setSortField}
         hiddenFields={hiddenFields}
         setHiddenField={setHiddenField}
+        search={search}
+        setSearch={setSearch}
       />
     </div>
   );

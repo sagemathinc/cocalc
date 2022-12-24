@@ -1,63 +1,134 @@
 import { FilterOutlined } from "@ant-design/icons";
-import { Input, Select, Space } from "antd";
+import { Button, Input, Select, Space } from "antd";
+import type { ColumnsType } from "../../fields";
+import { Icon } from "@cocalc/frontend/components";
+import { plural } from "@cocalc/util/misc";
+import { Operator, OPERATORS, AtomicSearch } from "../../syncdb/use-search";
 
-export default function searchMenu({ columns }) {
+function enumerate(x: object[]): any[] {
+  const v: object[] = [];
+  for (let n = 0; n < x.length; n++) {
+    v.push({ ...x[n], n });
+  }
+  return v;
+}
+
+export default function searchMenu({ columns, search, setSearch }) {
   return {
-    label: "Search",
+    label:
+      search.length == 0 ? (
+        "Search"
+      ) : (
+        <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
+          {search.length} Search {plural(search.length, "Field")}
+        </span>
+      ),
     key: "SubMenu",
     icon: <FilterOutlined />,
-    children: columns.map(({ dataIndex, title }) => {
-      return {
-        disabled: true,
-        label: <Filter field={dataIndex} title={title} />,
-        key: `filter-name-${dataIndex}`,
-      };
-    }),
+    children: enumerate(search)
+      .map(({ n, field, operator, value }) => {
+        return {
+          disabled: true,
+          label: (
+            <SearchBy
+              field={field}
+              operator={operator}
+              value={value}
+              columns={columns}
+              setSearch={setSearch}
+              n={n}
+            />
+          ),
+          key: `search-${n}`,
+        };
+      })
+      .concat([
+        {
+          disabled: true,
+          label: (
+            <SearchBy
+              n={search.length}
+              columns={columns}
+              setSearch={setSearch}
+            />
+          ),
+          key: "search-add",
+        },
+      ]),
   };
 }
 
-function Filter({ field, title }) {
+interface SearchByProps {
+  field?: string; // if not set, then adding
+  operator?: Operator;
+  value?: string;
+  columns: ColumnsType[];
+  setSearch: (n: number, search: AtomicSearch | null) => void;
+  n: number;
+}
+
+function SearchBy({
+  columns,
+  field,
+  operator,
+  value,
+  setSearch,
+  n,
+}: SearchByProps) {
   return (
-    <Space style={{ width: "100%", color: "#666" }}>
-      <div
-        style={{
-          overflowX: "auto",
-          textOverflow: "ellipsis",
-          width: "100px",
-        }}
-      >
-        {title}
-      </div>
+    <Space style={{ width: "100%" }}>
       <Select
+        value={field ?? ""}
         size="small"
-        defaultValue="contains"
-        style={{ width: "150px" }}
-        options={[
-          {
-            value: "contains",
-            label: "contains",
-          },
-          {
-            value: "does not contain",
-            label: "does not contain",
-          },
-          {
-            value: "is",
-            label: "is",
-          },
-          {
-            value: "is not",
-            label: "is not",
-          },
-        ]}
-      />
-      <Input
-        size="small"
-        style={{ width: "100%" }}
-        onChange={() => {
-          console.log("change filter for ", field);
+        style={{ width: "200px" }}
+        showSearch
+        placeholder="Find a field..."
+        filterOption={(input, option) =>
+          ((option?.label ?? "") as string)
+            .toLowerCase()
+            .includes(input.toLowerCase())
+        }
+        onChange={(newField: string) => {
+          setSearch(n, { field: newField });
         }}
+        optionFilterProp="children"
+        options={columns.map(({ dataIndex, title }) => {
+          return {
+            value: dataIndex,
+            label: title,
+          };
+        })}
       />
+      {field && (
+        <Select
+          size="small"
+          style={{ width: "150px" }}
+          value={operator}
+          onChange={(operator: Operator) => {
+            setSearch(n, { field, operator });
+          }}
+          options={OPERATORS.map((op: Operator) => {
+            return { value: op, label: op };
+          })}
+        />
+      )}
+      {field && operator && (
+        <Input
+          size="small"
+          style={{ width: "150px" }}
+          value={value}
+          onChange={(e) => {
+            setSearch(n, { field, operator, value: e.target.value });
+          }}
+        />
+      )}
+      <Button
+        style={{ float: "right" }}
+        type="link"
+        onClick={() => setSearch(n, null)}
+      >
+        <Icon name="times" />
+      </Button>
     </Space>
   );
 }
