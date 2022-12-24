@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { render } from "./register";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -19,6 +19,7 @@ import { useEditableContext } from "./context";
 import useAccountName from "@cocalc/frontend/users/use-account-name";
 import { CloseOutlined } from "@ant-design/icons";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 
 const AVATAR_SIZE = 18;
 
@@ -49,16 +50,33 @@ render({ type: "account" }, ({ field, obj }) => {
 
 function EditAccounts({ obj, field, account_ids }) {
   const { error: saveError, save: save0 } = useEditableContext<string[]>(field);
-  const save = (value: string[]) => save0(obj, value);
+  const [adding, setAdding] = useState<boolean>(false);
+  const save = useCallback(
+    async (value: string[]) => {
+      try {
+        await save0(obj, value);
+        setAdding(false);
+      } catch (_) {}
+    },
+    [save0, obj]
+  );
+
   return (
     <div>
-      <AccountList account_ids={account_ids ?? []} save={save} />
+      {!adding && (
+        <Button onClick={() => setAdding(true)}>
+          <Icon name="plus-circle" /> Add
+        </Button>
+      )}
+      {adding && (
+        <AddAccount
+          key="add-account"
+          account_ids={account_ids ?? []}
+          save={save}
+        />
+      )}
       {saveError && <Alert message={saveError} type="error" />}
-      <AddAccount
-        key="add-account"
-        account_ids={account_ids ?? []}
-        save={save}
-      />
+      <AccountList account_ids={account_ids ?? []} save={save} />
     </div>
   );
 }
@@ -116,13 +134,15 @@ function AddAccount({
   const [error, setError] = useState<string>("");
   const [users, setUsers] = useState<User[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+
   return (
     <div>
       {(users == null || users.length == 0) && !error && (
         <Input.Search
           allowClear
+          autoFocus
           loading={loading}
-          placeholder="Search accounts by first name, last name, or email address..."
+          placeholder="Search for accounts by first name, last name, or email address..."
           enterButton
           onSearch={async (value) => {
             setError("");
