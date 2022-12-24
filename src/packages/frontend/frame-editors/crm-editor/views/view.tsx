@@ -190,23 +190,18 @@ export default function View({ table, view, style, height, name, id }: Props) {
         {view == "calendar" && (
           <SelectTimeKey onChange={setTimeKey} query={query} />
         )}
-        <Space>
-          {Filter}
-          {numHidden > 0 ? (
+        {Filter}
+        {numHidden > 0 ? (
+          <div style={{ marginTop: "-10px", float: "right" }}>
             <Alert
-              style={{ marginBottom: "5px" }}
               showIcon
               type="warning"
-              message={`${numHidden} ${plural(
-                numHidden,
-                "result"
-              )} not shown (of ${data.length} ${plural(
-                data.length,
-                "result"
-              )})`}
+              message={`Filtered: only showing ${filteredData.length} of ${
+                data.length
+              } ${plural(data.length, "result")}`}
             />
-          ) : undefined}
-        </Space>
+          </div>
+        ) : undefined}
         {body}
       </div>
     </EditableContext.Provider>
