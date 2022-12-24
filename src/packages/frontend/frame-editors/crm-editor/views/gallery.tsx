@@ -7,12 +7,13 @@ import { VirtuosoGrid } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import Json from "./json";
+import type { ColumnsType } from "../fields";
 
 interface Props {
   rowKey: string;
-  data: any[];
-  columns: any[];
-  allColumns: any[];
+  data: object[];
+  columns: ColumnsType[];
+  allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
   height?;

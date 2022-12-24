@@ -17,8 +17,12 @@ import {
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
 import useHiddenFields from "../syncdb/use-hidden-fields";
-import useSortFields, { SortDirection } from "../syncdb/use-sort-fields";
+import useSortFields, {
+  SortDirection,
+  parseSort,
+} from "../syncdb/use-sort-fields";
 import useLimit from "../syncdb/use-limit";
+import type { ColumnsType } from "../fields";
 
 export default function ViewMenu({ name, view, columns, id }) {
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
@@ -257,6 +261,7 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
   return (
     <Space>
       <Button
+        disabled={allFields.length == hiddenFields.size}
         onClick={() => {
           for (const field of allFields) {
             if (!hiddenFields.has(field)) {
@@ -268,6 +273,7 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
         Hide All
       </Button>
       <Button
+        disabled={hiddenFields.size == 0}
         onClick={() => {
           for (const field of hiddenFields) {
             setHiddenField(field, false);
@@ -327,19 +333,8 @@ function Filter({ field, title }) {
   );
 }
 
-function parseSort(field?: string): {
-  sortField: string;
-  direction: SortDirection;
-} {
-  if (field?.[0] != "-") {
-    return { sortField: field ?? "", direction: "ascending" };
-  } else {
-    return { sortField: field.slice(1), direction: "descending" };
-  }
-}
-
 interface SortByProps {
-  columns: any[];
+  columns: ColumnsType[];
   field?: string; // if not set, then adding
   setSortField: (
     field: string,
@@ -392,7 +387,7 @@ function SortBy({ columns, field, setSortField }: SortByProps) {
         <Button
           style={{ float: "right" }}
           type="link"
-          onClick={() => setSortField(sortField, "", null)}
+          onClick={() => setSortField(sortField, sortField, null)}
         >
           <Icon name="times" />
         </Button>

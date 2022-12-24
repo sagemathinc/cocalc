@@ -2,13 +2,14 @@ import { CSSProperties, ReactNode, useMemo } from "react";
 import { Calendar, Card, Popover } from "antd";
 import dayjs from "dayjs";
 import * as gallery from "./gallery";
+import type { ColumnsType } from "../fields";
 
 interface Props {
   timeKey?: string;
   rowKey: string;
-  data: any[];
-  columns: any[];
-  allColumns: any[];
+  data: object[];
+  columns: ColumnsType[];
+  allColumns: ColumnsType[];
   title: ReactNode;
   style?: CSSProperties;
 }

@@ -139,6 +139,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     case "grid":
       body = (
         <Grid
+          id={id}
           data={filteredData}
           columns={columns}
           allColumns={allColumns}

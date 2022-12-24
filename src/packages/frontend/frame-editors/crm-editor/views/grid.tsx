@@ -1,19 +1,25 @@
-import { CSSProperties, ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { Card, Divider, Modal } from "antd";
+import type { ColumnsType } from "../fields";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
+import useSortFields, {
+  sortDirections,
+  SortDirection,
+} from "../syncdb/use-sort-fields";
 
 interface Props {
   data: any[];
-  columns: any[];
-  allColumns: any[];
+  columns: ColumnsType[];
+  allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
   height?;
   style?: CSSProperties;
+  id: string;
 }
 
 export default function Grid({
@@ -23,6 +29,7 @@ export default function Grid({
   title,
   height,
   style,
+  id,
 }: Props) {
   return (
     <Card style={style} title={title}>
@@ -30,7 +37,7 @@ export default function Grid({
         overscan={500}
         style={{ height: height ?? 600, overflow: "auto" }}
         data={data}
-        fixedHeaderContent={() => <Header columns={columns} />}
+        fixedHeaderContent={() => <Header columns={columns} id={id} />}
         itemContent={(index) => (
           <GridRow
             data={data[index]}
@@ -98,26 +105,74 @@ function GridRow({ data, columns, allColumns }) {
   );
 }
 
-function Header({ columns }) {
+function nextSortState(direction?: SortDirection | null) {
+  if (direction == "descending" || direction == null) {
+    return "ascending";
+  } else {
+    return "descending";
+  }
+}
+
+function Header({ id, columns }) {
+  const [sortFields, setSortField] = useSortFields({ id });
+  const directions = useMemo(() => {
+    if (sortFields == null) return {};
+    return sortDirections(sortFields);
+  }, [sortFields]);
+
   return (
     <tr>
       {columns.map((column) => (
-        <Column {...column} />
+        <Column
+          {...column}
+          direction={directions[column.dataIndex]}
+          onSortClick={(_event) => {
+            // change sort direction and move to top priority field for sort.
+            const newDirection = nextSortState(directions[column.dataIndex]);
+            setSortField(column.dataIndex, column.dataIndex, newDirection, 0);
+          }}
+        />
       ))}
     </tr>
   );
 }
-function Column({ width, title }) {
+
+const DIRECTION_STYLE = {
+  float: "right",
+  marginTop: "2.5px",
+  cursor: "pointer",
+} as CSSProperties;
+
+function Column({
+  width,
+  title,
+  direction,
+  onSortClick,
+}: {
+  width?: number | string;
+  title: ReactNode;
+  direction?: SortDirection;
+  onSortClick?: () => void;
+}) {
   return (
     <th
       style={{
+        cursor: "pointer",
         width: width ?? 150,
-        background: "#FAFAFA",
+        color: "#428bca",
+        background: "rgb(250, 250, 250)",
         padding: "10px 5px",
         border: "1px solid #eee",
       }}
+      onClick={onSortClick}
     >
       {title}
+      {direction && (
+        <Icon
+          style={DIRECTION_STYLE}
+          name={direction == "ascending" ? "caret-down" : "caret-up"}
+        />
+      )}
     </th>
   );
 }
