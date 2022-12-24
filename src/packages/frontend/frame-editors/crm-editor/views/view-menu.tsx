@@ -16,7 +16,7 @@ import {
 } from "antd";
 import { TYPE_TO_ICON } from "./index";
 import { Icon } from "@cocalc/frontend/components";
-import SortBy from "./sort-by";
+import sortMenu from "./sort-menu";
 
 export default function ViewMenu({
   name,
@@ -191,45 +191,11 @@ function getMenus({
     //         },
     //       ],
     //     },
-    {
-      label:
-        sortFields.length == 0 ? (
-          "Sort"
-        ) : (
-          <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
-            Sort ({sortFields.length})
-          </span>
-        ),
-      key: "sort",
-      icon: <Icon name="sort-amount-up" />,
-      children: sortFields
-        .map((field) => {
-          return {
-            disabled: true,
-            label: (
-              <SortBy
-                columns={columns}
-                field={field}
-                setSortField={setSortField}
-              />
-            ),
-            key: `sortby-${field}`,
-          };
-        })
-        .concat(
-          sortFields.length < columns.length
-            ? [
-                {
-                  disabled: true,
-                  label: (
-                    <SortBy columns={columns} setSortField={setSortField} />
-                  ),
-                  key: "add",
-                },
-              ]
-            : []
-        ),
-    },
+    sortMenu({
+      sortFields,
+      columns,
+      setSortField,
+    }),
     {
       label: <span style={{ padding: "5px" }}>Limit ({limit})</span>,
       key: "limit",
