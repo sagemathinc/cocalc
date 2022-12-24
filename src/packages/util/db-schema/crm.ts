@@ -82,7 +82,7 @@ Table({
       title: "Accounts",
       type: "array",
       pg_type: "UUID[]",
-      desc: "Array of 0 or more CoCalc accounts that this person may have.",
+      desc: "Array of 0 or more uuid's of CoCalc accounts that this person may have.",
       render: {
         type: "accounts",
         editable: true,

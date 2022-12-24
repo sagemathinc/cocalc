@@ -20,6 +20,7 @@ import "./select";
 import "./tags";
 import "./text";
 import "./timestamp";
+import "./usersmap";
 import "./uuid";
 
 function getRender(field: string, spec: RenderSpec) {
