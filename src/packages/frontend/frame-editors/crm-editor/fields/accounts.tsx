@@ -1,12 +1,24 @@
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import { render } from "./register";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { Alert, Button, Input, Select, SelectProps, Space } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  List,
+  Popconfirm,
+  Select,
+  SelectProps,
+  Space,
+} from "antd";
 import {
   user_search,
   User,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { useEditableContext } from "./context";
+import useAccountName from "@cocalc/frontend/users/use-account-name";
+import { CloseOutlined } from "@ant-design/icons";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 const AVATAR_SIZE = 18;
 
@@ -14,23 +26,19 @@ render({ type: "accounts" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "accounts") throw Error("bug");
   const account_ids = obj[field];
   if (!account_ids && viewOnly) return null;
-  const v: ReactNode[] = [];
-  for (const account_id of account_ids ?? []) {
-    v.push(
-      <Avatar key={account_id} account_id={account_id} size={AVATAR_SIZE} />
-    );
-  }
   if (!viewOnly && spec.editable) {
-    v.push(
-      <AddAccount
-        key="add-account"
-        obj={obj}
-        field={field}
-        account_ids={account_ids ?? []}
-      />
+    return (
+      <EditAccounts obj={obj} field={field} account_ids={account_ids ?? []} />
+    );
+  } else {
+    return (
+      <div>
+        {(account_ids ?? []).map((account_id) => (
+          <Avatar key={account_id} account_id={account_id} size={AVATAR_SIZE} />
+        ))}
+      </div>
     );
   }
-  return <div>{v}</div>;
 });
 
 render({ type: "account" }, ({ field, obj }) => {
@@ -39,19 +47,75 @@ render({ type: "account" }, ({ field, obj }) => {
   return <Avatar key={account_id} account_id={account_id} size={AVATAR_SIZE} />;
 });
 
-function AddAccount({
-  field,
-  obj,
+function EditAccounts({ obj, field, account_ids }) {
+  const { error: saveError, save: save0 } = useEditableContext<string[]>(field);
+  const save = (value: string[]) => save0(obj, value);
+  return (
+    <div>
+      <AccountList account_ids={account_ids ?? []} save={save} />
+      {saveError && <Alert message={saveError} type="error" />}
+      <AddAccount
+        key="add-account"
+        account_ids={account_ids ?? []}
+        save={save}
+      />
+    </div>
+  );
+}
+
+function AccountList({
   account_ids,
+  save,
 }: {
-  field: string;
-  obj: object;
   account_ids: string[];
+  save: (account_ids: string[]) => Promise<void>;
+}) {
+  return (
+    <List
+      itemLayout="horizontal"
+      dataSource={account_ids}
+      renderItem={(account_id: string) => (
+        <List.Item>
+          <Space>
+            <Avatar key={account_id} account_id={account_id} />
+            <AccountName account_id={account_id} />
+          </Space>
+          <Popconfirm
+            title="Remove this account?"
+            onConfirm={() => {
+              save(account_ids.filter((x) => x != account_id));
+            }}
+          >
+            <Button type="link">
+              <CloseOutlined />
+            </Button>
+          </Popconfirm>
+        </List.Item>
+      )}
+    />
+  );
+}
+
+function AccountName({ account_id }) {
+  const name = useAccountName(account_id);
+  if (name == null) return null;
+  return (
+    <>
+      {name.firstName} {name.lastName}
+    </>
+  );
+}
+
+function AddAccount({
+  account_ids,
+  save,
+}: {
+  account_ids: string[];
+  save: (account_ids: string[]) => Promise<void>;
 }) {
   const [error, setError] = useState<string>("");
   const [users, setUsers] = useState<User[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const { error: saveError, save } = useEditableContext<string[]>(field);
   return (
     <div>
       {(users == null || users.length == 0) && !error && (
@@ -88,7 +152,6 @@ function AddAccount({
         />
       )}
       {error && <Alert message={error} type="error" />}
-      {saveError && <Alert message={saveError} type="error" />}
       {users != null && (
         <Users
           users={users}
@@ -96,7 +159,7 @@ function AddAccount({
             setError("");
             setUsers(null);
             if (new_account_ids.length > 0) {
-              save(obj, account_ids.concat(new_account_ids));
+              save(account_ids.concat(new_account_ids));
             }
           }}
         />
@@ -123,7 +186,15 @@ function Users({
       label: (
         <div>
           <Avatar account_id={user.account_id} size={AVATAR_SIZE} />{" "}
-          {user.email_address}
+          {user.first_name} {user.last_name} -- {user.email_address},{" "}
+          {user.last_active ? (
+            <>
+              active <TimeAgo date={user.last_active} />
+            </>
+          ) : (
+            "never active"
+          )}
+          , created <TimeAgo date={user.created} />
         </div>
       ),
       value: user.account_id,
