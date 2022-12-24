@@ -89,7 +89,7 @@ function SearchBy({
             .includes(input.toLowerCase())
         }
         onChange={(newField: string) => {
-          setSearch(n, { field: newField });
+          setSearch(n, { field: newField, operator, value });
         }}
         optionFilterProp="children"
         options={columns.map(({ dataIndex, title }) => {
@@ -105,7 +105,7 @@ function SearchBy({
           style={{ width: "150px" }}
           value={operator}
           onChange={(operator: Operator) => {
-            setSearch(n, { field, operator });
+            setSearch(n, { field, operator, value });
           }}
           options={OPERATORS.map((op: Operator) => {
             return { value: op, label: op };

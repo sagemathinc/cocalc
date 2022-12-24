@@ -12,8 +12,6 @@ import { isEqual } from "lodash";
 export const OPERATORS = [
   "=",
   "!=",
-  "is NULL",
-  "is not NULL",
   ">=",
   "<=",
   "contains",
