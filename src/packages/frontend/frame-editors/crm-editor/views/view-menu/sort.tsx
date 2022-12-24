@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { SortDirection, parseSort } from "../syncdb/use-sort-fields";
-import type { ColumnsType } from "../fields";
+import { SortDirection, parseSort } from "../../syncdb/use-sort-fields";
+import type { ColumnsType } from "../../fields";
 import { Button, Select, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 

@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import { FilterOutlined } from "@ant-design/icons";
 
 import type { MenuProps } from "antd";
-import { Divider, Input, InputNumber, Select, Space, Menu } from "antd";
-import { TYPE_TO_ICON } from "./index";
+import { Divider, Input, Select, Space, Menu } from "antd";
+import { TYPE_TO_ICON } from "../index";
 import { Icon } from "@cocalc/frontend/components";
-import sortMenu from "./sort-menu";
-import hideFieldsMenu from "./hide-fields-menu";
+
+import sortMenu from "./sort";
+import hideFieldsMenu from "./hide-fields";
+import limitMenu from "./limit";
 
 export default function ViewMenu({
   name,
@@ -155,18 +157,7 @@ function getMenus({
       columns,
       setSortField,
     }),
-    {
-      label: <span style={{ padding: "5px" }}>Limit ({limit})</span>,
-      key: "limit",
-      icon: <Icon name="database" />,
-      children: [
-        {
-          disabled: true,
-          label: <Limit limit={limit} setLimit={setLimit} />,
-          key: "the-limit",
-        },
-      ],
-    },
+    limitMenu({ limit, setLimit }),
   ];
 }
 
@@ -256,26 +247,6 @@ function GroupBy({ columns }) {
           ]}
         />
       )}
-    </Space>
-  );
-}
-
-function Limit({ limit, setLimit }) {
-  return (
-    <Space>
-      <div style={{ color: "#666" }}>Limit on number of results:</div>
-      <InputNumber
-        style={{ marginBottom: "7.5px" /* ugly hack */ }}
-        min={1}
-        max={1000}
-        step={25}
-        defaultValue={limit}
-        onChange={(value) => {
-          if (value) {
-            setLimit(value);
-          }
-        }}
-      />
     </Space>
   );
 }
