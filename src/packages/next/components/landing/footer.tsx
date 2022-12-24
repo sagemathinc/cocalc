@@ -84,7 +84,7 @@ export default function Footer() {
         )}
         {(landingPages || imprintOrPolicies) && (
           <Item>
-            <A href="/policies/policies">Policies</A>
+            <A href="/policies">Policies</A>
           </Item>
         )}
         {isCommercial && (

@@ -18,9 +18,8 @@ DEFAULT_TIMEOUT_DELAY_MS = DEFAULT_TIMEOUS_MS * 4
 
 QUERY_ALERT_THRESH_MS=5000
 
-# this is a limit for each query, unless timeout_s is specified.
-# https://postgresqlco.nf/en/doc/param/statement_timeout/
-DEFAULT_STATEMENT_TIMEOUT_S = 30
+consts = require('./consts')
+DEFAULT_STATEMENT_TIMEOUT_MS = consts.STATEMENT_TIMEOUT_MS
 
 EventEmitter = require('events')
 
@@ -257,15 +256,16 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 dbg("create client and start connecting...")
                 locals.clients = []
 
-                # Use a function to initialize the client, to avoid any
-                # issues with scope of "client" below.
+                # Use a function to initialize the client, to avoid any issues with scope of "client" below.
+                # Ref: https://node-postgres.com/apis/client
                 init_client = (host) =>
                     client = new pg.Client
-                        user     : @_user
-                        host     : host
-                        port     : @_port
-                        password : @_password
-                        database : @_database
+                        user             : @_user
+                        host             : host
+                        port             : @_port
+                        password         : @_password
+                        database         : @_database
+                        statement_timeout: DEFAULT_STATEMENT_TIMEOUT_MS # we set a statement_timeout, to avoid queries locking up PG
                     if @_notification?
                         client.on('notification', @_notification)
                     onError = (err) =>
@@ -331,13 +331,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     client.query "SELECT NOW()", (err) =>
                         clearTimeout(timeout)
                         cb?(err)
-                async.map(locals.clients, f, cb)
-            (cb) =>
-                # we set a statement_timeout, to avoid queries locking up PG
-                f = (client, cb) =>
-                    statement_timeout_ms = DEFAULT_STATEMENT_TIMEOUT_S * 1000 # in millisecs
-                    client.query "SET statement_timeout TO #{statement_timeout_ms}", (err) =>
-                        cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
                 dbg("checking if ANY db server is in recovery, i.e., we are doing standby queries only")
@@ -790,6 +783,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if query_time_ms >= QUERY_ALERT_THRESH_MS
                     dbg("QUERY_ALERT_THRESH: query_time_ms=#{query_time_ms}\nQUERY_ALERT_THRESH: query='#{opts.query}'\nQUERY_ALERT_THRESH: params='#{misc.to_json(opts.params)}'")
 
+            # set a timeout for one specific query (there is a default when creating the pg.Client, see @_connect)
             if opts.timeout_s? and typeof opts.timeout_s == 'number' and opts.timeout_s >= 0
                 dbg("set query timeout to #{opts.timeout_s}secs")
                 opts.pg_params ?= {}
