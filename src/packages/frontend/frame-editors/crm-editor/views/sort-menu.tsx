@@ -4,6 +4,46 @@ import type { ColumnsType } from "../fields";
 import { Button, Select, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 
+export default function sortMenu({ sortFields, columns, setSortField }) {
+  return {
+    label:
+      sortFields.length == 0 ? (
+        "Sort"
+      ) : (
+        <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
+          Sort ({sortFields.length})
+        </span>
+      ),
+    key: "sort",
+    icon: <Icon name="sort-amount-up" />,
+    children: sortFields
+      .map((field) => {
+        return {
+          disabled: true,
+          label: (
+            <SortBy
+              columns={columns}
+              field={field}
+              setSortField={setSortField}
+            />
+          ),
+          key: `sortby-${field}`,
+        };
+      })
+      .concat(
+        sortFields.length < columns.length
+          ? [
+              {
+                disabled: true,
+                label: <SortBy columns={columns} setSortField={setSortField} />,
+                key: "add",
+              },
+            ]
+          : []
+      ),
+  };
+}
+
 interface SortByProps {
   columns: ColumnsType[];
   field?: string; // if not set, then adding
@@ -65,48 +105,4 @@ function SortBy({ columns, field, setSortField }: SortByProps) {
       )}
     </Space>
   );
-}
-
-export default function sortMenu({
-  sortFields,
-  columns,
-  setSortField,
-}) {
-  return {
-    label:
-      sortFields.length == 0 ? (
-        "Sort"
-      ) : (
-        <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
-          Sort ({sortFields.length})
-        </span>
-      ),
-    key: "sort",
-    icon: <Icon name="sort-amount-up" />,
-    children: sortFields
-      .map((field) => {
-        return {
-          disabled: true,
-          label: (
-            <SortBy
-              columns={columns}
-              field={field}
-              setSortField={setSortField}
-            />
-          ),
-          key: `sortby-${field}`,
-        };
-      })
-      .concat(
-        sortFields.length < columns.length
-          ? [
-              {
-                disabled: true,
-                label: <SortBy columns={columns} setSortField={setSortField} />,
-                key: "add",
-              },
-            ]
-          : []
-      ),
-  };
 }
