@@ -6,6 +6,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { TagById } from "./tag-by-id";
 import { useTags, createTag } from "../querydb/tags";
+import { field_cmp } from "@cocalc/util/misc";
 
 render({ type: "tags", editable: false }, ({ field, obj }) => {
   const tags = obj[field];
@@ -122,6 +123,7 @@ function AddTags({
         name: tags[id0].name.toLowerCase(),
       });
     }
+    options.sort(field_cmp("name"));
     return options;
   }, [tags]);
 

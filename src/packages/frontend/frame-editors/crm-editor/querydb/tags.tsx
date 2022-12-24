@@ -22,7 +22,11 @@ export const TagsContext = createContext<TagsContextType>({ tags: null });
 
 export function TagsProvider({ children }) {
   const { query } = useMemo(() => getTableDescription("tags"), []);
-  const { data, editableContext } = useTable({ query, changes: true });
+  const { data, editableContext } = useTable({
+    query,
+    changes: true,
+    limit: 1000,
+  });
 
   const tags = useMemo(() => {
     // some tags have changed, so update our tags map

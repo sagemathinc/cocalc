@@ -115,7 +115,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
         name={name}
         view={view}
         columns={allColumns}
-        id={id}
         limit={limit}
         setLimit={setLimit}
         sortFields={sortFields}

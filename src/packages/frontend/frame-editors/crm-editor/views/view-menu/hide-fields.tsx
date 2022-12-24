@@ -4,9 +4,10 @@ import { Icon } from "@cocalc/frontend/components";
 export default function hideFieldsMenu({
   hiddenFields,
   setHiddenField,
-  allFields,
   columns,
 }) {
+  const allFields = columns.map((x) => x.dataIndex);
+
   return {
     label:
       hiddenFields.size == 0 ? (
