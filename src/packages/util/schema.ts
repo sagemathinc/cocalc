@@ -10,7 +10,7 @@
 
 export { RECENT_TIMES, RECENT_TIMES_KEY } from "./schema-static";
 
-export { SCHEMA, client_db, site_settings_conf } from "./db-schema";
+export * from "./db-schema";
 
 // Will import some other modules and make them available here, since the code
 // used to be in this file, and this is assumed in code elsewhere.  Will change later.

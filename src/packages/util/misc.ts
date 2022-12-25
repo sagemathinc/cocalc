@@ -2110,39 +2110,6 @@ export function create_dependency_graph(obj: {
   return DAG;
 }
 
-// ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
-export type OPERATORS = "!=" | "<>" | "<=" | ">=" | "==" | "<" | ">" | "=";
-export const operators: OPERATORS[] = [
-  "!=",
-  "<>",
-  "<=",
-  ">=",
-  "==",
-  "<",
-  ">",
-  "=",
-];
-
-export function op_to_function(op: string): (a, b) => boolean {
-  switch (op) {
-    case "=":
-    case "==":
-      return (a, b) => a === b;
-    case "!=":
-    case "<>":
-      return (a, b) => a !== b;
-    case "<=":
-      return (a, b) => a <= b;
-    case ">=":
-      return (a, b) => a >= b;
-    case "<":
-      return (a, b) => a < b;
-    case ">":
-      return (a, b) => a > b;
-    default:
-      throw Error(`operator must be one of '${JSON.stringify(operators)}'`);
-  }
-}
 
 // modify obj in place substituting as specified in subs recursively,
 // both for keys *and* values of obj.  E.g.,

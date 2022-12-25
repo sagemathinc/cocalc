@@ -7,12 +7,14 @@ import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { DEFAULT_LIMIT } from "../syncdb/use-limit";
+import { AtomicSearch } from "../syncdb/use-search";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
   changes?: boolean; // if true, automatically updates records loaded during first query.  Doesn't add/remove anything yet though.
   sortFields?: string[];
   hiddenFields?: Set<string>;
+  search?: AtomicSearch[];
   limit?: number;
 }
 
@@ -21,6 +23,7 @@ export function useTable({
   changes = false,
   sortFields,
   hiddenFields,
+  search,
   limit,
 }: Options): {
   data: any[];
@@ -126,7 +129,7 @@ export function useTable({
       options: { leading: true, trailing: true },
       func: ([_, sortFields, hiddenFields, limit]) => {
         const x = { id: "" };
-        const q = getQuery(query, hiddenFields);
+        const q = getQuery(query, hiddenFields, search);
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
           sortOptions(sortFields)
         );
@@ -201,16 +204,30 @@ function sortOptions(sortFields?: string[]) {
   });
 }
 
-function getQuery(query, hiddenFields?: Set<string>) {
-  if (hiddenFields == null || hiddenFields.size == 0) {
+function getQuery(query, hiddenFields?: Set<string>, search?: AtomicSearch[]) {
+  if (
+    (hiddenFields == null || hiddenFields.size == 0) &&
+    (search == null || search.length == 0)
+  ) {
     return query;
   }
   const table = Object.keys(query)[0];
   const primary_keys = client_db.primary_keys(table);
   const fields = { ...query[table][0] };
-  for (const field of hiddenFields) {
-    if (!primary_keys.includes(field)) {
-      delete fields[field];
+  if (hiddenFields != null) {
+    for (const field of hiddenFields) {
+      if (!primary_keys.includes(field)) {
+        delete fields[field];
+      }
+    }
+  }
+  if (search != null) {
+    for (const { field, operator, value } of search) {
+      if (field == null || operator == null || value === undefined) {
+        // not fully entered by user yet, so ignore
+        continue;
+      }
+      fields[field] = { [operator]: value };
     }
   }
   return { [table]: [fields] };

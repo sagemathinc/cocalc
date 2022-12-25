@@ -68,7 +68,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     error: tableError,
     saving,
     loading,
-  } = useTable({ query, changes, sortFields, hiddenFields, limit });
+  } = useTable({ query, changes, sortFields, hiddenFields, search, limit });
 
   const { filteredData, numHidden, Filter } = useFilter({ data, id });
 

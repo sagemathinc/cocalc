@@ -60,6 +60,9 @@ export {
   FALLBACK_COMPUTE_IMAGE,
 } from "./defaults";
 
+export * from "./operators";
+export type { Operator } from "./operators";
+
 export { site_settings_conf } from "./site-defaults";
 
 export { client_db } from "./client-db";

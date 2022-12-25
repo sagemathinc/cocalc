@@ -8,17 +8,9 @@ needed for our CRM project yet, at least.
 import useRecord from "./use-record";
 import { useCallback, useMemo } from "react";
 import { isEqual } from "lodash";
-
-export const OPERATORS = [
-  "=",
-  "!=",
-  ">=",
-  "<=",
-  "contains",
-  "does not contain",
-] as const;
-
-export type Operator = typeof OPERATORS[number];
+export { OPERATORS } from "@cocalc/util/db-schema";
+import type { Operator } from "@cocalc/util/db-schema";
+export type { Operator };
 
 export interface AtomicSearch {
   field?: string;

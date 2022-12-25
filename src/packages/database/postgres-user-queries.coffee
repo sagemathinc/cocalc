@@ -26,7 +26,7 @@ lodash       = require('lodash')
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{PROJECT_UPGRADES, SCHEMA} = require('@cocalc/util/schema')
+{PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 
 {file_use_times} = require('./postgres/file-use-times')
 
@@ -281,7 +281,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if not misc.is_object(obj)
             return false
         for k, _ of obj
-            if k not in misc.operators
+            if k not in OPERATORS
                 return false
             return k
         return false
@@ -1199,7 +1199,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     for op, v of val
                         if op == '=='  # not in SQL, but natural for our clients to use it
                             op = '='
-                        where["#{quote_field(field)} #{op} $"] = v
+                        if op.toLowerCase().startsWith('is')
+                            # hack to use same where format for now, since $ replacement
+                            # doesn't work for "foo IS ...".
+                            where["#{quote_field(field)} #{op} #{isToOperand(v)}"] = true
+                        else
+                            where["#{quote_field(field)} #{op} $"] = v
                 else
                     where["#{quote_field(field)} = $"] = val
 
