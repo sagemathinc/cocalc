@@ -114,6 +114,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     <div>
       {right}{" "}
       <ViewMenu
+        query={query}
         name={name}
         view={view}
         columns={allColumns}

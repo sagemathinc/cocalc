@@ -132,7 +132,7 @@ function getWidth(renderSpec: RenderSpec): number {
   return 100;
 }
 
-function getFieldSpec(table: string, field: string): FieldSpec {
+export function getFieldSpec(table: string, field: string): FieldSpec {
   const schema = SCHEMA[table];
   if (schema == null) {
     throw Error(`invalid table ${table}`);

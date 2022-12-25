@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DatePicker, Space } from "antd";
 import { useEditableContext } from "./context";
 import { TimeAgo } from "@cocalc/frontend/components";
@@ -29,23 +29,12 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
     setValue(obj[field] ? dayjs(obj[field]) : undefined);
   }, [counter, obj[field]]);
 
-  const timeRef = useRef<dayjs.Dayjs | undefined>(value);
-  const timeOffset = useMemo(() => {
-    return (value: dayjs.Dayjs | undefined) => {
-      if (value == undefined || timeRef.current == undefined) return value;
-      value = value.hour(timeRef.current.hour());
-      value = value.minute(timeRef.current.minute());
-      value = value.second(timeRef.current.second());
-      return value;
-    };
-  }, []);
   const fullSave = useMemo(() => {
     return (newValue?) => {
       if (newValue === undefined) {
         // still explicitly allow newValue === null to clear.
         newValue = value;
       }
-      newValue = timeOffset(newValue);
       setValue(newValue ?? null);
       save(obj, newValue?.toDate() ?? null);
     };
@@ -55,25 +44,16 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <DatePicker
+          showTime
           allowClear
-          value={value}
+          defaultValue={value}
           disabled={saving}
           onChange={fullSave}
+          onOk={fullSave}
           placeholder={fieldToLabel(field)}
           showToday={true}
+          format={"YYYY-MM-DD hh:mm:ss A"}
         />
-        {value != null && (
-          <DatePicker
-            allowClear={false}
-            defaultValue={value}
-            format={"hh:mm:ss A"}
-            picker={"time"}
-            onChange={(value) => {
-              timeRef.current = value ?? undefined;
-              fullSave();
-            }}
-          />
-        )}
         {error}
       </Space>
     );

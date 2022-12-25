@@ -35,7 +35,7 @@ export function useTable({
 } {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string>("");
   const lastSaveRef = useRef<number>(0);
 
   const info = useMemo(() => {
@@ -54,7 +54,7 @@ export function useTable({
       lastSaveRef.current = new Date().valueOf();
       try {
         setSaving(true);
-        setError(undefined);
+        setError("");
         await webapp_client.query_client.query({
           query,
           options: [{ set: true }],
@@ -123,11 +123,13 @@ export function useTable({
     }
   };
 
-  useDebounceEffect<[number, string[]?, Set<string>?, number?]>(
+  useDebounceEffect<
+    [number, string[]?, Set<string>?, number?, AtomicSearch[]?]
+  >(
     {
       wait: 1000,
       options: { leading: true, trailing: true },
-      func: ([_, sortFields, hiddenFields, limit]) => {
+      func: ([_, sortFields, hiddenFields, limit, search]) => {
         const x = { id: "" };
         const q = getQuery(query, hiddenFields, search);
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
@@ -150,9 +152,8 @@ export function useTable({
               setError(`${err}`);
               return;
             }
-            if (error) {
-              setError("");
-            }
+            // successfully query so clear error state
+            setError("");
             // TODO: err handling, reconnect logic
             if (resp.action) {
               // change, e.g., insert or update or delete
@@ -183,7 +184,7 @@ export function useTable({
         };
       },
     },
-    [disconnectCounter, sortFields, hiddenFields, limit]
+    [disconnectCounter, sortFields, hiddenFields, limit, search]
   );
 
   const refresh = incDisconnectCounter;

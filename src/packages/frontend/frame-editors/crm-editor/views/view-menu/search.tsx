@@ -1,9 +1,13 @@
+import { useMemo } from "react";
 import { FilterOutlined } from "@ant-design/icons";
-import { Button, Input, Select, Space } from "antd";
+import { Button, DatePicker, Input, InputNumber, Select, Space } from "antd";
 import type { ColumnsType } from "../../fields";
+import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
 import { Operator, OPERATORS, AtomicSearch } from "../../syncdb/use-search";
+import dayjs from "dayjs";
+import { capitalize } from "@cocalc/util/misc";
 
 function enumerate(x: object[]): any[] {
   const v: object[] = [];
@@ -13,7 +17,9 @@ function enumerate(x: object[]): any[] {
   return v;
 }
 
-export default function searchMenu({ columns, search, setSearch }) {
+export default function searchMenu({ columns, search, setSearch, query }) {
+  const dbtable = Object.keys(query)[0] as string;
+
   return {
     label:
       search.length == 0 ? (
@@ -31,6 +37,7 @@ export default function searchMenu({ columns, search, setSearch }) {
           disabled: true,
           label: (
             <SearchBy
+              dbtable={dbtable}
               field={field}
               operator={operator}
               value={value}
@@ -47,6 +54,7 @@ export default function searchMenu({ columns, search, setSearch }) {
           disabled: true,
           label: (
             <SearchBy
+              dbtable={dbtable}
               n={search.length}
               columns={columns}
               setSearch={setSearch}
@@ -59,6 +67,7 @@ export default function searchMenu({ columns, search, setSearch }) {
 }
 
 interface SearchByProps {
+  dbtable: string;
   field?: string; // if not set, then adding
   operator?: Operator;
   value?: string;
@@ -68,6 +77,7 @@ interface SearchByProps {
 }
 
 function SearchBy({
+  dbtable,
   columns,
   field,
   operator,
@@ -75,6 +85,11 @@ function SearchBy({
   setSearch,
   n,
 }: SearchByProps) {
+  const fieldSpec = useMemo(
+    () => (field ? getFieldSpec(dbtable, field) : {}),
+    [dbtable, field]
+  );
+
   return (
     <Space style={{ width: "100%" }}>
       <Select
@@ -100,25 +115,20 @@ function SearchBy({
         })}
       />
       {field && (
-        <Select
-          size="small"
-          style={{ width: "150px" }}
-          value={operator}
-          onChange={(operator: Operator) => {
+        <SelectOperator
+          fieldSpec={fieldSpec}
+          operator={operator}
+          onChange={(operator) => {
             setSearch(n, { field, operator, value });
           }}
-          options={OPERATORS.map((op: Operator) => {
-            return { value: op, label: op };
-          })}
         />
       )}
       {field && operator && (
-        <Input
-          size="small"
-          style={{ width: "150px" }}
+        <Value
+          fieldSpec={fieldSpec}
           value={value}
-          onChange={(e) => {
-            setSearch(n, { field, operator, value: e.target.value });
+          onChange={(value) => {
+            setSearch(n, { field, operator, value });
           }}
         />
       )}
@@ -131,4 +141,88 @@ function SearchBy({
       </Button>
     </Space>
   );
+}
+
+function SelectOperator({ fieldSpec, operator, onChange }) {
+  const options = useMemo(() => {
+    if (fieldSpec.type == "boolean") {
+      return [
+        { value: "IS" as Operator, label: "IS" },
+        { value: "IS NOT" as Operator, label: "IS NOT" },
+      ];
+    }
+    return OPERATORS.filter((op) => op != "==").map((op: Operator) => {
+      return { value: op, label: op };
+    });
+  }, [fieldSpec]);
+  return (
+    <Select
+      size="small"
+      style={{ width: "150px" }}
+      value={operator}
+      onChange={onChange}
+      options={options}
+    />
+  );
+}
+
+// For field spec meaning, see packages/util/db-schema/types.ts
+function Value({ fieldSpec, value, onChange }) {
+  if (fieldSpec.type == "boolean") {
+    return (
+      <Select
+        style={{ width: "100px" }}
+        size="small"
+        value={value}
+        onChange={onChange}
+        options={[
+          { label: "True", value: "true" },
+          { label: "False", value: "false" },
+          { label: "NULL", value: "NULL" },
+        ]}
+      />
+    );
+  } else if (fieldSpec.type == "timestamp") {
+    return (
+      <DatePicker
+        showTime
+        defaultValue={dayjs(value)}
+        onOk={(x) => onChange(x.toISOString())}
+      />
+    );
+  } else if (fieldSpec.type == "number" || fieldSpec.type == "integer") {
+    return (
+      <InputNumber
+        size="small"
+        style={{ width: "100px" }}
+        value={value}
+        onChange={onChange}
+        step={1}
+      />
+    );
+  } else if (fieldSpec.type == "string" && fieldSpec.render?.type == "select") {
+    return (
+      <Select
+        style={{ width: "100px" }}
+        size="small"
+        value={value}
+        onChange={onChange}
+        options={fieldSpec.render.options.map((value) => {
+          return {
+            label: capitalize(value),
+            value,
+          };
+        })}
+      />
+    );
+  } else {
+    return (
+      <Input
+        size="small"
+        style={{ width: "150px" }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+  }
 }

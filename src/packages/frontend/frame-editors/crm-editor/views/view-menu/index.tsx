@@ -7,6 +7,7 @@ import hideFieldsMenu from "./hide-fields";
 import limitMenu from "./limit";
 
 export default function ViewMenu({
+  query,
   name,
   view,
   columns,
@@ -30,7 +31,7 @@ export default function ViewMenu({
           hiddenFields,
           setHiddenField,
         }),
-        searchMenu({ columns, search, setSearch }),
+        searchMenu({ columns, search, setSearch, query }),
         //groupMenu({ columns }),
         sortMenu({
           columns,

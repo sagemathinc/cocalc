@@ -28,7 +28,7 @@ export const OPERATORS = [
 export type Operator = typeof OPERATORS[number];
 
 export function isToOperand(operand: string) {
-  switch (operand.toLowerCase()) {
+  switch (operand?.toLowerCase?.()) {
     case "null":
       return "null";
     case "unknown":

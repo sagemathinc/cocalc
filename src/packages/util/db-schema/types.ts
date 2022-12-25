@@ -106,17 +106,19 @@ export interface DBSchema {
   [key: string]: TableSchema<any>;
 }
 
+type FieldType =
+  | "uuid"
+  | "timestamp"
+  | "string"
+  | "boolean"
+  | "map"
+  | "array"
+  | "integer"
+  | "number"
+  | "Buffer";
+
 export interface FieldSpec {
-  type:
-    | "uuid"
-    | "timestamp"
-    | "string"
-    | "boolean"
-    | "map"
-    | "array"
-    | "integer"
-    | "number"
-    | "Buffer";
+  type: FieldType;
   desc?: string;
   title?: string;
   pg_type?: string;
