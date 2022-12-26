@@ -28,8 +28,9 @@ export const OPERATORS = [
 export type Operator = typeof OPERATORS[number];
 
 export function isToOperand(operand: string) {
-  switch (operand?.toLowerCase?.()) {
+  switch (`${operand}`.toLowerCase()) {
     case "null":
+    case "undefined":
       return "null";
     case "unknown":
       return "unknown";
@@ -61,8 +62,9 @@ export function opToFunction(op: Operator): (a, b) => boolean {
     case "IS":
       return (a, b) => {
         // see https://www.postgresql.org/docs/current/functions-comparison.html
-        switch (b.toLowerCase()) {
+        switch (`${b}`.toLowerCase()) {
           case "null":
+          case "undefined":
           case "unknown":
             return a == null;
           case "true":
