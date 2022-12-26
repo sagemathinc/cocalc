@@ -13,6 +13,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
+import useViewsToggle from "./use-views-toggle";
 
 export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
@@ -35,6 +36,7 @@ interface Props {
 export default function Views({ table }: Props) {
   const { views, saveView, deleteView } = useViews(table);
   const { actions, id, desc } = useFrameContext();
+  const { showViews, ViewsToggle } = useViewsToggle(table);
 
   const getView = useCallback(
     (id: string) => {
@@ -146,8 +148,80 @@ export default function Views({ table }: Props) {
     }
   }
 
+  const renderTabBar = useMemo(() => {
+    if (showViews) {
+      return (tabBarProps, DefaultTabBar) => (
+        <DndContext
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis]}
+        >
+          <SortableContext
+            items={items.map((node) => node.key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <DefaultTabBar {...tabBarProps}>
+              {(node) =>
+                node.key == NEW ? (
+                  node
+                ) : (
+                  <SortableItem
+                    key={node.key}
+                    id={node.key}
+                    selected={view == node.key}
+                    getView={getView}
+                    onAction={(
+                      action: "rename" | "duplicate" | "delete",
+                      newName?: string
+                    ) => {
+                      if (node.key == null) return;
+                      const view = getView(`${node.key}`);
+                      if (view == null) return;
+                      if (action == "duplicate") {
+                        const view2: Partial<ViewDescription> = { ...view };
+                        delete view2.id;
+                        delete view2.pos;
+                        view2.name = suggest_duplicate_filename(
+                          view2.name ?? "Copy"
+                        );
+                        saveView(view2);
+                        return;
+                      } else if (action == "rename") {
+                        if (newName) {
+                          saveView({ ...view, name: newName });
+                        }
+                        return;
+                      } else if (action == "delete") {
+                        deleteView(view);
+                        return;
+                      }
+                    }}
+                  >
+                    <Icon
+                      style={{
+                        fontSize: "15pt",
+                        marginRight: "-15px",
+                      }}
+                      name={
+                        TYPE_TO_ICON[getView(`${node.key}`)?.type ?? "grid"] ??
+                        "square"
+                      }
+                    />
+                    {node}
+                  </SortableItem>
+                )
+              }
+            </DefaultTabBar>
+          </SortableContext>
+        </DndContext>
+      );
+    } else {
+      return () => <div style={{ marginLeft: "-30px" }}></div>;
+    }
+  }, [showViews]);
+
   return (
     <div>
+      {ViewsToggle}
       <Tabs
         tabPosition="left"
         activeKey={view}
@@ -157,71 +231,7 @@ export default function Views({ table }: Props) {
         size="small"
         items={items}
         style={{ margin: "15px" }}
-        renderTabBar={(tabBarProps, DefaultTabBar) => (
-          <DndContext
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
-            <SortableContext
-              items={items.map((node) => node.key)}
-              strategy={verticalListSortingStrategy}
-            >
-              <DefaultTabBar {...tabBarProps}>
-                {(node) =>
-                  node.key == NEW ? (
-                    node
-                  ) : (
-                    <SortableItem
-                      key={node.key}
-                      id={node.key}
-                      selected={view == node.key}
-                      getView={getView}
-                      onAction={(
-                        action: "rename" | "duplicate" | "delete",
-                        newName?: string
-                      ) => {
-                        if (node.key == null) return;
-                        const view = getView(`${node.key}`);
-                        if (view == null) return;
-                        if (action == "duplicate") {
-                          const view2: Partial<ViewDescription> = { ...view };
-                          delete view2.id;
-                          delete view2.pos;
-                          view2.name = suggest_duplicate_filename(
-                            view2.name ?? "Copy"
-                          );
-                          saveView(view2);
-                          return;
-                        } else if (action == "rename") {
-                          if (newName) {
-                            saveView({ ...view, name: newName });
-                          }
-                          return;
-                        } else if (action == "delete") {
-                          deleteView(view);
-                          return;
-                        }
-                      }}
-                    >
-                      <Icon
-                        style={{
-                          fontSize: "15pt",
-                          marginRight: "-15px",
-                        }}
-                        name={
-                          TYPE_TO_ICON[
-                            getView(`${node.key}`)?.type ?? "grid"
-                          ] ?? "square"
-                        }
-                      />
-                      {node}
-                    </SortableItem>
-                  )
-                }
-              </DefaultTabBar>
-            </SortableContext>
-          </DndContext>
-        )}
+        renderTabBar={renderTabBar}
       />
     </div>
   );

@@ -1,14 +1,15 @@
 import { SCHEMA } from "@cocalc/util/db-schema";
-import { useMemo } from "react";
+import { CSSProperties, useMemo } from "react";
 import { Select } from "antd";
 import { fieldToLabel } from "../util";
 
 interface Props {
   onChange: (key: string) => void;
   query: object;
+  style: CSSProperties;
 }
 
-export function SelectTimeKey({ onChange, query }: Props) {
+export function SelectTimeKey({ onChange, query, style }: Props) {
   const keys = useMemo(() => allTimeKeys(query), [query]);
   const options = keys.map((key) => {
     return { value: key, label: fieldToLabel(key) };
@@ -18,7 +19,7 @@ export function SelectTimeKey({ onChange, query }: Props) {
       defaultValue={keys[0]}
       onChange={onChange}
       options={options}
-      style={{ width: "150px" }}
+      style={{ width: "150px", ...style }}
     />
   );
 }

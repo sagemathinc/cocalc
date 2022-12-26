@@ -39,7 +39,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
     allowCreate,
     changes,
   } = useMemo(() => getTableDescription(table), [table]);
-
   const [limit, setLimit] = useLimit({ id });
   const [search, setSearch] = useSearch({ id });
   const [sortFields, setSortField] = useSortFields({ id });
@@ -191,10 +190,16 @@ export default function View({ table, view, style, height, name, id }: Props) {
             description={tableError}
           />
         )}
-        {view == "calendar" && (
-          <SelectTimeKey onChange={setTimeKey} query={query} />
-        )}
-        {Filter}
+        <Space>
+          {view == "calendar" && (
+            <SelectTimeKey
+              onChange={setTimeKey}
+              query={query}
+              style={{ marginBottom: "5px" }}
+            />
+          )}
+          {Filter}
+        </Space>
         {numHidden > 0 ? (
           <div style={{ marginTop: "-10px", float: "right" }}>
             <Alert
