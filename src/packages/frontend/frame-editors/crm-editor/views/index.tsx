@@ -35,8 +35,8 @@ interface Props {
 
 export default function Views({ table }: Props) {
   const { views, saveView, deleteView } = useViews(table);
-  const { actions, id, desc } = useFrameContext();
-  const { showViews, ViewsToggle } = useViewsToggle(table);
+  const { actions, id: frameId, desc } = useFrameContext();
+  const { showViews, setShowViews } = useViewsToggle(table);
 
   const getView = useCallback(
     (id: string) => {
@@ -59,7 +59,7 @@ export default function Views({ table }: Props) {
     const createNewView = (type: string) => {
       const newView = { type, id: undefined };
       saveView(newView);
-      actions.set_frame_tree({ id, [viewKey]: newView.id });
+      actions.set_frame_tree({ id: frameId, [viewKey]: newView.id });
     };
 
     const items: TabItem[] = [];
@@ -76,8 +76,8 @@ export default function Views({ table }: Props) {
           <Icon
             name="plus-circle"
             style={{ fontSize: "15pt", margin: "0 5px 0 -24px" }}
-          />{" "}
-          New View...
+          />
+          {showViews && <> New View...</>}
         </>
       ),
       key: NEW,
@@ -110,7 +110,7 @@ export default function Views({ table }: Props) {
       ),
     });
     return items;
-  }, [views]);
+  }, [views, showViews]);
 
   function handleDragEnd(event) {
     if (views == null) return;
@@ -148,85 +148,78 @@ export default function Views({ table }: Props) {
     }
   }
 
-  const renderTabBar = useMemo(() => {
-    if (showViews) {
-      return (tabBarProps, DefaultTabBar) => (
-        <DndContext
-          onDragEnd={handleDragEnd}
-          modifiers={[restrictToVerticalAxis]}
-        >
-          <SortableContext
-            items={items.map((node) => node.key)}
-            strategy={verticalListSortingStrategy}
-          >
-            <DefaultTabBar {...tabBarProps}>
-              {(node) =>
-                node.key == NEW ? (
-                  node
-                ) : (
-                  <SortableItem
-                    key={node.key}
-                    id={node.key}
-                    selected={view == node.key}
-                    getView={getView}
-                    onAction={(
-                      action: "rename" | "duplicate" | "delete",
-                      newName?: string
-                    ) => {
-                      if (node.key == null) return;
-                      const view = getView(`${node.key}`);
-                      if (view == null) return;
-                      if (action == "duplicate") {
-                        const view2: Partial<ViewDescription> = { ...view };
-                        delete view2.id;
-                        delete view2.pos;
-                        view2.name = suggest_duplicate_filename(
-                          view2.name ?? "Copy"
-                        );
-                        saveView(view2);
-                        return;
-                      } else if (action == "rename") {
-                        if (newName) {
-                          saveView({ ...view, name: newName });
-                        }
-                        return;
-                      } else if (action == "delete") {
-                        deleteView(view);
-                        return;
-                      }
-                    }}
-                  >
-                    <Icon
-                      style={{
-                        fontSize: "15pt",
-                        marginRight: "-15px",
-                      }}
-                      name={
-                        TYPE_TO_ICON[getView(`${node.key}`)?.type ?? "grid"] ??
-                        "square"
-                      }
-                    />
-                    {node}
-                  </SortableItem>
-                )
-              }
-            </DefaultTabBar>
-          </SortableContext>
-        </DndContext>
-      );
-    } else {
-      return () => <div style={{ marginLeft: "-30px" }}></div>;
-    }
-  }, [showViews]);
+  const renderTabBar = (tabBarProps, DefaultTabBar) => (
+    <DndContext onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
+      <SortableContext
+        items={items.map((node) => node.key)}
+        strategy={verticalListSortingStrategy}
+      >
+        <DefaultTabBar {...tabBarProps}>
+          {(node) =>
+            node.key == NEW ? (
+              node
+            ) : (
+              <SortableItem
+                key={node.key}
+                id={node.key}
+                selected={view == node.key}
+                getView={getView}
+                showViews={showViews}
+                setShowViews={setShowViews}
+                onAction={(
+                  action: "rename" | "duplicate" | "delete",
+                  newName?: string
+                ) => {
+                  if (node.key == null) return;
+                  const view = getView(`${node.key}`);
+                  if (view == null) return;
+                  if (action == "duplicate") {
+                    const view2: Partial<ViewDescription> = { ...view };
+                    delete view2.id;
+                    delete view2.pos;
+                    view2.name = suggest_duplicate_filename(
+                      view2.name ?? "Copy"
+                    );
+                    saveView(view2);
+                    return;
+                  } else if (action == "rename") {
+                    if (newName) {
+                      saveView({ ...view, name: newName });
+                    }
+                    return;
+                  } else if (action == "delete") {
+                    deleteView(view);
+                    return;
+                  }
+                }}
+              >
+                <Icon
+                  style={{
+                    fontSize: "15pt",
+                    marginRight: "-15px",
+                    color: view == node.key ? "#1677ff" : undefined,
+                  }}
+                  name={
+                    TYPE_TO_ICON[getView(`${node.key}`)?.type ?? "grid"] ??
+                    "square"
+                  }
+                />
+                {showViews && node}
+              </SortableItem>
+            )
+          }
+        </DefaultTabBar>
+      </SortableContext>
+    </DndContext>
+  );
 
   return (
     <div>
-      {ViewsToggle}
       <Tabs
         tabPosition="left"
         activeKey={view}
         onChange={(view: string) => {
-          actions.set_frame_tree({ id, [viewKey]: view });
+          actions.set_frame_tree({ id: frameId, [viewKey]: view });
         }}
         size="small"
         items={items}
@@ -237,7 +230,15 @@ export default function Views({ table }: Props) {
   );
 }
 
-export function SortableItem({ id, children, selected, onAction, getView }) {
+export function SortableItem({
+  id,
+  children,
+  selected,
+  onAction,
+  getView,
+  showViews,
+  setShowViews,
+}) {
   const {
     attributes,
     listeners,
@@ -250,7 +251,10 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    height: "30px",
   };
+
+  const width = showViews ? "150px" : "32px";
 
   const [editing, setEditing] = useState<boolean>(false);
   const inputRef = useRef<any>(null);
@@ -262,7 +266,7 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
         <Input
           autoFocus
           ref={inputRef}
-          style={{ width: "150px", marginLeft: "12px" }}
+          style={{ width, marginLeft: "12px" }}
           defaultValue={getView(id)?.name}
           onBlur={() => {
             const newName = inputRef.current?.input.value;
@@ -277,8 +281,15 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
         />
       ) : (
         <div
+          onClick={() => {
+            if (selected) {
+              setShowViews(!showViews);
+            } else {
+              setShowViews(true);
+            }
+          }}
           style={{
-            width: "150px",
+            width,
             display: "inline-block",
             overflow: "hidden",
             marginRight: "10px",
@@ -290,7 +301,7 @@ export function SortableItem({ id, children, selected, onAction, getView }) {
           {children}
         </div>
       )}
-      {selected && (
+      {selected && showViews && (
         <span style={{ float: "right", marginRight: "10px" }}>
           <Dropdown
             trigger={["click"]}

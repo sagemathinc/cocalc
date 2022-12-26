@@ -1,5 +1,4 @@
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Switch } from "antd";
 
 export default function useViewsToggle(table: string) {
   const { actions, id, desc } = useFrameContext();
@@ -7,14 +6,5 @@ export default function useViewsToggle(table: string) {
   const setShowViews = (showViews: boolean) => {
     actions.set_frame_tree({ id, [`show-views-${table}`]: showViews });
   };
-  const ViewsToggle = (
-    <Switch
-      checkedChildren="Views"
-      unCheckedChildren="Views"
-      checked={showViews}
-      onChange={setShowViews}
-    />
-  );
-
-  return { showViews, setShowViews, ViewsToggle };
+  return { showViews, setShowViews };
 }
