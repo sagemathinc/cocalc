@@ -11,6 +11,7 @@ import "./support-messages";
 
 import "./site-licenses";
 import "./accounts";
+import "./agents";
 import "./patches";
 import "./projects";
 import "./public-paths";

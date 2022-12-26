@@ -433,3 +433,21 @@ Table({
   },
   fields: schema.accounts.fields,
 });
+
+Table({
+  name: "crm_agents",
+  rules: {
+    virtual: "accounts",
+    primary_key: "account_id",
+    user_query: {
+      get: {
+        // There where condition restricts to only admin accounts for now.
+        // TODO: Later this will change to 'crm'=any(groups) or something like that.
+        pg_where: ["'admin'=any(groups)"],
+        admin: true, // only admins can do get queries on this table
+        fields: schema.accounts.user_query?.get?.fields ?? {},
+      },
+    },
+  },
+  fields: schema.accounts.fields,
+});
