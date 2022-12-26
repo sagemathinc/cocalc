@@ -5,6 +5,7 @@ import * as register from "./register";
 import { useViewOnlyContext } from "./context";
 
 import "./accounts";
+import "./assignee";
 import "./boolean";
 import "./color";
 import "./email-address";

@@ -273,6 +273,10 @@ Table({
     assignee: {
       type: "uuid",
       desc: "Account that is responsible for resolving this ticket.",
+      render: {
+        type: "assignee",
+        editable: true,
+      },
     },
     tasks: {
       title: "Tasks",

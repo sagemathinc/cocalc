@@ -13,6 +13,11 @@ interface Array {
   ofType: "text" | "json";
 }
 
+interface Assignee {
+  type: "assignee";
+  editable?: boolean;
+}
+
 interface Blob {
   type: "blob";
 }
@@ -128,6 +133,7 @@ export type RenderSpec =
   | Account
   | Accounts
   | Array
+  | Assignee
   | Blob
   | Boolean
   | Color

@@ -21,7 +21,7 @@ import { CloseOutlined } from "@ant-design/icons";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components";
 
-const AVATAR_SIZE = 18;
+export const AVATAR_SIZE = 18;
 
 render({ type: "accounts" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "accounts") throw Error("bug");
