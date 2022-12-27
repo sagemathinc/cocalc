@@ -6,7 +6,8 @@ import { Alert, Button, Input, List, Popconfirm, Select, Space } from "antd";
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
-import { usePerson, usePeopleSearch } from "../querydb/use-people";
+import { usePeopleSearch } from "../querydb/use-people";
+import { Person } from "./person";
 
 interface PersonType {
   id: number;
@@ -23,33 +24,6 @@ render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
   } else {
     return <PeopleList people={people} inline />;
   }
-});
-
-function Person({ id, inline }: { id: number; inline?: boolean }) {
-  const person = usePerson(id);
-  return (
-    <div
-      style={
-        inline
-          ? {
-              textOverflow: "ellipsis",
-              width: "200px",
-              overflow: "auto",
-              whiteSpace: "nowrap",
-              display: "inline-block",
-            }
-          : { padding: "5px", border: "1px solid #ddd" }
-      }
-    >
-      {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
-    </div>
-  );
-}
-
-render({ type: "person" }, ({ field, obj }) => {
-  const id = obj[field];
-  if (id == null) return null;
-  return <Person key={id} id={id} />;
 });
 
 function EditPeople({ obj, field, people }) {
@@ -81,7 +55,12 @@ function EditPeople({ obj, field, people }) {
         </Button>
       )}
       {adding && (
-        <AddPerson key="add-person" people={people ?? []} save={save} />
+        <AddPerson
+          multiple
+          key="add-person"
+          people={people ?? []}
+          save={save}
+        />
       )}
       {saveError && <Alert message={saveError} type="error" />}
       {people != null && <PeopleList people={people} save={save} />}
@@ -115,7 +94,7 @@ function PeopleList({
   }
   return (
     <List
-      style={{ maxHeight: "12em" }}
+      style={{ maxHeight: "12em", overflow: "auto" }}
       itemLayout="vertical"
       dataSource={people}
       renderItem={(id: number) => (
@@ -141,12 +120,14 @@ function PeopleList({
   );
 }
 
-function AddPerson({
+export function AddPerson({
   people,
   save,
+  multiple,
 }: {
   people: number[];
-  save: (people: number[]) => Promise<void>;
+  save: (people: number[] | number) => Promise<void>;
+  multiple?: boolean;
 }) {
   const [query, setQuery] = useState<string>("");
   const { loading, error, matches } = usePeopleSearch(query);
@@ -174,11 +155,18 @@ function AddPerson({
       )}
       {newMatches != null && newMatches.length > 0 && (
         <SelectMatches
+          multiple={multiple}
           matches={newMatches}
-          addPeople={(newPeople: number[]) => {
+          addPeople={(newPeople: number[] | number | null) => {
             setQuery("");
+            if (newPeople == null) return;
+            if (typeof newPeople == "number") {
+              save(newPeople);
+              return;
+            }
             if (newPeople.length > 0) {
               save(people.concat(newPeople));
+              return;
             }
           }}
         />
@@ -190,11 +178,13 @@ function AddPerson({
 function SelectMatches({
   matches,
   addPeople,
+  multiple,
 }: {
   matches: PersonType[];
-  addPeople: (newPeople: number[]) => void;
+  addPeople: (newPeople: number[] | number | null) => void;
+  multiple?: boolean;
 }) {
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number[] | number>([]);
   if (matches.length == 0) {
     return <div>No results</div>;
   }
@@ -210,7 +200,10 @@ function SelectMatches({
     <div>
       <Space style={{ marginBottom: "5px" }}>
         <Button
-          disabled={selected.length == 0}
+          disabled={
+            (multiple && (selected as any)?.length == 0) ||
+            (!multiple && !selected)
+          }
           type="primary"
           onClick={() => {
             addPeople(selected);
@@ -220,7 +213,7 @@ function SelectMatches({
         </Button>
         <Button
           onClick={() => {
-            addPeople([]);
+            addPeople(multiple ? [] : null);
           }}
         >
           Cancel
@@ -229,11 +222,11 @@ function SelectMatches({
       <Select
         open
         autoFocus
-        mode="multiple"
+        mode={multiple ? "multiple" : undefined}
         allowClear
         style={{ width: "100%" }}
         placeholder="Select people to associate with this person..."
-        defaultValue={[]}
+        defaultValue={multiple ? [] : undefined}
         onChange={setSelected}
         options={options}
         onSearch={(x) => console.log("search", x)}

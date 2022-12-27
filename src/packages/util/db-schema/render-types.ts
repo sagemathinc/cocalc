@@ -82,6 +82,7 @@ interface People {
 
 interface Person {
   type: "person";
+  editable?: boolean;
 }
 
 interface Purchased {

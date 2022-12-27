@@ -8,6 +8,7 @@ register({
       {
         subject: null,
         status: null,
+        created_by: null,
         created: null,
         last_edited: null,
         assignee: null,

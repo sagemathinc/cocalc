@@ -163,6 +163,7 @@ const PERSON = {
   desc: "One person in the People table",
   render: {
     type: "person",
+    editable: true,
   },
 } as FieldSpec;
 
@@ -374,7 +375,7 @@ Table({
       type: "timestamp",
       desc: "When this message was actually sent.",
     },
-    from: PERSON,
+    sent_by: PERSON,
     body: {
       type: "string",
       desc: "Actual content of the message.  This is interpretted as markdown.",
@@ -405,7 +406,7 @@ Table({
           ticket_id: null,
           created: null,
           last_edited: null,
-          from: null,
+          sent_by: null,
           body: null,
           internal: null,
         },
@@ -417,7 +418,7 @@ Table({
           ticket_id: null,
           created: true,
           last_edited: true,
-          from: true,
+          sent_by: true,
           body: true,
           internal: true,
         },

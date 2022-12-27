@@ -16,6 +16,7 @@ import "./json";
 import "./markdown";
 import "./percent";
 import "./people";
+import "./person";
 import "./project-link";
 import "./purchased";
 import "./select";
@@ -129,6 +130,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 200;
   }
   if (renderSpec.type == "people") {
+    return 200;
+  }
+  if (renderSpec.type == "person") {
     return 200;
   }
   if (renderSpec.type == "markdown") {

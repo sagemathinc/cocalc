@@ -10,7 +10,7 @@ register({
         ticket_id: null,
         created: null,
         last_edited: null,
-        from: null,
+        sent_by: null,
         body: null,
         internal: null,
       },
