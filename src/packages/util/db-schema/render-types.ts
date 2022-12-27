@@ -75,6 +75,15 @@ interface Json {
   editable?: boolean;
 }
 
+interface People {
+  type: "people";
+  editable?: boolean;
+}
+
+interface Person {
+  type: "person";
+}
+
 interface Purchased {
   type: "purchased";
 }
@@ -144,6 +153,8 @@ export type RenderSpec =
   | Invalid
   | Json
   | Number
+  | People
+  | Person
   | Percent
   | Purchased
   | ProjectLink

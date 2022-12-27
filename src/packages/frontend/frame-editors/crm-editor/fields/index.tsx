@@ -15,6 +15,7 @@ import "./image";
 import "./json";
 import "./markdown";
 import "./percent";
+import "./people";
 import "./project-link";
 import "./purchased";
 import "./select";
@@ -125,6 +126,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 250;
   }
   if (renderSpec.type == "assignee") {
+    return 200;
+  }
+  if (renderSpec.type == "people") {
     return 200;
   }
   if (renderSpec.type == "markdown") {

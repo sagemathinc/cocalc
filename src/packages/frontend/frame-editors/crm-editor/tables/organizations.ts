@@ -8,8 +8,8 @@ register({
       {
         name: null,
         last_edited: null,
-        people_ids: null,
-        organization_ids: null,
+        people: null,
+        organizations: null,
         domain: null,
         tags: null,
         deleted: null,

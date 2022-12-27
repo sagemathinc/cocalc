@@ -175,14 +175,18 @@ Table({
         editable: true,
       },
     },
-    people_ids: {
+    people: {
       type: "array",
-      pg_type: "UUID[]",
+      pg_type: "INTEGER[]",
       desc: "Array of 0 or more people that are connected with this organization",
+      render: {
+        type: "people",
+        editable: true,
+      },
     },
-    organization_ids: {
+    organizations: {
       type: "array",
-      pg_type: "UUID[]",
+      pg_type: "INTEGER[]",
       desc: "Array of 0 or more organization that are connected with this organization",
     },
     deleted: {
@@ -229,8 +233,8 @@ Table({
           created: null,
           last_edited: null,
           name: null,
-          people_ids: null,
-          organization_ids: null,
+          people: null,
+          organizations: null,
           deleted: null,
           notes: null,
           domain: null,
@@ -244,8 +248,8 @@ Table({
           created: true,
           last_edited: true,
           name: true,
-          people_ids: true,
-          organization_ids: true,
+          people: true,
+          organizations: true,
           deleted: true,
           notes: true,
           domain: true,
@@ -366,6 +370,9 @@ Table({
     from_person_id: {
       type: "integer",
       desc: "Person that sent this message.  This in the crm_people table, not a cocalc account.",
+      render: {
+        type: "person",
+      },
     },
     body: {
       type: "string",
