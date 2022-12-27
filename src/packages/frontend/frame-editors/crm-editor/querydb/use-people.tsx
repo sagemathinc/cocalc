@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import TTL from "@isaacs/ttlcache";
+import { useQueryCache } from "./use-query-cache";
 
 export interface PersonType {
   id: number;
@@ -8,25 +8,8 @@ export interface PersonType {
   email_addresses?: string;
 }
 
-interface PeopleContextType {
-  cache: TTL<number, PersonType>;
-}
-
-const PeopleContext = createContext<PeopleContextType>({
-  cache: new TTL<number, PersonType>({ ttl: 30000 }),
-});
-
-export function PeopleProvider({ children }) {
-  const cache = new TTL<number, PersonType>({ ttl: 30000 });
-  return (
-    <PeopleContext.Provider value={{ cache }}>
-      {children}
-    </PeopleContext.Provider>
-  );
-}
-
 export function usePerson(id: number): PersonType | undefined {
-  const { cache } = useContext(PeopleContext);
+  const cache = useQueryCache<number, PersonType>("people");
 
   const [person, setPerson] = useState<PersonType | undefined>(cache.get(id));
 

@@ -1,7 +1,7 @@
 // TODO: code dupe with use-people.tsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import TTL from "@isaacs/ttlcache";
+import { useQueryCache } from "./use-query-cache";
 
 export interface OrganizationType {
   id: number;
@@ -9,25 +9,8 @@ export interface OrganizationType {
   domain?: string;
 }
 
-interface OrganizationsContextType {
-  cache: TTL<number, OrganizationType>;
-}
-
-const OrganizationsContext = createContext<OrganizationsContextType>({
-  cache: new TTL<number, OrganizationType>({ ttl: 30000 }),
-});
-
-export function OrganizationsProvider({ children }) {
-  const cache = new TTL<number, OrganizationType>({ ttl: 30000 });
-  return (
-    <OrganizationsContext.Provider value={{ cache }}>
-      {children}
-    </OrganizationsContext.Provider>
-  );
-}
-
 export function useOrganization(id: number): OrganizationType | undefined {
-  const { cache } = useContext(OrganizationsContext);
+  const cache = useQueryCache<number, OrganizationType>("organizations");
 
   const [organization, setOrganization] = useState<
     OrganizationType | undefined

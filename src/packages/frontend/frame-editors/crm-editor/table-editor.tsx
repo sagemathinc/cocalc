@@ -8,8 +8,7 @@ import Home from "./home";
 import { Icon } from "@cocalc/frontend/components";
 import { TagsProvider } from "./querydb/tags";
 import { AgentsProvider } from "./querydb/use-agents";
-import { PeopleProvider } from "./querydb/use-people";
-import { OrganizationsProvider } from "./querydb/use-organizations";
+import { QueryCache } from "./querydb/use-query-cache";
 
 interface TabItem {
   label: ReactNode;
@@ -44,20 +43,18 @@ export default function TableEditor({ actions }) {
       <SyncdbContext.Provider value={{ syncdb: actions._syncstring }}>
         <TagsProvider>
           <AgentsProvider>
-            <PeopleProvider>
-              <OrganizationsProvider>
-                <Tabs
-                  type="card"
-                  activeKey={activeKey}
-                  onChange={(activeKey: string) => {
-                    actions.set_frame_tree({ id, "data-tab": activeKey });
-                  }}
-                  size="small"
-                  items={items}
-                  style={{ margin: "15px" }}
-                />
-              </OrganizationsProvider>
-            </PeopleProvider>
+            <QueryCache>
+              <Tabs
+                type="card"
+                activeKey={activeKey}
+                onChange={(activeKey: string) => {
+                  actions.set_frame_tree({ id, "data-tab": activeKey });
+                }}
+                size="small"
+                items={items}
+                style={{ margin: "15px" }}
+              />
+            </QueryCache>
           </AgentsProvider>
         </TagsProvider>
       </SyncdbContext.Provider>
