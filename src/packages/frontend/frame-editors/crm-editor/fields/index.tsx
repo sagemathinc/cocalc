@@ -148,7 +148,9 @@ export function getFieldSpec(table: string, field: string): FieldSpec {
     spec = SCHEMA[schema.virtual ?? ""]?.fields?.[field];
     if (spec != null) return spec;
   }
-  throw Error(`invalid db-schema spec for field ${field} of table ${table}`);
+  throw Error(
+    `invalid db-schema spec for field '${field}' of table '${table}'`
+  );
 }
 
 function getRenderSpec(fieldSpec: FieldSpec): RenderSpec {

@@ -13,6 +13,7 @@ register({
         status: null,
         rating: null,
         tags: null,
+        assignee: null,
         annual_revenue: null,
         notes: null,
         last_edited: null,

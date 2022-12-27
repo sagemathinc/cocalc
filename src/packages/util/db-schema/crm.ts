@@ -662,6 +662,7 @@ Table({
       desc: "Open ended text in markdown about this lead.",
       render: { type: "markdown", editable: true },
     },
+    assignee: ASSIGNEE,
     tags: TAGS_FIELD,
     status: {
       type: "string",
@@ -706,7 +707,7 @@ Table({
     },
   },
   rules: {
-    desc: "People",
+    desc: "CRM Leads",
     primary_key: "id",
     user_query: {
       get: {
@@ -720,6 +721,7 @@ Table({
           deleted: null,
           notes: null,
           tags: null,
+          assignee: null,
           status: null,
           rating: null,
           annual_revenue: null,
@@ -735,6 +737,7 @@ Table({
           deleted: true,
           notes: true,
           tags: true,
+          assignee: true,
           status: true,
           rating: true,
           annual_revenue: true,
