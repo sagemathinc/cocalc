@@ -52,6 +52,15 @@ const LAST_EDITED = {
   desc: "When this record was last edited.",
 } as FieldSpec;
 
+const ASSIGNEE = {
+  type: "uuid",
+  desc: "Account that is responsible for resolving this.",
+  render: {
+    type: "assignee",
+    editable: true,
+  },
+} as FieldSpec;
+
 Table({
   name: "crm_people",
   fields: {
@@ -270,14 +279,7 @@ Table({
       type: "integer",
       desc: "Id of the person who created this ticket.",
     },
-    assignee: {
-      type: "uuid",
-      desc: "Account that is responsible for resolving this ticket.",
-      render: {
-        type: "assignee",
-        editable: true,
-      },
-    },
+    assignee: ASSIGNEE,
     tasks: {
       title: "Tasks",
       type: "array",
@@ -493,11 +495,7 @@ Table({
       type: "uuid",
       desc: "Account that last modified this task.",
     },
-    assignee: {
-      type: "array",
-      pg_type: "UUID",
-      desc: "Accounts that will resolve this task.",
-    },
+    assignee: ASSIGNEE,
     cc: {
       type: "array",
       pg_type: "UUID[]",

@@ -124,6 +124,9 @@ function getWidth(renderSpec: RenderSpec): number {
   if (renderSpec.type == "usersmap") {
     return 250;
   }
+  if (renderSpec.type == "assignee") {
+    return 200;
+  }
   if (renderSpec.type == "markdown") {
     return 400;
   }

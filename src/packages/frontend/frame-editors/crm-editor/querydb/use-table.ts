@@ -16,6 +16,7 @@ interface Options {
   hiddenFields?: Set<string>;
   search?: AtomicSearch[];
   limit?: number;
+  debounceWaitMs?: number;
 }
 
 export function useTable({
@@ -25,6 +26,7 @@ export function useTable({
   hiddenFields,
   search,
   limit,
+  debounceWaitMs = 1000,
 }: Options): {
   data: any[];
   refresh: () => void;
@@ -127,7 +129,7 @@ export function useTable({
     [number, string[]?, Set<string>?, number?, AtomicSearch[]?]
   >(
     {
-      wait: 1000,
+      wait: debounceWaitMs,
       options: { leading: true, trailing: true },
       func: ([_, sortFields, hiddenFields, limit, search]) => {
         const x = { id: "" };
