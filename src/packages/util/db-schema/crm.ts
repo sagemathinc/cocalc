@@ -708,8 +708,9 @@ Table({
       },
     },
     annual_revenue: {
-      type: "integer",
+      type: "number",
       desc: "Rough estimate of possible annual revenue that could result from this lead.",
+      render: { type: "number", editable: true, format: "money", min: 0 },
     },
   },
   rules: {

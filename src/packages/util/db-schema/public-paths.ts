@@ -122,6 +122,7 @@ Table({
     counter: {
       type: "number",
       desc: "the number of times this public path has been accessed",
+      render: { type: "number", editable: true, integer: true, min: 0 },
     },
     vhost: {
       // For now, this will only be used *manually* for now; at some point users will be able to specify this,
@@ -411,6 +412,7 @@ Table({
           id: true,
           name: true,
           description: true,
+          counter: true,
           image: true,
           disabled: true,
           unlisted: true,

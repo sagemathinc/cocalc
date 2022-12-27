@@ -50,8 +50,10 @@ interface Number {
   type: "number";
   editable?: boolean;
   integer?: boolean;
+  format?: "money" | "percent";
   max?: number;
   min?: number;
+  step?: number;
 }
 
 interface Percent {

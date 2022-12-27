@@ -12,6 +12,7 @@ import "./email-address";
 import "./fallback";
 import "./icon";
 import "./image";
+import "./number";
 import "./json";
 import "./markdown";
 import "./percent";
