@@ -1,6 +1,6 @@
 // TODO/NOTE: significant code duplication with accounts.tsx
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { render } from "./register";
 import {
   Alert,
@@ -15,7 +15,7 @@ import {
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
-import { usePerson } from "../querydb/use-people";
+import { usePerson, usePeopleSearch } from "../querydb/use-people";
 
 interface PersonType {
   id: number;
@@ -23,36 +23,14 @@ interface PersonType {
   email_address?: string;
 }
 
-async function peopleSearch({
-  query,
-  limit,
-}: {
-  query: string;
-  limit: number;
-}) {
-  console.log("peopleSearch", { query, limit });
-  return [
-    {
-      id: 1,
-      name: "Clarita Tish Marie Lefthand Very Long Name Begay Stein",
-      email: "a@b.c",
-    },
-    {
-      id: 2,
-      name: "William Stein",
-      email: "wstein@gmail.com, wstein@cocalc.com",
-    },
-  ];
-}
-
 render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "people") throw Error("bug");
   const people = obj[field];
   if (people == null && viewOnly) return null;
   if (!viewOnly && spec.editable) {
-    return <EditPeople obj={obj} field={field} people={people ?? []} />;
+    return <EditPeople obj={obj} field={field} people={people} />;
   } else {
-    return <PeopleList people={people ?? []} inline />;
+    return <PeopleList people={people} inline />;
   }
 });
 
@@ -99,6 +77,14 @@ function EditPeople({ obj, field, people }) {
 
   return (
     <div>
+      {adding && (
+        <Button
+          onClick={() => setAdding(false)}
+          style={{ marginBottom: "5px" }}
+        >
+          Done
+        </Button>
+      )}
       {!adding && (
         <Button onClick={() => setAdding(true)}>
           <Icon name="plus-circle" /> Add
@@ -108,7 +94,7 @@ function EditPeople({ obj, field, people }) {
         <AddPerson key="add-person" people={people ?? []} save={save} />
       )}
       {saveError && <Alert message={saveError} type="error" />}
-      <PeopleList people={people ?? []} save={save} />
+      {people != null && <PeopleList people={people} save={save} />}
     </div>
   );
 }
@@ -122,6 +108,7 @@ function PeopleList({
   save?: (people: number[]) => Promise<void>;
   inline?: boolean;
 }) {
+  if (people.length == 0) return null;
   return (
     <List
       style={inline ? { maxHeight: "6em" } : { maxHeight: "12em" }}
@@ -157,52 +144,35 @@ function AddPerson({
   people: number[];
   save: (people: number[]) => Promise<void>;
 }) {
-  const [error, setError] = useState<string>("");
-  const [matches, setMatches] = useState<PersonType[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>("");
+  const { loading, error, matches } = usePeopleSearch(query);
+  const newMatches = useMemo(() => {
+    if (matches == null) return null;
+    const x = new Set(people);
+    return matches.filter((person) => !x.has(person.id));
+  }, [matches, people]);
 
   return (
     <div>
-      {(matches == null || matches.length == 0) && !error && (
+      {error && <Alert message={error} type="error" />}
+      {(newMatches == null || newMatches.length == 0) && (
         <Input.Search
           allowClear
           autoFocus
           loading={loading}
-          placeholder="Search for people by first name, last name, or email address..."
+          placeholder="Search for people by name or email address..."
           enterButton
-          onSearch={async (value) => {
-            setError("");
-            setMatches(null);
-            if (!value) {
-              return;
-            }
-            setLoading(true);
-            try {
-              let matches = await peopleSearch({
-                query: value.toLowerCase(), // backend assumes lower case
-                limit: 100,
-              });
-              // exclude any we have already
-              if (people.length > 0) {
-                const x = new Set(people);
-                matches = matches.filter((person) => !x.has(person.id));
-              }
-              setMatches(matches);
-            } catch (err) {
-              setError(`${err}`);
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onSearch={setQuery}
         />
       )}
-      {error && <Alert message={error} type="error" />}
-      {matches != null && (
+      {newMatches != null && newMatches.length == 0 && (
+        <div>No new matching people</div>
+      )}
+      {newMatches != null && newMatches.length > 0 && (
         <SelectMatches
-          matches={matches}
+          matches={newMatches}
           addPeople={(newPeople: number[]) => {
-            setError("");
-            setMatches(null);
+            setQuery("");
             if (newPeople.length > 0) {
               save(people.concat(newPeople));
             }

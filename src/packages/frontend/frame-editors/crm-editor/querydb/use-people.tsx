@@ -44,3 +44,49 @@ export function usePerson(id: number): Person | undefined {
 
   return person;
 }
+
+async function peopleSearch(query: string): Promise<Person[] | null> {
+  console.log("peopleSearch", query);
+  query = query.trim();
+  if (!query) return null;
+  return [
+    {
+      id: 1,
+      name: "Clarita Tish Marie Lefthand Very Long Name Begay Stein",
+      email_addresses: "a@b.c",
+    },
+    {
+      id: 2,
+      name: "William Stein",
+      email_addresses: "wstein@gmail.com, wstein@cocalc.com",
+    },
+  ];
+}
+
+export function usePeopleSearch(query: string): {
+  matches: Person[] | null;
+  loading: boolean;
+  error: string;
+} {
+  const [error, setError] = useState<string>("");
+  const [matches, setMatches] = useState<Person[] | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setError("");
+    setMatches(null);
+    setLoading(true);
+    (async () => {
+      try {
+        let matches = await peopleSearch(query);
+        setMatches(matches);
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [query]);
+
+  return { error, matches, loading };
+}
