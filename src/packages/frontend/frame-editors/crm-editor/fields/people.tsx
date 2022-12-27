@@ -6,14 +6,8 @@ import { Alert, Button, Input, List, Popconfirm, Select, Space } from "antd";
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
-import { usePeopleSearch } from "../querydb/use-people";
+import { usePeopleSearch, PersonType } from "../querydb/use-people";
 import { Person } from "./person";
-
-interface PersonType {
-  id: number;
-  name?: string;
-  email_addresses?: string;
-}
 
 render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "people") throw Error("bug");

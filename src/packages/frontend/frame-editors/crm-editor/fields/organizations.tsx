@@ -1,4 +1,4 @@
-// TODO/NOTE: significant code duplication with accounts.tsx
+// TODO/NOTE: significant code duplication with accounts.tsx and people.tsx
 
 import { useCallback, useMemo, useState } from "react";
 import { render } from "./register";
@@ -9,13 +9,8 @@ import { Icon } from "@cocalc/frontend/components";
 import {
   useOrganization,
   useOrganizationsSearch,
+  OrganizationType,
 } from "../querydb/use-organizations";
-
-interface PersonType {
-  id: number;
-  name?: string;
-  email_addresses?: string;
-}
 
 render({ type: "organizations" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "organizations") throw Error("bug");
@@ -89,7 +84,7 @@ function PeopleList({
         }}
       >
         {people.map((id) => (
-          <Person key={id} id={id} inline />
+          <Organization key={id} id={id} inline />
         ))}
       </div>
     );
@@ -102,7 +97,7 @@ function PeopleList({
       renderItem={(id: number) => (
         <List.Item>
           <Space>
-            <Person key={id} id={id} />
+            <Organization key={id} id={id} />
           </Space>
           {save != null && (
             <Popconfirm
@@ -182,7 +177,7 @@ function SelectMatches({
   addPeople,
   multiple,
 }: {
-  matches: PersonType[];
+  matches: OrganizationType[];
   addPeople: (newPeople: number[] | number | null) => void;
   multiple?: boolean;
 }) {
@@ -194,7 +189,7 @@ function SelectMatches({
   const options: { label: string; value: number }[] = [];
   for (const match of matches) {
     options.push({
-      label: `${match.name} (${match.email_addresses})`,
+      label: `${match.name} (${match.domain})`,
       value: match.id,
     });
   }
@@ -239,7 +234,7 @@ function SelectMatches({
   );
 }
 
-export function Person({ id, inline }: { id: number; inline?: boolean }) {
+export function Organization({ id, inline }: { id: number; inline?: boolean }) {
   const person = useOrganization(id);
   return (
     <div
@@ -255,7 +250,7 @@ export function Person({ id, inline }: { id: number; inline?: boolean }) {
           : { padding: "5px", border: "1px solid #ddd" }
       }
     >
-      {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
+      {person == null ? "..." : `${person.name} -- ${person.domain}`}
     </div>
   );
 }

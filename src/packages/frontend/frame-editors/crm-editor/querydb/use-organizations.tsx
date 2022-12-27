@@ -2,22 +2,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import TTL from "@isaacs/ttlcache";
 
-interface Person {
+export interface OrganizationType {
   id: number;
   name?: string;
-  email_addresses?: string;
+  domain?: string;
 }
 
 interface PeopleContextType {
-  cache: TTL<number, Person>;
+  cache: TTL<number, OrganizationType>;
 }
 
 const PeopleContext = createContext<PeopleContextType>({
-  cache: new TTL<number, Person>({ ttl: 30000 }),
+  cache: new TTL<number, OrganizationType>({ ttl: 30000 }),
 });
 
 export function PeopleProvider({ children }) {
-  const cache = new TTL<number, Person>({ ttl: 30000 });
+  const cache = new TTL<number, OrganizationType>({ ttl: 30000 });
   return (
     <PeopleContext.Provider value={{ cache }}>
       {children}
@@ -25,17 +25,19 @@ export function PeopleProvider({ children }) {
   );
 }
 
-export function useOrganization(id: number): Person | undefined {
+export function useOrganization(id: number): OrganizationType | undefined {
   const { cache } = useContext(PeopleContext);
 
-  const [person, setPerson] = useState<Person | undefined>(cache.get(id));
+  const [person, setPerson] = useState<OrganizationType | undefined>(
+    cache.get(id)
+  );
 
   useEffect(() => {
     if (person != null) return;
     (async () => {
       // todo: what happens when id is invalid?
       const x = await webapp_client.query_client.query({
-        query: { crm_organizations: { id, name: null, email_addresses: null } },
+        query: { crm_organizations: { id, name: null, domain: null } },
       });
       cache.set(id, x.query.crm_organizations);
       setPerson(x.query.crm_organizations);
@@ -45,7 +47,7 @@ export function useOrganization(id: number): Person | undefined {
   return person;
 }
 
-async function peopleSearch(query: string): Promise<Person[] | null> {
+async function peopleSearch(query: string): Promise<OrganizationType[] | null> {
   query = query.trim();
   if (!query) {
     // view this as cancelling the search rather than returning everything
@@ -53,9 +55,10 @@ async function peopleSearch(query: string): Promise<Person[] | null> {
   }
 
   const ILIKE = { ILIKE: `%${query}%` };
-  let v: any[] = [];
+  let v: OrganizationType[] = [];
 
   // TODO: hack until we implement or searches.
+  const ids = new Set<number>([]);
   for (const pattern of [
     { id: null, name: ILIKE, domain: null },
     { id: null, name: null, domain: ILIKE },
@@ -64,19 +67,23 @@ async function peopleSearch(query: string): Promise<Person[] | null> {
       query: { crm_organizations: [pattern] },
       options: [{ limit: 100 }],
     });
-    v = v.concat(x.query.crm_organizations);
+    for (const org of x.query.crm_organizations) {
+      if (ids.has(org.id)) continue;
+      ids.add(org.id);
+      v.push(org);
+    }
   }
 
   return v;
 }
 
 export function useOrganizationsSearch(query: string): {
-  matches: Person[] | null;
+  matches: OrganizationType[] | null;
   loading: boolean;
   error: string;
 } {
   const [error, setError] = useState<string>("");
-  const [matches, setMatches] = useState<Person[] | null>(null);
+  const [matches, setMatches] = useState<OrganizationType[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {

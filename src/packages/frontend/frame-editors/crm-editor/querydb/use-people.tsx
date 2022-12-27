@@ -2,22 +2,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import TTL from "@isaacs/ttlcache";
 
-interface Person {
+export interface PersonType {
   id: number;
   name?: string;
   email_addresses?: string;
 }
 
 interface PeopleContextType {
-  cache: TTL<number, Person>;
+  cache: TTL<number, PersonType>;
 }
 
 const PeopleContext = createContext<PeopleContextType>({
-  cache: new TTL<number, Person>({ ttl: 30000 }),
+  cache: new TTL<number, PersonType>({ ttl: 30000 }),
 });
 
 export function PeopleProvider({ children }) {
-  const cache = new TTL<number, Person>({ ttl: 30000 });
+  const cache = new TTL<number, PersonType>({ ttl: 30000 });
   return (
     <PeopleContext.Provider value={{ cache }}>
       {children}
@@ -25,10 +25,10 @@ export function PeopleProvider({ children }) {
   );
 }
 
-export function usePerson(id: number): Person | undefined {
+export function usePerson(id: number): PersonType | undefined {
   const { cache } = useContext(PeopleContext);
 
-  const [person, setPerson] = useState<Person | undefined>(cache.get(id));
+  const [person, setPerson] = useState<PersonType | undefined>(cache.get(id));
 
   useEffect(() => {
     if (person != null) return;
@@ -45,7 +45,7 @@ export function usePerson(id: number): Person | undefined {
   return person;
 }
 
-async function peopleSearch(query: string): Promise<Person[] | null> {
+async function peopleSearch(query: string): Promise<PersonType[] | null> {
   query = query.trim();
   if (!query) {
     // view this as cancelling the search rather than returning everything
@@ -71,12 +71,12 @@ async function peopleSearch(query: string): Promise<Person[] | null> {
 }
 
 export function usePeopleSearch(query: string): {
-  matches: Person[] | null;
+  matches: PersonType[] | null;
   loading: boolean;
   error: string;
 } {
   const [error, setError] = useState<string>("");
-  const [matches, setMatches] = useState<Person[] | null>(null);
+  const [matches, setMatches] = useState<PersonType[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
