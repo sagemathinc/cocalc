@@ -2,16 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { render } from "./register";
-import {
-  Alert,
-  Button,
-  Input,
-  List,
-  Popconfirm,
-  Select,
-  SelectProps,
-  Space,
-} from "antd";
+import { Alert, Button, Input, List, Popconfirm, Select, Space } from "antd";
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
@@ -20,7 +11,7 @@ import { usePerson, usePeopleSearch } from "../querydb/use-people";
 interface PersonType {
   id: number;
   name?: string;
-  email_address?: string;
+  email_addresses?: string;
 }
 
 render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
@@ -38,18 +29,17 @@ function Person({ id, inline }: { id: number; inline?: boolean }) {
   const person = usePerson(id);
   return (
     <div
-      style={{
-        padding: "5px",
-        border: "1px solid #ddd",
-        ...(inline
+      style={
+        inline
           ? {
               textOverflow: "ellipsis",
               width: "200px",
               overflow: "auto",
               whiteSpace: "nowrap",
+              display: "inline-block",
             }
-          : undefined),
-      }}
+          : { padding: "5px", border: "1px solid #ddd" }
+      }
     >
       {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
     </div>
@@ -109,15 +99,29 @@ function PeopleList({
   inline?: boolean;
 }) {
   if (people.length == 0) return null;
+  if (inline) {
+    return (
+      <div
+        style={{
+          maxHeight: "6em",
+          overflow: "auto",
+        }}
+      >
+        {people.map((id) => (
+          <Person key={id} id={id} inline />
+        ))}
+      </div>
+    );
+  }
   return (
     <List
-      style={inline ? { maxHeight: "6em" } : { maxHeight: "12em" }}
+      style={{ maxHeight: "12em" }}
       itemLayout="vertical"
       dataSource={people}
       renderItem={(id: number) => (
         <List.Item>
           <Space>
-            <Person key={id} id={id} inline={inline} />
+            <Person key={id} id={id} />
           </Space>
           {save != null && (
             <Popconfirm
@@ -160,7 +164,7 @@ function AddPerson({
           allowClear
           autoFocus
           loading={loading}
-          placeholder="Search for people by name or email address..."
+          placeholder="Find people in the People table by name or email address..."
           enterButton
           onSearch={setQuery}
         />
@@ -195,14 +199,10 @@ function SelectMatches({
     return <div>No results</div>;
   }
 
-  const options: SelectProps["options"] = [];
+  const options: { label: string; value: number }[] = [];
   for (const match of matches) {
     options.push({
-      label: (
-        <span>
-          {match.name} ({match.email_address})
-        </span>
-      ),
+      label: `${match.name} (${match.email_addresses})`,
       value: match.id,
     });
   }
@@ -232,10 +232,14 @@ function SelectMatches({
         mode="multiple"
         allowClear
         style={{ width: "100%" }}
-        placeholder="Please select people to associate with this person"
+        placeholder="Select people to associate with this person..."
         defaultValue={[]}
         onChange={setSelected}
         options={options}
+        onSearch={(x) => console.log("search", x)}
+        filterOption={(input, option) =>
+          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+        }
       />
     </div>
   );

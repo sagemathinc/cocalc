@@ -158,6 +158,24 @@ Table({
   },
 });
 
+const PERSON = {
+  type: "integer",
+  desc: "One person in the People table",
+  render: {
+    type: "person",
+  },
+} as FieldSpec;
+
+const PEOPLE = {
+  type: "array",
+  pg_type: "INTEGER[]",
+  desc: "Array of 0 or more people in the People table that are connected with this",
+  render: {
+    type: "people",
+    editable: true,
+  },
+} as FieldSpec;
+
 // TODO: add image -- probably want to use blob table (?) but maybe do like with projects. Not sure.
 Table({
   name: "crm_organizations",
@@ -175,15 +193,7 @@ Table({
         editable: true,
       },
     },
-    people: {
-      type: "array",
-      pg_type: "INTEGER[]",
-      desc: "Array of 0 or more people that are connected with this organization",
-      render: {
-        type: "people",
-        editable: true,
-      },
-    },
+    people: PEOPLE,
     organizations: {
       type: "array",
       pg_type: "INTEGER[]",
@@ -278,11 +288,8 @@ Table({
       },
     },
     created: CREATED,
+    created_by: PERSON,
     last_edited: LAST_EDITED,
-    created_by: {
-      type: "integer",
-      desc: "Id of the person who created this ticket.",
-    },
     assignee: ASSIGNEE,
     tasks: {
       title: "Tasks",
@@ -334,7 +341,7 @@ Table({
           subject: true,
           created: true,
           last_edited: true,
-          created_by: null,
+          created_by: true,
           assignee: true,
           tasks: true,
           cc: true,
@@ -367,13 +374,7 @@ Table({
       type: "timestamp",
       desc: "When this message was actually sent.",
     },
-    from_person_id: {
-      type: "integer",
-      desc: "Person that sent this message.  This in the crm_people table, not a cocalc account.",
-      render: {
-        type: "person",
-      },
-    },
+    from: PERSON,
     body: {
       type: "string",
       desc: "Actual content of the message.  This is interpretted as markdown.",
@@ -404,7 +405,7 @@ Table({
           ticket_id: null,
           created: null,
           last_edited: null,
-          from_person_id: null,
+          from: null,
           body: null,
           internal: null,
         },
@@ -416,7 +417,7 @@ Table({
           ticket_id: null,
           created: true,
           last_edited: true,
-          from_person_id: true,
+          from: true,
           body: true,
           internal: true,
         },
@@ -656,10 +657,7 @@ Table({
     id: ID,
     created: CREATED,
     last_edited: LAST_EDITED,
-    person_id: {
-      type: "integer",
-      desc: "The person.",
-    },
+    people: PEOPLE,
     deleted: {
       type: "boolean",
       desc: "True if the lead has been deleted.",
@@ -724,7 +722,7 @@ Table({
           id: null,
           created: null,
           last_edited: null,
-          person_id: null,
+          people: null,
           deleted: null,
           notes: null,
           tags: null,
@@ -740,7 +738,7 @@ Table({
           id: true,
           created: true,
           last_edited: true,
-          person_id: true,
+          people: true,
           deleted: true,
           notes: true,
           tags: true,

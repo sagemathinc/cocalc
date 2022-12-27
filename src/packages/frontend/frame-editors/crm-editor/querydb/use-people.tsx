@@ -46,21 +46,28 @@ export function usePerson(id: number): Person | undefined {
 }
 
 async function peopleSearch(query: string): Promise<Person[] | null> {
-  console.log("peopleSearch", query);
   query = query.trim();
-  if (!query) return null;
-  return [
-    {
-      id: 1,
-      name: "Clarita Tish Marie Lefthand Very Long Name Begay Stein",
-      email_addresses: "a@b.c",
-    },
-    {
-      id: 2,
-      name: "William Stein",
-      email_addresses: "wstein@gmail.com, wstein@cocalc.com",
-    },
-  ];
+  if (!query) {
+    // view this as cancelling the search rather than returning everything
+    return null;
+  }
+
+  const ILIKE = { ILIKE: `%${query}%` };
+  let pattern;
+  if (query.includes("@") || query.includes(".")) {
+    // email address search
+    pattern = { id: null, name: null, email_addresses: ILIKE };
+  } else {
+    // name search
+    pattern = { id: null, name: ILIKE, email_addresses: null };
+  }
+
+  const x = await webapp_client.query_client.query({
+    query: { crm_people: [pattern] },
+    options: [{ limit: 3 }],
+  });
+
+  return x.query.crm_people;
 }
 
 export function usePeopleSearch(query: string): {

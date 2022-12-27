@@ -9,7 +9,7 @@ register({
     crm_leads: [
       {
         created: null,
-        person_id: null,
+        people: null,
         status: null,
         rating: null,
         tags: null,
