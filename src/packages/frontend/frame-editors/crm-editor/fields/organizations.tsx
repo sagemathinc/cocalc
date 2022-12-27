@@ -1,4 +1,4 @@
-// TODO/NOTE: significant code duplication with accounts.tsx and people.tsx
+// TODO: significant code duplication with accounts.tsx and people.tsx
 
 import { useCallback, useMemo, useState } from "react";
 import { render } from "./register";
@@ -11,29 +11,40 @@ import {
   useOrganizationsSearch,
   OrganizationType,
 } from "../querydb/use-organizations";
+import { isEqual } from "lodash";
 
 render({ type: "organizations" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "organizations") throw Error("bug");
-  const people = obj[field];
-  if (people == null && viewOnly) return null;
+  const organizations = obj[field];
+  if (organizations == null && viewOnly) return null;
   if (!viewOnly && spec.editable) {
-    return <EditPeople obj={obj} field={field} people={people} />;
+    return (
+      <EditOrganizations
+        obj={obj}
+        field={field}
+        organizations={organizations}
+      />
+    );
   } else {
-    return <PeopleList people={people} inline />;
+    return <OrganizationsList organizations={organizations} inline />;
   }
 });
 
-function EditPeople({ obj, field, people }) {
+function EditOrganizations({ obj, field, organizations }) {
   const { error: saveError, save: save0 } = useEditableContext<number[]>(field);
   const [adding, setAdding] = useState<boolean>(false);
   const save = useCallback(
     async (value: number[]) => {
       try {
-        await save0(obj, value);
+        if (!isEqual(value, obj[field])) {
+          await save0(obj, value);
+        }
+      } catch (_) {
+      } finally {
         setAdding(false);
-      } catch (_) {}
+      }
     },
-    [save0, obj]
+    [save0, obj, field]
   );
 
   return (
@@ -52,29 +63,31 @@ function EditPeople({ obj, field, people }) {
         </Button>
       )}
       {adding && (
-        <AddPerson
+        <AddOrganization
           multiple
-          key="add-person"
-          people={people ?? []}
+          key="add-organization"
+          organizations={organizations ?? []}
           save={save}
         />
       )}
       {saveError && <Alert message={saveError} type="error" />}
-      {people != null && <PeopleList people={people} save={save} />}
+      {organizations != null && (
+        <OrganizationsList organizations={organizations} save={save} />
+      )}
     </div>
   );
 }
 
-function PeopleList({
-  people,
+function OrganizationsList({
+  organizations,
   save,
   inline,
 }: {
-  people: number[];
-  save?: (people: number[]) => Promise<void>;
+  organizations: number[];
+  save?: (organizations: number[]) => Promise<void>;
   inline?: boolean;
 }) {
-  if (people.length == 0) return null;
+  if (organizations.length == 0) return null;
   if (inline) {
     return (
       <div
@@ -83,7 +96,7 @@ function PeopleList({
           overflow: "auto",
         }}
       >
-        {people.map((id) => (
+        {organizations.map((id) => (
           <Organization key={id} id={id} inline />
         ))}
       </div>
@@ -93,7 +106,7 @@ function PeopleList({
     <List
       style={{ maxHeight: "12em", overflow: "auto" }}
       itemLayout="vertical"
-      dataSource={people}
+      dataSource={organizations}
       renderItem={(id: number) => (
         <List.Item>
           <Space>
@@ -101,9 +114,9 @@ function PeopleList({
           </Space>
           {save != null && (
             <Popconfirm
-              title="Remove this person?"
+              title="Remove this organization?"
               onConfirm={() => {
-                save(people.filter((x) => x != id));
+                save(organizations.filter((x) => x != id));
               }}
             >
               <Button type="link">
@@ -117,22 +130,22 @@ function PeopleList({
   );
 }
 
-export function AddPerson({
-  people,
+export function AddOrganization({
+  organizations,
   save,
   multiple,
 }: {
-  people: number[];
-  save: (people: number[] | number) => Promise<void>;
+  organizations: number[];
+  save: (organizations: number[]) => Promise<void>;
   multiple?: boolean;
 }) {
   const [query, setQuery] = useState<string>("");
   const { loading, error, matches } = useOrganizationsSearch(query);
   const newMatches = useMemo(() => {
     if (matches == null) return null;
-    const x = new Set(people);
-    return matches.filter((person) => !x.has(person.id));
-  }, [matches, people]);
+    const x = new Set(organizations);
+    return matches.filter(({ id }) => !x.has(id));
+  }, [matches, organizations]);
 
   return (
     <div>
@@ -142,29 +155,21 @@ export function AddPerson({
           allowClear
           autoFocus
           loading={loading}
-          placeholder="Find people in the People table by name or email address..."
+          placeholder="Find organizations in the Organizations table by name or domain..."
           enterButton
           onSearch={setQuery}
         />
       )}
       {newMatches != null && newMatches.length == 0 && (
-        <div>No new matching people</div>
+        <div>No new matching organizations</div>
       )}
       {newMatches != null && newMatches.length > 0 && (
         <SelectMatches
           multiple={multiple}
           matches={newMatches}
-          addPeople={(newPeople: number[] | number | null) => {
+          addOrganizations={(newOrganizations: number[]) => {
             setQuery("");
-            if (newPeople == null) return;
-            if (typeof newPeople == "number") {
-              save(newPeople);
-              return;
-            }
-            if (newPeople.length > 0) {
-              save(people.concat(newPeople));
-              return;
-            }
+            save(organizations.concat(newOrganizations));
           }}
         />
       )}
@@ -174,14 +179,14 @@ export function AddPerson({
 
 function SelectMatches({
   matches,
-  addPeople,
+  addOrganizations,
   multiple,
 }: {
   matches: OrganizationType[];
-  addPeople: (newPeople: number[] | number | null) => void;
+  addOrganizations: (newOrganizations: number[]) => void;
   multiple?: boolean;
 }) {
-  const [selected, setSelected] = useState<number[] | number>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   if (matches.length == 0) {
     return <div>No results</div>;
   }
@@ -189,53 +194,33 @@ function SelectMatches({
   const options: { label: string; value: number }[] = [];
   for (const match of matches) {
     options.push({
-      label: `${match.name} (${match.domain})`,
+      label: `${match.name}${match.domain ? " (" + match.domain + ")" : ""}`,
       value: match.id,
     });
   }
   return (
-    <div>
-      <Space style={{ marginBottom: "5px" }}>
-        <Button
-          disabled={
-            (multiple && (selected as any)?.length == 0) ||
-            (!multiple && !selected)
-          }
-          type="primary"
-          onClick={() => {
-            addPeople(selected);
-          }}
-        >
-          Add Selected
-        </Button>
-        <Button
-          onClick={() => {
-            addPeople(multiple ? [] : null);
-          }}
-        >
-          Cancel
-        </Button>
-      </Space>
-      <Select
-        open
-        autoFocus
-        mode={multiple ? "multiple" : undefined}
-        allowClear
-        style={{ width: "100%" }}
-        placeholder="Select organizations to associate with this organization..."
-        defaultValue={multiple ? [] : undefined}
-        onChange={setSelected}
-        options={options}
-        filterOption={(input, option) =>
-          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-        }
-      />
-    </div>
+    <Select
+      open
+      autoFocus
+      mode={multiple ? "multiple" : undefined}
+      allowClear
+      style={{ width: "100%" }}
+      placeholder="Select organizations to associate with this organization..."
+      defaultValue={multiple ? [] : undefined}
+      onChange={setSelected}
+      options={options}
+      filterOption={(input, option) =>
+        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+      }
+      onBlur={() => {
+        addOrganizations(selected);
+      }}
+    />
   );
 }
 
 export function Organization({ id, inline }: { id: number; inline?: boolean }) {
-  const person = useOrganization(id);
+  const organization = useOrganization(id);
   return (
     <div
       style={
@@ -250,7 +235,11 @@ export function Organization({ id, inline }: { id: number; inline?: boolean }) {
           : { padding: "5px", border: "1px solid #ddd" }
       }
     >
-      {person == null ? "..." : `${person.name} -- ${person.domain}`}
+      {organization == null
+        ? "..."
+        : `${organization.name}${
+            organization.domain ? " -- " + organization.domain : ""
+          }`}
     </div>
   );
 }

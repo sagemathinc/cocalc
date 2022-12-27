@@ -1,3 +1,4 @@
+// TODO: code dupe with use-people.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import TTL from "@isaacs/ttlcache";
@@ -8,46 +9,48 @@ export interface OrganizationType {
   domain?: string;
 }
 
-interface PeopleContextType {
+interface OrganizationsContextType {
   cache: TTL<number, OrganizationType>;
 }
 
-const PeopleContext = createContext<PeopleContextType>({
+const OrganizationsContext = createContext<OrganizationsContextType>({
   cache: new TTL<number, OrganizationType>({ ttl: 30000 }),
 });
 
-export function PeopleProvider({ children }) {
+export function OrganizationsProvider({ children }) {
   const cache = new TTL<number, OrganizationType>({ ttl: 30000 });
   return (
-    <PeopleContext.Provider value={{ cache }}>
+    <OrganizationsContext.Provider value={{ cache }}>
       {children}
-    </PeopleContext.Provider>
+    </OrganizationsContext.Provider>
   );
 }
 
 export function useOrganization(id: number): OrganizationType | undefined {
-  const { cache } = useContext(PeopleContext);
+  const { cache } = useContext(OrganizationsContext);
 
-  const [person, setPerson] = useState<OrganizationType | undefined>(
-    cache.get(id)
-  );
+  const [organization, setOrganization] = useState<
+    OrganizationType | undefined
+  >(cache.get(id));
 
   useEffect(() => {
-    if (person != null) return;
+    if (organization != null) return;
     (async () => {
       // todo: what happens when id is invalid?
       const x = await webapp_client.query_client.query({
         query: { crm_organizations: { id, name: null, domain: null } },
       });
       cache.set(id, x.query.crm_organizations);
-      setPerson(x.query.crm_organizations);
+      setOrganization(x.query.crm_organizations);
     })();
   }, []);
 
-  return person;
+  return organization;
 }
 
-async function peopleSearch(query: string): Promise<OrganizationType[] | null> {
+async function organizationsSearch(
+  query: string
+): Promise<OrganizationType[] | null> {
   query = query.trim();
   if (!query) {
     // view this as cancelling the search rather than returning everything
@@ -92,7 +95,7 @@ export function useOrganizationsSearch(query: string): {
     setLoading(true);
     (async () => {
       try {
-        let matches = await peopleSearch(query);
+        let matches = await organizationsSearch(query);
         setMatches(matches);
       } catch (err) {
         setError(`${err}`);

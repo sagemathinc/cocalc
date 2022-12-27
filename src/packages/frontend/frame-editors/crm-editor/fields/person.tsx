@@ -73,7 +73,11 @@ export function Person({ id, inline }: { id: number; inline?: boolean }) {
           : { padding: "5px", border: "1px solid #ddd" }
       }
     >
-      {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
+      {person == null
+        ? "..."
+        : `${person.name}${
+            person.email_addresses ? " -- " + person.email_addresses : ""
+          }`}
     </div>
   );
 }

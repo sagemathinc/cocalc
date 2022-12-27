@@ -186,47 +186,29 @@ function SelectMatches({
   const options: { label: string; value: number }[] = [];
   for (const match of matches) {
     options.push({
-      label: `${match.name} (${match.email_addresses})`,
+      label: `${match.name}${
+        match.email_addresses ? " (" + match.email_addresses + ")" : ""
+      }`,
       value: match.id,
     });
   }
   return (
-    <div>
-      <Space style={{ marginBottom: "5px" }}>
-        <Button
-          disabled={
-            (multiple && (selected as any)?.length == 0) ||
-            (!multiple && !selected)
-          }
-          type="primary"
-          onClick={() => {
-            addPeople(selected);
-          }}
-        >
-          Add Selected
-        </Button>
-        <Button
-          onClick={() => {
-            addPeople(multiple ? [] : null);
-          }}
-        >
-          Cancel
-        </Button>
-      </Space>
-      <Select
-        open
-        autoFocus
-        mode={multiple ? "multiple" : undefined}
-        allowClear
-        style={{ width: "100%" }}
-        placeholder="Select people to associate with this person..."
-        defaultValue={multiple ? [] : undefined}
-        onChange={setSelected}
-        options={options}
-        filterOption={(input, option) =>
-          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-        }
-      />
-    </div>
+    <Select
+      open
+      autoFocus
+      mode={multiple ? "multiple" : undefined}
+      allowClear
+      style={{ width: "100%" }}
+      placeholder="Select people to associate with this person..."
+      defaultValue={multiple ? [] : undefined}
+      onChange={setSelected}
+      options={options}
+      filterOption={(input, option) =>
+        (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+      }
+      onBlur={() => {
+        addPeople(selected);
+      }}
+    />
   );
 }
