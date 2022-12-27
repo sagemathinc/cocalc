@@ -129,7 +129,7 @@ function getWidth(renderSpec: RenderSpec): number {
     return 200;
   }
   if (renderSpec.type == "people") {
-    return 200;
+    return 250;
   }
   if (renderSpec.type == "markdown") {
     return 400;

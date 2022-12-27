@@ -15,6 +15,7 @@ import {
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
+import { usePerson } from "../querydb/use-people";
 
 interface PersonType {
   id: number;
@@ -51,18 +52,30 @@ render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
   if (!viewOnly && spec.editable) {
     return <EditPeople obj={obj} field={field} people={people ?? []} />;
   } else {
-    return (
-      <div>
-        {(people ?? []).map((id) => (
-          <Person key={id} id={id} />
-        ))}
-      </div>
-    );
+    return <PeopleList people={people ?? []} inline />;
   }
 });
 
-function Person({ id }) {
-  return <span>Person {id}</span>;
+function Person({ id, inline }: { id: number; inline?: boolean }) {
+  const person = usePerson(id);
+  return (
+    <div
+      style={{
+        padding: "5px",
+        border: "1px solid #ddd",
+        ...(inline
+          ? {
+              textOverflow: "ellipsis",
+              width: "200px",
+              overflow: "auto",
+              whiteSpace: "nowrap",
+            }
+          : undefined),
+      }}
+    >
+      {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
+    </div>
+  );
 }
 
 render({ type: "person" }, ({ field, obj }) => {
@@ -103,29 +116,34 @@ function EditPeople({ obj, field, people }) {
 function PeopleList({
   people,
   save,
+  inline,
 }: {
   people: number[];
-  save: (people: number[]) => Promise<void>;
+  save?: (people: number[]) => Promise<void>;
+  inline?: boolean;
 }) {
   return (
     <List
-      itemLayout="horizontal"
+      style={inline ? { maxHeight: "6em" } : { maxHeight: "12em" }}
+      itemLayout="vertical"
       dataSource={people}
       renderItem={(id: number) => (
         <List.Item>
           <Space>
-            <Person key={id} id={id} />
+            <Person key={id} id={id} inline={inline} />
           </Space>
-          <Popconfirm
-            title="Remove this person?"
-            onConfirm={() => {
-              save(people.filter((x) => x != id));
-            }}
-          >
-            <Button type="link">
-              <CloseOutlined />
-            </Button>
-          </Popconfirm>
+          {save != null && (
+            <Popconfirm
+              title="Remove this person?"
+              onConfirm={() => {
+                save(people.filter((x) => x != id));
+              }}
+            >
+              <Button type="link">
+                <CloseOutlined />
+              </Button>
+            </Popconfirm>
+          )}
         </List.Item>
       )}
     />
