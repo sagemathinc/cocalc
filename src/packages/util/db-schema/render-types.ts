@@ -56,6 +56,11 @@ interface Number {
   step?: number;
 }
 
+interface Organizations {
+  type: "organizations";
+  editable?: boolean;
+}
+
 interface Percent {
   type: "percent";
   editable?: boolean;
@@ -156,6 +161,7 @@ export type RenderSpec =
   | Invalid
   | Json
   | Number
+  | Organizations
   | People
   | Person
   | Percent

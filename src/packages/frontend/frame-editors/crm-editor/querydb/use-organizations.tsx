@@ -25,7 +25,7 @@ export function PeopleProvider({ children }) {
   );
 }
 
-export function usePerson(id: number): Person | undefined {
+export function useOrganization(id: number): Person | undefined {
   const { cache } = useContext(PeopleContext);
 
   const [person, setPerson] = useState<Person | undefined>(cache.get(id));
@@ -35,10 +35,10 @@ export function usePerson(id: number): Person | undefined {
     (async () => {
       // todo: what happens when id is invalid?
       const x = await webapp_client.query_client.query({
-        query: { crm_people: { id, name: null, email_addresses: null } },
+        query: { crm_organizations: { id, name: null, email_addresses: null } },
       });
-      cache.set(id, x.query.crm_people);
-      setPerson(x.query.crm_people);
+      cache.set(id, x.query.crm_organizations);
+      setPerson(x.query.crm_organizations);
     })();
   }, []);
 
@@ -53,24 +53,24 @@ async function peopleSearch(query: string): Promise<Person[] | null> {
   }
 
   const ILIKE = { ILIKE: `%${query}%` };
-  let pattern;
-  if (query.includes("@") || query.includes(".")) {
-    // email address search
-    pattern = { id: null, name: null, email_addresses: ILIKE };
-  } else {
-    // name search
-    pattern = { id: null, name: ILIKE, email_addresses: null };
+  let v: any[] = [];
+
+  // TODO: hack until we implement or searches.
+  for (const pattern of [
+    { id: null, name: ILIKE, domain: null },
+    { id: null, name: null, domain: ILIKE },
+  ]) {
+    const x = await webapp_client.query_client.query({
+      query: { crm_organizations: [pattern] },
+      options: [{ limit: 100 }],
+    });
+    v = v.concat(x.query.crm_organizations);
   }
 
-  const x = await webapp_client.query_client.query({
-    query: { crm_people: [pattern] },
-    options: [{ limit: 100 }],
-  });
-
-  return x.query.crm_people;
+  return v;
 }
 
-export function usePeopleSearch(query: string): {
+export function useOrganizationsSearch(query: string): {
   matches: Person[] | null;
   loading: boolean;
   error: string;

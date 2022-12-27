@@ -6,8 +6,10 @@ import { Alert, Button, Input, List, Popconfirm, Select, Space } from "antd";
 import { useEditableContext } from "./context";
 import { CloseOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
-import { usePeopleSearch } from "../querydb/use-people";
-import { Person } from "./person";
+import {
+  useOrganization,
+  useOrganizationsSearch,
+} from "../querydb/use-organizations";
 
 interface PersonType {
   id: number;
@@ -15,8 +17,8 @@ interface PersonType {
   email_addresses?: string;
 }
 
-render({ type: "people" }, ({ field, obj, spec, viewOnly }) => {
-  if (spec.type != "people") throw Error("bug");
+render({ type: "organizations" }, ({ field, obj, spec, viewOnly }) => {
+  if (spec.type != "organizations") throw Error("bug");
   const people = obj[field];
   if (people == null && viewOnly) return null;
   if (!viewOnly && spec.editable) {
@@ -130,7 +132,7 @@ export function AddPerson({
   multiple?: boolean;
 }) {
   const [query, setQuery] = useState<string>("");
-  const { loading, error, matches } = usePeopleSearch(query);
+  const { loading, error, matches } = useOrganizationsSearch(query);
   const newMatches = useMemo(() => {
     if (matches == null) return null;
     const x = new Set(people);
@@ -225,7 +227,7 @@ function SelectMatches({
         mode={multiple ? "multiple" : undefined}
         allowClear
         style={{ width: "100%" }}
-        placeholder="Select people to associate with this person..."
+        placeholder="Select organizations to associate with this organization..."
         defaultValue={multiple ? [] : undefined}
         onChange={setSelected}
         options={options}
@@ -233,6 +235,27 @@ function SelectMatches({
           (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
         }
       />
+    </div>
+  );
+}
+
+export function Person({ id, inline }: { id: number; inline?: boolean }) {
+  const person = useOrganization(id);
+  return (
+    <div
+      style={
+        inline
+          ? {
+              textOverflow: "ellipsis",
+              width: "200px",
+              overflow: "auto",
+              whiteSpace: "nowrap",
+              display: "inline-block",
+            }
+          : { padding: "5px", border: "1px solid #ddd" }
+      }
+    >
+      {person == null ? "..." : `${person.name} -- ${person.email_addresses}`}
     </div>
   );
 }

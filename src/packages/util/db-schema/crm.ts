@@ -199,6 +199,10 @@ Table({
       type: "array",
       pg_type: "INTEGER[]",
       desc: "Array of 0 or more organization that are connected with this organization",
+      render: {
+        type: "organizations",
+        editable: true,
+      },
     },
     deleted: {
       type: "boolean",
