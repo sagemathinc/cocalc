@@ -1,3 +1,8 @@
+// Normalize CSS across browsers, fixes e.g. https://github.com/sagemathinc/cocalc/issues/6285
+// https://github.com/sindresorhus/modern-normalize (fork of the abandoned normalize.css)
+import "modern-normalize/modern-normalize.css";
+
+// CoCalc 3rd party libraries
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
