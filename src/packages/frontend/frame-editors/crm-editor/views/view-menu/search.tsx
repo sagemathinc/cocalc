@@ -126,6 +126,7 @@ function SearchBy({
       {field && operator && (
         <Value
           fieldSpec={fieldSpec}
+          operator={operator}
           value={value}
           onChange={(value) => {
             setSearch(n, { field, operator, value });
@@ -139,6 +140,9 @@ function SearchBy({
       >
         <Icon name="times" />
       </Button>
+      {field != null && value != null && operator != null && (
+        <Icon name="check" style={{ color: "green" }} />
+      )}
     </Space>
   );
 }
@@ -167,7 +171,7 @@ function SelectOperator({ fieldSpec, operator, onChange }) {
 }
 
 // For field spec meaning, see packages/util/db-schema/types.ts
-function Value({ fieldSpec, value, onChange }) {
+function Value({ fieldSpec, operator, value, onChange }) {
   if (fieldSpec.type == "boolean") {
     return (
       <Select
@@ -182,7 +186,20 @@ function Value({ fieldSpec, value, onChange }) {
         ]}
       />
     );
-  } else if (fieldSpec.type == "timestamp") {
+  }
+  if (operator == "IS" || operator == "IS NOT") {
+    // not boolean, since that was handled above.
+    return (
+      <Select
+        style={{ width: "100px" }}
+        size="small"
+        value={value}
+        onChange={onChange}
+        options={[{ label: "NULL", value: "NULL" }]}
+      />
+    );
+  }
+  if (fieldSpec.type == "timestamp") {
     return (
       <DatePicker
         showTime
