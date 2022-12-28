@@ -19,6 +19,7 @@ export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
   gallery: "address-card",
   calendar: "calendar",
+  kanban: "hdd",
 };
 
 interface TabItem {
@@ -97,6 +98,13 @@ export default function Views({ table }: Props) {
                 style={{ marginRight: "15px" }}
               />{" "}
               Gallery
+            </Button>
+            <Button size="large" onClick={() => createNewView("kanban")}>
+              <Icon
+                name={TYPE_TO_ICON["kanban"]}
+                style={{ marginRight: "15px" }}
+              />{" "}
+              Kanban
             </Button>
             <Button size="large" onClick={() => createNewView("calendar")}>
               <Icon

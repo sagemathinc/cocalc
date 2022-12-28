@@ -19,13 +19,15 @@ export default function ViewMenu({
   setSortField,
   search,
   setSearch,
+  setRecordHeight,
+  recordHeight,
 }) {
   return (
     <Menu
       triggerSubMenuAction={"click"}
       mode="horizontal"
       items={[
-        topMenu({ name, view }),
+        topMenu({ name, view, setRecordHeight, recordHeight }),
         hideFieldsMenu({
           columns,
           hiddenFields,

@@ -5,9 +5,9 @@ import useDebounceEffect from "@cocalc/frontend/app-framework/use-debounce-effec
 import { client_db } from "@cocalc/util/db-schema";
 import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
-import { DEFAULT_LIMIT } from "../syncdb/use-limit";
 import { AtomicSearch } from "../syncdb/use-search";
 import querydbSet from "./set";
+import { DEFAULT_LIMIT } from "../views/view";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table

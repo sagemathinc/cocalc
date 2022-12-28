@@ -1,5 +1,5 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { Alert, Button, InputNumber, Space } from "antd";
+import { Alert, Button, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
@@ -7,6 +7,7 @@ import { SelectTimeKey } from "./time-keys";
 import Gallery from "./gallery";
 import Grid from "./grid";
 import Calendar from "./calendar";
+import Kanban from "./kanban";
 import type { ViewType } from "../types";
 import { Icon } from "@cocalc/frontend/components";
 import { getTableDescription } from "../tables";
@@ -16,10 +17,13 @@ import useFilter from "./filter-input";
 import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
-import useLimit from "../syncdb/use-limit";
+import useViewParam from "../syncdb/use-view-param";
 import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
 import querydbSet from "../querydb/set";
+
+const DEFAULT_RECORD_HEIGHT = 300;
+export const DEFAULT_LIMIT = 100;
 
 interface Props {
   view: ViewType;
@@ -38,7 +42,11 @@ export default function View({ table, view, style, height, name, id }: Props) {
     allowCreate,
     changes,
   } = useMemo(() => getTableDescription(table), [table]);
-  const [limit, setLimit] = useLimit({ id });
+  const [limit, setLimit] = useViewParam<number>({
+    id,
+    name: "limit",
+    defaultValue: DEFAULT_LIMIT,
+  });
   const [search, setSearch] = useSearch({ id });
   const [sortFields, setSortField] = useSortFields({ id });
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
@@ -50,9 +58,12 @@ export default function View({ table, view, style, height, name, id }: Props) {
   }, [hiddenFields, allColumns]);
 
   const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
-  const [recordHeight, setRecordHeight] = useState<number | undefined>(
-    undefined
-  );
+  const [recordHeight, setRecordHeight] = useViewParam<number>({
+    id,
+    name: "record-height",
+    defaultValue: DEFAULT_RECORD_HEIGHT,
+  });
+
   const rowKey = useMemo(() => {
     const dbtable = Object.keys(query)[0];
     if (!dbtable) {
@@ -125,6 +136,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
         setHiddenField={setHiddenField}
         search={search}
         setSearch={setSearch}
+        recordHeight={recordHeight}
+        setRecordHeight={setRecordHeight}
       />
     </div>
   );
@@ -140,6 +153,21 @@ export default function View({ table, view, style, height, name, id }: Props) {
           columns={columns}
           allColumns={allColumns}
           title={header}
+        />
+      );
+      break;
+    case "kanban":
+      body = (
+        <Kanban
+          height={height}
+          recordHeight={recordHeight}
+          rowKey={rowKey}
+          data={filteredData}
+          columns={columns}
+          allColumns={allColumns}
+          title={header}
+          categoryKey={"status"}
+          query={query}
         />
       );
       break;
@@ -206,16 +234,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
               onChange={setTimeKey}
               query={query}
               style={{ marginBottom: "5px" }}
-            />
-          )}
-          {(view == "grid" || view == "gallery") && (
-            <InputNumber
-              placeholder="Height..."
-              onChange={(value) => setRecordHeight(value ?? undefined)}
-              value={recordHeight}
-              min={40}
-              step={5}
-              style={{ width: "100px", marginLeft: "5px", marginBottom: "5px" }}
             />
           )}
         </Space>

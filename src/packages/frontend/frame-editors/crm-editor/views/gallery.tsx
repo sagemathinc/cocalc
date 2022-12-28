@@ -87,7 +87,7 @@ export function OneCard({
       onClick={() => setOpen(true)}
       hoverable
       key={elt[rowKey]}
-      title={title}
+      title={<span style={{ fontSize: "10pt" }}>{title}</span>}
       style={{
         display: "inline-block",
         margin: "10px",
@@ -140,6 +140,7 @@ export function Data({
 }) {
   const v: ReactNode[] = [];
   for (const column of columns) {
+    if (column == null) continue;
     const text = elt[column.dataIndex];
     const content = column.render != null ? column.render(text, elt) : text;
     v.push(

@@ -1,8 +1,8 @@
 import { Icon } from "@cocalc/frontend/components";
 import { TYPE_TO_ICON } from "../index";
-import { Divider } from "antd";
+import { Divider, Space, InputNumber } from "antd";
 
-export default function topMenu({ name, view }) {
+export default function topMenu({ name, view, setRecordHeight, recordHeight }) {
   return {
     label: name,
     key: "top-menu",
@@ -10,15 +10,21 @@ export default function topMenu({ name, view }) {
     children: [
       {
         type: "group",
-        label: <Divider>Edit</Divider>,
+        label: <Divider>View</Divider>,
         children: [
+          {
+            label: (
+              <Height
+                setRecordHeight={setRecordHeight}
+                recordHeight={recordHeight}
+              />
+            ),
+            key: "height",
+            disabled: true,
+          },
           {
             label: "Rename view",
             key: "rename",
-          },
-          {
-            label: "Edit view description",
-            key: "description",
           },
           {
             danger: true,
@@ -57,4 +63,25 @@ export default function topMenu({ name, view }) {
       },
     ],
   };
+}
+
+function Height({ setRecordHeight, recordHeight }) {
+  return (
+    <Space>
+      <div style={{ color: "#666" }}>Max height of records:</div>
+      <InputNumber
+        placeholder="Height..."
+        onChange={(value) => setRecordHeight(value)}
+        value={recordHeight}
+        min={20}
+        max={3000}
+        step={50}
+        style={{
+          width: "100px",
+          marginLeft: "5px",
+          marginBottom: "5px",
+        }}
+      />
+    </Space>
+  );
 }
