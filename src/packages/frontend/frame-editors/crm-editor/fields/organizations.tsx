@@ -90,12 +90,7 @@ function OrganizationsList({
   if (organizations.length == 0) return null;
   if (inline) {
     return (
-      <div
-        style={{
-          maxHeight: "6em",
-          overflow: "auto",
-        }}
-      >
+      <div>
         {organizations.map((id) => (
           <Organization key={id} id={id} inline />
         ))}

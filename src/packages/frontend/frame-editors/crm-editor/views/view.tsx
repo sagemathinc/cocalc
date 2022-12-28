@@ -1,5 +1,5 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { Alert, Button, Space } from "antd";
+import { Alert, Button, InputNumber, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
@@ -50,6 +50,9 @@ export default function View({ table, view, style, height, name, id }: Props) {
   }, [hiddenFields, allColumns]);
 
   const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
+  const [recordHeight, setRecordHeight] = useState<number | undefined>(
+    undefined
+  );
   const rowKey = useMemo(() => {
     const dbtable = Object.keys(query)[0];
     if (!dbtable) {
@@ -131,6 +134,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
       body = (
         <Gallery
           height={height}
+          recordHeight={recordHeight}
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
@@ -154,6 +158,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
     case "grid":
       body = (
         <Grid
+          recordHeight={recordHeight}
           data={filteredData}
           columns={columns}
           allColumns={allColumns}
@@ -195,6 +200,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
           />
         )}
         <Space>
+          {Filter}
           {view == "calendar" && (
             <SelectTimeKey
               onChange={setTimeKey}
@@ -202,7 +208,16 @@ export default function View({ table, view, style, height, name, id }: Props) {
               style={{ marginBottom: "5px" }}
             />
           )}
-          {Filter}
+          {(view == "grid" || view == "gallery") && (
+            <InputNumber
+              placeholder="Height..."
+              onChange={(value) => setRecordHeight(value ?? undefined)}
+              value={recordHeight}
+              min={40}
+              step={5}
+              style={{ width: "100px", marginLeft: "5px", marginBottom: "5px" }}
+            />
+          )}
         </Space>
         {numHidden > 0 ? (
           <div style={{ marginTop: "-10px", float: "right" }}>

@@ -18,6 +18,7 @@ interface Props {
   style?: CSSProperties;
   sortFields;
   setSortField;
+  recordHeight?: number;
 }
 
 export default function Grid({
@@ -29,6 +30,7 @@ export default function Grid({
   style,
   sortFields,
   setSortField,
+  recordHeight,
 }: Props) {
   return (
     <Card style={style} title={title}>
@@ -48,6 +50,7 @@ export default function Grid({
             data={data[index]}
             columns={columns}
             allColumns={allColumns}
+            recordHeight={recordHeight}
           />
         )}
       />
@@ -55,7 +58,7 @@ export default function Grid({
   );
 }
 
-function GridRow({ data, columns, allColumns }) {
+function GridRow({ data, columns, allColumns, recordHeight }) {
   const v: any[] = [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
@@ -72,7 +75,14 @@ function GridRow({ data, columns, allColumns }) {
           border: "1px solid #eee",
         }}
       >
-        <div style={{ width, overflow: "auto", margin: "0 5px" }}>
+        <div
+          style={{
+            width,
+            overflow: "auto",
+            margin: "0 5px",
+            maxHeight: recordHeight,
+          }}
+        >
           {content}
         </div>
       </td>

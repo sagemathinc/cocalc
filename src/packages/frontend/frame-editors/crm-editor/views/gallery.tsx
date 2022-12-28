@@ -1,7 +1,7 @@
 // TODO: the antd Descriptions component is perhaps better for this?
 //   https://ant.design/components/descriptions
 
-import { CSSProperties, ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { Card, Divider, Modal } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
@@ -17,6 +17,7 @@ interface Props {
   title: ReactNode;
   cardStyle?;
   height?;
+  recordHeight?: number;
 }
 
 function ItemContainer({ children }: { children?: ReactNode }) {
@@ -36,7 +37,11 @@ export default function Gallery({
     textOverflow: "ellipsis",
   },
   height,
+  recordHeight,
 }: Props) {
+  const style = useMemo(() => {
+    return { ...cardStyle, height: recordHeight };
+  }, [cardStyle, recordHeight]);
   return (
     <Card title={title}>
       <VirtuosoGrid
@@ -53,7 +58,7 @@ export default function Gallery({
             rowKey={rowKey}
             columns={columns}
             allColumns={allColumns}
-            style={cardStyle}
+            style={style}
           />
         )}
       />
