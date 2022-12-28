@@ -4,6 +4,7 @@ import { Virtuoso } from "react-virtuoso";
 import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
 import { getFieldSpec } from "../fields";
+import { capitalize } from "@cocalc/util/misc";
 
 interface Props {
   rowKey: string;
@@ -50,13 +51,17 @@ export default function Kanban({
 
   const categorizedData = useMemo(() => {
     const optionToColumn: { [option: string]: number } = {};
-    const categorizedData: any[][] = [[]];
+    const categorizedData: { data: any[]; label: string }[] = [
+      { data: [], label: "Not Classified" },
+    ];
     for (let i = 0; i < options.length; i++) {
       optionToColumn[options[i]] = i + 1;
-      categorizedData.push([]);
+      categorizedData.push({ data: [], label: capitalize(options[i]) });
     }
     for (const record of data) {
-      categorizedData[optionToColumn[record[categoryKey]] ?? 0].push(record);
+      categorizedData[optionToColumn[record[categoryKey]] ?? 0].data.push(
+        record
+      );
     }
     return categorizedData;
   }, [data, options, categoryKey]);
@@ -64,27 +69,39 @@ export default function Kanban({
   return (
     <Card title={title} style={{ width: "100%" }}>
       <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
-        {categorizedData.map((data) => {
+        {categorizedData.map(({ data, label }) => {
           return (
-            <Virtuoso
-              overscan={500}
-              style={{
-                height: height ?? "600px",
-                background: "#ececec",
-                flex: 1,
-              }}
-              data={data}
-              itemContent={(index) => (
-                <OneCard
-                  key={data[index][rowKey]}
-                  elt={data[index]}
-                  rowKey={rowKey}
-                  columns={columns}
-                  allColumns={allColumns}
-                  style={style}
-                />
-              )}
-            />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  fontWeight: 600,
+                  fontSize: "11pt",
+                  marginBottom: "10px",
+                }}
+              >
+                {label}
+              </div>
+              <Virtuoso
+                overscan={500}
+                style={{
+                  height: height ?? "600px",
+                  width: "100%",
+                  background: "#ececec",
+                }}
+                data={data}
+                itemContent={(index) => (
+                  <OneCard
+                    key={data[index][rowKey]}
+                    elt={data[index]}
+                    rowKey={rowKey}
+                    columns={columns}
+                    allColumns={allColumns}
+                    style={style}
+                  />
+                )}
+              />
+            </div>
           );
         })}
       </div>
