@@ -302,6 +302,7 @@ Table({
     created: CREATED,
     created_by: PERSON,
     last_edited: LAST_EDITED,
+    last_modified_by: LAST_MODIFIED_BY,
     assignee: ASSIGNEE,
     tasks: {
       title: "Tasks",
@@ -337,6 +338,7 @@ Table({
           created: null,
           created_by: null,
           last_edited: null,
+          last_modified_by: null,
           assignee: null,
           tasks: null,
           cc: null,
@@ -353,6 +355,7 @@ Table({
           subject: true,
           created: true,
           last_edited: true,
+          last_modified_by: true,
           created_by: true,
           assignee: true,
           tasks: true,

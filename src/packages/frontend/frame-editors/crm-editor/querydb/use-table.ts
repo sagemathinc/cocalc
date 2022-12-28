@@ -5,7 +5,6 @@ import useDebounceEffect from "@cocalc/frontend/app-framework/use-debounce-effec
 import { client_db } from "@cocalc/util/db-schema";
 import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
-import { SCHEMA } from "@cocalc/util/db-schema";
 import { DEFAULT_LIMIT } from "../syncdb/use-limit";
 import { AtomicSearch } from "../syncdb/use-search";
 import { getDBTableDescription } from "../tables";
@@ -58,12 +57,6 @@ export function useTable({
             query[table][key] = updateDefaults[key];
           }
         }
-      }
-      if (
-        query[table]["last_edited"] == null &&
-        SCHEMA[table].user_query?.set?.required_fields?.last_edited
-      ) {
-        query[table]["last_edited"] = "NOW()";
       }
 
       lastSaveRef.current = new Date().valueOf();

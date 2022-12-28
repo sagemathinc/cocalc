@@ -11,7 +11,6 @@ import Calendar from "./calendar";
 import type { ViewType } from "../types";
 import { Icon } from "@cocalc/frontend/components";
 import { getTableDescription } from "../tables";
-import { SCHEMA } from "@cocalc/util/db-schema";
 import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
 import useFilter from "./filter-input";
@@ -88,17 +87,9 @@ export default function View({ table, view, style, height, name, id }: Props) {
         x[key] = updateDefaults[key];
       }
     }
-    for (const timefield of ["created", "last_edited"]) {
-      if (
-        x[timefield] == null &&
-        SCHEMA[dbtable].user_query?.set?.fields?.[timefield]
-      ) {
-        x[timefield] = "NOW()";
-      }
-    }
 
     if (dbtable == "crm_tags") {
-      // @ts-ignore -- TODO: need a new editor before it goes into the DB!
+      // @ts-ignore -- TODO: need a 'new editor' before it goes into the DB!
       x.name = "";
     }
 

@@ -11,6 +11,7 @@ register({
         created_by: null,
         created: null,
         last_edited: null,
+        last_modified_by: null,
         assignee: null,
         tags: null,
         tasks: null,

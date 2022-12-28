@@ -22,8 +22,4 @@ register({
       },
     ],
   },
-  updateDefaults: {
-    last_modified_by: "[account_id]",
-    last_edited: "now()",
-  },
 });

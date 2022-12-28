@@ -71,6 +71,8 @@ export async function createTag(name: string): Promise<number> {
   const { query } = getTableDescription(TAGS_TABLE);
   const dbtable = Object.keys(query)[0];
   // First create it
+  // TODO: need to refactor with the set in use-table.ts so that all default fields
+  // are filled in using a uniform approach.
   await webapp_client.query_client.query({
     query: { [dbtable]: { name, last_edited: "NOW()", created: "NOW()" } },
   });

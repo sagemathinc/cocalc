@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { antdColumn, ColumnsType } from "../fields";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as defaults from "./defaults";
+import { SCHEMA } from "@cocalc/util/db-schema";
 
 import "./tasks";
 import "./people";
@@ -93,15 +95,48 @@ export function getTables(): string[] {
 
 function fillInTemplates(desc) {
   if (desc.__templates) return;
+
+  const dbtable = Object.keys(desc.query)[0];
+
+  // generic defaults defined by the field name:
+  for (const x of ["createDefaults", "updateDefaults"]) {
+    for (const field in defaults[x]) {
+      console.log({
+        dbtable,
+        x,
+        field,
+        set: SCHEMA[dbtable].user_query?.set?.fields?.[field],
+        val: defaults[x][field],
+      });
+      if (SCHEMA[dbtable].user_query?.set?.fields?.[field] != null) {
+        // it is a settable field
+        if (desc[x] == null) {
+          desc[x] = { [field]: defaults[x][field] };
+        } else {
+          // do not overwrite any existing settings
+          if (desc[x][field] === undefined) {
+            desc[x][field] = defaults[x][field];
+          }
+        }
+      }
+    }
+  }
+
+  // specialized defaults/overrides for this particular table, if any:
   for (const field of ["createDefaults", "updateDefaults"]) {
     const x = desc[field];
     if (x != null) {
       for (const key in x) {
         if (x[key] == "[account_id]") {
           x[key] = webapp_client.account_id;
+        } else if (x[key] === null) {
+          // Explicitly disabling defaults for this key. This
+          // is used to not do something from defaults.ts.
+          delete x[key];
         }
       }
     }
   }
+
   desc.__templates = true;
 }
