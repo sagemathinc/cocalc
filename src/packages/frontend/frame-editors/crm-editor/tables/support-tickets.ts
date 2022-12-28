@@ -24,4 +24,7 @@ register({
   },
   allowCreate: true,
   changes: true,
+  createDefaults: {
+    created_by: null, // override default -- this is a people table entry, not an account_id, and will be created by our support system
+  },
 });

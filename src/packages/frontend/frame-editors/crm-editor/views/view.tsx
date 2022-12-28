@@ -1,5 +1,4 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
@@ -20,6 +19,7 @@ import useSortFields from "../syncdb/use-sort-fields";
 import useLimit from "../syncdb/use-limit";
 import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
+import querydbSet from "../querydb/set";
 
 interface Props {
   view: ViewType;
@@ -37,8 +37,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
     columns: allColumns,
     allowCreate,
     changes,
-    createDefaults,
-    updateDefaults,
   } = useMemo(() => getTableDescription(table), [table]);
   const [limit, setLimit] = useLimit({ id });
   const [search, setSearch] = useSearch({ id });
@@ -72,33 +70,25 @@ export default function View({ table, view, style, height, name, id }: Props) {
 
   const { filteredData, numHidden, Filter } = useFilter({ data, id });
 
+  const [addError, setAddError] = useState<string>("");
+
   async function addNew() {
     const dbtable = Object.keys(query)[0];
 
     const x: any = {};
 
-    if (createDefaults != null) {
-      for (const key in createDefaults) {
-        x[key] = createDefaults[key];
-      }
-    }
-    if (updateDefaults != null) {
-      for (const key in updateDefaults) {
-        x[key] = updateDefaults[key];
-      }
-    }
-
     if (dbtable == "crm_tags") {
-      // @ts-ignore -- TODO: need a 'new editor' before it goes into the DB!
-      x.name = "";
+      // TODO: need a 'new editor' before it goes into the DB!
+      x.name = "New Tag";
     }
 
-    // TODO: show the error somehow, e.g., for crm_tags adding twice gives
-    // an error...
-    await webapp_client.query_client.query({
-      query: { [dbtable]: x },
-      options: [{ set: true }],
-    });
+    setAddError("");
+    try {
+      await querydbSet({ [dbtable]: x });
+    } catch (err) {
+      setAddError(`${err}`);
+    }
+
     refresh();
   }
 
@@ -195,6 +185,13 @@ export default function View({ table, view, style, height, name, id }: Props) {
             type="error"
             message="Database Query Error"
             description={tableError}
+          />
+        )}
+        {addError && (
+          <Alert
+            type="error"
+            message="Error Creating New Record"
+            description={addError}
           />
         )}
         <Space>

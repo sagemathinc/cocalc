@@ -7,7 +7,7 @@ import type { EditableContextType } from "../fields/context";
 import { pick } from "lodash";
 import { DEFAULT_LIMIT } from "../syncdb/use-limit";
 import { AtomicSearch } from "../syncdb/use-search";
-import { getDBTableDescription } from "../tables";
+import querydbSet from "./set";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
@@ -42,7 +42,6 @@ export function useTable({
 
   const info = useMemo(() => {
     const table = Object.keys(query)[0];
-    const { updateDefaults } = getDBTableDescription(table);
     const primary_keys = client_db.primary_keys(table);
     const save = async (obj: object, changed: object) => {
       const query = {
@@ -51,22 +50,12 @@ export function useTable({
           ...changed,
         },
       };
-      if (updateDefaults != null) {
-        for (const key in updateDefaults) {
-          if (query[table][key] == null) {
-            query[table][key] = updateDefaults[key];
-          }
-        }
-      }
 
       lastSaveRef.current = new Date().valueOf();
       try {
         setSaving(true);
         setError("");
-        await webapp_client.query_client.query({
-          query,
-          options: [{ set: true }],
-        });
+        await querydbSet(query);
       } catch (err) {
         setError(`${err}`);
       } finally {

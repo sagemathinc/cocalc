@@ -3,6 +3,7 @@ import { useTable } from "./use-table";
 import { getTableDescription } from "../tables";
 import { IconName } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import set from "./set";
 
 const TAGS_TABLE = "tags";
 
@@ -73,8 +74,6 @@ export async function createTag(name: string): Promise<number> {
   // First create it
   // TODO: need to refactor with the set in use-table.ts so that all default fields
   // are filled in using a uniform approach.
-  await webapp_client.query_client.query({
-    query: { [dbtable]: { name, last_edited: "NOW()", created: "NOW()" } },
-  });
+  await set({ [dbtable]: { name } });
   return await getTagId(name);
 }

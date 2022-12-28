@@ -101,13 +101,6 @@ function fillInTemplates(desc) {
   // generic defaults defined by the field name:
   for (const x of ["createDefaults", "updateDefaults"]) {
     for (const field in defaults[x]) {
-      console.log({
-        dbtable,
-        x,
-        field,
-        set: SCHEMA[dbtable].user_query?.set?.fields?.[field],
-        val: defaults[x][field],
-      });
       if (SCHEMA[dbtable].user_query?.set?.fields?.[field] != null) {
         // it is a settable field
         if (desc[x] == null) {
