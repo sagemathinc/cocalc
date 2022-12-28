@@ -15,7 +15,7 @@ interface Props {
   cardStyle?;
   height?;
   recordHeight?: number;
-  categoryKey: string;
+  categoryField: string;
   query: object;
 }
 
@@ -34,22 +34,24 @@ export default function Kanban({
   },
   height,
   recordHeight,
-  categoryKey,
+  categoryField,
 }: Props) {
   const style = useMemo(() => {
     return { ...cardStyle, height: recordHeight };
   }, [cardStyle, recordHeight]);
 
   const options = useMemo(() => {
+    if (!categoryField) return [];
     const dbtable = Object.keys(query)[0];
-    const fieldSpec = getFieldSpec(dbtable, categoryKey);
+    const fieldSpec = getFieldSpec(dbtable, categoryField);
     if (fieldSpec.render?.type != "select") {
       throw Error("bug");
     }
     return fieldSpec.render.options;
-  }, [categoryKey, query]);
+  }, [categoryField, query]);
 
   const categorizedData = useMemo(() => {
+    if (!categoryField) return [];
     const optionToColumn: { [option: string]: number } = {};
     const categorizedData: { data: any[]; label: string }[] = [
       { data: [], label: "Not Classified" },
@@ -59,51 +61,53 @@ export default function Kanban({
       categorizedData.push({ data: [], label: capitalize(options[i]) });
     }
     for (const record of data) {
-      categorizedData[optionToColumn[record[categoryKey]] ?? 0].data.push(
+      categorizedData[optionToColumn[record[categoryField]] ?? 0].data.push(
         record
       );
     }
     return categorizedData;
-  }, [data, options, categoryKey]);
+  }, [data, options, categoryField]);
 
   return (
     <Card title={title} style={{ width: "100%" }}>
       <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
-        {categorizedData.map(({ data, label }) => {
-          return (
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  textAlign: "center",
-                  fontWeight: 600,
-                  fontSize: "11pt",
-                  marginBottom: "10px",
-                }}
-              >
-                {label}
+        {!categoryField && <div>Select a category field above</div>}
+        {categoryField &&
+          categorizedData.map(({ data, label }) => {
+            return (
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    fontWeight: 600,
+                    fontSize: "11pt",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {label}
+                </div>
+                <Virtuoso
+                  overscan={500}
+                  style={{
+                    height: height ?? "600px",
+                    width: "100%",
+                    background: "#ececec",
+                  }}
+                  data={data}
+                  itemContent={(index) => (
+                    <OneCard
+                      key={data[index][rowKey]}
+                      elt={data[index]}
+                      rowKey={rowKey}
+                      columns={columns}
+                      allColumns={allColumns}
+                      style={style}
+                    />
+                  )}
+                />
               </div>
-              <Virtuoso
-                overscan={500}
-                style={{
-                  height: height ?? "600px",
-                  width: "100%",
-                  background: "#ececec",
-                }}
-                data={data}
-                itemContent={(index) => (
-                  <OneCard
-                    key={data[index][rowKey]}
-                    elt={data[index]}
-                    rowKey={rowKey}
-                    columns={columns}
-                    allColumns={allColumns}
-                    style={style}
-                  />
-                )}
-              />
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </Card>
   );

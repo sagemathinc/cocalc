@@ -5,7 +5,7 @@ import * as gallery from "./gallery";
 import type { ColumnsType } from "../fields";
 
 interface Props {
-  timeKey?: string;
+  timeField?: string;
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function CalendarData({
-  timeKey = "last_edited",
+  timeField = "last_edited",
   rowKey,
   data,
   columns,
@@ -27,7 +27,7 @@ export default function CalendarData({
     const monthToData: { [year_month: string]: object[] } = {};
     const dateToData: { [year_month_day: string]: object[] } = {};
     for (const e of data) {
-      const time = e[timeKey];
+      const time = e[timeField];
       if (time == null) continue;
       const year_month_day = toYearMonthDay(time);
       if (dateToData[year_month_day] == null) {
@@ -65,7 +65,7 @@ export default function CalendarData({
       );
     };
     return { monthCellRender, dateCellRender };
-  }, [data, timeKey]);
+  }, [data, timeField]);
 
   return (
     <Card title={title} style={style}>

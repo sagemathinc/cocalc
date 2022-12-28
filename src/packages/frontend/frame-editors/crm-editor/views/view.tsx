@@ -3,7 +3,7 @@ import { Alert, Button, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
-import { SelectTimeKey } from "./time-keys";
+import { SelectField, defaultField } from "./select-field-with-type";
 import Gallery from "./gallery";
 import Grid from "./grid";
 import Calendar from "./calendar";
@@ -57,7 +57,18 @@ export default function View({ table, view, style, height, name, id }: Props) {
     return allColumns.filter((x) => !hiddenFields.has(x.dataIndex));
   }, [hiddenFields, allColumns]);
 
-  const [timeKey, setTimeKey] = useState<string | undefined>(undefined);
+  const [timeField, setTimeField] = useViewParam<string>({
+    id,
+    name: "time-field",
+    defaultValue: defaultField(query, "timestamp") ?? "",
+  });
+
+  const [categoryField, setCategoryField] = useViewParam<string>({
+    id,
+    name: "category-field",
+    defaultValue: defaultField(query, "select") ?? "",
+  });
+
   const [recordHeight, setRecordHeight] = useViewParam<number>({
     id,
     name: "record-height",
@@ -166,7 +177,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
           columns={columns}
           allColumns={allColumns}
           title={header}
-          categoryKey={"status"}
+          categoryField={categoryField}
           query={query}
         />
       );
@@ -178,7 +189,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
           columns={allColumns}
           allColumns={allColumns}
           title={header}
-          timeKey={timeKey}
+          timeField={timeField}
           rowKey={rowKey}
         />
       );
@@ -230,8 +241,19 @@ export default function View({ table, view, style, height, name, id }: Props) {
         <Space>
           {Filter}
           {view == "calendar" && (
-            <SelectTimeKey
-              onChange={setTimeKey}
+            <SelectField
+              type={"timestamp"}
+              value={timeField}
+              onChange={setTimeField}
+              query={query}
+              style={{ marginBottom: "5px" }}
+            />
+          )}
+          {view == "kanban" && (
+            <SelectField
+              type={"select"}
+              value={categoryField}
+              onChange={setCategoryField}
               query={query}
               style={{ marginBottom: "5px" }}
             />

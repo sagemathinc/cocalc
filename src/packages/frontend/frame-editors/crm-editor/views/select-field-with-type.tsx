@@ -7,16 +7,18 @@ interface Props {
   onChange: (key: string) => void;
   query: object;
   style: CSSProperties;
+  value: string;
+  type: string;
 }
 
-export function SelectTimeKey({ onChange, query, style }: Props) {
-  const keys = useMemo(() => allTimeKeys(query), [query]);
+export function SelectField({ onChange, query, style, value, type }: Props) {
+  const keys = useMemo(() => allFields(query, type), [query]);
   const options = keys.map((key) => {
     return { value: key, label: fieldToLabel(key) };
   });
   return (
     <Select
-      defaultValue={keys[0]}
+      value={value}
       onChange={onChange}
       options={options}
       style={{ width: "150px", ...style }}
@@ -24,29 +26,29 @@ export function SelectTimeKey({ onChange, query, style }: Props) {
   );
 }
 
-function allTimeKeys(query: object) {
+function matches({ query, table, type, schema, key }): boolean {
+  return (
+    schema.fields[key].render?.type == type || schema.fields[key].type == type
+  );
+}
+
+function allFields(query: object, type: string) {
   const table = Object.keys(query)[0];
   const schema = SCHEMA[table];
   const v: string[] = [];
   for (const key in query[table][0]) {
-    if (
-      schema.fields[key].type == "timestamp" &&
-      query[table][0][key] !== undefined
-    ) {
+    if (matches({ query, table, type, schema, key })) {
       v.push(key);
     }
   }
   return v;
 }
 
-export function defaultTimeKey(query: object): string | undefined {
+export function defaultField(query: object, type: string): string | undefined {
   const table = Object.keys(query)[0];
   const schema = SCHEMA[table];
   for (const key in query[table][0]) {
-    if (
-      schema.fields[key].type == "timestamp" &&
-      query[table][0][key] !== undefined
-    ) {
+    if (matches({ query, table, type, schema, key })) {
       return key;
     }
   }
