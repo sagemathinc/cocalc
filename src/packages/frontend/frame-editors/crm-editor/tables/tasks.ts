@@ -17,8 +17,8 @@ register({
         status: null,
         priority: null,
         related_to: null,
-        person_id: null,
-        support_ticket_id: null,
+        person: null,
+        support_ticket: null,
         created_by: null,
         created: null,
         closed: null,
@@ -30,4 +30,16 @@ register({
   },
   allowCreate: true,
   changes: true,
+  create: {
+    progress: 0,
+    assignee: "[account_id]",
+    created_by: "[account_id]",
+    created: "now()",
+    status: "new",
+    priority: "normal",
+  },
+  update: {
+    last_modified_by: "[account_id]",
+    last_edited: "now()",
+  },
 });

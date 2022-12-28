@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { antdColumn, ColumnsType } from "../fields";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 import "./tasks";
 import "./people";
@@ -27,6 +28,9 @@ interface TableDescription {
   allowCreate?: boolean;
   changes?: boolean;
   timeKey?: string;
+  create?: object;
+  update?: object;
+  __templates?: boolean; // set after we fill in any templates.
 }
 
 let tables: { [name: string]: TableDescription };
@@ -70,9 +74,25 @@ export function getTableDescription(name: string): TableDescription {
   if (desc == null) {
     throw Error(`unknown table ${name}`);
   }
+  fillInTemplates(desc);
   return desc;
 }
 
 export function getTables(): string[] {
   return Object.keys(tables ?? {});
+}
+
+function fillInTemplates(desc) {
+  if (desc.__templates) return;
+  for (const field of ["create", "update"]) {
+    const x = desc[field];
+    if (x != null) {
+      for (const key in x) {
+        if (x[key] == "[account_id]") {
+          x[key] = webapp_client.account_id;
+        }
+      }
+    }
+  }
+  desc.__templates = true;
 }

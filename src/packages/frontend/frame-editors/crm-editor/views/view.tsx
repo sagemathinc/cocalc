@@ -38,6 +38,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
     columns: allColumns,
     allowCreate,
     changes,
+    create: eltCreateDefaults,
+    update: eltUpdateDefaults,
   } = useMemo(() => getTableDescription(table), [table]);
   const [limit, setLimit] = useLimit({ id });
   const [search, setSearch] = useSearch({ id });
@@ -75,8 +77,22 @@ export default function View({ table, view, style, height, name, id }: Props) {
     const dbtable = Object.keys(query)[0];
 
     const x: any = {};
+
+    if (eltCreateDefaults != null) {
+      for (const key in eltCreateDefaults) {
+        x[key] = eltCreateDefaults[key];
+      }
+    }
+    if (eltUpdateDefaults != null) {
+      for (const key in eltUpdateDefaults) {
+        x[key] = eltUpdateDefaults[key];
+      }
+    }
     for (const timefield of ["created", "last_edited"]) {
-      if (SCHEMA[dbtable].user_query?.set?.fields?.[timefield]) {
+      if (
+        x[timefield] == null &&
+        SCHEMA[dbtable].user_query?.set?.fields?.[timefield]
+      ) {
         x[timefield] = "NOW()";
       }
     }
