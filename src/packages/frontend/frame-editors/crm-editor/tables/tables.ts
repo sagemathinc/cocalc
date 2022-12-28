@@ -28,8 +28,8 @@ interface TableDescription {
   allowCreate?: boolean;
   changes?: boolean;
   timeKey?: string;
-  create?: object;
-  update?: object;
+  createDefaults?: object;
+  updateDefaults?: object;
   __templates?: boolean; // set after we fill in any templates.
 }
 
@@ -78,13 +78,22 @@ export function getTableDescription(name: string): TableDescription {
   return desc;
 }
 
+export function getDBTableDescription(dbtable: string): TableDescription {
+  for (const name in tables) {
+    if (dbtable == Object.keys(tables[name].query)[0]) {
+      return getTableDescription(name);
+    }
+  }
+  throw Error(`unknown dbtable ${dbtable}`);
+}
+
 export function getTables(): string[] {
   return Object.keys(tables ?? {});
 }
 
 function fillInTemplates(desc) {
   if (desc.__templates) return;
-  for (const field of ["create", "update"]) {
+  for (const field of ["createDefaults", "updateDefaults"]) {
     const x = desc[field];
     if (x != null) {
       for (const key in x) {

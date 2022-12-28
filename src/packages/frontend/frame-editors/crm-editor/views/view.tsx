@@ -38,8 +38,8 @@ export default function View({ table, view, style, height, name, id }: Props) {
     columns: allColumns,
     allowCreate,
     changes,
-    create: eltCreateDefaults,
-    update: eltUpdateDefaults,
+    createDefaults,
+    updateDefaults,
   } = useMemo(() => getTableDescription(table), [table]);
   const [limit, setLimit] = useLimit({ id });
   const [search, setSearch] = useSearch({ id });
@@ -78,14 +78,14 @@ export default function View({ table, view, style, height, name, id }: Props) {
 
     const x: any = {};
 
-    if (eltCreateDefaults != null) {
-      for (const key in eltCreateDefaults) {
-        x[key] = eltCreateDefaults[key];
+    if (createDefaults != null) {
+      for (const key in createDefaults) {
+        x[key] = createDefaults[key];
       }
     }
-    if (eltUpdateDefaults != null) {
-      for (const key in eltUpdateDefaults) {
-        x[key] = eltUpdateDefaults[key];
+    if (updateDefaults != null) {
+      for (const key in updateDefaults) {
+        x[key] = updateDefaults[key];
       }
     }
     for (const timefield of ["created", "last_edited"]) {

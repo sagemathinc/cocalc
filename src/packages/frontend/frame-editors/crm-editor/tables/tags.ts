@@ -16,9 +16,14 @@ register({
         color: null,
         description: null,
         last_edited: null,
+        last_modified_by: null,
         created: null,
         id: null,
       },
     ],
+  },
+  updateDefaults: {
+    last_modified_by: "[account_id]",
+    last_edited: "now()",
   },
 });

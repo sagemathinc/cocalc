@@ -8,6 +8,7 @@ import { pick } from "lodash";
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { DEFAULT_LIMIT } from "../syncdb/use-limit";
 import { AtomicSearch } from "../syncdb/use-search";
+import { getDBTableDescription } from "../tables";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
@@ -42,6 +43,7 @@ export function useTable({
 
   const info = useMemo(() => {
     const table = Object.keys(query)[0];
+    const { updateDefaults } = getDBTableDescription(table);
     const primary_keys = client_db.primary_keys(table);
     const save = async (obj: object, changed: object) => {
       const query = {
@@ -50,9 +52,20 @@ export function useTable({
           ...changed,
         },
       };
-      if (SCHEMA[table].user_query?.set?.required_fields?.last_edited) {
+      if (updateDefaults != null) {
+        for (const key in updateDefaults) {
+          if (query[table][key] == null) {
+            query[table][key] = updateDefaults[key];
+          }
+        }
+      }
+      if (
+        query[table]["last_edited"] == null &&
+        SCHEMA[table].user_query?.set?.required_fields?.last_edited
+      ) {
         query[table]["last_edited"] = "NOW()";
       }
+
       lastSaveRef.current = new Date().valueOf();
       try {
         setSaving(true);

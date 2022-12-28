@@ -4,6 +4,8 @@ import { getTableDescription } from "../tables";
 import { IconName } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
+const TAGS_TABLE = "tags";
+
 interface Tag {
   id: number;
   name: string;
@@ -21,7 +23,7 @@ export interface TagsContextType {
 export const TagsContext = createContext<TagsContextType>({ tags: null });
 
 export function TagsProvider({ children }) {
-  const { query } = useMemo(() => getTableDescription("tags"), []);
+  const { query } = useMemo(() => getTableDescription(TAGS_TABLE), []);
   const { data, editableContext } = useTable({
     query,
     changes: true,
@@ -48,7 +50,7 @@ export function useTags() {
 }
 
 export async function getTagId(name: string): Promise<number> {
-  const { query } = getTableDescription("tags");
+  const { query } = getTableDescription(TAGS_TABLE);
   const dbtable = Object.keys(query)[0];
   // Figure out the id it as assigned
   const x = await webapp_client.query_client.query({
@@ -66,7 +68,7 @@ export async function createTag(name: string): Promise<number> {
   try {
     return await getTagId(name);
   } catch (_) {}
-  const { query } = getTableDescription("tags");
+  const { query } = getTableDescription(TAGS_TABLE);
   const dbtable = Object.keys(query)[0];
   // First create it
   await webapp_client.query_client.query({

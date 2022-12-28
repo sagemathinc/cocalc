@@ -52,6 +52,12 @@ const LAST_EDITED = {
   desc: "When this record was last edited.",
 } as FieldSpec;
 
+const LAST_MODIFIED_BY = {
+  type: "uuid",
+  desc: "Account that last modified this task.",
+  render: { type: "account" },
+} as FieldSpec;
+
 const ASSIGNEE = {
   type: "uuid",
   desc: "Account that is responsible for resolving this.",
@@ -501,11 +507,9 @@ Table({
     created_by: {
       type: "uuid",
       desc: "Account that created this task.",
+      render: { type: "account" },
     },
-    last_modified_by: {
-      type: "uuid",
-      desc: "Account that last modified this task.",
-    },
+    last_modified_by: LAST_MODIFIED_BY,
     assignee: ASSIGNEE,
     cc: {
       type: "array",
@@ -617,6 +621,7 @@ Table({
     },
     created: CREATED,
     last_edited: LAST_EDITED,
+    last_modified_by: LAST_MODIFIED_BY,
   },
   rules: {
     desc: "Table of all tags across our crm system.",
@@ -633,6 +638,7 @@ Table({
           color: null,
           created: null,
           last_edited: null,
+          last_modified_by: null,
         },
       },
       set: {
@@ -645,6 +651,7 @@ Table({
           color: true,
           created: true,
           last_edited: true,
+          last_modified_by: true,
         },
         required_fields: {
           last_edited: true, // TODO: make automatic on any set query

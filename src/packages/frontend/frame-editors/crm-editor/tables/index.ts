@@ -1,1 +1,5 @@
-export { getTableDescription, getTables } from "./tables";
+export {
+  getDBTableDescription,
+  getTableDescription,
+  getTables,
+} from "./tables";

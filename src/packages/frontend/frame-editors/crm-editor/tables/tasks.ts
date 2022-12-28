@@ -30,7 +30,7 @@ register({
   },
   allowCreate: true,
   changes: true,
-  create: {
+  createDefaults: {
     progress: 0,
     assignee: "[account_id]",
     created_by: "[account_id]",
@@ -38,7 +38,7 @@ register({
     status: "new",
     priority: "normal",
   },
-  update: {
+  updateDefaults: {
     last_modified_by: "[account_id]",
     last_edited: "now()",
   },
