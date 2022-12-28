@@ -60,13 +60,13 @@ export default function View({ table, view, style, height, name, id }: Props) {
   const [timeField, setTimeField] = useViewParam<string>({
     id,
     name: "time-field",
-    defaultValue: defaultField(query, "timestamp") ?? "",
+    defaultValue: defaultField(query, "timestamp", hiddenFields) ?? "",
   });
 
   const [categoryField, setCategoryField] = useViewParam<string>({
     id,
     name: "category-field",
-    defaultValue: defaultField(query, "select") ?? "",
+    defaultValue: defaultField(query, "select", hiddenFields) ?? "",
   });
 
   const [recordHeight, setRecordHeight] = useViewParam<number>({
@@ -239,7 +239,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
           />
         )}
         <Space>
-          {Filter}
           {view == "calendar" && (
             <SelectField
               type={"timestamp"}
@@ -247,6 +246,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
               onChange={setTimeField}
               query={query}
               style={{ marginBottom: "5px" }}
+              hiddenFields={hiddenFields}
             />
           )}
           {view == "kanban" && (
@@ -256,20 +256,18 @@ export default function View({ table, view, style, height, name, id }: Props) {
               onChange={setCategoryField}
               query={query}
               style={{ marginBottom: "5px" }}
+              hiddenFields={hiddenFields}
             />
           )}
+          {Filter}
+          {numHidden > 0 && (
+            <div style={{ marginBottom: "5px", color: "#666" }}>
+              <Icon name="warning" /> Filtered: only showing{" "}
+              {filteredData.length} of {data.length}{" "}
+              {plural(data.length, "result")}
+            </div>
+          )}
         </Space>
-        {numHidden > 0 ? (
-          <div style={{ marginTop: "-10px", float: "right" }}>
-            <Alert
-              showIcon
-              type="warning"
-              message={`Filtered: only showing ${filteredData.length} of ${
-                data.length
-              } ${plural(data.length, "result")}`}
-            />
-          </div>
-        ) : undefined}
         {body}
       </div>
     </EditableContext.Provider>

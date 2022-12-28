@@ -28,6 +28,7 @@ export default function Kanban({
   title,
   cardStyle = {
     width: "90%",
+    margin: "5%",
     height: "300px",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -54,7 +55,7 @@ export default function Kanban({
     if (!categoryField) return [];
     const optionToColumn: { [option: string]: number } = {};
     const categorizedData: { data: any[]; label: string }[] = [
-      { data: [], label: "Not Classified" },
+      { data: [], label: "NULL" },
     ];
     for (let i = 0; i < options.length; i++) {
       optionToColumn[options[i]] = i + 1;
@@ -82,9 +83,10 @@ export default function Kanban({
                     fontWeight: 600,
                     fontSize: "11pt",
                     marginBottom: "10px",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {label}
+                  {label} ({data.length})
                 </div>
                 <Virtuoso
                   overscan={500}
@@ -92,6 +94,7 @@ export default function Kanban({
                     height: height ?? "600px",
                     width: "100%",
                     background: "#ececec",
+                    border: "1px solid #ccc",
                   }}
                   data={data}
                   itemContent={(index) => (

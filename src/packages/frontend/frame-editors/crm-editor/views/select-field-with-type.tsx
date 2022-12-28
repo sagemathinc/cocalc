@@ -9,10 +9,21 @@ interface Props {
   style: CSSProperties;
   value: string;
   type: string;
+  hiddenFields: Set<string>;
 }
 
-export function SelectField({ onChange, query, style, value, type }: Props) {
-  const keys = useMemo(() => allFields(query, type), [query]);
+export function SelectField({
+  onChange,
+  query,
+  style,
+  value,
+  type,
+  hiddenFields,
+}: Props) {
+  const keys = useMemo(
+    () => allFields(query, type, hiddenFields),
+    [query, hiddenFields]
+  );
   const options = keys.map((key) => {
     return { value: key, label: fieldToLabel(key) };
   });
@@ -26,29 +37,34 @@ export function SelectField({ onChange, query, style, value, type }: Props) {
   );
 }
 
-function matches({ query, table, type, schema, key }): boolean {
+function matches({ hiddenFields, type, schema, key }): boolean {
   return (
-    schema.fields[key].render?.type == type || schema.fields[key].type == type
+    !hiddenFields.has(key) &&
+    (schema.fields[key].render?.type == type || schema.fields[key].type == type)
   );
 }
 
-function allFields(query: object, type: string) {
+function allFields(query: object, type: string, hiddenFields: Set<string>) {
   const table = Object.keys(query)[0];
   const schema = SCHEMA[table];
   const v: string[] = [];
   for (const key in query[table][0]) {
-    if (matches({ query, table, type, schema, key })) {
+    if (matches({ hiddenFields, type, schema, key })) {
       v.push(key);
     }
   }
   return v;
 }
 
-export function defaultField(query: object, type: string): string | undefined {
+export function defaultField(
+  query: object,
+  type: string,
+  hiddenFields: Set<string>
+): string | undefined {
   const table = Object.keys(query)[0];
   const schema = SCHEMA[table];
   for (const key in query[table][0]) {
-    if (matches({ query, table, type, schema, key })) {
+    if (matches({ hiddenFields, type, schema, key })) {
       return key;
     }
   }
