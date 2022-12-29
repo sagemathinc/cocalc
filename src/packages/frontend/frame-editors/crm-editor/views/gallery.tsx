@@ -125,7 +125,6 @@ export function OneCard({
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
-        {title}
         <Data elt={elt} columns={allColumns} />
         <Divider>Raw Data</Divider>
         <Json obj={elt} />

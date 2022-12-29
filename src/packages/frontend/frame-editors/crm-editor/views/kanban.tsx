@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from "react";
-import { Card } from "antd";
+import { Alert, Card } from "antd";
 import { Virtuoso } from "react-virtuoso";
 import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
@@ -9,6 +9,8 @@ import { Icon } from "@cocalc/frontend/components";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import { useDroppable } from "@dnd-kit/core";
+import set from "../querydb/set";
+import { Loading } from "@cocalc/frontend/components";
 
 interface Props {
   rowKey: string;
@@ -41,6 +43,8 @@ export default function Kanban({
   recordHeight,
   categoryField,
 }: Props) {
+  const [error, setError] = useState<string>("");
+  const [moving, setMoving] = useState<any>(null);
   const style = useMemo(() => {
     return { ...cardStyle, height: recordHeight };
   }, [cardStyle, recordHeight]);
@@ -56,15 +60,16 @@ export default function Kanban({
   }, [categoryField, query]);
 
   const { categorizedData, idToRecord } = useMemo(() => {
+    setMoving(null);
     if (!categoryField) return {};
     const optionToColumn: { [option: string]: number } = {};
-    const categorizedData: { data: any[]; label: string }[] = [
-      { data: [], label: "NULL" },
+    const categorizedData: { data: any[]; category: string }[] = [
+      { data: [], category: "NULL" },
     ];
     const idToRecord: any = {};
     for (let i = 0; i < options.length; i++) {
       optionToColumn[options[i]] = i + 1;
-      categorizedData.push({ data: [], label: capitalize(options[i]) });
+      categorizedData.push({ data: [], category: options[i] });
     }
     for (const record of data) {
       categorizedData[optionToColumn[record[categoryField]] ?? 0].data.push(
@@ -80,9 +85,35 @@ export default function Kanban({
   return (
     <DndContext
       onDragStart={(e) => setDragId(e.active.id)}
-      onDragEnd={() => setDragId(null)}
+      onDragEnd={async (args) => {
+        // TODO: we're assuming a non-compound primary key here!
+        setDragId(null);
+        setError("");
+        setMoving(null);
+        const id = args.active.id;
+        const category = args.over?.id;
+        if (idToRecord[id][categoryField] == category) {
+          // no change
+          return;
+        }
+        const dbtable = Object.keys(query)[0];
+        setMoving(id);
+        try {
+          await set({ [dbtable]: { [rowKey]: id, [categoryField]: category } });
+        } catch (err) {
+          setError(`${err}`);
+          setMoving(null);
+        }
+      }}
     >
       <Card title={title} style={{ width: "100%" }}>
+        {error && (
+          <Alert
+            type="error"
+            message="Database Query Error"
+            description={error}
+          />
+        )}
         <DragOverlay>
           {dragId != null && (
             <>
@@ -120,11 +151,11 @@ export default function Kanban({
         <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
           {!categoryField && <div>Select a category field above</div>}
           {categoryField &&
-            categorizedData?.map(({ data, label }) => {
+            categorizedData?.map(({ data, category }) => {
               return (
-                <div style={{ flex: 1 }} key={label}>
+                <Droppable id={category} key={category}>
                   <div
-                    key="label"
+                    key="title"
                     style={{
                       textAlign: "center",
                       fontWeight: 600,
@@ -133,7 +164,7 @@ export default function Kanban({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {label} ({data.length})
+                    {capitalize(category)} ({data.length})
                   </div>
                   <Virtuoso
                     overscan={500}
@@ -144,18 +175,41 @@ export default function Kanban({
                       border: "1px solid #ccc",
                     }}
                     data={data}
-                    itemContent={(index) =>
-                      dragId == null || dragId != data[index][rowKey] ? (
-                        <DraggableCard
-                          key={data[index][rowKey]}
-                          id={data[index][rowKey]}
-                          elt={data[index]}
-                          rowKey={rowKey}
-                          columns={columns}
-                          allColumns={allColumns}
-                          style={style}
-                        />
-                      ) : (
+                    itemContent={(index) => {
+                      const id = data[index][rowKey];
+                      if (id == moving) {
+                        return (
+                          <div
+                            style={{
+                              height: recordHeight,
+                              margin: "5%",
+                              border: "1px solid #f0f0f0",
+                              borderRadius: "8px",
+                              background: "white",
+                            }}
+                          >
+                            <Loading
+                              delay={0}
+                              text="Moving..."
+                              theme="medium"
+                            />
+                          </div>
+                        );
+                      }
+                      if (dragId == null || dragId != id) {
+                        return (
+                          <DraggableCard
+                            key={id}
+                            id={id}
+                            elt={data[index]}
+                            rowKey={rowKey}
+                            columns={columns}
+                            allColumns={allColumns}
+                            style={style}
+                          />
+                        );
+                      }
+                      return (
                         <div
                           style={{
                             height: recordHeight,
@@ -165,10 +219,10 @@ export default function Kanban({
                             background: "#f0f0f0",
                           }}
                         ></div>
-                      )
-                    }
+                      );
+                    }}
                   />
-                </div>
+                </Droppable>
               );
             })}
         </div>
@@ -219,17 +273,19 @@ function DraggableCard(props) {
   );
 }
 
-export function Droppable(props) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: "droppable",
-  });
-  const style = {
-    color: isOver ? "green" : undefined,
-  };
-
+export function Droppable({ id, children }) {
+  const { isOver, setNodeRef } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} style={style}>
-      {props.children}
+    <div
+      ref={setNodeRef}
+      style={{
+        flex: 1,
+        ...(isOver
+          ? { color: "#1677ff", borderTop: "2px solid #1677ff" }
+          : { borderTop: "2px solid transparent" }),
+      }}
+    >
+      {children}
     </div>
   );
 }
