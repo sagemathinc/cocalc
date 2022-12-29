@@ -72,14 +72,14 @@ export function OneCard({
   columns,
   allColumns,
   style,
-  dragHandle,
+  DragHandle,
 }: {
   elt;
   rowKey: string;
   columns: object[];
   allColumns: object[];
   style?: CSSProperties;
-  dragHandle?: ReactNode;
+  DragHandle?;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const title = <Data noTitle elt={elt} columns={[columns[0]]} />;
@@ -91,7 +91,7 @@ export function OneCard({
       key={elt[rowKey]}
       title={
         <span style={{ fontSize: "10pt", display: "flex" }}>
-          {dragHandle} {title}
+          {DragHandle != null ? <DragHandle>{title}</DragHandle> : title}
         </span>
       }
       style={{

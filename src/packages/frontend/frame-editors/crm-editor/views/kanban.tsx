@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from "react";
-import { Alert, Card } from "antd";
+import { Alert, Card, Space } from "antd";
 import { Virtuoso } from "react-virtuoso";
 import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
@@ -122,28 +122,31 @@ export default function Kanban({
                 rowKey={rowKey}
                 columns={columns}
                 allColumns={allColumns}
-                style={style}
-                dragHandle={
-                  <div
-                    style={{
-                      display: "inline-block",
-                      margin: "-10px 0 0 -5px",
-                    }}
-                  >
-                    <Icon
-                      key="first"
-                      name="ellipsis"
-                      rotate="90"
-                      style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
-                    />
-                    <Icon
-                      key="second"
-                      name="ellipsis"
-                      rotate="90"
-                      style={{ fontSize: "20px" }}
-                    />
-                  </div>
-                }
+                style={{ ...style, border: `1px solid ${DROP_COLOR}` }}
+                DragHandle={({ children }) => (
+                  <Space style={{ width: "100%" }}>
+                    <div
+                      style={{
+                        display: "inline-block",
+                        margin: "-10px 0 0 -5px",
+                      }}
+                    >
+                      <Icon
+                        key="first"
+                        name="ellipsis"
+                        rotate="90"
+                        style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
+                      />
+                      <Icon
+                        key="second"
+                        name="ellipsis"
+                        rotate="90"
+                        style={{ fontSize: "20px" }}
+                      />
+                    </div>
+                    {children}
+                  </Space>
+                )}
               />
             </>
           )}
@@ -248,30 +251,31 @@ function DraggableCard(props) {
     <div ref={setNodeRef} style={style}>
       <OneCard
         {...props}
-        dragHandle={
-          <div
-            {...listeners}
-            {...attributes}
-            style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}
-          >
-            <Icon
-              key="first"
-              name="ellipsis"
-              rotate="90"
-              style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
-            />
-            <Icon
-              key="second"
-              name="ellipsis"
-              rotate="90"
-              style={{ fontSize: "20px" }}
-            />
-          </div>
-        }
+        DragHandle={({ children }) => (
+          <Space {...listeners} {...attributes}>
+            <div style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}>
+              <Icon
+                key="first"
+                name="ellipsis"
+                rotate="90"
+                style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
+              />
+              <Icon
+                key="second"
+                name="ellipsis"
+                rotate="90"
+                style={{ fontSize: "20px" }}
+              />
+            </div>
+            {children}
+          </Space>
+        )}
       />
     </div>
   );
 }
+
+const DROP_COLOR = "#1677ff";
 
 export function Droppable({ id, children }) {
   const { isOver, setNodeRef } = useDroppable({ id });
@@ -281,7 +285,7 @@ export function Droppable({ id, children }) {
       style={{
         flex: 1,
         ...(isOver
-          ? { color: "#1677ff", borderTop: "2px solid #1677ff" }
+          ? { color: DROP_COLOR, borderTop: `2px solid ${DROP_COLOR}` }
           : { borderTop: "2px solid transparent" }),
       }}
     >
