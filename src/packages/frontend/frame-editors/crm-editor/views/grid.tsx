@@ -14,7 +14,6 @@ interface Props {
   allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
-  height?;
   style?: CSSProperties;
   sortFields;
   setSortField;
@@ -26,17 +25,25 @@ export default function Grid({
   columns,
   allColumns,
   title,
-  height,
   style,
   sortFields,
   setSortField,
   recordHeight,
 }: Props) {
   return (
-    <Card style={style} title={title}>
+    <Card
+      style={{
+        ...style,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      }}
+      title={title}
+      bodyStyle={{ flex: 1, padding: 0 }}
+    >
       <TableVirtuoso
         overscan={500}
-        style={{ height: height ?? 600, overflow: "auto" }}
+        style={{ height: "100%", overflow: "auto" }}
         data={data}
         fixedHeaderContent={() => (
           <Header

@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from "react";
-import { Alert, Card, Space } from "antd";
+import { Alert, Card } from "antd";
 import { Virtuoso } from "react-virtuoso";
 import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
@@ -19,11 +19,13 @@ interface Props {
   allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
-  height?;
   recordHeight?: number;
   categoryField: string;
   query: object;
 }
+
+const cardMargin = 2.5;
+const CARD_MARGIN = `${cardMargin}%`;
 
 export default function Kanban({
   query,
@@ -33,13 +35,12 @@ export default function Kanban({
   allColumns,
   title,
   cardStyle = {
-    width: "90%",
-    margin: "5%",
+    width: `${100 - cardMargin * 2}%`,
+    margin: CARD_MARGIN,
     height: "300px",
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
-  height,
   recordHeight,
   categoryField,
 }: Props) {
@@ -106,7 +107,15 @@ export default function Kanban({
         }
       }}
     >
-      <Card title={title} style={{ width: "100%" }}>
+      <Card
+        title={title}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+        }}
+        bodyStyle={{ flex: 1, padding: 0 }}
+      >
         {error && (
           <Alert
             type="error"
@@ -123,40 +132,24 @@ export default function Kanban({
                 columns={columns}
                 allColumns={allColumns}
                 style={{ ...style, border: `1px solid ${DROP_COLOR}` }}
-                DragHandle={({ children }) => (
-                  <Space style={{ width: "100%" }}>
-                    <div
-                      style={{
-                        display: "inline-block",
-                        margin: "-10px 0 0 -5px",
-                      }}
-                    >
-                      <Icon
-                        key="first"
-                        name="ellipsis"
-                        rotate="90"
-                        style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
-                      />
-                      <Icon
-                        key="second"
-                        name="ellipsis"
-                        rotate="90"
-                        style={{ fontSize: "20px" }}
-                      />
-                    </div>
-                    {children}
-                  </Space>
-                )}
+                Title={Title}
               />
             </>
           )}
         </DragOverlay>
-        <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
+        <div
+          style={{
+            height: "100%",
+            width: "100%",
+            display: "flex",
+            overflowX: "hidden",
+          }}
+        >
           {!categoryField && <div>Select a category field above</div>}
           {categoryField &&
             categorizedData?.map(({ data, category }) => {
               return (
-                <Droppable id={category} key={category}>
+                <DroppableColumn id={category} key={category}>
                   <div
                     key="title"
                     style={{
@@ -172,7 +165,6 @@ export default function Kanban({
                   <Virtuoso
                     overscan={500}
                     style={{
-                      height: height ?? "600px",
                       width: "100%",
                       background: "#ececec",
                       border: "1px solid #ccc",
@@ -185,10 +177,10 @@ export default function Kanban({
                           <div
                             style={{
                               height: recordHeight,
-                              margin: "5%",
+                              margin: CARD_MARGIN,
                               border: "1px solid #f0f0f0",
                               borderRadius: "8px",
-                              background: "white",
+                              background: "#f8f8f8",
                             }}
                           >
                             <Loading
@@ -216,16 +208,16 @@ export default function Kanban({
                         <div
                           style={{
                             height: recordHeight,
-                            margin: "5%",
+                            margin: CARD_MARGIN,
                             border: "1px solid #f0f0f0",
                             borderRadius: "8px",
-                            background: "#f0f0f0",
+                            background: "#f8f8f8",
                           }}
                         ></div>
                       );
                     }}
                   />
-                </Droppable>
+                </DroppableColumn>
               );
             })}
         </div>
@@ -251,39 +243,58 @@ function DraggableCard(props) {
     <div ref={setNodeRef} style={style}>
       <OneCard
         {...props}
-        DragHandle={({ children }) => (
-          <Space {...listeners} {...attributes}>
-            <div style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}>
-              <Icon
-                key="first"
-                name="ellipsis"
-                rotate="90"
-                style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
-              />
-              <Icon
-                key="second"
-                name="ellipsis"
-                rotate="90"
-                style={{ fontSize: "20px" }}
-              />
-            </div>
-            {children}
-          </Space>
+        Title={({ children }) => (
+          <div {...listeners} {...attributes}>
+            <Title>{children}</Title>
+          </div>
         )}
       />
     </div>
   );
 }
 
+function Title({ children }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        background: "#f8f8f8",
+        padding: "10px 5px 5px 5px",
+        borderRadius: "8px",
+        cursor: "move",
+      }}
+    >
+      <div style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}>
+        <Icon
+          key="first"
+          name="ellipsis"
+          rotate="90"
+          style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
+        />
+        <Icon
+          key="second"
+          name="ellipsis"
+          rotate="90"
+          style={{ fontSize: "20px" }}
+        />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 const DROP_COLOR = "#1677ff";
 
-export function Droppable({ id, children }) {
+export function DroppableColumn({ id, children }) {
   const { isOver, setNodeRef } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
       style={{
+        height: "100%",
+        display: "flex",
         flex: 1,
+        flexDirection: "column",
         ...(isOver
           ? { color: DROP_COLOR, borderTop: `2px solid ${DROP_COLOR}` }
           : { borderTop: "2px solid transparent" }),

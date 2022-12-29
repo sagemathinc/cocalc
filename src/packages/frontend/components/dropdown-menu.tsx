@@ -105,11 +105,7 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
   );
 
   return (
-    <Dropdown
-      overlay={menu}
-      trigger={!button ? ["click"] : undefined}
-      placement={"bottomLeft"}
-    >
+    <Dropdown overlay={menu} trigger={["click"]} placement={"bottomLeft"}>
       {body}
     </Dropdown>
   );

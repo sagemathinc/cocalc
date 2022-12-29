@@ -16,7 +16,6 @@ interface Props {
   allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
-  height?;
   recordHeight?: number;
 }
 
@@ -36,17 +35,24 @@ export default function Gallery({
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
-  height,
   recordHeight,
 }: Props) {
-  const style = useMemo(() => {
+  const itemStyle = useMemo(() => {
     return { ...cardStyle, height: recordHeight };
   }, [cardStyle, recordHeight]);
   return (
-    <Card title={title}>
+    <Card
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      }}
+      bodyStyle={{ flex: 1, padding: 0 }}
+      title={title}
+    >
       <VirtuosoGrid
         overscan={500}
-        style={{ height: height ?? "600px", background: "#ececec" }}
+        style={{ height: "100%", background: "#ececec" }}
         totalCount={data.length}
         components={{
           Item: ItemContainer,
@@ -58,7 +64,7 @@ export default function Gallery({
             rowKey={rowKey}
             columns={columns}
             allColumns={allColumns}
-            style={style}
+            style={itemStyle}
           />
         )}
       />
@@ -72,28 +78,31 @@ export function OneCard({
   columns,
   allColumns,
   style,
-  DragHandle,
+  Title,
 }: {
   elt;
   rowKey: string;
   columns: object[];
   allColumns: object[];
   style?: CSSProperties;
-  DragHandle?;
+  Title?;
 }) {
   const [open, setOpen] = useState<boolean>(false);
-  const title = <Data noTitle elt={elt} columns={[columns[0]]} />;
+  const title = (
+    <Data
+      noTitle
+      elt={elt}
+      columns={[columns[0]]}
+      style={{ overflow: "hidden", textOverflow: "ellipsis", fontSize: "10pt" }}
+    />
+  );
   const data = <Data elt={elt} columns={columns.slice(1)} />;
   const card = (
     <Card
       onClick={() => setOpen(true)}
       hoverable
       key={elt[rowKey]}
-      title={
-        <span style={{ fontSize: "10pt", display: "flex" }}>
-          {DragHandle != null ? <DragHandle>{title}</DragHandle> : title}
-        </span>
-      }
+      title={Title != null ? <Title>{title}</Title> : title}
       style={{
         display: "inline-block",
         margin: "10px",
@@ -138,10 +147,12 @@ export function Data({
   elt,
   columns,
   noTitle,
+  style,
 }: {
   elt: object;
   columns;
   noTitle?;
+  style?;
 }) {
   const v: ReactNode[] = [];
   for (const column of columns) {
@@ -149,7 +160,7 @@ export function Data({
     const text = elt[column.dataIndex];
     const content = column.render != null ? column.render(text, elt) : text;
     v.push(
-      <div key={column.key} style={{ maxWidth: "800px" }}>
+      <div key={column.key} style={{ maxWidth: "800px", ...style }}>
         {!noTitle && <span style={{ color: "#888" }}>{column.title}: </span>}
         {content}
       </div>

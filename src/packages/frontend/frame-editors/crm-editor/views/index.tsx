@@ -1,4 +1,11 @@
-import { useMemo, useRef, ReactNode, useCallback, useState } from "react";
+import {
+  CSSProperties,
+  useMemo,
+  useRef,
+  ReactNode,
+  useCallback,
+  useState,
+} from "react";
 import useViews, { View as ViewDescription } from "../syncdb/use-views";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -26,15 +33,17 @@ interface TabItem {
   label: ReactNode;
   key: string;
   children: ReactNode;
+  style?: CSSProperties;
 }
 
 const NEW = "__new__";
 
 interface Props {
   table: string;
+  style?: CSSProperties;
 }
 
-export default function Views({ table }: Props) {
+export default function Views({ table, style }: Props) {
   const { views, saveView, deleteView } = useViews(table);
   const { actions, id: frameId, desc } = useFrameContext();
   const { showViews, setShowViews } = useViewsToggle(table);
@@ -68,7 +77,16 @@ export default function Views({ table }: Props) {
       items.push({
         label: name,
         key: id,
-        children: <View table={table} view={type} name={name} id={id} />,
+        children: (
+          <View
+            table={table}
+            view={type}
+            name={name}
+            id={id}
+            style={{ height: "100%" }}
+          />
+        ),
+        style: { height: "100%" },
       });
     }
     items.push({
@@ -222,19 +240,17 @@ export default function Views({ table }: Props) {
   );
 
   return (
-    <div>
-      <Tabs
-        tabPosition="left"
-        activeKey={view}
-        onChange={(view: string) => {
-          actions.set_frame_tree({ id: frameId, [viewKey]: view });
-        }}
-        size="small"
-        items={items}
-        style={{ margin: "15px" }}
-        renderTabBar={renderTabBar}
-      />
-    </div>
+    <Tabs
+      tabPosition="left"
+      activeKey={view}
+      onChange={(view: string) => {
+        actions.set_frame_tree({ id: frameId, [viewKey]: view });
+      }}
+      size="small"
+      items={items}
+      renderTabBar={renderTabBar}
+      style={{ ...style, height: "100%" }}
+    />
   );
 }
 

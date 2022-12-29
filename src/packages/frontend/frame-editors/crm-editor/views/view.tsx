@@ -29,12 +29,11 @@ interface Props {
   view: ViewType;
   table: string;
   style?: CSSProperties;
-  height?: number | string;
   name: string;
   id: string;
 }
 
-export default function View({ table, view, style, height, name, id }: Props) {
+export default function View({ table, view, style, name, id }: Props) {
   const {
     title,
     query,
@@ -157,7 +156,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
     case "gallery":
       body = (
         <Gallery
-          height={height}
           recordHeight={recordHeight}
           rowKey={rowKey}
           data={filteredData}
@@ -170,7 +168,6 @@ export default function View({ table, view, style, height, name, id }: Props) {
     case "kanban":
       body = (
         <Kanban
-          height={height}
           recordHeight={recordHeight}
           rowKey={rowKey}
           data={filteredData}
@@ -213,7 +210,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
 
   return (
     <EditableContext.Provider value={editableContext}>
-      <div style={style}>
+      <div style={{ ...style, display: "flex", flexDirection: "column" }}>
         {loading && (
           <div style={{ float: "right" }}>
             <Loading delay={200} text="Loading from database..." />
@@ -268,7 +265,7 @@ export default function View({ table, view, style, height, name, id }: Props) {
             </div>
           )}
         </Space>
-        {body}
+        <div style={{ flex: 1, overflow: "hidden" }}>{body}</div>
       </div>
     </EditableContext.Provider>
   );

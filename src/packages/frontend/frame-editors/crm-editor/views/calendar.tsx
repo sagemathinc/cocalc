@@ -68,7 +68,16 @@ export default function CalendarData({
   }, [data, timeField]);
 
   return (
-    <Card title={title} style={style}>
+    <Card
+      title={title}
+      style={{
+        ...style,
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      }}
+      bodyStyle={{ flex: 1, overflow: "auto" }}
+    >
       <Calendar
         dateCellRender={dateCellRender}
         monthCellRender={monthCellRender}
