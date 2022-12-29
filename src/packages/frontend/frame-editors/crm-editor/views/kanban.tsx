@@ -5,6 +5,10 @@ import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
 import { getFieldSpec } from "../fields";
 import { capitalize } from "@cocalc/util/misc";
+import { Icon } from "@cocalc/frontend/components";
+import { DndContext } from "@dnd-kit/core";
+import { useDraggable } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 
 interface Props {
   rowKey: string;
@@ -70,48 +74,110 @@ export default function Kanban({
   }, [data, options, categoryField]);
 
   return (
-    <Card title={title} style={{ width: "100%" }}>
-      <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
-        {!categoryField && <div>Select a category field above</div>}
-        {categoryField &&
-          categorizedData.map(({ data, label }) => {
-            return (
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    textAlign: "center",
-                    fontWeight: 600,
-                    fontSize: "11pt",
-                    marginBottom: "10px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {label} ({data.length})
+    <DndContext>
+      <Card title={title} style={{ width: "100%" }}>
+        <Droppable>Drop here</Droppable>
+        <div style={{ width: "100%", display: "flex", overflowX: "hidden" }}>
+          {!categoryField && <div>Select a category field above</div>}
+          {categoryField &&
+            categorizedData.map(({ data, label }) => {
+              return (
+                <div style={{ flex: 1 }} key={label}>
+                  <div
+                    key="label"
+                    style={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      fontSize: "11pt",
+                      marginBottom: "10px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {label} ({data.length})
+                  </div>
+                  <Virtuoso
+                    overscan={500}
+                    style={{
+                      height: height ?? "600px",
+                      width: "100%",
+                      background: "#ececec",
+                      border: "1px solid #ccc",
+                    }}
+                    data={data}
+                    itemContent={(index) => (
+                      <DraggableCard
+                        key={data[index][rowKey]}
+                        id={data[index][rowKey]}
+                        elt={data[index]}
+                        rowKey={rowKey}
+                        columns={columns}
+                        allColumns={allColumns}
+                        style={style}
+                      />
+                    )}
+                  />
                 </div>
-                <Virtuoso
-                  overscan={500}
-                  style={{
-                    height: height ?? "600px",
-                    width: "100%",
-                    background: "#ececec",
-                    border: "1px solid #ccc",
-                  }}
-                  data={data}
-                  itemContent={(index) => (
-                    <OneCard
-                      key={data[index][rowKey]}
-                      elt={data[index]}
-                      rowKey={rowKey}
-                      columns={columns}
-                      allColumns={allColumns}
-                      style={style}
-                    />
-                  )}
-                />
-              </div>
-            );
-          })}
-      </div>
-    </Card>
+              );
+            })}
+        </div>
+      </Card>
+    </DndContext>
+  );
+}
+
+/*
+ */
+
+function DraggableCard(props) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: props.id,
+  });
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <OneCard
+        {...props}
+        dragHandle={
+          <div
+            {...listeners}
+            {...attributes}
+            style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}
+          >
+            <Icon
+              key="first"
+              name="ellipsis"
+              rotate="90"
+              style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
+            />
+            <Icon
+              key="second"
+              name="ellipsis"
+              rotate="90"
+              style={{ fontSize: "20px" }}
+            />
+          </div>
+        }
+      />
+    </div>
+  );
+}
+
+export function Droppable(props) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: "droppable",
+  });
+  const style = {
+    color: isOver ? "green" : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      {props.children}
+    </div>
   );
 }
