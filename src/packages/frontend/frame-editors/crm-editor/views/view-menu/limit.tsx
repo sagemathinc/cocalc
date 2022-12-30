@@ -1,4 +1,4 @@
-import { InputNumber, Space } from "antd";
+import { InputNumber, Popover, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 
 export default function limitMenu({
@@ -8,26 +8,29 @@ export default function limitMenu({
   recordHeight,
 }) {
   return {
-    label: <span style={{ padding: "5px" }}>Limit ({limit})</span>,
+    label: (
+      <Popover
+        placement="bottom"
+        content={
+          <div>
+            <div>
+              <Limit limit={limit} setLimit={setLimit} />
+            </div>
+            <div>
+              <Height
+                setRecordHeight={setRecordHeight}
+                recordHeight={recordHeight}
+              />
+            </div>
+          </div>
+        }
+        trigger="click"
+      >
+        <span style={{ padding: "5px" }}>Limit ({limit})</span>
+      </Popover>
+    ),
     key: "limit",
     icon: <Icon name="database" />,
-    children: [
-      {
-        disabled: true,
-        label: <Limit limit={limit} setLimit={setLimit} />,
-        key: "the-limit",
-      },
-      {
-        label: (
-          <Height
-            setRecordHeight={setRecordHeight}
-            recordHeight={recordHeight}
-          />
-        ),
-        key: "height",
-        disabled: true,
-      },
-    ],
   };
 }
 

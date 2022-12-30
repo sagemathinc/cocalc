@@ -2,8 +2,8 @@
 // We actually use a Popover for the menu itself, due to wanting to make it
 // draggable, and interact with it in a different way than a normal menu.
 
-import { useMemo } from "react";
-import { Button, Popover, Space, Switch } from "antd";
+import { useMemo, useState } from "react";
+import { Button, Input, Popover, Space, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
 import { DndContext } from "@dnd-kit/core";
@@ -18,6 +18,7 @@ import {
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import Handle from "../../components/handle";
+import { search_match, search_split } from "@cocalc/util/misc";
 
 export default function hideFieldsMenu({
   hiddenFields,
@@ -31,6 +32,7 @@ export default function hideFieldsMenu({
 
   const label = (
     <Popover
+      placement="bottom"
       content={
         <MenuContents
           orderFields={orderFields}
@@ -58,7 +60,6 @@ export default function hideFieldsMenu({
     label,
     key: "hide",
     icon: <Icon name="eye-slash" />,
-    children: [],
   };
 }
 
@@ -79,21 +80,40 @@ function MenuContents({
   setOrderFields,
   rowKey,
 }) {
+  const [filter, setFilter] = useState<string>("");
   const fieldToColumns = useMemo(() => columnsToFieldMap(columns), [columns]);
 
-  const options = orderFields.map((field) => {
-    const { title } = fieldToColumns[field] ?? { title: "No Title" };
-    return (
-      <HideToggle
-        key={`hide-field-name-${field}`}
-        disabled={field == rowKey}
-        field={field}
-        title={title}
-        hidden={hiddenFields.has(field)}
-        onChange={(checked) => setHiddenField(field, !checked)}
-      />
-    );
-  });
+  const options = useMemo(() => {
+    const search = search_split(filter.toLowerCase().trim());
+    return orderFields
+      .filter((field) =>
+        search_match(
+          (fieldToColumns[field]?.title ?? "No Title").toLowerCase(),
+          search
+        )
+      )
+      .map((field) => {
+        const { title } = fieldToColumns[field] ?? { title: "No Title" };
+        return (
+          <HideToggle
+            key={`hide-field-name-${field}`}
+            disabled={field == rowKey}
+            field={field}
+            title={title}
+            hidden={hiddenFields.has(field)}
+            onChange={(checked) => setHiddenField(field, !checked)}
+          />
+        );
+      });
+  }, [
+    filter,
+    hiddenFields,
+    setHiddenField,
+    orderFields,
+    fieldToColumns,
+    columns,
+    rowKey,
+  ]);
 
   function handleDragEnd(event) {
     const { active, over } = event;
@@ -114,6 +134,12 @@ function MenuContents({
         strategy={verticalListSortingStrategy}
       >
         <div style={{ maxHeight: "90vh", overflow: "auto" }}>
+          <Input
+            autoFocus
+            placeholder="Find a field..."
+            onChange={(e) => setFilter(e.target.value)}
+            value={filter}
+          />
           <div>{options}</div>
           <HideShowAll
             rowKey={rowKey}
@@ -164,6 +190,7 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
   return (
     <Space style={{ marginTop: "10px" }}>
       <Button
+        size="small"
         disabled={allFields.length == hiddenFields.size}
         onClick={() => {
           for (const field of allFields) {
@@ -177,6 +204,7 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
         Hide All
       </Button>
       <Button
+        size="small"
         disabled={hiddenFields.size == 0}
         onClick={() => {
           for (const field of hiddenFields) {

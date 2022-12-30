@@ -992,6 +992,11 @@ function isMatch(s: string, x: string | RegExp): boolean {
   if (typeof x == "string") {
     if (x[0] == "-") {
       // negate
+      if (x.length == 1) {
+        // special case of empty -- no-op, since when you type -foo, you first type "-" and it
+        // is disturbing for everything to immediately vanish.
+        return true;
+      }
       return !isMatch(s, x.slice(1));
     }
     if (x[0] === "#") {
@@ -2109,7 +2114,6 @@ export function create_dependency_graph(obj: {
   }
   return DAG;
 }
-
 
 // modify obj in place substituting as specified in subs recursively,
 // both for keys *and* values of obj.  E.g.,
