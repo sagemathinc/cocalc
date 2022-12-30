@@ -6,13 +6,21 @@ interface Props {
   id: number;
   onClose?: Function;
   confirm?: boolean;
+  Draggable?;
 }
 
-export function TagById({ id, onClose, confirm }: Props) {
+export function TagById({ id, onClose, confirm, Draggable }: Props) {
   const tags = useTags();
   const tag = useMemo(() => {
     return tags?.[id];
   }, [tags, id]);
+
+  let name: string;
+  if (tag == null) {
+    name = tags != null ? "..." : "Loading...";
+  } else {
+    name = tag?.name ?? "...";
+  }
   return (
     <Tag
       color={tag?.color}
@@ -20,7 +28,7 @@ export function TagById({ id, onClose, confirm }: Props) {
       onClose={onClose}
       confirm={confirm}
     >
-      {tag == null ? (tags != null ? "..." : "Loading...") : tag?.name}
+      {Draggable != null ? <Draggable>{name}</Draggable> : name}
     </Tag>
   );
 }

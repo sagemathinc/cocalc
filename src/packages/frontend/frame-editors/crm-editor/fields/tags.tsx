@@ -7,6 +7,8 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { TagById } from "./tag-by-id";
 import { useTags, createTag } from "../querydb/tags";
 import { field_cmp } from "@cocalc/util/misc";
+import { DndContext } from "@dnd-kit/core";
+import { arrayMove, SortableContext, useSortable } from "@dnd-kit/sortable";
 
 render({ type: "tags", editable: false }, ({ field, obj }) => {
   const tags = obj[field];
@@ -30,28 +32,48 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
     setTags(obj[field]);
   }, [counter, obj[field]]);
 
+  async function handleDragEnd(event) {
+    const { active, over } = event;
+    if (active.id == over.id || tags == null) return;
+    const oldIndex = tags.indexOf(active.id);
+    const newIndex = tags.indexOf(over.id);
+
+    const newTags = arrayMove(tags, oldIndex, newIndex);
+    setTags(newTags);
+    try {
+      await save(obj, newTags);
+    } catch (_) {
+      // revert
+      setTags(obj[field]);
+    }
+  }
+
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {tags != null && tags.length > 0 && (
-        <div style={{ lineHeight: "2em", display: "inline-block" }}>
-          {tags?.map((id) => (
-            <TagById
-              key={id}
-              confirm
-              id={id}
-              onClose={async () => {
-                const newTags = tags.filter((tag) => tag != id);
-                setTags(newTags);
-                try {
-                  await save(obj, newTags);
-                } catch (_) {
-                  // failed -- revert the change at the UI level.
-                  setTags(obj[field]);
-                }
-              }}
-            />
-          ))}
-        </div>
+        <DndContext onDragEnd={handleDragEnd}>
+          <SortableContext items={tags}>
+            <div style={{ lineHeight: "2em", display: "inline-block" }}>
+              {tags.map((id) => (
+                <SortableTagById
+                  key={id}
+                  confirm
+                  id={id}
+                  onClose={async () => {
+                    const newTags = tags.filter((tag) => tag != id);
+                    setTags(newTags);
+                    try {
+                      await save(obj, newTags);
+                    } catch (_) {
+                      // failed -- revert the change at the UI level.
+                      setTags(obj[field]);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
       {error}
       {!adding && (
@@ -101,6 +123,36 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
     </Space>
   );
 });
+
+function SortableTagById(props) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: props.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: "inline-block",
+        transform: transform
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+          : undefined,
+        transition,
+      }}
+    >
+      <TagById
+        {...props}
+        Draggable={({ children }) => (
+          <div
+            style={{ display: "inline-block" }}
+            {...attributes}
+            {...listeners}
+          >
+            {children}
+          </div>
+        )}
+      />
+    </div>
+  );
+}
 
 function AddTags({
   currentTags,
