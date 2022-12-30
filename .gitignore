@@ -32,8 +32,6 @@ src/static.git/
 src/packages/assets/policies/_static_pricing_page.html
 src/packages/assets/_static_*.html
 src/packages/assets/examples/
-src/packages/assets/compute-components.json
-src/packages/assets/compute-inventory.json
 src/smc-webapp/_colors.sass
 
 src/page/temp

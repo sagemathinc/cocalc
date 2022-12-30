@@ -4,38 +4,42 @@
  */
 
 import Link from "next/link";
+import { Button, Layout } from "antd";
+
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import { join } from "path";
-import { Button, Layout } from "antd";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
 import AccountNavTab from "components/account/navtab";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { SoftwareEnvNames } from "lib/landing/consts";
 
 const GAP = "4%";
 
-export const LinkStyle = {
+export const LinkStyle: React.CSSProperties = {
   color: "white",
   marginRight: GAP,
   display: "inline-block",
-};
+} as const;
 
-const SelectedStyle = {
+const SelectedStyle: React.CSSProperties = {
   ...LinkStyle,
   color: "#c7d9f5",
   fontWeight: "bold",
   borderBottom: "5px solid #c7d9f5",
-};
+} as const;
 
 interface Props {
   page?: Page;
   subPage?: SubPage;
+  softwareEnv?: SoftwareEnvNames;
 }
 
-export default function Header({ page, subPage }: Props) {
+export default function Header(props: Props) {
+  const { page, subPage, softwareEnv } = props;
   const {
     isCommercial,
     anonymousSignup,
@@ -46,6 +50,7 @@ export default function Header({ page, subPage }: Props) {
     account,
     imprintOrPolicies,
   } = useCustomize();
+
   if (basePath == null) return null;
 
   return (
@@ -192,8 +197,8 @@ export default function Header({ page, subPage }: Props) {
           </>
         )}
       </Layout.Header>
-      {(landingPages || imprintOrPolicies) && page && (
-        <SubNav page={page} subPage={subPage} />
+      {page && (page === "software" || landingPages || imprintOrPolicies) && (
+        <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
       )}
     </>
   );

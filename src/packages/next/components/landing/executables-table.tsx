@@ -3,13 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useMemo, useState } from "react";
-import { Input, Table, Typography } from "antd";
-import Code from "components/landing/code";
+import { Input, Table } from "antd";
 import { debounce } from "lodash";
+import { useMemo, useState } from "react";
+
+import Code from "components/landing/code";
+import { Text, Title } from "components/misc";
 import executables, { Item } from "lib/landing/executables";
 import { ComputeInventory } from "lib/landing/types";
-const { Text } = Typography;
+import { SoftwareSpecTimestamp } from "./software-libraries";
 
 const INFO_STYLE: React.CSSProperties = {
   overflow: "auto",
@@ -60,8 +62,10 @@ const COLUMNS = [
 
 export default function ExecutablesTable({
   executablesSpec,
+  timestamp,
 }: {
   executablesSpec: ComputeInventory["executables"];
+  timestamp: string;
 }) {
   const dataSource = executables(executablesSpec);
   const [search, setSearch] = useState<string>("");
@@ -88,7 +92,7 @@ export default function ExecutablesTable({
 
   return (
     <div style={{ clear: "both" }}>
-      <h2>Showing {data.length} executables</h2>
+      <Title level={2}>Showing {data.length} executables</Title>
       <Input.Search
         style={{ padding: "0 30px 15px 0", width: "50%", minWidth: "300px" }}
         placeholder="Search..."
@@ -105,6 +109,7 @@ export default function ExecutablesTable({
           dataSource={data}
         />
       </div>
+      <SoftwareSpecTimestamp timestamp={timestamp} />
     </div>
   );
 }

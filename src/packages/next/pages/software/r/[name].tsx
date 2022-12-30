@@ -1,46 +1,42 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
+
+import { Paragraph } from "components/misc";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
-import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
+import { SoftwareEnvNames } from "lib/landing/consts";
+import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
   ComputeComponents,
   ComputeInventory,
   SoftwareSpec,
 } from "lib/landing/types";
-import { STYLE_PAGE } from ".";
+import { STYLE_PAGE } from "..";
 import screenshot from "/public/features/cocalc-r-jupyter.png";
 
 interface Props {
+  name: SoftwareEnvNames;
   customize: CustomizeType;
   spec: SoftwareSpec["R"];
   inventory: ComputeInventory["R"];
   components: ComputeComponents["R"];
   execInfo?: { [key: string]: string };
+  timestamp: string;
 }
 
 export default function R(props: Props) {
-  const { customize, spec, inventory, components, execInfo } = props;
-
-  function renderEnvs() {
-    const envs: JSX.Element[] = [];
-    for (const [key, info] of Object.entries(spec)) {
-      envs.push(
-        <div key={key}>
-          <b>
-            <A href={info.url}>{info.name}</A>:
-          </b>{" "}
-          {info.doc}
-        </div>
-      );
-    }
-    return envs;
-  }
+  const { name, customize, spec, inventory, components, execInfo, timestamp } =
+    props;
 
   function renderBox() {
     return (
@@ -70,15 +66,16 @@ export default function R(props: Props) {
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
           <Image src={screenshot} alt="Using R in a Jupyter notebook" />
         </div>
-        <p>
-          This table lists all R packages that are{" "}
-          <b>immediately available by default in every CoCalc project</b>, along
-          with their version numbers. If something is missing, you can{" "}
+        <Paragraph>
+          This table lists all R pre-installed packages that are immediately
+          available in every CoCalc project running on the default "Ubuntu{" "}
+          {name}" image, along with their version numbers. If something is
+          missing, you can{" "}
           <A href="https://doc.cocalc.com/howto/install-r-package.html">
             install it yourself
           </A>
           , or request that we install them.
-        </p>
+        </Paragraph>
       </>
     );
   }
@@ -87,7 +84,7 @@ export default function R(props: Props) {
     <Customize value={customize}>
       <Head title="R Packages in CoCalc" />
       <Layout>
-        <Header page="software" subPage="r" />
+        <Header page="software" subPage="r" softwareEnv={name} />
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -95,16 +92,20 @@ export default function R(props: Props) {
         >
           <div style={STYLE_PAGE}>
             <h1
-              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+              style={{
+                textAlign: "center",
+                fontSize: "32pt",
+                color: "#444",
+              }}
             >
-              Installed R Statistical Software Packages
+              Installed R Statistical Software Packages (Ubuntu {name})
             </h1>
             {renderIntro()}
             {renderBox()}
-            <h2>R Statistical Software Environments</h2>
-            <ul>{renderEnvs()}</ul>
-            <SoftwareInfo info={execInfo} showHeader={false} />
+            <h2 style={{ clear: "both" }}>Available Environments</h2>
+            <ExecutableDescription spec={spec} execInfo={execInfo} />
             <SoftwareLibraries
+              timestamp={timestamp}
               spec={spec}
               inventory={inventory}
               components={components}
@@ -119,8 +120,5 @@ export default function R(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "R", [
-    "/usr/bin/R",
-    "/usr/local/bin/R-sage",
-  ]);
+  return await withCustomizedAndSoftwareSpec(context, "R");
 }

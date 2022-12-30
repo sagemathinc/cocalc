@@ -24,19 +24,19 @@
     "next.config.js"
   ],
   "scripts": {
-    "dev": "npx next telemetry disable && npm run inventory && next dev",
-    "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && npm run inventory &&  npm run dev",
+    "dev": "npx next telemetry disable && npm run software && next dev",
+    "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && npm run software && npm run dev",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty --preserveWatchOutput ",
-    "inventory": "bash ./inventory/setup-inventory.sh",
+    "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && npm run build && cd ../util && npm run build",
     "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run build-dist && NODE_OPTIONS='--max_old_space_size=8000' next build",
-    "build-dist": "rm -rf dist && npm run inventory && npx tsc --build tsconfig-dist.json",
+    "build-dist": "rm -rf dist && npm run software && npx tsc --build tsconfig-dist.json",
     "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
     "lint": "next lint",
-    "test": "npx jest ./dist",
+    "test": "npx tsc --build tsconfig-dist.json && npx jest ./dist",
     "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && npm test"
   },
   "repository": {
@@ -80,6 +80,7 @@
     "cookies": "^0.8.0",
     "express": "^4.17.1",
     "lru-cache": "^6.0.0",
+    "modern-normalize": "^1.1.0",
     "next": "12.3.4",
     "node-fetch": "^3.2.10",
     "password-hash": "^1.2.2",

@@ -1,9 +1,22 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 export type LanguageName = "python" | "R" | "octave" | "julia";
 
+export interface SoftwareSpecEntry {
+  cmd: string;
+  name: string;
+  doc: string;
+  url: string;
+  path: string;
+}
+
+export type ExecInfo = { [name: string]: string | undefined };
+
 export type SoftwareSpec = {
-  [lang in LanguageName]: {
-    [name: string]: { cmd: string; name: string; doc: string; url: string };
-  };
+  [lang in LanguageName]: Record<string, SoftwareSpecEntry>;
 };
 
 export interface Item {
@@ -33,6 +46,7 @@ export type ComputeInventory = {
   language_exes: {
     [path: string]: {
       lang: string;
+      path: string;
       name: string;
       doc: string;
       url: string;
@@ -65,3 +79,9 @@ export type ComputeComponents = {
     [path: string]: { name: string };
   };
 };
+
+export interface EnvData {
+  inventory: ComputeInventory;
+  data: ComputeComponents;
+  timestamp: string; // YYYMMDD-hhmm
+}

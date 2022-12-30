@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { capitalize, field_cmp } from "@cocalc/util/misc";
 import { splitFirst, splitLast } from "@cocalc/util/misc-path";
 
