@@ -5,6 +5,17 @@
 import { Button, Popover, Space, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
+import { DndContext } from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 export default function hideFieldsMenu({
   hiddenFields,
@@ -44,34 +55,65 @@ export default function hideFieldsMenu({
 }
 
 function MenuContents({ allFields, hiddenFields, setHiddenField, columns }) {
-  const options = columns
-    .map(({ dataIndex: field, title }) => (
-      <div
+  const fields: string[] = [];
+  const options = columns.map(({ dataIndex: field, title }) => {
+    fields.push(field);
+    return (
+      <HideToggle
         key={`hide-field-name-${field}`}
-        style={{ height: "30px", paddingTop: "5px" }}
-      >
-        <HideToggle
-          title={title}
-          hidden={hiddenFields.has(field)}
-          onChange={(checked) => setHiddenField(field, !checked)}
-        />
-      </div>
-    ))
-    .concat([
-      <HideShowAll
-        key={"hide-show-all"}
-        hiddenFields={hiddenFields}
-        setHiddenField={setHiddenField}
-        allFields={allFields}
-      />,
-    ]);
-  return <div style={{ maxHeight: "90vh", overflow: "auto" }}>{options}</div>;
+        field={field}
+        title={title}
+        hidden={hiddenFields.has(field)}
+        onChange={(checked) => setHiddenField(field, !checked)}
+      />
+    );
+  });
+
+  function handleDragEnd(event) {
+    console.log(event);
+  }
+
+  return (
+    <DndContext
+      onDragEnd={handleDragEnd}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+    >
+      <SortableContext items={fields} strategy={verticalListSortingStrategy}>
+        <div style={{ maxHeight: "90vh", overflow: "auto" }}>
+          <div>{options}</div>
+          <HideShowAll
+            key={"hide-show-all"}
+            hiddenFields={hiddenFields}
+            setHiddenField={setHiddenField}
+            allFields={allFields}
+          />
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
 }
 
-function HideToggle({ title, hidden, onChange }) {
+function HideToggle({ field, title, hidden, onChange }) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: field });
+
   return (
-    <div style={{ width: "100%", color: "#666" }}>
-      {title}
+    <div
+      ref={setNodeRef}
+      style={{
+        width: "100%",
+        color: "#666",
+        height: "30px",
+        paddingTop: "5px",
+        transform: transform
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+          : undefined,
+        transition,
+      }}
+    >
+      <div style={{ display: "inline-block" }} {...attributes} {...listeners}>
+        {title}
+      </div>
       <Switch
         style={{ float: "right", marginTop: "2px" }}
         size="small"
@@ -84,7 +126,7 @@ function HideToggle({ title, hidden, onChange }) {
 
 function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
   return (
-    <Space style={{marginTop:'5px'}}>
+    <Space style={{ marginTop: "5px" }}>
       <Button
         disabled={allFields.length == hiddenFields.size}
         onClick={() => {

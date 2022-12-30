@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useQueryCache } from "./use-query-cache";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 export interface PersonType {
   id: number;
@@ -9,6 +10,7 @@ export interface PersonType {
 }
 
 export function usePerson(id: number): PersonType | undefined {
+  const isMountedRef = useIsMountedRef();
   const cache = useQueryCache<number, PersonType>("people");
 
   const [person, setPerson] = useState<PersonType | undefined>(cache.get(id));
@@ -21,7 +23,9 @@ export function usePerson(id: number): PersonType | undefined {
         query: { crm_people: { id, name: null, email_addresses: null } },
       });
       cache.set(id, x.query.crm_people);
-      setPerson(x.query.crm_people);
+      if (isMountedRef.current) {
+        setPerson(x.query.crm_people);
+      }
     })();
   }, []);
 
@@ -58,6 +62,7 @@ export function usePeopleSearch(query: string): {
   loading: boolean;
   error: string;
 } {
+  const isMountedRef = useIsMountedRef();
   const [error, setError] = useState<string>("");
   const [matches, setMatches] = useState<PersonType[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -69,11 +74,17 @@ export function usePeopleSearch(query: string): {
     (async () => {
       try {
         let matches = await peopleSearch(query);
-        setMatches(matches);
+        if (isMountedRef.current) {
+          setMatches(matches);
+        }
       } catch (err) {
-        setError(`${err}`);
+        if (isMountedRef.current) {
+          setError(`${err}`);
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     })();
   }, [query]);
