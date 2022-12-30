@@ -699,6 +699,16 @@ Table({
           "Pre Qualified",
           "Not Qualified",
         ],
+        colors: [
+          yellow[5],
+          green[4],
+          green[5],
+          red[5],
+          red[6],
+          yellow[5],
+          blue[5],
+          blue[6],
+        ],
       },
     },
     rating: {
@@ -717,6 +727,7 @@ Table({
           "Active",
           "Acquired",
         ],
+        colors: [yellow[5], red[4], red[5], red[6], green[5], blue[5]],
       },
     },
     annual_revenue: {

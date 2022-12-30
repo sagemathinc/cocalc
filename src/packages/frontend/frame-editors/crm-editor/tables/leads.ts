@@ -8,7 +8,6 @@ register({
   query: {
     crm_leads: [
       {
-        created: null,
         people: null,
         status: null,
         rating: null,
@@ -17,6 +16,7 @@ register({
         annual_revenue: null,
         notes: null,
         last_edited: null,
+        created: null,
         deleted: null,
         id: null,
       },
