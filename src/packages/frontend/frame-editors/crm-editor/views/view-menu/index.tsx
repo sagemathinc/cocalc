@@ -1,10 +1,10 @@
-import { Menu } from "antd";
+import { Space } from "antd";
 import topMenu from "./top";
 import sortMenu from "./sort";
 import searchMenu from "./search";
 //import groupMenu from "./group";
 import HideFieldsMenu from "./hide-fields";
-import limitMenu from "./limit";
+import LimitsMenu from "./limits";
 
 export default function ViewMenu({
   query,
@@ -26,7 +26,7 @@ export default function ViewMenu({
   rowKey,
 }) {
   return (
-    <div>
+    <Space direction="horizontal">
       <HideFieldsMenu
         columns={columns}
         hiddenFields={hiddenFields}
@@ -35,7 +35,13 @@ export default function ViewMenu({
         setOrderFields={setOrderFields}
         rowKey={rowKey}
       />
-    </div>
+      <LimitsMenu
+        limit={limit}
+        setLimit={setLimit}
+        setRecordHeight={setRecordHeight}
+        recordHeight={recordHeight}
+      />
+    </Space>
   );
 
   /*

@@ -54,7 +54,6 @@ export default function HideFieldsMenu({
       <Button
         type="text"
         style={{
-          padding: "5px",
           backgroundColor: hiddenFields.size > 0 ? "lightblue" : undefined,
         }}
       >

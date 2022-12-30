@@ -24,7 +24,7 @@ import { Loading } from "@cocalc/frontend/components";
 import querydbSet from "../querydb/set";
 import { columnsToFieldMap } from "./view-menu/hide-fields";
 
-const DEFAULT_RECORD_HEIGHT = 300;
+export const DEFAULT_RECORD_HEIGHT = 300;
 export const DEFAULT_LIMIT = 100;
 
 interface Props {
