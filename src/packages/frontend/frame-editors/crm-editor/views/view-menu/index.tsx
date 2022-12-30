@@ -21,6 +21,8 @@ export default function ViewMenu({
   setSearch,
   setRecordHeight,
   recordHeight,
+  orderFields,
+  setOrderFields,
 }) {
   return (
     <Menu
@@ -32,6 +34,8 @@ export default function ViewMenu({
           columns,
           hiddenFields,
           setHiddenField,
+          orderFields,
+          setOrderFields,
         }),
         searchMenu({ columns, search, setSearch, query }),
         //groupMenu({ columns }),

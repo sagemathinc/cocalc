@@ -2,6 +2,7 @@
 // We actually use a Popover for the menu itself, due to wanting to make it
 // draggable, and interact with it in a different way than a normal menu.
 
+import { useMemo } from "react";
 import { Button, Popover, Space, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
@@ -21,6 +22,8 @@ export default function hideFieldsMenu({
   hiddenFields,
   setHiddenField,
   columns,
+  orderFields,
+  setOrderFields,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
 
@@ -28,6 +31,8 @@ export default function hideFieldsMenu({
     <Popover
       content={
         <MenuContents
+          orderFields={orderFields}
+          setOrderFields={setOrderFields}
           allFields={allFields}
           hiddenFields={hiddenFields}
           setHiddenField={setHiddenField}
@@ -54,10 +59,24 @@ export default function hideFieldsMenu({
   };
 }
 
-function MenuContents({ allFields, hiddenFields, setHiddenField, columns }) {
-  const fields: string[] = [];
-  const options = columns.map(({ dataIndex: field, title }) => {
-    fields.push(field);
+function MenuContents({
+  allFields,
+  hiddenFields,
+  setHiddenField,
+  columns,
+  orderFields,
+  setOrderFields,
+}) {
+  const fieldToColumns = useMemo(() => {
+    const v: { [field: string]: any } = {};
+    for (const column of columns) {
+      v[column.dataIndex] = column;
+    }
+    return v;
+  }, [columns]);
+
+  const options = orderFields.map((field) => {
+    const { title } = fieldToColumns[field] ?? { title: "No Title" };
     return (
       <HideToggle
         key={`hide-field-name-${field}`}
@@ -70,7 +89,12 @@ function MenuContents({ allFields, hiddenFields, setHiddenField, columns }) {
   });
 
   function handleDragEnd(event) {
-    console.log(event);
+    const { active, over } = event;
+    if (active.id == over.id) return;
+    const oldIndex = orderFields.indexOf(active.id);
+    const newIndex = orderFields.indexOf(over.id);
+    const newOrderFields = arrayMove(orderFields, oldIndex, newIndex);
+    setOrderFields(newOrderFields);
   }
 
   return (
@@ -78,7 +102,10 @@ function MenuContents({ allFields, hiddenFields, setHiddenField, columns }) {
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
-      <SortableContext items={fields} strategy={verticalListSortingStrategy}>
+      <SortableContext
+        items={orderFields}
+        strategy={verticalListSortingStrategy}
+      >
         <div style={{ maxHeight: "90vh", overflow: "auto" }}>
           <div>{options}</div>
           <HideShowAll

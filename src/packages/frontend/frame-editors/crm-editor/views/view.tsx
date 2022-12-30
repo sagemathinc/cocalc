@@ -17,6 +17,7 @@ import useFilter from "./filter-input";
 import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
+import useOrderFields from "../syncdb/use-order-fields";
 import useViewParam from "../syncdb/use-view-param";
 import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
@@ -48,6 +49,13 @@ export default function View({ table, view, style, name, id }: Props) {
   });
   const [search, setSearch] = useSearch({ id });
   const [sortFields, setSortField] = useSortFields({ id });
+
+  const fields = useMemo(
+    () => allColumns.map(({ dataIndex }) => dataIndex),
+    [allColumns]
+  );
+  const [orderFields, setOrderFields] = useOrderFields({ id, fields });
+
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
   const columns = useMemo(() => {
     if (hiddenFields.size == 0) {
@@ -148,6 +156,8 @@ export default function View({ table, view, style, name, id }: Props) {
         setSearch={setSearch}
         recordHeight={recordHeight}
         setRecordHeight={setRecordHeight}
+        orderFields={orderFields}
+        setOrderFields={setOrderFields}
       />
     </div>
   );
