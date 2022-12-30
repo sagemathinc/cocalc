@@ -1,7 +1,7 @@
 import { Space } from "antd";
 import topMenu from "./top";
 import sortMenu from "./sort";
-import searchMenu from "./search";
+import SearchMenu from "./search";
 //import groupMenu from "./group";
 import HideFieldsMenu from "./hide-fields";
 import LimitsMenu from "./limits";
@@ -35,6 +35,12 @@ export default function ViewMenu({
         setOrderFields={setOrderFields}
         rowKey={rowKey}
       />
+      <SearchMenu
+        columns={columns}
+        search={search}
+        setSearch={setSearch}
+        query={query}
+      />
       <LimitsMenu
         limit={limit}
         setLimit={setLimit}
@@ -51,14 +57,6 @@ export default function ViewMenu({
       mode="horizontal"
       items={[
         topMenu({ name, view }),
-        hideFieldsMenu({
-          columns,
-          hiddenFields,
-          setHiddenField,
-          orderFields,
-          setOrderFields,
-          rowKey,
-        }),
         searchMenu({ columns, search, setSearch, query }),
         //groupMenu({ columns }),
         sortMenu({
@@ -66,7 +64,6 @@ export default function ViewMenu({
           sortFields,
           setSortField,
         }),
-        limitMenu({ limit, setLimit, setRecordHeight, recordHeight }),
       ]}
     />
   );

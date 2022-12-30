@@ -1,6 +1,14 @@
 import { useMemo } from "react";
 import { FilterOutlined } from "@ant-design/icons";
-import { Button, DatePicker, Input, InputNumber, Select, Space } from "antd";
+import {
+  Button,
+  DatePicker,
+  Input,
+  InputNumber,
+  Popover,
+  Select,
+  Space,
+} from "antd";
 import type { ColumnsType } from "../../fields";
 import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
@@ -17,53 +25,55 @@ function enumerate(x: object[]): any[] {
   return v;
 }
 
-export default function searchMenu({ columns, search, setSearch, query }) {
+export default function SearchMenu({ columns, search, setSearch, query }) {
   const dbtable = Object.keys(query)[0] as string;
 
-  return {
-    label:
-      search.length == 0 ? (
-        "Search"
-      ) : (
-        <span style={{ backgroundColor: "lightgreen", padding: "5px" }}>
-          {search.length} Search {plural(search.length, "Field")}
-        </span>
-      ),
-    key: "SubMenu",
-    icon: <FilterOutlined />,
-    children: enumerate(search)
-      .map(({ n, field, operator, value }) => {
-        return {
-          disabled: true,
-          label: (
-            <SearchBy
-              dbtable={dbtable}
-              field={field}
-              operator={operator}
-              value={value}
-              columns={columns}
-              setSearch={setSearch}
-              n={n}
-            />
-          ),
-          key: `search-${n}`,
-        };
-      })
-      .concat([
-        {
-          disabled: true,
-          label: (
-            <SearchBy
-              dbtable={dbtable}
-              n={search.length}
-              columns={columns}
-              setSearch={setSearch}
-            />
-          ),
-          key: "search-add",
-        },
-      ]),
-  };
+  const content = enumerate(search)
+    .map(({ n, field, operator, value }) => (
+      <SearchBy
+        key={`search-${n}`}
+        dbtable={dbtable}
+        field={field}
+        operator={operator}
+        value={value}
+        columns={columns}
+        setSearch={setSearch}
+        n={n}
+      />
+    ))
+    .concat([
+      <SearchBy
+        key={"search-add"}
+        dbtable={dbtable}
+        n={search.length}
+        columns={columns}
+        setSearch={setSearch}
+      />,
+    ]);
+
+  const label =
+    search.length == 0
+      ? "Search"
+      : `${search.length} Search ${plural(search.length, "Field")}`;
+
+  return (
+    <Popover
+      placement="bottom"
+      overlayInnerStyle={{ maxHeight: "90vh", overflow: "auto" }}
+      content={<div>{content}</div>}
+      trigger="click"
+    >
+      <Button
+        type="text"
+        style={{
+          backgroundColor: search.length > 0 ? "lightgreen" : undefined,
+        }}
+      >
+        <FilterOutlined />
+        {label}
+      </Button>
+    </Popover>
+  );
 }
 
 interface SearchByProps {
