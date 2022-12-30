@@ -49,42 +49,40 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
   }
 
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
-      {tags != null && tags.length > 0 && (
-        <DndContext onDragEnd={handleDragEnd}>
-          <SortableContext items={tags}>
-            <div style={{ lineHeight: "2em", display: "inline-block" }}>
-              {tags.map((id) => (
-                <SortableTagById
-                  key={id}
-                  confirm
-                  id={id}
-                  onClose={async () => {
-                    const newTags = tags.filter((tag) => tag != id);
-                    setTags(newTags);
-                    try {
-                      await save(obj, newTags);
-                    } catch (_) {
-                      // failed -- revert the change at the UI level.
-                      setTags(obj[field]);
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
+    <Space direction="vertical" style={{ width: adding ? "100%" : undefined }}>
+      <Space>
+        {tags != null && tags.length > 0 && (
+          <DndContext onDragEnd={handleDragEnd}>
+            <SortableContext items={tags}>
+              <div style={{ lineHeight: "2em", display: "inline-block" }}>
+                {tags.map((id) => (
+                  <SortableTagById
+                    key={id}
+                    confirm
+                    id={id}
+                    onClose={async () => {
+                      const newTags = tags.filter((tag) => tag != id);
+                      setTags(newTags);
+                      try {
+                        await save(obj, newTags);
+                      } catch (_) {
+                        // failed -- revert the change at the UI level.
+                        setTags(obj[field]);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+        {!adding && (
+          <Button style={{ color: "#888" }} onClick={() => setAdding(true)}>
+            Add Tags...
+          </Button>
+        )}
+      </Space>
       {error}
-      {!adding && (
-        <Button
-          size="small"
-          style={{ color: "#888" }}
-          onClick={() => setAdding(true)}
-        >
-          Tags...
-        </Button>
-      )}
       {adding && (
         <AddTags
           currentTags={tags}

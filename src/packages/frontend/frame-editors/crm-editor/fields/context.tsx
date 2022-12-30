@@ -152,7 +152,6 @@ function ClickToEdit({
           cursor: "pointer",
           minWidth: "5em",
           minHeight: "1.5em",
-          width: "100%",
           ...(empty
             ? {
                 border: "1px solid #ddd",

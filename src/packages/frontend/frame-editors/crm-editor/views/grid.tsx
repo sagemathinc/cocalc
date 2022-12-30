@@ -11,7 +11,6 @@ import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 interface Props {
   data: any[];
   columns: ColumnsType[];
-  allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
   style?: CSSProperties;
@@ -23,7 +22,6 @@ interface Props {
 export default function Grid({
   data,
   columns,
-  allColumns,
   title,
   style,
   sortFields,
@@ -56,7 +54,6 @@ export default function Grid({
           <GridRow
             data={data[index]}
             columns={columns}
-            allColumns={allColumns}
             recordHeight={recordHeight}
           />
         )}
@@ -65,7 +62,7 @@ export default function Grid({
   );
 }
 
-function GridRow({ data, columns, allColumns, recordHeight }) {
+function GridRow({ data, columns, recordHeight }) {
   const v: any[] = [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
@@ -118,7 +115,7 @@ function GridRow({ data, columns, allColumns, recordHeight }) {
         onCancel={() => setOpen(false)}
       >
         <div style={{ overflow: "auto" }}>
-          <Data elt={data} columns={allColumns} />
+          <Data elt={data} columns={columns} />
           <Divider>Raw Data</Divider>
           <Json obj={data} />
         </div>

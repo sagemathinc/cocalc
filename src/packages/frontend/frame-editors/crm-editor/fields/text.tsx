@@ -71,7 +71,6 @@ render({ type: "text", editable: true }, ({ field, obj, spec }: Props) => {
   } else {
     return (
       <ClickToEdit empty={!value?.trim()}>
-        {" "}
         <Static field={field} obj={obj} spec={spec} value={value} />
       </ClickToEdit>
     );

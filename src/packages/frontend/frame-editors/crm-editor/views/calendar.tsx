@@ -9,7 +9,6 @@ interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  allColumns: ColumnsType[];
   title: ReactNode;
   style?: CSSProperties;
 }
@@ -19,7 +18,6 @@ export default function CalendarData({
   rowKey,
   data,
   columns,
-  allColumns,
   title,
   style,
 }: Props) {
@@ -49,7 +47,6 @@ export default function CalendarData({
         <DataList
           data={monthToData[toYearMonth(time)]}
           columns={columns}
-          allColumns={allColumns}
           rowKey={rowKey}
         />
       );
@@ -59,7 +56,6 @@ export default function CalendarData({
         <DataList
           data={dateToData[toYearMonthDay(time)]}
           columns={columns}
-          allColumns={allColumns}
           rowKey={rowKey}
         />
       );
@@ -96,7 +92,7 @@ function toYearMonthDay(time): string {
   return `${d.year()}-${d.month()}-${d.date()}`;
 }
 
-function DataList({ data, columns, allColumns, rowKey }) {
+function DataList({ data, columns, rowKey }) {
   if (data == null) return null;
   const v: ReactNode[] = [];
   for (const elt of data) {
@@ -110,7 +106,6 @@ function DataList({ data, columns, allColumns, rowKey }) {
           <gallery.OneCard
             elt={elt}
             columns={columns.slice(1)}
-            allColumns={allColumns}
             rowKey={rowKey}
           />
         )}

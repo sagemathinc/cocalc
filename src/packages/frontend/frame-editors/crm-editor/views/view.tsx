@@ -22,6 +22,7 @@ import useViewParam from "../syncdb/use-view-param";
 import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
 import querydbSet from "../querydb/set";
+import { columnsToFieldMap } from "./view-menu/hide-fields";
 
 const DEFAULT_RECORD_HEIGHT = 300;
 export const DEFAULT_LIMIT = 100;
@@ -57,12 +58,16 @@ export default function View({ table, view, style, name, id }: Props) {
   const [orderFields, setOrderFields] = useOrderFields({ id, fields });
 
   const [hiddenFields, setHiddenField] = useHiddenFields({ id });
+
   const columns = useMemo(() => {
+    // (1) Sort as given by orderFields and (2) filter as given by hiddenFields.
+    const fieldToColumn = columnsToFieldMap(allColumns);
+    const columns = orderFields.map((field) => fieldToColumn[field]);
     if (hiddenFields.size == 0) {
-      return allColumns;
+      return columns;
     }
-    return allColumns.filter((x) => !hiddenFields.has(x.dataIndex));
-  }, [hiddenFields, allColumns]);
+    return columns.filter((x) => !hiddenFields.has(x.dataIndex));
+  }, [hiddenFields, orderFields, allColumns]);
 
   const [timeField, setTimeField] = useViewParam<string>({
     id,
@@ -158,6 +163,7 @@ export default function View({ table, view, style, name, id }: Props) {
         setRecordHeight={setRecordHeight}
         orderFields={orderFields}
         setOrderFields={setOrderFields}
+        rowKey={rowKey}
       />
     </div>
   );
@@ -170,7 +176,6 @@ export default function View({ table, view, style, name, id }: Props) {
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
-          allColumns={allColumns}
           title={header}
         />
       );
@@ -182,7 +187,6 @@ export default function View({ table, view, style, name, id }: Props) {
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
-          allColumns={allColumns}
           title={header}
           categoryField={categoryField}
           query={query}
@@ -194,7 +198,6 @@ export default function View({ table, view, style, name, id }: Props) {
         <Calendar
           data={filteredData}
           columns={allColumns}
-          allColumns={allColumns}
           title={header}
           timeField={timeField}
           rowKey={rowKey}
@@ -207,7 +210,6 @@ export default function View({ table, view, style, name, id }: Props) {
           recordHeight={recordHeight}
           data={filteredData}
           columns={columns}
-          allColumns={allColumns}
           title={header}
           sortFields={sortFields}
           setSortField={setSortField}

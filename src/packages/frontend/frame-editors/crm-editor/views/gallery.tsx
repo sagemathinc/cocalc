@@ -13,7 +13,6 @@ interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
   recordHeight?: number;
@@ -27,7 +26,6 @@ export default function Gallery({
   rowKey,
   data,
   columns,
-  allColumns,
   title,
   cardStyle = {
     width: "300px",
@@ -63,7 +61,6 @@ export default function Gallery({
             elt={data[index]}
             rowKey={rowKey}
             columns={columns}
-            allColumns={allColumns}
             style={itemStyle}
           />
         )}
@@ -76,14 +73,12 @@ export function OneCard({
   elt,
   rowKey,
   columns,
-  allColumns,
   style,
   Title,
 }: {
   elt;
   rowKey: string;
   columns: object[];
-  allColumns: object[];
   style?: CSSProperties;
   Title?;
 }) {
@@ -118,12 +113,12 @@ export function OneCard({
       <Modal
         transitionName=""
         maskTransitionName=""
-        style={{
-          maxHeight: "90vh",
+        style={{ minWidth: "800px" }}
+        bodyStyle={{
+          maxHeight: "80vh",
           maxWidth: "90vw",
-          minWidth: "800px",
           overflow: "auto",
-          padding: "10px 0",
+          padding: "10px",
         }}
         open={open}
         title={
@@ -134,7 +129,7 @@ export function OneCard({
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
-        <Data elt={elt} columns={allColumns} />
+        <Data elt={elt} columns={columns} />
         <Divider>Raw Data</Divider>
         <Json obj={elt} />
       </Modal>
@@ -160,7 +155,13 @@ export function Data({
     const text = elt[column.dataIndex];
     const content = column.render != null ? column.render(text, elt) : text;
     v.push(
-      <div key={column.key} style={{ maxWidth: "800px", ...style }}>
+      <div
+        key={column.key}
+        style={{
+          margin: "5px 0",
+          ...style,
+        }}
+      >
         {!noTitle && <span style={{ color: "#888" }}>{column.title}: </span>}
         {content}
       </div>

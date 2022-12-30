@@ -23,6 +23,7 @@ export default function ViewMenu({
   recordHeight,
   orderFields,
   setOrderFields,
+  rowKey,
 }) {
   return (
     <Menu
@@ -36,6 +37,7 @@ export default function ViewMenu({
           setHiddenField,
           orderFields,
           setOrderFields,
+          rowKey,
         }),
         searchMenu({ columns, search, setSearch, query }),
         //groupMenu({ columns }),

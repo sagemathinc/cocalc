@@ -46,6 +46,10 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
 
   return edit ? (
     <Space direction="vertical" style={{ width: "100%" }}>
+      <Button type="primary" onClick={() => save(obj, valueRef.current())}>
+        Save (shift+enter)
+      </Button>
+      {error}
       <MultiMarkdownInput
         getValueRef={valueRef}
         autoFocus
@@ -55,14 +59,6 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
         }}
         onShiftEnter={() => save(obj, valueRef.current())}
       />
-      <Button
-        size="small"
-        type="primary"
-        onClick={() => save(obj, valueRef.current())}
-      >
-        Save (shift+enter)
-      </Button>
-      {error}
     </Space>
   ) : (
     <ClickToEdit empty={!value.trim()}>

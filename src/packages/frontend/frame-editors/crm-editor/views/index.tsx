@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import useViewsToggle from "./use-views-toggle";
+import Handle from "../components/handle";
 
 export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
@@ -366,13 +367,8 @@ export function SortableItem({
           >
             <Icon name="caret-down" />
           </Dropdown>
-          <span {...listeners} style={{ cursor: "hand" }}>
-            <Icon
-              name="ellipsis"
-              rotate="90"
-              style={{ margin: "10px -10px 0 0" }}
-            />
-            <Icon name="ellipsis" rotate="90" />
+          <span {...listeners}>
+            <Handle />
           </span>
         </span>
       )}

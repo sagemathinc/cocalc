@@ -5,18 +5,17 @@ import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
 import { getFieldSpec } from "../fields";
 import { capitalize } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 import { useDroppable } from "@dnd-kit/core";
 import set from "../querydb/set";
 import { Loading } from "@cocalc/frontend/components";
+import Handle from "../components/handle";
 
 interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  allColumns: ColumnsType[];
   title: ReactNode;
   cardStyle?;
   recordHeight?: number;
@@ -32,7 +31,6 @@ export default function Kanban({
   rowKey,
   data,
   columns,
-  allColumns,
   title,
   cardStyle = {
     width: `${100 - cardMargin * 2}%`,
@@ -130,7 +128,6 @@ export default function Kanban({
                 elt={idToRecord?.[dragId]}
                 rowKey={rowKey}
                 columns={columns}
-                allColumns={allColumns}
                 style={{ ...style, border: `1px solid ${DROP_COLOR}` }}
                 Title={Title}
               />
@@ -199,7 +196,6 @@ export default function Kanban({
                             elt={data[index]}
                             rowKey={rowKey}
                             columns={columns}
-                            allColumns={allColumns}
                             style={style}
                           />
                         );
@@ -264,20 +260,7 @@ function Title({ children }) {
         cursor: "move",
       }}
     >
-      <div style={{ display: "inline-block", margin: "-10px 0 0 -5px" }}>
-        <Icon
-          key="first"
-          name="ellipsis"
-          rotate="90"
-          style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
-        />
-        <Icon
-          key="second"
-          name="ellipsis"
-          rotate="90"
-          style={{ fontSize: "20px" }}
-        />
-      </div>
+      <Handle />
       {children}
     </div>
   );

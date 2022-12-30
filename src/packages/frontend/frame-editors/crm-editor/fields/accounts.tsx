@@ -61,11 +61,13 @@ function EditAccounts({ obj, field, account_ids }) {
     [save0, obj]
   );
 
+  const haveAccounts = account_ids != null && account_ids.length > 0;
+
   return (
-    <div>
+    <div style={adding || haveAccounts ? {} : { display: "inline-block" }}>
       {!adding && (
         <Button onClick={() => setAdding(true)}>
-          <Icon name="plus-circle" /> Add
+          <Icon name="plus-circle" /> Search...
         </Button>
       )}
       {adding && (
@@ -76,7 +78,9 @@ function EditAccounts({ obj, field, account_ids }) {
         />
       )}
       {saveError && <Alert message={saveError} type="error" />}
-      <AccountList account_ids={account_ids ?? []} save={save} />
+      {(adding || haveAccounts) && (
+        <AccountList account_ids={account_ids ?? []} save={save} />
+      )}
     </div>
   );
 }

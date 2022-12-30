@@ -17,6 +17,7 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
+import Handle from "../../components/handle";
 
 export default function hideFieldsMenu({
   hiddenFields,
@@ -24,6 +25,7 @@ export default function hideFieldsMenu({
   columns,
   orderFields,
   setOrderFields,
+  rowKey,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
 
@@ -37,6 +39,7 @@ export default function hideFieldsMenu({
           hiddenFields={hiddenFields}
           setHiddenField={setHiddenField}
           columns={columns}
+          rowKey={rowKey}
         />
       }
       trigger="click"
@@ -59,6 +62,14 @@ export default function hideFieldsMenu({
   };
 }
 
+export function columnsToFieldMap(columns) {
+  const v: { [field: string]: any } = {};
+  for (const column of columns) {
+    v[column.dataIndex] = column;
+  }
+  return v;
+}
+
 function MenuContents({
   allFields,
   hiddenFields,
@@ -66,20 +77,16 @@ function MenuContents({
   columns,
   orderFields,
   setOrderFields,
+  rowKey,
 }) {
-  const fieldToColumns = useMemo(() => {
-    const v: { [field: string]: any } = {};
-    for (const column of columns) {
-      v[column.dataIndex] = column;
-    }
-    return v;
-  }, [columns]);
+  const fieldToColumns = useMemo(() => columnsToFieldMap(columns), [columns]);
 
   const options = orderFields.map((field) => {
     const { title } = fieldToColumns[field] ?? { title: "No Title" };
     return (
       <HideToggle
         key={`hide-field-name-${field}`}
+        disabled={field == rowKey}
         field={field}
         title={title}
         hidden={hiddenFields.has(field)}
@@ -109,6 +116,7 @@ function MenuContents({
         <div style={{ maxHeight: "90vh", overflow: "auto" }}>
           <div>{options}</div>
           <HideShowAll
+            rowKey={rowKey}
             key={"hide-show-all"}
             hiddenFields={hiddenFields}
             setHiddenField={setHiddenField}
@@ -120,7 +128,7 @@ function MenuContents({
   );
 }
 
-function HideToggle({ field, title, hidden, onChange }) {
+function HideToggle({ disabled, field, title, hidden, onChange }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: field });
 
@@ -139,9 +147,10 @@ function HideToggle({ field, title, hidden, onChange }) {
       }}
     >
       <div style={{ display: "inline-block" }} {...attributes} {...listeners}>
-        {title}
+        <Handle /> {title}
       </div>
       <Switch
+        disabled={disabled}
         style={{ float: "right", marginTop: "2px" }}
         size="small"
         checked={!hidden}
@@ -151,13 +160,14 @@ function HideToggle({ field, title, hidden, onChange }) {
   );
 }
 
-function HideShowAll({ hiddenFields, setHiddenField, allFields }) {
+function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
   return (
     <Space style={{ marginTop: "5px" }}>
       <Button
         disabled={allFields.length == hiddenFields.size}
         onClick={() => {
           for (const field of allFields) {
+            if (field == rowKey) continue;
             if (!hiddenFields.has(field)) {
               setHiddenField(field, true);
             }

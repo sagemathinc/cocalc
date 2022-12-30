@@ -96,7 +96,11 @@ render(
     }, [n]);
 
     return (
-      <div style={{ width: "100%", display: "inline-block" }}>
+      <div
+        style={{
+          display: "inline-block",
+        }}
+      >
         {viewOnly ? (
           value == null ? (
             "(not set)"
@@ -105,9 +109,9 @@ render(
           )
         ) : (
           <Select
+            style={{ minWidth: "200px" }}
             disabled={!spec.editable}
             value={value}
-            style={{ width: "100%" }}
             options={options}
             onChange={(value) => set(valueToNumber(value))}
           />

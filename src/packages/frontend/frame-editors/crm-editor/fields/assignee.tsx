@@ -13,7 +13,9 @@ render({ type: "assignee" }, ({ field, obj, spec, viewOnly }) => {
   const account_id = obj[field];
   if (!account_id && viewOnly) return null;
   if (!viewOnly && spec.editable) {
-    return <EditAssignee obj={obj} field={field} your_account_id={your_account_id} />;
+    return (
+      <EditAssignee obj={obj} field={field} your_account_id={your_account_id} />
+    );
   } else {
     const agent = agentsMap?.[account_id];
     return (
@@ -49,8 +51,8 @@ function EditAssignee({ obj, field, your_account_id }) {
   });
 
   return (
-    <div>
-      <Space style={{ width: "100%" }}>
+    <div style={{ display: "inline-block" }}>
+      <Space>
         <Select
           allowClear
           style={{ width: "250px" }}
