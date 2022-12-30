@@ -20,7 +20,7 @@ import {
 import Handle from "../../components/handle";
 import { search_match, search_split } from "@cocalc/util/misc";
 
-export default function hideFieldsMenu({
+export default function HideFieldsMenu({
   hiddenFields,
   setHiddenField,
   columns,
@@ -29,10 +29,15 @@ export default function hideFieldsMenu({
   rowKey,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
+  const label =
+    hiddenFields.size == 0
+      ? "Hide fields"
+      : `${hiddenFields.size} Hidden ${plural(hiddenFields.size, "Field")}`;
 
-  const label = (
+  return (
     <Popover
       placement="bottom"
+      overlayInnerStyle={{ maxHeight: "90vh", overflow: "auto" }}
       content={
         <MenuContents
           orderFields={orderFields}
@@ -46,21 +51,18 @@ export default function hideFieldsMenu({
       }
       trigger="click"
     >
-      {hiddenFields.size == 0 ? (
-        "Hide fields"
-      ) : (
-        <span style={{ backgroundColor: "lightblue", padding: "5px" }}>
-          {hiddenFields.size} Hidden {plural(hiddenFields.size, "Field")}
-        </span>
-      )}
+      <Button
+        type="text"
+        style={{
+          padding: "5px",
+          backgroundColor: hiddenFields.size > 0 ? "lightblue" : undefined,
+        }}
+      >
+        <Icon name="eye-slash" />
+        {label}
+      </Button>
     </Popover>
   );
-
-  return {
-    label,
-    key: "hide",
-    icon: <Icon name="eye-slash" />,
-  };
 }
 
 export function columnsToFieldMap(columns) {
@@ -133,7 +135,7 @@ function MenuContents({
         items={orderFields}
         strategy={verticalListSortingStrategy}
       >
-        <div style={{ maxHeight: "90vh", overflow: "auto" }}>
+        <div>
           <Input
             autoFocus
             placeholder="Find a field..."
@@ -190,8 +192,8 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
   return (
     <Space style={{ marginTop: "10px" }}>
       <Button
-        size="small"
-        disabled={allFields.length == hiddenFields.size}
+        type="text"
+        disabled={allFields.length == hiddenFields.size + 1 /* +1 for rowKey */}
         onClick={() => {
           for (const field of allFields) {
             if (field == rowKey) continue;
@@ -204,7 +206,8 @@ function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
         Hide All
       </Button>
       <Button
-        size="small"
+        type="text"
+        style={{ float: "right" }}
         disabled={hiddenFields.size == 0}
         onClick={() => {
           for (const field of hiddenFields) {

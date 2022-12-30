@@ -3,7 +3,7 @@ import topMenu from "./top";
 import sortMenu from "./sort";
 import searchMenu from "./search";
 //import groupMenu from "./group";
-import hideFieldsMenu from "./hide-fields";
+import HideFieldsMenu from "./hide-fields";
 import limitMenu from "./limit";
 
 export default function ViewMenu({
@@ -25,6 +25,20 @@ export default function ViewMenu({
   setOrderFields,
   rowKey,
 }) {
+  return (
+    <div>
+      <HideFieldsMenu
+        columns={columns}
+        hiddenFields={hiddenFields}
+        setHiddenField={setHiddenField}
+        orderFields={orderFields}
+        setOrderFields={setOrderFields}
+        rowKey={rowKey}
+      />
+    </div>
+  );
+
+  /*
   return (
     <Menu
       triggerSubMenuAction={"click"}
@@ -50,4 +64,5 @@ export default function ViewMenu({
       ]}
     />
   );
+  */
 }
