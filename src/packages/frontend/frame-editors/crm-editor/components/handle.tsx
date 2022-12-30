@@ -12,6 +12,7 @@ export default function Handle({ style }: Props) {
         display: "inline-block",
         cursor: "move",
         margin: "-5px 0 0 -5px",
+        fontSize: "20px",
         ...style,
       }}
     >
@@ -19,14 +20,9 @@ export default function Handle({ style }: Props) {
         key="first"
         name="ellipsis"
         rotate="90"
-        style={{ margin: "10px -15px 0 0", fontSize: "20px" }}
+        style={{ margin: "10px -15px 0 0" }}
       />
-      <Icon
-        key="second"
-        name="ellipsis"
-        rotate="90"
-        style={{ fontSize: "20px" }}
-      />
+      <Icon key="second" name="ellipsis" rotate="90" />
     </div>
   );
 }

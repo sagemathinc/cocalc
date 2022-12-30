@@ -142,7 +142,14 @@ export default function Kanban({
             overflowX: "hidden",
           }}
         >
-          {!categoryField && <div>Select a category field above</div>}
+          {!categoryField && (
+            <Alert
+              showIcon
+              style={{ height: "fit-content", margin: "auto" }}
+              type="error"
+              message="Select a category field above, if available."
+            />
+          )}
           {categoryField &&
             categorizedData?.map(({ data, category }) => {
               return (

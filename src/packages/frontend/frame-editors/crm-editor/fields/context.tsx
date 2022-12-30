@@ -155,7 +155,7 @@ function ClickToEdit({
           ...(empty
             ? {
                 border: "1px solid #ddd",
-                borderRadius: "3px",
+                borderRadius: "5px",
                 padding: "5px",
               }
             : undefined),

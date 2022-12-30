@@ -30,7 +30,7 @@ export default function ViewMenu({
       triggerSubMenuAction={"click"}
       mode="horizontal"
       items={[
-        topMenu({ name, view, setRecordHeight, recordHeight }),
+        topMenu({ name, view }),
         hideFieldsMenu({
           columns,
           hiddenFields,
@@ -46,7 +46,7 @@ export default function ViewMenu({
           sortFields,
           setSortField,
         }),
-        limitMenu({ limit, setLimit }),
+        limitMenu({ limit, setLimit, setRecordHeight, recordHeight }),
       ]}
     />
   );

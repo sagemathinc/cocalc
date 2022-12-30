@@ -151,7 +151,7 @@ function HideToggle({ disabled, field, title, hidden, onChange }) {
       </div>
       <Switch
         disabled={disabled}
-        style={{ float: "right", marginTop: "2px" }}
+        style={{ float: "right", marginTop: "8px" }}
         size="small"
         checked={!hidden}
         onChange={onChange}
@@ -162,7 +162,7 @@ function HideToggle({ disabled, field, title, hidden, onChange }) {
 
 function HideShowAll({ hiddenFields, setHiddenField, allFields, rowKey }) {
   return (
-    <Space style={{ marginTop: "5px" }}>
+    <Space style={{ marginTop: "10px" }}>
       <Button
         disabled={allFields.length == hiddenFields.size}
         onClick={() => {
