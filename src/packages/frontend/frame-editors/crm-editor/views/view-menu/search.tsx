@@ -59,7 +59,11 @@ export default function SearchMenu({ columns, search, setSearch, query }) {
   return (
     <Popover
       placement="bottom"
-      overlayInnerStyle={{ maxHeight: "90vh", overflow: "auto" }}
+      overlayInnerStyle={{
+        maxHeight: "90vh",
+        maxWidth: "600px",
+        overflow: "auto",
+      }}
       content={<div>{content}</div>}
       trigger="click"
     >
@@ -105,7 +109,7 @@ function SearchBy({
       <Select
         value={field ?? ""}
         size="small"
-        style={{ width: "200px" }}
+        style={{ width: "150px" }}
         showSearch
         placeholder="Find a field..."
         filterOption={(input, option) =>
