@@ -3,7 +3,7 @@ import { Button, Space } from "antd";
 import TopMenu from "./top";
 import SortMenu from "./sort";
 import SearchMenu from "./search";
-import GroupMenu from "./group";
+//import GroupMenu from "./group";
 import HideFieldsMenu from "./hide-fields";
 import LimitsMenu from "./limits";
 
@@ -49,7 +49,7 @@ export default function ViewMenu({
         setSearch={setSearch}
         query={query}
       />
-      <GroupMenu columns={columns} />
+      {/* <GroupMenu columns={columns} /> */}
       <SortMenu
         columns={columns}
         sortFields={sortFields}

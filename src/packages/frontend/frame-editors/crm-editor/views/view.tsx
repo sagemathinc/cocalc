@@ -211,20 +211,32 @@ export default function View({ table, view, style, name, id }: Props) {
     <EditableContext.Provider value={editableContext}>
       <div style={{ ...style, display: "flex", flexDirection: "column" }}>
         {loading && (
-          <div style={{ float: "right" }}>
-            <Loading delay={200} text="Loading from database..." />
+          <div style={{ height: 0 }}>
+            <Loading
+              style={data.length > 0 ? { float: "right" } : undefined}
+              delay={data.length == 0 ? 0 : 750}
+              theme={data.length == 0 ? "medium" : undefined}
+              text="Loading from database..."
+            />
           </div>
         )}
         {saving && (
-          <div style={{ float: "right" }}>
-            <Loading delay={200} text="Saving to database..." />
+          <div style={{ height: 0 }}>
+            <Loading
+              style={{ float: "right" }}
+              delay={1500}
+              text="Saving to database..."
+            />
           </div>
         )}
         {tableError && (
           <Alert
+            style={{ margin: "30px 0" }}
             type="error"
             message="Database Query Error"
             description={tableError}
+            closable
+            onClose={refresh}
           />
         )}
         {addError && (
@@ -237,37 +249,42 @@ export default function View({ table, view, style, name, id }: Props) {
             onClose={() => setAddError("")}
           />
         )}
-        <Space>
-          {view == "calendar" && (
-            <SelectField
-              type={"timestamp"}
-              value={timeField}
-              onChange={setTimeField}
-              query={query}
-              style={{ marginBottom: "5px" }}
-              hiddenFields={hiddenFields}
-            />
-          )}
-          {view == "kanban" && (
-            <SelectField
-              type={"select"}
-              value={categoryField}
-              onChange={setCategoryField}
-              query={query}
-              style={{ marginBottom: "5px" }}
-              hiddenFields={hiddenFields}
-            />
-          )}
-          {Filter}
-          {numHidden > 0 && (
-            <div style={{ marginBottom: "5px", color: "#666" }}>
-              <Icon name="warning" /> Filtered: only showing{" "}
-              {filteredData.length} of {data.length}{" "}
-              {plural(data.length, "result")}
-            </div>
-          )}
-        </Space>
-        <div style={{ flex: 1, overflow: "hidden" }}>{body}</div>
+        {!(loading && data.length == 0) && (
+          <>
+            <Space>
+              {view == "calendar" && (
+                <SelectField
+                  type={"timestamp"}
+                  value={timeField}
+                  onChange={setTimeField}
+                  query={query}
+                  style={{ marginBottom: "5px" }}
+                  hiddenFields={hiddenFields}
+                />
+              )}
+              {view == "kanban" && (
+                <SelectField
+                  type={"select"}
+                  value={categoryField}
+                  onChange={setCategoryField}
+                  query={query}
+                  style={{ marginBottom: "5px" }}
+                  hiddenFields={hiddenFields}
+                />
+              )}
+              {Filter}
+              {numHidden > 0 && (
+                <div style={{ marginBottom: "5px", color: "#666" }}>
+                  <Icon name="warning" /> Filtered: only showing{" "}
+                  {filteredData.length} of {data.length}{" "}
+                  {plural(data.length, "result")}
+                </div>
+              )}
+            </Space>
+
+            <div style={{ flex: 1, overflow: "hidden" }}>{body}</div>
+          </>
+        )}
       </div>
     </EditableContext.Provider>
   );

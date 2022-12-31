@@ -77,8 +77,12 @@ render({ type: "tags", editable: true }, ({ field, obj }) => {
           </DndContext>
         )}
         {!adding && (
-          <Button style={{ color: "#888" }} onClick={() => setAdding(true)}>
-            Add Tags...
+          <Button
+            type="text"
+            style={{ color: "#888" }}
+            onClick={() => setAdding(true)}
+          >
+            Add...
           </Button>
         )}
       </Space>

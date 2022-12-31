@@ -28,7 +28,8 @@ export default function HideFieldsMenu({
   rowKey,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
-  const label = hiddenFields.size == 0 ? "Hide" : `Hide (${hiddenFields.size})`;
+  const label =
+    hiddenFields.size == 0 ? "Fields" : `Fields (${hiddenFields.size})`;
 
   return (
     <Popover

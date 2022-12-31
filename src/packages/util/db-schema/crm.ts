@@ -37,7 +37,7 @@ const STATUS_FIELD = {
   render: {
     type: "select",
     editable: true,
-    options: ["new", "open", "active", "pending", "solved"],
+    options: ["new", "open", "pending", "active", "solved"],
     colors: [yellow[5], red[5], green[5], blue[5], "#888"],
   },
 } as FieldSpec;
