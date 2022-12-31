@@ -36,6 +36,10 @@ export default function TopMenu({
               key: "rename",
             },
             {
+              label: "Change view type",
+              key: "change",
+            },
+            {
               label: "Duplicate view",
               key: "duplicate",
             },
@@ -83,6 +87,7 @@ export default function TopMenu({
   ];
   return (
     <Popover
+      mouseEnterDelay={0.7}
       title={
         <>
           <Icon name={TYPE_TO_ICON[view]} /> {name}
@@ -93,7 +98,7 @@ export default function TopMenu({
         <div>
           Table: {title}
           <Divider>Statistics</Divider>
-          <Statistic title="Results in View" value={viewCount} />
+          <Statistic title="Results in Filtered View" value={viewCount} />
           <Count name={title} dbtable={dbtable} lowerBound={tableLowerBound} />
         </div>
       }

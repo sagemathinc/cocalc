@@ -1,5 +1,5 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { Alert, Space } from "antd";
+import { Alert } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
@@ -161,6 +161,37 @@ export default function View({ table, view, style, name, id }: Props) {
         rowKey={rowKey}
         addNew={allowCreate ? addNew : undefined}
         refresh={refresh}
+        filters={
+          <>
+            {Filter}
+            {numHidden > 0 && (
+              <div style={{ marginBottom: "5px", color: "#666" }}>
+                <Icon name="warning" /> Showing {filteredData.length} of{" "}
+                {data.length} {plural(data.length, "result")}
+              </div>
+            )}
+            {view == "calendar" && (
+              <SelectField
+                type={"timestamp"}
+                value={timeField}
+                onChange={setTimeField}
+                query={query}
+                style={{ marginBottom: "5px" }}
+                hiddenFields={hiddenFields}
+              />
+            )}
+            {view == "kanban" && (
+              <SelectField
+                type={"select"}
+                value={categoryField}
+                onChange={setCategoryField}
+                query={query}
+                style={{ marginBottom: "5px" }}
+                hiddenFields={hiddenFields}
+              />
+            )}
+          </>
+        }
       />
     </div>
   );
@@ -220,7 +251,13 @@ export default function View({ table, view, style, name, id }: Props) {
 
   return (
     <EditableContext.Provider value={editableContext}>
-      <div style={{ ...style, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          ...style,
+        }}
+      >
         {loading && (
           <div style={{ height: 0 }}>
             <Loading
@@ -262,37 +299,9 @@ export default function View({ table, view, style, name, id }: Props) {
         )}
         {!(loading && data.length == 0) && (
           <>
-            <Space>
-              {Filter}
-              {numHidden > 0 && (
-                <div style={{ marginBottom: "5px", color: "#666" }}>
-                  <Icon name="warning" /> Only showing {filteredData.length} of{" "}
-                  {data.length} {plural(data.length, "result")}
-                </div>
-              )}
-              {view == "calendar" && (
-                <SelectField
-                  type={"timestamp"}
-                  value={timeField}
-                  onChange={setTimeField}
-                  query={query}
-                  style={{ marginBottom: "5px" }}
-                  hiddenFields={hiddenFields}
-                />
-              )}
-              {view == "kanban" && (
-                <SelectField
-                  type={"select"}
-                  value={categoryField}
-                  onChange={setCategoryField}
-                  query={query}
-                  style={{ marginBottom: "5px" }}
-                  hiddenFields={hiddenFields}
-                />
-              )}
-            </Space>
-
-            <div style={{ flex: 1, overflow: "hidden" }}>{body}</div>
+            <div style={{ flex: 1, overflow: "hidden", marginBottom: "10px" }}>
+              {body}
+            </div>
           </>
         )}
       </div>

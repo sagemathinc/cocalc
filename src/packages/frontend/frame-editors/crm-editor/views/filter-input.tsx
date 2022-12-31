@@ -49,7 +49,7 @@ export default function useFilterInput({ data, id, title }): {
             <FilterOutlined /> {title}
           </div>
         }
-        style={{ width: 300, marginBottom: "5px" }}
+        style={{ width: 250, marginBottom: "5px" }}
         onChange={(e) => setFilter(e.target.value)}
       />
     );

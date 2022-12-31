@@ -31,12 +31,13 @@ export default function ViewMenu({
   rowKey,
   addNew,
   refresh,
+  filters,
 }) {
   return (
     <Space
       direction="horizontal"
       wrap
-      style={{ maxHeight: "90px", overflowY: "auto" }}
+      style={{ maxHeight: "135px", overflowY: "auto" }}
     >
       <TopMenu
         name={name}
@@ -80,6 +81,7 @@ export default function ViewMenu({
       <Button type="text" onClick={refresh}>
         <Icon name="refresh" /> Refresh
       </Button>
+      {filters}
     </Space>
   );
 }

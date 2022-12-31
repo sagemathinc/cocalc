@@ -163,7 +163,6 @@ export default function Kanban({
                       textAlign: "center",
                       fontWeight: 600,
                       fontSize: "11pt",
-                      marginBottom: "10px",
                       whiteSpace: "nowrap",
                     }}
                   >
