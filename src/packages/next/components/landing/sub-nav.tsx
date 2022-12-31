@@ -23,6 +23,7 @@ const software = {
   r: { label: "R Stats" },
   julia: { label: "Julia" },
   octave: { label: "Octave" },
+  sagemath: { label: "SageMath" },
 } as const;
 
 const features = {
