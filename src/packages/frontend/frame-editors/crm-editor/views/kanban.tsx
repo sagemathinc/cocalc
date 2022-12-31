@@ -21,6 +21,7 @@ interface Props {
   recordHeight?: number;
   categoryField: string;
   query: object;
+  refresh: () => void;
 }
 
 const cardMargin = 2.5;
@@ -41,6 +42,7 @@ export default function Kanban({
   },
   recordHeight,
   categoryField,
+  refresh,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [moving, setMoving] = useState<any>(null);
@@ -99,6 +101,7 @@ export default function Kanban({
         setMoving(id);
         try {
           await set({ [dbtable]: { [rowKey]: id, [categoryField]: category } });
+          refresh();
         } catch (err) {
           setError(`${err}`);
           setMoving(null);

@@ -177,6 +177,7 @@ export default function View({ table, view, style, name, id }: Props) {
           title={header}
           categoryField={categoryField}
           query={query}
+          refresh={refresh}
         />
       );
       break;
