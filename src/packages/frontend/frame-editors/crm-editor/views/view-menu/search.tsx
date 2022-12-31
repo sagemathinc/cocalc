@@ -12,7 +12,6 @@ import {
 import type { ColumnsType } from "../../fields";
 import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
-import { plural } from "@cocalc/util/misc";
 import { Operator, OPERATORS, AtomicSearch } from "../../syncdb/use-search";
 import dayjs from "dayjs";
 import { capitalize } from "@cocalc/util/misc";
@@ -51,17 +50,14 @@ export default function SearchMenu({ columns, search, setSearch, query }) {
       />,
     ]);
 
-  const label =
-    search.length == 0
-      ? "Search"
-      : `${search.length} Search ${plural(search.length, "Field")}`;
+  const label = search.length == 0 ? "Search" : `Search (${search.length})`;
 
   return (
     <Popover
       placement="bottom"
       overlayInnerStyle={{
         maxHeight: "90vh",
-        maxWidth: "600px",
+        maxWidth: "565px",
         overflow: "auto",
       }}
       content={<div>{content}</div>}

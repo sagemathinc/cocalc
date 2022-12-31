@@ -1,48 +1,59 @@
 import { useMemo } from "react";
 import { SortDirection, parseSort } from "../../syncdb/use-sort-fields";
 import type { ColumnsType } from "../../fields";
-import { Button, Select, Space } from "antd";
+import { Button, Popover, Select, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { plural } from "@cocalc/util/misc";
 
-export default function sortMenu({ sortFields, columns, setSortField }) {
-  return {
-    label:
-      sortFields.length == 0 ? (
-        "Sort"
-      ) : (
-        <span style={{ backgroundColor: "orange", padding: "5px" }}>
-          {sortFields.length} Sort {plural(sortFields.length, "Field")}
-        </span>
-      ),
-    key: "sort",
-    icon: <Icon name="sort-amount-up" />,
-    children: sortFields
-      .map((field) => {
-        return {
-          disabled: true,
-          label: (
-            <SortBy
-              columns={columns}
-              field={field}
-              setSortField={setSortField}
-            />
-          ),
-          key: `sortby-${field}`,
-        };
-      })
-      .concat(
-        sortFields.length < columns.length
-          ? [
-              {
-                disabled: true,
-                label: <SortBy columns={columns} setSortField={setSortField} />,
-                key: "sortby-add",
-              },
-            ]
-          : []
-      ),
-  };
+export default function SortMenu({ sortFields, columns, setSortField }) {
+  const content = (
+    <div>
+      {sortFields
+        .map((field) => (
+          <SortBy
+            key={`sortby-${field}`}
+            columns={columns}
+            field={field}
+            setSortField={setSortField}
+          />
+        ))
+        .concat(
+          sortFields.length < columns.length
+            ? [
+                <SortBy
+                  key="sortby-add"
+                  columns={columns}
+                  setSortField={setSortField}
+                />,
+              ]
+            : []
+        )}
+    </div>
+  );
+
+  const label = sortFields.length == 0 ? "Sort" : `Sort (${sortFields.length})`;
+
+  return (
+    <Popover
+      placement="bottom"
+      overlayInnerStyle={{
+        maxHeight: "90vh",
+        maxWidth: "375px",
+        overflow: "auto",
+      }}
+      content={<div>{content}</div>}
+      trigger="click"
+    >
+      <Button
+        type="text"
+        style={{
+          backgroundColor: sortFields.length > 0 ? "orange" : undefined,
+        }}
+      >
+        <Icon name="sort-amount-up" />
+        {label}
+      </Button>
+    </Popover>
+  );
 }
 
 interface SortByProps {
@@ -62,7 +73,7 @@ function SortBy({ columns, field, setSortField }: SortByProps) {
       <Select
         value={sortField}
         size="small"
-        style={{ width: "200px" }}
+        style={{ width: "150px" }}
         showSearch
         placeholder="Find a field..."
         filterOption={(input, option) =>

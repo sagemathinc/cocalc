@@ -6,9 +6,7 @@ import { Button, Popover, Space } from "antd";
 import { BrushPreview } from "../../whiteboard-editor/tools/pen";
 
 function Color({ color }) {
-  return color ? (
-    <BrushPreview radius={8} maxRadius={8} color={color} />
-  ) : null;
+  return color ? <BrushPreview radius={8} maxRadius={8} color={color} /> : null;
 }
 
 render({ type: "color", editable: false }, ({ field, obj }) => (
@@ -28,7 +26,7 @@ render({ type: "color", editable: true }, ({ field, obj, spec }) => {
   }, [counter, obj[field]]);
 
   return (
-    <div style={{textAlign:'center'}}>
+    <div style={{ display: "inline-block" }}>
       <Popover
         open={edit}
         onOpenChange={setEdit}

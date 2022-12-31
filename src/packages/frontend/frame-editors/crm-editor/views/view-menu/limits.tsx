@@ -28,12 +28,11 @@ export default function LimitMenu({
       <Button
         type="text"
         style={{
-          backgroundColor:
-            n == 2 ? "orange" : n == 1 ? "lightyellow" : undefined,
+          backgroundColor: n > 0 ? "yellow" : undefined,
         }}
       >
         <Icon name="database" />
-        Limits ({limit})
+        Limits
       </Button>
     </Popover>
   );
@@ -47,7 +46,7 @@ function Limit({ limit, setLimit }) {
         min={1}
         max={1000}
         step={25}
-        defaultValue={limit}
+        value={limit}
         onChange={(value) => {
           if (value) {
             setLimit(value);

@@ -1,5 +1,5 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { Alert, Button, Space } from "antd";
+import { Alert, Space } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
@@ -129,26 +129,11 @@ export default function View({ table, view, style, name, id }: Props) {
     refresh();
   }
 
-  const right = (
-    <Space wrap style={{ float: "right" }}>
-      <b>{title ?? fieldToLabel(table)}</b>
-      {allowCreate && (
-        <Button onClick={addNew}>
-          <Icon name="plus-circle" /> New
-        </Button>
-      )}
-      <Button onClick={refresh}>
-        <Icon name="refresh" /> Refresh
-      </Button>
-    </Space>
-  );
-
   const header = (
-    <div>
-      {right}{" "}
+    <div style={{ margin: "-30px 0 -10px 0" }}>
       <ViewMenu
         query={query}
-        name={name}
+        name={`${name} (${title ?? fieldToLabel(table)})`}
         view={view}
         columns={allColumns}
         limit={limit}
@@ -164,6 +149,8 @@ export default function View({ table, view, style, name, id }: Props) {
         orderFields={orderFields}
         setOrderFields={setOrderFields}
         rowKey={rowKey}
+        addNew={allowCreate ? addNew : undefined}
+        refresh={refresh}
       />
     </div>
   );
@@ -242,9 +229,12 @@ export default function View({ table, view, style, name, id }: Props) {
         )}
         {addError && (
           <Alert
+            style={{ margin: "30px 0" }}
             type="error"
             message="Error Creating New Record"
             description={addError}
+            closable
+            onClose={() => setAddError("")}
           />
         )}
         <Space>

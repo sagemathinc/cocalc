@@ -1,32 +1,52 @@
+/* Todo: this isnt done at all! */
+
 import { useState } from "react";
-import { Select, Space } from "antd";
+import { Button, Popover, Select, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 
-export default function groupBy({ columns }) {
-  return {
-    label: "Group",
-    key: "group",
-    icon: <Icon name="group" />,
-    children: [
-      {
-        disabled: true,
-        label: <GroupBy columns={columns} />,
-        key: "groupby",
-      },
-    ],
-  };
+export default function GroupBy({ columns }) {
+  const content = [<GroupBySelector key="todo" columns={columns} />];
+
+  // TODO!
+  const groupFields = [];
+
+  const label =
+    groupFields.length == 0 ? "Group" : `Group (${groupFields.length})`;
+
+  return (
+    <Popover
+      placement="bottom"
+      overlayInnerStyle={{
+        maxHeight: "90vh",
+        maxWidth: "565px",
+        overflow: "auto",
+      }}
+      content={<div>{content}</div>}
+      trigger="click"
+    >
+      <Button
+        type="text"
+        style={{
+          backgroundColor: groupFields.length > 0 ? "#e3ccf7" : undefined,
+        }}
+      >
+        <Icon name="group" />
+        {label}
+      </Button>
+    </Popover>
+  );
 }
 
-function GroupBy({ columns }) {
+function GroupBySelector({ columns }) {
   const [field, setField] = useState<string>("");
   const [descending, setDescending] = useState<boolean>(false);
   return (
     <Space>
       <Select
         size="small"
-        style={{ width: "200px" }}
+        style={{ width: "150px" }}
         showSearch
-        placeholder="Find a field..."
+        placeholder="Choose a field..."
         filterOption={(input, option) =>
           ((option?.label ?? "") as string)
             .toLowerCase()

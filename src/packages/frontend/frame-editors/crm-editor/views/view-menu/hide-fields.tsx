@@ -5,7 +5,6 @@
 import { useMemo, useState } from "react";
 import { Button, Input, Popover, Space, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { plural } from "@cocalc/util/misc";
 import { DndContext } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -29,10 +28,7 @@ export default function HideFieldsMenu({
   rowKey,
 }) {
   const allFields = columns.map((x) => x.dataIndex);
-  const label =
-    hiddenFields.size == 0
-      ? "Hide fields"
-      : `${hiddenFields.size} Hidden ${plural(hiddenFields.size, "Field")}`;
+  const label = hiddenFields.size == 0 ? "Hide" : `Hide (${hiddenFields.size})`;
 
   return (
     <Popover
