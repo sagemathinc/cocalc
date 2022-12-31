@@ -4,8 +4,9 @@ import useFilter from "./filter-hook";
 import useViewFilter from "../syncdb/use-view-filter";
 import { plural } from "@cocalc/util/misc";
 import useDebounceEffect from "@cocalc/frontend/app-framework/use-debounce-effect";
+import { FilterOutlined } from "@ant-design/icons";
 
-export default function useFilterInput({ data, id }): {
+export default function useFilterInput({ data, id, title }): {
   filteredData: any[];
   Filter: ReactNode;
   numHidden: number;
@@ -27,23 +28,32 @@ export default function useFilterInput({ data, id }): {
     [filter, setFilter0]
   );
 
-  const Filter = useMemo(
-    () => (
+  const Filter = useMemo(() => {
+    return (
       <Input.Search
         value={filter}
         allowClear
+        onSearch={setFilter}
         placeholder={`Filter ${data.length} ${plural(
           data.length,
           "Result"
         )}...`}
-        onSearch={setFilter}
-        enterButton="Filter"
+        enterButton={
+          <div
+            style={{
+              maxWidth: "125px",
+              overflow: "auto",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <FilterOutlined /> {title}
+          </div>
+        }
         style={{ width: 300, marginBottom: "5px" }}
         onChange={(e) => setFilter(e.target.value)}
       />
-    ),
-    [id, filter, data.length]
-  );
+    );
+  }, [id, filter, data.length]);
 
   return { filteredData, Filter, numHidden };
 }

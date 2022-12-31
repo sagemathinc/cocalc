@@ -1,8 +1,16 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TYPE_TO_ICON } from "../index";
-import { Divider, Menu, Tooltip } from "antd";
+import { Divider, Menu, Popover, Statistic } from "antd";
+import Count from "../count";
 
-export default function TopMenu({ name, view }) {
+export default function TopMenu({
+  name,
+  title,
+  dbtable,
+  view,
+  viewCount,
+  tableLowerBound,
+}) {
   const items = [
     {
       label: (
@@ -74,8 +82,23 @@ export default function TopMenu({ name, view }) {
     },
   ];
   return (
-    <Tooltip title={name} placement="left">
+    <Popover
+      title={
+        <>
+          <Icon name={TYPE_TO_ICON[view]} /> {name}
+        </>
+      }
+      placement="left"
+      content={
+        <div>
+          Table: {title}
+          <Divider>Statistics</Divider>
+          <Statistic title="Results in View" value={viewCount} />
+          <Count name={title} dbtable={dbtable} lowerBound={tableLowerBound} />
+        </div>
+      }
+    >
       <Menu triggerSubMenuAction={"click"} items={items} />
-    </Tooltip>
+    </Popover>
   );
 }

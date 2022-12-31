@@ -31,6 +31,7 @@ import "./lti";
 import "./mentions";
 import "./organizations";
 import "./password-reset";
+import "./pg-system";
 import "./project-info";
 import "./project-log";
 import "./project-status";

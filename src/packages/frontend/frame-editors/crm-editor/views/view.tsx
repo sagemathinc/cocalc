@@ -13,7 +13,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { getTableDescription } from "../tables";
 import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
-import useFilter from "./filter-input";
+import useFilterInput from "./filter-input";
 import { plural } from "@cocalc/util/misc";
 import useHiddenFields from "../syncdb/use-hidden-fields";
 import useSortFields from "../syncdb/use-sort-fields";
@@ -87,11 +87,15 @@ export default function View({ table, view, style, name, id }: Props) {
     defaultValue: DEFAULT_RECORD_HEIGHT,
   });
 
-  const rowKey = useMemo(() => {
-    const dbtable = Object.keys(query)[0];
-    if (!dbtable) {
+  const dbtable: string = useMemo(() => {
+    const tbl = Object.keys(query)[0];
+    if (!tbl) {
       throw Error("invalid query");
     }
+    return tbl;
+  }, [query]);
+
+  const rowKey = useMemo(() => {
     const keys = client_db.primary_keys(dbtable);
     return keys[0];
   }, [table]);
@@ -105,13 +109,15 @@ export default function View({ table, view, style, name, id }: Props) {
     loading,
   } = useTable({ query, changes, sortFields, hiddenFields, search, limit });
 
-  const { filteredData, numHidden, Filter } = useFilter({ data, id });
+  const { filteredData, numHidden, Filter } = useFilterInput({
+    data,
+    id,
+    title,
+  });
 
   const [addError, setAddError] = useState<string>("");
 
   async function addNew() {
-    const dbtable = Object.keys(query)[0];
-
     const x: any = {};
 
     if (dbtable == "crm_tags") {
@@ -133,8 +139,12 @@ export default function View({ table, view, style, name, id }: Props) {
     <div style={{ margin: "-30px 0 -10px 0" }}>
       <ViewMenu
         query={query}
-        name={`${name} (${title ?? fieldToLabel(table)})`}
+        name={name}
+        title={title ?? fieldToLabel(table)}
+        dbtable={dbtable}
         view={view}
+        viewCount={filteredData?.length ?? 0}
+        tableLowerBound={data?.length ?? 0}
         columns={allColumns}
         limit={limit}
         setLimit={setLimit}
@@ -253,6 +263,13 @@ export default function View({ table, view, style, name, id }: Props) {
         {!(loading && data.length == 0) && (
           <>
             <Space>
+              {Filter}
+              {numHidden > 0 && (
+                <div style={{ marginBottom: "5px", color: "#666" }}>
+                  <Icon name="warning" /> Only showing {filteredData.length} of{" "}
+                  {data.length} {plural(data.length, "result")}
+                </div>
+              )}
               {view == "calendar" && (
                 <SelectField
                   type={"timestamp"}
@@ -272,14 +289,6 @@ export default function View({ table, view, style, name, id }: Props) {
                   style={{ marginBottom: "5px" }}
                   hiddenFields={hiddenFields}
                 />
-              )}
-              {Filter}
-              {numHidden > 0 && (
-                <div style={{ marginBottom: "5px", color: "#666" }}>
-                  <Icon name="warning" /> Filtered: only showing{" "}
-                  {filteredData.length} of {data.length}{" "}
-                  {plural(data.length, "result")}
-                </div>
               )}
             </Space>
 

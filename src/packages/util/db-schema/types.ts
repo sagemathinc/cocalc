@@ -92,9 +92,12 @@ export function Table<F extends Fields>({
   if (!rules.virtual) {
     // runtime check that fields and primary_key are set.
     // If there is a way to do this at compile time with typescript, that would be better.
-    if (fields == null || rules.primary_key == null) {
+    if (fields == null) {
+      throw Error("db-schema error; fields must be set for non-virtual tables");
+    }
+    if (rules.primary_key == null) {
       throw Error(
-        "db-schema error; fields and primary_key must be set for non-virtual tables"
+        "db-schema error; primary_key must be set for non-virtual tables"
       );
     }
   }
