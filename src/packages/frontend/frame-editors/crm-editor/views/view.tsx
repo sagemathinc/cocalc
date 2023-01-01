@@ -48,6 +48,7 @@ export default function View({ table, view, style, name, id }: Props) {
     name: "limit",
     defaultValue: DEFAULT_LIMIT,
   });
+
   const [search, setSearch] = useSearch({ id });
   const [sortFields, setSortField] = useSortFields({ id });
 
@@ -117,14 +118,38 @@ export default function View({ table, view, style, name, id }: Props) {
 
   const [addError, setAddError] = useState<string>("");
 
+  const [newRecords, setNewRecords] = useViewParam<
+    { id: number; timestamp: number }[]
+  >({
+    id,
+    name: "new",
+    defaultValue: [],
+  });
+
   async function addNew() {
     setAddError("");
+    let id: number | null = null;
     try {
-      await createNewRecord({ filter, search, dbtable, fields, hiddenFields });
+      id = await createNewRecord({
+        filter,
+        search,
+        dbtable,
+        fields,
+        hiddenFields,
+      });
     } catch (err) {
       setAddError(`${err}`);
     }
-
+    if (id != null) {
+      const now = new Date().valueOf();
+      // filter to remove older records to save memory and
+      // put in the new one.
+      setNewRecords(
+        newRecords
+          .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
+          .concat([{ id, timestamp: new Date().valueOf() }])
+      );
+    }
     refresh();
   }
 

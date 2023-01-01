@@ -29,10 +29,13 @@ export default async function set(query: object) {
       }
     }
   }
-  await webapp_client.query_client.query({
+
+  const result = await webapp_client.async_query({
     query,
     options: [{ set: true }],
   });
+
+  return result.query;
 }
 
 // Heuristic: we are creating a new object in database if a primary key is missing.

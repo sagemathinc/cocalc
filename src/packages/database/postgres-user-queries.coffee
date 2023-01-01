@@ -674,6 +674,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query      : required
             options    : undefined     # options=[{delete:true}] is the only supported nontrivial option here.
             cb         : required   # cb(err)
+
+        # TODO: it would be nice to return the primary key part of the created object on creation.
+        # That's not implemented and will be somewhat nontrivial, and will use the RETURNING clause
+        # of postgres's INSERT - https://www.postgresql.org/docs/current/sql-insert.html
+
         if @is_standby
             opts.cb("set queries against standby not allowed")
             return
