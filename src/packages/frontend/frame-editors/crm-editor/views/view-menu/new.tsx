@@ -12,14 +12,16 @@ export default function NewMenu({ addNew, addedRecords, setAddedRecords }) {
       placement="bottom"
       overlayInnerStyle={{ maxHeight: "90vh", overflow: "auto" }}
       content={
-        <Space direction="vertical" style={{ textAlign: "center" }}>
-          <Space>
-            <Button onClick={addNew}>Create Record...</Button>
-            {addedRecords.length > 0 && (
-              <Button onClick={() => setAddedRecords([])}>Clear</Button>
-            )}
-          </Space>
+        <Space direction="vertical">
+          <div style={{ textAlign: "center" }}>
+            <Button onClick={addNew}>Create New Record</Button>
+          </div>
           <RecentRecords addedRecords={addedRecords} />
+          {addedRecords.length > 0 && (
+            <Button type="text" onClick={() => setAddedRecords([])}>
+              Clear
+            </Button>
+          )}
         </Space>
       }
       trigger="click"
