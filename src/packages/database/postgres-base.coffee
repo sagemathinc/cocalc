@@ -774,8 +774,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @concurrent_counter?.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
+                    ## DANGER 
                     # Only uncomment this for low level debugging!
-                    dbg("params = #{JSON.stringify(opts.params)}")
+                    #### dbg("params = #{JSON.stringify(opts.params)}")
+                    ##
                     err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")

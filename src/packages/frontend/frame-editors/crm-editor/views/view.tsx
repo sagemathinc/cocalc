@@ -297,13 +297,9 @@ export default function View({ table, view, style, name, id }: Props) {
             onClose={() => setAddError("")}
           />
         )}
-        {!(loading && data.length == 0) && (
-          <>
-            <div style={{ flex: 1, overflow: "hidden", marginBottom: "10px" }}>
-              {body}
-            </div>
-          </>
-        )}
+        <div style={{ flex: 1, overflow: "hidden", marginBottom: "10px" }}>
+          {body}
+        </div>
       </div>
     </EditableContext.Provider>
   );

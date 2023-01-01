@@ -1,20 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { FilterOutlined } from "@ant-design/icons";
-import {
-  Button,
-  DatePicker,
-  Input,
-  InputNumber,
-  Popover,
-  Select,
-  Space,
-} from "antd";
+import { Button, Input, InputNumber, Popover, Select, Space } from "antd";
 import type { ColumnsType } from "../../fields";
 import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
 import { Operator, OPERATORS, AtomicSearch } from "../../syncdb/use-search";
-import dayjs from "dayjs";
 import { capitalize } from "@cocalc/util/misc";
+import TimeValue from "./time-value";
 
 function enumerate(x: object[]): any[] {
   const v: object[] = [];
@@ -57,7 +49,7 @@ export default function SearchMenu({ columns, search, setSearch, query }) {
       placement="bottom"
       overlayInnerStyle={{
         maxHeight: "90vh",
-        maxWidth: "565px",
+        maxWidth: "750px",
         overflow: "auto",
       }}
       content={<div>{content}</div>}
@@ -101,10 +93,9 @@ function SearchBy({
   );
 
   return (
-    <Space style={{ width: "100%" }}>
+    <Space style={{ width: "100%", marginBottom: "5px" }}>
       <Select
         value={field ?? ""}
-        size="small"
         style={{ width: "150px" }}
         showSearch
         placeholder="Find a field..."
@@ -150,7 +141,7 @@ function SearchBy({
       >
         <Icon name="times" />
       </Button>
-      {field != null && value != null && operator != null && (
+      {field && value && operator && (
         <Icon name="check" style={{ color: "green" }} />
       )}
     </Space>
@@ -171,7 +162,6 @@ function SelectOperator({ fieldSpec, operator, onChange }) {
   }, [fieldSpec]);
   return (
     <Select
-      size="small"
       style={{ width: "150px" }}
       value={operator}
       onChange={onChange}
@@ -186,7 +176,6 @@ function Value({ fieldSpec, operator, value, onChange }) {
     return (
       <Select
         style={{ width: "100px" }}
-        size="small"
         value={value}
         onChange={onChange}
         options={[
@@ -202,7 +191,6 @@ function Value({ fieldSpec, operator, value, onChange }) {
     return (
       <Select
         style={{ width: "100px" }}
-        size="small"
         value={value}
         onChange={onChange}
         options={[{ label: "NULL", value: "NULL" }]}
@@ -210,17 +198,10 @@ function Value({ fieldSpec, operator, value, onChange }) {
     );
   }
   if (fieldSpec.type == "timestamp") {
-    return (
-      <DatePicker
-        showTime
-        defaultValue={dayjs(value)}
-        onOk={(x) => onChange(x.toISOString())}
-      />
-    );
+    return <TimeValue value={value} onChange={onChange} />;
   } else if (fieldSpec.type == "number" || fieldSpec.type == "integer") {
     return (
       <InputNumber
-        size="small"
         style={{ width: "100px" }}
         value={value}
         onChange={onChange}
@@ -231,7 +212,6 @@ function Value({ fieldSpec, operator, value, onChange }) {
     return (
       <Select
         style={{ width: "100px" }}
-        size="small"
         value={value}
         onChange={onChange}
         options={fieldSpec.render.options.map((value) => {
@@ -245,7 +225,6 @@ function Value({ fieldSpec, operator, value, onChange }) {
   } else {
     return (
       <Input
-        size="small"
         style={{ width: "150px" }}
         value={value}
         onChange={(e) => onChange(e.target.value)}

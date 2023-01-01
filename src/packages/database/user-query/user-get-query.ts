@@ -1,8 +1,14 @@
-import { OPERATORS, UserOrProjectQuery, isToOperand } from "@cocalc/util/schema";
+import {
+  OPERATORS,
+  UserOrProjectQuery,
+  isToOperand,
+  SUPPORTED_TIME_UNITS,
+} from "@cocalc/util/schema";
 import { quoteField } from "../postgres/schema/util";
+import { is_object } from "@cocalc/util/misc";
 
 export function queryIsCmp(val): false | string {
-  if (typeof val != "object") {
+  if (!is_object(val)) {
     return false;
   }
   const keys = Object.keys(val);
@@ -46,27 +52,37 @@ export function userGetQueryFilter(
       // do not include any field that explicitly excluded from the query
       continue;
     }
-    if (queryIsCmp(val)) {
-      // A comparison, e.g.,
-      // field :
-      //    '<=' : 5
-      //    '>=' : 2
-      for (let op in val) {
-        const v = val[op];
-        if (op === "==") {
-          // not in SQL, but natural for our clients to use it
-          op = "=";
-        }
-        if (op.toLowerCase().startsWith("is")) {
-          // hack to use same where format for now, since $ replacement
-          // doesn't work for "foo IS ...".
-          where[`${quoteField(field)} ${op} ${isToOperand(v)}`] = true;
-        } else {
-          where[`${quoteField(field)} ${op} $`] = v;
-        }
-      }
-    } else {
+    if (!queryIsCmp(val)) {
       where[`${quoteField(field)} = $`] = val;
+      continue;
+    }
+
+    // It's a comparison query, e.g., {field : {'<=' : 5}}
+    for (let op in val) {
+      const v = val[op];
+      if (op === "==") {
+        // not in SQL, but natural for our clients to use it
+        op = "=";
+      }
+      if (op.toLowerCase().startsWith("is")) {
+        // hack to use same where format for now, since $ replacement
+        // doesn't work for "foo IS ...".
+        where[`${quoteField(field)} ${op} ${isToOperand(v)}`] = true;
+      } else if (
+        is_object(v) &&
+        v["relative_time"] != null &&
+        SUPPORTED_TIME_UNITS.includes(v["unit"])
+      ) {
+        const time = parseInt(v["relative_time"]);
+        // ${v["unit"]} is safe because we checked that it is in SUPPORTED_TIME_UNITS above.
+        // Also see https://stackoverflow.com/questions/7796657/using-a-variable-period-in-an-interval-in-postgres
+        // for how we do this "interval" arithmetic.
+        const int = `NOW() + $ * INTERVAL '1 ${v["unit"]}'`;
+        const expr = `${quoteField(field)} ${op} (${int})`;
+        where[expr] = time;
+      } else {
+        where[`${quoteField(field)} ${op} $`] = v;
+      }
     }
   }
 

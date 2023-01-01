@@ -20,3 +20,14 @@ export {
   DEFAULT_QUOTAS,
   CURRENT_DATE as UPGRADES_CURRENT_DATE,
 } from "./upgrade-spec";
+
+// This is for user querying using relative_time, i.e., {'field':{'>=':{relative_time:30,unit:'seconds'}}}
+
+export const SUPPORTED_TIME_UNITS = [
+  "seconds",
+  "minutes",
+  "hours",
+  "days",
+  "months",
+  "years",
+] as const;
