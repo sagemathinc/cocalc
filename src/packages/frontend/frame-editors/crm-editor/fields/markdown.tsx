@@ -58,6 +58,7 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
           setValue(value);
         }}
         onShiftEnter={() => save(obj, valueRef.current())}
+        onBlur={() => save(obj, valueRef.current(), undefined, true)}
       />
     </Space>
   ) : (
