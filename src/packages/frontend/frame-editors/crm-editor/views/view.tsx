@@ -262,7 +262,7 @@ export default function View({ table, view, style, name, id }: Props) {
           <div style={{ height: 0 }}>
             <Loading
               style={data.length > 0 ? { float: "right" } : undefined}
-              delay={data.length == 0 ? 0 : 750}
+              delay={750}
               theme={data.length == 0 ? "medium" : undefined}
               text="Loading from database..."
             />

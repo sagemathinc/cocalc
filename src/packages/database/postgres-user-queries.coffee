@@ -27,6 +27,7 @@ lodash       = require('lodash')
 required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
+{queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {file_use_times} = require('./postgres/file-use-times')
 
@@ -276,15 +277,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         else
             dbg("already cancelled before (no such feed)")
         opts.cb?()
-
-    _query_is_cmp: (obj) =>
-        if not misc.is_object(obj)
-            return false
-        for k, _ of obj
-            if k not in OPERATORS
-                return false
-            return k
-        return false
 
     _user_get_query_columns: (query, remove_from_query) =>
         v = misc.keys(query)
@@ -1172,43 +1164,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         x[key] = subs[value]
 
             # impose further restrictions (more where conditions)
-            pg_where.push(@_user_get_query_filter(user_query, client_query))
+            pg_where.push(userGetQueryFilter(user_query, client_query))
 
             cb(undefined, pg_where)
-
-    # Additional where object condition imposed by user's get query
-    _user_get_query_filter: (user_query, client_query) =>
-        # If the schema lists the value in a get query as 'null', then we remove it;
-        # nulls means it was only there to be used by the initial where filter
-        # part of the query.
-        for field, val of client_query.get.fields
-            if val == 'null'
-                delete user_query[field]
-
-        where = {}
-        for field, val of user_query
-            if val?
-                if client_query.get.remove_from_query? and client_query.get.remove_from_query.includes(field)
-                    # do not include any field that explicitly excluded from the query
-                    continue
-                if @_query_is_cmp(val)
-                    # A comparison, e.g.,
-                    # field :
-                    #    '<=' : 5
-                    #    '>=' : 2
-                    for op, v of val
-                        if op == '=='  # not in SQL, but natural for our clients to use it
-                            op = '='
-                        if op.toLowerCase().startsWith('is')
-                            # hack to use same where format for now, since $ replacement
-                            # doesn't work for "foo IS ...".
-                            where["#{quote_field(field)} #{op} #{isToOperand(v)}"] = true
-                        else
-                            where["#{quote_field(field)} #{op} $"] = v
-                else
-                    where["#{quote_field(field)} = $"] = val
-
-        return where
 
     _user_get_query_options: (options, multi, schema_options) =>
         r = {}
@@ -1265,7 +1223,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if date_keys
                 value = misc.fix_json_dates(value, date_keys)
             if (q = user_query[field])?
-                if (op = @_query_is_cmp(q))
+                if (op = queryIsCmp(q))
                     #dbg(value:value, op: op, q:q)
                     x = q[op]
                     switch op
@@ -1534,7 +1492,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
-                # See the TODO in @_user_get_query_filter.
+                # See the TODO in userGetQueryFilter.
                 dbg("get_query_where")
                 @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, opts.table, (err, where) =>
                     _query_opts.where = where

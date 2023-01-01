@@ -136,7 +136,7 @@ export interface Fields {
     | FieldSpec;
 }
 
-interface UserOrProjectQuery<F extends Fields> {
+export interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };

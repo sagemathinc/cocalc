@@ -499,7 +499,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         misc.retry_until_success(retry_opts)
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
+        dbg = @_dbg("__do_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
         if not @is_connected()
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
@@ -774,6 +774,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @concurrent_counter?.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
+                    # Only uncomment this for low level debugging!
+                    dbg("params = #{JSON.stringify(opts.params)}")
                     err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")

@@ -4,7 +4,7 @@
  */
 
 export { SCHEMA } from "./types";
-export type { DBSchema, TableSchema, FieldSpec } from "./types";
+export type { DBSchema, TableSchema, FieldSpec, UserOrProjectQuery } from "./types";
 export type { RenderSpec } from "./render-types";
 
 // The tables
