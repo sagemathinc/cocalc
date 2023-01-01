@@ -81,6 +81,7 @@ export default function ViewMenu({
           addedRecords={addedRecords}
           setAddedRecords={setAddedRecords}
           addNew={addNew}
+          title={title}
         />
       )}
       <Button type="text" onClick={refresh}>

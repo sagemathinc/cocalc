@@ -13,8 +13,8 @@ export default function useViewParam<T>({
   const [record, setRecord] = useRecord<{
     value?: T;
   }>({
-    id,
     table: `view-${name}`,
+    id,
     defaultValue: { value: defaultValue },
   });
 

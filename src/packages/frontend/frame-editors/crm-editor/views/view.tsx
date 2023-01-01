@@ -118,19 +118,24 @@ export default function View({ table, view, style, name, id }: Props) {
 
   const [addError, setAddError] = useState<string>("");
 
+  // Note -- we set the id to "" instead of the id of a view, since
+  // this should be global to all views of this table.  If you want this
+  // instead scoped to a single view (which might make sense), change
+  // 'id: ""' to 'id'.  Global is probably best, since the point is to not
+  // accidentally lose stuff.
   const [addedRecords, setAddedRecords] = useViewParam<
-    { id: number; timestamp: number }[]
+    { id: number; timestamp: number; viewName: string; viewId: string }[]
   >({
-    id,
-    name: "new",
+    id: "",
+    name: `new-${table}`,
     defaultValue: [],
   });
 
   async function addNew() {
     setAddError("");
-    let id: number | null = null;
+    let newId: number | null = null;
     try {
-      id = await createNewRecord({
+      newId = await createNewRecord({
         filter,
         search,
         dbtable,
@@ -140,12 +145,17 @@ export default function View({ table, view, style, name, id }: Props) {
     } catch (err) {
       setAddError(`${err}`);
     }
-    if (id != null) {
+    if (newId != null) {
       // ?? filter to remove older records to save memory and
       // put in the new one.
       // const now = new Date().valueOf();
       /// .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
-      addedRecords.push({ id, timestamp: new Date().valueOf() });
+      addedRecords.push({
+        id: newId,
+        timestamp: new Date().valueOf(),
+        viewName: name,
+        viewId: id,
+      });
       setAddedRecords([...addedRecords]);
     }
     refresh();
