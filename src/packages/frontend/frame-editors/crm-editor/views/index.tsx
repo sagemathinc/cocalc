@@ -7,8 +7,8 @@ import {
   useState,
 } from "react";
 import useViews, { View as ViewDescription } from "../syncdb/use-views";
+import useViewControl from "../frame/use-view-control";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Button, Card, Dropdown, Input, Space, Tabs } from "antd";
 import View from "./view";
 import {
@@ -46,7 +46,7 @@ interface Props {
 
 export default function Views({ table, style }: Props) {
   const { views, saveView, deleteView } = useViews(table);
-  const { actions, id: frameId, desc } = useFrameContext();
+  const { view, switchToView } = useViewControl(table, views?.[0]?.id);
   const { showViews, setShowViews } = useViewsToggle(table);
 
   const getView = useCallback(
@@ -61,16 +61,13 @@ export default function Views({ table, style }: Props) {
     [views]
   );
 
-  const viewKey = `data-view-${table}`;
-  const view = useMemo<string | undefined>(() => {
-    return desc.get(viewKey, views?.[0]?.id);
-  }, [desc]);
-
   const items = useMemo(() => {
     const createNewView = (type: string) => {
       const newView = { type, id: undefined };
       saveView(newView);
-      actions.set_frame_tree({ id: frameId, [viewKey]: newView.id });
+      if (newView.id != null) {
+        switchToView(newView.id);
+      }
     };
 
     const items: TabItem[] = [];
@@ -104,28 +101,48 @@ export default function Views({ table, style }: Props) {
       children: (
         <Card title="Create new view">
           <Space>
-            <Button size="large" onClick={() => createNewView("grid")}>
+            <Button
+              type="text"
+              style={{ fontSize: "14pt" }}
+              size="large"
+              onClick={() => createNewView("grid")}
+            >
               <Icon
                 name={TYPE_TO_ICON["grid"]}
                 style={{ marginRight: "15px" }}
               />{" "}
               Grid
             </Button>
-            <Button size="large" onClick={() => createNewView("gallery")}>
+            <Button
+              type="text"
+              style={{ fontSize: "14pt" }}
+              size="large"
+              onClick={() => createNewView("gallery")}
+            >
               <Icon
                 name={TYPE_TO_ICON["gallery"]}
                 style={{ marginRight: "15px" }}
               />{" "}
               Gallery
             </Button>
-            <Button size="large" onClick={() => createNewView("kanban")}>
+            <Button
+              type="text"
+              style={{ fontSize: "14pt" }}
+              size="large"
+              onClick={() => createNewView("kanban")}
+            >
               <Icon
                 name={TYPE_TO_ICON["kanban"]}
                 style={{ marginRight: "15px" }}
               />{" "}
               Kanban
             </Button>
-            <Button size="large" onClick={() => createNewView("calendar")}>
+            <Button
+              type="text"
+              style={{ fontSize: "14pt" }}
+              size="large"
+              onClick={() => createNewView("calendar")}
+            >
               <Icon
                 name={TYPE_TO_ICON["calendar"]}
                 style={{ marginRight: "15px" }}
@@ -245,7 +262,7 @@ export default function Views({ table, style }: Props) {
       tabPosition="left"
       activeKey={view}
       onChange={(view: string) => {
-        actions.set_frame_tree({ id: frameId, [viewKey]: view });
+        switchToView(view);
       }}
       size="small"
       items={items}
