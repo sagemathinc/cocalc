@@ -6,6 +6,7 @@ import SearchMenu from "./search";
 //import GroupMenu from "./group";
 import HideFieldsMenu from "./hide-fields";
 import LimitsMenu from "./limits";
+import NewMenu from "./new";
 
 export default function ViewMenu({
   query,
@@ -30,6 +31,8 @@ export default function ViewMenu({
   setOrderFields,
   rowKey,
   addNew,
+  addedRecords,
+  setAddedRecords,
   refresh,
   filters,
 }) {
@@ -74,9 +77,11 @@ export default function ViewMenu({
         recordHeight={recordHeight}
       />
       {addNew && (
-        <Button type="text" onClick={addNew}>
-          <Icon name="plus-circle" /> New
-        </Button>
+        <NewMenu
+          addedRecords={addedRecords}
+          setAddedRecords={setAddedRecords}
+          addNew={addNew}
+        />
       )}
       <Button type="text" onClick={refresh}>
         <Icon name="refresh" /> Refresh

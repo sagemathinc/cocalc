@@ -60,11 +60,11 @@ export default function TopMenu({
           children: [
             {
               label: "Import CSV",
-              key: "csv",
+              key: "csv-import",
             },
             {
               label: "Import JSON",
-              key: "json",
+              key: "json-import",
             },
           ],
         },
@@ -74,11 +74,11 @@ export default function TopMenu({
           children: [
             {
               label: "Export CSV",
-              key: "csv",
+              key: "csv-export",
             },
             {
               label: "Export JSON",
-              key: "json",
+              key: "json-export",
             },
           ],
         },

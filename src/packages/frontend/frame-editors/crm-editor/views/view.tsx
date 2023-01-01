@@ -118,7 +118,7 @@ export default function View({ table, view, style, name, id }: Props) {
 
   const [addError, setAddError] = useState<string>("");
 
-  const [newRecords, setNewRecords] = useViewParam<
+  const [addedRecords, setAddedRecords] = useViewParam<
     { id: number; timestamp: number }[]
   >({
     id,
@@ -141,14 +141,12 @@ export default function View({ table, view, style, name, id }: Props) {
       setAddError(`${err}`);
     }
     if (id != null) {
-      const now = new Date().valueOf();
-      // filter to remove older records to save memory and
+      // ?? filter to remove older records to save memory and
       // put in the new one.
-      setNewRecords(
-        newRecords
-          .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
-          .concat([{ id, timestamp: new Date().valueOf() }])
-      );
+      // const now = new Date().valueOf();
+      /// .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
+      addedRecords.push({ id, timestamp: new Date().valueOf() });
+      setAddedRecords([...addedRecords]);
     }
     refresh();
   }
@@ -178,6 +176,8 @@ export default function View({ table, view, style, name, id }: Props) {
         setOrderFields={setOrderFields}
         rowKey={rowKey}
         addNew={allowCreate ? addNew : undefined}
+        addedRecords={addedRecords}
+        setAddedRecords={setAddedRecords}
         refresh={refresh}
         filters={
           <>
