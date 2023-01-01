@@ -8,6 +8,7 @@ import {
 } from "react";
 import useViews, { View as ViewDescription } from "../syncdb/use-views";
 import useViewControl from "../frame/use-view-control";
+import useViewsToggle from "./use-views-toggle";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { Button, Card, Dropdown, Input, Space, Tabs } from "antd";
 import View from "./view";
@@ -20,7 +21,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
-import useViewsToggle from "./use-views-toggle";
 import Handle from "../components/handle";
 
 export const TYPE_TO_ICON: { [type: string]: IconName } = {

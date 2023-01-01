@@ -12,6 +12,7 @@ export default function ViewMenu({
   query,
   name,
   title,
+  table,
   dbtable,
   view,
   viewCount,
@@ -82,6 +83,7 @@ export default function ViewMenu({
           setAddedRecords={setAddedRecords}
           addNew={addNew}
           title={title}
+          table={table}
         />
       )}
       <Button type="text" onClick={refresh}>

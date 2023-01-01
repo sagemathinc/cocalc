@@ -146,8 +146,8 @@ export default function View({ table, view, style, name, id }: Props) {
       setAddError(`${err}`);
     }
     if (newId != null) {
-      // ?? filter to remove older records to save memory and
-      // put in the new one.
+      // UNCLEAR: We could filter to remove older records to save memory and
+      // put in the new one.  But people might be annoyed by this and it is abitrary.
       // const now = new Date().valueOf();
       /// .filter((x) => x.timestamp >= now - 1000 * 60 * 5)
       addedRecords.push({
@@ -168,6 +168,7 @@ export default function View({ table, view, style, name, id }: Props) {
         name={name}
         title={title ?? fieldToLabel(table)}
         dbtable={dbtable}
+        table={table}
         view={view}
         viewCount={filteredData?.length ?? 0}
         tableLowerBound={data?.length ?? 0}

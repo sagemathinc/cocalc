@@ -1,7 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Divider, Popover, Space } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { field_cmp } from "@cocalc/util/misc";
+import useViews from "../../syncdb/use-views";
+import useViewControl from "../../frame/use-view-control";
+import useSortFields from "../../syncdb/use-sort-fields";
+import useOrderFields from "../../syncdb/use-order-fields";
 
 function singular(title: string): string {
   if (title == "People") {
@@ -18,12 +23,16 @@ export default function NewMenu({
   addedRecords,
   setAddedRecords,
   title,
+  table,
 }) {
   const label =
     addedRecords.length == 0 ? "New" : `New (${addedRecords.length})`;
+  const [open, setOpen] = useState<boolean>(false);
 
   return (
     <Popover
+      open={open}
+      onOpenChange={setOpen}
       placement="bottom"
       overlayInnerStyle={{ maxHeight: "90vh", overflow: "auto" }}
       content={
@@ -34,7 +43,11 @@ export default function NewMenu({
             </Button>
           </div>
           {addedRecords.length > 0 && (
-            <RecentRecords addedRecords={addedRecords} />
+            <RecentRecords
+              addedRecords={addedRecords}
+              table={table}
+              setOpen={setOpen}
+            />
           )}
           {addedRecords.length > 0 && (
             <Button
@@ -62,48 +75,81 @@ export default function NewMenu({
   );
 }
 
-const STYLE = {
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  display: "inline-block",
-};
+function RecentRecords({ addedRecords, table, setOpen }) {
+  const { views, saveView } = useViews(table);
+  const { switchToView } = useViewControl(table);
 
-function RecentRecords({ addedRecords }) {
+  const newViewId = useMemo(() => {
+    if (views == null) return "";
+    for (const view of views) {
+      if (view.name == "Newly Created") {
+        return view.id;
+      }
+    }
+    // This saveView needs to happen outside this render loop.
+    // It triggers update of views and then the code above.
+    setTimeout(() => {
+      const newView = { type: "grid", name: "Newly Created", id: undefined };
+      saveView(newView);
+    }, 0);
+    return "";
+  }, [views]);
+  const [, setSortField] = useSortFields({ id: newViewId });
+  const [orderFields, setOrderFields] = useOrderFields({
+    id: newViewId,
+    fields: ["id", "created"],
+  });
+  useEffect(() => {
+    if (!newViewId) return;
+    // ensure the sort and field order is correct
+    setSortField("id", "id", "descending", 0);
+    setOrderFields(
+      ["id", "created"].concat(
+        orderFields.filter((x) => x != "id" && x != "created")
+      )
+    );
+  }, [newViewId]);
+
   const cmp = field_cmp("timestamp");
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       <Divider style={{ margin: 0 }}>Recent</Divider>
       {addedRecords
         .sort((a, b) => -cmp(a, b))
-        .map(({ id, timestamp, viewName }) => (
-          <Button key={id} type="text" onClick={() => console.log("edit ", id)}>
-            <div
-              style={{
-                ...STYLE,
-                width: "100px",
+        .map(({ id, timestamp, viewName, viewId }) => (
+          <div key={id}>
+            <Button
+              style={{ width: "250px" }}
+              type="link"
+              disabled={!newViewId}
+              onClick={() => {
+                switchToView(newViewId);
+                setOpen(false);
+                // open the given record itself?  Maybe too annoying...
               }}
             >
-              {" "}
-              id={id}
-            </div>
-            <div
-              style={{
-                ...STYLE,
-                width: "150px",
-                margin: "0 15px",
+              <span style={{ marginRight: "15px" }}>id={id}</span>
+              (<TimeAgo date={timestamp} />)
+            </Button>
+            <Button
+              style={{ width: "150px" }}
+              type="text"
+              onClick={() => {
+                switchToView(viewId);
+                setOpen(false);
               }}
             >
-              <TimeAgo date={timestamp} />
-            </div>
-            <div
-              style={{
-                ...STYLE,
-                width: "150px",
-              }}
-            >
-              {viewName}
-            </div>
-          </Button>
+              <div
+                style={{
+                  overflow: "hidden",
+                  width: "100%",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {viewName}
+              </div>
+            </Button>
+          </div>
         ))}
     </Space>
   );
