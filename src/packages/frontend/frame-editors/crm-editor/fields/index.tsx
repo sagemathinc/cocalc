@@ -163,7 +163,7 @@ export function getFieldSpec(table: string, field: string): FieldSpec {
   );
 }
 
-function getRenderSpec(fieldSpec: FieldSpec): RenderSpec {
+export function getRenderSpec(fieldSpec: FieldSpec): RenderSpec {
   let renderSpec = fieldSpec.render;
   if (renderSpec != null) {
     return renderSpec;

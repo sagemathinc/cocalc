@@ -15,7 +15,7 @@ export type { Operator };
 export interface AtomicSearch {
   field?: string;
   operator?: Operator;
-  value?: string;
+  value?: any;
 }
 
 export default function useSearch({

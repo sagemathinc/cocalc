@@ -10,6 +10,7 @@ export default function useFilterInput({ data, id, title }): {
   filteredData: any[];
   Filter: ReactNode;
   numHidden: number;
+  filter: string;
 } {
   const [filter, setFilter] = useViewFilter({ id });
 
@@ -55,5 +56,5 @@ export default function useFilterInput({ data, id, title }): {
     );
   }, [id, filter, data.length]);
 
-  return { filteredData, Filter, numHidden };
+  return { filteredData, Filter, numHidden, filter };
 }

@@ -21,8 +21,8 @@ import useOrderFields from "../syncdb/use-order-fields";
 import useViewParam from "../syncdb/use-view-param";
 import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
-import querydbSet from "../querydb/set";
 import { columnsToFieldMap } from "./view-menu/hide-fields";
+import createNewRecord from "./create-new-record";
 
 export const DEFAULT_RECORD_HEIGHT = 300;
 export const DEFAULT_LIMIT = 100;
@@ -109,7 +109,7 @@ export default function View({ table, view, style, name, id }: Props) {
     loading,
   } = useTable({ query, changes, sortFields, hiddenFields, search, limit });
 
-  const { filteredData, numHidden, Filter } = useFilterInput({
+  const { filteredData, numHidden, Filter, filter } = useFilterInput({
     data,
     id,
     title,
@@ -118,16 +118,9 @@ export default function View({ table, view, style, name, id }: Props) {
   const [addError, setAddError] = useState<string>("");
 
   async function addNew() {
-    const x: any = {};
-
-    if (dbtable == "crm_tags") {
-      // TODO: need a 'new editor' before it goes into the DB!
-      x.name = "New Tag";
-    }
-
     setAddError("");
     try {
-      await querydbSet({ [dbtable]: x });
+      await createNewRecord({ filter, search, dbtable, fields, hiddenFields });
     } catch (err) {
       setAddError(`${err}`);
     }
