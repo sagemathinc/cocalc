@@ -41,12 +41,19 @@ MAX_QUEUE_SIZE = 150  # client isn't supposed to send more than around 25-50 at 
 
 # setup metrics
 metrics = require('./metrics')
-query_queue_exec = metrics.newCounter('query_queue_executed_total',
-                    'Executed queries and their status', ['status'])
-query_queue_duration = metrics.newCounter('query_queue_duration_seconds_total',
-                    'Total time it took to evaluate queries')
-query_queue_done = metrics.newCounter('query_queue_done_total',
-                    'Total number of evaluated queries')
+
+getMetrics = () =>
+    try
+        query_queue_exec = metrics.newCounter('query_queue_executed_total',
+                            'Executed queries and their status', ['status'])
+        query_queue_duration = metrics.newCounter('query_queue_duration_seconds_total',
+                            'Total time it took to evaluate queries')
+        query_queue_done = metrics.newCounter('query_queue_done_total',
+                            'Total number of evaluated queries')
+        return {query_queue_exec, query_queue_duration, query_queue_done}
+    catch err
+        console.log("WARNING: ", err)
+        return {}
 
 global_count = 0
 
@@ -117,7 +124,8 @@ class exports.UserQueryQueue
             # point in even trying; the client likely already gave up.
             opts.cb?("timeout")
             cb()
-            query_queue_exec.labels('timeout').inc()
+            {query_queue_exec} = getMetrics()
+            query_queue_exec?.labels('timeout').inc()
             return
 
         id = misc.uuid().slice(0,6)
@@ -146,7 +154,8 @@ class exports.UserQueryQueue
             orig_cb?(err, result)
 
         # Increment counter
-        query_queue_exec.labels('sent').inc()
+        {query_queue_exec} = getMetrics()
+        query_queue_exec?.labels('sent').inc()
         # Finally, do the query.
         @_do_query(opts)
 
@@ -182,8 +191,9 @@ class exports.UserQueryQueue
             global_count -= 1
             duration_ms = new Date() - tm
             state.time_ms.push(duration_ms)
-            query_queue_duration.inc(duration_ms / 1000)
-            query_queue_done.inc(1)
+            {query_queue_duration,query_queue_done} = getMetrics()
+            query_queue_duration?.inc(duration_ms / 1000)
+            query_queue_done?.inc(1)
             if state.time_ms.length > TIME_HISTORY_LENGTH
                 state.time_ms.shift()
             @_info(state)
