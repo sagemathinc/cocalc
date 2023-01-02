@@ -155,7 +155,7 @@ export default function SubNav(props: Props) {
     const selected = name == "index" ? !subPage : subPage == name;
     tabs.push(
       <SubPageTab
-        key={name}
+        key={`${name}${subPage ?? ""}${softwareEnv ?? ""}`}
         page={page}
         selected={selected}
         name={name}
