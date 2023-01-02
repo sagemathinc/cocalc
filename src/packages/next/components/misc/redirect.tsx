@@ -5,12 +5,18 @@ import A from "components/misc/A";
 
 interface Props {
   target: string;
+  external?: boolean; // outside of the nextjs app
 }
 
-export default function Redirect({ target }: Props) {
+export default function Redirect({ target, external }: Props) {
   const router = useRouter();
   useEffect(() => {
-    router.replace(target);
+    if (external) {
+      // @ts-ignore
+      window.location = target;
+    } else {
+      router.replace(target);
+    }
   }, []);
   return (
     <div style={{ textAlign: "center", margin: "30px auto" }}>

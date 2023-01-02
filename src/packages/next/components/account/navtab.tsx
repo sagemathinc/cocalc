@@ -207,8 +207,8 @@ export default function AccountNavTab({ style }: Props) {
         <A href={join(basePath, "admin")} external>
           Site Administration
         </A>,
-        "users"
-      ),
+        "settings"
+      )
     ];
   }
 

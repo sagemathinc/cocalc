@@ -12,6 +12,7 @@ query for everything for account with cancelled if everything they decided not t
 
 import { Table } from "./types";
 import { SiteLicenseQuota as Quota } from "../types/site-licenses";
+import { SCHEMA as schema } from "./index";
 
 export type ProductType = "site-license";
 export type ProductDescription = Quota; // just for now.
@@ -39,10 +40,13 @@ Table({
       type: "integer",
       desc: "Automatically generated sequential id that uniquely determines this item.",
       pg_type: "SERIAL UNIQUE",
+      noCoerce: true,
     },
     account_id: {
       type: "uuid",
       desc: "account_id of the user whose shopping cart this item is being placed into.",
+      title: "Account",
+      render: { type: "account" },
     },
     added: {
       type: "timestamp",
@@ -59,6 +63,7 @@ Table({
     purchased: {
       type: "map",
       desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?  license_id.",
+      render: { type: "purchased" },
     },
     product: {
       type: "string",
@@ -67,6 +72,7 @@ Table({
     description: {
       type: "map",
       desc: "Object that describes the product that was placed in the shopping cart.",
+      render: { type: "json" },
     },
     project_id: {
       type: "string",
@@ -78,4 +84,31 @@ Table({
     desc: "Shopping Cart Items",
     primary_key: "id",
   },
+});
+
+Table({
+  name: "crm_shopping_cart_items",
+  rules: {
+    virtual: "shopping_cart_items",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table; not set queries at all by anybody -- that is done via an api.
+        fields: {
+          id: null,
+          account_id: null,
+          added: null,
+          checked: null,
+          removed: null,
+          purchased: null,
+          product: null,
+          description: null,
+          project_id: null,
+        },
+        options: [{ limit: 100 }],
+      },
+    },
+  },
+  fields: schema.shopping_cart_items.fields,
 });

@@ -24,8 +24,8 @@ export {
   map_min,
   sum,
   is_zero_map,
-  map_without_undefined,
-  map_mutate_out_undefined,
+  map_without_undefined_and_null,
+  map_mutate_out_undefined_and_null,
 } from "./maps";
 
 export { done, done1, done2 } from "./done";
@@ -431,7 +431,7 @@ export function plural(number, singular, plural = `${singular}s`) {
   }
 }
 
-const ELLIPSES = "…";
+const ELLIPSIS = "…";
 // "foobar" --> "foo…"
 export function trunc(s, max_length = 1024) {
   if (s == null) {
@@ -444,7 +444,7 @@ export function trunc(s, max_length = 1024) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return s.slice(0, max_length - 1) + ELLIPSES;
+    return s.slice(0, max_length - 1) + ELLIPSIS;
   } else {
     return s;
   }
@@ -467,7 +467,7 @@ export function trunc_middle(s, max_length = 1024) {
   const n = Math.floor(max_length / 2);
   return (
     s.slice(0, n - 1 + (max_length % 2 ? 1 : 0)) +
-    ELLIPSES +
+    ELLIPSIS +
     s.slice(s.length - n)
   );
 }
@@ -484,7 +484,7 @@ export function trunc_left(s, max_length = 1024): string | undefined {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
     }
-    return ELLIPSES + s.slice(s.length - max_length + 1);
+    return ELLIPSIS + s.slice(s.length - max_length + 1);
   } else {
     return s;
   }
@@ -992,6 +992,11 @@ function isMatch(s: string, x: string | RegExp): boolean {
   if (typeof x == "string") {
     if (x[0] == "-") {
       // negate
+      if (x.length == 1) {
+        // special case of empty -- no-op, since when you type -foo, you first type "-" and it
+        // is disturbing for everything to immediately vanish.
+        return true;
+      }
       return !isMatch(s, x.slice(1));
     }
     if (x[0] === "#") {
@@ -2108,40 +2113,6 @@ export function create_dependency_graph(obj: {
     DAG[name] = written_func.dependency_names ?? [];
   }
   return DAG;
-}
-
-// ORDER MATTERS! -- this gets looped over and searches happen -- so the 1-character ops must be last.
-export type OPERATORS = "!=" | "<>" | "<=" | ">=" | "==" | "<" | ">" | "=";
-export const operators: OPERATORS[] = [
-  "!=",
-  "<>",
-  "<=",
-  ">=",
-  "==",
-  "<",
-  ">",
-  "=",
-];
-
-export function op_to_function(op: string): (a, b) => boolean {
-  switch (op) {
-    case "=":
-    case "==":
-      return (a, b) => a === b;
-    case "!=":
-    case "<>":
-      return (a, b) => a !== b;
-    case "<=":
-      return (a, b) => a <= b;
-    case ">=":
-      return (a, b) => a >= b;
-    case "<":
-      return (a, b) => a < b;
-    case ">":
-      return (a, b) => a > b;
-    default:
-      throw Error(`operator must be one of '${JSON.stringify(operators)}'`);
-  }
 }
 
 // modify obj in place substituting as specified in subs recursively,

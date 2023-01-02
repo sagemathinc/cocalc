@@ -16,6 +16,7 @@ You must recreate it.
 
 import { EventEmitter } from "events";
 import * as misc from "@cocalc/util/misc";
+import { opToFunction, OPERATORS, Operator } from "@cocalc/util/db-schema";
 import { callback } from "awaiting";
 import { PostgreSQL, QuerySelect } from "./types";
 import { query } from "./changefeed-query";
@@ -163,7 +164,7 @@ export class Changes extends EventEmitter {
     }
     for (const x of results) {
       if (this.match_condition(x)) {
-        misc.map_mutate_out_undefined(x);
+        misc.map_mutate_out_undefined_and_null(x);
         const change: ChangeEvent = { action: "insert", new_val: x };
         this.emit("change", change);
       }
@@ -294,6 +295,8 @@ export class Changes extends EventEmitter {
     if (prev_val == null) {
       return { new_val: this_val, action: "insert" }; // not enough info to make a diff
     }
+    this.dbg("new_val_update")(`${JSON.stringify({ this_val, prev_val })}`);
+
     // Send only the fields that changed between
     // prev_val and this_val, along with the primary part.
     const new_val = misc.copy(primary_part);
@@ -306,6 +309,12 @@ export class Changes extends EventEmitter {
         JSON.stringify(this_val[field]) != JSON.stringify(prev_val[field])
       ) {
         new_val[field] = this_val[field];
+      }
+    }
+    for (const field in prev_val) {
+      if (prev_val[field] != null && this_val[field] == null) {
+        // field was deleted / set to null -- we must inform in the update
+        new_val[field] = null;
       }
     }
     return { new_val, action: "update" };
@@ -328,7 +337,7 @@ export class Changes extends EventEmitter {
     }
 
     this.condition = {};
-    const add_condition = (field: string, op: string, val: any): void => {
+    const add_condition = (field: string, op: Operator, val: any): void => {
       if (this.condition == null) return; // won't happen
       let f: Function, g: Function;
       field = field.trim();
@@ -376,18 +385,17 @@ export class Changes extends EventEmitter {
         } else if (op == "!=" || op == "<>") {
           f = (x) => new Date(x).valueOf() - val !== 0;
         } else {
-          g = misc.op_to_function(op);
+          g = opToFunction(op);
           f = (x) => g(new Date(x), val);
         }
       } else {
-        g = misc.op_to_function(op);
+        g = opToFunction(op);
         f = (x) => g(x, val);
       }
       this.condition[field] = f;
     };
 
     for (const obj of w) {
-      let found: boolean, i: number, op: string;
       if (misc.is_object(obj)) {
         for (const k in obj) {
           const val = obj[k];
@@ -403,9 +411,9 @@ export class Changes extends EventEmitter {
              - something where javascript === and comparisons works as you expect!
              - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
           */
-          found = false;
-          for (op of misc.operators) {
-            i = k.indexOf(op);
+          let found = false;
+          for (const op of OPERATORS) {
+            const i = k.indexOf(op);
             if (i !== -1) {
               add_condition(k.slice(0, i).trim(), op, val);
               found = true;
@@ -417,9 +425,9 @@ export class Changes extends EventEmitter {
           }
         }
       } else if (typeof obj === "string") {
-        found = false;
-        for (op of misc.operators) {
-          i = obj.indexOf(op);
+        let found = false;
+        for (const op of OPERATORS) {
+          const i = obj.indexOf(op);
           if (i !== -1) {
             add_condition(
               obj.slice(0, i),

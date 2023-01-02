@@ -76,6 +76,8 @@ schema.stats =
 
 */
 
+import { RenderSpec } from "./render-types";
+
 export const SCHEMA: DBSchema = {};
 
 export function Table<F extends Fields>({
@@ -90,13 +92,16 @@ export function Table<F extends Fields>({
   if (!rules.virtual) {
     // runtime check that fields and primary_key are set.
     // If there is a way to do this at compile time with typescript, that would be better.
-    if (fields == null || rules.primary_key == null) {
+    if (fields == null) {
+      throw Error("db-schema error; fields must be set for non-virtual tables");
+    }
+    if (rules.primary_key == null) {
       throw Error(
-        "db-schema error; fields and primary_key must be set for non-virtual tables"
+        "db-schema error; primary_key must be set for non-virtual tables"
       );
     }
   }
-  const T: TableSchema<F> = { ...rules, fields };
+  const T: TableSchema<F> = { name, ...rules, fields };
   SCHEMA[name] = T;
 }
 
@@ -104,33 +109,43 @@ export interface DBSchema {
   [key: string]: TableSchema<any>;
 }
 
-interface Fields {
-  [key: string]:
-    | boolean
-    | {
-        type:
-          | "uuid"
-          | "timestamp"
-          | "string"
-          | "boolean"
-          | "map"
-          | "array"
-          | "integer"
-          | "number"
-          | "Buffer";
-        desc?: string;
-        pg_type?: string;
-        unique?: boolean;
-      };
+type FieldType =
+  | "uuid"
+  | "timestamp"
+  | "string"
+  | "boolean"
+  | "map"
+  | "array"
+  | "integer"
+  | "number"
+  | "Buffer";
+
+export interface FieldSpec {
+  type: FieldType;
+  desc?: string;
+  title?: string;
+  pg_type?: string;
+  unique?: boolean;
+  noCoerce?: boolean; // if true, don't coerce to this type when doing set query
+  render?: RenderSpec;
 }
 
-interface UserOrProjectQuery<F extends Fields> {
+export interface Fields {
+  [key: string]:
+    | true // this is set ONLY for fields in virtual tables and means refer to the actual table.
+    | FieldSpec;
+}
+
+export interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
+    required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
-    pg_where?: (string | { [key: string]: any })[];
+    pg_where?:
+      | (string | { [key: string]: any })[]
+      | ((obj: any, db: any) => any[]);
     pg_where_load?: (string | { [key: string]: any })[]; // used instead of pg_where if server is under "heavy load"
-    pg_changefeed?: string;
+    pg_changefeed?: string | Function;
     remove_from_query?: string[];
     admin?: boolean;
     options?: any; // [{ limit: 1 }]
@@ -168,6 +183,7 @@ interface UserOrProjectQuery<F extends Fields> {
     //
     // old_val is the matching result from QUERY that will be replaced
 
+    options?: { delete: true }[];
     /**
      * 0. CHECK: Runs before doing any further processing; has callback, so this
      * provides a generic way to quickly check whether or not this query is allowed
@@ -239,7 +255,8 @@ interface UserOrProjectQuery<F extends Fields> {
   };
 }
 
-interface TableSchema<F extends Fields> {
+export interface TableSchema<F extends Fields> {
+  name: string;
   desc?: string;
   primary_key?: keyof F | (keyof F)[]; // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   fields?: F; // the fields -- required if virtual is not set.
@@ -252,12 +269,13 @@ interface TableSchema<F extends Fields> {
   virtual?: string | true; // Must be another table name or true
   pg_indexes?: string[];
   pg_unique_indexes?: string[];
+  crm_indexes?: string[]; // pg_indexes are not used by the CRM data; you must specify any indexing of the CRM data explicitly here
   user_query?: UserOrProjectQuery<F>;
   project_query?: UserOrProjectQuery<F>;
 }
 
 type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
-type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields">;
+type PartialSchema<F extends Fields> = Omit<TableSchema<F>, "fields" | "name">;
 
 import { SiteSettings, SiteSettingsKeys } from "./site-defaults";
 import { SettingsExtras, SiteSettingsExtrasKeys } from "./site-settings-extras";

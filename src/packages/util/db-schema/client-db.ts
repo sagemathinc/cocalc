@@ -15,15 +15,12 @@ class ClientDB {
 
   constructor() {
     this.sha1 = this.sha1.bind(this);
-    this._user_set_query_project_users = this._user_set_query_project_users.bind(
-      this
-    );
-    this._user_set_query_project_change_after = this._user_set_query_project_change_after.bind(
-      this
-    );
-    this._user_set_query_project_change_before = this._user_set_query_project_change_before.bind(
-      this
-    );
+    this._user_set_query_project_users =
+      this._user_set_query_project_users.bind(this);
+    this._user_set_query_project_change_after =
+      this._user_set_query_project_change_after.bind(this);
+    this._user_set_query_project_change_before =
+      this._user_set_query_project_change_before.bind(this);
     this.primary_keys = this.primary_keys.bind(this);
     this.r = {};
   }
@@ -55,6 +52,8 @@ class ClientDB {
     cb();
   }
 
+  // table is either name of a table in the default SCHEMA, or
+  // it can be a TableSchema<any> object (for a non-virtual table).
   primary_keys(table) {
     if (this._primary_keys_cache == null) {
       this._primary_keys_cache = {};
@@ -62,7 +61,7 @@ class ClientDB {
     if (this._primary_keys_cache[table] != null) {
       return this._primary_keys_cache[table];
     }
-    let t = SCHEMA[table];
+    let t = typeof table == "string" ? SCHEMA[table] : table;
     if (typeof t.virtual == "string") {
       t = SCHEMA[t.virtual];
     }

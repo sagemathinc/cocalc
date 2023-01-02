@@ -5,7 +5,7 @@ The pen panel.
 import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
-import { defaultRadius, maxRadius } from "./defaults";
+import { defaultRadius, maxRadius as defaultMaxRadius } from "./defaults";
 import { SELECTED } from "./common";
 
 interface Params {
@@ -144,9 +144,11 @@ function AlternateTop({
 export function BrushPreview({
   radius,
   color,
+  maxRadius = defaultMaxRadius,
 }: {
   radius: number;
   color: string;
+  maxRadius?: number;
 }) {
   return (
     <div

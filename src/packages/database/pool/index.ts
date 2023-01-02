@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "./pool";
+import getPool, { getClient } from "./pool";
 export default getPool;
+export { getClient };
+export type { Client } from "pg";
 
 export { timeInSeconds } from "./util";

@@ -243,7 +243,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   if (i !== -1) {
     if (IS_SAFARI) {
       // Safari's implementation of direction rtl combined with
-      // ellipses is really buggy.  E.g.,
+      // ellipsis is really buggy.  E.g.,
       //   https://developer.apple.com/forums/thread/87131
       // so for Safari we just show the filename as usual.  I tried
       // for many hours to find a palatable workaround, but failed.

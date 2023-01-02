@@ -34,6 +34,8 @@ Table({
       "site_license", // for queries across projects related to site_license#>>{license_id}
     ],
 
+    crm_indexes: ["last_edited"],
+
     user_query: {
       get: {
         pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
@@ -143,18 +145,27 @@ Table({
       type: "string",
       pg_type: "VARCHAR(100)",
       desc: "The optional name of this project.  Must be globally unique (up to case) across all projects with a given *owner*.  It can be between 1 and 100 characters from a-z A-Z 0-9 period and dash.",
+      render: { type: "text", maxLen: 100, editable: true },
     },
     title: {
       type: "string",
       desc: "The short title of the project. Should use no special formatting, except hashtags.",
+      render: { type: "project_link", project_id: "project_id" },
     },
     description: {
       type: "string",
       desc: "A longer textual description of the project.  This can include hashtags and should be formatted using markdown.",
+      render: {
+        type: "markdown",
+        maxLen: 1024,
+        editable: true,
+      },
     }, // markdown rendering possibly not implemented
     users: {
+      title: "Collaborators",
       type: "map",
       desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
+      render: { type: "usersmap", editable: true },
     },
     invite: {
       type: "map",
@@ -169,6 +180,7 @@ Table({
     deleted: {
       type: "boolean",
       desc: "Whether or not this project is deleted.",
+      render: { type: "boolean", editable: true },
     },
     host: {
       type: "map",
@@ -281,18 +293,24 @@ Table({
     env: {
       type: "map",
       desc: "Additional environment variables (TS: {[key:string]:string})",
+      render: { type: "json", editable: true },
     },
     sandbox: {
       type: "boolean",
       desc: "If set to true, then any user who attempts to access this project is automatically added as a collaborator to it.   Only the project owner can change this setting.",
+      render: { type: "boolean", editable: true },
     },
     avatar_image_tiny: {
+      title: "Image",
       type: "string",
       desc: "tiny (32x32) visual image associated with the project. Suitable to include as part of changefeed, since about 3kb.",
+      render: { type: "image" },
     },
     avatar_image_full: {
+      title: "Image",
       type: "string",
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
+      render: { type: "image" },
     },
   },
 });
@@ -540,3 +558,30 @@ export interface ProjectState {
   state?: State; // running, stopped, etc.
   time?: Date;
 }
+
+Table({
+  name: "crm_projects",
+  fields: schema.projects.fields,
+  rules: {
+    primary_key: schema.projects.primary_key,
+    virtual: "projects",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        // (without this, users who have read access could read)
+        pg_where: [],
+        fields: schema.projects.user_query.get.fields,
+      },
+      set: {
+        admin: true,
+        fields: {
+          project_id: true,
+          name: true,
+          title: true,
+          description: true,
+          deleted: true,
+        },
+      },
+    },
+  },
+});

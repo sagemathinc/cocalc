@@ -206,7 +206,7 @@ class SyncTable extends EventEmitter
             cb?(e)
             return
 
-        @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
+        @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key])}
 
         # We only trigger an update when one of the columns we care about actually changes.
 
@@ -348,7 +348,7 @@ class SyncTable extends EventEmitter
             return
         for x in rows
             k = x[@_primary_key]
-            v = immutable.fromJS(misc.map_without_undefined(x))
+            v = immutable.fromJS(misc.map_without_undefined_and_null(x))
             if not v.equals(@_value.get(k))
                 @_value = @_value.set(k, v)
                 if @_state == 'ready'   # only send out change notifications after ready.
@@ -465,10 +465,16 @@ Creates a trigger function that fires whenever any of the given
 columns changes, and sends the columns in select out as a notification.
 ###
 
+triggerType = (type) ->
+    if type == 'SERIAL UNIQUE'
+        return 'INTEGER'
+    else
+        return type
+
 trigger_code = (table, select, watch) ->
     tgname          = trigger_name(table, select, watch)
-    column_decl_old = ("#{field}_old #{type ? 'text'};"   for field, type of select)
-    column_decl_new = ("#{field}_new #{type ? 'text'};"   for field, type of select)
+    column_decl_old = ("#{field}_old #{triggerType(type) ? 'text'};"   for field, type of select)
+    column_decl_new = ("#{field}_new #{triggerType(type) ? 'text'};"   for field, type of select)
     assign_old      = ("#{field}_old = OLD.#{field};"     for field, _ of select)
     assign_new      = ("#{field}_new = NEW.#{field};"     for field, _ of select)
     build_obj_old   = ("'#{field}', #{field}_old"         for field, _ of select)

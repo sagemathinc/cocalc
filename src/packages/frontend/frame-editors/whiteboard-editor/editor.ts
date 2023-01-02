@@ -20,7 +20,7 @@ import Whiteboard from "./whiteboard";
 import Search from "./search";
 import Pages from "./pages";
 
-const whiteboardButtons = set([
+export const whiteboardButtons = set([
   "decrease_font_size",
   "increase_font_size", // we do NOT include "set_zoom", since it's based on account font_size, but we base 100% on font size 14.
   "zoom_page_width",

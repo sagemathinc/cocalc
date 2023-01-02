@@ -54,7 +54,7 @@ export function is_zero_map(map: undefined | null | object): boolean {
 // Returns copy of map with no undefined/null values (recursive).
 // Doesn't modify map.  If map is an array, just returns it
 // with no change even if it has undefined values.
-export function map_without_undefined(map?: object): object | undefined | null {
+export function map_without_undefined_and_null(map?: object): object | undefined | null {
   if (map == null) {
     return;
   }
@@ -67,7 +67,7 @@ export function map_without_undefined(map?: object): object | undefined | null {
     if (v == null) {
       continue;
     } else {
-      new_map[k] = is_object(v) ? map_without_undefined(v) : v;
+      new_map[k] = is_object(v) ? map_without_undefined_and_null(v) : v;
     }
   }
   return new_map;
@@ -75,7 +75,7 @@ export function map_without_undefined(map?: object): object | undefined | null {
 
 // modify map in places deleting keys with null or undefined
 // values; NOT recursive.
-export function map_mutate_out_undefined(map: object): void {
+export function map_mutate_out_undefined_and_null(map: object): void {
   for (let k in map) {
     const v = map[k];
     if (v == null) {

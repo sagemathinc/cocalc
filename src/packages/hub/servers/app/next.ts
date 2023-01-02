@@ -86,7 +86,7 @@ export default async function init(app: Application) {
   app.all(join(basePath, "doc*"), landingRedirect);
   app.all(join(basePath, "policies*"), landingRedirect);
 
-  // The next.js server that servers everything else.
+  // The next.js server that serves everything else.
   winston.info(
     "Now using next.js packages/share handler to handle all endpoints not otherwise handled"
   );

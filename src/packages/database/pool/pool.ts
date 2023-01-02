@@ -3,14 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Pool } from "pg";
-
 import {
   pgdatabase as database,
   pghost as host,
   pguser as user,
 } from "@cocalc/backend/data";
 
+import { Client, Pool } from "pg";
 import { getLogger } from "@cocalc/backend/logger";
 import { STATEMENT_TIMEOUT_MS } from "../consts";
 import getCachedPool, { Length } from "./cached";
@@ -39,4 +38,8 @@ export default function getPool(cacheLength?: Length): Pool {
     });
   }
   return pool;
+}
+
+export function getClient(): Client {
+  return new Client({ password: dbPassword(), user, host, database });
 }

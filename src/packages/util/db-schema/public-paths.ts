@@ -66,21 +66,42 @@ Table({
       type: "string",
       pg_type: "VARCHAR(100)",
       desc: "The optional name of this public path.  Must be globally unique (up to case) across all public paths in a given project.  It can be between 1 and 100 characters from a-z A-Z 0-9 period and dash.",
+      render: {
+        type: "text",
+        editable: true,
+      },
     },
     description: {
       type: "string",
+      render: {
+        type: "markdown",
+        maxLen: 1024,
+        editable: true,
+      },
     },
     disabled: {
       type: "boolean",
       desc: "if true then disabled",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
     unlisted: {
       type: "boolean",
       desc: "if true then unlisted, so does not appear in /share listing page.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
     authenticated: {
       type: "boolean",
       desc: "if true, then only authenticated users have access",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
     license: {
       type: "string",
@@ -101,6 +122,7 @@ Table({
     counter: {
       type: "number",
       desc: "the number of times this public path has been accessed",
+      render: { type: "number", editable: true, integer: true, min: 0 },
     },
     vhost: {
       // For now, this will only be used *manually* for now; at some point users will be able to specify this,
@@ -119,6 +141,10 @@ Table({
       type: "string",
       desc: 'Request for the given host (which must not contain the string "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts that point to the same public path.',
       unique: true,
+      render: {
+        type: "text",
+        editable: true,
+      },
     },
     cross_origin_isolation: {
       // This is used by https://python-wasm.cocalc.com.  But it can't be used by https://sagelets.cocalc.com/
@@ -137,6 +163,10 @@ Table({
     token: {
       type: "string",
       desc: "Random token that must be passed in as query parameter to see this share; this increases security.  Only used for unlisted shares.",
+      render: {
+        type: "text",
+        editable: true,
+      },
     },
     compute_image: {
       type: "string",
@@ -153,6 +183,7 @@ Table({
     image: {
       type: "string",
       desc: "Image that illustrates this shared content.",
+      render: { type: "image" },
     },
   },
   rules: {
@@ -355,6 +386,46 @@ Table({
           path: null,
           site_license_id: null,
         },
+      },
+    },
+  },
+});
+
+Table({
+  name: "crm_public_paths",
+  fields: schema.public_paths.fields,
+  rules: {
+    primary_key: schema.public_paths.primary_key,
+    virtual: "public_paths",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        // (without this, users who have read access could read)
+        pg_where: [],
+        options: [{ limit: 300, order_by: "-last_edited" }],
+        // @ts-ignore
+        fields: schema.public_paths.user_query.get.fields,
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          name: true,
+          description: true,
+          counter: true,
+          image: true,
+          disabled: true,
+          unlisted: true,
+          authenticated: true,
+          license: true,
+          last_edited: true,
+          created: true,
+          compute_image: true,
+          site_license_id: true,
+        },
+        // not doing this since don't want to require project_id and path to
+        // be set, and this is for admin use only anyways:
+        // check_hook: schema.public_paths.user_query.set.check_hook,
       },
     },
   },
