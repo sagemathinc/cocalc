@@ -386,14 +386,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _init_metrics: =>
         # initialize metrics
-        @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
-            buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
-            labels: ['table']
-        )
-        @concurrent_counter = metrics.newCounter('db_concurrent_total',
-            'Concurrent queries (started and finished)',
-            ['state']
-        )
+        try
+            @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
+                buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
+                labels: ['table']
+            )
+            @concurrent_counter = metrics.newCounter('db_concurrent_total',
+                'Concurrent queries (started and finished)',
+                ['state']
+            )
+        catch err
+            @_dbg("_init_metrics")("WARNING -- #{err}")
 
     async_query: (opts) =>
         return await callback2(@_query.bind(@), opts)
@@ -774,7 +777,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @concurrent_counter?.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
-                    ## DANGER 
+                    ## DANGER
                     # Only uncomment this for low level debugging!
                     #### dbg("params = #{JSON.stringify(opts.params)}")
                     ##
