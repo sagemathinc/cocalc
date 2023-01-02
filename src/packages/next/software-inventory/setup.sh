@@ -14,7 +14,5 @@ for name in "18.04" "20.04" "22.04"; do
         curl --silent --show-error --fail "https://storage.googleapis.com/cocalc-compute-environment/$fn" -o "$local"
     fi
 
-    if [[ ! -f "$targ" ]]; then
-        cp -v "$local" "$targ"
-    fi
+    cp -v "$local" "$targ"
 done
