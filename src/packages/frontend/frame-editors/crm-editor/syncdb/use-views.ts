@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSyncdbContext } from "@cocalc/frontend/app-framework/syncdb";
 import { uuid } from "@cocalc/util/misc";
 import { field_cmp } from "@cocalc/util/cmp";
@@ -28,8 +28,18 @@ export default function useViews(dbtable: string): {
   saveView: SetViewFunction;
   deleteView: DeleteViewFunction;
 } {
+  const getViews: () => null | Views = useCallback(() => {
+    if (syncdb == null) return; // typescript
+    const array = syncdb
+      .get({ table: "views" })
+      .filter((x) => x.get("dbtable") == dbtable)
+      .toJS();
+    array.sort(field_cmp("pos"));
+    return array;
+  }, [dbtable]);
+
   const { syncdb } = useSyncdbContext();
-  const [views, saveViews] = useState<Views | null>(null);
+  const [views, saveViews] = useState<Views | null>(getViews());
 
   useEffect(() => {
     if (syncdb == null) {
@@ -38,13 +48,7 @@ export default function useViews(dbtable: string): {
     }
 
     function update() {
-      if (syncdb == null) return; // typescript
-      const array = syncdb
-        .get({ table: "views" })
-        .filter((x) => x.get("dbtable") == dbtable)
-        .toJS();
-      array.sort(field_cmp("pos"));
-      saveViews(array);
+      saveViews(getViews());
     }
 
     function handleChange(keys) {
@@ -70,7 +74,7 @@ export default function useViews(dbtable: string): {
     return () => {
       syncdb.removeListener("change", handleChange);
     };
-  }, [syncdb, dbtable]);
+  }, [syncdb, dbtable, getViews]);
 
   const saveView = useMemo(() => {
     if (syncdb == null)

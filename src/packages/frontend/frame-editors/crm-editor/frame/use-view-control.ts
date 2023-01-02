@@ -13,7 +13,7 @@ export default function useViewControl(
   const viewKey = useMemo(() => `data-view-${table}`, [table]);
 
   const view = useMemo<string | undefined>(() => {
-    return desc.get(viewKey, defaultViewId);
+    return desc.get(viewKey) ?? defaultViewId;
   }, [desc]);
 
   const switchToView = useCallback(
