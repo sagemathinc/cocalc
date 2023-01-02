@@ -103,11 +103,7 @@ export default function TopMenu({
         </div>
       }
     >
-      <Menu
-        triggerSubMenuAction={"click"}
-        items={items}
-        style={{ marginLeft: "-20px" }}
-      />
+      <Menu triggerSubMenuAction={"click"} items={items} />
     </Popover>
   );
 }
