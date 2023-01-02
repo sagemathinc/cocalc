@@ -97,6 +97,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                 item.logo && (
                   <A href={item.link} alt={item.title + " logo "}>
                     <Avatar
+                      style={{ marginTop: "20px" }}
                       alt={item.title + " logo "}
                       size={80}
                       shape="square"

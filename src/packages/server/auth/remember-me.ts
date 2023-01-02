@@ -3,6 +3,9 @@ import { v4 } from "uuid";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import getPool from "@cocalc/database/pool";
 import { expireTime } from "@cocalc/database/pool/util";
+import Cookies from "cookies";
+import type { Request } from "express";
+import generateHash from "@cocalc/server/auth/hash";
 
 export const COOKIE_NAME = `${
   basePath.length <= 1 ? "" : encodeURIComponent(basePath)
@@ -56,4 +59,17 @@ export async function deleteAllRememberMe(account_id: string): Promise<void> {
   await pool.query("DELETE FROM remember_me WHERE account_id=$1::UUID", [
     account_id,
   ]);
+}
+
+export function getRememberMeHash(req: Request): string | undefined {
+  const cookies = new Cookies(req);
+  const rememberMe = cookies.get(COOKIE_NAME);
+  if (!rememberMe) {
+    return;
+  }
+  const x: string[] = rememberMe.split("$");
+  if (x.length !== 4) {
+    throw Error("badly formatted remember_me cookie");
+  }
+  return generateHash(x[0], x[1], parseInt(x[2]), x[3]).slice(0, 127);
 }

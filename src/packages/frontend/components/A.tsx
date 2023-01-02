@@ -9,13 +9,15 @@
    with the main cocalc page.
 */
 
-import React from "react";
+import { CSSProperties, ReactNode } from "react";
+import { Tooltip } from "antd";
 
 interface AProps {
   href: string;
-  children: React.ReactNode;
+  children: ReactNode;
   title?: string;
-  style?: React.CSSProperties;
+  placement?: string;
+  style?: CSSProperties;
   onClick?: (any) => void;
   onMouseDown?: (any) => void;
 }
@@ -25,9 +27,27 @@ export function A({
   children,
   style,
   title,
+  placement,
   onClick,
   onMouseDown,
 }: AProps) {
+  if (title) {
+    // use nicer antd tooltip.
+    return (
+      <Tooltip title={title} placement={placement as any}>
+        <a
+          href={href}
+          target={"_blank"}
+          rel={"noopener"}
+          style={style}
+          onClick={onClick}
+          onMouseDown={onMouseDown}
+        >
+          {children}
+        </a>
+      </Tooltip>
+    );
+  }
   return (
     <a
       href={href}

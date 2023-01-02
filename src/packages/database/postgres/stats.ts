@@ -157,7 +157,7 @@ async function check_db_cache({
       return null;
     }
 
-    const x = misc.map_without_undefined(res.rows[0]) as any;
+    const x = misc.map_without_undefined_and_null(res.rows[0]) as any;
     if (x == null) {
       dbg("no data (2)");
       return null;

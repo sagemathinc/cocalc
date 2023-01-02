@@ -213,6 +213,7 @@ async function startServer(): Promise<void> {
     projectControl,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
+    nocoDB: !!program.nocoDb,
     cert: program.httpsCert,
     key: program.httpsKey,
   });
@@ -327,6 +328,7 @@ async function main(): Promise<void> {
       "--next-server",
       "run the nextjs server (landing pages, share server, etc.)"
     )
+    .option("--noco-db", "run the NocoDB database server (for admins)")
     /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
@@ -420,6 +422,7 @@ async function main(): Promise<void> {
     program.websocketServer =
       program.proxyServer =
       program.nextServer =
+      program.nocoDb =
       program.mentions =
       program.updateDatabaseSchema =
         true;

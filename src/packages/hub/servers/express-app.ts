@@ -38,6 +38,7 @@ interface Options {
   isPersonal: boolean;
   nextServer: boolean;
   proxyServer: boolean;
+  nocoDB?: boolean;
   cert?: string;
   key?: string;
 }

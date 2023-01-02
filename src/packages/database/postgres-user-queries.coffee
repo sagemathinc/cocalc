@@ -26,7 +26,8 @@ lodash       = require('lodash')
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{PROJECT_UPGRADES, SCHEMA} = require('@cocalc/util/schema')
+{PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
+{queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {file_use_times} = require('./postgres/file-use-times')
 
@@ -277,15 +278,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("already cancelled before (no such feed)")
         opts.cb?()
 
-    _query_is_cmp: (obj) =>
-        if not misc.is_object(obj)
-            return false
-        for k, _ of obj
-            if k not in misc.operators
-                return false
-            return k
-        return false
-
     _user_get_query_columns: (query, remove_from_query) =>
         v = misc.keys(query)
         if remove_from_query?
@@ -344,13 +336,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     when 'only_changes'
                         r.only_changes = !!value
                     when 'limit'
-                        r.limit = value
+                        r.limit = parseInt(value)
                     when 'slice'
                         r.slice = value
                     when 'order_by'
                         if value[0] == '-'
                             value = value.slice(1) + " DESC "
-                        r.order_by = value
+                        if r.order_by
+                            r.order_by = r.order_by + ', ' + value
+                        else
+                            r.order_by = value
                     when 'delete'
                         null
                         # ignore delete here - is parsed elsewhere
@@ -358,6 +353,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
                     else
                         r.err = "unknown option '#{name}'"
+        # Guard rails: no matter what, all queries are capped with a limit of 1000.
+        try
+            if not isFinite(r.limit)
+                r.limit = 1000
+            else if r.limit > 1000
+                r.limit = 1000
+        catch
+            r.limit = 1000
         return r
 
     ###
@@ -535,12 +538,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     _user_set_query_where: (r) =>
         where = {}
         for primary_key in @_primary_keys(r.db_table)
-            type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
             value = r.query[primary_key]
-            if type == 'TIMESTAMP' and not misc.is_date(value)
-                # Javascript is better at parsing its own dates than PostgreSQL
-                value = new Date(value)
-            where["#{primary_key}=$::#{type}"] = value
+            if SCHEMA[r.db_table].fields[primary_key].noCoerce
+                where["#{primary_key}=$"] = value
+            else
+                type  = pg_type(SCHEMA[r.db_table].fields[primary_key])
+                if type == 'TIMESTAMP' and not misc.is_date(value)
+                    # Javascript is better at parsing its own dates than PostgreSQL
+                    # isNaN test so NOW(), etc. work still
+                    x = new Date(value)
+                    if not isNaN(x)
+                        value = x
+                where["#{primary_key}=$::#{type}"] = value
         return where
 
     _user_set_query_values: (r) =>
@@ -548,10 +557,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         s = SCHEMA[r.db_table]
         for key, value of r.query
             type = pg_type(s?.fields?[key])
-            if type?
+            if value? and type? and not s?.fields?[key]?.noCoerce
                 if type == 'TIMESTAMP' and not misc.is_date(value)
                     # (as above) Javascript is better at parsing its own dates than PostgreSQL
-                    value = new Date(value)
+                    x = new Date(value)
+                    if not isNaN(x)
+                        value = x
                 values["#{key}::#{type}"] = value
             else
                 values[key] = value
@@ -589,6 +600,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return r.primary_keys
 
     _user_query_set_upsert: (r, cb) =>
+        # r.dbg("_user_query_set_upsert #{JSON.stringify(r.query)}")
         @_query
             query    : "INSERT INTO #{r.db_table}"
             values   : @_user_set_query_values(r)
@@ -606,7 +618,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 jsonb_merge[k] = v
         set = {}
         for k, v of r.query
-            if v? and k not in r.primary_keys and not jsonb_merge[k]?
+            if k not in r.primary_keys and not jsonb_merge[k]?
                 set[k] = v
         @_query
             query       : "UPDATE #{r.db_table}"
@@ -662,11 +674,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query      : required
             options    : undefined     # options=[{delete:true}] is the only supported nontrivial option here.
             cb         : required   # cb(err)
+
+        # TODO: it would be nice to return the primary key part of the created object on creation.
+        # That's not implemented and will be somewhat nontrivial, and will use the RETURNING clause
+        # of postgres's INSERT - https://www.postgresql.org/docs/current/sql-insert.html
+
         if @is_standby
             opts.cb("set queries against standby not allowed")
             return
         r = @_parse_set_query_opts(opts)
-        #r.dbg("parsed query opts = #{misc.to_json(r)}")
+
+        # Only uncomment for debugging -- too big/verbose/dangerous
+        # r.dbg("parsed query opts = #{JSON.stringify(r)}")
+
         if not r?  # nothing to do
             opts.cb()
             return
@@ -692,7 +712,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if r.instead_of_query?
                     opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
-                    r.instead_of_query @, opts1, cb
+                    r.instead_of_query(@, opts1, cb)
                 else
                     @_user_set_query_main_query(r, cb)
             (cb) =>
@@ -1149,38 +1169,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         x[key] = subs[value]
 
             # impose further restrictions (more where conditions)
-            pg_where.push(@_user_get_query_filter(user_query, client_query))
+            pg_where.push(userGetQueryFilter(user_query, client_query))
 
             cb(undefined, pg_where)
-
-    # Additional where object condition imposed by user's get query
-    _user_get_query_filter: (user_query, client_query) =>
-        # If the schema lists the value in a get query as 'null', then we remove it;
-        # nulls means it was only there to be used by the initial where filter
-        # part of the query.
-        for field, val of client_query.get.fields
-            if val == 'null'
-                delete user_query[field]
-
-        where = {}
-        for field, val of user_query
-            if val?
-                if client_query.get.remove_from_query? and client_query.get.remove_from_query.includes(field)
-                    # do not include any field that explicitly excluded from the query
-                    continue
-                if @_query_is_cmp(val)
-                    # A comparison, e.g.,
-                    # field :
-                    #    '<=' : 5
-                    #    '>=' : 2
-                    for op, v of val
-                        if op == '=='  # not in SQL, but natural for our clients to use it
-                            op = '='
-                        where["#{quote_field(field)} #{op} $"] = v
-                else
-                    where["#{quote_field(field)} = $"] = val
-
-        return where
 
     _user_get_query_options: (options, multi, schema_options) =>
         r = {}
@@ -1222,7 +1213,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # Get rid of undefined fields -- that's the default and wastes memory and bandwidth
                 if x?
                     for obj in x
-                        misc.map_mutate_out_undefined(obj)
+                        misc.map_mutate_out_undefined_and_null(obj)
                 cb(undefined, x)
         @_query(query_opts)
 
@@ -1237,7 +1228,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if date_keys
                 value = misc.fix_json_dates(value, date_keys)
             if (q = user_query[field])?
-                if (op = @_query_is_cmp(q))
+                if (op = queryIsCmp(q))
                     #dbg(value:value, op: op, q:q)
                     x = q[op]
                     switch op
@@ -1506,7 +1497,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
-                # See the TODO in @_user_get_query_filter.
+                # See the TODO in userGetQueryFilter.
                 dbg("get_query_where")
                 @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, opts.table, (err, where) =>
                     _query_opts.where = where

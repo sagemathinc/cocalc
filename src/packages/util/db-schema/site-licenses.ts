@@ -31,10 +31,12 @@ Table({
     title: {
       type: "string",
       desc: "Descriptive name of the license, e.g., the class and university or other information.",
+      render: { type: "text", editable: true },
     },
     description: {
       type: "string",
       desc: "Longer description of the license, extra notes, etc.",
+      render: { type: "text", editable: true },
     },
     info: {
       type: "map",
@@ -43,10 +45,12 @@ Table({
     expires: {
       type: "timestamp",
       desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
+      render: { type: "timestamp", editable: true },
     },
     activates: {
       type: "timestamp",
       desc: "Date when this license starts working.  Before this date, the license can be applied to projects, but nothing happens.",
+      render: { type: "timestamp", editable: true },
     },
     created: {
       type: "timestamp",
@@ -61,6 +65,10 @@ Table({
       pg_type:
         "TEXT[]" /* TODO/NOTE: I made a mistake -- this should have been UUID[]! */,
       desc: "A list of the account_id's of users that are allowed to manage how this site license is being used.",
+      render: {
+        type: "accounts",
+        editable: true,
+      },
     },
     restricted: {
       type: "boolean",
@@ -77,10 +85,12 @@ Table({
     run_limit: {
       type: "integer",
       desc: "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped.",
+      render: { type: "number", integer: true, min: 1, editable: true },
     },
     apply_limit: {
       type: "integer",
       desc: "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
+      render: { type: "number", integer: true, min: 1, editable: true },
     },
   },
   rules: {
