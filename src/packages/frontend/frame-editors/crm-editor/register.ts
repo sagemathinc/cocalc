@@ -10,7 +10,7 @@ Register the CRM editor
 import { register_file_editor } from "../frame-tree/register";
 
 register_file_editor({
-  ext: "crm",
+  ext: "cocalc-crm",
   icon: "users",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
