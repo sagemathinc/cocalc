@@ -9,7 +9,7 @@ import { SOFTWARE_ENV_NAMES, SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./consts";
 import { EnvData } from "./types";
 
 test("3 known software environments", () => {
-  expect(SOFTWARE_ENV_NAMES.length).toBe(3);
+  expect(SOFTWARE_ENV_NAMES.length).toBe(2);
 });
 
 describe("Download URLs", () => {
