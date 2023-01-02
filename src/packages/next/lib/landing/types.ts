@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export type LanguageName = "python" | "R" | "octave" | "julia" | "sagemath";
+import { LANGUAGE_NAMES } from "./consts";
+
+export type LanguageName = typeof LANGUAGE_NAMES[number];
 
 export interface SoftwareSpecEntry {
   cmd: string;

@@ -21,54 +21,59 @@ import {
   SoftwareSpec,
 } from "lib/landing/types";
 import { STYLE_PAGE } from "..";
-import screenshot from "/public/features/cocalc-octave-jupyter-20200511.png";
+import sageScreenshot from "public/features/sage-worksheet.png";
 
 interface Props {
   name: SoftwareEnvNames;
   customize: CustomizeType;
-  spec: SoftwareSpec["octave"];
-  inventory: ComputeInventory["octave"];
-  components: ComputeComponents["octave"];
+  spec: SoftwareSpec["sagemath"];
+  inventory: ComputeInventory["sagemath"];
+  components: ComputeComponents["sagemath"];
   execInfo?: { [key: string]: string };
   timestamp: string;
 }
-export default function Octave(props: Props) {
+
+export default function SageMath(props: Props) {
   const { name, customize, spec, inventory, components, execInfo, timestamp } =
     props;
 
-  // function renderBox() {
-  //   return (
-  //     <Alert
-  //       style={{ margin: "15px 0" }}
-  //       message="Learn More"
-  //       description={
-  //         <span style={{ fontSize: "10pt" }}>
-  //           Learn more about{" "}
-  //           <strong>
-  //             <A href="/features/octave">
-  //               GNU Octave related functionality in CoCalc
-  //             </A>
-  //           </strong>
-  //           .
-  //         </span>
-  //       }
-  //       type="info"
-  //       showIcon
-  //     />
-  //   );
-  // }
+  function renderBox() {
+    return (
+      <Alert
+        style={{ margin: "15px 0" }}
+        message="Learn More"
+        description={
+          <span style={{ fontSize: "10pt" }}>
+            Learn more about{" "}
+            <strong>
+              <A href="/features/sage">
+                SageMath related functionality in CoCalc
+              </A>
+            </strong>
+            .
+          </span>
+        }
+        type="info"
+        showIcon
+      />
+    );
+  }
 
   function renderInfo() {
     return (
       <>
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
-          <Image src={screenshot} alt="SageMath" />
+          <Image src={sageScreenshot} alt="SageMath" />
         </div>
         <Paragraph>
           This table lists pre-installed{" "}
           <A href="https://www.sagemath.org">SageMath</A> packages that are
           immediately available in every CoCalc project running on the default
           "Ubuntu {name}" image, along with their respective version numbers.
+        </Paragraph>
+        <Paragraph type="secondary">
+          Note: Besides this default SageMath environment, there are also older
+          versions available.
         </Paragraph>
       </>
     );
@@ -91,7 +96,7 @@ export default function Octave(props: Props) {
               SageMath (Ubuntu {name})
             </h1>
             {renderInfo()}
-            {/* {renderBox()} */}
+            {renderBox()}
             <ExecutableDescription spec={spec} execInfo={execInfo} />
             <SoftwareLibraries
               spec={spec}

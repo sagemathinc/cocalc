@@ -7,6 +7,8 @@ import { fromPairs } from "lodash";
 
 import { EnvData } from "./types";
 
+export const LANGUAGE_NAMES = ["python", "R", "octave", "julia", "sagemath"] as const;
+
 // sort this starting from the newest to the oldest – appears in the UI, e.g. on that /software/index page
 export const SOFTWARE_ENV_NAMES = ["22.04", "20.04", "18.04"] as const;
 export const SOFTWARE_ENV_DEFAULT = SOFTWARE_ENV_NAMES[0];

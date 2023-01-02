@@ -18,6 +18,7 @@ export interface Item {
   link: string;
   title: ReactNode;
   logo: IconName | StaticImageData;
+  logoBackground?: string; // #color
   image?: StaticImageData;
   imageWidth?: string;
   description: ReactNode;
@@ -104,7 +105,10 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                 item.logo && (
                   <A href={item.link} alt={item.title + " logo "}>
                     <Avatar
-                      style={{ marginTop: "20px" }}
+                      style={{
+                        marginTop: "20px",
+                        backgroundColor: item.logoBackground ,
+                      }}
                       alt={item.title + " logo "}
                       size={80}
                       shape="square"

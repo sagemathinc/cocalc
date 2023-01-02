@@ -34,6 +34,13 @@ export function renderName(name, record) {
   );
 }
 
+type Columns = {
+  width: string;
+  title: string;
+  key: string;
+  dataIndex: string;
+  render?: typeof renderName;
+}[];
 interface Props {
   timestamp: string;
   libWidthPct?: number;
@@ -66,14 +73,6 @@ export default function SoftwareLibraries(props: Props) {
       }
     }
   }
-
-  type Columns = {
-    width: string;
-    title: string;
-    key: string;
-    dataIndex: string;
-    render?: typeof renderName;
-  }[];
 
   const columns = useMemo((): Columns => {
     const envs = Object.entries(spec);

@@ -5,11 +5,11 @@
 
 import { Button, Layout } from "antd";
 
-import { Paragraph } from "components/misc";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import IndexList, { DataSource } from "components/landing/index-list";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
@@ -17,6 +17,7 @@ import { SOFTWARE_ENV_DEFAULT, SOFTWARE_ENV_NAMES } from "lib/landing/consts";
 import { LanguageName } from "lib/landing/types";
 import withCustomize from "lib/with-customize";
 import juliaLogo from "public/features/julia-logo.svg";
+import sageScreenshot from "public/features/sage-worksheet.png";
 import executablesScreenshot from "public/software/executables.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
@@ -24,6 +25,7 @@ import pythonScreenshot from "/public/features/frame-editor-python.png";
 import octaveLogo from "/public/features/octave-logo.svg";
 import PythonLogo from "/public/features/python-logo.svg";
 import Rlogo from "/public/features/r-logo.svg";
+import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
 import JuliaJupyter from "/public/software/julia-jupyter.png";
 
 export const STYLE_PAGE: React.CSSProperties = {
@@ -45,6 +47,7 @@ const LINKS: { [lang in LanguageName | "executables"]: string } = {
   R: `/software/r/${SOFTWARE_ENV_DEFAULT}`,
   julia: `/software/julia/${SOFTWARE_ENV_DEFAULT}`,
   octave: `/software/octave/${SOFTWARE_ENV_DEFAULT}`,
+  sagemath: `/software/sagemath/${SOFTWARE_ENV_DEFAULT}`,
 } as const;
 
 function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
@@ -71,7 +74,7 @@ function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
   );
 }
 
-const dataSource = [
+const dataSource: DataSource = [
   {
     link: LINKS.executables,
     title: "Executables",
@@ -93,6 +96,7 @@ const dataSource = [
     link: LINKS.python,
     title: "Python Libraries",
     logo: PythonLogo,
+    logoBackground: "white",
     image: pythonScreenshot,
     description: (
       <>
@@ -106,9 +110,26 @@ const dataSource = [
     ),
   },
   {
+    link: LINKS.sagemath,
+    title: "SageMath Packages",
+    logo: sageLogo,
+    logoBackground: "white",
+    image: sageScreenshot,
+    description: (
+      <>
+        <Paragraph>
+          CoCalc provides <A href={LINKS.sagemath}>SageMath environments</A>{" "}
+          with additional preinstalled packages.
+        </Paragraph>
+        {renderSoftwareEnvLinks("sagemath")}
+      </>
+    ),
+  },
+  {
     link: LINKS.R,
     title: "R Statistical Software Packages",
     logo: Rlogo,
+    logoBackground: "white",
     image: RJupyter,
     description: (
       <>
@@ -123,6 +144,7 @@ const dataSource = [
     link: LINKS.julia,
     title: "Julia Packages",
     logo: juliaLogo,
+    logoBackground: "white",
     image: JuliaJupyter,
     description: (
       <>
@@ -138,6 +160,7 @@ const dataSource = [
     link: LINKS.octave,
     title: "Octave Packages",
     logo: octaveLogo,
+    logoBackground: "white",
     image: octaveJupyter,
     description: (
       <>
@@ -149,7 +172,7 @@ const dataSource = [
       </>
     ),
   },
-] as DataSource;
+];
 
 export default function Software({ customize }) {
   const description = (

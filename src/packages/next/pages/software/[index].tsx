@@ -4,8 +4,11 @@
  */
 
 import { SOFTWARE_ENV_DEFAULT } from "lib/landing/consts";
+import { LANGUAGE_NAMES } from "lib/landing/consts";
 
-const INDEX_PAGES = ["executables", "python", "r", "julia", "octave"] as const;
+const INDEX_PAGES = LANGUAGE_NAMES.map((l) => l.toLowerCase()).concat(
+  "executables"
+) as readonly string[];
 
 export default function SoftwareIndex() {
   return <></>;
