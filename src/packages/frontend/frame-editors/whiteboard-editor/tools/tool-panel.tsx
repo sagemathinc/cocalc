@@ -342,8 +342,9 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
       {editableParams.has("icon") && (
         <IconSelect
           onSelect={(value) => set("icon", value)}
+          fontSize="9pt"
           style={{
-            fontSize: "24pt",
+            fontSize: "20pt",
             maxWidth: "100%",
             marginBottom: "10px",
             maxHeight: "35vh",

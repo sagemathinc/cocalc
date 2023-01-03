@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.117.4",
+  "version": "1.120.4",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -22,12 +22,12 @@
     "@cocalc/assets": "^1.10.1",
     "@cocalc/backend": "^1.21.1",
     "@cocalc/cdn": "^1.15.1",
-    "@cocalc/database": "^0.34.2",
-    "@cocalc/frontend": "^1.101.5",
-    "@cocalc/next": "^0.100.4",
-    "@cocalc/server": "^0.44.1",
-    "@cocalc/static": "^1.135.3",
-    "@cocalc/util": "^1.75.1",
+    "@cocalc/database": "^0.35.6",
+    "@cocalc/frontend": "^1.102.5",
+    "@cocalc/next": "^0.103.3",
+    "@cocalc/server": "^0.44.3",
+    "@cocalc/static": "^1.136.5",
+    "@cocalc/util": "^1.76.4",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^7.4.6",
@@ -86,6 +86,7 @@
     "uuid": "^8.3.2",
     "validator": "^13.6.0"
   },
+  "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
     "@types/http-proxy": "^1.17.9",
     "@types/jest": "^29.2.3",

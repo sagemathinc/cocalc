@@ -9,7 +9,7 @@ export function avatar_fontcolor(bg): "white" | "black" {
   if (!col_bg) {
     return "black";
   }
-  if (col_bg.lightness() > 0.5) {
+  if (col_bg.isLight()) {
     return "black";
   } else {
     return "white";

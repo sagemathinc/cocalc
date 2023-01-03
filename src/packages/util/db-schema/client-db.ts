@@ -15,15 +15,12 @@ class ClientDB {
 
   constructor() {
     this.sha1 = this.sha1.bind(this);
-    this._user_set_query_project_users = this._user_set_query_project_users.bind(
-      this
-    );
-    this._user_set_query_project_change_after = this._user_set_query_project_change_after.bind(
-      this
-    );
-    this._user_set_query_project_change_before = this._user_set_query_project_change_before.bind(
-      this
-    );
+    this._user_set_query_project_users =
+      this._user_set_query_project_users.bind(this);
+    this._user_set_query_project_change_after =
+      this._user_set_query_project_change_after.bind(this);
+    this._user_set_query_project_change_before =
+      this._user_set_query_project_change_before.bind(this);
     this.primary_keys = this.primary_keys.bind(this);
     this.r = {};
   }
@@ -55,14 +52,17 @@ class ClientDB {
     cb();
   }
 
+  // table is either name of a table in the default SCHEMA, or
+  // it can be a TableSchema<any> object (for a non-virtual table).
   primary_keys(table) {
     if (this._primary_keys_cache == null) {
       this._primary_keys_cache = {};
     }
-    if (this._primary_keys_cache[table] != null) {
-      return this._primary_keys_cache[table];
+    const key = typeof table == "string" ? table : table.name;
+    if (this._primary_keys_cache[key] != null) {
+      return this._primary_keys_cache[key];
     }
-    let t = SCHEMA[table];
+    let t = typeof table == "string" ? SCHEMA[table] : table;
     if (typeof t.virtual == "string") {
       t = SCHEMA[t.virtual];
     }
@@ -73,13 +73,13 @@ class ClientDB {
       );
     }
     if (typeof v === "string") {
-      return (this._primary_keys_cache[table] = [v]);
+      return (this._primary_keys_cache[key] = [v]);
     } else if (is_array(v) && typeof v == "object") {
       // the typeof is just to make typescript happy
       if (v.length === 0) {
         throw Error("at least one primary key must specified");
       }
-      return (this._primary_keys_cache[table] = v);
+      return (this._primary_keys_cache[key] = v);
     } else {
       throw Error("primary key must be a string or array of strings");
     }

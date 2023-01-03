@@ -1,6 +1,8 @@
-// Normalize CSS across browsers, fixes e.g. https://github.com/sagemathinc/cocalc/issues/6285
-// https://github.com/sindresorhus/modern-normalize (fork of the abandoned normalize.css)
-import "modern-normalize/modern-normalize.css";
+// The official antd docs suggest doing this first.  It normalizes
+// the css in a way that is compatible with antd.
+// I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
+// now that we are using antd v5.
+import "antd/dist/reset.css";
 
 // CoCalc 3rd party libraries
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";

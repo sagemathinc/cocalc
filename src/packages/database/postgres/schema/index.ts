@@ -1,0 +1,1 @@
+export { syncSchema } from "./sync";

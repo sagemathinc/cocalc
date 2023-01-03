@@ -6,11 +6,14 @@
 import getLogger from "@cocalc/backend/logger";
 import { newGauge } from "../metrics";
 import { PostgreSQL } from "./types";
-const connectStatus = newGauge(
-  "db_latest_connection_ts_total",
-  "Last time the connect/disconnect event was emitted",
-  ["status"]
-);
+
+function getStatusGauge() {
+  return newGauge(
+    "db_latest_connection_ts_total",
+    "Last time the connect/disconnect event was emitted",
+    ["status"]
+  );
+}
 
 const L = getLogger("db:record-connect-error");
 
@@ -21,7 +24,11 @@ let lastDisconnected: number | null = null;
 function recordDisconnected() {
   L.debug("disconnected");
   const now = Date.now();
-  connectStatus.labels("disconnected").set(now);
+  try {
+    getStatusGauge().labels("disconnected").set(now);
+  } catch (err) {
+    L.debug("issue with database status gauge", err);
+  }
   if (lastDisconnected == null) {
     lastDisconnected = now;
   }
@@ -29,7 +36,11 @@ function recordDisconnected() {
 
 function recordConnected() {
   L.debug("connected");
-  connectStatus.labels("connected").set(Date.now());
+  try {
+    getStatusGauge().labels("connected").set(Date.now());
+  } catch (err) {
+    L.debug("issue with database status gauge", err);
+  }
   lastDisconnected = null;
 }
 

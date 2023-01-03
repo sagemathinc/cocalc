@@ -11,6 +11,18 @@ Table({
     primary_key: "id",
     durability: "soft", // loss of some log data not serious, since used only for analytics
     pg_indexes: ["project_id", "account_id", "filename", "time"],
+    user_query: {
+      get: {
+        admin: true,
+        fields: {
+          id: null,
+          project_id: null,
+          account_id: null,
+          filename: null,
+          time: null,
+        },
+      },
+    },
   },
   fields: {
     id: {
@@ -18,9 +30,11 @@ Table({
     },
     project_id: {
       type: "uuid",
+      render: { type: "project_link" },
     },
     account_id: {
       type: "uuid",
+      render: { type: "account" },
     },
     filename: {
       type: "string",

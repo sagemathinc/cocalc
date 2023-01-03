@@ -36,6 +36,11 @@ pg      = require('pg')
 winston      = require('@cocalc/backend/logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
+{ syncSchema } = require('./postgres/schema')
+{ pgType } = require('./postgres/schema/pg-type')
+{ quoteField } = require('./postgres/schema/util')
+{ primaryKey, primaryKeys } = require('./postgres/schema/table')
+
 misc_node = require('@cocalc/backend/misc_node')
 data = require("@cocalc/backend/data")
 
@@ -381,14 +386,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _init_metrics: =>
         # initialize metrics
-        @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
-            buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
-            labels: ['table']
-        )
-        @concurrent_counter = metrics.newCounter('db_concurrent_total',
-            'Concurrent queries (started and finished)',
-            ['state']
-        )
+        try
+            @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
+                buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
+                labels: ['table']
+            )
+            @concurrent_counter = metrics.newCounter('db_concurrent_total',
+                'Concurrent queries (started and finished)',
+                ['state']
+            )
+        catch err
+            @_dbg("_init_metrics")("WARNING -- #{err}")
 
     async_query: (opts) =>
         return await callback2(@_query.bind(@), opts)
@@ -412,7 +420,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             values    : undefined    # Used for INSERT: If given, then params and where must not be given.   Values is a map
                                      # {'field1::type1':value, , 'field2::type2':value2, ...} which gets converted to
                                      # ' (field1, field2, ...) VALUES ($1::type1, $2::type2, ...) '
-                                     # with corresponding params set.  Undefined valued fields are ignored and types may be omitted.
+                                     # with corresponding params set.  Undefined valued fields are ignored and types may
+                                     # be omitted.  Javascript null is not ignored and converts to PostgreSQL NULL.
             conflict  : undefined    # If given, then values must also be given; appends this to query:
                                      #     ON CONFLICT (name) DO UPDATE SET value=EXCLUDED.value'
                                      # Or, if conflict starts with "ON CONFLICT", then just include as is, e.g.,
@@ -493,7 +502,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         misc.retry_until_success(retry_opts)
 
     __do_query: (opts) =>
-        dbg = @_dbg("_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
+        dbg = @_dbg("__do_query('#{misc.trunc(opts.query?.replace(/\n/g, " "),250)}',id='#{misc.uuid().slice(0,6)}')")
         if not @is_connected()
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
@@ -590,7 +599,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 fields = []
                 values = []
                 for field, param of opts.values
-                    if not param? # ignore undefined fields -- makes code cleaner (and makes sense)
+                    if param == undefined
+                        # ignore undefined fields -- makes code cleaner (and makes sense)
                         continue
                     if field.indexOf('::') != -1
                         [field, type] = field.split('::')
@@ -679,7 +689,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 dbg(err)
                 opts.cb?(err)
                 return
-            opts.query += " ORDER BY #{opts.order_by} "
+            opts.query += " ORDER BY #{opts.order_by}"
 
         if opts.limit?
             if not validator.isInt('' + opts.limit, min:0)
@@ -700,8 +710,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
 
         if opts.safety_check
-            safety_check = opts.query.toLowerCase()
-            if (safety_check.indexOf('update') != -1 or safety_check.indexOf('delete') != -1)  and  (safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1 and safety_check.indexOf('create') == -1)
+            safety_check = opts.query.toLowerCase().trim()
+            if (safety_check.startsWith('update')  or safety_check.startsWith('delete'))  and  (safety_check.indexOf('where') == -1 and safety_check.indexOf('trigger') == -1  and safety_check.indexOf('insert') == -1 and safety_check.indexOf('create') == -1)
                 # This is always a bug.
                 err = "ERROR -- Dangerous UPDATE or DELETE without a WHERE, TRIGGER, or INSERT:  query='#{opts.query}'"
                 dbg(err)
@@ -767,6 +777,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @concurrent_counter?.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
+                    ## DANGER
+                    # Only uncomment this for low level debugging!
+                    #### dbg("params = #{JSON.stringify(opts.params)}")
+                    ##
                     err = 'postgresql ' + err
                 else
                     dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
@@ -946,245 +960,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb(undefined, (row.column_name for row in result.rows))
 
     _primary_keys: (table) =>
-        return client_db.primary_keys(table)
+        return primaryKeys(table)
 
     # Return *the* primary key, assuming unique; otherwise raise an exception.
     _primary_key: (table) =>
-        v = @_primary_keys(table)
-        if v.length != 1
-            throw Error("compound primary key tables not yet supported")
-        return v[0]
-
-    _create_table: (table, cb) =>
-        dbg = @_dbg("_create_table('#{table}')")
-        dbg()
-        schema = SCHEMA[table]
-        if not schema?
-            cb("no table '#{table}' in schema")
-            return
-        if schema.virtual
-            cb("table '#{table}' is virtual")
-            return
-        columns = []
-        try
-            primary_keys = @_primary_keys(table)
-        catch e
-            cb(e)
-            return
-        for column, info of schema.fields
-            s = "#{quote_field(column)} #{pg_type(info)}"
-            if info.unique
-                s += " UNIQUE"
-            if info.pg_check
-                s += " " + info.pg_check
-            columns.push(s)
-        async.series([
-            (cb) =>
-                dbg("creating the table")
-                @_query
-                    query  : "CREATE TABLE #{table} (#{columns.join(', ')}, PRIMARY KEY(#{primary_keys.join(', ')}))"
-                    cb     : cb
-            (cb) =>
-                @_create_indexes(table, cb)
-        ], cb)
-
-    _create_indexes_queries: (table) =>
-        schema = SCHEMA[table]
-        v = schema.pg_indexes ? []
-        if schema.fields.expire? and 'expire' not in v
-            v.push('expire')
-        queries = []
-        for query in v
-            name = "#{table}_#{misc.make_valid_name(query)}_idx"  # this first, then...
-            if query.indexOf('(') == -1                           # do this **after** making name.
-                query = "(#{query})"
-            queries.push({name:name, query:query, unique:false})
-        w = schema.pg_unique_indexes ? []
-        for query in w
-            name = "#{table}_#{misc.make_valid_name(query)}_unique_idx"
-            if query[0] != '('
-                query = "(#{query})"
-            queries.push({name:name, query:query, unique:true})
-        return queries
-
-
-    _create_indexes: (table, cb) =>
-        dbg = @_dbg("_create_indexes('#{table}')")
-        dbg()
-        pg_indexes = @_create_indexes_queries(table)
-        if pg_indexes.length == 0
-            dbg("no indexes")
-            cb()
-            return
-        dbg("creating indexes")
-        f = (info, cb) =>
-            query = info.query
-            # Shorthand index is just the part in parens.
-            # 2020-10-12: it makes total sense to add CONCURRENTLY to this index command to avoid locking up the table,
-            # but the first time we tried this in production (postgres 10), it just made "invalid" indices.
-            # the problem might be that several create index commands were issued rapidly, which trew this off
-            # So, for now, it's probably best to either create them manually first (concurrently) or be
-            # aware that this does lock up briefly.
-            query = "CREATE #{if info.unique then 'UNIQUE' else ''} INDEX #{info.name} ON #{table} #{query}"
-            @_query
-                query : query
-                cb    : cb
-        async.map(pg_indexes, f, cb)
-
-    # Ensure that for the given table, the actual schema and indexes
-    # in the database matches the one defined in SCHEMA.
-    _update_table_schema: (table, cb) =>
-        dbg = @_dbg("_update_table_schema('#{table}')")
-        dbg()
-        schema = SCHEMA[table]
-        if not schema?  # some auxiliary table in the database not in our schema -- leave it alone!
-            cb()
-            return
-        if schema.virtual
-            dbg("nothing to do -- table is virtual");
-            cb()
-            return
-        async.series([
-            (cb) => @_update_table_schema_columns(table, cb)
-            (cb) => @_update_table_schema_indexes(table, cb)
-        ], cb)
-
-    _update_table_schema_columns: (table, cb) =>
-        dbg = @_dbg("_update_table_schema_columns('#{table}')")
-        dbg()
-        schema   = SCHEMA[table]
-        columns  = {}
-        async.series([
-            (cb) =>
-                @_query
-                    query : "select column_name, data_type, character_maximum_length from information_schema.columns"
-                    where : {table_name: table}
-                    cb    : all_results (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            for y in x
-                                if y.character_maximum_length
-                                    columns[y.column_name] = "varchar(#{y.character_maximum_length})"
-                                else
-                                    columns[y.column_name] = y.data_type
-                            cb()
-            (cb) =>
-                # Note: changing column ordering is NOT supported in PostgreSQL, so
-                # it's critical to not depend on it!
-                # https://wiki.postgresql.org/wiki/Alter_column_position
-                tasks = []
-                for column, info of schema.fields
-                    cur_type  = columns[column]?.toLowerCase()
-                    if cur_type?
-                        cur_type = cur_type.split(' ')[0]
-                    try
-                        goal_type = pg_type(info).toLowerCase()
-                    catch err
-                        cb(err)
-                        return
-                    goal_type = goal_type.split(' ')[0]
-                    if goal_type == 'serial'
-                        # We can't do anything with this (or we could, but it's way too complicated).
-                        continue
-                    if goal_type.slice(0,4) == 'char'
-                        # we do NOT support changing between fixed length and variable length strength
-                        goal_type = 'var' + goal_type
-                    if not cur_type?
-                        # column is in our schema, but not in the actual database
-                        dbg("will add column '#{column}' to the database")
-                        tasks.push({action:'add', column:column})
-                    else if cur_type != goal_type
-                        if goal_type.includes('[]') or goal_type.includes('varchar')
-                            # NO support for array or varchar schema changes (even detecting)!
-                            continue
-                        dbg("type difference for column '#{column}' -- cur='#{cur_type}' versus goal='#{goal_type}'")
-                        tasks.push({action:'alter', column:column})
-                # Note: we do not delete columns in the database, since that's scary
-                # and they don't cause any harm (except wasting space).
-
-                if tasks.length == 0
-                    dbg("no changes to table are needed")
-                    cb()
-                    return
-                dbg("#{tasks.length} columns will be altered")
-                do_task = (task, cb) =>
-                    info = schema.fields[task.column]
-                    col  = quote_field(task.column)
-                    try
-                        type = pg_type(info)
-                    catch err
-                        cb(err)
-                        return
-                    desc = type
-                    if info.unique
-                        desc += " UNIQUE"
-                    if info.pg_check
-                        desc += " " + info.pg_check
-                    # Disable the safety_checks since we know these are
-                    # fine and they can be hit, e.g., when adding a column
-                    # named "deleted"...
-                    switch task.action
-                        when 'alter'
-                            @_query
-                                safety_check : false
-                                query : "ALTER TABLE #{quote_field(table)} ALTER COLUMN #{col} TYPE #{desc} USING #{col}::#{type}"
-                                cb    : cb
-                        when 'add'
-                            @_query
-                                safety_check : false
-                                query : "ALTER TABLE #{quote_field(table)} ADD COLUMN #{col} #{desc}"
-                                cb    : cb
-                        else
-                            cb("unknown action '#{task.action}")
-                async.mapSeries(tasks, do_task, cb)
-        ], (err) -> cb?(err))
-
-    _update_table_schema_indexes: (table, cb) =>
-        dbg = @_dbg("_update_table_schema_indexes('#{table}')")
-        cur_indexes = {}
-        async.series([
-            (cb) =>
-                dbg("getting list of existing indexes")
-                @_query   # See http://www.alberton.info/postgresql_meta_info.html#.WIfyPLYrLdQ
-                    query : "SELECT c.relname AS name FROM pg_class AS a JOIN pg_index AS b ON (a.oid = b.indrelid) JOIN pg_class AS c ON (c.oid = b.indexrelid)"
-                    where : {'a.relname': table}
-                    cb    : all_results 'name', (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            for name in x
-                                cur_indexes[name] = true
-                            cb()
-            (cb) =>
-                # these are the indexes we are supposed to have
-                goal_indexes = @_create_indexes_queries(table)
-                goal_indexes_map = {}
-                tasks = []
-                for x in goal_indexes
-                    goal_indexes_map[x.name] = true
-                    if not cur_indexes[x.name]
-                        tasks.push({action:'create', name:x.name, query:x.query})
-                for name of cur_indexes
-                    # only delete indexes that end with _idx; don't want to delete, e.g., pkey primary key indexes.
-                    if misc.endswith(name, '_idx') and not goal_indexes_map[name]
-                        tasks.push({action:'delete', name:name})
-                do_task = (task, cb) =>
-                    switch task.action
-                        when 'create'
-                            # ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
-                            @_query
-                                query : "CREATE INDEX #{task.name} ON #{table} #{task.query}"
-                                cb    : cb
-                        when 'delete'
-                            @_query
-                                query : "DROP INDEX #{task.name}"
-                                safety_check : false
-                                cb    : cb
-                        else
-                            cb("unknown action '#{task.action}")
-                async.map(tasks, do_task, cb)
-        ], (err) -> cb?(err))
+        return primaryKey(table)
 
     _throttle: (name, time_s, key...) =>
         key = misc.to_json(key)
@@ -1197,54 +977,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         return false
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
-    # This creates the initial schema, adds new columns fine, and in a VERY LIMITED
+    # This creates the initial schema, adds new columns, and in a VERY LIMITED
     # range of cases, *might be* be able to change the data type of a column.
     update_schema: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        dbg = @_dbg("update_schema"); dbg()
-
-        psql_tables = goal_tables = created_tables = undefined
-        async.series([
-            (cb) =>
-                # Get a list of all tables that should exist
-                dbg("get tables")
-                @_get_tables (err, t) =>
-                    psql_tables = t
-                    dbg("psql_tables = #{misc.to_json(psql_tables)}")
-                    goal_tables = (t for t,s of SCHEMA when t not in psql_tables and not s.virtual and s.durability != 'ephemeral')
-                    dbg("goal_tables = #{misc.to_json(goal_tables)}")
-                    cb(err)
-            (cb) =>
-                # Create from scratch any missing tables -- usually this creates all tables and
-                # indexes the first time around.
-                to_create = (table for table in goal_tables when table not in psql_tables)
-                created_tables = {}
-                for table in to_create
-                    created_tables[table] = true
-                if to_create.length == 0
-                    dbg("there are no missing tables in psql")
-                    cb()
-                    return
-                dbg("creating #{to_create.length} missing tables")
-                async.map to_create, @_create_table, (err) =>
-                    if err
-                        dbg("error creating tables -- #{err}")
-                    cb(err)
-            (cb) =>
-                # For each table that already exists, ensure that the columns are correct,
-                # have the correct type, and all indexes exist.
-                old_tables = (table for table in psql_tables when not created_tables[table])
-                if old_tables.length == 0
-                    dbg("no old tables to update")
-                    cb()
-                    return
-                dbg("verifying schema and indexes for #{old_tables.length} existing tables")
-                async.map old_tables, @_update_table_schema, (err) =>
-                    if err
-                        dbg("error updating table schemas -- #{err}")
-                    cb(err)
-        ], (err) => opts.cb?(err))
+        try
+            await syncSchema(SCHEMA);
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     # Return the number of outstanding concurrent queries.
     concurrent: =>
@@ -1311,52 +1051,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 Other misc functions
 ###
 
-# Convert from info in the schema table to a pg type
-# See https://www.postgresql.org/docs/devel/static/datatype.html
-# The returned type from this function is upper case!
 exports.pg_type = pg_type = (info) ->
-    if not info? or typeof(info) == 'boolean'
-        throw Error("pg_type: insufficient information to determine type (info=#{typeof(info)})")
-    if info.pg_type?
-        return info.pg_type
-    if not info.type?
-        throw Error("pg_type: insufficient information to determine type (pg_type and type both not given)")
-    type = info.type.toLowerCase()
-    switch type
-        when 'uuid'
-            return 'UUID'
-        when 'timestamp'
-            return 'TIMESTAMP'
-        when 'date'
-            return 'DATE'
-        when 'string', 'text'
-            return 'TEXT'
-        when 'boolean'
-            return 'BOOLEAN'
-        when 'map'
-            return 'JSONB'
-        when 'integer'
-            return 'INTEGER'
-        when 'number'
-            return 'DOUBLE PRECISION'
-        when 'array'
-            throw Error("pg_type: you must specify the array type explicitly (info=#{misc.to_json(info)})")
-        when 'buffer'
-            return "BYTEA"
-        else
-            throw Error("pg_type: unknown type '#{type}'")
+    return pgType(info)
 
-# Certain field names we used with RethinkDB
-# aren't allowed without quoting in Postgres.
-NEEDS_QUOTING =
-    user : true
 exports.quote_field = quote_field = (field) ->
-    if field[0] == '"'  # already quoted
-        return field
-    return "\"#{field}\""
-    #if NEEDS_QUOTING[field]
-    #    return "\"#{field}\""
-    #return field
+    return quoteField(field)
 
 # Timestamp the given number of seconds **in the future**.
 exports.expire_time = expire_time = (ttl) ->
@@ -1384,7 +1083,7 @@ exports.one_result = one_result = (pattern, cb) ->
             when 0
                 cb()
             when 1
-                obj = misc.map_without_undefined(result.rows[0])
+                obj = misc.map_without_undefined_and_null(result.rows[0])
                 if not pattern?
                     cb(undefined, obj)
                     return

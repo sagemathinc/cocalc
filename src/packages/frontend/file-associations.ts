@@ -433,6 +433,13 @@ file_associations["sage-chat"] = {
   name: "chat",
 };
 
+file_associations["cocalc-crm"] = {
+  editor: "crm",
+  icon: "database",
+  opts: {},
+  name: "crm",
+};
+
 file_associations["sage-git"] = {
   editor: "git",
   icon: "git-square",

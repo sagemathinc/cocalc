@@ -11,16 +11,22 @@ const { Search } = Input;
 
 interface Props {
   onSelect?: (name: IconName) => void;
+  onChange?: (search: string) => void;
   defaultSearch?: string;
   search?: string;
   style?: CSSProperties;
+  fontSize?: string;
+  disabled?: boolean;
 }
 
 export default function IconSelect({
   onSelect,
+  onChange,
   defaultSearch,
   search: search0,
   style,
+  fontSize,
+  disabled,
 }: Props) {
   const [search, setSearch] = useState<string>(search0 ?? defaultSearch ?? "");
 
@@ -33,11 +39,27 @@ export default function IconSelect({
   return (
     <div style={{ fontSize: "24pt", ...style }}>
       <Search
+        disabled={disabled}
         placeholder="Search..."
         value={search}
         allowClear
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          onChange?.(e.target.value);
+        }}
         style={{ maxWidth: "400px" }}
+        onPressEnter={() => {
+          // if there are any results, choose the first one
+          const search0 = search.trim().toLowerCase();
+          for (const name of iconNames) {
+            if (name.includes(search0)) {
+              setSearch(name);
+              onChange?.(name);
+              onSelect?.(name);
+              return;
+            }
+          }
+        }}
       />
       <div
         style={{
@@ -46,7 +68,7 @@ export default function IconSelect({
           border: "1px solid lightgrey",
         }}
       >
-        {icons(search, (name) => {
+        {icons(search, fontSize, (name) => {
           setSearch(name);
           onSelect?.(name);
         })}
@@ -55,12 +77,14 @@ export default function IconSelect({
   );
 }
 
-function icons(search, onClick) {
+function icons(search, fontSize, onClick) {
   search = search.trim().toLowerCase();
   const v: JSX.Element[] = [];
   for (const name of iconNames) {
     if (!name.includes(search)) continue;
-    v.push(<Match key={name} name={name} onClick={onClick} />);
+    v.push(
+      <Match fontSize={fontSize} key={name} name={name} onClick={onClick} />
+    );
   }
   return v;
 }
@@ -68,15 +92,17 @@ function icons(search, onClick) {
 function Match({
   name,
   onClick,
+  fontSize = "11pt",
 }: {
   name: IconName;
   onClick: (name: IconName) => void;
+  fontSize?;
 }) {
   return (
     <div
       style={{
         display: "inline-block",
-        width: "150px",
+        width: "100px",
         cursor: "pointer",
         whiteSpace: "nowrap",
         overflow: "hidden",
@@ -88,7 +114,7 @@ function Match({
       <div style={{ margin: "0 10px" }}>
         <Icon name={name} />
       </div>
-      <div style={{ fontSize: "11pt" }}>{name}</div>
+      <div style={{ fontSize }}>{name}</div>
     </div>
   );
 }

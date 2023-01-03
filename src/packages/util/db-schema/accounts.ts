@@ -5,6 +5,7 @@
 
 import { Table } from "./types";
 import { checkAccountName } from "./name-rules";
+import { SCHEMA as schema } from "./index";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -18,6 +19,8 @@ Table({
     account_id: {
       type: "uuid",
       desc: "The uuid that determines the user account",
+      render: { type: "account" },
+      title: "Account",
     },
     created: {
       type: "timestamp",
@@ -51,6 +54,7 @@ Table({
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
       desc: "The email address of the user.  This is optional, since users may instead be associated to passport logins.",
       unique: true,
+      render: { type: "email_address" },
     }, // only one record in database can have this email address (if given)
     email_address_before_delete: {
       type: "string",
@@ -84,11 +88,13 @@ Table({
       type: "string",
       pg_type: "VARCHAR(254)", // some limit (actually around 3000) is required for indexing
       desc: "The first name of this user.",
+      render: { type: "text", maxLength: 254, editable: true },
     },
     last_name: {
       type: "string",
       pg_type: "VARCHAR(254)",
       desc: "The last name of this user.",
+      render: { type: "text", maxLength: 254, editable: true },
     },
     banned: {
       type: "boolean",
@@ -176,6 +182,13 @@ Table({
       "unlisted",
       "((passports IS NOT NULL))",
       "((ssh_keys IS NOT NULL))", // used by ssh-gateway to speed up getting all users
+    ],
+    crm_indexes: [
+      "(lower(first_name) text_pattern_ops)",
+      "(lower(last_name)  text_pattern_ops)",
+      "(lower(email_address)  text_pattern_ops)",
+      "created",
+      "last_active DESC NULLS LAST",
     ],
     pg_unique_indexes: [
       "api_key", // we use the map api_key --> account_id, so it better be unique
@@ -393,3 +406,48 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   yeti: "Yeti",
   zenburn: "Zenburn",
 };
+
+Table({
+  name: "crm_accounts",
+  rules: {
+    virtual: "accounts",
+    primary_key: "account_id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true, // only admins can do get queries on this table
+        fields: schema.accounts.user_query?.get?.fields ?? {},
+      },
+      set: {
+        admin: true, // only admins can do get queries on this table
+        fields: {
+          account_id: true,
+          name: true,
+          first_name: true,
+          last_name: true,
+          autosave: true,
+          font_size: true,
+        },
+      },
+    },
+  },
+  fields: schema.accounts.fields,
+});
+
+Table({
+  name: "crm_agents",
+  rules: {
+    virtual: "accounts",
+    primary_key: "account_id",
+    user_query: {
+      get: {
+        // There where condition restricts to only admin accounts for now.
+        // TODO: Later this will change to 'crm'=any(groups) or something like that.
+        pg_where: ["'admin'=any(groups)"],
+        admin: true, // only admins can do get queries on this table
+        fields: schema.accounts.user_query?.get?.fields ?? {},
+      },
+    },
+  },
+  fields: schema.accounts.fields,
+});
