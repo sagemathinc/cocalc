@@ -58,8 +58,9 @@ class ClientDB {
     if (this._primary_keys_cache == null) {
       this._primary_keys_cache = {};
     }
-    if (this._primary_keys_cache[table] != null) {
-      return this._primary_keys_cache[table];
+    const key = typeof table == "string" ? table : table.name;
+    if (this._primary_keys_cache[key] != null) {
+      return this._primary_keys_cache[key];
     }
     let t = typeof table == "string" ? SCHEMA[table] : table;
     if (typeof t.virtual == "string") {
@@ -72,13 +73,13 @@ class ClientDB {
       );
     }
     if (typeof v === "string") {
-      return (this._primary_keys_cache[table] = [v]);
+      return (this._primary_keys_cache[key] = [v]);
     } else if (is_array(v) && typeof v == "object") {
       // the typeof is just to make typescript happy
       if (v.length === 0) {
         throw Error("at least one primary key must specified");
       }
-      return (this._primary_keys_cache[table] = v);
+      return (this._primary_keys_cache[key] = v);
     } else {
       throw Error("primary key must be a string or array of strings");
     }

@@ -225,6 +225,8 @@ export class Changes extends EventEmitter {
       this.emit("change", r);
       return;
     }
+    // Additional columns are watched so we must do a query to get them.
+    // There's no way around this due to the size limits on postgres LISTEN/NOTIFY.
     const where = {};
     for (k in mesg[1]) {
       v = mesg[1][k];
@@ -264,7 +266,7 @@ export class Changes extends EventEmitter {
     if (action == "update") {
       const x = this.new_val_update(mesg[1], this_val, key);
       if (x == null) {
-        // happens if this.closed is true -- double check for safety & TS happyness.
+        // happens if this.closed is true -- double check for safety (and typescript).
         return;
       }
       action = x.action; // may be insert in case no previous cached info.

@@ -5,6 +5,17 @@ import { make_valid_name } from "@cocalc/util/misc";
 
 const log = getLogger("db:schema:indexes");
 
+function possiblyAddParens(query: string): string {
+  if (query[0] == "(") {
+    return query;
+  }
+  if (query.toLowerCase().startsWith("using")) {
+    // do not add for using queries, since that violates PostgreSQL syntax
+    return query;
+  }
+  return `(${query})`;
+}
+
 export function createIndexesQueries(
   schema: TableSchema
 ): { name: string; query: string; unique: boolean }[] {
@@ -16,19 +27,14 @@ export function createIndexesQueries(
   for (let query of v) {
     query = query.trim();
     const name = `${schema.name}_${make_valid_name(query)}_idx`; // this first, then...
-    if (query[0] !== "(") {
-      // do this **after** making name, since it uses query before parens.
-      query = `(${query})`;
-    }
+    query = possiblyAddParens(query);
     queries.push({ name, query, unique: false });
   }
   const w = schema.pg_unique_indexes ?? [];
   for (let query of w) {
     query = query.trim();
     const name = `${schema.name}_${make_valid_name(query)}_unique_idx`;
-    if (query[0] !== "(") {
-      query = `(${query})`;
-    }
+    query = possiblyAddParens(query);
     queries.push({ name, query, unique: true });
   }
   return queries;
