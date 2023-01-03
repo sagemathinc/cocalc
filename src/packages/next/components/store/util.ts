@@ -13,7 +13,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { endOfDay, getDays, startOfDay } from "@cocalc/util/stripe/timecalcs";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import useCustomize from "lib/use-customize";
-import moment from "moment";
+import dayjs from "dayjs";
 import { NextRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { LicenseTypeInForms } from "./add-to-cart";
@@ -94,7 +94,7 @@ export function useTimeFixer() {
     const offset = localTime - serverTime;
 
     function toTimestamp(date: Date | string): number {
-      return moment(date).toDate().getTime();
+      return dayjs(date).toDate().getTime();
     }
 
     function toServerTime(date: Date | string) {

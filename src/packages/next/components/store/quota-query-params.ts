@@ -20,7 +20,7 @@ import {
 } from "@cocalc/util/upgrades/dedicated";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
 import { clamp, isDate } from "lodash";
-import moment from "moment";
+import dayjs from "dayjs";
 import { NextRouter } from "next/router";
 import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 
@@ -32,11 +32,11 @@ export function encodeRange(vals: DateRange): string {
   // that's why here is (yet again) some rounding to the start/end of the day.
   const start =
     vals[0] != null
-      ? moment(roundToMidnight(vals[0], "start"))?.format("YYYY-MM-DD")
+      ? dayjs(roundToMidnight(vals[0], "start"))?.format("YYYY-MM-DD")
       : null;
   const end =
     vals[1] != null
-      ? moment(roundToMidnight(vals[1], "end"))?.format("YYYY-MM-DD")
+      ? dayjs(roundToMidnight(vals[1], "end"))?.format("YYYY-MM-DD")
       : null;
   if (start != null && end != null) {
     return [start, end].join("_");
