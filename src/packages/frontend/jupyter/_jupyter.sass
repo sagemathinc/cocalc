@@ -5,8 +5,8 @@
 
 .cocalc-jupyter-rendered
   img
-    max-width    : 100%
-    height       : auto
+    max-width: 100%
+    height: auto
   table
     border: none
     border-collapse: collapse
@@ -32,26 +32,25 @@
   tr:hover
     background: rgba(66, 165, 245, 0.2)
 
-
 .cocalc-jupyter-rendered-md
   img
-    margin-left  : auto
-    margin-right : auto
-    max-width    : 100%
-    height       : auto
+    margin-left: auto
+    margin-right: auto
+    max-width: 100%
+    height: auto
 
 .cocalc-jupyter-anchor-link
-  visibility : hidden
+  visibility: hidden
 
 .cocalc-jupyter-header:hover .cocalc-jupyter-anchor-link
-  text-decoration : none !important
-  padding         : 0px 20px
-  visibility      : visible
+  text-decoration: none !important
+  padding: 0px 20px
+  visibility: visible
 
 =smooth-background-color
   transition-property: background-color, color
   transition-timing-function: ease
-  transition-duration: .250s
+  transition-duration: .1s
   transition-delay: 0s
 
 .cocalc-jupyter-usage-info
@@ -65,6 +64,17 @@
 
 .cocalc-jupyter-insert-cell
   height: 6px
+  cursor: pointer
+  text-align: center
+  &:hover
+    background-color: $COL_FG_BLUE
+  &:hover .cocalc-jupyter-insert-cell-controls
+    display: block
 
-.cocalc-jupyter-insert-cell:hover
-  background-color: #428bca
+.cocalc-jupyter-insert-cell-controls
+  display: none
+  z-index: 1
+  position: relative
+  top: -9px
+  &:hover
+    display: block
