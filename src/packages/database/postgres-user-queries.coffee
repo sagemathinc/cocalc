@@ -714,16 +714,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_user_set_query_hooks_prepare(r, cb)
             (cb) =>
                 if r.before_change_hook?
-                    r.before_change_hook(@, r.old_val, r.query, r.account_id, cb)
+                    r.before_change_hook @, r.old_val, r.query, r.account_id, (err, stop) =>
+                        r.done = stop
+                        cb(err)
                 else
                     cb()
             (cb) =>
+                if r.done
+                    cb()
+                    return
                 if r.instead_of_query?
                     opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
                     r.instead_of_query(@, opts1, cb)
                 else
                     @_user_set_query_main_query(r, cb)
             (cb) =>
+                if r.done
+                    cb()
+                    return
                 if r.on_change_hook?
                     r.on_change_hook(@, r.old_val, r.query, r.account_id, cb)
                 else
@@ -873,7 +881,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 action_request.err = err
             action_request.finished = new Date()
             dbg("finished!")
-            set_action_request()
+            set_action_request(opts.cb)
         )
 
     # This hook is called *before* the user commits a change to a project in the database
@@ -932,7 +940,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 action_request : misc.copy_with(new_val.action_request, ['action', 'time'])
                 cb         : (err) =>
                     dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
-            cb()
+                    # true means -- do nothing further.  We don't want to the user to
+                    # set this same thing since we already dealt with it properly.
+                    cb(err, true)
             return
 
         if not new_val.users?  # not changing users
