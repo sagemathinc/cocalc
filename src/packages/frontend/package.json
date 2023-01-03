@@ -65,7 +65,7 @@
     "@types/pdfjs-dist": "^2.10.378",
     "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
-    "antd": "^5.1.2",
+    "antd": "^5.0.7",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
