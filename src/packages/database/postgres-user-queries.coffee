@@ -922,7 +922,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb("Only the owner of the project can currently change the project name.")
                     return
 
-        if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
+        if new_val?.action_request? and JSON.stringify(new_val.action_request.time) != JSON.stringify(old_val?.action_request?.time)
             # Requesting an action, e.g., save, restart, etc.
             dbg("action_request -- #{misc.to_json(new_val.action_request)}")
             #
