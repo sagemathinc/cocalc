@@ -404,13 +404,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("shortcut -- no fields will be modified, so nothing to do")
             return
 
-        if not r.client_query.set.allow_field_deletes
-            # allow_field_deletes not set, so remove any null/undefined
-            # fields from the query
-            for key of r.query
-                if not r.query[key]?
-                    delete r.query[key]
-
         for field in misc.keys(r.client_query.set.fields)
             if r.client_query.set.fields[field] == undefined
                 return {err: "FATAL: user set query not allowed for #{opts.table}.#{field}"}
@@ -637,6 +630,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _user_set_query_main_query: (r, cb) =>
         r.dbg("_user_set_query_main_query")
+
+        if not r.client_query.set.allow_field_deletes
+            # allow_field_deletes not set, so remove any null/undefined
+            # fields from the query
+            for key of r.query
+                if not r.query[key]?
+                    delete r.query[key]
+
         if r.options.delete
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
@@ -662,6 +663,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_user_query_set_count r, (err, n) =>
                         cnt = n; cb(err)
                 (cb) =>
+                    r.dbg("do the set query")
                     if cnt == 0
                         # Just insert (do as upsert to avoid error in case of race)
                         @_user_query_set_upsert(r, cb)
