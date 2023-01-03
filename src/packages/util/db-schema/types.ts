@@ -103,6 +103,17 @@ export function Table<F extends Fields>({
   }
   const T: TableSchema<F> = { name, ...rules, fields };
   SCHEMA[name] = T;
+
+  if (name.startsWith("crm_")) {
+    // some special rules for all crm tables, just in case we figure to put them in manually.
+    if (T.user_query?.get != null) {
+      T.user_query.get.admin = true;
+      T.user_query.get.allow_field_deletes = true; // safe for all crm tables, due to them not having defaults.  Also, really useful, e.g., "clear a due date".
+    }
+    if (T.user_query?.set != null) {
+      T.user_query.set.admin = true;
+    }
+  }
 }
 
 export interface DBSchema {
@@ -141,6 +152,7 @@ export interface UserOrProjectQuery<F extends Fields> {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
+    allow_field_deletes?: boolean; // if true, allow deleting of field in record to be reported.  Do NOT do this if there are any default values (e.g., the projects and accounts tables have default values), since it's just not implemented yet!  This *is* used by all the crm tables.
     pg_where?:
       | (string | { [key: string]: any })[]
       | ((obj: any, db: any) => any[]);

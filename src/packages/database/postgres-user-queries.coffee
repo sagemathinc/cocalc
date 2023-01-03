@@ -1254,6 +1254,20 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     return false
         return true
 
+    _user_get_query_handle_field_deletes: (client_query, new_val) =>
+        if client_query.get.allow_field_deletes
+            # leave in the nulls that might be in new_val
+            return
+        # remove all nulls from new_val.  Right now we
+        # just can't support this due to default values.
+        # TODO: completely get rid of default values (?) or
+        # maybe figure out how to implement this. The symptom
+        # of not doing this is a normal user will do things like
+        # delete the users field of their projects. Not good.
+        for key of new_val
+            if not new_val[key]?
+                delete new_val[key]
+
     _user_get_query_changefeed: (changes, table, primary_keys, user_query,
                                  where, json_fields, account_id, client_query, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
@@ -1289,7 +1303,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 select[field] = type
 
         if misc.len(possible_time_fields) > 0
-            # Convert (likely) timestamps to Date objects.
+            # Convert (likely) timestamps to Date objects; fill in defaults for inserts
             process = (x) =>
                 if not x?
                     return
@@ -1297,6 +1311,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_user_get_query_json_timestamps(x.new_val, possible_time_fields)
                     if x.action == 'insert'  # do not do this for delete or update actions!
                         @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
+                    else if x.action == 'update'
+                        @_user_get_query_handle_field_deletes(client_query, x.new_val)
                 if x.old_val?
                     @_user_get_query_json_timestamps(x.old_val, possible_time_fields)
         else
@@ -1306,6 +1322,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if x.new_val?
                     if x.action == 'insert'  # do not do this for delete or update actions!
                         @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
+                    else if x.action == 'update'
+                        @_user_get_query_handle_field_deletes(client_query, x.new_val)
 
         async.series([
             (cb) =>

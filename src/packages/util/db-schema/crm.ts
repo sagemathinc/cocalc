@@ -1,3 +1,14 @@
+/*
+NOTES:
+
+- right now the Table function types.ts also automatically does some
+extra things for all crm_ tables to ensure safety, e.g., ensuring admin.
+
+- do NOT use defaults for get.fields!  Those are set by the frontend crm code when creating records.
+  Also, they are not compatible with null-ing fields.
+
+*/
+
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
@@ -429,7 +440,7 @@ Table({
         admin: true,
         fields: {
           id: true,
-          ticket_id: null,
+          ticket_id: true,
           created: true,
           last_edited: true,
           sent_by: true,
