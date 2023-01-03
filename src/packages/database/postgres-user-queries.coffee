@@ -1289,13 +1289,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 select[field] = type
 
         if misc.len(possible_time_fields) > 0
-            # Convert (likely) timestamps to Date objects.
+            # Convert (likely) timestamps to Date objects.  Also fill in default values.
             process = (x) =>
                 if not x?
                     return
                 if x.new_val?
                     @_user_get_query_json_timestamps(x.new_val, possible_time_fields)
-                    if x.action == 'insert'  # do not do this for delete or update actions!
+                    if x.action != 'delete'  # do not do this for delete actions!
                         @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
                 if x.old_val?
                     @_user_get_query_json_timestamps(x.old_val, possible_time_fields)
@@ -1304,7 +1304,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if not x?
                     return
                 if x.new_val?
-                    if x.action == 'insert'  # do not do this for delete or update actions!
+                    if x.action != 'delete'  # do not do this for delete actions!
                         @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
 
         async.series([
