@@ -72,9 +72,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     project_id,
     "deleted",
   ]);
-  if (actions != null) {
-    useProjectStatus(actions);
-  }
+  useProjectStatus(actions);
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const open_files = useTypedRedux({ project_id }, "open_files");
   const active_project_tab = useTypedRedux(
