@@ -8,6 +8,7 @@ import { pick } from "lodash";
 import { AtomicSearch } from "../syncdb/use-search";
 import querydbSet from "./set";
 import { DEFAULT_LIMIT } from "../views/view";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 interface Options {
   query: object; // assumed to have one key exactly, which is name of table
@@ -35,6 +36,7 @@ export function useTable({
   loading: boolean;
   saving: boolean;
 } {
+  const isMountedRef = useIsMountedRef();
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -57,9 +59,13 @@ export function useTable({
         setError("");
         await querydbSet(query);
       } catch (err) {
-        setError(`${err}`);
+        if (isMountedRef.current) {
+          setError(`${err}`);
+        }
       } finally {
-        setSaving(false);
+        if (isMountedRef.current) {
+          setSaving(false);
+        }
       }
     };
 
