@@ -404,10 +404,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("shortcut -- no fields will be modified, so nothing to do")
             return
 
+        if not r.client_query.set.allow_field_deletes
+            # allow_field_deletes not set, so remove any null/undefined
+            # fields from the query
+            for key of r.query
+                if not r.query[key]?
+                    delete r.query[key]
+
         for field in misc.keys(r.client_query.set.fields)
             if r.client_query.set.fields[field] == undefined
                 return {err: "FATAL: user set query not allowed for #{opts.table}.#{field}"}
             val = r.client_query.set.fields[field]
+
             if typeof(val) == 'function'
                 try
                     r.query[field] = val(r.query, @)

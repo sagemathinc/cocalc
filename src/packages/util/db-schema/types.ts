@@ -112,6 +112,7 @@ export function Table<F extends Fields>({
     }
     if (T.user_query?.set != null) {
       T.user_query.set.admin = true;
+      T.user_query.set.allow_field_deletes = true; // same comment as above for get.
     }
   }
 }
@@ -184,6 +185,7 @@ export interface UserOrProjectQuery<F extends Fields> {
   set?: {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
+    allow_field_deletes?: boolean; // if true, allow setting a field to null to delete it.  This *is* used by all the crm tables.  It's off by default due to not being supported for tables with default values.  If this is not true then in set queries when a field is being set to undefined or null, that is just ignored.
     admin?: boolean;
     // if true, it is possible to delete records from
     // this table (use options=[{delete:true}] in the query)
