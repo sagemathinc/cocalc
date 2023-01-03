@@ -27,6 +27,7 @@ Table({
   rules: {
     primary_key: "relname",
     desc: "A useful system table for approximate count of size of table",
+    external: true, // this is a built in external system table
     user_query: {
       get: {
         admin: true,
