@@ -8,6 +8,7 @@ import { Icon } from "../components";
 import { Modal } from "antd";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";
+import { plural } from "@cocalc/util/misc";
 
 export const ConnectionInfo: React.FC = React.memo(() => {
   const ping = useTypedRedux("page", "ping");
@@ -101,10 +102,11 @@ const MessageInfo: React.FC = React.memo(() => {
               : undefined
           }
         >
-          {info.get("count")} messages in flight
+          {info.get("count")} {plural(info.get("count"), "message")} in flight
         </span>
         <br />
-        {info.get("enqueued")} messages queued to send
+        {info.get("enqueued")} {plural(info.get("enqueued"), "message")} queued
+        to send
       </pre>
       <div style={{ color: "#666" }}>
         Connection icon color changes as the number of messages in flight to a
