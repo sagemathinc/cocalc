@@ -23,7 +23,7 @@
   "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/util": "*",
+    "@cocalc/util": "workspace:*",
     "@ant-design/colors": "^6.0.0",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",

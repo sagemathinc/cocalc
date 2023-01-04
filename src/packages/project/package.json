@@ -18,11 +18,11 @@
     "mathematics"
   ],
   "dependencies": {
-    "@cocalc/backend": "*",
-    "@cocalc/frontend": "*",
-    "@cocalc/project": "*",
-    "@cocalc/sync": "*",
-    "@cocalc/util": "*",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/frontend": "workspace:*",
+    "@cocalc/project": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",

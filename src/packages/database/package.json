@@ -14,10 +14,10 @@
     "./user-query": "./dist/user-query/index.js"
   },
   "dependencies": {
-    "@cocalc/database": "*",
-    "@cocalc/backend": "*",
-    "@cocalc/server": "*",
-    "@cocalc/util": "*",
+    "@cocalc/database": "workspace:*",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/server": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",
