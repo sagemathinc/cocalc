@@ -18,11 +18,12 @@
     "mathematics"
   ],
   "dependencies": {
-    "@cocalc/project": "*",
     "@cocalc/backend": "*",
     "@cocalc/frontend": "*",
+    "@cocalc/project": "*",
     "@cocalc/sync": "*",
     "@cocalc/util": "*",
+    "@nteract/messaging": "^7.0.20",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -41,6 +42,7 @@
     "expect": "^26.6.2",
     "express": "^4.17.1",
     "express-rate-limit": "^6.3.0",
+    "fast-json-stable-stringify": "^2.1.0",
     "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
@@ -91,7 +93,9 @@
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
