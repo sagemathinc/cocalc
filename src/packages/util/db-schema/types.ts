@@ -216,6 +216,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * 1. BEFORE: If before_change is set, it is called with input
      *   (database, old_val, query, account_id, cb)
      * before the actual change to the database is made.
+     * If cb(err) then no change is made and error is reported.
+     # If cb(undefined, true) then no change is made and no error; any work is considered done.
      */
     before_change?: (
       database,
