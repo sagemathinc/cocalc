@@ -353,14 +353,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
                     else
                         r.err = "unknown option '#{name}'"
-        # Guard rails: no matter what, all queries are capped with a limit of 1000.
+        # Guard rails: no matter what, all queries are capped with a limit of 100000.
+        # TODO: If somehow somebody has, e.g., more than 100K projects, or maybe more
+        # than 100K edits of a single file, they could hit this and not realize it.  I
+        # had this set at 1000 for a few minutes and it caused me to randomly not have
+        # some of my projects.
+        MAX_LIMIT = 100000
         try
             if not isFinite(r.limit)
-                r.limit = 1000
-            else if r.limit > 1000
-                r.limit = 1000
+                r.limit = MAX_LIMIT
+            else if r.limit > MAX_LIMIT
+                r.limit = MAX_LIMIT
         catch
-            r.limit = 1000
+            r.limit = MAX_LIMIT
         return r
 
     ###
