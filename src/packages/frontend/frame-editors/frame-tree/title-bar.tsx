@@ -1594,10 +1594,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         // Below we use step=-1 and do not set min/max so that
         // the up/down buttons are switched from usual, which makes
         // sense for page numbers.
+
+        // Style: the button heights actually changes a bit depending
+        // on if it's the only frame or not, so our input box also has
+        // to adjust.
         content = (
           <>
             <InputNumber
-              style={{ width: "9ex", height: "30px" }}
+              style={{
+                width: "9ex",
+                top: "-4px",
+                height: !props.is_only && !props.is_full ? "30px" : undefined,
+              }}
               step={-1}
               value={props.page}
               onChange={(page) => {
