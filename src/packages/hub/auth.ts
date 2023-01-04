@@ -471,7 +471,7 @@ export class PassportManager {
         PassportStrategyConstructor,
         login_info: { ...DEFAULT_LOGIN_INFO, ...strategy.conf.login_info },
         userinfoURL: strategy.conf.userinfoURL,
-        extra_opts: this.get_extra_opts(name, strategy.conf),
+        extra_opts: this.get_extra_opts(name, strategy.conf) as any, // TODO!
         update_on_login: strategy.info?.update_on_login ?? false,
         cookie_ttl_s: strategy.info?.cookie_ttl_s, // could be undefined, that's OK
         auth_opts: strategy.conf.auth_opts ?? {},
