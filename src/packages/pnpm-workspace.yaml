@@ -2,4 +2,4 @@ packages:
   # include all
   - '**'
   # but exclude cdn since it has to use npm until we rewrite it.
-  - "!**/cdn/**"
+  #- "!**/cdn/**"

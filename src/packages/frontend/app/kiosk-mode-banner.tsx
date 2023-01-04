@@ -6,13 +6,13 @@
 import { React } from "../app-framework";
 import { SiteName } from "../customize";
 
-const cocalc_logo_white = require("cocalc-icon-white-transparent.svg").default;
+import { APP_LOGO_WHITE } from "../art";
 
 export const KioskModeBanner: React.FC = () => {
   return (
     <div id={"smc-startup-banner"}>
       <div>
-        <img src={cocalc_logo_white} />
+        <img src={APP_LOGO_WHITE} />
       </div>
       <div
         className={"message ready"}

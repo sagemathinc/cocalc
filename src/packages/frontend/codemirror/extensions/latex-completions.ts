@@ -12,9 +12,9 @@ and I can't remember where that came from or how to update it.
 
 import * as CodeMirror from "codemirror";
 import { startswith } from "@cocalc/util/misc";
-const data = require("codemirror-extra/data/latex-completions.txt");
+const data = require("@cocalc/assets/codemirror-extra/data/latex-completions.txt");
 
-const completions : string[] = data.split("\n");
+const completions: string[] = data.split("\n");
 
 function tex_hint(editor) {
   const cur = editor.getCursor();

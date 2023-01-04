@@ -9,6 +9,7 @@ import { webapp_client } from "../webapp-client";
 import { cmp, max } from "@cocalc/util/misc";
 import { client_db } from "@cocalc/util/schema";
 const { sha1 } = client_db;
+import { set_window_title } from "../browser";
 
 export interface FileUseState {
   errors?: iList<string>;
@@ -281,7 +282,7 @@ export class FileUseStore extends Store<FileUseState> {
       sorted_file_use_immutable_list: fromJS(v),
       notify_count,
     };
-    require("browser").set_window_title();
+    set_window_title();
     return v;
   }
 
