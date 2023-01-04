@@ -1,5 +1,1 @@
-packages:
-  # include all
-  - '**'
-  # but exclude cdn since it has to use npm until we rewrite it.
-  #- "!**/cdn/**"
+# default is include all, which is fine

@@ -15,12 +15,11 @@
   },
   "comment": "YES, this weird cdn package is designed to only work with npm.",
   "scripts": {
-    "preinstall": "npx only-allow npm",
-    "clean": "rm -rf node_modules dist",
-    "build": "rm -rf dist && mkdir -p dist && ./setup.py",
+    "clean": "rm -rf build node_modules dist",
+    "build": "pnpm clean && mkdir build && cp -rv * build && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "npx jest",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/cdn",
   "repository": {
