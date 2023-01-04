@@ -31,7 +31,7 @@ import {
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
-import { DOC_TRIAL } from "./trial-banner";
+import { DOC_TRIAL } from "./project-banner";
 
 interface Props {
   project_id: string;
