@@ -67,8 +67,15 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       const new_id = frameActions.current.insert_cell(
         position === "below" ? 1 : -1
       );
-      if (type === "markdown") {
-        actions.set_cell_type(new_id, "markdown");
+
+      switch (type) {
+        case "markdown":
+          actions.set_cell_type(new_id, "markdown");
+          frameActions.current?.switch_md_cell_to_edit(new_id);
+          break;
+        case "code":
+          frameActions.current?.switch_code_cell_to_edit(new_id);
+          break;
       }
     }
 
