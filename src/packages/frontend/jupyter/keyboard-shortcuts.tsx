@@ -8,29 +8,30 @@
 //   - lets you search through all available commands
 //   - see and change the keyboard shortcuts for those commands\
 
-import { React, Rendered, useState } from "../app-framework";
+import { Modal } from "antd";
 import { Map } from "immutable";
 import json from "json-stable-stringify";
-import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
-import { Modal } from "antd";
-import { Button, Grid, Row, Col } from "@cocalc/frontend/antd-bootstrap";
+
+import { Button, Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
+import { CSS, React, Rendered, useState } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
   IconName,
-  SearchInput,
   r_join,
+  SearchInput,
 } from "@cocalc/frontend/components";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { ShowSupportLink } from "@cocalc/frontend/support";
+import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
+import { JupyterActions } from "./browser-actions";
 import {
-  commands as create_commands,
   CommandDescription,
+  commands as create_commands,
   KeyboardCommand,
 } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
-import { JupyterActions } from "./browser-actions";
-import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
-import { ShowSupportLink } from "@cocalc/frontend/support";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
@@ -44,6 +45,7 @@ const SYMBOLS = {
   down: "⬇",
   up: "⬆",
   backspace: "⌫",
+  delete: "␡",
 };
 
 function shortcut_to_string(shortcut: KeyboardCommand): string {
@@ -85,6 +87,9 @@ function shortcut_to_string(shortcut: KeyboardCommand): string {
           break;
         case 38:
           s += SYMBOLS.up;
+          break;
+        case 46:
+          s += SYMBOLS.delete;
           break;
         default:
           s += keyCode_to_chr(keyCode);
@@ -291,7 +296,7 @@ function capitalize_each_word(s: string): string {
     .join(" ");
 }
 
-const COMMAND_STYLE = {
+const COMMAND_STYLE: CSS = {
   cursor: "pointer",
   borderTop: "1px solid #ccc",
   padding: "5px 0 5px 10px",
@@ -491,7 +496,14 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
 
     function render_heading(): Rendered {
       return (
-        <Grid style={{ width: "100%", fontWeight: "bold", color: "#666", marginTop:'15px' }}>
+        <Grid
+          style={{
+            width: "100%",
+            fontWeight: "bold",
+            color: "#666",
+            marginTop: "15px",
+          }}
+        >
           <Row>
             <Col md={1} sm={1} />
             <Col md={7} sm={7}>
