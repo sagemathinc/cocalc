@@ -132,6 +132,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
         <Tooltip
           title="Insert a new (text) cell – you can also [shift]-click on the blue bar to insert a [text] cell"
           placement="bottom"
+          mouseEnterDelay={2} // otherwise, it pops up all the time and gets really annoying
         >
           {renderControls()}
         </Tooltip>
