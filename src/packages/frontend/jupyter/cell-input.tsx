@@ -6,26 +6,26 @@
 /*
 React component that describes the input of a cell
 */
-
+import { fromJS, Map } from "immutable";
 import { useCallback, useEffect, useRef } from "react";
-import { React, Rendered } from "../app-framework";
-import { Map, fromJS } from "immutable";
+
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { startswith, filename_extension } from "@cocalc/util/misc";
-import { Icon } from "../components";
-import { CodeMirror } from "./codemirror-component";
-import { InputPrompt } from "./prompt/input";
-import { Complete } from "./complete";
-import { CellToolbar } from "./cell-toolbar";
-import { CellTiming } from "./cell-output-time";
-import { get_blob_url } from "./server-urls";
-import { CellHiddenPart } from "./cell-hidden-part";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { JupyterActions } from "./browser-actions";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
-import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { filename_extension, startswith } from "@cocalc/util/misc";
+import { JupyterActions } from "./browser-actions";
+import { CellHiddenPart } from "./cell-hidden-part";
+import { CellTiming } from "./cell-output-time";
+import { CellToolbar } from "./cell-toolbar";
+import { CodeMirror } from "./codemirror-component";
+import { Complete } from "./complete";
+import { InputPrompt } from "./prompt/input";
+import { get_blob_url } from "./server-urls";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -100,14 +100,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     }
 
     function handle_md_double_click(): void {
-      if (props.cell.getIn(["metadata", "editable"]) === false) {
-        // TODO: NEVER ever silently fail!
-        return;
-      }
-      const id = props.cell.get("id");
-      frameActions.current?.set_md_cell_editing(id);
-      frameActions.current?.set_cur_id(id);
-      frameActions.current?.set_mode("edit");
+      frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
     }
 
     function options(type: "code" | "markdown" | "raw"): Map<string, any> {
