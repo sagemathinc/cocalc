@@ -30,28 +30,19 @@
     "math",
     "mathematics"
   ],
-  "directories": {},
-  "workspaces": [
-    "./",
-    "../assets",
-    "../cdn",
-    "../hub",
-    "../project",
-    "../sync",
-    "../util"
-  ],
   "dependencies": {
+    "@cocalc/assets": "*",
+    "@cocalc/cdn": "*",
+    "@cocalc/frontend": "*",
+    "@cocalc/hub": "*",
+    "@cocalc/project": "*",
+    "@cocalc/sync": "*",
+    "@cocalc/util": "*",
     "@ant-design/compatible": "^5.1.1",
     "@ant-design/icons": "^4.8.0",
     "@cocalc/ansi-to-react": "^6.0.13",
     "@cocalc/antd-img-crop": "^4.5.5",
-    "@cocalc/assets": "^1.10.1",
-    "@cocalc/cdn": "^1.15.1",
-    "@cocalc/hub": "^1.120.6",
     "@cocalc/local-storage-lru": "^2.1.1",
-    "@cocalc/project": "^1.34.3",
-    "@cocalc/sync": "^0.10.1",
-    "@cocalc/util": "^1.76.5",
     "@dnd-kit/core": "^6.0.6",
     "@dnd-kit/modifiers": "^6.0.1",
     "@dnd-kit/sortable": "^7.0.1",
@@ -195,10 +186,11 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {

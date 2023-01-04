@@ -17,18 +17,12 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    ".",
-    "../backend",
-    "../frontend",
-    "../sync",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/backend": "^1.21.1",
-    "@cocalc/frontend": "^1.101.3",
-    "@cocalc/sync": "^0.10.1",
-    "@cocalc/util": "^1.75.0",
+    "@cocalc/project": "*",
+    "@cocalc/backend": "*",
+    "@cocalc/frontend": "*",
+    "@cocalc/sync": "*",
+    "@cocalc/util": "*",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -89,16 +83,15 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

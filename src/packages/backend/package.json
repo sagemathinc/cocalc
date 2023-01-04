@@ -9,24 +9,19 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/util": "^1.72.3",
+    "@cocalc/backend": "*",
+    "@cocalc/util": "*",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "async": "^1.5.2",
