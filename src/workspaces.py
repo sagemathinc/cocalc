@@ -3,11 +3,10 @@
 PURPOSE: Automate building, installing, and publishing our modules.
 This is like a little clone of "lerna" for our purposes.
 
-NOTES:
- - We cannot run "npm ci" in parallel across modules, since we're using workspaces,
-   and doing several npm ci at once totally breaks npm.  Of course, it also makes
-   it difficult to understand error messages too.
- - Similar for "npm run build" in parallel -- it subtly breaks.
+NOTE: I wrote this initially using npm and with the goal of publishing
+to npmjs.com.   Now I don't care at all about publishing to npmjs.com,
+and we're using pnpm.  So this is being turned into a package just
+for cleaning/installing/building.
 
 TEST:
  - This should always work:  "mypy workspaces.py"
@@ -224,11 +223,14 @@ def banner(s: str) -> None:
     print("=" * 70 + "\n")
 
 
-def ci(args) -> None:
+def install(args) -> None:
     v = packages(args)
-    # First do npm ci not in parallel (which doesn't work with workspaces):
+    # First do "pnpm i" not in parallel
     for path in v:
-        cmd("npm ci", path)
+        if path.endswith('/cdn'):
+            cmd("npm ci", path)
+        else:
+            cmd("pnpm i", path)
 
 
 # Build all the packages that need to be built.
@@ -245,7 +247,10 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist)
         package_path = os.path.join(CUR, path)
-        cmd("npm run build", package_path)
+        if path.endswith('/cdn'):
+            cmd("pnpm run build", package_path)
+        else:
+            cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
         # to indicate this, so we won't build again
         # until something is newer than this file
@@ -284,9 +289,11 @@ def clean(args) -> None:
         banner("Deleting " + ', '.join(paths))
         thread_map(f, paths, nb_threads=10)
 
-    banner("Running 'npm run clean' if it exists...")
+    banner("Running 'pnpm run clean' if it exists...")
 
     def g(path):
+        # can only use --if-present with npm, but should be fine since clean is
+        # usually just "rm".
         cmd("npm run clean --if-present", path)
 
     thread_map(g, [os.path.abspath(path) for path in v],
@@ -309,15 +316,17 @@ def delete_package_lock(args) -> None:
                nb_threads=10)
 
 
-def npm(args, noerr=False) -> None:
+def pnpm(args, noerr=False) -> None:
     v = packages(args)
     inputs: List[List[str]] = []
     for path in v:
-        s = 'npm ' + ' '.join(['%s' % x for x in args.args])
+        s = 'pnpm ' + ' '.join(['%s' % x for x in args.args])
         inputs.append([s, os.path.abspath(path)])
 
     def f(args) -> None:
-        cmd(*args, noerr=noerr)
+        # kwds to make mypy happy
+        kwds = {"noerr": noerr}
+        cmd(*args, **kwds)
 
     if args.parallel:
         thread_map(f, inputs, 3)
@@ -325,8 +334,8 @@ def npm(args, noerr=False) -> None:
         thread_map(f, inputs, 1)
 
 
-def npm_noerror(args) -> None:
-    npm(args, noerr=True)
+def pnpm_noerror(args) -> None:
+    pnpm(args, noerr=True)
 
 
 def version_check(args):
@@ -387,7 +396,7 @@ def bump_package_version_if_necessary(package: str, newversion: str) -> None:
         print(f"No, version of {package} already changed")
         return
     print(f"Yes, bumping version of {package} via {newversion}")
-    cmd(f"npm --no-git-tag-version version {newversion}", package)
+    cmd(f"pnpm --no-git-tag-version version {newversion}", package)
 
 
 # Once, probably due to circular dependencies (not sure) a package-lock.json
@@ -421,7 +430,7 @@ def publish_package(args, package: str) -> None:
     #  npm with no custom base path.
     if 'BASE_PATH' in os.environ:
         del os.environ['BASE_PATH']
-    cmd("npm run build", package)
+    cmd("pnpm run build", package)
     # And now publish it:
     if args.tag:
         cmd(f"npm publish --tag {args.tag}", package)
@@ -480,19 +489,20 @@ def node_version_check() -> None:
         raise RuntimeError(err)
 
 
-def npm_version_check() -> None:
+def pnpm_version_check() -> None:
     """
-    Check if the npm utility has at least version 8.
+    Check if the pnpm utility is new enough
     """
-    version = os.popen('npm --version').read()
-    if int(version.split('.')[0]) < 8:
+    version = os.popen('pnpm --version').read()
+    if int(version.split('.')[0]) < 7:
         raise RuntimeError(
-            f"CoCalc requires npm version 8, but you're using npm v{version}.")
+            f"CoCalc requires pnpm version 7, but you're using pnpm v{version}."
+        )
 
 
 def main() -> None:
     node_version_check()
-    npm_version_check()
+    pnpm_version_check()
 
     def packages_arg(parser):
         parser.add_argument(
@@ -520,13 +530,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog='workspaces')
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    subparser = subparsers.add_parser('ci',
-                                      help='install deps for all modules')
+    subparser = subparsers.add_parser('install',
+                                      help='install node_modules deps for all packages')
     packages_arg(subparser)
-    subparser.set_defaults(func=ci)
+    subparser.set_defaults(func=install)
 
-    subparser = subparsers.add_parser('build',
-                                      help='build all modules (use ci first)')
+    subparser = subparsers.add_parser('build', help='build all packages')
     packages_arg(subparser)
     subparser.set_defaults(func=build)
 
@@ -549,28 +558,28 @@ def main() -> None:
     packages_arg(subparser)
     subparser.set_defaults(func=delete_package_lock)
 
-    subparser = subparsers.add_parser(
-        'npm', help='do "npm ..." in each package; e.g., use for "npm ci"')
+    subparser = subparsers.add_parser('pnpm',
+                                      help='do "pnpm ..." in each package;')
     packages_arg(subparser)
     subparser.add_argument('args',
                            type=str,
                            nargs='*',
                            default='',
                            help='arguments to npm')
-    subparser.set_defaults(func=npm)
+    subparser.set_defaults(func=pnpm)
 
     subparser = subparsers.add_parser(
-        'npm-noerr',
+        'pnpm-noerr',
         help=
-        'like "npm" but suppresses errors; e.g., use for "npm-noerr audit fix"'
+        'like "pnpm" but suppresses errors; e.g., use for "pnpm-noerr audit fix"'
     )
     packages_arg(subparser)
     subparser.add_argument('args',
                            type=str,
                            nargs='*',
                            default='',
-                           help='arguments to npm')
-    subparser.set_defaults(func=npm_noerror)
+                           help='arguments to pnpm')
+    subparser.set_defaults(func=pnpm_noerror)
 
     subparser = subparsers.add_parser(
         'version-check', help='version consistency checks across packages')

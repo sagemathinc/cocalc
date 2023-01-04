@@ -45,10 +45,12 @@ for path, data in deps.items():
 copytree("../pix", "pix")
 
 # finally, write the version info such that it can be loaded
-with open('index.ts', 'w') as out:
-    out.write(f'export const versions = {json.dumps(versions)};\n')
-    out.write('declare const __dirname : string;')
-    out.write('export const path : string = __dirname;\n')
+with open('index.js', 'w') as out:
+    out.write(f"""
+"use strict";
+exports.__esModule = true;
+exports.path = exports.versions = void 0;
+exports.versions = {json.dumps(versions)};
+exports.path = __dirname;
+""")
 
-if os.system("npx tsc --declaration index.ts"):
-    raise RuntimeError("error building index.js")
