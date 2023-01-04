@@ -9,7 +9,10 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
@@ -42,6 +45,7 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "@types/jest": "^29.2.3",
+    "@types/node": "^14.18.10",
     "coffee-cache": "^1.0.2",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
