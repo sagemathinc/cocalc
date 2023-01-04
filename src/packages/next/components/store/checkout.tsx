@@ -30,9 +30,14 @@ import { describeItem, DisplayCost } from "./site-license-cost";
 
 export default function CheckoutWithCaptcha() {
   const { reCaptchaKey } = useCustomize();
+
+  const body = <Checkout />;
+  if (reCaptchaKey == null) {
+    return body;
+  }
   return (
     <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
-      <Checkout />
+      {body}
     </GoogleReCaptchaProvider>
   );
 }

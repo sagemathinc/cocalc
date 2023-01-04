@@ -26,9 +26,14 @@ interface Props {
 export default function SignIn(props: Props) {
   const { reCaptchaKey } = useCustomize();
 
+  const body = <SignIn0 {...props} />;
+  if (reCaptchaKey == null) {
+    return body;
+  }
+
   return (
     <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
-      <SignIn0 {...props} />
+      {body}
     </GoogleReCaptchaProvider>
   );
 }

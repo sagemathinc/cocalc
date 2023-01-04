@@ -34,7 +34,7 @@ interface Options {
   noSave?: boolean;
 }
 
-export default function useEditTable<T>(query: object, options?: Options) {
+export default function useEditTable<T extends object>(query: object, options?: Options) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
   const [edited, setEdited0] = useState<T | undefined>(undefined);
@@ -50,6 +50,7 @@ export default function useEditTable<T>(query: object, options?: Options) {
       setCounter(counter + 1);
       return;
     }
+    if (editedRef.current == null) return;
     // just edit part of object.
     set(editedRef.current, path, update);
     setEdited0({ ...editedRef.current } as T);
