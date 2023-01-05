@@ -25,26 +25,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
+      - uses: pnpm/action-setup@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
-          cache: "npm"
-          cache-dependency-path: |
-            src/packages/frontend/package-lock.json
-            src/packages/backend/package-lock.json
-            src/packages/hub/package-lock.json
-            src/packages/util/package-lock.json
-            src/packages/sync/package-lock.json
-            src/packages/assets/package-lock.json
-            src/packages/project/package-lock.json
-            src/packages/server/package-lock.json
-            src/packages/static/package-lock.json
-            src/packages/database/package-lock.json
-            src/packages/next/package-lock.json
-            src/packages/cdn/package-lock.json
+          cache: "pnpm"
+          cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src; npm run make
-      - run: cd src; npm run test
+      - run: cd src && npm run make
+      - run: cd src && npm run test
