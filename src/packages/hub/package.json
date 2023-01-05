@@ -94,16 +94,16 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
+    "preinstall": "npx run only-allow pnpm",
     "build": "npx tsc && coffee -m -c -o dist/ .",
-    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT BASE_PATH && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=$INIT_CWD/../../data/postgres/socket} && PGUSER='smc'  NODE_ENV=development NODE_OPTIONS='--max_old_space_size=6000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
-    "hub-project-dev": "pnpm build && pnpm hub-project-dev-nobuild",
-    "hub-project-prod": "pnpm build && unset DATA COCALC_ROOT  BASE_PATH && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=$INIT_CWD/../../data/postgres/socket} &&   PGUSER='smc' NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
-    "hub-docker-dev": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=development PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
-    "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user  --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
+    "hub-project-dev-nobuild": "unset DATA COCALC_ROOT BASE_PATH && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=$INIT_CWD/../../data/postgres/socket} && PGUSER='smc'  NODE_ENV=development NODE_OPTIONS='--max_old_space_size=6000 --trace-warnings --enable-source-maps' pnpm run cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
+    "hub-project-dev": "pnpm run build && pnpm run hub-project-dev-nobuild",
+    "hub-project-prod": "pnpm run build && unset DATA COCALC_ROOT  BASE_PATH && export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && export PGHOST=${PGHOST:=$INIT_CWD/../../data/postgres/socket} &&   PGUSER='smc' NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' pnpm run cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
+    "hub-docker-dev": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=development PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' pnpm run cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
+    "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS=--enable-source-maps pnpm run cocalc-hub-server --mode=multi-user  --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && pnpm test"
+    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && pnpm run test"
   },
   "repository": {
     "type": "git",
