@@ -227,10 +227,7 @@ def install(args) -> None:
     v = packages(args)
     # First do "pnpm i" not in parallel
     for path in v:
-        if path.endswith('/cdn'):
-            cmd("npm ci", path)
-        else:
-            cmd("pnpm i", path)
+        cmd("pnpm i", path)
 
 
 # Build all the packages that need to be built.
@@ -247,10 +244,7 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist)
         package_path = os.path.join(CUR, path)
-        if path.endswith('/cdn'):
-            cmd("pnpm run build", package_path)
-        else:
-            cmd("pnpm run build", package_path)
+        cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
         # to indicate this, so we won't build again
         # until something is newer than this file
