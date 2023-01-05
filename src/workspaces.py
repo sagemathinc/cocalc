@@ -337,142 +337,6 @@ def version_check(args):
     cmd("scripts/check_npm_packages.py")
 
 
-NEVER = '0000000000'
-
-
-def last_commit_when_version_changed(package: str) -> str:
-    return run('git blame package.json |grep \'  "version":\'', package,
-               False).split()[0]
-
-
-def package_status(args, package: str) -> None:
-    commit = last_commit_when_version_changed(package)
-    print("\nPackage:", package)
-    sys.stdout.flush()
-    if commit == NEVER:
-        print("never committed")
-        return
-    cmd("git diff  --name-status %s ." % commit, package, False)
-
-
-def package_diff(args, package: str) -> None:
-    commit = last_commit_when_version_changed(package)
-    print("\nPackage:", package)
-    sys.stdout.flush()
-    if commit == NEVER:
-        print("never committed")
-        return
-    cmd("git diff  %s ." % commit, package, False)
-
-
-# Returns true if the package version in package.json if different
-# from what was last committed to git.  More precisely, the 'version:'
-# line has changed since the last git commit.
-def package_version_is_modified_from_last_git_commit(package: str) -> bool:
-    # If the version: line in package.json has changed since the
-    # last commit (or never commited), then git says the commit
-    # where it changed is '0000000000'.   We thus bump the version
-    # precisely when the commit where that line last changed is
-    # something other than '0000000000'.
-    return run("git blame package.json|grep '\"version\":'",
-               package).startswith(NEVER)
-
-
-# Increase the package version, unless it has already
-# changed from what it was when the package.json file
-# was last commited to git.  NOTE: we're comparing to
-# the last git commit, NOT what is published on npmjs since:
-#   - it is slow to get that info from npmjs
-#   - it's difficult to deal with tags there
-def bump_package_version_if_necessary(package: str, newversion: str) -> None:
-    print(f"Check if we need to bump version of {package}")
-    if package_version_is_modified_from_last_git_commit(package):
-        print(f"No, version of {package} already changed")
-        return
-    print(f"Yes, bumping version of {package} via {newversion}")
-    cmd(f"pnpm --no-git-tag-version version {newversion}", package)
-
-
-# Once, probably due to circular dependencies (not sure) a package-lock.json
-# file jumped from 1.5MB to 50MB-75MB in size!  Sadly nobody noticed for a bit, and
-# this big package-lock got commited forever to our repositor :-(.  Thus
-# we often check that no package lock files have blown up.
-def ensure_package_lock_isnt_huge(package: str = '') -> None:
-    if not package:
-        for pkg in all_packages():
-            ensure_package_lock_isnt_huge(pkg)
-        return
-
-    lock = f'{package}/package-lock.json'
-    if os.path.getsize(lock) > 1000000 * MAX_PACKAGE_LOCK_SIZE_MB:
-        raise RuntimeError(
-            f"{lock} is HUGE! Refusing to do anything further.  Please investigate."
-        )
-
-
-def publish_package(args, package: str) -> None:
-    print("\nPackage:", package)
-    sys.stdout.flush()
-    ensure_package_lock_isnt_huge(package)
-
-    if not package_version_is_modified_from_last_git_commit(package):
-        print(
-            f"WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json."
-        )
-    # Do the build
-    #  First ensure BASE_PATH is not set; we only want to publish to
-    #  npm with no custom base path.
-    if 'BASE_PATH' in os.environ:
-        del os.environ['BASE_PATH']
-    cmd("pnpm run build", package)
-    # And now publish it:
-    if args.tag:
-        cmd(f"npm publish --tag {args.tag}", package)
-    else:
-        cmd("npm publish", package)
-    try:
-        cmd(
-            f"git commit -v . -m 'Publish new version of package {package} to npmjs package repo.'",
-            package)
-    except:
-        print(f"Didn't commit {package}; this may be fine.")
-    cmd("git pull && git push")
-
-
-def status(args) -> None:
-    for package in packages(args):
-        package_status(args, package)
-
-
-def diff(args) -> None:
-    for package in packages(args):
-        package_diff(args, package)
-
-
-def update_version(args) -> None:
-    if not args.newversion:
-        raise RuntimeError(
-            "newversion must be specified (e.g. 'patch', 'minor', 'major')")
-
-    # First we bump the package versions, if necessary
-    print("Updating versions if necessary...")
-    for package in packages(args):
-        bump_package_version_if_necessary(package, args.newversion)
-
-
-def publish(args) -> None:
-    # We first update all the explicit workspace version dependencies.
-    # I.e., we make it so all the @cocalc/packagename:"^x.y.z" lines
-    # in package.json are correct and reflect the versions of our packages here.
-    print("Updating dependent versions...")
-    for package in packages(args):
-        update_dependent_versions(package)
-
-    # Finally, we build and publish all of our packages to npm.
-    for package in packages(args):
-        publish_package(args, package)
-
-
 def node_version_check() -> None:
     version = int(os.popen('node --version').read().split('.')[0][1:])
     if version < 14:
@@ -524,8 +388,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog='workspaces')
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    subparser = subparsers.add_parser('install',
-                                      help='install node_modules deps for all packages')
+    subparser = subparsers.add_parser(
+        'install', help='install node_modules deps for all packages')
     packages_arg(subparser)
     subparser.set_defaults(func=install)
 
@@ -545,12 +409,6 @@ def main() -> None:
                            const=True,
                            help="only delete node_modules directory")
     subparser.set_defaults(func=clean)
-
-    subparser = subparsers.add_parser(
-        'delete-package-lock',
-        help='delete package lock files so they can be recreated')
-    packages_arg(subparser)
-    subparser.set_defaults(func=delete_package_lock)
 
     subparser = subparsers.add_parser('pnpm',
                                       help='do "pnpm ..." in each package;')
@@ -578,40 +436,6 @@ def main() -> None:
     subparser = subparsers.add_parser(
         'version-check', help='version consistency checks across packages')
     subparser.set_defaults(func=version_check)
-
-    subparser = subparsers.add_parser(
-        'status', help='files changed in package since last version change')
-    packages_arg(subparser)
-    subparser.set_defaults(func=status)
-
-    subparser = subparsers.add_parser(
-        'diff', help='diff in package since last version change')
-    packages_arg(subparser)
-    subparser.set_defaults(func=diff)
-
-    subparser = subparsers.add_parser('update-version',
-                                      help='update version of packages')
-    packages_arg(subparser)
-    subparser.add_argument(
-        "--newversion",
-        type=str,
-        help=
-        "major | minor | patch | premajor | preminor | prepatch | prerelease")
-    subparser.set_defaults(func=update_version)
-
-    subparser = subparsers.add_parser(
-        'publish',
-        help=
-        'publish to npm and commit and changes to git in directory containing the package.   You must call update-version for the package(s) you wish to publish first, or manually edit package.json.'
-    )
-    packages_arg(subparser)
-    subparser.add_argument(
-        "--tag",
-        type=str,
-        help=
-        "Registers the published package with the given tag, such that npm install <name>@<tag> will install this version."
-    )
-    subparser.set_defaults(func=publish)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
