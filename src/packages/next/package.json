@@ -53,6 +53,8 @@
   "private": false,
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency (not devDependencies) since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
+    "@ant-design/cssinjs": "1.3.0",
+    "@ant-design/icons": "^4.8.0",
     "@cocalc/antd-img-crop": "^4.5.5",
     "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
@@ -70,6 +72,7 @@
     "base-64": "^1.0.0",
     "basic-auth": "^2.0.1",
     "cookies": "^0.8.0",
+    "dayjs": "1.11.7",
     "express": "^4.17.1",
     "lodash": "4.17.21",
     "lru-cache": "^6.0.0",
