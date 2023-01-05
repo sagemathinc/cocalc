@@ -25,9 +25,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          run_install: false
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
@@ -36,5 +33,5 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src && npm run make
+      - run: cd src && npm install -g pnpm && npm run make
       - run: cd src && npm run test
