@@ -229,7 +229,8 @@ def install(args) -> None:
     for path in v:
         # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
         # TODO: but can they be removed?
-        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'", path)
+        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'",
+            path)
 
 
 # Build all the packages that need to be built.
@@ -340,9 +341,12 @@ def version_check(args):
 
 
 def node_version_check() -> None:
-    version = int(os.popen('node --version').read().split('.')[0][1:])
-    if version < 14:
-        err = f"CoCalc requires node.js v14, but you're using node v{version}."
+    # The minimum Node.js version is now v16.8.
+    version = os.popen('node --version').read()
+    major = int(version.split('.')[0][1:])
+    minor = int(version.split('.')[1])
+    if major < 16 or major == 16 and minor < 8:
+        err = f"CoCalc requires node.js >=v16.8, but you're using node v{version}."
         if os.environ.get("COCALC_USERNAME",
                           '') == 'user' and 'COCALC_PROJECT_ID' in os.environ:
             err += '\nIf you are using https://cocalc.com, put ". /cocalc/nvm/nvm.sh" in ~/.bashrc\nto get an appropriate version of node.'
