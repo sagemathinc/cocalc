@@ -55,6 +55,7 @@ module.exports = {
   // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to
   // reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
   experimental: {
+    appDir: false,
     esmExternals: "loose",
     // We raise largePageDataBytes since this was recently added, and breaks a lot of SSR rendering
     // for cocalc share server.  By default this is 128 * 1000 = "128KB", and we are changing it to
