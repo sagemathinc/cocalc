@@ -24,7 +24,7 @@ import { file_tab_labels } from "../file-tab-labels";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { RamWarning } from "../warnings/ram";
 import { OOMWarning } from "../warnings/oom";
-import { TrialBanner } from "../trial-banner";
+import { ProjectWarningBanner } from "../project-banner";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
@@ -363,7 +363,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <RamWarning project_id={project_id} />
       <OOMWarning project_id={project_id} />
       <SoftwareEnvUpgrade project_id={project_id} />
-      <TrialBanner project_id={project_id} />
+      <ProjectWarningBanner project_id={project_id} />
       {(!fullscreen || fullscreen == "project") && render_file_tabs()}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
