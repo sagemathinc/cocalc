@@ -300,7 +300,7 @@ importers:
       use-resize-observer: ^8.0.0
       utility-types: ^3.10.0
       xss: ^1.0.11
-      xterm: ^5.0.0
+      xterm: 5.0.0
       xterm-addon-fit: ^0.6.0
       xterm-addon-web-links: ^0.7.0
       xterm-addon-webgl: ^0.13.0
@@ -435,10 +435,10 @@ importers:
       use-resize-observer: 8.0.0_sfoxds7t5ydpegc3knd667wn6m
       utility-types: 3.10.0
       xss: 1.0.14
-      xterm: 5.1.0
-      xterm-addon-fit: 0.6.0_xterm@5.1.0
-      xterm-addon-web-links: 0.7.0_xterm@5.1.0
-      xterm-addon-webgl: 0.13.0_xterm@5.1.0
+      xterm: 5.0.0
+      xterm-addon-fit: 0.6.0_xterm@5.0.0
+      xterm-addon-web-links: 0.7.0_xterm@5.0.0
+      xterm-addon-webgl: 0.13.0_xterm@5.0.0
       zlibjs: 0.3.1
     devDependencies:
       '@types/chai': 4.3.4
@@ -17473,32 +17473,32 @@ packages:
     engines: {node: '>=0.4'}
     dev: false
 
-  /xterm-addon-fit/0.6.0_xterm@5.1.0:
+  /xterm-addon-fit/0.6.0_xterm@5.0.0:
     resolution: {integrity: sha512-9/7A+1KEjkFam0yxTaHfuk9LEvvTSBi0PZmEkzJqgafXPEXL9pCMAVV7rB09sX6ATRDXAdBpQhZkhKj7CGvYeg==}
     peerDependencies:
       xterm: ^5.0.0
     dependencies:
-      xterm: 5.1.0
+      xterm: 5.0.0
     dev: false
 
-  /xterm-addon-web-links/0.7.0_xterm@5.1.0:
+  /xterm-addon-web-links/0.7.0_xterm@5.0.0:
     resolution: {integrity: sha512-6PqoqzzPwaeSq22skzbvyboDvSnYk5teUYEoKBwMYvhbkwOQkemZccjWHT5FnNA8o1aInTc4PRYAl4jjPucCKA==}
     peerDependencies:
       xterm: ^5.0.0
     dependencies:
-      xterm: 5.1.0
+      xterm: 5.0.0
     dev: false
 
-  /xterm-addon-webgl/0.13.0_xterm@5.1.0:
+  /xterm-addon-webgl/0.13.0_xterm@5.0.0:
     resolution: {integrity: sha512-xL4qBQWUHjFR620/8VHCtrTMVQsnZaAtd1IxFoiKPhC63wKp6b+73a45s97lb34yeo57PoqZhE9Jq5pB++ksPQ==}
     peerDependencies:
       xterm: ^5.0.0
     dependencies:
-      xterm: 5.1.0
+      xterm: 5.0.0
     dev: false
 
-  /xterm/5.1.0:
-    resolution: {integrity: sha512-LovENH4WDzpwynj+OTkLyZgJPeDom9Gra4DMlGAgz6pZhIDCQ+YuO7yfwanY+gVbn/mmZIStNOnVRU/ikQuAEQ==}
+  /xterm/5.0.0:
+    resolution: {integrity: sha512-tmVsKzZovAYNDIaUinfz+VDclraQpPUnAME+JawosgWRMphInDded/PuY0xmU5dOhyeYZsI0nz5yd8dPYsdLTA==}
     dev: false
 
   /xtraverse/0.1.0:
