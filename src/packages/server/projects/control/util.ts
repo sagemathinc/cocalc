@@ -170,6 +170,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   // is really hard to track down.
   for (const key in env2) {
     if (
+      key.startsWith("npm_") ||
       key.startsWith("COCALC_") ||
       env2[key]?.startsWith("/root") ||
       env2[key] == null
@@ -202,6 +203,7 @@ export async function getEnvironment(
       BASE_PATH: base_path,
       DATA,
       LOGS: join(DATA, "logs"),
+      DEBUG: "*", // so interesting stuff gets logged.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
       COCALC_USERNAME: USER,
