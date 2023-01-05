@@ -81,18 +81,18 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
-  winston.debug(`"pnpm cocalc-project --daemon" from "${cwd}" with uid=${uid}`);
+  const cmd = "pnpm";
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  winston.debug(
+    `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
+  );
   await promisify((cb: Function) => {
-    const child = spawn(
-      "npx",
-      ["cocalc-project", "--daemon", "--init", "project_init.sh"],
-      {
-        env,
-        cwd,
-        uid,
-        gid: uid,
-      }
-    );
+    const child = spawn(cmd, args, {
+      env,
+      cwd,
+      uid,
+      gid: uid,
+    });
     child.on("error", (err) => {
       winston.debug(`project daemon error ${err}`);
       cb(err);
@@ -101,11 +101,12 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       winston.debug("project daemon exited with code", code);
       if (code != 0) {
         try {
-          const s = await readFile(env.LOGS).toString();
+          const s = (await readFile(env.LOGS)).toString();
           winston.debug("project log file ended: ", s.slice(-2000));
-        } catch (_err) {
+        } catch (err) {
           // there's a lot of reasons the log file might not even exist,
           // e.g., debugging is not enabled
+          winston.debug("project log file ended - unable to read log ", err);
         }
       }
       cb(code);
