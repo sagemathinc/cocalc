@@ -1,0 +1,57 @@
+{
+	"folders": [
+		{
+			"name": "util",
+			"path": "packages/util"
+		},
+		{
+			"name": "sync",
+			"path": "packages/sync"
+		},
+		{
+			"name": "static",
+			"path": "packages/static"
+		},
+		{
+			"name": "project",
+			"path": "packages/project"
+		},
+		{
+			"name": "server",
+			"path": "packages/server"
+		},
+		{
+			"name": "next",
+			"path": "packages/next"
+		},
+		{
+			"name": "frontend",
+			"path": "packages/frontend"
+		},
+		{
+			"name": "hub",
+			"path": "packages/hub"
+		},
+		{
+			"name": "database",
+			"path": "packages/database"
+		},
+		{
+			"name": "cdn",
+			"path": "packages/cdn"
+		},
+		{
+			"name": "backend",
+			"path": "packages/backend"
+		},
+		{
+			"name": "assets",
+			"path": "packages/assets"
+		},
+	],
+	"settings": {
+		"search.followSymlinks": false,
+		"jest.disabledWorkspaceFolders": [
+		]
+	}
+}
