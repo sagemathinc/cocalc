@@ -13,7 +13,7 @@ interface Props {
 export default function ProjectLink({ project_id, title }: Props) {
   return (
     <Link href={`/share/projects/${project_id}`}>
-      <a>{title?.trim() ? title : "A Project"}</a>
+      {title?.trim() ? title : "A Project"}
     </Link>
   );
 }

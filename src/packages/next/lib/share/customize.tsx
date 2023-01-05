@@ -27,7 +27,7 @@ function ShareServerIsDisabled({ value }: { value: CustomizeType }) {
       <h1>
         Browsing of publicly shared paths is currently disabled on{" "}
         <Link href="/">
-          <a>{siteName ?? "this server"}</a>
+          {siteName ?? "this server"}
         </Link>
         .
       </h1>

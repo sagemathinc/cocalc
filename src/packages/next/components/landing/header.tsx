@@ -144,13 +144,12 @@ export default function Header({ page, subPage }: Props) {
           Docs
         </A>
         {shareServer && (
-          <Link href={"/share/public_paths/page/1"}>
-            <a
-              style={page == "share" ? SelectedStyle : LinkStyle}
-              title="View files that people have published."
-            >
-              Share
-            </a>
+          <Link
+            href={"/share/public_paths/page/1"}
+            style={page == "share" ? SelectedStyle : LinkStyle}
+            title="View files that people have published."
+          >
+            Share
           </Link>
         )}
         <A

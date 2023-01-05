@@ -58,9 +58,7 @@ export default function PathActions({
   if (!url && include("hosted")) {
     v.push(
       <Link key="hosted" href={`/share/public_paths/${id}`}>
-        <a>
-          Hosted by <SiteName />
-        </a>
+        Hosted by <SiteName />
       </Link>
     );
   }
@@ -72,7 +70,7 @@ export default function PathActions({
           relativePath ? "/" + relativePath : ""
         }`}
       >
-        <a>Embed</a>
+        Embed
       </Link>
     );
   }

@@ -50,7 +50,7 @@ function Pager({ page, publicPaths }) {
       &nbsp;&nbsp;
       {publicPaths != null && publicPaths.length >= PAGE_SIZE ? (
         <Link href={`/share/public_paths/page/${page + 1}`}>
-          <a>Next</a>
+          Next
         </Link>
       ) : (
         <span style={{ color: "#888" }}>Next</span>
