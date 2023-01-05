@@ -227,7 +227,9 @@ def install(args) -> None:
     v = packages(args)
     # First do "pnpm i" not in parallel
     for path in v:
-        cmd("pnpm i", path)
+        # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
+        # TODO: but can they be removed?
+        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'", path)
 
 
 # Build all the packages that need to be built.
@@ -281,7 +283,7 @@ def clean(args) -> None:
         banner("No node_modules or dist directories")
     else:
         banner("Deleting " + ', '.join(paths))
-        thread_map(f, paths, nb_threads=10)
+        thread_map(f, paths + 'packages/node_modules', nb_threads=10)
 
     banner("Running 'pnpm run clean' if it exists...")
 

@@ -229,25 +229,3 @@ module.exports = {
 
   plugins,
 };
-
-/*
-
-    modules: [
-      __dirname,
-      path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/assets"),
-      path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
-      path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
-      path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
-      path.resolve(
-        __dirname,
-        "node_modules",
-        "@cocalc/frontend/node_modules/k3d/node_modules"
-      ),
-      path.resolve(__dirname, "..", "node_modules"),
-    ],
-    */
