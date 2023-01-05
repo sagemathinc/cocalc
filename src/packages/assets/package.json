@@ -21,7 +21,7 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "jquery": "3.6.3",
+    "jquery": "^3.6.0",
     "typescript": "^4.7.4",
     "url-loader": "^4.1.1"
   },

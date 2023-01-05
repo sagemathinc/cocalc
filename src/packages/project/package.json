@@ -53,7 +53,7 @@
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
     "lean-client-js-node": "^1.2.12",
-    "lodash": "4.17.21",
+    "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
     "mkdirp": "^1.0.4",
     "node-pty": "^0.10.1",
