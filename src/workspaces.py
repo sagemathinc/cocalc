@@ -244,8 +244,7 @@ def build(args) -> None:
             dist = os.path.join(CUR, path, 'dist')
             if os.path.exists(dist):
                 # clear dist/ dir
-                if os.path.exists(dist):
-                    shutil.rmtree(dist)
+                shutil.rmtree(dist, ignore_errors=True)
         package_path = os.path.join(CUR, path)
         cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
@@ -278,7 +277,7 @@ def clean(args) -> None:
 
     def f(path):
         print("rm -rf '%s'" % path)
-        shutil.rmtree(path)
+        shutil.rmtree(path, ignore_errors=True)
 
     if (len(paths) == 0):
         banner("No node_modules or dist directories")
@@ -307,7 +306,7 @@ def delete_package_lock(args) -> None:
         # If we don't delete node_modules, then package-lock.json may blow up in size.
         node_modules = os.path.join(path, 'node_modules')
         if os.path.exists(node_modules):
-            shutil.rmtree(node_modules)
+            shutil.rmtree(node_modules, ignore_errors=True)
 
     thread_map(f, [os.path.abspath(path) for path in packages(args)],
                nb_threads=10)
