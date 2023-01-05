@@ -30,8 +30,11 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
-          cache: "pnpm"
-          cache-dependency-path: "src/packages/pnpm-lock.yaml"
+          # caching, etc., doesn't work without using "uses: pnpm/action-setup@v2", and that
+          # doesn't work, since it makes assumptions about the layout of the repo (e.g., where package.json is),
+          # which aren't true.
+          # cache: "pnpm"
+          # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
       - run: cd src && npm install -g pnpm && npm run make
       - run: cd src && npm run test
