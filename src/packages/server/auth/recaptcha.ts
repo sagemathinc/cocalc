@@ -5,7 +5,12 @@ Does nothing if recaptcha is not configured on the server.
 */
 
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import fetch from "node-fetch";
+
+// IMPORTANT: This code is only meant to be used by the nextjs app.  Note that
+// nextjs polyfills fetch in: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support
+// Installing node-fetch v3 won't work at all, so don't do that.
+
+declare var fetch;
 
 export default async function reCaptcha(req): Promise<void> {
   const { re_captcha_v3_secret_key } = await getServerSettings();
@@ -27,7 +32,7 @@ export default async function reCaptcha(req): Promise<void> {
       `reCaptcha may be misconfigured. ${JSON.stringify(result["error-codes"])}`
     );
   }
-  if (!result.score || result.score < 0.5) {
+  if (!result.score || result.score < 0.4) {
     throw Error(
       "Only humans are allowed to use this feature.  Please try again."
     );

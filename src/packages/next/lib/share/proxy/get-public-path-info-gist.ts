@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import fetch from "node-fetch";
+// provided by nextjs: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support
+declare var fetch;
+
 import { RAW_MAX_SIZE_BYTES } from "./api";
 
 export default async function getPublicPathInfoGist(
