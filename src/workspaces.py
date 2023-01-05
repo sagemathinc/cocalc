@@ -336,7 +336,6 @@ def pnpm_noerror(args) -> None:
 
 
 def version_check(args):
-    ensure_package_lock_isnt_huge()
     cmd("scripts/check_npm_packages.py")
 
 

@@ -14,8 +14,8 @@
     "./user-query": "./dist/user-query/index.js"
   },
   "dependencies": {
-    "@cocalc/database": "workspace:*",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/database": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/lodash": "^4.14.176",
@@ -38,7 +38,7 @@
     "validator": "^13.6.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.3",
+    "@types/jest": "^29.2.5",
     "@types/node": "^14.18.10",
     "coffeescript": "^2.5.1",
     "jest": "^29.3.1",
@@ -57,7 +57,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

@@ -26,7 +26,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@cocalc/backend": "^1.21.1",
+    "@cocalc/backend": "workspace:*",
     "jest": "^29.3.1",
     "uglify-js": "^3.14.1"
   },
