@@ -13,9 +13,9 @@
     "static": "cd packages/static && npm run webpack",
     "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
     "database": "cd dev/project && ./start_postgres.py",
-    "version-check": "./workspaces.py version-check",
     "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c",
-    "test": "./workspaces.py pnpm test --packages=assets,backend,cdn,database,frontend,hub,next,project,server,static,sync,util && ./workspaces.py version-check"
+    "version-check": "pip3 install typing_extensions mypy && ./workspaces.py version-check && mypy scripts/check_npm_packages.py",
+    "test": "pnpm version-check && ./workspaces.py pnpm test --packages=assets,backend,cdn,database,frontend,hub,next,project,server,static,sync,util"
   },
   "repository": {
     "type": "git",
