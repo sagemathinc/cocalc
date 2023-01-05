@@ -644,7 +644,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   function dedicatedVmOptions() {
     return sortBy(
       Object.entries(PRICES.vms),
-      ([_, vm]) => `${1000 + vm.spec.cpu}:${1000 + vm.spec.mem}`
+      ([_, vm]) => `${1000 + (vm?.spec.cpu ?? 0)}:${1000 + (vm?.spec.mem ?? 0)}`
     ).map(([id, vm]: [string, NonNullable<VMsType[string]>]) => {
       return (
         <Select.Option key={id} value={id}>

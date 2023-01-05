@@ -8,20 +8,26 @@
     "./editor/db": "./dist/editor/db/index.js"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
     "test": "npx jest ./dist",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "realtime synchronization"],
+  "keywords": [
+    "cocalc",
+    "realtime synchronization"
+  ],
   "license": "SEE LICENSE.md",
-  "workspaces": [".", "../util"],
   "dependencies": {
-    "@cocalc/util": "^1.72.3",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/lodash": "^4.14.176",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
+    "events": "3.3.0",
     "immutable": "^3.8.2",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
@@ -33,7 +39,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.3",
+    "@types/jest": "^29.2.5",
     "@types/node": "^14.18.10",
     "jest": "^29.3.1",
     "ts-jest": "^29.0.3",

@@ -14,7 +14,8 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && ./setup.py",
+    "clean": "rm -rf build node_modules dist",
+    "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js pix build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "npx jest",
     "prepublishOnly": "npm test"

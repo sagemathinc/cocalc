@@ -3,14 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  CSS,
-  React,
-  useMemo,
-  useState,
-  useStore,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { Alert } from "antd";
+import humanizeList from "humanize-list";
+import { join } from "path";
+
+import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
@@ -19,9 +16,6 @@ import {
   useManagedLicenses,
 } from "@cocalc/frontend/site-licenses/input";
 import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
-import { Alert } from "antd";
-import humanizeList from "humanize-list";
-import { join } from "path";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
 
@@ -30,7 +24,7 @@ export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 const ELEVATED_DAYS = 10;
 
 // explains implications for having no internet and/or no member hosting
-const A_STYLE: CSS = {
+export const A_STYLE: CSS = {
   cursor: "pointer",
   fontWeight: "bold",
 } as const;
@@ -38,9 +32,9 @@ const A_STYLE: CSS = {
 const A_STYLE_ELEVATED: CSS = {
   ...A_STYLE,
   color: "white",
-};
+} as const;
 
-const ALERT_STYLE: CSS = {
+export const ALERT_STYLE: CSS = {
   padding: "5px 10px",
   marginBottom: 0,
   fontSize: "10pt",
@@ -54,83 +48,6 @@ const ALERT_STYLE_ELEVATED: CSS = {
   fontSize: "12pt",
 } as const;
 
-interface Props {
-  project_id: string;
-}
-
-export const TrialBanner: React.FC<Props> = React.memo(({ project_id }) => {
-  const other_settings = useTypedRedux("account", "other_settings");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const project_map = useTypedRedux("projects", "project_map");
-  const projects_store = useStore("projects");
-  const total_project_quotas = useMemo(
-    () => projects_store.get_total_project_quotas(project_id),
-    [project_map, project_id]
-  );
-  const pay = useMemo(
-    () => projects_store.date_when_course_payment_required(project_id),
-    [project_map, project_id]
-  );
-  const is_commercial = useTypedRedux("customize", "is_commercial");
-  const isSandbox = project_map?.getIn([project_id, "sandbox"]);
-
-  // note: closing this is currently disabled.
-  const free_warning_closed = useTypedRedux(
-    { project_id },
-    "free_warning_closed"
-  );
-
-  // paying usres are allowed to have a setting to hide banner unconditionally
-  if (other_settings?.get("no_free_warnings")) {
-    return null;
-  }
-  if (!is_commercial) {
-    return null;
-  }
-  if (is_anonymous) {
-    // No need to provide all these warnings and scare anonymous users, who are just
-    // playing around for the first time (and probably wouldn't read this, and should
-    // assume strong limitations since they didn't even make an account).
-    return null;
-  }
-  if (isSandbox) {
-    // don't bother for sandbox project, since users can't upgrade it anyways.
-    return null;
-  }
-  if (free_warning_closed) {
-    return null;
-  }
-  if (pay) {
-    return null;
-  }
-  if (total_project_quotas == null) {
-    return null;
-  }
-  const host: boolean = !total_project_quotas.member_host;
-  const internet: boolean = !total_project_quotas.network;
-  if (!host && !internet) {
-    return null;
-  }
-
-  // timestamp, when this project was created. won't change over time.
-  const projCreatedTS =
-    project_map?.getIn([project_id, "created"]) ?? new Date(0);
-
-  // list of all licenses applied to this project
-  const projectSiteLicenses =
-    project_map?.get(project_id)?.get("site_license")?.keySeq().toJS() ?? [];
-
-  return (
-    <TrialBannerComponent
-      project_id={project_id}
-      projectSiteLicenses={projectSiteLicenses}
-      proj_created={projCreatedTS.getTime()}
-      host={host}
-      internet={internet}
-    />
-  );
-});
-
 interface BannerProps {
   project_id: string;
   projectSiteLicenses: string[];
@@ -140,7 +57,7 @@ interface BannerProps {
 }
 
 // string and URLs
-const NO_INTERNET =
+export const NO_INTERNET =
   "you can't install packages, clone from GitHub, or download datasets";
 const NO_HOST = ["expect VERY bad performance (up to several times slower!)"];
 const INET_QUOTA =
@@ -148,8 +65,9 @@ const INET_QUOTA =
 const MEMBER_QUOTA =
   "https://doc.cocalc.com/billing.html#what-is-member-hosting";
 // const ADD_LICENSE = "https://doc.cocalc.com/project-settings.html#project-add-license";
+export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
 
-const TrialBannerComponent: React.FC<BannerProps> = React.memo(
+export const TrialBanner: React.FC<BannerProps> = React.memo(
   (props: BannerProps) => {
     const { host, internet, project_id, proj_created, projectSiteLicenses } =
       props;
@@ -183,7 +101,7 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
     function renderMessage(): JSX.Element | undefined {
       const buy_and_upgrade = (
         <>
-          <A style={a_style} href={join(appBasePath, "/store/site-license")}>
+          <A style={a_style} href={BUY_A_LICENSE_URL}>
             <u>buy a license</u>
           </A>{" "}
           (starting at {LICENSE_MIN_PRICE}) and then{" "}
@@ -254,50 +172,6 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
       );
     }
 
-    function renderApplySiteLicense() {
-      if (!showAddLicense) return;
-
-      // NOTE: we show this dialog even if user does not manage any licenses,
-      // because the user could have one via another channel and just wants to add it directly via copy/paste.
-      return (
-        <>
-          <br />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              flex: "1 0 auto",
-            }}
-          >
-            <div
-              style={{
-                margin: "10px 10px 10px 0",
-                verticalAlign: "bottom",
-                display: "flex",
-                fontWeight: "bold",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Select a license:
-            </div>
-            <SiteLicenseInput
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                flex: "1 0 auto",
-              }}
-              exclude={projectSiteLicenses}
-              onSave={(license_id) => {
-                setShowAddLicense(false);
-                applyLicense({ project_id, license_id });
-              }}
-              onCancel={() => setShowAddLicense(false)}
-            />
-          </div>
-        </>
-      );
-    }
-
     return (
       <Alert
         type="warning"
@@ -313,10 +187,68 @@ const TrialBannerComponent: React.FC<BannerProps> = React.memo(
             <Icon name="exclamation-triangle" />{" "}
             <span style={{ fontSize: style.fontSize }}>{renderMessage()}</span>{" "}
             {renderLearnMore(style.color)}
-            {renderApplySiteLicense()}
+            {showAddLicense && (
+              <BannerApplySiteLicense
+                project_id={project_id}
+                projectSiteLicenses={projectSiteLicenses}
+                setShowAddLicense={setShowAddLicense}
+              />
+            )}
           </>
         }
       />
     );
   }
 );
+
+interface ApplyLicenseProps {
+  projectSiteLicenses: string[];
+  project_id: string;
+  setShowAddLicense: (show: boolean) => void;
+}
+
+export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
+  props: ApplyLicenseProps
+) => {
+  const { projectSiteLicenses, project_id, setShowAddLicense } = props;
+
+  // NOTE: we show this dialog even if user does not manage any licenses,
+  // because the user could have one via another channel and just wants to add it directly via copy/paste.
+  return (
+    <>
+      <br />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          flex: "1 0 auto",
+        }}
+      >
+        <div
+          style={{
+            margin: "10px 10px 10px 0",
+            verticalAlign: "bottom",
+            display: "flex",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Select a license:
+        </div>
+        <SiteLicenseInput
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: "1 0 auto",
+          }}
+          exclude={projectSiteLicenses}
+          onSave={(license_id) => {
+            setShowAddLicense(false);
+            applyLicense({ project_id, license_id });
+          }}
+          onCancel={() => setShowAddLicense(false)}
+        />
+      </div>
+    </>
+  );
+};

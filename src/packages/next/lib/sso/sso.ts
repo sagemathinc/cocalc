@@ -22,7 +22,7 @@ interface Row {
   icon?: string;
 }
 
-function parseRow(row: Row): SSO | undefined {
+function parseRow(row: Row): SSO {
   const { strategy, exclusive_domains, display, info, icon } = row;
   return {
     id: strategy,

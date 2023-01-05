@@ -203,7 +203,12 @@ function getMissingTables(
   const missing = new Set<string>();
   for (const table in dbSchema) {
     const s = dbSchema[table];
-    if (!allTables.has(table) && !s.virtual && s.durability != "ephemeral") {
+    if (
+      !allTables.has(table) &&
+      !s.virtual &&
+      !s.external &&
+      s.durability != "ephemeral"
+    ) {
       missing.add(table);
     }
   }
@@ -250,8 +255,8 @@ export async function syncSchema(
         continue;
       }
       const schema = dbSchema[table];
-      if (schema == null) {
-        // table not in our schema at all -- ignore
+      if (schema == null || schema.external) {
+        // table not in our schema at all or managed externally -- ignore
         continue;
       }
       // not newly created and in the schema so check if anything changed

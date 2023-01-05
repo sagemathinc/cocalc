@@ -14,19 +14,17 @@
     "cocalc"
   ],
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/util": "^1.72.3",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "async": "^1.5.2",
@@ -46,7 +44,8 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
-    "@types/jest": "^29.2.3",
+    "@types/jest": "^29.2.5",
+    "@types/node": "^14.18.10",
     "coffee-cache": "^1.0.2",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",

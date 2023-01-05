@@ -103,6 +103,18 @@ export function Table<F extends Fields>({
   }
   const T: TableSchema<F> = { name, ...rules, fields };
   SCHEMA[name] = T;
+
+  if (name.startsWith("crm_")) {
+    // some special rules for all crm tables, just in case we figure to put them in manually.
+    if (T.user_query?.get != null) {
+      T.user_query.get.admin = true;
+      T.user_query.get.allow_field_deletes = true; // safe for all crm tables, due to them not having defaults.  Also, really useful, e.g., "clear a due date".
+    }
+    if (T.user_query?.set != null) {
+      T.user_query.set.admin = true;
+      T.user_query.set.allow_field_deletes = true; // same comment as above for get.
+    }
+  }
 }
 
 export interface DBSchema {
@@ -141,6 +153,7 @@ export interface UserOrProjectQuery<F extends Fields> {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
+    allow_field_deletes?: boolean; // if true, allow deleting of field in record to be reported.  Do NOT do this if there are any default values (e.g., the projects and accounts tables have default values), since it's just not implemented yet!  This *is* used by all the crm tables.
     pg_where?:
       | (string | { [key: string]: any })[]
       | ((obj: any, db: any) => any[]);
@@ -172,6 +185,7 @@ export interface UserOrProjectQuery<F extends Fields> {
   set?: {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
+    allow_field_deletes?: boolean; // if true, allow setting a field to null to delete it.  This *is* used by all the crm tables.  It's off by default due to not being supported for tables with default values.  If this is not true then in set queries when a field is being set to undefined or null, that is just ignored.
     admin?: boolean;
     // if true, it is possible to delete records from
     // this table (use options=[{delete:true}] in the query)
@@ -202,6 +216,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * 1. BEFORE: If before_change is set, it is called with input
      *   (database, old_val, query, account_id, cb)
      * before the actual change to the database is made.
+     * If cb(err) then no change is made and error is reported.
+     # If cb(undefined, true) then no change is made and no error; any work is considered done.
      */
     before_change?: (
       database,
@@ -267,6 +283,7 @@ export interface TableSchema<F extends Fields> {
   unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
+  external?: boolean; // if true, this is an external table, so do not sync the schema
   pg_indexes?: string[];
   pg_unique_indexes?: string[];
   crm_indexes?: string[]; // pg_indexes are not used by the CRM data; you must specify any indexing of the CRM data explicitly here

@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/database",
-  "version": "0.35.4",
+  "version": "0.35.8",
   "description": "CoCalc: code for working with our PostgreSQL database",
   "exports": {
     ".": "./dist/index.js",
@@ -13,16 +13,11 @@
     "./projects/*": "./dist/projects/*.js",
     "./user-query": "./dist/user-query/index.js"
   },
-  "workspaces": [
-    "./",
-    "../backend",
-    "../server",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/backend": "^1.21.1",
-    "@cocalc/server": "^0.44.2",
-    "@cocalc/util": "^1.76.0",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/database": "workspace:*",
+    "@cocalc/server": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",
@@ -43,18 +38,19 @@
     "validator": "^13.6.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.3",
+    "@types/jest": "^29.2.5",
     "@types/node": "^14.18.10",
     "coffeescript": "^2.5.1",
     "jest": "^29.3.1",
     "typescript": "^4.7.4"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "npx tsc && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
     "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "repository": {
     "type": "git",

@@ -239,7 +239,11 @@ export function commands(
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
       m: "Delete cells",
-      k: [{ mode: "escape", which: 68, twice: true }],
+      k: [
+        { mode: "escape", which: 68, twice: true },
+        { mode: "escape", which: 8 },
+        { mode: "escape", which: 46 },
+      ],
       f: () => frame_actions.delete_selected_cells(),
     },
 

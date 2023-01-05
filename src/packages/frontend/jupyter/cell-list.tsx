@@ -7,22 +7,28 @@
 
 declare const $: any;
 
-import { MutableRefObject, useEffect, useCallback, useMemo } from "react";
-import { debounce } from "lodash";
-import { useDebounce } from "use-debounce";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
-import { React, useIsMountedRef, useRef } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
-import { Cell } from "./cell";
-import { InsertCell } from "./insert-cell";
-import { JupyterActions } from "./browser-actions";
-import { NotebookMode, Scroll } from "./types";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { debounce } from "lodash";
+import { MutableRefObject, useCallback, useEffect, useMemo } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { useDebounce } from "use-debounce";
+
+import {
+  CSS,
+  React,
+  useIsMountedRef,
+  useRef,
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { JupyterActions } from "./browser-actions";
+import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
+import { InsertCell } from "./insert-cell";
+import { NotebookMode, Scroll } from "./types";
 
 import { createContext, useContext } from "react";
 interface IFrameContextType {
@@ -48,6 +54,11 @@ const EXTRA_BOTTOM_CELLS = 1;
 const BOTTOM_PADDING_CELL = (
   <div style={{ height: "50vh", minHeight: "400px" }}></div>
 );
+
+const ITEM_STYLE: CSS = {
+  height: "1px",
+  overflow: "hidden",
+};
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
@@ -554,25 +565,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           itemContent={(index) => {
             if (index == 0) {
               return (
-                <div
-                  ref={iframeDivRef}
-                  style={{
-                    height: "1px",
-                    overflow: "hidden",
-                  }}
-                >
+                <div ref={iframeDivRef} style={ITEM_STYLE}>
                   iframes here
                 </div>
               );
             } else if (index == 1) {
               return (
-                <div
-                  ref={iframeDivRef}
-                  style={{
-                    height: "1px",
-                    overflow: "hidden",
-                  }}
-                >
+                <div ref={iframeDivRef} style={ITEM_STYLE}>
                   <style>{allStyles}</style>
                 </div>
               );
@@ -681,8 +680,14 @@ function DivTempHeight({ children, height }) {
     }
   });
 
+  const style: CSS = {
+    overflow: "hidden",
+    minHeight: height,
+    paddingTop: "3px", // for the hover bar buttons in insert-cell.tsx, otherwise they're cut off
+  };
+
   return (
-    <div ref={divRef} style={{ overflow: "hidden", minHeight: height }}>
+    <div ref={divRef} style={style}>
       {children}
     </div>
   );
