@@ -20,16 +20,22 @@
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
+  "keywords": [
+    "utilities",
+    "mathjax",
+    "markdown",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/util": "workspace:*",
     "@ant-design/colors": "^6.0.0",
+    "@cocalc/util": "workspace:*",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.7",
+    "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
     "json-stable-stringify": "^1.0.1",

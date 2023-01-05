@@ -194,13 +194,13 @@ module.exports = {
         __dirname,
         "..",
         "node_modules",
-        "requirejs/require"
+        ".pnpm/requirejs@2.3.6/node_modules/requirejs/require"
       ),
       "../../../../node_modules/fflate/umd/index": path.resolve(
         __dirname,
         "..",
         "node_modules",
-        "fflate/umd/index"
+        ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index"
       ),
     },
     // So we can require('file') instead of require('file.tsx'):
