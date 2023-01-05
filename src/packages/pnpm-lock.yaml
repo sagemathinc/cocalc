@@ -629,7 +629,7 @@ importers:
       coffee-coverage: 3.0.1
       coffeescript: 2.7.0
       expect: 26.6.2
-      jest: link:../cdn/dist/jest-29.3.1
+      jest: 29.3.1_@types+node@14.18.26
       node-cjsx: 2.0.0
       should: 7.1.1
       sinon: 4.5.0
@@ -659,6 +659,7 @@ importers:
       jest: ^29.3.1
       lodash: 4.17.21
       lru-cache: ^6.0.0
+      ms: 2.1.2
       next: 12.3.4
       node-fetch: ^3.2.10
       password-hash: ^1.2.2
@@ -696,6 +697,7 @@ importers:
       express: 4.18.2
       lodash: 4.17.21
       lru-cache: 6.0.0
+      ms: 2.1.2
       next: 12.3.4_sfoxds7t5ydpegc3knd667wn6m
       node-fetch: 3.3.0
       password-hash: 1.2.2
@@ -729,6 +731,7 @@ importers:
       '@types/express': ^4.17.13
       '@types/jest': ^29.2.3
       '@types/jquery': ^3.5.5
+      '@types/lodash': ^4.14.176
       '@types/lru-cache': ^5.1.1
       '@types/node': ^14.18.10
       '@types/uuid': ^8.3.1
@@ -760,6 +763,7 @@ importers:
       jupyter-paths: ^2.0.3
       kernelspecs: ^2.0.1
       lean-client-js-node: ^1.2.12
+      lodash: 4.17.21
       lru-cache: ^6.0.0
       mkdirp: ^1.0.4
       node-pty: ^0.10.1
@@ -788,6 +792,7 @@ importers:
       '@cocalc/sync': link:../sync
       '@cocalc/util': link:../util
       '@nteract/messaging': 7.0.20
+      '@types/lodash': 4.14.184
       '@types/lru-cache': 5.1.1
       '@types/uuid': 8.3.4
       async: 1.5.2
@@ -816,6 +821,7 @@ importers:
       jupyter-paths: 2.0.4
       kernelspecs: 2.0.1
       lean-client-js-node: 1.5.0
+      lodash: 4.17.21
       lru-cache: 6.0.0
       mkdirp: 1.0.4
       node-pty: 0.10.1
@@ -844,7 +850,7 @@ importers:
       '@types/jquery': 3.5.16
       '@types/node': 14.18.26
       coffeescript: 2.7.0
-      jest: 29.3.1_@types+node@14.18.26
+      jest: link:../cdn/dist/jest-29.3.1
       typescript: 4.7.4
 
   server:
@@ -1108,6 +1114,7 @@ importers:
       '@cocalc/sync': workspace:*
       '@cocalc/util': workspace:*
       '@types/jest': ^29.2.3
+      '@types/lodash': ^4.14.176
       '@types/node': ^14.18.10
       async: ^1.5.2
       async-await-utils: ^3.0.1
@@ -1122,6 +1129,7 @@ importers:
     dependencies:
       '@cocalc/sync': 'link:'
       '@cocalc/util': link:../util
+      '@types/lodash': 4.14.184
       async: 1.5.2
       async-await-utils: 3.0.1
       awaiting: 3.0.0
@@ -1132,8 +1140,8 @@ importers:
     devDependencies:
       '@types/jest': 29.2.3
       '@types/node': 14.18.26
-      jest: 29.3.1_@types+node@14.18.26
-      ts-jest: 29.0.3_wkdujqsgbnfnnp5xidismkcn6e
+      jest: link:../cdn/dist/jest-29.3.1
+      ts-jest: 29.0.3_ibvt6jldfw7yp4wtn72q7n7mqi
       typescript: 4.7.4
 
   util:
@@ -17186,7 +17194,7 @@ packages:
       yargs-parser: 21.1.1
     dev: true
 
-  /ts-jest/29.0.3_wkdujqsgbnfnnp5xidismkcn6e:
+  /ts-jest/29.0.3_ibvt6jldfw7yp4wtn72q7n7mqi:
     resolution: {integrity: sha512-Ibygvmuyq1qp/z3yTh9QTwVVAbFdDy/+4BtIQR2sp6baF2SJU/8CKK/hhnGIDY2L90Az2jIqTwZPnN2p+BweiQ==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -17209,7 +17217,7 @@ packages:
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
-      jest: 29.3.1_@types+node@14.18.26
+      jest: link:cdn/dist/jest-29.3.1
       jest-util: 29.3.1
       json5: 2.2.1
       lodash.memoize: 4.1.2
