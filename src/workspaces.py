@@ -283,7 +283,7 @@ def clean(args) -> None:
         banner("No node_modules or dist directories")
     else:
         banner("Deleting " + ', '.join(paths))
-        thread_map(f, paths + 'packages/node_modules', nb_threads=10)
+        thread_map(f, paths + ['packages/node_modules'], nb_threads=10)
 
     banner("Running 'pnpm run clean' if it exists...")
 
