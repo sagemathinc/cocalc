@@ -244,7 +244,8 @@ def build(args) -> None:
             dist = os.path.join(CUR, path, 'dist')
             if os.path.exists(dist):
                 # clear dist/ dir
-                shutil.rmtree(dist)
+                if os.path.exists(dist):
+                    shutil.rmtree(dist)
         package_path = os.path.join(CUR, path)
         cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
