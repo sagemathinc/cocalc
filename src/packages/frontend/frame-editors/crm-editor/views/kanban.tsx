@@ -1,5 +1,5 @@
-import { ReactNode, useMemo, useState } from "react";
-import { Alert, Card } from "antd";
+import { CSSProperties, useMemo, useState } from "react";
+import { Alert } from "antd";
 import { Virtuoso } from "react-virtuoso";
 import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
@@ -16,8 +16,6 @@ interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  title: ReactNode;
-  cardStyle?;
   recordHeight?: number;
   categoryField: string;
   query: object;
@@ -26,20 +24,19 @@ interface Props {
 
 const cardMargin = 2.5;
 const CARD_MARGIN = `${cardMargin}%`;
+const cardStyle = {
+  width: `${100 - cardMargin * 2}%`,
+  margin: CARD_MARGIN,
+  height: "300px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as CSSProperties;
 
 export default function Kanban({
   query,
   rowKey,
   data,
   columns,
-  title,
-  cardStyle = {
-    width: `${100 - cardMargin * 2}%`,
-    margin: CARD_MARGIN,
-    height: "300px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
   recordHeight,
   categoryField,
   refresh,
@@ -108,107 +105,68 @@ export default function Kanban({
         }
       }}
     >
-      <Card
-        title={title}
+      {error && (
+        <Alert
+          type="error"
+          message="Database Query Error"
+          description={error}
+        />
+      )}
+      <DragOverlay>
+        {dragId != null && (
+          <>
+            <OneCard
+              elt={idToRecord?.[dragId]}
+              rowKey={rowKey}
+              columns={columns}
+              style={{ ...style, border: `1px solid ${DROP_COLOR}` }}
+              Title={Title}
+            />
+          </>
+        )}
+      </DragOverlay>
+      <div
         style={{
-          display: "flex",
-          flexDirection: "column",
           height: "100%",
+          width: "100%",
+          display: "flex",
+          overflowX: "hidden",
         }}
-        bodyStyle={{ flex: 1, padding: 0 }}
       >
-        {error && (
+        {!categoryField && (
           <Alert
+            showIcon
+            style={{ height: "fit-content", margin: "auto" }}
             type="error"
-            message="Database Query Error"
-            description={error}
+            message="Select a category field above, if available."
           />
         )}
-        <DragOverlay>
-          {dragId != null && (
-            <>
-              <OneCard
-                elt={idToRecord?.[dragId]}
-                rowKey={rowKey}
-                columns={columns}
-                style={{ ...style, border: `1px solid ${DROP_COLOR}` }}
-                Title={Title}
-              />
-            </>
-          )}
-        </DragOverlay>
-        <div
-          style={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            overflowX: "hidden",
-          }}
-        >
-          {!categoryField && (
-            <Alert
-              showIcon
-              style={{ height: "fit-content", margin: "auto" }}
-              type="error"
-              message="Select a category field above, if available."
-            />
-          )}
-          {categoryField &&
-            categorizedData?.map(({ data, category }) => {
-              return (
-                <DroppableColumn id={category} key={category}>
-                  <div
-                    key="title"
-                    style={{
-                      textAlign: "center",
-                      fontWeight: 600,
-                      fontSize: "11pt",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {capitalize(category)} ({data.length})
-                  </div>
-                  <Virtuoso
-                    overscan={500}
-                    style={{
-                      width: "100%",
-                      background: "#ececec",
-                      border: "1px solid #ccc",
-                    }}
-                    data={data}
-                    itemContent={(index) => {
-                      const id = data[index][rowKey];
-                      if (id == moving) {
-                        return (
-                          <div
-                            style={{
-                              height: recordHeight,
-                              margin: CARD_MARGIN,
-                              border: "1px solid #f0f0f0",
-                              borderRadius: "8px",
-                              background: "#f8f8f8",
-                            }}
-                          >
-                            <Loading
-                              delay={0}
-                              text="Moving..."
-                              theme="medium"
-                            />
-                          </div>
-                        );
-                      }
-                      if (dragId == null || dragId != id) {
-                        return (
-                          <DraggableCard
-                            key={id}
-                            id={id}
-                            elt={data[index]}
-                            rowKey={rowKey}
-                            columns={columns}
-                            style={style}
-                          />
-                        );
-                      }
+        {categoryField &&
+          categorizedData?.map(({ data, category }) => {
+            return (
+              <DroppableColumn id={category} key={category}>
+                <div
+                  key="title"
+                  style={{
+                    textAlign: "center",
+                    fontWeight: 600,
+                    fontSize: "11pt",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {capitalize(category)} ({data.length})
+                </div>
+                <Virtuoso
+                  overscan={500}
+                  style={{
+                    width: "100%",
+                    background: "#ececec",
+                    border: "1px solid #ccc",
+                  }}
+                  data={data}
+                  itemContent={(index) => {
+                    const id = data[index][rowKey];
+                    if (id == moving) {
                       return (
                         <div
                           style={{
@@ -218,15 +176,40 @@ export default function Kanban({
                             borderRadius: "8px",
                             background: "#f8f8f8",
                           }}
-                        ></div>
+                        >
+                          <Loading delay={0} text="Moving..." theme="medium" />
+                        </div>
                       );
-                    }}
-                  />
-                </DroppableColumn>
-              );
-            })}
-        </div>
-      </Card>
+                    }
+                    if (dragId == null || dragId != id) {
+                      return (
+                        <DraggableCard
+                          key={id}
+                          id={id}
+                          elt={data[index]}
+                          rowKey={rowKey}
+                          columns={columns}
+                          style={style}
+                        />
+                      );
+                    }
+                    return (
+                      <div
+                        style={{
+                          height: recordHeight,
+                          margin: CARD_MARGIN,
+                          border: "1px solid #f0f0f0",
+                          borderRadius: "8px",
+                          background: "#f8f8f8",
+                        }}
+                      ></div>
+                    );
+                  }}
+                />
+              </DroppableColumn>
+            );
+          })}
+      </div>
     </DndContext>
   );
 }

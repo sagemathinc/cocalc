@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { Card, Divider, Modal } from "antd";
+import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
@@ -11,9 +11,6 @@ import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 interface Props {
   data: any[];
   columns: ColumnsType[];
-  title: ReactNode;
-  cardStyle?;
-  style?: CSSProperties;
   sortFields;
   setSortField;
   recordHeight?: number;
@@ -22,43 +19,30 @@ interface Props {
 export default function Grid({
   data,
   columns,
-  title,
-  style,
   sortFields,
   setSortField,
   recordHeight,
 }: Props) {
   return (
-    <Card
-      style={{
-        ...style,
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-      title={title}
-      bodyStyle={{ flex: 1, padding: 0 }}
-    >
-      <TableVirtuoso
-        overscan={500}
-        style={{ height: "100%", overflow: "auto" }}
-        data={data}
-        fixedHeaderContent={() => (
-          <Header
-            columns={columns}
-            sortFields={sortFields}
-            setSortField={setSortField}
-          />
-        )}
-        itemContent={(index) => (
-          <GridRow
-            data={data[index]}
-            columns={columns}
-            recordHeight={recordHeight}
-          />
-        )}
-      />
-    </Card>
+    <TableVirtuoso
+      overscan={500}
+      style={{ height: "100%", overflow: "auto" }}
+      data={data}
+      fixedHeaderContent={() => (
+        <Header
+          columns={columns}
+          sortFields={sortFields}
+          setSortField={setSortField}
+        />
+      )}
+      itemContent={(index) => (
+        <GridRow
+          data={data[index]}
+          columns={columns}
+          recordHeight={recordHeight}
+        />
+      )}
+    />
   );
 }
 

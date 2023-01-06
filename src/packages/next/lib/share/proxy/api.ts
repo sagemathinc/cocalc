@@ -28,7 +28,9 @@ per hour", so the api still wouldn't help.
 Get at https://github.com/settings/tokens
 */
 
-import fetch, { Headers } from "node-fetch";
+// these are provided by nextjs: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support
+declare var fetch, Headers;
+
 import { encode } from "base-64";
 import { join } from "path";
 import getPool from "@cocalc/database/pool";
