@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "echo 'nothing yet'"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}

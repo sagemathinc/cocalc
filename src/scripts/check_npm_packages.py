@@ -36,7 +36,7 @@ whitelist: Final[List[str]] = [
 
 # NOTE: test/puppeteer is long dead...
 def pkg_dirs() -> List[str]:
-    search = run(['git', 'ls-files', '--', '../**/package.json'], stdout=PIPE)
+    search = run(['git', 'ls-files', '--', '../**package.json'], stdout=PIPE)
     data = search.stdout.decode('utf8')
     packages = [
         abspath(x) for x in data.splitlines() if 'test/puppeteer/' not in x

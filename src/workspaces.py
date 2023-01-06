@@ -100,6 +100,7 @@ def thread_map(callable: Callable,
 def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
+        'packages/', # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
@@ -229,7 +230,8 @@ def install(args) -> None:
     for path in v:
         # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
         # TODO: but can they be removed?
-        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'", path)
+        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'",
+            path)
 
 
 # Build all the packages that need to be built.
@@ -394,7 +396,7 @@ def main() -> None:
     packages_arg(subparser)
     subparser.set_defaults(func=install)
 
-    subparser = subparsers.add_parser('build', help='build all packages')
+    subparser = subparsers.add_parser('build', help='build all packages for which something has changed')
     packages_arg(subparser)
     subparser.set_defaults(func=build)
 

@@ -21,9 +21,6 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
-  "dependencies": {
-    "npm": "^8.18.0"
-  },
   "keywords": [
     "python",
     "sage",
