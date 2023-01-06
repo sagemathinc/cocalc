@@ -87,7 +87,6 @@
     "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
-    "jest": "^29.3.1",
     "node-cjsx": "^2.0.0",
     "should": "^7.1.1",
     "sinon": "^4.5.0"

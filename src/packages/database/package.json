@@ -40,8 +40,7 @@
   "devDependencies": {
     "@types/jest": "^29.2.5",
     "@types/node": "^14.18.10",
-    "coffeescript": "^2.5.1",
-    "jest": "^29.3.1"
+    "coffeescript": "^2.5.1"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
