@@ -78,7 +78,6 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/jest": "^29.2.5",
     "@types/node": "^14.18.10",
     "expect": "^26.6.2"
   }
