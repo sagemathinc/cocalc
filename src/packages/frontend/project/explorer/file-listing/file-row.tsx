@@ -54,9 +54,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : undefined,
+      color: props.mask ? "#bbbbbb" : "#777",
       verticalAlign: "sub",
-      color: "#777",
     } as const;
     let body: JSX.Element;
     if (props.isdir) {
