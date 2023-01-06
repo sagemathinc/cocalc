@@ -129,7 +129,11 @@ export default function SubNav(props: Props) {
       const style =
         SOFTWARE_ENV_DEFAULT === name ? { fontWeight: "bold" } : undefined;
       return (
-        <A style={{ ...tabStyle(selected), ...style }} href={`./${name}`}>
+        <A
+          key={name}
+          style={{ ...tabStyle(selected), ...style }}
+          href={`/software/executables/${name}`}
+        >
           {name}
         </A>
       );
