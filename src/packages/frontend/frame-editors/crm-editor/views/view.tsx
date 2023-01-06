@@ -1,5 +1,5 @@
 import { useMemo, useState, CSSProperties } from "react";
-import { Alert } from "antd";
+import { Alert, Card } from "antd";
 import { EditableContext } from "../fields/context";
 import { useTable } from "../querydb/use-table";
 import { client_db } from "@cocalc/util/db-schema";
@@ -31,11 +31,19 @@ interface Props {
   view: ViewType;
   table: string;
   style?: CSSProperties;
+  cardStyle?: CSSProperties;
   name: string;
   id: string;
 }
 
-export default function View({ table, view, style, name, id }: Props) {
+export default function View({
+  table,
+  view,
+  cardStyle,
+  style,
+  name,
+  id,
+}: Props) {
   const {
     title,
     query,
@@ -162,67 +170,65 @@ export default function View({ table, view, style, name, id }: Props) {
   }
 
   const header = (
-    <div style={{ margin: "-30px 0 -10px 0" }}>
-      <ViewMenu
-        query={query}
-        name={name}
-        title={title ?? fieldToLabel(table)}
-        dbtable={dbtable}
-        table={table}
-        view={view}
-        viewCount={filteredData?.length ?? 0}
-        tableLowerBound={data?.length ?? 0}
-        columns={allColumns}
-        limit={limit}
-        setLimit={setLimit}
-        sortFields={sortFields}
-        setSortField={setSortField}
-        hiddenFields={hiddenFields}
-        setHiddenField={setHiddenField}
-        search={search}
-        setSearch={setSearch}
-        recordHeight={recordHeight}
-        setRecordHeight={setRecordHeight}
-        orderFields={orderFields}
-        setOrderFields={setOrderFields}
-        rowKey={rowKey}
-        addNew={allowCreate ? addNew : undefined}
-        addedRecords={addedRecords}
-        setAddedRecords={setAddedRecords}
-        refresh={refresh}
-        filters={
-          <>
-            {Filter}
-            {numHidden > 0 && (
-              <div style={{ marginBottom: "5px", color: "#666" }}>
-                <Icon name="warning" /> Showing {filteredData.length} of{" "}
-                {data.length} {plural(data.length, "result")}
-              </div>
-            )}
-            {view == "calendar" && (
-              <SelectField
-                type={"timestamp"}
-                value={timeField}
-                onChange={setTimeField}
-                query={query}
-                style={{ marginBottom: "5px" }}
-                hiddenFields={hiddenFields}
-              />
-            )}
-            {view == "kanban" && (
-              <SelectField
-                type={"select"}
-                value={categoryField}
-                onChange={setCategoryField}
-                query={query}
-                style={{ marginBottom: "5px" }}
-                hiddenFields={hiddenFields}
-              />
-            )}
-          </>
-        }
-      />
-    </div>
+    <ViewMenu
+      query={query}
+      name={name}
+      title={title ?? fieldToLabel(table)}
+      dbtable={dbtable}
+      table={table}
+      view={view}
+      viewCount={filteredData?.length ?? 0}
+      tableLowerBound={data?.length ?? 0}
+      columns={allColumns}
+      limit={limit}
+      setLimit={setLimit}
+      sortFields={sortFields}
+      setSortField={setSortField}
+      hiddenFields={hiddenFields}
+      setHiddenField={setHiddenField}
+      search={search}
+      setSearch={setSearch}
+      recordHeight={recordHeight}
+      setRecordHeight={setRecordHeight}
+      orderFields={orderFields}
+      setOrderFields={setOrderFields}
+      rowKey={rowKey}
+      addNew={allowCreate ? addNew : undefined}
+      addedRecords={addedRecords}
+      setAddedRecords={setAddedRecords}
+      refresh={refresh}
+      filters={
+        <>
+          {Filter}
+          {numHidden > 0 && (
+            <div style={{ marginBottom: "5px", color: "#666" }}>
+              <Icon name="warning" /> Showing {filteredData.length} of{" "}
+              {data.length} {plural(data.length, "result")}
+            </div>
+          )}
+          {view == "calendar" && (
+            <SelectField
+              type={"timestamp"}
+              value={timeField}
+              onChange={setTimeField}
+              query={query}
+              style={{ marginBottom: "5px" }}
+              hiddenFields={hiddenFields}
+            />
+          )}
+          {view == "kanban" && (
+            <SelectField
+              type={"select"}
+              value={categoryField}
+              onChange={setCategoryField}
+              query={query}
+              style={{ marginBottom: "5px" }}
+              hiddenFields={hiddenFields}
+            />
+          )}
+        </>
+      }
+    />
   );
   let body;
   switch (view) {
@@ -233,7 +239,6 @@ export default function View({ table, view, style, name, id }: Props) {
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
-          title={header}
         />
       );
       break;
@@ -244,7 +249,6 @@ export default function View({ table, view, style, name, id }: Props) {
           rowKey={rowKey}
           data={filteredData}
           columns={columns}
-          title={header}
           categoryField={categoryField}
           query={query}
           refresh={refresh}
@@ -256,7 +260,6 @@ export default function View({ table, view, style, name, id }: Props) {
         <Calendar
           data={filteredData}
           columns={allColumns}
-          title={header}
           timeField={timeField}
           rowKey={rowKey}
         />
@@ -268,7 +271,6 @@ export default function View({ table, view, style, name, id }: Props) {
           recordHeight={recordHeight}
           data={filteredData}
           columns={columns}
-          title={header}
           sortFields={sortFields}
           setSortField={setSortField}
         />
@@ -282,9 +284,9 @@ export default function View({ table, view, style, name, id }: Props) {
     <EditableContext.Provider value={editableContext}>
       <div
         style={{
+          ...style,
           display: "flex",
           flexDirection: "column",
-          ...style,
         }}
       >
         {loading && (
@@ -327,7 +329,18 @@ export default function View({ table, view, style, name, id }: Props) {
           />
         )}
         <div style={{ flex: 1, overflow: "hidden", marginBottom: "10px" }}>
-          {body}
+          <Card
+            style={{
+              ...cardStyle,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+            title={header}
+            bodyStyle={{ flex: 1 }}
+          >
+            {body}
+          </Card>
         </div>
       </div>
     </EditableContext.Provider>

@@ -1,5 +1,5 @@
-import { CSSProperties, ReactNode, useMemo } from "react";
-import { Calendar, Card, Popover } from "antd";
+import { ReactNode, useMemo } from "react";
+import { Calendar, Popover } from "antd";
 import dayjs from "dayjs";
 import * as gallery from "./gallery";
 import type { ColumnsType } from "../fields";
@@ -9,8 +9,6 @@ interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  title: ReactNode;
-  style?: CSSProperties;
 }
 
 export default function CalendarData({
@@ -18,8 +16,6 @@ export default function CalendarData({
   rowKey,
   data,
   columns,
-  title,
-  style,
 }: Props) {
   const { monthCellRender, dateCellRender } = useMemo(() => {
     const monthToData: { [year_month: string]: object[] } = {};
@@ -64,21 +60,10 @@ export default function CalendarData({
   }, [data, timeField]);
 
   return (
-    <Card
-      title={title}
-      style={{
-        ...style,
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-      }}
-      bodyStyle={{ flex: 1, overflow: "auto" }}
-    >
-      <Calendar
-        dateCellRender={dateCellRender}
-        monthCellRender={monthCellRender}
-      />
-    </Card>
+    <Calendar
+      dateCellRender={dateCellRender}
+      monthCellRender={monthCellRender}
+    />
   );
 }
 
