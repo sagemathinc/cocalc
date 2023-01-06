@@ -54,7 +54,10 @@ export const PathLink: React.FC<Props> = (props) => {
     }
     if (props.link) {
       return (
-        <a onClick={handle_click} style={props.style}>
+        <a
+          onClick={handle_click}
+          style={{ color: "#777", fontWeight: "bold", ...props.style }}
+        >
           {s}
         </a>
       );

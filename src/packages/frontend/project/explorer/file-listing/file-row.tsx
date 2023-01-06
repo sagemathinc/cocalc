@@ -56,6 +56,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     const style: React.CSSProperties = {
       color: props.mask ? "#bbbbbb" : undefined,
       verticalAlign: "sub",
+      color: "#777",
     } as const;
     let body: JSX.Element;
     if (props.isdir) {
@@ -135,7 +136,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : undefined,
+      color: props.mask ? "#bbbbbb" : "#777",
     };
 
     if (show_tip) {
