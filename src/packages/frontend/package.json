@@ -54,7 +54,6 @@
     "@lumino/widgets": "^1.31.1",
     "@microlink/react-json-view": "^1.22.2",
     "@react-hook/hover": "^4.0.0",
-    "@types/pdfjs-dist": "^2.10.378",
     "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "antd": "^5.1.2",
