@@ -107,16 +107,17 @@ export class NBGraderActions {
     });
   }
 
-  public async validate(): Promise<void> {
+  public async validate(frame_actions): Promise<void> {
     // Without confirmation: (1) restart, (2) run all -- without stopping for errors.
     // Validate button should be disabled while this happens.
     // As running happens number of failing tests and total score
     // gets updated at top.
+    frame_actions?.set_all_md_cells_not_editing();
     await this.jupyter_actions.restart();
     this.jupyter_actions.run_all_cells(true);
   }
 
-  public async confirm_validate(): Promise<void> {
+  public async confirm_validate(frame_actions): Promise<void> {
     const choice = await this.jupyter_actions.confirm_dialog({
       title: "Validate notebook?",
       body: "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
@@ -126,7 +127,7 @@ export class NBGraderActions {
       ],
     });
     if (choice === "Validate") {
-      await this.validate();
+      await this.validate(frame_actions);
     }
   }
 

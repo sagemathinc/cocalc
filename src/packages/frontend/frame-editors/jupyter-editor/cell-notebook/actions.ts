@@ -414,6 +414,10 @@ export class NotebookFrameActions {
     this.setState({ md_edit_ids });
   }
 
+  public set_all_md_cells_not_editing(): void {
+    this.setState({ md_edit_ids: null });
+  }
+
   // Set which cell is currently the cursor.
   public set_cur_id(cur_id: string): void {
     this.validate({ id: cur_id });

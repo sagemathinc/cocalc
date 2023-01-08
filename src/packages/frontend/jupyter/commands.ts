@@ -190,7 +190,7 @@ export function commands(
       m: "Restart and run all...",
       menu: "Run all...",
       i: "forward",
-      f: () => jupyter_actions.restart_and_run_all(),
+      f: () => jupyter_actions.restart_and_run_all(frame_actions),
     },
 
     "confirm restart kernel and run all cells without halting on error": {
@@ -198,7 +198,7 @@ export function commands(
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
       k: [{ which: 13, ctrl: true, shift: true }],
-      f: () => jupyter_actions.restart_and_run_all_no_halt(),
+      f: () => jupyter_actions.restart_and_run_all_no_halt(frame_actions),
     },
 
     "confirm shutdown kernel": {
@@ -543,7 +543,9 @@ export function commands(
     "nbgrader validate": {
       m: "Restart and validate...",
       menu: "Validate...",
-      f: () => jupyter_actions.nbgrader_actions.confirm_validate(),
+      f: () => {
+        jupyter_actions.nbgrader_actions.confirm_validate(frame_actions);
+      },
     },
 
     "nbgrader assign": {
@@ -629,6 +631,7 @@ export function commands(
     "restart kernel and run all cells": {
       m: "Restart and run all",
       async f() {
+        frame_actions.set_all_md_cells_not_editing();
         await jupyter_actions.restart();
         jupyter_actions.run_all_cells();
       },
@@ -636,7 +639,10 @@ export function commands(
 
     "run all cells": {
       m: "Run all",
-      f: () => jupyter_actions.run_all_cells(),
+      f: () => {
+        frame_actions.set_all_md_cells_not_editing();
+        jupyter_actions.run_all_cells();
+      },
     },
 
     "run all cells above": {
