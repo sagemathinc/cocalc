@@ -243,10 +243,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     if (VIEWABLE_FILE_EXT.includes(ext_lower)) {
       return (
         <Popover
+          title={<>{icon} New Tab</>}
           placement="bottomRight"
-          content={<>Click to view this file in a new tab.</>}
+          content={<>View this file in a new tab.</>}
         >
           <Button
+            size="small"
             type="link"
             href={`${url_href}`}
             onClick={handle_view_click}
@@ -259,7 +261,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     } else {
       //render an invisible placeholder of same size
       return (
-        <Button type="link" style={{ ...style, visibility: "hidden" }}>
+        <Button
+          type="link"
+          size="small"
+          style={{ ...style, visibility: "hidden" }}
+        >
           {icon}
         </Button>
       );
@@ -273,15 +279,21 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return (
       <Popover
         placement="bottomRight"
+        title={
+          <>
+            <Icon name="cloud-download" /> Download
+          </>
+        }
         content={
           <>
-            Click to download {size}
+            Download this {size} file
             <br />
-            to store this file in your own files.
+            to your own computer.
           </>
         }
       >
         <Button
+          size="small"
           type="link"
           href={`${url_href}`}
           onClick={handle_download_click}
