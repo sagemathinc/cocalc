@@ -26,6 +26,7 @@ import useCustomize from "lib/use-customize";
 import { useMemo, useState } from "react";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import License, { DateRange, Quota as LicenseQuota } from "./license";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
@@ -60,7 +61,11 @@ export function Quota({ quota, state, upgrades }) {
     >
       {quota && <LicenseQuota quota={quota} />}
       {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
-      {upgrades && <pre>{JSON.stringify(upgrades)}</pre>}
+      {upgrades && (
+        <Markdown
+          value={"```js\n" + JSON.stringify(upgrades, undefined, 2) + "\n```"}
+        />
+      )}
     </span>
   );
 }
