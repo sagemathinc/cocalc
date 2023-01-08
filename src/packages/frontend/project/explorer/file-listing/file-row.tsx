@@ -54,7 +54,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : "#777",
+      color: props.mask ? "#bbbbbb" : COLORS.TAB,
       verticalAlign: "sub",
     } as const;
     let body: JSX.Element;
@@ -105,9 +105,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   function render_name_link(styles, name, ext) {
     return (
       <a style={styles} cocalc-test="file-line">
-        <span style={{ fontWeight: props.mask ? "normal" : "bold" }}>
-          {misc.trunc_middle(name, 50)}
-        </span>
+        {misc.trunc_middle(name, 50)}
         <span style={{ color: !props.mask ? "#999" : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
@@ -135,7 +133,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : "#777",
+      color: props.mask ? "#bbbbbb" : COLORS.TAB,
     };
 
     if (show_tip) {

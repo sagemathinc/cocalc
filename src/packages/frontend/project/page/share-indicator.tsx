@@ -60,7 +60,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
         <div
           style={{
             cursor: "pointer",
-            color: COLORS.FG_BLUE,
+            color: COLORS.TAB,
             marginLeft: "5px",
             marginRight: "5px",
           }}

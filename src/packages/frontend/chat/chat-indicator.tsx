@@ -71,7 +71,7 @@ export const ChatIndicator: React.FC<Props> = ({
       return;
     }
 
-    const color = is_new_chat ? COLORS.FG_RED : COLORS.FG_BLUE;
+    const color = is_new_chat ? COLORS.FG_RED : COLORS.TAB;
     const action = is_chat_open ? "Hide" : "Show";
     const title = (
       <span>

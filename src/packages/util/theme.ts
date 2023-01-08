@@ -128,4 +128,6 @@ export const COLORS = {
 
   // landing page
   LANDING: { LOGIN_BAR_BG: MAIN_COLORS.BLUE_D },
+
+  TAB: "#333333",
 } as const;
