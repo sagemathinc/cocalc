@@ -455,7 +455,7 @@ function FAQ() {
         description={
           <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
             <li>
-              <A href="https://github.com/sagemathinc/cocalc/discussions">
+              <A href="https://github.com/sagemathinc/cocalc/issues">
                 Create a bug report
               </A>
             </li>
