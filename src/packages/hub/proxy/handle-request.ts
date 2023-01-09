@@ -30,7 +30,7 @@ export default function init({ projectControl, isPersonal }: Options) {
   const cache = new LRU({
     max: 5000,
     ttl: 1000 * 60 * 3,
-    dispose: (_key, proxy) => {
+    dispose: (proxy) => {
       // important to close the proxy whenever it gets removed
       // from the cache, to avoid wasting resources.
       (proxy as any)?.close();
