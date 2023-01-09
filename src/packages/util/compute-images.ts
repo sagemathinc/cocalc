@@ -18,10 +18,10 @@ const DEFAULT_COMPUTE_IMAGE = schema.DEFAULT_COMPUTE_IMAGE;
 // this array defines their ordering
 const GROUPS = [
   "Main",
+  "Ubuntu 22.04",
   "Ubuntu 20.04",
   "Ubuntu 18.04",
   "Ubuntu 16.04",
-  "Ubuntu 22.04", // TODO: until 22.04 is stable and official, we keep it burried at the end!
 ] as const;
 
 type Group = typeof GROUPS[number];
@@ -67,16 +67,40 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   },
   ubuntu2004: {
     order: 0,
-    title: "Ubuntu 20.04 (Default)",
-    short: "Ubuntu 20.04 (Default)",
+    title: "Ubuntu 20.04 (Current)",
+    short: "Ubuntu 20.04 (Current)",
     descr: "Regular updates, well tested",
     group: "Main",
+  },
+  ubuntu2204: {
+    title: "Ubuntu 22.04 (Current)",
+    short: "Ubuntu 22.04 (Current)",
+    descr: "Upcoming Ubuntu 22.04 based software stack",
+    group: "Main",
+  },
+  "ubuntu2204-previous": {
+    title: "Ubuntu 22.04 (Previous)",
+    short: "Previous",
+    descr: "Slightly behind 22.04 (Current)",
+    group: "Ubuntu 22.04",
+  },
+  "ubuntu2204-dev": {
+    title: "Ubuntu 22.04 (Testing)",
+    short: "Testing",
+    descr: "Upcoming Ubuntu 22.04 based software stack",
+    group: "Ubuntu 22.04",
   },
   "ubuntu2004-previous": {
     title: "Ubuntu 20.04 (Previous)",
     short: "Previous",
-    descr: "Slightly behind 20.04 (Default)",
+    descr: "Slightly behind 20.04 (Current)",
     group: "Ubuntu 20.04",
+  },
+  "ubuntu2204-2023-01-09": {
+    title: "Ubuntu 22.04 (2023-01-09)",
+    short: "2023-01-09",
+    descr: "Frozen on 2023-01-09 and no longer updated",
+    group: "Ubuntu 22.04",
   },
   "ubuntu2004-dev": {
     title: "Ubuntu 20.04 (Testing)",
@@ -131,6 +155,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "2022-08-17",
     group: "Ubuntu 20.04",
     descr: "Frozen on 2022-08-17 and no longer updated",
+  },
+  "ubuntu2004-2022-11-25": {
+    title: "Ubuntu 20.04 (2022-11-25)",
+    short: "2022-11-25",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2022-11-25 and no longer updated",
   },
   previous: {
     order: -2,
@@ -196,12 +226,6 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Old software image",
     descr: "In use until Summer 2018. No longer maintained!",
     group: "Ubuntu 16.04",
-  },
-  "ubuntu2204-dev": {
-    title: "Ubuntu 22.04 (Testing)",
-    short: "Ubuntu 22.04 (Testing)",
-    descr: "Upcoming Ubuntu 22.04 based software stack",
-    group: "Ubuntu 22.04",
   },
 } as const;
 
