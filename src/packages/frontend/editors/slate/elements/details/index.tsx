@@ -30,7 +30,9 @@ register({
     return (
       <details {...{ ...attributes, ...{ open: node.open } }} style={STYLE}>
         {node.summary && (
-          <summary>{node.summary}</summary>
+          <summary style={{ cursor: "pointer", display: "list-item" }}>
+            {node.summary}
+          </summary>
         )}
         {children}
       </details>
