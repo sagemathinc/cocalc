@@ -6,7 +6,7 @@
 import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
 import { MainPages, MainPagesType } from "components/billing/consts";
-import Billing from "components/billing/layout";
+import BillingLayout from "components/billing/layout";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -22,18 +22,19 @@ interface Props {
 
 export default function Preferences(props: Props) {
   const { customize, pageNotFound, page } = props;
-  if (pageNotFound) {
-    return <Error statusCode={404} />;
-  }
 
-  const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";
+  const subpage = page?.[0] != null ? ` - ${capitalize(page[0])}` : "";
 
   return (
     <Customize value={customize}>
       <Head title={`Billing${subpage}`} />
       <Layout>
         <Header />
-        <Billing page={page} />
+        {pageNotFound ? (
+          <Error statusCode={404} />
+        ) : (
+          <BillingLayout page={page} />
+        )}
         <Footer />
       </Layout>
     </Customize>
@@ -56,7 +57,7 @@ export async function getServerSideProps(context) {
   }
 
   if (main != null && !MainPages.includes(main)) {
-    return withCustomize({ context, props: { pageNotFound: true } });
+    return await withCustomize({ context, props: { pageNotFound: true } });
   }
 
   return await withCustomize({
