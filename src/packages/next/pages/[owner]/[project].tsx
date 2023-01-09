@@ -49,7 +49,7 @@ export async function getServerSideProps(context) {
         ])),
       };
     }
-    return withCustomize({ context, props });
+    return await withCustomize({ context, props });
   } catch (err) {
     console.log(err);
     return { notFound: true };
