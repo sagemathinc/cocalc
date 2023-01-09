@@ -143,6 +143,7 @@ export default function SubNav(props: Props) {
         {SEP}
         <Divider type="vertical" style={{ borderColor: COLORS.GRAY_D }} />
         {SEP}
+        <span style={{ marginRight: "15px" }}>Ubuntu</span>
         {r_join(links, SEP)}
       </>
     );
@@ -189,7 +190,7 @@ export default function SubNav(props: Props) {
       }}
     >
       {r_join(tabs, SEP)}
-      {renderSoftwareEnvs()}
+      {(page == "software" || page == "features") && renderSoftwareEnvs()}
     </div>
   );
 }
