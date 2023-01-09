@@ -26,7 +26,8 @@ interface HostInfo {
 // revisit this parameter.
 
 const cache = new LRU<string, HostInfo | null>({
-  maxAge: 1000 * 60,
+  ttl: 1000 * 60,
+  max: 1000,
 });
 
 export default async function getVirtualHostInfo(

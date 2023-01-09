@@ -44,7 +44,7 @@ const caches: Map<Length, LRU<string, any>> = new Map();
 for (const length in MAX_AGE_S) {
   caches[length] = new LRU<string, any>({
     max: 1000,
-    maxAge: 1000 * MAX_AGE_S[length],
+    ttl: 1000 * MAX_AGE_S[length],
   });
 }
 

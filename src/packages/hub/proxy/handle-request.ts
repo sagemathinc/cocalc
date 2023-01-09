@@ -29,7 +29,7 @@ export default function init({ projectControl, isPersonal }: Options) {
 */
   const cache = new LRU({
     max: 5000,
-    maxAge: 1000 * 60 * 3,
+    ttl: 1000 * 60 * 3,
     dispose: (_key, proxy) => {
       // important to close the proxy whenever it gets removed
       // from the cache, to avoid wasting resources.
@@ -103,7 +103,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       // setup error handler, so that if something goes wrong with this proxy (it will,
       // e.g., on project restart), we properly invalidate it.
       const remove_from_cache = () => {
-        cache.del(target); // this also closes the proxy.
+        cache.delete(target); // this also closes the proxy.
         invalidateTargetCache(remember_me, url);
       };
 

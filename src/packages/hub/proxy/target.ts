@@ -27,13 +27,13 @@ const winston = getLogger("proxy: target");
 // Also, if the project stops and starts, the host=ip address could
 // change, so we need to timeout so we see that thange.
 
-const cache = new LRU({ max: 20000, maxAge: 1000 * 30 });
+const cache = new LRU({ max: 20000, ttl: 1000 * 30 });
 
 // This gets explicitly called from outside when certain errors occur.
 export function invalidateTargetCache(remember_me: string, url: string): void {
   const { key } = parseReq(url, remember_me);
   winston.debug(`invalidateCache: ${url}`);
-  cache.del(key);
+  cache.delete(key);
 }
 
 interface Options {
@@ -137,7 +137,7 @@ export async function getTarget(opts: Options): Promise<{
 // from the project can be expensive.
 const namedServerPortCache = new LRU<string, number>({
   max: 10000,
-  maxAge: 1000 * 20,
+  ttl: 1000 * 20,
 });
 
 async function _namedServerPort(

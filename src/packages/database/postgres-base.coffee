@@ -100,7 +100,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
-            @_query_cache = new LRU({max:opts.cache_size, maxAge: opts.cache_expiry})
+            @_query_cache = new LRU({max:opts.cache_size, ttl: opts.cache_expiry})
         if opts.connect
             @connect()  # start trying to connect
 

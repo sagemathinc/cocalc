@@ -11,7 +11,7 @@ import { SCHEMA } from "@cocalc/util/db-schema";
 import { copy, trunc_left } from "@cocalc/util/misc";
 
 // To avoid overfetching, we cache results for *a few seconds*.
-const site_license_public_info_cache = new LRU({ maxAge: 1000 * 15 });
+const site_license_public_info_cache = new LRU({ ttl: 1000 * 15, size: 1000 });
 
 export const site_license_public_info: (
   license_id: string,

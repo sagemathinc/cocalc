@@ -14,7 +14,7 @@ async = require('async')
 {getAccountWithApiKey} = require("@cocalc/server/api/manage");
 
 Cache = require('lru-cache')
-auth_cache = new Cache(max:100, maxAge:60000)
+auth_cache = new Cache(max:100, ttl:60000)
 
 misc = require('@cocalc/util/misc')
 {defaults, required} = misc

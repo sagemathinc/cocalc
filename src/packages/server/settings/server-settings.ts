@@ -25,7 +25,7 @@ type CacheKeys = "server-settings" | "passports";
 // TODO add something for the passports data type?
 const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
   max: 10,
-  maxAge: 1000 * CACHE_TIME_SECONDS,
+  ttl: 1000 * CACHE_TIME_SECONDS,
 });
 const KEY: CacheKeys = "server-settings";
 

@@ -703,7 +703,8 @@ export class ProjectsStore extends Store<ProjectsState> {
 
   // cache for 15s
   private projectAvatarImageCache = new LRU<string, string | undefined>({
-    maxAge: 1000 * 15,
+    ttl: 1000 * 15,
+    max: 1000,
   });
   public async getProjectAvatarImage(
     project_id: string

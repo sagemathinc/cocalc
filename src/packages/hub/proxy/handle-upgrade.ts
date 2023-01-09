@@ -21,7 +21,7 @@ export default function init(
 ) {
   const cache = new LRU({
     max: 5000,
-    maxAge: 1000 * 60 * 3,
+    ttl: 1000 * 60 * 3,
   });
 
   const re = new RegExp(proxy_regexp);
@@ -88,11 +88,11 @@ export default function init(
 
     proxy.on("error", (err) => {
       winston.debug(`websocket proxy error, so clearing cache -- ${err}`);
-      cache.del(target);
+      cache.delete(target);
     });
     proxy.on("close", () => {
       dbg("websocket proxy close, so removing from cache");
-      cache.del(target);
+      cache.delete(target);
     });
     proxy.ws(req, socket, head);
   }
