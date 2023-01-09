@@ -18,7 +18,7 @@ interface Profile {
   image?: string;
 }
 // To avoid overfetching profiles we cache them for a few minutes:
-const profiles = new LRU({ ttl: 1000 * 120, size: 5000 });
+const profiles = new LRU({ ttl: 1000 * 120, maxSize: 5000 });
 
 // Define user store: all the users you collaborate with
 export class UsersStore extends Store<UsersState> {
