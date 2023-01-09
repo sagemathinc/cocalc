@@ -43,7 +43,7 @@ import { pdf_path } from "./util";
 const options = {
   maxSize: MAX_PAGES,
   sizeCalculation: function (doc: PDFDocumentProxy): number {
-    return doc.numPages;
+    return Math.max(doc.numPages ?? 1, 1);
   },
 };
 
