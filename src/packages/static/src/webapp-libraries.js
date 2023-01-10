@@ -1,3 +1,7 @@
+import jQuery from "jquery";
+// This is assumed in some of the ancient libraries we're still loading:
+window.$ = window.jQuery = jQuery;
+
 // this must come before anything that touches event handling, etc.
 import "./webapp-error-reporter.coffee";
 
