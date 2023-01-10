@@ -2039,4 +2039,36 @@ describe("boost", () => {
       dedicated_vm: false,
     });
   });
+
+  it("treats edge case correctly", () => {
+    const site_licenses: SiteLicenses = {
+      license1: {
+        quota: {
+          cpu: 2,
+          ram: 8,
+          disk: 5,
+          user: "academic",
+          boost: false,
+          member: false, // no member hosting!
+          idle_timeout: "short", // this should set it to 30 mins idle timeout, not 10!
+          dedicated_cpu: 0,
+          dedicated_ram: 0,
+          always_running: false,
+        },
+        status: "active",
+      },
+      disk1: {
+        quota: {
+          member: true, // for unknown reasons, this field sneaks in
+          idle_timeout: "short",
+          dedicated_disk: {
+            name: "disk1234",
+            speed: "standard",
+            size_gb: 32,
+          },
+        },
+        status: "active",
+      },
+    };
+  });
 });
