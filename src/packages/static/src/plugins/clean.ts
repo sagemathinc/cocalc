@@ -6,9 +6,9 @@ builds.
 This is also safer than `rm -rf dist`.
 */
 
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+import { CleanWebpackPlugin } from "clean-webpack-plugin";
 
-module.exports = function (registerPlugin, OUTPUT) {
+export default function cleanPlugin(registerPlugin, OUTPUT) {
   registerPlugin(
     "CleanWebpackPlugin -- cleanup generated dist directory to save space",
     new CleanWebpackPlugin({
@@ -17,4 +17,4 @@ module.exports = function (registerPlugin, OUTPUT) {
       dry: false,
     })
   );
-};
+}

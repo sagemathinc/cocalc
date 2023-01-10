@@ -51,7 +51,7 @@ import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import measurePlugin from "./plugins/measure";
 
-import moduleRules from "./module-rules";
+import MODULE_RULES from "./module-rules";
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
 // relative to "src/packages/static".
@@ -179,7 +179,7 @@ const webpackOptions = {
     hashFunction: "sha256",
   },
   module: {
-    rules: moduleRules(PRODMODE),
+    rules: MODULE_RULES,
   },
   resolve: {
     alias: {

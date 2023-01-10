@@ -5,7 +5,7 @@ NOTE: We use analyzerMode="static" to get a static file (dist/report.html)
 instead of running a webserver, which gets complicated in some environments.
 */
 
-module.exports = function (registerPlugin, params) {
+export default function measurePlugin(registerPlugin) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   registerPlugin(
     "BundleAnalyzerPlugin -- visualize size and content of webpack output files",
@@ -14,4 +14,4 @@ module.exports = function (registerPlugin, params) {
       reportFilename: "measure.html",
     })
   );
-};
+}

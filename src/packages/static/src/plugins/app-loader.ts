@@ -1,6 +1,10 @@
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+import HtmlWebpackPlugin from "html-webpack-plugin";
 
-module.exports = function (registerPlugin, PRODMODE, title) {
+export default function appLoaderPlugin(
+  registerPlugin,
+  PRODMODE: boolean,
+  title: string
+) {
   registerPlugin(
     "HTML -- generates the app.html file",
     new HtmlWebpackPlugin({
@@ -22,4 +26,4 @@ module.exports = function (registerPlugin, PRODMODE, title) {
       chunks: ["load", "embed"],
     })
   );
-};
+}
