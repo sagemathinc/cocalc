@@ -11,12 +11,11 @@ and weird surprises can pop up.  We have to exclude transpiling jquery since oth
 we get an infinite recursion on startup, but of course jquery is fine.
 */
 
+import type { RuleSetRule } from "webpack";
+
+type Rules = (RuleSetRule | "...")[];
+
 const MODULE_RULES = [
-  {
-    test: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
-    loader: "swc-loader",
-    exclude: /.*node_modules\/jquery.*/,
-  },
   { test: /\.coffee$/, loader: "coffee-loader" },
   {
     test: /\.cjsx$/,
@@ -142,6 +141,32 @@ const MODULE_RULES = [
     test: /\.(glsl|txt)/,
     type: "asset/source",
   },
-];
+] as Rules;
 
-export default MODULE_RULES;
+export default function moduleRules(devServer?: boolean) : Rules {
+  return (
+    [
+      {
+        test: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
+        exclude: /.*node_modules\/jquery.*/,
+        use: [
+          {
+            loader: "swc-loader",
+            options: devServer
+              ? {
+                  jsc: {
+                    transform: {
+                      react: {
+                        development: true,
+                        refresh: true,
+                      },
+                    },
+                  },
+                }
+              : undefined,
+          },
+        ],
+      },
+    ] as Rules
+  ).concat(MODULE_RULES);
+}

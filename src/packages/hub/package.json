@@ -87,7 +87,9 @@
     "expect": "^26.6.2",
     "node-cjsx": "^2.0.0",
     "should": "^7.1.1",
-    "sinon": "^4.5.0"
+    "sinon": "^4.5.0",
+    "webpack-dev-middleware": "^5.3.3",
+    "webpack-hot-middleware": "^2.25.3"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

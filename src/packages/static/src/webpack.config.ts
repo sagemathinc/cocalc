@@ -38,7 +38,7 @@ webpack website.  Differences include:
 
 import { userInfo } from "os";
 import { ProvidePlugin } from "webpack";
-import type { Configuration, WebpackPluginInstance } from "webpack";
+import type { WebpackPluginInstance } from "webpack";
 import { resolve as path_resolve } from "path";
 import { execSync } from "child_process";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
@@ -50,8 +50,9 @@ import cleanPlugin from "./plugins/clean";
 import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import measurePlugin from "./plugins/measure";
+import hotModuleReplacementPlugin from "./plugins/hot";
 
-import MODULE_RULES from "./module-rules";
+import moduleRules from "./module-rules";
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
 // relative to "src/packages/static".
@@ -63,7 +64,7 @@ interface Options {
   middleware?: boolean;
 }
 
-export default function getConfig({ middleware }: Options = {}): Configuration {
+export default function getConfig({ middleware }: Options = {}) {
   // Determine the git revision hash:
   const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
   const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
@@ -79,6 +80,8 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   const BUILD_TS = date.getTime();
   const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
   const COCALC_NOCACHE = !!process.env.COCALC_NOCACHE;
+  const WEBPACK_DEV_SERVER =
+    NODE_ENV != "production" && !!process.env.WEBPACK_DEV_SERVER;
 
   // output build environment variables of webpack
   console.log(`SMC_VERSION         = ${SMC_VERSION}`);
@@ -88,6 +91,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
   console.log(`OUTPUT              = ${OUTPUT}`);
   console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
   console.log(`COCALC_NOCACHE      = ${COCALC_NOCACHE}`);
+  console.log(`WEBPACK_DEV_SERVER  = ${WEBPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
   function registerPlugin(
@@ -139,6 +143,10 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     measurePlugin(registerPlugin);
   }
 
+  if (WEBPACK_DEV_SERVER) {
+    hotModuleReplacementPlugin(registerPlugin);
+  }
+
   const useDiskCache = !COCALC_NOCACHE;
 
   // It's critical that the caching filesystem is VERY fast, but
@@ -151,7 +159,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     console.log(`\nNOT using filesystem cache.\n`);
   }
 
-  return {
+  const config = {
     ignoreWarnings: [/Failed to parse source map/],
     cache: useDiskCache
       ? {
@@ -159,7 +167,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
           // so initial startup time is less.  Don't do this in
           // user home directory on cocalc, since it uses a LOT
           // of disk IO, which makes everything very slow.
-          type: "filesystem",
+          type: "filesystem" as "filesystem",
           buildDependencies: {
             config: [__filename],
           },
@@ -167,15 +175,23 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         }
       : undefined,
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
-    mode: PRODMODE ? "production" : "development",
+    mode: PRODMODE
+      ? ("production" as "production")
+      : ("development" as "development"),
     entry: {
-      load: resolve("dist-ts/src/load.js"),
+      load: ["webpack-hot-middleware/client", resolve("dist-ts/src/load.js")],
       app: {
-        import: resolve("dist-ts/src/webapp-cocalc.js"),
+        import: [
+          "webpack-hot-middleware/client",
+          resolve("dist-ts/src/webapp-cocalc.js"),
+        ],
         dependOn: "load",
       },
       embed: {
-        import: resolve("dist-ts/src/webapp-embed.js"),
+        import: [
+          "webpack-hot-middleware/client",
+          resolve("dist-ts/src/webapp-embed.js"),
+        ],
         dependOn: "load",
       },
     },
@@ -190,7 +206,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
       hashFunction: "sha256",
     },
     module: {
-      rules: MODULE_RULES,
+      rules: moduleRules(WEBPACK_DEV_SERVER),
     },
     resolve: {
       alias: {
@@ -245,5 +261,11 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
       modules: [resolve("node_modules")],
     },
     plugins,
+    devServer: {
+      hot: true,
+    },
   };
+
+  //console.log(config);
+  return config;
 }

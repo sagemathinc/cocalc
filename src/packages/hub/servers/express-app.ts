@@ -28,7 +28,9 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { webpackMiddleware } from "@cocalc/static";
+import { webpackCompiler } from "@cocalc/static";
+import webpackHotMiddleware from "webpack-hot-middleware";
+import webpackDevMiddleware from "webpack-dev-middleware";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -125,7 +127,9 @@ export default async function init(opts: Options): Promise<{
     console.warn(
       "\nWARNING:  running experimental webpack dev server for frontend app (doesn't work with pdfjs)\n"
     );
-    router.use("/static", webpackMiddleware());
+    const compiler = webpackCompiler();
+    router.use("/static", webpackDevMiddleware(compiler, {}));
+    router.use(webpackHotMiddleware(compiler, {}));
   } else {
     router.use(
       join("/static", STATIC_PATH, "app.html"),
