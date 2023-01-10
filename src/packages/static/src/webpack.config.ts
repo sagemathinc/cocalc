@@ -36,13 +36,22 @@ webpack website.  Differences include:
 
 "use strict";
 
+import { userInfo } from "os";
 import { ProvidePlugin } from "webpack";
-import type { WebpackPluginInstance } from "webpack";
+import type { Configuration, WebpackPluginInstance } from "webpack";
 import { resolve as path_resolve } from "path";
 import { execSync } from "child_process";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
 import { SITE_NAME as TITLE } from "@cocalc/util/theme";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";
+
+import bannerPlugin from "./plugins/banner";
+import cleanPlugin from "./plugins/clean";
+import appLoaderPlugin from "./plugins/app-loader";
+import defineConstantsPlugin from "./plugins/define-constants";
+import measurePlugin from "./plugins/measure";
+
+import moduleRules from "./module-rules";
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
 // relative to "src/packages/static".
@@ -89,7 +98,7 @@ function registerPlugin(
   }
 }
 
-require("./plugins/banner")(registerPlugin, {
+bannerPlugin(registerPlugin, {
   TITLE,
   BUILD_DATE,
   COCALC_GIT_REVISION,
@@ -99,12 +108,12 @@ require("./plugins/banner")(registerPlugin, {
 });
 
 if (!COCALC_NOCLEAN) {
-  require("./plugins/clean")(registerPlugin, OUTPUT);
+  cleanPlugin(registerPlugin, OUTPUT);
 }
 
-require("./plugins/app-loader")(registerPlugin, PRODMODE, TITLE);
+appLoaderPlugin(registerPlugin, PRODMODE, TITLE);
 
-require("./plugins/define-constants")(registerPlugin, {
+defineConstantsPlugin(registerPlugin, {
   SMC_VERSION,
   COCALC_GIT_REVISION,
   BUILD_DATE,
@@ -122,14 +131,14 @@ registerPlugin(
 );
 
 if (MEASURE) {
-  require("./plugins/measure")(registerPlugin);
+  measurePlugin(registerPlugin);
 }
 
 const useDiskCache = !COCALC_NOCACHE;
 
 // It's critical that the caching filesystem is VERY fast, but
 // it is fine if the data is wiped, so use /tmp.
-const cacheDirectory = `/tmp/webpack-${require("os").userInfo().username}`;
+const cacheDirectory = `/tmp/webpack-${userInfo().username}`;
 
 if (useDiskCache) {
   console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);
@@ -170,11 +179,11 @@ const webpackOptions = {
     hashFunction: "sha256",
   },
   module: {
-    rules: require("./module-rules")(PRODMODE),
+    rules: moduleRules(PRODMODE),
   },
   resolve: {
     alias: {
-      // @cocalc/frontend  alias so we can write `require("@cocalc/frontend/...")`
+      // @cocalc/frontend  alias so we can write `import "@cocalc/frontend/..."`
       // anywhere in that library:
       "@cocalc/frontend": resolve("node_modules", "@cocalc/frontend"),
       // This entities/maps alias is needed due to a weird markdown-it import
@@ -198,7 +207,7 @@ const webpackOptions = {
         ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index"
       ),
     },
-    // So we can require('file') instead of require('file.tsx'):
+    // So we can "import 'file'" instead of "import 'file.tsx'"
     extensions: [
       ".js",
       ".jsx",
@@ -212,18 +221,16 @@ const webpackOptions = {
     ],
     symlinks: true,
     modules: ["node_modules"],
-    preferRelative:
-      false /* TODO (still true???) do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {
       stream: require.resolve("stream-browserify"),
-      util: require.resolve("util/"),
       path: require.resolve("path-browserify"),
       crypto: require.resolve("crypto-browserify") /* for @phosphor/widgets */,
+      util: require.resolve("util/"),
       assert: require.resolve("assert/"),
     },
   },
 
   plugins,
-};
+} as Configuration;
 
 export default webpackOptions;

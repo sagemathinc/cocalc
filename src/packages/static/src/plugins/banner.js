@@ -7,7 +7,7 @@ const DASHES = "--------------------------";
 
 module.exports = function (registerPlugin, params) {
   const banner = `\
-This file is part of ${params.TITLE}.  It was compiled ${params.BUILD_DATE} at revision
+This file is part of ${params.TITLE}.  It was compiled at ${params.BUILD_DATE} from Git revision
 ${params.COCALC_GIT_REVISION} and version ${params.SMC_VERSION}.
 See ${params.COCALC_GITHUB_REPO} for its ${params.COCALC_LICENSE} licensed code.\
 `;
