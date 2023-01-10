@@ -3,4 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-module.exports = require("./dist-ts/src/webpack.config.js");
+const getConfig = require("./dist-ts/src/webpack.config").default;
+
+module.exports = getConfig();

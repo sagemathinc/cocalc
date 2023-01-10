@@ -131,7 +131,7 @@ const MODULE_RULES = [
     // get lots of warnings in the console, and lots of source maps don't work at all.
     // https://stackoverflow.com/questions/61767538/devtools-failed-to-load-sourcemap-for-webpack-node-modules-js-map-http-e
     test: /\.(j|t)s$/,
-    enforce: "pre",
+    enforce: "pre" as "pre",
     use: ["source-map-loader"],
   },
   {

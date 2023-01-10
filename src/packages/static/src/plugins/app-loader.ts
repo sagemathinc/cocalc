@@ -1,4 +1,5 @@
 import HtmlWebpackPlugin from "html-webpack-plugin";
+import { resolve } from "path";
 
 export default function appLoaderPlugin(
   registerPlugin,
@@ -10,7 +11,7 @@ export default function appLoaderPlugin(
     new HtmlWebpackPlugin({
       title,
       filename: "app.html",
-      template: "src/app.html",
+      template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "app"],
     })
@@ -21,7 +22,7 @@ export default function appLoaderPlugin(
     new HtmlWebpackPlugin({
       title,
       filename: "embed.html",
-      template: "src/app.html",
+      template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "embed"],
     })

@@ -4,3 +4,5 @@
 import { resolve, join } from "path";
 
 export const path = resolve(join(__dirname, "..", "..", "dist"));
+
+export { webpackMiddleware } from "./middleware";
