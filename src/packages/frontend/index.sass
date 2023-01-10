@@ -406,3 +406,10 @@ blockquote p
 // https://github.com/sagemathinc/cocalc/issues/6266
 a
   cursor: pointer
+
+// Needed for details to render properly and also to show a nice pointer.
+// See https://github.com/sagemathinc/cocalc/issues/6312
+// (NOTE: This is undoing something that "normalize.less" somehow does for uknown reasons.)
+details summary
+  cursor: pointer
+  display: list-item

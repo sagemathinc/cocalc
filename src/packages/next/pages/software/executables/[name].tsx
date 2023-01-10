@@ -4,6 +4,7 @@
  */
 
 import { Layout } from "antd";
+import { Paragraph } from "components/misc";
 import ExecutablesTable from "components/landing/executables-table";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -11,23 +12,28 @@ import Header from "components/landing/header";
 import Image from "components/landing/image";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
+import { SoftwareEnvNames } from "lib/landing/consts";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import { ComputeInventory } from "lib/landing/types";
 import executablesScreenshot from "public/software/executables.png";
-import { STYLE_PAGE, STYLE_PAGE_WIDE } from ".";
+import { STYLE_PAGE, STYLE_PAGE_WIDE } from "..";
+
 interface Props {
+  name: SoftwareEnvNames;
+  index?: true;
   customize: CustomizeType;
   executablesSpec: ComputeInventory["executables"];
+  timestamp: string;
 }
 
 export default function Executables(props: Props) {
-  const { customize, executablesSpec } = props;
+  const { name, customize, executablesSpec, timestamp } = props;
 
   function renderInfo() {
     return (
       <div style={{ maxWidth: STYLE_PAGE.maxWidth, margin: "0 auto" }}>
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-          Executables in CoCalc
+          Executables in CoCalc (Ubuntu {name})
         </h1>
         <div
           style={{
@@ -42,20 +48,20 @@ export default function Executables(props: Props) {
             alt="Terminal showing listing executables in CoCalc"
           />
         </div>
-        <p>
+        <Paragraph>
           This is a non-comprehensive list of executables available on CoCalc.
-        </p>
-        <p>
+        </Paragraph>
+        <Paragraph>
           To run anything listed below, you need to either{" "}
           <A href="/features/terminal">open a "Terminal"</A> or run the command
           indirectly via a{" "}
           <A href="/features/jupyter-notebook">Jupyter notebook</A>.
-        </p>
-        <p>
+        </Paragraph>
+        <Paragraph>
           On CoCalc, you can also install or compile your own executable
           binaries. You have a lot of control about your own project, which is a
-          containerized x86_64 Ubuntu Linux environment.{" "}
-        </p>
+          containerized environment based on x86_64 Ubuntu Linux {name}.{" "}
+        </Paragraph>
       </div>
     );
   }
@@ -64,7 +70,7 @@ export default function Executables(props: Props) {
     <Customize value={customize}>
       <Head title="Executables in CoCalc" />
       <Layout>
-        <Header page="software" subPage="executables" />
+        <Header page="software" subPage="executables" softwareEnv={name} />
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -72,7 +78,10 @@ export default function Executables(props: Props) {
         >
           <div style={STYLE_PAGE_WIDE}>
             {renderInfo()}
-            <ExecutablesTable executablesSpec={executablesSpec} />
+            <ExecutablesTable
+              executablesSpec={executablesSpec}
+              timestamp={timestamp}
+            />
           </div>
           <Footer />
         </Layout.Content>

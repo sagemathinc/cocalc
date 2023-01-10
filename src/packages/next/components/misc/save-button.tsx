@@ -95,24 +95,26 @@ export default function SaveButton({
     };
   }, []);
 
-  async function doSave() {
-    const e = cloneDeep(saveRef.current.edited);
-    if (table) {
-      const didSave = await save();
-      if (!isMounted.current) return;
-      if (didSave) {
-        await onSave?.(e);
+  function doSave() {
+    (async () => {
+      const e = cloneDeep(saveRef.current.edited);
+      if (table) {
+        const didSave = await save();
+        if (!isMounted.current) return;
+        if (didSave) {
+          await onSave?.(e);
+        }
+        return;
       }
-      return;
-    }
-    try {
-      await onSave?.(e);
-      if (!isMounted.current) return;
-      setOriginal(e);
-      setError("");
-    } catch (err) {
-      setError(err.toString());
-    }
+      try {
+        await onSave?.(e);
+        if (!isMounted.current) return;
+        setOriginal(e);
+        setError("");
+      } catch (err) {
+        setError(err.toString());
+      }
+    })();
   }
 
   const doSaveDebounced = useMemo(

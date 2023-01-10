@@ -24,8 +24,8 @@ import { have_active_registration_tokens } from "./utils";
 
 const L = debug("hub:webapp-config");
 
-import LRUCache from "lru-cache";
-const CACHE = new LRUCache({ max: 1000, maxAge: 60 * 1000 }); // 1 minutes
+import LRU from "lru-cache";
+const CACHE = new LRU({ max: 1000, ttl: 60 * 1000 }); // 1 minutes
 
 export function clear_cache(): void {
   CACHE.reset();

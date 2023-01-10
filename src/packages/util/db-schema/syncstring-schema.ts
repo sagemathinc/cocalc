@@ -395,7 +395,7 @@ Table({
               return;
             }
           }
-          return cb();
+          cb();
         },
       },
     },

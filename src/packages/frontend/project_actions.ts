@@ -2888,8 +2888,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  close_free_warning(): void {
-    this.setState({ free_warning_closed: true });
+  close_project_no_internet_warning(): void {
+    this.setState({ internet_warning_closed: true });
   }
 
   async set_compute_image(compute_image: string): Promise<void> {

@@ -10,7 +10,7 @@ import {
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { CellType, Scroll } from "@cocalc/frontend/jupyter/types";
+import { Cell, CellType, Scroll } from "@cocalc/frontend/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   bind_methods,
@@ -414,6 +414,10 @@ export class NotebookFrameActions {
     this.setState({ md_edit_ids });
   }
 
+  public set_all_md_cells_not_editing(): void {
+    this.setState({ md_edit_ids: null });
+  }
+
   // Set which cell is currently the cursor.
   public set_cur_id(cur_id: string): void {
     this.validate({ id: cur_id });
@@ -437,6 +441,37 @@ export class NotebookFrameActions {
     ) {
       Fragment.set({ id: cur_id });
     }
+  }
+
+  get_cell_by_id(id: string): Cell | undefined {
+    const cells = this.jupyter_actions.store.get("cells");
+    if (cells == null) return;
+    return cells.get(id);
+  }
+
+  public switch_md_cell_to_edit(id: string): void {
+    const cell = this.get_cell_by_id(id);
+    if (cell == null) return;
+
+    if (cell.getIn(["metadata", "editable"]) === false) {
+      // TODO: NEVER ever silently fail!
+      return;
+    }
+    this.set_md_cell_editing(id);
+    this.set_cur_id(id);
+    this.set_mode("edit");
+  }
+
+  public switch_code_cell_to_edit(id: string): void {
+    const cell = this.get_cell_by_id(id);
+    if (cell == null) return;
+
+    if (cell.getIn(["metadata", "editable"]) === false) {
+      // TODO: NEVER ever silently fail!
+      return;
+    }
+    this.set_cur_id(id);
+    this.set_mode("edit");
   }
 
   // Called when the cell list changes due to external events.

@@ -1,6 +1,6 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  This file is part of CoCalc: However, the license is Apache V2, exactly as
+ *  for the original upstream code.   We have barely changed it.  -- William Stein
  */
 
 /**

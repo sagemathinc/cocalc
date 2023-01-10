@@ -64,6 +64,7 @@ const date = new Date();
 const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
 const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
+const COCALC_NOCACHE = !!process.env.COCALC_NOCACHE;
 
 // output build environment variables of webpack
 console.log(`SMC_VERSION         = ${SMC_VERSION}`);
@@ -72,6 +73,7 @@ console.log(`NODE_ENV            = ${NODE_ENV}`);
 console.log(`MEASURE             = ${MEASURE}`);
 console.log(`OUTPUT              = ${OUTPUT}`);
 console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
+console.log(`COCALC_NOCACHE      = ${COCALC_NOCACHE}`);
 
 const plugins = [];
 function registerPlugin(desc, plugin, disable) {
@@ -119,8 +121,7 @@ if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
 }
 
-// We always use disk cache now:
-const useDiskCache = true;
+const useDiskCache = !COCALC_NOCACHE;
 
 // It's critical that the caching filesystem is VERY fast, but
 // it is fine if the data is wiped, so use /tmp.
@@ -133,6 +134,7 @@ if (useDiskCache) {
 }
 
 module.exports = {
+  ignoreWarnings: [/Failed to parse source map/],
   cache: useDiskCache
     ? {
         // This is supposed to cache the in-memory state to disk
@@ -182,15 +184,23 @@ module.exports = {
         "node_modules/entities/lib/maps"
       ),
       // This is needed due to k3d's snapshot.js making assumptions
-      // about how npm works, which are violated for us, about where fflate
+      // about how npm (and now pnpm!) works, which are violated for us, about where fflate
       // ends up getting installed. Due to hoisting they aren't right.
       // We don't even actually use snapshot.js, since we disable that
-      // functionality in k3d.  However, it's possible this will break,
-      // in which case, track down where fflate is installed and update this.
-      "./../../../node_modules/fflate/umd/index": path.resolve(
+      // functionality in k3d. This workaround should be robust due to
+      // our use of total hoisting via links that pnpm uses (as configured
+      // in .npmrc).
+      "../../../../node_modules/requirejs/require": path.resolve(
         __dirname,
+        "..",
         "node_modules",
-        "@cocalc/frontend/node_modules/fflate/umd/index"
+        ".pnpm/requirejs@2.3.6/node_modules/requirejs/require"
+      ),
+      "../../../../node_modules/fflate/umd/index": path.resolve(
+        __dirname,
+        "..",
+        "node_modules",
+        ".pnpm/fflate@0.7.4/node_modules/fflate/umd/index"
       ),
     },
     // So we can require('file') instead of require('file.tsx'):
@@ -206,27 +216,8 @@ module.exports = {
       ".sass",
     ],
     symlinks: true,
-    // The order below is very important.  E.g., there can easily be the correct version of a package
-    // in @cocalc/frontend/node_modules for a dependency installed in @cocalc/frontend/node_modules,
-    // but if you put @cocalc/util/node_modules above it, then the version from util is used.
-    modules: [
-      __dirname,
-      path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/assets"),
-      path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
-      path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util"),
-      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
-      path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
-      path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
-      path.resolve(
-        __dirname,
-        "node_modules",
-        "@cocalc/frontend/node_modules/k3d/node_modules"
-      ),
-    ],
-    preferRelative: false /* do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
+    modules: ["node_modules"],
+    preferRelative: false /* TODO (still true???) do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {
       stream: require.resolve("stream-browserify"),
       util: require.resolve("util/"),

@@ -6,18 +6,15 @@
 // Here we revert some of the style changes that antd made.
 
 // This is mainly meant to be temporary, so that we keep the
-// overall global bootstrap style (e.g., the particular shade
-// of blue for links) until we do a full switch.
+// overall global bootstrap style.
 
 @import colors
 
+// make the color consistent with antd again, since bootstrap sets
+// it to something else.  We want this to be consistent with our nextjs
+// landing pages.
 a
-  color: #428bca
-
-
-a:hover
-  color: #428bca
-
+    color: #1677ff
 
 html
   overflow: hidden

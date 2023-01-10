@@ -47,7 +47,7 @@ const caches: { [seconds: number]: LRU<string, object> } = {};
 function getCache(seconds: number) {
   if (!caches[seconds]) {
     caches[seconds] = new LRU<string, object>({
-      maxAge: 1000 * seconds,
+      ttl: 1000 * seconds,
       max: 200,
     });
   }

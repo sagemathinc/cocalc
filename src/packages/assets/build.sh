@@ -14,11 +14,3 @@ git submodule update --init
 cd examples
 OUTDIR="$CWD"/examples make
 
-
-# Finally create the compute inventory.  Again, this
-# has no business in an "assets" module, but here we are.
-# For now this is the one for cocalc.com, which is
-# of course wrong anywhere else:
-cd "$CWD"
-curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json > compute-components.json
-curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json > compute-inventory.json

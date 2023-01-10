@@ -501,7 +501,7 @@ export class JupyterActions extends JupyterActions0 {
     // this.blur();
   }
 
-  public async restart_and_run_all_no_halt(): Promise<void> {
+  public async restart_and_run_all_no_halt(frame_actions?): Promise<void> {
     const choice = await this.confirm_dialog({
       title: "Restart kernel and run all cells (do not stop on errors)",
       body: "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
@@ -515,11 +515,12 @@ export class JupyterActions extends JupyterActions0 {
       ],
     });
     if (choice === "Restart and run all") {
+      frame_actions?.set_all_md_cells_not_editing();
       await this.restart();
       this.run_all_cells(true);
     }
   }
-  public async restart_and_run_all(): Promise<void> {
+  public async restart_and_run_all(frame_actions?): Promise<void> {
     const STOP = "Run all (stop on first error)";
     const NOSTOP = "Run all (do not stop on errors)";
     const choice = await this.confirm_dialog({
@@ -539,10 +540,12 @@ export class JupyterActions extends JupyterActions0 {
       ],
     });
     if (choice === STOP) {
+      frame_actions?.set_all_md_cells_not_editing();
       await this.restart();
       this.run_all_cells(false);
     }
     if (choice === NOSTOP) {
+      frame_actions?.set_all_md_cells_not_editing();
       await this.restart();
       this.run_all_cells(true);
     }

@@ -81,24 +81,34 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
-  winston.debug(`"npx cocalc-project --daemon" from "${cwd}" with uid=${uid}`);
+  const cmd = "pnpm";
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  winston.debug(
+    `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
+  );
   await promisify((cb: Function) => {
-    const child = spawn(
-      "npx",
-      ["cocalc-project", "--daemon", "--init", "project_init.sh"],
-      {
-        env,
-        cwd,
-        uid,
-        gid: uid,
-      }
-    );
+    const child = spawn(cmd, args, {
+      env,
+      cwd,
+      uid,
+      gid: uid,
+    });
     child.on("error", (err) => {
       winston.debug(`project daemon error ${err}`);
       cb(err);
     });
-    child.on("exit", (code) => {
-      winston.debug(`project daemon exited with code ${code}`);
+    child.on("exit", async (code) => {
+      winston.debug("project daemon exited with code", code);
+      if (code != 0) {
+        try {
+          const s = (await readFile(env.LOGS)).toString();
+          winston.debug("project log file ended: ", s.slice(-2000));
+        } catch (err) {
+          // there's a lot of reasons the log file might not even exist,
+          // e.g., debugging is not enabled
+          winston.debug("project log file ended - unable to read log ", err);
+        }
+      }
       cb(code);
     });
   })();
@@ -154,12 +164,17 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   for (const key of [
     "PGDATA",
     "PGHOST",
-    "NODE_ENV",
-    "NODE_OPTIONS",
+    "PGUSER",
+    "PGDATABASE",
+    "PROJECTS",
     "BASE_PATH",
     "PORT",
     "DATA",
     "LOGS",
+    "PWD",
+    "LINES",
+    "COLUMNS",
+    "LS_COLORS",
   ]) {
     delete env2[key];
   }
@@ -170,7 +185,11 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   // is really hard to track down.
   for (const key in env2) {
     if (
+      key.startsWith("npm_") ||
       key.startsWith("COCALC_") ||
+      key.startsWith("PNPM_") ||
+      key.startsWith("__NEXT") ||
+      key.startsWith("NODE_") ||
       env2[key]?.startsWith("/root") ||
       env2[key] == null
     ) {
@@ -202,6 +221,7 @@ export async function getEnvironment(
       BASE_PATH: base_path,
       DATA,
       LOGS: join(DATA, "logs"),
+      DEBUG: "*", // so interesting stuff gets logged.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
       COCALC_USERNAME: USER,

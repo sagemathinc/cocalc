@@ -8,28 +8,33 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
-import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
+import { SoftwareEnvNames } from "lib/landing/consts";
 import { Customize, CustomizeType } from "lib/customize";
+import { Paragraph } from "components/misc";
+import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
   ComputeComponents,
   ComputeInventory,
   SoftwareSpec,
 } from "lib/landing/types";
-import { STYLE_PAGE } from ".";
+import { STYLE_PAGE } from "..";
 import screenshot from "/public/features/cocalc-octave-jupyter-20200511.png";
 
 interface Props {
+  name: SoftwareEnvNames;
   customize: CustomizeType;
   spec: SoftwareSpec["octave"];
   inventory: ComputeInventory["octave"];
   components: ComputeComponents["octave"];
   execInfo?: { [key: string]: string };
+  timestamp: string;
 }
 export default function Octave(props: Props) {
-  const { customize, spec, inventory, components, execInfo } = props;
+  const { name, customize, spec, inventory, components, execInfo, timestamp } =
+    props;
 
   function renderBox() {
     return (
@@ -59,13 +64,13 @@ export default function Octave(props: Props) {
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
           <Image src={screenshot} alt="Using Octave in a Jupyter notebook" />
         </div>
-        <p>
-          This table lists{" "}
+        <Paragraph>
+          This table lists pre-installed{" "}
           <A href="https://www.gnu.org/software/octave/">GNU Octave</A> packages
-          that are immediately available to use in any CoCalc project, along
-          with their respective version numbers.
-        </p>
-        <p>If something is missing, you can request that we install it.</p>
+          that are immediately available in every CoCalc project running on the
+          default "Ubuntu {name}" image, along with their respective version
+          numbers.
+        </Paragraph>
       </>
     );
   }
@@ -74,7 +79,7 @@ export default function Octave(props: Props) {
     <Customize value={customize}>
       <Head title="Octave Packages in CoCalc" />
       <Layout>
-        <Header page="software" subPage="octave" />
+        <Header page="software" subPage="octave" softwareEnv={name} />
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -84,16 +89,17 @@ export default function Octave(props: Props) {
             <h1
               style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
             >
-              GNU Octave Scientific Programming Packages
+              GNU Octave Scientific Programming Packages (Ubuntu {name})
             </h1>
             {renderInfo()}
             {renderBox()}
-            <SoftwareInfo info={execInfo} />
+            <ExecutableDescription spec={spec} execInfo={execInfo} />
             <SoftwareLibraries
               spec={spec}
               inventory={inventory}
               components={components}
               libWidthPct={60}
+              timestamp={timestamp}
             />
           </div>
           <Footer />
@@ -104,7 +110,5 @@ export default function Octave(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "octave", [
-    "/usr/local/bin/octave",
-  ]);
+  return await withCustomizedAndSoftwareSpec(context, "octave");
 }

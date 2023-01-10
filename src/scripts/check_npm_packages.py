@@ -28,18 +28,15 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 # whitelisting typescript is temporary really just for @cocalc/util -- see https://github.com/sagemathinc/cocalc/issues/5888
 
 whitelist: Final[List[str]] = [
-    '@types/jest',  # no need for testing infrastructure to be aligned regarding versions.
-    'jest',
-    'ts-jest',
-    'async',
-    'immutable',
+    'async',  # we really want to get rid of using this at all!  And we have to use two very different versions across our packages :-(
+    'immutable',  # same comment as for async... :-(
     'entities'  # it breaks when you upgrade in static to 4.x
 ]
 
 
 # NOTE: test/puppeteer is long dead...
 def pkg_dirs() -> List[str]:
-    search = run(['git', 'ls-files', '--', '../**/package.json'], stdout=PIPE)
+    search = run(['git', 'ls-files', '--', '../**package.json'], stdout=PIPE)
     data = search.stdout.decode('utf8')
     packages = [
         abspath(x) for x in data.splitlines() if 'test/puppeteer/' not in x
@@ -95,7 +92,12 @@ def main() -> None:
 
     table, cnt, incon = print_table(main_pkgs, main_mods)
 
-    if cnt > 0:
+    if cnt < len(whitelist):
+        msg = f"EVERY whitelisted package *must* have inconsistent versions, or you just badly broke something in one of these packages!: {', '.join(whitelist)}"
+        print(msg)
+        raise RuntimeError(msg)
+
+    elif cnt > len(whitelist):
         print(table)
         print(f"\nThere are {cnt} inconsistencies")
         if len(incon) > 0:
@@ -107,6 +109,9 @@ def main() -> None:
         else:
             if cnt > 0:
                 print(f"All are whitelisted and no action is warranted.")
+
+    else:
+        print("SUCCESS: All package.json consistency checks passed.")
 
 
 if __name__ == '__main__':

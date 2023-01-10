@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.76.3",
+  "version": "1.76.5",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -13,10 +13,11 @@
     "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
   },
   "scripts": {
-    "build": "npx tsc",
-    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist",
-    "prepublishOnly": "npm test"
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm exec tsc",
+    "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
+    "test": "pnpm exec jest dist",
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
   "keywords": [
@@ -26,21 +27,19 @@
     "cocalc"
   ],
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    "."
-  ],
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
-    "@types/uuid": "^8.3.1",
+    "@cocalc/util": "workspace:*",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.7",
+    "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
-    "lru-cache": "^6.0.0",
+    "lru-cache": "^7.14.1",
     "prop-types": "^15.7.2",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
@@ -53,20 +52,18 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
-    "@types/jest": "^29.2.3",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.176",
     "@types/node": "^14.18.10",
+    "@types/uuid": "^8.3.1",
     "coffee-cache": "^1.0.2",
     "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
-    "jest": "^29.3.1",
     "nyc": "^15.1.0",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
     "sinon": "^4.5.0",
-    "tsd": "^0.22.0",
-    "typescript": "^4.7.4"
+    "tsd": "^0.22.0"
   }
 }

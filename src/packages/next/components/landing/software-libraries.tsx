@@ -1,7 +1,15 @@
-import { useMemo, useState } from "react";
-import { Input, Table } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Divider, Input, Table } from "antd";
 import { debounce } from "lodash";
+import { useMemo, useState } from "react";
+
+import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
+import { getLibaries } from "lib/landing/get-libraries";
 import {
   ComputeComponents,
   ComputeInventory,
@@ -9,7 +17,6 @@ import {
   LanguageName,
   SoftwareSpec,
 } from "lib/landing/types";
-import { getLibaries } from "lib/landing/get-libraries";
 
 // check if the string is a URL
 function isURL(url?: string) {
@@ -27,7 +34,15 @@ export function renderName(name, record) {
   );
 }
 
+type Columns = {
+  width: string;
+  title: string;
+  key: string;
+  dataIndex: string;
+  render?: typeof renderName;
+}[];
 interface Props {
+  timestamp: string;
   libWidthPct?: number;
   spec: SoftwareSpec[LanguageName];
   inventory: ComputeInventory[LanguageName];
@@ -35,7 +50,7 @@ interface Props {
 }
 
 export default function SoftwareLibraries(props: Props) {
-  const { spec, inventory, components, libWidthPct = 60 } = props;
+  const { spec, inventory, components, libWidthPct = 60, timestamp } = props;
   const dataSource = getLibaries(spec, inventory, components);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
@@ -58,14 +73,6 @@ export default function SoftwareLibraries(props: Props) {
       }
     }
   }
-
-  type Columns = {
-    width: string;
-    title: string;
-    key: string;
-    dataIndex: string;
-    render?: typeof renderName;
-  }[];
 
   const columns = useMemo((): Columns => {
     const envs = Object.entries(spec);
@@ -112,6 +119,20 @@ export default function SoftwareLibraries(props: Props) {
           dataSource={data}
         />
       </div>
+      <SoftwareSpecTimestamp timestamp={timestamp} />
     </div>
+  );
+}
+
+export function SoftwareSpecTimestamp({ timestamp }: { timestamp: string }) {
+  return (
+    <>
+      <Divider />
+      <Paragraph style={{ textAlign: "center" }}>
+        <Text type="secondary">
+          This information was collected at {timestamp}.
+        </Text>
+      </Paragraph>
+    </>
   );
 }

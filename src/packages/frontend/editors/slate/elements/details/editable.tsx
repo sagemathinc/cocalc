@@ -38,7 +38,14 @@ register({
         }}
       >
         {node.summary /* whiteSpace inherits something weird from some css */ && (
-          <summary contentEditable={false} style={{ whiteSpace: "normal" }}>
+          <summary
+            contentEditable={false}
+            style={{
+              whiteSpace: "normal",
+              cursor: "pointer",
+              display: "list-item",
+            }}
+          >
             {node.summary}
           </summary>
         )}

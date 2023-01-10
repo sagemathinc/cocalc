@@ -1,16 +1,24 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Avatar, Layout, List } from "antd";
 import { ReactNode, useMemo } from "react";
-import { List, Avatar } from "antd";
+
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { Paragraph } from "components/misc";
 import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { Layout } from "antd";
-import useCustomize, { CustomizeType } from "lib/use-customize";
 import { MAX_WIDTH } from "lib/config";
+import useCustomize from "lib/use-customize";
 
 export interface Item {
   link: string;
   title: ReactNode;
   logo: IconName | StaticImageData;
+  logoBackground?: string; // #color
   image?: StaticImageData;
   imageWidth?: string;
   description: ReactNode;
@@ -57,7 +65,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
           {title}
         </h1>
-        <p style={{ fontSize: "13pt" }}>{description}</p>
+        <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
         <DataList dataSource={filtedDataSource} />
       </div>
     </Layout.Content>
@@ -97,7 +105,10 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                 item.logo && (
                   <A href={item.link} alt={item.title + " logo "}>
                     <Avatar
-                      style={{ marginTop: "20px" }}
+                      style={{
+                        marginTop: "20px",
+                        backgroundColor: item.logoBackground ,
+                      }}
                       alt={item.title + " logo "}
                       size={80}
                       shape="square"
@@ -112,7 +123,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                 </A>
               }
               description={
-                <span style={{ color: "#555", fontSize: "12pt" }}>
+                <span style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
                   {item.description}
                 </span>
               }

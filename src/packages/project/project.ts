@@ -11,7 +11,7 @@ import { init as initBugCounter } from "./bug-counter";
 
 const winston = getLogger("project-main");
 
-async function main() {
+export async function main() {
   const { HOME } = process.env;
   if (HOME == null) {
     throw Error("HOME env var must be set");
@@ -32,7 +32,7 @@ async function main() {
   }
   initBugCounter();
   cleanupEnvironmentVariables();
-  initKucalc();  // must be after cleanupEnvironmentVariables, since this *adds* custom environment variables.
+  initKucalc(); // must be after cleanupEnvironmentVariables, since this *adds* custom environment variables.
   winston.info("main init function");
   winston.info("initialize INFO.json file");
   await initInfoJson();
@@ -43,5 +43,3 @@ async function main() {
   winston.info("create public paths watcher...");
   initPublicPaths();
 }
-
-main();

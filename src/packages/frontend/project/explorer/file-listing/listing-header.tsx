@@ -37,6 +37,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
           e.preventDefault();
           return sort_by(column_name);
         }}
+        style={{ color: "#428bca", fontWeight: "bold" }}
       >
         {display_name}
         <Space />

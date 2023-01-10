@@ -17,19 +17,14 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    ".",
-    "../backend",
-    "../frontend",
-    "../sync",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/backend": "^1.21.1",
-    "@cocalc/frontend": "^1.101.3",
-    "@cocalc/sync": "^0.10.1",
-    "@cocalc/util": "^1.75.0",
-    "@types/lru-cache": "^5.1.1",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/frontend": "workspace:*",
+    "@cocalc/project": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@nteract/messaging": "^7.0.20",
+    "@types/lodash": "^4.14.176",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
@@ -47,6 +42,7 @@
     "expect": "^26.6.2",
     "express": "^4.17.1",
     "express-rate-limit": "^6.3.0",
+    "fast-json-stable-stringify": "^2.1.0",
     "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
@@ -56,7 +52,8 @@
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
     "lean-client-js-node": "^1.2.12",
-    "lru-cache": "^6.0.0",
+    "lodash": "^4.17.21",
+    "lru-cache": "^7.14.1",
     "mkdirp": "^1.0.4",
     "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
@@ -81,19 +78,17 @@
     "@types/better-sqlite3": "^7.6.0",
     "@types/body-parser": "^1.19.0",
     "@types/express": "^4.17.13",
-    "@types/jest": "^29.2.3",
     "@types/jquery": "^3.5.5",
     "@types/node": "^14.18.10",
-    "coffeescript": "^2.5.1",
-    "jest": "^29.3.1",
-    "typescript": "^4.7.4"
+    "coffeescript": "^2.5.1"
   },
   "scripts": {
-    "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
+    "preinstall": "npx only-allow pnpm",
+    "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
   "contributors": [

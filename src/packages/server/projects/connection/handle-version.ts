@@ -6,13 +6,14 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:handle-version");
 
 const restarted = new LRU<string, true>({
-  maxAge: 15 * 1000 * 60, // never try to restart more than once every 15 minutes
+  ttl: 15 * 1000 * 60, // never try to restart more than once every 15 minutes
+  max: 10000,
 });
 
 export default async function handleVersion(
   project_id: string,
   version: number
-) : Promise<void> {
+): Promise<void> {
   if (restarted.has(project_id)) return;
 
   // Restart project if version of project code is too old.

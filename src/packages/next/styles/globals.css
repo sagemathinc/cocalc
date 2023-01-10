@@ -1,9 +1,3 @@
-/* Antd's links are way too light according to
-the Google Lighthouse accessibility guidelines. */
-
-a {
-  color: #1870cc;
-}
 
 .uppercase {
   text-transform: uppercase;
@@ -32,7 +26,7 @@ This is also in packages/frontend/index.sass
   white-space: pre-wrap;
 }
 
-/* To match the app and let  us uniformly change all the font colors with slate.
+/* To match the app and let us uniformly change all the font colors with slate.
     Antd hard codes the colors of the heading tags. */
 
 h1 {

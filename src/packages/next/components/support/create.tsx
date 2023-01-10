@@ -455,15 +455,19 @@ function FAQ() {
         description={
           <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
             <li>
-              I just want to{" "}
+              <A href="https://github.com/sagemathinc/cocalc/issues">
+                Create a bug report
+              </A>
+            </li>
+            <li>
               <A href="https://github.com/sagemathinc/cocalc/discussions">
-                search other questions or start a discussion about CoCalc...
+                Start a discussion about CoCalc
               </A>
             </li>
             <li>
               {" "}
               <A href="https://doc.cocalc.com/howto/missing-project.html">
-                My file or project is gone...
+                My file or project appears to be missing
               </A>{" "}
             </li>
             <li>
@@ -474,14 +478,14 @@ function FAQ() {
               </A>{" "}
               or{" "}
               <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
-                crashing...
+                crashing
               </A>
             </li>
             <li>
               {" "}
               I have{" "}
               <A href="https://doc.cocalc.com/howto/sage-question.html">
-                questions about SageMath...
+                questions about SageMath
               </A>
             </li>
           </ul>

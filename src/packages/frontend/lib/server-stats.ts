@@ -12,7 +12,7 @@ type Stats = {
   running_projects?: { free?: number };
 };
 
-const statsCache = new LRU<"stats", Stats>({ max: 1, maxAge: 1000 * 60 * 5 });
+const statsCache = new LRU<"stats", Stats>({ max: 1, ttl: 1000 * 60 * 5 });
 
 // ATTN: this might throw an exception
 export const getServerStatsCached = reuseInFlight(async (): Promise<Stats> => {

@@ -353,14 +353,19 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         @_dbg("_query_parse_options")("TODO/WARNING -- ignoring heartbeat option from old client")
                     else
                         r.err = "unknown option '#{name}'"
-        # Guard rails: no matter what, all queries are capped with a limit of 1000.
+        # Guard rails: no matter what, all queries are capped with a limit of 100000.
+        # TODO: If somehow somebody has, e.g., more than 100K projects, or maybe more
+        # than 100K edits of a single file, they could hit this and not realize it.  I
+        # had this set at 1000 for a few minutes and it caused me to randomly not have
+        # some of my projects.
+        MAX_LIMIT = 100000
         try
             if not isFinite(r.limit)
-                r.limit = 1000
-            else if r.limit > 1000
-                r.limit = 1000
+                r.limit = MAX_LIMIT
+            else if r.limit > MAX_LIMIT
+                r.limit = MAX_LIMIT
         catch
-            r.limit = 1000
+            r.limit = MAX_LIMIT
         return r
 
     ###
@@ -408,6 +413,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if r.client_query.set.fields[field] == undefined
                 return {err: "FATAL: user set query not allowed for #{opts.table}.#{field}"}
             val = r.client_query.set.fields[field]
+
             if typeof(val) == 'function'
                 try
                     r.query[field] = val(r.query, @)
@@ -629,6 +635,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _user_set_query_main_query: (r, cb) =>
         r.dbg("_user_set_query_main_query")
+
+        if not r.client_query.set.allow_field_deletes
+            # allow_field_deletes not set, so remove any null/undefined
+            # fields from the query
+            for key of r.query
+                if not r.query[key]?
+                    delete r.query[key]
+
         if r.options.delete
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
@@ -654,6 +668,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     @_user_query_set_count r, (err, n) =>
                         cnt = n; cb(err)
                 (cb) =>
+                    r.dbg("do the set query")
                     if cnt == 0
                         # Just insert (do as upsert to avoid error in case of race)
                         @_user_query_set_upsert(r, cb)
@@ -706,16 +721,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_user_set_query_hooks_prepare(r, cb)
             (cb) =>
                 if r.before_change_hook?
-                    r.before_change_hook(@, r.old_val, r.query, r.account_id, cb)
+                    r.before_change_hook @, r.old_val, r.query, r.account_id, (err, stop) =>
+                        r.done = stop
+                        cb(err)
                 else
                     cb()
             (cb) =>
+                if r.done
+                    cb()
+                    return
                 if r.instead_of_query?
                     opts1 = misc.copy_without(opts, ['cb', 'changes', 'table'])
                     r.instead_of_query(@, opts1, cb)
                 else
                     @_user_set_query_main_query(r, cb)
             (cb) =>
+                if r.done
+                    cb()
+                    return
                 if r.on_change_hook?
                     r.on_change_hook(@, r.old_val, r.query, r.account_id, cb)
                 else
@@ -865,7 +888,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 action_request.err = err
             action_request.finished = new Date()
             dbg("finished!")
-            set_action_request()
+            set_action_request(opts.cb)
         )
 
     # This hook is called *before* the user commits a change to a project in the database
@@ -906,7 +929,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb("Only the owner of the project can currently change the project name.")
                     return
 
-        if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
+        if new_val?.action_request? and JSON.stringify(new_val.action_request.time) != JSON.stringify(old_val?.action_request?.time)
             # Requesting an action, e.g., save, restart, etc.
             dbg("action_request -- #{misc.to_json(new_val.action_request)}")
             #
@@ -924,7 +947,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 action_request : misc.copy_with(new_val.action_request, ['action', 'time'])
                 cb         : (err) =>
                     dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
-            cb()
+                    # true means -- do nothing further.  We don't want to the user to
+                    # set this same thing since we already dealt with it properly.
+                    cb(err, true)
             return
 
         if not new_val.users?  # not changing users

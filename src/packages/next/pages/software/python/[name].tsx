@@ -1,46 +1,42 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
-import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
 import A from "components/misc/A";
+import { SoftwareEnvNames } from "lib/landing/consts";
+import { Paragraph } from "components/misc";
 import { Customize, CustomizeType } from "lib/customize";
+import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
   ComputeComponents,
   ComputeInventory,
+  ExecInfo,
   SoftwareSpec,
 } from "lib/landing/types";
-import { STYLE_PAGE, STYLE_PAGE_WIDE } from ".";
+import { STYLE_PAGE, STYLE_PAGE_WIDE } from "..";
 import pythonScreenshot from "/public/features/frame-editor-python.png";
 
 interface Props {
+  name: SoftwareEnvNames;
   customize: CustomizeType;
   spec: SoftwareSpec["python"];
   inventory: ComputeInventory["python"];
   components: ComputeComponents["python"];
-  execInfo?: { [key: string]: string };
+  execInfo?: ExecInfo;
+  timestamp: string;
 }
 
 export default function Software(props: Props) {
-  const { customize, spec, inventory, components, execInfo } = props;
-
-  function renderEnvs() {
-    const envs: JSX.Element[] = [];
-    for (const [key, info] of Object.entries(spec)) {
-      envs.push(
-        <div key={key}>
-          <b>
-            <A href={info.url}>{info.name}</A>:
-          </b>{" "}
-          {info.doc}
-        </div>
-      );
-    }
-    return envs;
-  }
+  const { name, customize, spec, inventory, components, execInfo, timestamp } = props;
 
   function renderBox() {
     return (
@@ -70,7 +66,7 @@ export default function Software(props: Props) {
     return (
       <>
         <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-          Installed Python Libraries
+          Installed Python Libraries (Ubuntu {name})
         </h1>
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
           <Image
@@ -78,14 +74,16 @@ export default function Software(props: Props) {
             alt="Writing and running a Python program"
           />
         </div>
-        <p>
-          The table below lists available Python libraries for each supported
-          environment. If something is missing, you can{" "}
+        <Paragraph>
+          The table below lists pre-installed Python libraries for each
+          supported environment, which are immediately available in every CoCalc
+          project running on the default "Ubuntu {name}" image. If something is
+          missing, you can{" "}
           <A href="https://doc.cocalc.com/howto/install-python-lib.html">
             install it yourself
           </A>
           , or request that we install it.
-        </p>
+        </Paragraph>
       </>
     );
   }
@@ -96,12 +94,8 @@ export default function Software(props: Props) {
       <div style={{ maxWidth: STYLE_PAGE.maxWidth, margin: "0 auto" }}>
         {renderIntro()}
         {renderBox()}
-
-        <h2>
-          <A href="/features/python">Python Environments</A>
-        </h2>
-        <ul>{renderEnvs()}</ul>
-        <SoftwareInfo info={execInfo} showHeader={false} />
+        <h2 style={{ clear: "both" }}>Python Environments</h2>
+        <ExecutableDescription spec={spec} execInfo={execInfo} />
       </div>
     );
   }
@@ -110,7 +104,7 @@ export default function Software(props: Props) {
     <Customize value={customize}>
       <Head title="Python Libraries in CoCalc" />
       <Layout>
-        <Header page="software" subPage="python" />
+        <Header page="software" subPage="python" softwareEnv={name} />
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -120,6 +114,7 @@ export default function Software(props: Props) {
             {renderTop()}
             <SoftwareLibraries
               spec={spec}
+              timestamp={timestamp}
               inventory={inventory}
               components={components}
               libWidthPct={40}
@@ -133,11 +128,5 @@ export default function Software(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "python", [
-    "/usr/bin/python3",
-    "/ext/anaconda2020.02/bin/python",
-    "/ext/anaconda2021.11/bin/python",
-    "/ext/bin/python3-sage",
-    "/usr/bin/python2",
-  ]);
+  return await withCustomizedAndSoftwareSpec(context, "python");
 }

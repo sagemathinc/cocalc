@@ -3,29 +3,35 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Button, Layout } from "antd";
+
 import Footer from "components/landing/footer";
-import Header from "components/landing/header";
 import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import Header from "components/landing/header";
 import IndexList, { DataSource } from "components/landing/index-list";
-import executablesScreenshot from "public/software/executables.png";
-import pythonScreenshot from "/public/features/frame-editor-python.png";
-import RJupyter from "/public/features/cocalc-r-jupyter.png";
-import JuliaJupyter from "/public/software/julia-jupyter.png";
-import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
-import PythonLogo from "/public/features/python-logo.svg";
-import Rlogo from "/public/features/r-logo.svg";
-import octaveLogo from "/public/features/octave-logo.svg";
-import juliaLogo from "public/features/julia-logo.svg";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import { SOFTWARE_ENV_DEFAULT, SOFTWARE_ENV_NAMES } from "lib/landing/consts";
+import { LanguageName } from "lib/landing/types";
+import withCustomize from "lib/with-customize";
+import juliaLogo from "public/features/julia-logo.svg";
+import sageScreenshot from "public/features/sage-worksheet.png";
+import executablesScreenshot from "public/software/executables.png";
+import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+import RJupyter from "/public/features/cocalc-r-jupyter.png";
+import pythonScreenshot from "/public/features/frame-editor-python.png";
+import octaveLogo from "/public/features/octave-logo.svg";
+import PythonLogo from "/public/features/python-logo.svg";
+import Rlogo from "/public/features/r-logo.svg";
+import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
+import JuliaJupyter from "/public/software/julia-jupyter.png";
 
 export const STYLE_PAGE: React.CSSProperties = {
   maxWidth: MAX_WIDTH,
-  margin: "15px auto",
-  padding: "15px",
+  margin: "0 auto",
+  padding: "0 15px",
   backgroundColor: "white",
 } as const;
 
@@ -35,73 +41,156 @@ export const STYLE_PAGE_WIDE: React.CSSProperties = {
   maxWidth: "1200px",
 } as const;
 
-const dataSource = [
+const LINKS: { [lang in LanguageName | "executables"]: string } = {
+  executables: `/software/executables/${SOFTWARE_ENV_DEFAULT}`,
+  python: `/software/python/${SOFTWARE_ENV_DEFAULT}`,
+  R: `/software/r/${SOFTWARE_ENV_DEFAULT}`,
+  julia: `/software/julia/${SOFTWARE_ENV_DEFAULT}`,
+  octave: `/software/octave/${SOFTWARE_ENV_DEFAULT}`,
+  sagemath: `/software/sagemath/${SOFTWARE_ENV_DEFAULT}`,
+} as const;
+
+function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
+  return (
+    <Paragraph>
+      {SOFTWARE_ENV_NAMES.map((name) => {
+        const type = SOFTWARE_ENV_DEFAULT === name ? "primary" : undefined;
+        const style =
+          SOFTWARE_ENV_DEFAULT === name ? { color: "white" } : undefined;
+        // toLowerCase is necessary for R → r
+        const href = `/software/${lang.toLowerCase()}/${name}`;
+        return (
+          <Button
+            size="small"
+            type={type}
+            style={{ ...style, marginRight: "10px" }}
+            href={href}
+          >
+            {name}
+          </Button>
+        );
+      })}
+    </Paragraph>
+  );
+}
+
+const dataSource: DataSource = [
   {
-    link: "/software/executables",
+    link: LINKS.executables,
     title: "Executables",
     logo: "laptop",
     image: executablesScreenshot,
     description: (
       <>
-        CoCalc comes pre-installed with{" "}
-        <A href="/software/executables">thousands of programs</A> that you can
-        run from the terminal or in an X11 environment, or call from your
-        notebooks or scripts.
+        <Paragraph>
+          CoCalc comes pre-installed with{" "}
+          <A href={LINKS.executables}>thousands of programs</A> that you can run
+          from the terminal or in an X11 environment, or call from your
+          notebooks or scripts.
+        </Paragraph>
+        {renderSoftwareEnvLinks("executables")}
       </>
     ),
   },
   {
-    link: "/software/python",
+    link: LINKS.python,
     title: "Python Libraries",
     logo: PythonLogo,
+    logoBackground: "white",
     image: pythonScreenshot,
     description: (
       <>
-        CoCalc offers a large number of{" "}
-        <A href="/software/python">Python libraries preinstalled</A> system
-        wide, in Anaconda, and in several versions of Sage.
+        <Paragraph>
+          CoCalc offers a large number of{" "}
+          <A href={LINKS.python}>Python libraries preinstalled</A> system wide,
+          in Anaconda, and in several versions of Sage.
+        </Paragraph>
+        {renderSoftwareEnvLinks("python")}
       </>
     ),
   },
   {
-    link: "/software/r",
+    link: LINKS.sagemath,
+    title: "SageMath Packages",
+    logo: sageLogo,
+    logoBackground: "white",
+    image: sageScreenshot,
+    description: (
+      <>
+        <Paragraph>
+          CoCalc provides <A href={LINKS.sagemath}>SageMath environments</A>{" "}
+          with additional preinstalled packages.
+        </Paragraph>
+        {renderSoftwareEnvLinks("sagemath")}
+      </>
+    ),
+  },
+  {
+    link: LINKS.R,
     title: "R Statistical Software Packages",
     logo: Rlogo,
+    logoBackground: "white",
     image: RJupyter,
     description: (
       <>
-        CoCalc maintains an extensive set of{" "}
-        <A href="/software/r">R packages</A>
+        <Paragraph>
+          CoCalc maintains an extensive set of <A href={LINKS.R}>R packages</A>
+        </Paragraph>
+        {renderSoftwareEnvLinks("R")}
       </>
     ),
   },
   {
-    link: "/software/julia",
+    link: LINKS.julia,
     title: "Julia Packages",
     logo: juliaLogo,
+    logoBackground: "white",
     image: JuliaJupyter,
     description: (
       <>
-        CoCalc regularly updates Julia and installs{" "}
-        <A href="/software/julia">many common Julia packages</A>.
+        <Paragraph>
+          CoCalc regularly updates Julia and installs{" "}
+          <A href={LINKS.julia}>many common Julia packages</A>.
+        </Paragraph>
+        {renderSoftwareEnvLinks("julia")}
       </>
     ),
   },
   {
-    link: "/software/octave",
+    link: LINKS.octave,
     title: "Octave Packages",
     logo: octaveLogo,
+    logoBackground: "white",
     image: octaveJupyter,
     description: (
       <>
-        There are several <A href="/software/octave">Octave packages</A> that
-        are preinstalled.
+        <Paragraph>
+          There are several <A href={LINKS.octave}>Octave packages</A> that are
+          preinstalled.
+        </Paragraph>
+        {renderSoftwareEnvLinks("octave")}
       </>
     ),
   },
-] as DataSource;
+];
 
 export default function Software({ customize }) {
+  const description = (
+    <>
+      <p>These pages contain information about available software on CoCalc.</p>
+      <p>
+        By default, projects are running in an environment based on{" "}
+        <A href="https://en.wikipedia.org/wiki/Ubuntu">
+          Ubuntu {SOFTWARE_ENV_DEFAULT}
+        </A>
+        , but there are also {SOFTWARE_ENV_NAMES.length - 1} older variants
+        available. Only the newest variant is actively maintained and regularly
+        updated. The older ones are deprected and contain older software for
+        backwards compatibility and historic purposes.
+      </p>
+    </>
+  );
+
   return (
     <Customize value={customize}>
       <Head title="Software" />
@@ -109,10 +198,10 @@ export default function Software({ customize }) {
         <Header page="software" />
         <IndexList
           title="Available Software"
-          description="These pages contain information about available software on CoCalc."
+          description={description}
           dataSource={dataSource}
         />
-        <Footer />{" "}
+        <Footer />
       </Layout>
     </Customize>
   );

@@ -266,11 +266,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
 
   const displayed_label: JSX.Element = render_displayed_label({ path, label });
 
-  const color = is_selected
-    ? "white"
-    : status_alert
-    ? COLORS.BS_RED
-    : undefined;
+  const color = is_selected ? "white" : status_alert ? COLORS.BS_RED : COLORS.TAB;
 
   return (
     <NavItem

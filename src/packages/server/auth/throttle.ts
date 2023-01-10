@@ -10,16 +10,16 @@ import { checkRequiredSSO } from "./sso/check-required-sso";
 
 const emailShortCache = new LRU<string, number>({
   max: 10000, // avoid memory issues
-  maxAge: 1000 * 60,
+  ttl: 1000 * 60,
 });
 const emailLongCache = new LRU<string, number>({
   max: 20000,
-  maxAge: 1000 * 60 * 60,
+  ttl: 1000 * 60 * 60,
 });
-const ipShortCache = new LRU<string, number>({ max: 10000, maxAge: 1000 * 60 });
+const ipShortCache = new LRU<string, number>({ max: 10000, ttl: 1000 * 60 });
 const ipLongCache = new LRU<string, number>({
   max: 20000,
-  maxAge: 1000 * 60 * 60,
+  ttl: 1000 * 60 * 60,
 });
 
 async function isExclusiveEmail(email: string) {

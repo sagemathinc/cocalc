@@ -15,7 +15,7 @@ import { findAll } from "kernelspecs";
 import { field_cmp } from "@cocalc/util/misc";
 import LRU from "lru-cache";
 
-const cache = new LRU({ maxAge: 5000 });
+const cache = new LRU({ ttl: 5000 });
 
 export async function get_kernel_data(): Promise<any> {
   let kernel_data = cache.get("kernel_data") as any;

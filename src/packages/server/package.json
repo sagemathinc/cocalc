@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/server",
-  "version": "0.44.2",
+  "version": "0.44.5",
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
     "./*": "./dist/*.js",
@@ -23,28 +23,24 @@
     "cocalc"
   ],
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
     "test": "npx jest dist/",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../backend",
-    "../database",
-    "../util"
-  ],
   "dependencies": {
-    "@cocalc/backend": "^1.21.1",
-    "@cocalc/database": "^0.35.4",
-    "@cocalc/util": "^1.76.0",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/database": "workspace:*",
+    "@cocalc/server": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
+    "@passport-next/passport-oauth2": "^2.1.4",
     "@sendgrid/mail": "^7.5.0",
     "@types/express": "^4.17.13",
     "@types/lodash": "^4.14.176",
-    "@types/lru-cache": "^5.1.1",
     "@types/node-zendesk": "^2.0.9",
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
@@ -53,8 +49,7 @@
     "awaiting": "^3.0.0",
     "cookies": "^0.8.0",
     "lodash": "^4.17.21",
-    "lru-cache": "^6.0.0",
-    "node-fetch": "^3.2.10",
+    "lru-cache": "^7.14.1",
     "node-zendesk": "^2.2.0",
     "nodemailer": "^6.7.0",
     "parse-domain": "^5.0.0",
@@ -73,7 +68,8 @@
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
-    "stripe": "^8.78.0"
+    "stripe": "^8.78.0",
+    "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",
   "repository": {
@@ -81,9 +77,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/jest": "^28.1.6",
     "@types/node": "^14.18.10",
-    "jest": "^28.1.3",
-    "typescript": "^4.7.4"
+    "expect": "^26.6.2"
   }
 }

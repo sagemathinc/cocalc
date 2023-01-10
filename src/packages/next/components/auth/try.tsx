@@ -23,10 +23,13 @@ interface Props {
 
 export default function Try(props: Props) {
   const { reCaptchaKey } = useCustomize();
-
+  const body = <Try0 {...props} />;
+  if (reCaptchaKey == null) {
+    return body;
+  }
   return (
     <GoogleReCaptchaProvider reCaptchaKey={reCaptchaKey}>
-      <Try0 {...props} />
+      {body}
     </GoogleReCaptchaProvider>
   );
 }

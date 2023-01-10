@@ -1,31 +1,42 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
-import SoftwareInfo from "components/landing/software-info";
 import SoftwareLibraries from "components/landing/software-libraries";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
+import { SoftwareEnvNames } from "lib/landing/consts";
+import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
   ComputeComponents,
   ComputeInventory,
   SoftwareSpec,
 } from "lib/landing/types";
-import { STYLE_PAGE } from ".";
+import { STYLE_PAGE } from "..";
 import screenshot from "/public/software/julia-jupyter.png";
 
 interface Props {
+  name: SoftwareEnvNames;
   customize: CustomizeType;
   spec: SoftwareSpec["julia"];
   inventory: ComputeInventory["julia"];
   components: ComputeComponents["julia"];
   execInfo?: { [key: string]: string };
+  timestamp: string;
 }
 
 export default function Julia(props: Props) {
-  const { customize, spec, inventory, components, execInfo } = props;
+  const { name, customize, spec, inventory, components, execInfo, timestamp } =
+    props;
 
   function renderIntro() {
     return (
@@ -33,16 +44,17 @@ export default function Julia(props: Props) {
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
           <Image src={screenshot} alt="Using Julia in a Jupyter notebook" />
         </div>
-        <p>
+        <Paragraph>
           Julia is a fast modern compiled language that is{" "}
           <A href="/features/julia">well supported</A> on CoCalc. This table
-          lists available <A href="https://julialang.org/">Julia</A> libraries.
-          If something is missing, you can{" "}
+          lists pre-installed <A href="https://julialang.org/">Julia</A>{" "}
+          libraries immediately available in every CoCalc project running on the
+          default "Ubuntu {name}" image. If something is missing, you can{" "}
           <A href="https://doc.cocalc.com/howto/install-julia-package.html">
             install additional libraries
           </A>
           , or request that we install them.
-        </p>
+        </Paragraph>
       </>
     );
   }
@@ -79,26 +91,25 @@ export default function Julia(props: Props) {
     <Customize value={customize}>
       <Head title="Julia Packages in CoCalc" />
       <Layout>
-        <Header page="software" subPage="julia" />
+        <Header page="software" subPage="julia" softwareEnv={name} />
         <Layout.Content
           style={{
             backgroundColor: "white",
           }}
         >
           <div style={STYLE_PAGE}>
-            <h1
-              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
-            >
-              Installed Julia Packages
-            </h1>
+            <Title style={{ textAlign: "center" }}>
+              Installed Julia Packages (Ubuntu {name})
+            </Title>
             {renderIntro()}
             {renderInfoBox()}
-            <SoftwareInfo info={execInfo} />
+            <ExecutableDescription spec={spec} execInfo={execInfo} />
             <SoftwareLibraries
               spec={spec}
               inventory={inventory}
               components={components}
               libWidthPct={60}
+              timestamp={timestamp}
             />
           </div>
           <Footer />
@@ -109,7 +120,5 @@ export default function Julia(props: Props) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomizedAndSoftwareSpec(context, "julia", [
-    "/ext/bin/julia",
-  ]);
+  return await withCustomizedAndSoftwareSpec(context, "julia");
 }

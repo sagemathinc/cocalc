@@ -17,7 +17,7 @@ generateHash =require("@cocalc/server/auth/hash").default;
 # Do NOT change this - this exact string is assumed in @cocalc/util/client
 {NOT_SIGNED_IN} = require("@cocalc/util/consts")
 
-remember_me_cache = new Cache(max:5000, maxAge:60000)
+remember_me_cache = new Cache(max:5000, ttl:60000)
 
 exports.get_account_id = (database, remember_me, cb) ->
     if not remember_me?

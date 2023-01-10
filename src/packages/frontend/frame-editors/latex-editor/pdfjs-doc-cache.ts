@@ -41,9 +41,9 @@ import { raw_url } from "../frame-tree/util";
 import { pdf_path } from "./util";
 
 const options = {
-  max: MAX_PAGES,
-  length: function (doc: PDFDocumentProxy): number {
-    return doc.numPages;
+  maxSize: MAX_PAGES,
+  sizeCalculation: function (doc: PDFDocumentProxy): number {
+    return Math.max(doc.numPages ?? 1, 1);
   },
 };
 
@@ -80,5 +80,5 @@ This is called when the reload number *changes*, since then we will
 never ever want to see the old pdf.
 */
 export function forgetDocument(url: string): void {
-  doc_cache.del(url);
+  doc_cache.delete(url);
 }

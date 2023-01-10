@@ -130,6 +130,9 @@ export default async function init(opts: Options): Promise<{
     "/static",
     express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
   );
+  // immediately 404 if anything else under static is requested
+  // which isn't handled above, rather than passing this on to the next app
+  router.use("/static", (_, res) => res.status(404).end());
 
   // Static assets that are used by the webapp, the landing page, etc.
   router.use(

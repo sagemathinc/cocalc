@@ -54,7 +54,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : undefined,
+      color: props.mask ? "#bbbbbb" : COLORS.TAB,
       verticalAlign: "sub",
     } as const;
     let body: JSX.Element;
@@ -105,9 +105,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   function render_name_link(styles, name, ext) {
     return (
       <a style={styles} cocalc-test="file-line">
-        <span style={{ fontWeight: props.mask ? "normal" : "bold" }}>
-          {misc.trunc_middle(name, 50)}
-        </span>
+        {misc.trunc_middle(name, 50)}
         <span style={{ color: !props.mask ? "#999" : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
@@ -135,7 +133,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : undefined,
+      color: props.mask ? "#bbbbbb" : COLORS.TAB,
     };
 
     if (show_tip) {
@@ -245,10 +243,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     if (VIEWABLE_FILE_EXT.includes(ext_lower)) {
       return (
         <Popover
+          title={<>{icon} New Tab</>}
           placement="bottomRight"
-          content={<>Click to view this file in a new tab.</>}
+          content={<>View this file in a new tab.</>}
         >
           <Button
+            size="small"
             type="link"
             href={`${url_href}`}
             onClick={handle_view_click}
@@ -261,7 +261,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     } else {
       //render an invisible placeholder of same size
       return (
-        <Button type="link" style={{ ...style, visibility: "hidden" }}>
+        <Button
+          type="link"
+          size="small"
+          style={{ ...style, visibility: "hidden" }}
+        >
           {icon}
         </Button>
       );
@@ -275,15 +279,21 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return (
       <Popover
         placement="bottomRight"
+        title={
+          <>
+            <Icon name="cloud-download" /> Download
+          </>
+        }
         content={
           <>
-            Click to download {size}
+            Download this {size} file
             <br />
-            to store this file in your own files.
+            to your own computer.
           </>
         }
       >
         <Button
+          size="small"
           type="link"
           href={`${url_href}`}
           onClick={handle_download_click}

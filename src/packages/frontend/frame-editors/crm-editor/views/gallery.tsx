@@ -13,8 +13,6 @@ interface Props {
   rowKey: string;
   data: object[];
   columns: ColumnsType[];
-  title: ReactNode;
-  cardStyle?;
   recordHeight?: number;
 }
 
@@ -22,50 +20,40 @@ function ItemContainer({ children }: { children?: ReactNode }) {
   return <div style={{ display: "inline-block" }}>{children}</div>;
 }
 
+const cardStyle = {
+  width: "300px",
+  height: "300px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as CSSProperties;
+
 export default function Gallery({
   rowKey,
   data,
   columns,
-  title,
-  cardStyle = {
-    width: "300px",
-    height: "300px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  },
   recordHeight,
 }: Props) {
   const itemStyle = useMemo(() => {
     return { ...cardStyle, height: recordHeight };
   }, [cardStyle, recordHeight]);
   return (
-    <Card
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
+    <VirtuosoGrid
+      overscan={500}
+      style={{ height: "100%", background: "#ececec" }}
+      totalCount={data.length}
+      components={{
+        Item: ItemContainer,
       }}
-      bodyStyle={{ flex: 1, padding: 0 }}
-      title={title}
-    >
-      <VirtuosoGrid
-        overscan={500}
-        style={{ height: "100%", background: "#ececec" }}
-        totalCount={data.length}
-        components={{
-          Item: ItemContainer,
-        }}
-        itemContent={(index) => (
-          <OneCard
-            key={data[index][rowKey]}
-            elt={data[index]}
-            rowKey={rowKey}
-            columns={columns}
-            style={itemStyle}
-          />
-        )}
-      />
-    </Card>
+      itemContent={(index) => (
+        <OneCard
+          key={data[index][rowKey]}
+          elt={data[index]}
+          rowKey={rowKey}
+          columns={columns}
+          style={itemStyle}
+        />
+      )}
+    />
   );
 }
 

@@ -8,11 +8,16 @@ Note that this doesn't actually use upstream nbconvert itself at all!
 
 import * as fs from "fs";
 import { join, parse } from "path";
-import toHtml from "@cocalc/frontend/jupyter/nbviewer/export";
 
 const { readFile, writeFile } = fs.promises;
 
 export default async function ipynbToHtml(path: string): Promise<string> {
+  // This toHtml is expensive to import (due to the frontend being quite large),
+  // so we don't import it at the module level:
+  const { default: toHtml } = await import(
+    "@cocalc/frontend/jupyter/nbviewer/export"
+  );
+
   const content = (await readFile(path)).toString();
   const html = toHtml({ content, style: { margin: "30px 30px 0 0" } });
   const outfile = htmlPath(path);

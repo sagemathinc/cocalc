@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
@@ -17,6 +16,7 @@ import ManagedLicenses from "./managed";
 import Menu from "./menu";
 import Overview from "./overview";
 import { MAX_WIDTH } from "lib/config";
+import Error from "next/error";
 
 const { Content } = Layout;
 
@@ -66,7 +66,7 @@ export default function LicensesLayout({ page }: Props) {
       case "how-used":
         return <HowUsed account_id={account_id} />;
       default:
-        unreachable(main);
+        return <Error statusCode={404} />;
     }
   }
 
