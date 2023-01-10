@@ -36,28 +36,22 @@ webpack website.  Differences include:
 
 "use strict";
 
-const webpack = require("webpack");
-const path = require("path");
-const child_process = require("child_process");
-const misc = require("@cocalc/util/misc");
-const misc_node = require("@cocalc/backend/misc_node");
-const SMC_VERSION = require("@cocalc/util/smc-version").version;
-const theme = require("@cocalc/util/theme");
-const CDN_VERSIONS = require("@cocalc/cdn").versions;
+import { ProvidePlugin } from "webpack";
+import type { WebpackPluginInstance } from "webpack";
+import { resolve as path_resolve } from "path";
+import { execSync } from "child_process";
+import { version as SMC_VERSION } from "@cocalc/util/smc-version";
+import { SITE_NAME as TITLE } from "@cocalc/util/theme";
+import { versions as CDN_VERSIONS } from "@cocalc/cdn";
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
 // relative to "src/packages/static".
 function resolve(...args): string {
-  return path.resolve(__dirname, "..", "..", ...args);
+  return path_resolve(__dirname, "..", "..", ...args);
 }
 
 // Determine the git revision hash:
-const COCALC_GIT_REVISION = child_process
-  .execSync("git rev-parse HEAD")
-  .toString()
-  .trim();
-const TITLE = theme.SITE_NAME;
-const DESCRIPTION = theme.APP_TAGLINE;
+const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
 const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
 const COCALC_LICENSE = "custom";
 const OUTPUT = process.env.COCALC_OUTPUT
@@ -81,8 +75,12 @@ console.log(`OUTPUT              = ${OUTPUT}`);
 console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
 console.log(`COCALC_NOCACHE      = ${COCALC_NOCACHE}`);
 
-const plugins = [];
-function registerPlugin(desc, plugin, disable) {
+const plugins: WebpackPluginInstance[] = [];
+function registerPlugin(
+  desc: string,
+  plugin: WebpackPluginInstance,
+  disable?: boolean
+) {
   if (disable) {
     console.log("Disabling plugin:  ", desc);
   } else {
@@ -118,7 +116,7 @@ require("./plugins/define-constants")(registerPlugin, {
 
 registerPlugin(
   "define React",
-  new webpack.ProvidePlugin({
+  new ProvidePlugin({
     React: "react",
   })
 );
