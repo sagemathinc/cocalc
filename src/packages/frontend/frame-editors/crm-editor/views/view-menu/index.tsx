@@ -87,7 +87,7 @@ export default function ViewMenu({
         />
       )}
       <Button type="text" onClick={refresh}>
-        <Icon name="refresh" /> Refresh
+        <Icon name="refresh" /> Reload
       </Button>
       {filters}
     </Space>

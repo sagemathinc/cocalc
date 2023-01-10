@@ -203,7 +203,7 @@ export default function View({
           {numHidden > 0 && (
             <div style={{ marginBottom: "5px", color: "#666" }}>
               <Icon name="warning" /> Showing {filteredData.length} of{" "}
-              {data.length} {plural(data.length, "result")}
+              {data.length} {plural(data.length, "match", "matches")}
             </div>
           )}
           {view == "calendar" && (
