@@ -227,7 +227,7 @@ export type SiteLicenses = {
  * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
  * max_upgrades: Quota
  */
-interface SiteSettingsQuotas {
+export interface SiteSettingsQuotas {
   default_quotas?: Partial<SiteSettingsDefaultQuotas>;
   max_upgrades?: Partial<Upgrades>;
 }
