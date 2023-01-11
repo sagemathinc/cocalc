@@ -960,7 +960,6 @@ importers:
       npm-check-updates: ^16.0.5
       parse-asn1: ^5.1.6
       path-browserify: ^1.0.1
-      pdfjs-dist: ^2.13.216
       prettier: ^2.6.2
       raw-loader: ^4.0.2
       react: ^17.0.2
@@ -1050,7 +1049,6 @@ importers:
       npm-check-updates: 16.6.2
       parse-asn1: 5.1.6
       path-browserify: 1.0.1
-      pdfjs-dist: 2.16.105_worker-loader@3.0.8
       prettier: 2.8.1
       raw-loader: 4.0.2_webpack@5.75.0
       react: 17.0.2
@@ -12930,19 +12928,6 @@ packages:
     dependencies:
       dommatrix: 1.0.3
       web-streams-polyfill: 3.2.1
-    dev: true
-
-  /pdfjs-dist/2.16.105_worker-loader@3.0.8:
-    resolution: {integrity: sha512-J4dn41spsAwUxCpEoVf6GVoz908IAA3mYiLmNxg8J9kfRXc2jxpbUepcP0ocp0alVNLFthTAM8DZ1RaHh8sU0A==}
-    peerDependencies:
-      worker-loader: ^3.0.8
-    peerDependenciesMeta:
-      worker-loader:
-        optional: true
-    dependencies:
-      dommatrix: 1.0.3
-      web-streams-polyfill: 3.2.1
-      worker-loader: 3.0.8_webpack@5.75.0
     dev: true
 
   /pdfjs-dist/3.2.146:
