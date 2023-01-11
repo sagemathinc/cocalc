@@ -159,6 +159,13 @@ export default function getConfig({ middleware }: Options = {}) {
     console.log(`\nNOT using filesystem cache.\n`);
   }
 
+  function insertHotMiddlewareUrl(v: string[]): string[] {
+    if (WEBPACK_DEV_SERVER) {
+      v.unshift(hotMiddlewareUrl);
+    }
+    return v;
+  }
+
   const config = {
     ignoreWarnings: [/Failed to parse source map/],
     cache: useDiskCache
@@ -179,13 +186,17 @@ export default function getConfig({ middleware }: Options = {}) {
       ? ("production" as "production")
       : ("development" as "development"),
     entry: {
-      load: [hotMiddlewareUrl, resolve("dist-ts/src/load.js")],
+      load: insertHotMiddlewareUrl([resolve("dist-ts/src/load.js")]),
       app: {
-        import: [hotMiddlewareUrl, resolve("dist-ts/src/webapp-cocalc.js")],
+        import: insertHotMiddlewareUrl([
+          resolve("dist-ts/src/webapp-cocalc.js"),
+        ]),
         dependOn: "load",
       },
       embed: {
-        import: [hotMiddlewareUrl, resolve("dist-ts/src/webapp-embed.js")],
+        import: insertHotMiddlewareUrl([
+          resolve("dist-ts/src/webapp-embed.js"),
+        ]),
         dependOn: "load",
       },
     },
