@@ -1,18 +1,18 @@
 # How to Build and Run CoCalc
 
-Updated: **October 2021**
+Updated: **Jan 2023**
 
-CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js (14.x) and a recent version of npm (at least 7.x).
+CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( at least 16.8.x\) and a recent version of [pnpm](https://pnpm.io/).
 
 **Node.js and NPM Version Requirements:**
 
-- You must be using Node version 16.8.x. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
+- You must be using Node version 16.8.x or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
 
 ```sh
 . /cocalc/nvm/nvm.sh
 ```
 
-- Make sure to install the newest version of pnpm.
+- Make sure to[install the newest version of pnpm as well;](https://pnpm.io/installation) one way to do that is as follows:
 
 ```sh
 npm install -g pnpm
@@ -22,10 +22,10 @@ npm install -g pnpm
 
 ## Initial Build
 
-Launch the full build:
+Launch the install and build **for doing development:** 
 
 ```sh
-~/cocalc/src$ pnpm make
+~/cocalc/src$ pnpm make-dev
 ```
 
 This will do `pnpm install` for all packages, and also build the typescript/coffeescript, and anything else into a dist directory for each module. Once `pnpm make` finishes successfully, you can start using CoCalc by starting the database and the backend hub in two separate terminals.
@@ -37,37 +37,32 @@ This will do `pnpm install` for all packages, and also build the typescript/coff
 
 The hub will send minimal logging to stdout, and the rest to `data/logs/log`.
 
+If you need to do a production build instead:
+
+```sh
+~/cocalc/src$ pnpm make
+```
+
+The main \(only?\) difference is that static and next webpack builds are created in production mode, which takes much longer.
+
 ### Starting All Over
 
 If necessary, you can delete all the `node_modules` and `dist` directories in all packages and start over as follows:
 
 ```sh
-~/cocalc/src$ pnpm clean
+~/cocalc/src$ pnpm clean && pnpm make-dev
 ```
 
 ## Doing Development
 
-The code of CoCalc is in NPM packages in the `src/packages/` subdirectory. To do development you need to ensure each of the following are running:
+The code of CoCalc is in NPM packages in the `src/packages/` subdirectory. To do development you need to ensure each of the following two services are running, as explained above:
 
-1. Static Frontend Webpack server
-2. PostgreSQL database
-3. Hub
+1. **PostgreSQL** database \-\- a postgres instance started via `pnpm database` 
+2. **Hub** \-\- a nodejs instance started via `pnpm hub` 
 
-Optionally, you may also type `pnpm tsc` in most packages to watch for changes, compile using Typescript and show an errors.
+Optionally, you may also need to type `pnpm tsc` in packages that you're editing to watch for changes, compile using Typescript and show an errors.
 
-### 1. Starting the Frontend Webpack Server
-
-The frontend webpack server compiles and bundles CoCalc's frontend code into static Javascript files, so that your browser can read it. Start the frontend webpack server as follows:
-
-```sh
-~/cocalc/src$ pnpm static
-```
-
-That will change to the `packages/static` directory where `pnpm webpack` is actually run. This will package up all the React.js, etc. files needed for the frontend -- the actual files are served via the Hub. As you edit files in packages/frontend, this service will automatically compile and bundle them.
-
-Note that webpack does NOT check for Typescript errors. For that, you must run `pnpm tsc` in either `packages/frontend` or `packages/static`, depending on what code you are editing. See the README in `packages/static` for more details.
-
-### 2. Starting the Database
+### 1. More about Starting the Database
 
 CoCalc stores all of its data in a PostgreSQL database. Start your PostreSQL database server as follows:
 
@@ -98,35 +93,41 @@ You can also just type `pnpm psql` :
 ~/cocalc/src$ pnpm psql
 ```
 
-NOTE: I think CoCalc should fully work with any version of PostgreSQL from version 10.x onward.
+NOTE:  As of Jan 2023, CoCalc should fully work with any version of PostgreSQL from version 10.x onward.  However, obviously at some point we will stop supporting PostgreSQL v 10.
 
-### 3. Starting the Hub
+### 2. More about Starting the Hub
 
-The Hub is CoCalc's backend node.js server.
+The Hub is CoCalc's backend node.js server.  You can start it from its package directory as follows:
 
 ```sh
 ~/cocalc/src/packages/hub$ pnpm hub-project-dev
 ```
 
-That will ensure the latest version of the hub Typescript and Coffeescript gets compiled, and start a new hub running in the foreground logging what is happening to the console _**and also logging to files in**_ `data/logs/hub` . Hit Control+C to terminate this server. If you change any code in `packages/hub`, you have to stop the hub, then start it again as above in order for the changes to take effect.
+That will ensure the latest version of the hub Typescript and Coffeescript gets compiled, and start a new hub running in the foreground logging what is happening to the console _**and also logging to files in**_ `cocalc/src/data/logs/hub` . Hit Control\+C to terminate this server. If you change any code in `packages/hub`, you have to stop the hub, then start it again as above in order for the changes to take effect.
 
-### 4. Building only what has changed
+The hub itself is running two copies of webpack along with two separate "Hot Module Replacement" servers, etc.   One is for the `/static` endpoint \(see packages/static and packages/frontend\) and the other is for the nextjs server \(see packages/next\).
 
-The command `pnpm build`, when run from the src directory, caches the fact that there was a successful build by touching a file `src/packages/package-name/.successful_build` . This _only_ does anything if you explicitly use the `pnpm build` command from the src/ directory, and is ignored when directly building in a subdirectory. You can do `pnpm build --exclude=static` periodically to rebuild precisely what needs to be built, except what is built using webpack (e.g., via `pnpm static` as explained above):
+### 3. Building only what has changed
+
+The command `pnpm build (or build-dev)`, when run from the src directory, caches the fact that there was a successful build by touching a file `src/packages/package-name/.successful_build` . This caching _only_ does anything if you explicitly use the `pnpm build` command from the src/ directory, and is ignored when directly building in a subdirectory. You can do `pnpm build --exclude=static` periodically to rebuild precisely what needs to be built, except what is built using webpack \(e.g., via `pnpm static` as explained above\):
 
 ```sh
 ~/cocalc/src/$ pnpm build --exclude=static
 ```
 
-This is very useful if you pull in a git branch or switch to a different git branch, and have no idea which packages have changed.
+This is useful if you pull in a git branch or switch to a different git branch, and have no idea which packages have changed.  That said, it's always much safer to just do the following instead of relying on this:
 
-Sometime when you pull in a branch, you need to make sure exactly the right packages are installed and everything is built before doing `pnpm static` and `pnpm hub` . The simplest way to do this is
+```sh
+~/cocalc/src/$ pnpm clean && pnpm make-dev
+```
+
+In particular, this will make sure exactly the right packages are installed and everything is built before doing `pnpm static` and `pnpm hub` . The simplest way to do this is
 
 ```sh
 ~/cocalc/src/$ pnpm make-dev
 ```
 
-which installs exactly the right packages (via `npm ci` in all package dirs), and building the code except in the static and next packages, which will takes a long time and would get done when you do `pnpm static` anyways.
+which installs exactly the right packages, and builds the code.
 
 ### Other
 
@@ -147,13 +148,15 @@ It is handy to have a user with admin rights in your dev cocalc server. With the
 
 ```sh
 ~/cocalc/src$ pnpm run c
+...
 > db.make_user_admin({email_address:'user@example.com', cb:console.log})
+...
 ```
 
 Admin users have an extra tab inside the main cocalc app labeled "Admin" where they can configure many aspects of the server, search for users, etc.
 
-## Packages on [NPMJS.com](http://NPMJS.com)
+## Packages on [NPMJS.com](http://NPMJS.com) \(DEPRECATED\)
 
-There's some `@cocalc/` packages at [NPMJS.com](http://NPMJS.com). However, we're no longer going to use
-them in any way, and don't plan to publish anything new unless there
+There's some `@cocalc/` packages at [NPMJS.com](http://NPMJS.com). However, _**we're no longer using**_
+_**them in any way**_, and don't plan to publish anything new unless there
 is a compelling use case.

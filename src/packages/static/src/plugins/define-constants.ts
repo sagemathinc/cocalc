@@ -7,15 +7,15 @@ substituted in when the key identifier on the left is used, hence the
 JSON.stringify of all of them.
 */
 
-const webpack = require("webpack");
+import { DefinePlugin } from "webpack";
 
-module.exports = function (registerPlugin, constants) {
+export default function defineConstantsPlugin(registerPlugin, constants) {
   const opts = {};
   for (const key in constants) {
     opts[key] = JSON.stringify(constants[key]);
   }
   registerPlugin(
     "DefinePlugin -- define frontend constants -- versions, modes, dates, etc.",
-    new webpack.DefinePlugin(opts)
+    new DefinePlugin(opts)
   );
-};
+}

@@ -1,8 +1,0 @@
-node_modules/
-creds*.js
-foo*.js
-.*term
-*.x11
-*.png
-test_files/.*
-build

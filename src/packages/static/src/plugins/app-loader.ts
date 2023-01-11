@@ -1,12 +1,17 @@
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+import HtmlWebpackPlugin from "html-webpack-plugin";
+import { resolve } from "path";
 
-module.exports = function (registerPlugin, PRODMODE, title) {
+export default function appLoaderPlugin(
+  registerPlugin,
+  PRODMODE: boolean,
+  title: string
+) {
   registerPlugin(
     "HTML -- generates the app.html file",
     new HtmlWebpackPlugin({
       title,
       filename: "app.html",
-      template: "src/app.html",
+      template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "app"],
     })
@@ -17,9 +22,9 @@ module.exports = function (registerPlugin, PRODMODE, title) {
     new HtmlWebpackPlugin({
       title,
       filename: "embed.html",
-      template: "src/app.html",
+      template: resolve(__dirname, "../app.html"),
       hash: PRODMODE,
       chunks: ["load", "embed"],
     })
   );
-};
+}

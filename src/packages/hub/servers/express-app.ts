@@ -28,6 +28,9 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
+import { webpackCompiler } from "@cocalc/static";
+import webpackHotMiddleware from "webpack-hot-middleware";
+import webpackDevMiddleware from "webpack-dev-middleware";
 
 // Used for longterm caching of files. This should be in units of seconds.
 const MAX_AGE = Math.round(ms("10 days") / 1000);
@@ -38,7 +41,6 @@ interface Options {
   isPersonal: boolean;
   nextServer: boolean;
   proxyServer: boolean;
-  nocoDB?: boolean;
   cert?: string;
   key?: string;
 }
@@ -64,7 +66,7 @@ export default async function init(opts: Options): Promise<{
   // also, for the same reasons as above, setup the /metrics endpoint
   initMetricsEndpoint(basicEndpoints);
 
-  // now, we build the router for all other endpoints
+  // now, we build the router for some other endpoints
   const router = express.Router();
 
   // This must go very early - we handle virtual hosts, like wstein.org
@@ -120,16 +122,30 @@ export default async function init(opts: Options): Promise<{
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
-  router.use(
-    join("/static", STATIC_PATH, "app.html"),
-    express.static(join(STATIC_PATH, "app.html"), {
-      setHeaders: cacheShortTerm,
-    })
-  );
-  router.use(
-    "/static",
-    express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
-  );
+
+  if (
+    process.env.NODE_ENV != "production" &&
+    !process.env.NO_WEBPACK_DEV_SERVER
+  ) {
+    console.warn(
+      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n"
+    );
+    const compiler = webpackCompiler();
+    router.use("/static", webpackDevMiddleware(compiler, {}));
+    router.use("/static", webpackHotMiddleware(compiler, {}));
+  } else {
+    router.use(
+      join("/static", STATIC_PATH, "app.html"),
+      express.static(join(STATIC_PATH, "app.html"), {
+        setHeaders: cacheShortTerm,
+      })
+    );
+    router.use(
+      "/static",
+      express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
+    );
+  }
+
   // immediately 404 if anything else under static is requested
   // which isn't handled above, rather than passing this on to the next app
   router.use("/static", (_, res) => res.status(404).end());

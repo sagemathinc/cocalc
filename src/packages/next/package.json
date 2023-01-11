@@ -25,20 +25,17 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "npx next telemetry disable && pnpm software && next dev",
-    "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && pnpm inventory &&  pnpm dev",
+    "build": "pnpm build-dev && npx next telemetry disable && rm -rf .next && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' next build",
+    "build-dev": "rm -rf dist && pnpm software && npx tsc --build tsconfig-dist.json",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty --preserveWatchOutput ",
     "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && pnpm build && cd ../util && pnpm build",
-    "build": "pnpm build-deps && npx next telemetry disable && rm -rf .next && pnpm build-dist && NODE_OPTIONS='--max_old_space_size=8000' next build",
-    "build-dist": "rm -rf dist && pnpm software && npx tsc --build tsconfig-dist.json",
-    "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dist && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
+    "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
-    "lint": "next lint",
-    "test": "npx tsc --build tsconfig-dist.json && npx jest ./dist",
-    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && pnpm test"
+    "test": "pnpm exec tsc --build tsconfig-dist.json && pnpm exec jest ./dist",
+    "prepublishOnly": "pnpm test"
   },
   "repository": {
     "type": "git",

@@ -1,103 +1,70 @@
-# CoCalc's Static Frontend Webapp Assets
+# CoCalc's Static Frontend Webapp, built using Webpack 5
 
-Using webpack we build the static assets that run in the client's browser.
+Using webpack we build the static assets that run in the client's browser
+when they are using the CoCalc app, i.e., the single page application with
+projects, files, editors, etc.
 
-## The `npm run` scripts
+## Development
 
-### 1. Development
-
-When doing development, use `npm run webpack` and `npm run tsc` in two terminals.
-
-```sh
-npm run weppack
-npm run tsc
-```
-ALSO, run `npm run tsc` in the `packages/frontend` directory, if you are editing that code.
-
-The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `frontend` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
-
-Use `npm run webpack-prod` to build and test the production version locally:
+When doing development, use `pnpm run tsc` to watch for typescript errors \(or just use VS Code or some other editor with LSP support\).
 
 ```sh
-npm run webpack-prod
+pnpm run tsc
 ```
 
-This is the same as `npm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes.  Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
+ALSO, run `pnpm run tsc` in the `packages/frontend` directory, if you are editing that code, which is likely if you're reading this file.
 
-If you get really weird errors that make no sense, the on-disk cashing may be broken.  In that case, delete it and restart webpack:
+Use `pnpm webpack-prod` to build and test the production version:
 
 ```sh
-rm -rf /tmp/webpack
+pnpm webpack-prod
 ```
 
-### 2. Measuring size
+This is the same as `pnpm run webpack`, but with more aggressive chunking, caching, minification, etc. It's interesting to test this before making a release, in case something surprising changes or to make sure the size of the bundle hasn't got too big. Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data \(e.g., due to installing a huge package\).
 
-Run `npm run webpack-measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic that shows how much space each part of CoCalc is using.  Use `npm run webpack-measure-prod` to see what the situation is for the production build.
-
-It's often useful to do:
+If you get really weird errors that make no sense, the on-disk cashing may be broken. In that case, delete it and restart webpack:
 
 ```sh
-ls -lh dist/*.js |more
+rm -rf /tmp/webpack-`whoami`
 ```
 
-### 3. Making a release to npmjs
+## Measuring size
 
-Make sure to kill any running webpack first.  Everything to make a release is automated by going to `~/cocalc/src` and using `npm run publish ...`:
-
-```sh
-$ cd ../..
-$ pwd
-/home/user/cocalc/src
-$ time npm run update-version --packages=static --newversion=minor
-$ time npm run publish --packages=static
-```
-
-Here `newversion` could be major, minor, or patch.  This does a full production build, updates 
-the version in `package.json`, then pushes the result to npmjs.com, and commits the change 
-to package.json to git.
-
-If you want to make a _development release,_ e.g., to make it easier to debug something on [test.cocalc.com](http://test.cocalc.com), do
-
-```sh
-time NODE_ENV=development npm run publish --packages=static
-```
+Run `pnpm webpack-measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic that shows how much space each part of CoCalc is using. Use `pnpm webpack-measure-prod` to see what the situation is for the production build.
 
 ## More about development
 
-First we assume you have installed all dev dependencies everywhere for all modules (`npm ci; npm run build`). To do interactive development on CoCalc, you start webpack and typescript in watch mode as follows:
+First we assume you have installed all dev dependencies everywhere for all modules \(`pnpm install; pnpm build-dev`\). To do interactive development of CoCalc, you optionally start typescript in watch mode as explained below. If you're using
+VS Code its LSP server handles this checking so you can skip this.
 
-To do development, in one terminal session (in this package/static directory!) start webpack running
-
-```sh
-npm run webpack
-```
-
-As you edit code, this quickly shows any errors webpack finds in bundling
-all your code up.
-
-In a second terminal (also in this package/static directory!), start watching for errors via typescript:
+To watch for typescript errors, in one terminal session (in this package/static directory!) start webpack running
 
 ```sh
-npm run tsc-frontend
+# Do this is packages/static:
+pnpm tsc
 ```
 
-The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
-
-If you're editing Typescript files in `src/`, you should also run
+In a second terminal (in the packages/frontend directory!), start watching for errors via typescript:
 
 ```sh
-npm run tsc-static
+# Do this is packages/frontend:
+pnpm tsc
 ```
 
-which will check those files for typescript errors.
+When running the hub in dev mode it uses the webpack dev server middleware
+automatically with hot module loading support. This serves the compiled
+webapp from memory and also automatically updates it when there are changes.
+If there are errors, you'll see them displayed in the webapp via an overlay,
+and also in the console where you launched the hub.
 
-## Landmines to watch out for
+Note that the hub is ALSO running another copy of webpack at the same time
+as part of nextjs, to compile serve the code in packages/next, with server side
+rendering. That also supports hot module loading, so there's a lot going on
+in the hub all at once!
 
-### The module search path:
+## :bomb: Landmines to watch out for
 
-If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `frontend/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `frontend/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
-
-### tsconfig.json and code splitting
+### 1. tsconfig.json and code splitting
 
 Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-split-wont-work) without this tsconfig.json option:
 
@@ -109,7 +76,13 @@ Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-
 }
 ```
 
-### Changing code in other packages such as `packages/util`
+### 2. \[DEPRECATED!\] [npmjs.com](http://npmjs.com) `@cocalc/*` packages
+
+We used to use [npmjs.com](http://npmjs.com) extensively for packaging under the @cocalc org.
+**We now do not use that in any way**, so just don't get confused by that.
+
+### 3. Changing code in other packages such as `packages/util`
 
 1. Change something in `packages/util`.
-2. You **must** do `npm run build` in `packages/util` to make the changes visible to webpack!  This is because anything outside of `packages/util` actually only sees `packages/util/dist` which is the compiled versions of everything.   This is a significant change from before.
+2. You **must** do `pnpm build` in `packages/util` to make the changes visible! This is because anything outside of `packages/util` actually only sees `packages/util/dist` which is the compiled versions of everything. This is a significant change from before. You can also do `pnpm tsc` in `packages/util` to compile and update `dist`.
+
