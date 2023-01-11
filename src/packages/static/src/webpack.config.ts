@@ -50,7 +50,7 @@ import cleanPlugin from "./plugins/clean";
 import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import measurePlugin from "./plugins/measure";
-import hotModuleReplacementPlugin from "./plugins/hot";
+import hotModuleReplacementPlugin, { hotMiddlewareUrl } from "./plugins/hot";
 
 import moduleRules from "./module-rules";
 
@@ -179,19 +179,13 @@ export default function getConfig({ middleware }: Options = {}) {
       ? ("production" as "production")
       : ("development" as "development"),
     entry: {
-      load: ["webpack-hot-middleware/client", resolve("dist-ts/src/load.js")],
+      load: [hotMiddlewareUrl, resolve("dist-ts/src/load.js")],
       app: {
-        import: [
-          "webpack-hot-middleware/client",
-          resolve("dist-ts/src/webapp-cocalc.js"),
-        ],
+        import: [hotMiddlewareUrl, resolve("dist-ts/src/webapp-cocalc.js")],
         dependOn: "load",
       },
       embed: {
-        import: [
-          "webpack-hot-middleware/client",
-          resolve("dist-ts/src/webapp-embed.js"),
-        ],
+        import: [hotMiddlewareUrl, resolve("dist-ts/src/webapp-embed.js")],
         dependOn: "load",
       },
     },

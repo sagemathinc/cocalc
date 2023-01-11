@@ -129,7 +129,7 @@ export default async function init(opts: Options): Promise<{
     );
     const compiler = webpackCompiler();
     router.use("/static", webpackDevMiddleware(compiler, {}));
-    router.use(webpackHotMiddleware(compiler, {}));
+    router.use("/static", webpackHotMiddleware(compiler, {}));
   } else {
     router.use(
       join("/static", STATIC_PATH, "app.html"),
