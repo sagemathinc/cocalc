@@ -29,8 +29,12 @@ import expect from "expect";
 // dozens of type errors.  This is definitely something to be
 // properly fixed, not a bug in testing.
 // import { quota } from "./upgrades/quota";
-import { quota as quota0 } from "./upgrades/quota";
-const quota = quota0 as any;
+import {
+  quota as quota0,
+  quota_with_reasons as reasons0,
+} from "./upgrades/quota";
+const quota = quota0 as (a?, b?, c?, d?) => ReturnType<typeof quota0>;
+const reasons = reasons0 as (a?, b?, c?, d?) => ReturnType<typeof reasons0>;
 
 import { PRICES } from "./upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "./consts/site-license";
@@ -386,9 +390,15 @@ describe("main quota functionality", () => {
     expect(qmember.cpu_request).toBe(0.05);
 
     // members get strictly more than free users
-    expect(qfree.cpu_request).toBeLessThan(qmember.cpu_request);
-    expect(qfree.memory_request).toBeLessThan(qmember.memory_request);
-    expect(qfree.memory_limit).toBeLessThanOrEqual(qmember.memory_limit);
+    expect(qfree.cpu_request).toBeDefined();
+    expect(qfree.memory_request).toBeDefined();
+    expect(qfree.memory_limit).toBeDefined();
+
+    expect(qfree.cpu_request).toBeLessThan(qmember.cpu_request as number);
+    expect(qfree.memory_request).toBeLessThan(qmember.memory_request as number);
+    expect(qfree.memory_limit).toBeLessThanOrEqual(
+      qmember.memory_limit as number
+    );
   });
 
   it("partial site_settings1/mem", () => {
@@ -689,7 +699,7 @@ describe("main quota functionality", () => {
     const site_license = {
       "123": {
         title: "123",
-        quota: { cpu:9, ram: 12, member: true },
+        quota: { cpu: 9, ram: 12, member: true },
         run_limit: 3,
         id: "123",
       },
@@ -716,7 +726,6 @@ describe("main quota functionality", () => {
       privileged: false,
     });
   });
-
 
   it("allow for much larger max_upgrades and take oc values into account", () => {
     const site_settings = {
@@ -1523,11 +1532,13 @@ describe("dedicated", () => {
     if (vm === null) throw new Error(`no vm for n2-standard-4`);
     const spec = vm!.spec;
     const q = quota({}, { userX: {} }, site_license);
-    expect(q.dedicated_vm.machine).toBe("n2-standard-4");
+    // @ts-ignore
+    expect(q.dedicated_vm.machine as string).toBe("n2-standard-4");
     expect(q.always_running).toBe(true);
     expect(q.member_host).toBe(true);
     expect(q.network).toBe(true);
-    expect(q.dedicated_disks.length).toBe(1);
+    // @ts-ignore
+    expect(q.dedicated_disks.length as number).toBe(1);
     expect(q.memory_limit).toBe(1000 * spec.mem);
     expect(q.cpu_limit).toBe(4);
   });
@@ -1546,6 +1557,7 @@ describe("dedicated", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
+    // @ts-ignore
     expect(q.dedicated_disks.length).toBe(2);
   });
 
@@ -1563,6 +1575,7 @@ describe("dedicated", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
+    // @ts-ignore
     expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
   });
 });
@@ -2171,5 +2184,33 @@ describe("boost", () => {
       dedicated_disks: [],
       dedicated_vm: false,
     });
+  });
+});
+
+describe("quota calculation with rejection reasons", () => {
+  it("rejects an incompatible boost license (idle timeout)", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: {
+          cpu: 1,
+          ram: 2,
+          disk: 1,
+          member: true,
+          idle_timeout: "medium",
+        },
+        run_limit: 3,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      "1234-boost": {
+        quota: { ram: 4, member: true, boost: true },
+        run_limit: 3,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = reasons({}, {}, site_licenses);
+
+    expect(q.reasons).toEqual({ "1234-boost": "hosting_incompatible" });
   });
 });
