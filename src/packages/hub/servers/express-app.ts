@@ -28,7 +28,6 @@ import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-import { webpackCompiler } from "@cocalc/static";
 import webpackHotMiddleware from "webpack-hot-middleware";
 import webpackDevMiddleware from "webpack-dev-middleware";
 
@@ -89,30 +88,6 @@ export default async function init(opts: Options): Promise<{
   // see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
   app.enable("trust proxy");
 
-  // Various files such as the webpack static content should be cached long-term,
-  // and we use this function to set appropriate headers at various points below.
-  const cacheLongTerm = (res) => {
-    res.setHeader(
-      "Cache-Control",
-      `public, max-age=${MAX_AGE}, must-revalidate'`
-    );
-    res.setHeader(
-      "Expires",
-      new Date(Date.now().valueOf() + MAX_AGE).toUTCString()
-    );
-  };
-
-  const cacheShortTerm = (res) => {
-    res.setHeader(
-      "Cache-Control",
-      `public, max-age=${SHORT_AGE}, must-revalidate`
-    );
-    res.setHeader(
-      "Expires",
-      new Date(Date.now().valueOf() + SHORT_AGE).toUTCString()
-    );
-  };
-
   router.use("/robots.txt", initRobots());
 
   // setup the analytics.js endpoint
@@ -122,33 +97,7 @@ export default async function init(opts: Options): Promise<{
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
-
-  if (
-    process.env.NODE_ENV != "production" &&
-    !process.env.NO_WEBPACK_DEV_SERVER
-  ) {
-    console.warn(
-      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n"
-    );
-    const compiler = webpackCompiler();
-    router.use("/static", webpackDevMiddleware(compiler, {}));
-    router.use("/static", webpackHotMiddleware(compiler, {}));
-  } else {
-    router.use(
-      join("/static", STATIC_PATH, "app.html"),
-      express.static(join(STATIC_PATH, "app.html"), {
-        setHeaders: cacheShortTerm,
-      })
-    );
-    router.use(
-      "/static",
-      express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
-    );
-  }
-
-  // immediately 404 if anything else under static is requested
-  // which isn't handled above, rather than passing this on to the next app
-  router.use("/static", (_, res) => res.status(404).end());
+  await initStatic(router);
 
   // Static assets that are used by the webapp, the landing page, etc.
   router.use(
@@ -206,4 +155,69 @@ export default async function init(opts: Options): Promise<{
   }
 
   return { httpServer, router };
+}
+
+function cacheShortTerm(res) {
+  res.setHeader(
+    "Cache-Control",
+    `public, max-age=${SHORT_AGE}, must-revalidate`
+  );
+  res.setHeader(
+    "Expires",
+    new Date(Date.now().valueOf() + SHORT_AGE).toUTCString()
+  );
+}
+
+// Various files such as the webpack static content should be cached long-term,
+// and we use this function to set appropriate headers at various points below.
+function cacheLongTerm(res) {
+  res.setHeader(
+    "Cache-Control",
+    `public, max-age=${MAX_AGE}, must-revalidate'`
+  );
+  res.setHeader(
+    "Expires",
+    new Date(Date.now().valueOf() + MAX_AGE).toUTCString()
+  );
+}
+
+async function initStatic(router) {
+  let compiler: any = null;
+  if (
+    process.env.NODE_ENV != "production" &&
+    !process.env.NO_WEBPACK_DEV_SERVER
+  ) {
+    // Try to use the integrated webpack dev server, if it is installed.
+    // It might not be installed at all, e.g., in production, and there
+    // @cocalc/static can't even be imported.
+    try {
+      const { webpackCompiler } = require("@cocalc/static/webpack-compiler");
+      compiler = webpackCompiler();
+    } catch (_err) {
+      console.warn("webpack is not available");
+    }
+  }
+
+  if (compiler != null) {
+    console.warn(
+      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n"
+    );
+    router.use("/static", webpackDevMiddleware(compiler, {}));
+    router.use("/static", webpackHotMiddleware(compiler, {}));
+  } else {
+    router.use(
+      join("/static", STATIC_PATH, "app.html"),
+      express.static(join(STATIC_PATH, "app.html"), {
+        setHeaders: cacheShortTerm,
+      })
+    );
+    router.use(
+      "/static",
+      express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
+    );
+  }
+
+  // Also, immediately 404 if anything else under static is requested
+  // which isn't handled above, rather than passing this on to the next app
+  router.use("/static", (_, res) => res.status(404).end());
 }
