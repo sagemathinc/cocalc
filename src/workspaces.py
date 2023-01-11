@@ -100,13 +100,14 @@ def thread_map(callable: Callable,
 def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
-        'packages/', # top level workspace
+        'packages/',  # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
         'packages/backend',
+        'packages/frontend',  # static depends on frontend
+        'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/hub',
-        'packages/frontend',
         'packages/project',
         'packages/assets',
         'packages/server',  # packages/next assumes this is built
@@ -396,7 +397,8 @@ def main() -> None:
     packages_arg(subparser)
     subparser.set_defaults(func=install)
 
-    subparser = subparsers.add_parser('build', help='build all packages for which something has changed')
+    subparser = subparsers.add_parser(
+        'build', help='build all packages for which something has changed')
     packages_arg(subparser)
     subparser.set_defaults(func=build)
 
