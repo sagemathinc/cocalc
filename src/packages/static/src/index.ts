@@ -4,5 +4,3 @@
 import { resolve, join } from "path";
 
 export const path = resolve(join(__dirname, "..", "..", "dist"));
-
-export { webpackCompiler } from "./webpack-compiler";
