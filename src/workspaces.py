@@ -106,10 +106,10 @@ def all_packages() -> List[str]:
         'packages/sync',
         'packages/backend',
         'packages/project',  # frontend depend on project
+        'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/hub',
-        'packages/assets',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes this is built
     ]
