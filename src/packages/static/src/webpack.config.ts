@@ -81,9 +81,9 @@ export default function getConfig({ middleware }: Options = {}) {
   const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
   const COCALC_NOCACHE = !!process.env.COCALC_NOCACHE;
   const WEBPACK_DEV_SERVER =
-    NODE_ENV != "production" && !!process.env.WEBPACK_DEV_SERVER;
+    NODE_ENV != "production" && !!process.env.NO_WEBPACK_DEV_SERVER;
 
-  // output build environment variables of webpack
+  // output build variables of webpack
   console.log(`SMC_VERSION         = ${SMC_VERSION}`);
   console.log(`COCALC_GIT_REVISION = ${COCALC_GIT_REVISION}`);
   console.log(`NODE_ENV            = ${NODE_ENV}`);

@@ -1,18 +1,18 @@
 # How to Build and Run CoCalc
 
-Updated: **October 2021**
+Updated: **Jan 2023**
 
-CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js (14.x) and a recent version of npm (at least 7.x).
+CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( at least 16.8.x\) and a recent version of [pnpm](https://pnpm.io/).
 
 **Node.js and NPM Version Requirements:**
 
-- You must be using Node version 16.8.x. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
+- You must be using Node version 16.8.x or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
 
 ```sh
 . /cocalc/nvm/nvm.sh
 ```
 
-- Make sure to install the newest version of pnpm.
+- Make sure to[install the newest version of pnpm as well;](https://pnpm.io/installation) one way to do that is as follows:
 
 ```sh
 npm install -g pnpm
@@ -36,6 +36,8 @@ This will do `pnpm install` for all packages, and also build the typescript/coff
 ```
 
 The hub will send minimal logging to stdout, and the rest to `data/logs/log`.
+
+If you're only going to do development and 
 
 ### Starting All Over
 
@@ -157,3 +159,4 @@ Admin users have an extra tab inside the main cocalc app labeled "Admin" where t
 There's some `@cocalc/` packages at [NPMJS.com](http://NPMJS.com). However, we're no longer going to use
 them in any way, and don't plan to publish anything new unless there
 is a compelling use case.
+

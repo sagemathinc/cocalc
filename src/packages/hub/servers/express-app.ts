@@ -123,9 +123,12 @@ export default async function init(opts: Options): Promise<{
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
 
-  if (process.env.NODE_ENV != "production" && process.env.WEBPACK_DEV_SERVER) {
+  if (
+    process.env.NODE_ENV != "production" &&
+    !process.env.NO_WEBPACK_DEV_SERVER
+  ) {
     console.warn(
-      "\nWARNING:  running experimental webpack dev server for frontend app (doesn't work with pdfjs)\n"
+      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n"
     );
     const compiler = webpackCompiler();
     router.use("/static", webpackDevMiddleware(compiler, {}));
