@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Avatar, Tabs } from "antd";
+import { Avatar, Popover, Tabs } from "antd";
 import type { TabsProps } from "antd";
 
 import { trunc } from "@cocalc/util/misc";
@@ -18,8 +18,25 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useMemo, useState, CSSProperties } from "react";
-import { Loading, Icon, Tip } from "@cocalc/frontend//components";
+import { Loading, Icon } from "@cocalc/frontend//components";
 import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
+
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  restrictToHorizontalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
@@ -43,6 +60,7 @@ function useProjectStatusAlerts(project_id: string) {
 }
 
 function ProjectTab({ project_id }: ProjectTabProps) {
+  const { active } = useSortable({ id: project_id });
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const project = useRedux(["projects", "project_map", project_id]);
   const public_project_titles = useTypedRedux(
@@ -98,9 +116,9 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     }
   }
 
-  function render_tip() {
+  function renderContent() {
     return (
-      <>
+      <div style={{ maxWidth: "400px" }}>
         <ProjectAvatarImage
           project_id={project_id}
           size={120}
@@ -113,15 +131,20 @@ function ProjectTab({ project_id }: ProjectTabProps) {
         <div style={{ color: COLORS.GRAY }}>
           Hint: shift+click any project or file tab to open it in new window.
         </div>
-      </>
+      </div>
     );
   }
-
   return (
     <div>
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
-        <Tip title={title} tip={render_tip()} placement="bottom" size="small">
+        <Popover
+          title={title}
+          content={renderContent()}
+          placement="bottom"
+          open={active != null ? false : undefined}
+          mouseEnterDelay={0.6}
+        >
           {icon}
           {project?.get("avatar_image_tiny") && (
             <Avatar
@@ -132,27 +155,62 @@ function ProjectTab({ project_id }: ProjectTabProps) {
             />
           )}
           <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
-        </Tip>
+        </Popover>
       </div>
     </div>
   );
 }
 
-function DraggableTabNode({ children }) {
-  return <div>{children}</div>;
+function DraggableTabNode({ children, project_id }) {
+  const { attributes, listeners, setNodeRef, transform, transition, active } =
+    useSortable({ id: project_id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: transform
+          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+          : undefined,
+        transition,
+        zIndex: active?.id == project_id ? 1 : undefined,
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  );
 }
 
 const renderTabBar = (tabBarProps, DefaultTabBar) => (
   <DefaultTabBar {...tabBarProps}>
-    {(node) => <DraggableTabNode key={node.key}>{node}</DraggableTabNode>}
+    {(node) => (
+      <DraggableTabNode key={node.key} project_id={node.key}>
+        {node}
+      </DraggableTabNode>
+    )}
   </DefaultTabBar>
 );
 
 export function ProjectsNav({ style }: { style?: CSSProperties }) {
   const actions = useActions("page");
+  const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
   const isAnonymous = useTypedRedux("account", "is_anonymous");
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 10,
+    },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -164,6 +222,11 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
     });
   }, [openProjects]);
 
+  const project_ids: string[] = useMemo(() => {
+    if (openProjects == null) return [];
+    return openProjects.toJS().map((project_id) => project_id);
+  }, [openProjects]);
+
   const onEdit = (project_id: string, action: "add" | "remove") => {
     if (action == "add") {
       actions.set_active_tab("projects");
@@ -173,29 +236,59 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
     }
   };
 
+  function handleDragEnd(event) {
+    const { active, over } = event;
+    if (active.id == over.id) return;
+    console.log("end", active.id, over.id);
+    projectActions.move_project_tab({
+      old_index: project_ids.indexOf(active.id),
+      new_index: project_ids.indexOf(over.id),
+    });
+  }
+
+  function handleDragStart(event) {
+    if (event?.active?.id != activeTopTab) {
+      actions.set_active_tab(event?.active?.id);
+    }
+  }
+
   return (
-    <div
-      style={{
-        flex: 1,
-        overflow: "hidden",
-        height: "36px",
-        //display: "flex",
-        //justifyContent: "center",
-        ...style,
-      }}
+    <DndContext
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+      sensors={sensors}
     >
-      {items.length > 0 && (
-        <Tabs
-          activeKey={activeTopTab}
-          onEdit={onEdit}
-          onChange={(project_id) => {
-            actions.set_active_tab(project_id);
+      <SortableContext
+        items={project_ids}
+        strategy={horizontalListSortingStrategy}
+      >
+        <div
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            height: "36px",
+            //display: "flex",
+            //justifyContent: "center",
+            ...style,
           }}
-          type={isAnonymous ? "card" : "editable-card"}
-          renderTabBar={renderTabBar}
-          items={items}
-        />
-      )}
-    </div>
+        >
+          {items.length > 0 && (
+            <Tabs
+              moreIcon={<Icon style={{fontSize:'18px'}} name="ellipsis" />}
+              animated={false}
+              activeKey={activeTopTab}
+              onEdit={onEdit}
+              onChange={(project_id) => {
+                actions.set_active_tab(project_id);
+              }}
+              type={isAnonymous ? "card" : "editable-card"}
+              renderTabBar={renderTabBar}
+              items={items}
+            />
+          )}
+        </div>{" "}
+      </SortableContext>
+    </DndContext>
   );
 }
