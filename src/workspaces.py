@@ -105,10 +105,10 @@ def all_packages() -> List[str]:
         'packages/util',
         'packages/sync',
         'packages/backend',
+        'packages/project',  # frontend depend on project
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/hub',
-        'packages/project',
         'packages/assets',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes this is built
@@ -249,7 +249,10 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist, ignore_errors=True)
         package_path = os.path.join(CUR, path)
-        cmd("pnpm run build", package_path)
+        if args.dev and '"build-dev"' in open(os.path.join(CUR, path, 'package.json')).read():
+            cmd("pnpm run build-dev", package_path)
+        else:
+            cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
         # to indicate this, so we won't build again
         # until something is newer than this file
@@ -399,6 +402,11 @@ def main() -> None:
 
     subparser = subparsers.add_parser(
         'build', help='build all packages for which something has changed')
+    subparser.add_argument(
+        '--dev',
+        action="store_const",
+        const=True,
+        help="only build enough for development (saves time and space)")
     packages_arg(subparser)
     subparser.set_defaults(func=build)
 

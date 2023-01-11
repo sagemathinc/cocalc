@@ -6,16 +6,13 @@ projects, files, editors, etc.
 
 ## Development
 
-When doing development, use `pnpm run webpack` and `pnpm run tsc` in two terminals.
+When doing development, use `pnpm run tsc` to watch for typescript errors \(or just use VS Code or some other editor with LSP support\).
 
 ```sh
-pnpm run weppack
 pnpm run tsc
 ```
 
-ALSO, run `pnpm run tsc` in the `packages/frontend` directory, if you are editing that code.
-
-The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `frontend` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `pnpm tsc`.
+ALSO, run `pnpm run tsc` in the `packages/frontend` directory, if you are editing that code, which is likely if you're reading this file.
 
 Use `pnpm webpack-prod` to build and test the production version:
 
@@ -23,12 +20,12 @@ Use `pnpm webpack-prod` to build and test the production version:
 pnpm webpack-prod
 ```
 
-This is the same as `pnpm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes. Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
+This is the same as `pnpm run webpack`, but with more aggressive chunking, caching, minification, etc. It's interesting to test this before making a release, in case something surprising changes or to make sure the size of the bundle hasn't got too big. Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data \(e.g., due to installing a huge package\).
 
 If you get really weird errors that make no sense, the on-disk cashing may be broken. In that case, delete it and restart webpack:
 
 ```sh
-rm -rf /tmp/webpack
+rm -rf /tmp/webpack-`whoami`
 ```
 
 ## Measuring size
@@ -37,7 +34,7 @@ Run `pnpm webpack-measure` and when it finishes, look at `dist-measure/measure.h
 
 ## More about development
 
-First we assume you have installed all dev dependencies everywhere for all modules (`pnpm install; pnpm build`). To do interactive development of CoCalc, you optionally start typescript in watch mode as explained below. If you're using
+First we assume you have installed all dev dependencies everywhere for all modules \(`pnpm install; pnpm build-dev`\). To do interactive development of CoCalc, you optionally start typescript in watch mode as explained below. If you're using
 VS Code its LSP server handles this checking so you can skip this.
 
 To watch for typescript errors, in one terminal session (in this package/static directory!) start webpack running
@@ -79,10 +76,10 @@ Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-
 }
 ```
 
-### 2. npmjs.com `@cocalc/*` packages
+### 2. \[DEPRECATED!\] [npmjs.com](http://npmjs.com) `@cocalc/*` packages
 
-We used to use npmjs.com extensively for packaging under the @cocalc org.
-We now do not use that in any way, so just don't get confused by that.
+We used to use [npmjs.com](http://npmjs.com) extensively for packaging under the @cocalc org.
+**We now do not use that in any way**, so just don't get confused by that.
 
 ### 3. Changing code in other packages such as `packages/util`
 

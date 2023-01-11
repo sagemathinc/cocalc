@@ -50,7 +50,7 @@ import cleanPlugin from "./plugins/clean";
 import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
 import measurePlugin from "./plugins/measure";
-import hotModuleReplacementPlugin, { hotMiddlewareUrl } from "./plugins/hot";
+import hotModuleReplacementPlugin, { getHotMiddlewareUrl } from "./plugins/hot";
 
 import moduleRules from "./module-rules";
 
@@ -81,7 +81,7 @@ export default function getConfig({ middleware }: Options = {}) {
   const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
   const COCALC_NOCACHE = !!process.env.COCALC_NOCACHE;
   const WEBPACK_DEV_SERVER =
-    NODE_ENV != "production" && !!process.env.NO_WEBPACK_DEV_SERVER;
+    NODE_ENV != "production" && !process.env.NO_WEBPACK_DEV_SERVER;
 
   // output build variables of webpack
   console.log(`SMC_VERSION         = ${SMC_VERSION}`);
@@ -160,6 +160,7 @@ export default function getConfig({ middleware }: Options = {}) {
   }
 
   function insertHotMiddlewareUrl(v: string[]): string[] {
+    const hotMiddlewareUrl = getHotMiddlewareUrl();
     if (WEBPACK_DEV_SERVER) {
       v.unshift(hotMiddlewareUrl);
     }

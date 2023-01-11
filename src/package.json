@@ -6,7 +6,7 @@
     "make": "./workspaces.py install && pnpm run build",
     "build": "./workspaces.py build",
     "make-dev": "./workspaces.py install && pnpm run build-dev",
-    "build-dev": "./workspaces.py build --exclude=static,next && cd packages/next && pnpm run build-dist && cd ../static && pnpm run build-src",
+    "build-dev": "./workspaces.py build --dev",
     "clean": "./workspaces.py clean --packages=$npm_config_packages --exclude=$npm_config_exclude",
     "status": "./workspaces.py status --packages=$npm_config_packages  --exclude=$npm_config_exclude 2>&1 |more",
     "diff": "./workspaces.py diff --packages=$npm_config_packages --exclude=$npm_config_exclude 2>&1 |more",

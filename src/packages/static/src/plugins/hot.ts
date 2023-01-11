@@ -5,7 +5,7 @@ NOTE: We use analyzerMode="static" to get a static file (dist/report.html)
 instead of running a webserver, which gets complicated in some environments.
 */
 
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import basePath from "@cocalc/backend/base-path";
 import { HotModuleReplacementPlugin } from "webpack";
 import { join } from "path";
 
@@ -26,7 +26,9 @@ export default function hotModuleReplacementPlugin(registerPlugin) {
 }
 
 // See https://github.com/webpack-contrib/webpack-hot-middleware
-export const hotMiddlewareUrl = `webpack-hot-middleware/client?path=${join(
-  appBasePath,
-  "/static/__webpack_hmr"
-)}`;
+export function getHotMiddlewareUrl() {
+  return `webpack-hot-middleware/client?path=${join(
+    basePath,
+    "/static/__webpack_hmr"
+  )}`;
+}
