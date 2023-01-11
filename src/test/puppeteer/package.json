@@ -37,7 +37,7 @@
     "js-yaml": "^3.13.1",
     "path": "^0.12.7",
     "prettier": "^2.6.2",
-    "puppeteer": "^2.0.0",
+    "puppeteer": "^19.5.1",
     "sprintf-js": "^1.1.2",
     "type-of-is": "^3.5.1",
     "typescript": "^4.1.3"
