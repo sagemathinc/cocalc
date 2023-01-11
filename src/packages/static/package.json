@@ -12,7 +12,7 @@
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development pnpm webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true pnpm webpack-prod",
-    "build": "pnpm clean && pnpm run build-src && ./production-build.py",
+    "build": "pnpm run build-src && ./production-build.py",
     "build-src": "pnpm run copy-css && cd src && npx tsc --pretty ",
     "build-dev": "pnpm run build-src && NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color",
     "test": "npx jest dist-ts",
