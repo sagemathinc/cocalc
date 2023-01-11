@@ -47,7 +47,7 @@ export default function useFilterInput({ data, id, title }): {
               textOverflow: "ellipsis",
             }}
           >
-            <FilterOutlined /> {title}
+            <FilterOutlined /> Filter {title}
           </div>
         }
         style={{ width: 250, marginBottom: "5px" }}

@@ -10,6 +10,8 @@ The actual fix -- i.e., this entire file -- comes from
 which is for a different bug in antd + nextjs, but it happens to fix
 the same problem, and fortunately also works with the older nextjs 12.x, which
 we are currently stuck with.
+
+See also the discussion at https://github.com/ant-design/ant-design/issues/39891
 */
 
 import type { DocumentContext, DocumentInitialProps } from "next/document";

@@ -23,6 +23,7 @@ import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 import { versions } from "@cocalc/cdn";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import "pdfjs-dist/webpack";
 
 /* IMPORTANT:
  - We do NOT install pdfjs-dist into the @cocalc/frontend module at all though we import it here!!

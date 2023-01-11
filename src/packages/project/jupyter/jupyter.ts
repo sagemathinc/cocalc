@@ -47,7 +47,7 @@ import {
 } from "@cocalc/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
-const { key_value_store } = require("@cocalc/util/key-value-store");
+import { key_value_store } from "@cocalc/util/key-value-store";
 
 import { get_blob_store } from "./jupyter-blobs-sqlite";
 import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
