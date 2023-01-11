@@ -677,6 +677,139 @@ describe("main quota functionality", () => {
     });
   });
 
+  it("allow for much larger max_upgrades", () => {
+    const site_settings = {
+      max_upgrades: {
+        // taken from cocalc-cloud example configuration
+        memory: 32000,
+        cores: 16,
+      },
+    };
+
+    const site_license = {
+      "123": {
+        title: "123",
+        quota: { cpu:9, ram: 12, member: true },
+        run_limit: 3,
+        id: "123",
+      },
+      "321": {
+        title: "321",
+        quota: { cpu: 1, ram: 10, member: true },
+        run_limit: 3,
+        id: "321",
+      },
+    };
+    const q1 = quota({}, { userX: {} }, site_license, site_settings);
+    expect(q1).toEqual({
+      always_running: false,
+      cpu_limit: 10,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 22000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+    });
+  });
+
+
+  it("allow for much larger max_upgrades and take oc values into account", () => {
+    const site_settings = {
+      default_quotas: {
+        mem_oc: 1,
+        cpu_oc: 1,
+      },
+      max_upgrades: {
+        // taken from cocalc-cloud example configuration
+        memory: 32000,
+        memory_request: 32000,
+        cores: 16,
+        cpu_shares: 16 * 1024,
+      },
+    };
+
+    const site_license = {
+      "123": {
+        title: "123",
+        quota: { cpu: 1, ram: 9, member: true },
+        run_limit: 3,
+        id: "123",
+      },
+      "321": {
+        title: "321",
+        quota: { cpu: 10, ram: 10, member: true },
+        run_limit: 3,
+        id: "321",
+      },
+    };
+    const q1 = quota({}, { userX: {} }, site_license, site_settings);
+    expect(q1).toEqual({
+      always_running: false,
+      cpu_limit: 11,
+      cpu_request: 11,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 19000,
+      memory_request: 19000,
+      network: true,
+      privileged: false,
+    });
+  });
+
+  it("allow for much larger max_upgrades and cap at their max", () => {
+    const site_settings = {
+      default_quotas: {
+        mem_oc: 1,
+        cpu_oc: 1,
+      },
+      max_upgrades: {
+        // taken from cocalc-cloud example configuration
+        memory: 32000,
+        memory_request: 32000,
+        cores: 16,
+        cpu_shares: 16 * 1024,
+      },
+    };
+
+    const site_license = {
+      "123": {
+        title: "123",
+        quota: { cpu: 12, ram: 20, member: true },
+        run_limit: 3,
+        id: "123",
+      },
+      "321": {
+        title: "321",
+        quota: { cpu: 10, ram: 20, member: true },
+        run_limit: 3,
+        id: "321",
+      },
+    };
+    const q1 = quota({}, { userX: {} }, site_license, site_settings);
+    expect(q1).toEqual({
+      always_running: false,
+      cpu_limit: 16,
+      cpu_request: 16,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 32000,
+      memory_request: 32000,
+      network: true,
+      privileged: false,
+    });
+  });
+
   it("takes overcommitment ratios into account for user upgrades", () => {
     const site_settings = {
       default_quotas: {
