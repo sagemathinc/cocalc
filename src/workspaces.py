@@ -227,6 +227,11 @@ def banner(s: str) -> None:
 
 def install(args) -> None:
     v = packages(args)
+    if v == all_packages():
+        # much faster special case
+        cmd("cd packages && pnpm -r install")
+        return
+
     # First do "pnpm i" not in parallel
     for path in v:
         # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
@@ -249,7 +254,8 @@ def build(args) -> None:
                 # clear dist/ dir
                 shutil.rmtree(dist, ignore_errors=True)
         package_path = os.path.join(CUR, path)
-        if args.dev and '"build-dev"' in open(os.path.join(CUR, path, 'package.json')).read():
+        if args.dev and '"build-dev"' in open(
+                os.path.join(CUR, path, 'package.json')).read():
             cmd("pnpm run build-dev", package_path)
         else:
             cmd("pnpm run build", package_path)
