@@ -7,8 +7,6 @@
 
 const HIGHLIGHT_TIME_S: number = 6;
 
-import "./pdfjs-worker";
-
 import { useCallback, useRef, useState } from "react";
 import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";

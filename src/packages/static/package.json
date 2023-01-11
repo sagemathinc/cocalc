@@ -132,7 +132,6 @@
     "webpack-bundle-analyzer": "^4.5.0",
     "webpack-cli": "^5.0.1",
     "webpack-path-rewriter": "^1.1.4",
-    "webpack-sha-hash": "^2.0.0",
-    "worker-loader": "^3.0.8"
+    "webpack-sha-hash": "^2.0.0"
   }
 }

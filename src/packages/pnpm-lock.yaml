@@ -987,7 +987,6 @@ importers:
       webpack-cli: ^5.0.1
       webpack-path-rewriter: ^1.1.4
       webpack-sha-hash: ^2.0.0
-      worker-loader: ^3.0.8
     devDependencies:
       '@cocalc/assets': link:../assets
       '@cocalc/backend': link:../backend
@@ -1076,7 +1075,6 @@ importers:
       webpack-cli: 5.0.1_zfjer5eiwvoit4zaxwbfe5plkm
       webpack-path-rewriter: 1.1.4
       webpack-sha-hash: 2.0.0
-      worker-loader: 3.0.8_webpack@5.75.0
 
   sync:
     specifiers:
@@ -17131,17 +17129,6 @@ packages:
 
   /wordwrap/1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
-    dev: true
-
-  /worker-loader/3.0.8_webpack@5.75.0:
-    resolution: {integrity: sha512-XQyQkIFeRVC7f7uRhFdNMe/iJOdO6zxAaR3EWbDp45v3mDhrTi+++oswKNxShUNjPC/1xUp5DB29YKLhFo129g==}
-    engines: {node: '>= 10.13.0'}
-    peerDependencies:
-      webpack: ^4.0.0 || ^5.0.0
-    dependencies:
-      loader-utils: 2.0.4
-      schema-utils: 3.1.1
-      webpack: 5.75.0_d2l2jk64pirjhthikyf3fffdzu
     dev: true
 
   /workerpool/6.2.1:
