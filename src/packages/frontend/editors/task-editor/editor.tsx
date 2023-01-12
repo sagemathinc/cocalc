@@ -131,7 +131,9 @@ export const TaskEditor: React.FC<Props> = React.memo(
             font_size={local_view_state.get("font_size")}
             sortable={
               !read_only &&
-              is_sortable(local_view_state.getIn(["sort", "column"]))
+              is_sortable(
+                local_view_state.getIn(["sort", "column"]) ?? "Custom Order"
+              )
             }
             read_only={read_only}
             selected_hashtags={local_view_state.get("selected_hashtags")}
