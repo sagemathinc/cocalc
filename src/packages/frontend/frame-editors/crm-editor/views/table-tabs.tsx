@@ -7,6 +7,7 @@ import {
   renderTabBar,
   SortableTabs,
 } from "@cocalc/frontend/components/sortable-tabs";
+import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
 
 interface TabItem {
@@ -58,13 +59,21 @@ export default function TableTabs() {
         }
         const oldIndex = tables.indexOf(active.id);
         const newIndex = tables.indexOf(over.id);
-        console.log("move", { oldIndex, newIndex });
+        const newTables = arrayMove(tables, oldIndex, newIndex);
+        setTables(newTables);
       }}
     >
       <Tabs
         type={"editable-card"}
         onEdit={(table: string, action: "add" | "remove") => {
-          console.log("edit", table, action);
+          if (action == "remove") {
+            const newTables = tables.filter((x) => x != table);
+            if (newTables.length != tables.length) {
+              setTables(newTables);
+            }
+          } else {
+            console.log("add table");
+          }
         }}
         renderTabBar={renderTabBar}
         activeKey={activeKey}
