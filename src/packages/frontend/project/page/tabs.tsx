@@ -1,6 +1,5 @@
-import { NavItem, Nav } from "react-bootstrap";
+import { Tabs } from "antd";
 import { tab_to_path } from "@cocalc/util/misc";
-import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { ShareIndicator } from "./share-indicator";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
@@ -10,21 +9,14 @@ import {
   FIXED_PROJECT_TABS,
   FileTab,
 } from "./file-tab";
-import { createElement } from "react";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 
-const SortableFileTab = SortableElement(FileTab);
-
-// TODO: why the wrapper and not just Nav directly???
-const NavWrapper = ({ style, children, id, className, bsStyle }) =>
-  createElement(Nav, { style, id, className, bsStyle }, children);
-const SortableNav = SortableContainer(NavWrapper);
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
 } as const;
 
-export default function Tabs({ project_id }) {
+export default function ProjectTabs({ project_id }) {
   const actions = useActions({ project_id });
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
@@ -53,22 +45,14 @@ export default function Tabs({ project_id }) {
     >
       <div style={{ display: "flex" }}>
         {fullscreen != "kiosk" && (
-          <Nav
-            bsStyle="pills"
-            className="smc-file-tabs-fixed-desktop"
-            style={{ overflow: "hidden", float: "left" }}
-          >
-            <FixedTabs
-              shrinkFixedTabs={shrinkFixedTabs}
-              project_id={project_id}
-            />
-          </Nav>
+          <FixedTabs
+            shrinkFixedTabs={shrinkFixedTabs}
+            project_id={project_id}
+          />
         )}
         <div style={{ display: "flex", overflow: "hidden", flex: 1 }}>
-          <SortableNav
-            className="smc-file-tabs-sortable-desktop"
+          <div
             id="sortable-file-tabs"
-            helperClass={"smc-file-tab-floating"}
             onSortEnd={on_sort_end}
             axis={"x"}
             lockAxis={"x"}
@@ -83,7 +67,7 @@ export default function Tabs({ project_id }) {
               numGhostTabs={numGhostTabs}
               project_id={project_id}
             />
-          </SortableNav>
+          </div>
         </div>
         <div
           style={{
@@ -127,7 +111,7 @@ function FileTabs({ openFiles, numGhostTabs, project_id }) {
   const tabs: JSX.Element[] = [];
   for (let index = 0; index < labels.length; index++) {
     tabs.push(
-      <SortableFileTab
+      <FileTab
         index={index}
         key={paths[index]}
         project_id={project_id}
@@ -144,7 +128,7 @@ function FileTabs({ openFiles, numGhostTabs, project_id }) {
   const num_tabs = num_real_tabs + numGhostTabs;
   for (let index = num_real_tabs; index < num_tabs; index++) {
     // Push a "ghost tab":
-    tabs.push(<NavItem style={DEFAULT_FILE_TAB_STYLES} key={index} />);
+    tabs.push(<div style={DEFAULT_FILE_TAB_STYLES} key={index} />);
   }
   return <>{tabs}</>;
 }
@@ -168,7 +152,7 @@ function FixedTabs({ shrinkFixedTabs, project_id }) {
     );
     tabs.push(tab);
   }
-  return <>{tabs}</>;
+  return <div style={{ display: "flex" }}>{tabs}</div>;
 }
 
 function ChatIndicatorTab({

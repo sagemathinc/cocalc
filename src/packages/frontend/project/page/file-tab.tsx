@@ -8,23 +8,19 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-const { file_options } = require("../../editor");
-import { NavItem } from "react-bootstrap";
+const { file_options } = require("@cocalc/frontend/editor");
 import {
-  React,
-  ReactDOM,
   useActions,
-  useEffect,
-  useMemo,
   useRedux,
-  useRef,
   useTypedRedux,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
+import ReactDOM from "react-dom";
+import { CSSProperties, useEffect, useMemo, useRef } from "react";
 import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
-import { HiddenXS, Icon, IconName, Tip } from "../../components";
+import { HiddenXS, Icon, IconName, Tip } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI } from "../../feature";
+import { IS_SAFARI } from "@cocalc/frontend/feature";
 import CloseX from "./close-x";
 
 type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
@@ -99,7 +95,7 @@ interface PropsName extends Props0 {
 }
 type Props = PropsPath | PropsName;
 
-export const FileTab: React.FC<Props> = React.memo((props: Props) => {
+export function FileTab(props: Props) {
   const { project_id, path, name, label: label_prop } = props;
   let label = label_prop; // label might be modified in some situations
   const actions = useActions({ project_id });
@@ -201,7 +197,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  let style: React.CSSProperties;
+  let style: CSSProperties;
   if (path != null) {
     if (is_selected) {
       style = {
@@ -220,11 +216,9 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const icon_style: React.CSSProperties = has_activity
-    ? { color: "orange" }
-    : {};
+  const icon_style: CSSProperties = has_activity ? { color: "orange" } : {};
 
-  const label_style: React.CSSProperties = {
+  const label_style: CSSProperties = {
     overflow: "hidden",
     flex: 1 /* expand pushing x to the right */,
     whiteSpace: "nowrap",
@@ -266,10 +260,14 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
 
   const displayed_label: JSX.Element = render_displayed_label({ path, label });
 
-  const color = is_selected ? "white" : status_alert ? COLORS.BS_RED : COLORS.TAB;
+  const color = is_selected
+    ? "white"
+    : status_alert
+    ? COLORS.BS_RED
+    : COLORS.TAB;
 
   return (
-    <NavItem
+    <div
       ref={tab_ref}
       style={style}
       active={is_selected}
@@ -296,6 +294,6 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           />
         )}
       </div>
-    </NavItem>
+    </div>
   );
-});
+}
