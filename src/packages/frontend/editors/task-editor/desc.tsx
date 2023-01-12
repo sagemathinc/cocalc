@@ -28,7 +28,7 @@ interface Props {
   editing: boolean;
   is_current: boolean;
   font_size: number;
-  read_only: boolean;
+  read_only?: boolean;
   selectedHashtags: Set<string>;
   searchWords?: string[];
   hideBody?: boolean;

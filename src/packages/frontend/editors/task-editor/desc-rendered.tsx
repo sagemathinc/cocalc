@@ -16,7 +16,7 @@ interface Props {
   actions?: TaskActions;
   task_id: string;
   desc: string;
-  read_only: boolean;
+  read_only?: boolean;
   selectedHashtags?: Set<string>;
   searchWords?: string[];
   is_current?: boolean;

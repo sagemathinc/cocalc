@@ -11,7 +11,7 @@ import { React, useEffect, useEditorRedux } from "../../app-framework";
 
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
-import { TaskList } from "./list";
+import TaskList from "./list";
 import { ButtonBar } from "./button-bar";
 import { Find } from "./find";
 import { DescVisible } from "./desc-visible";
@@ -136,12 +136,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
             read_only={read_only}
             selected_hashtags={local_view_state.get("selected_hashtags")}
             search_terms={search_terms}
-            onSortEnd={({ oldIndex, newIndex }) =>
-              actions.reorder_tasks(oldIndex, newIndex)
-            }
-            useDragHandle={true}
-            lockAxis={"y"}
-            lockToContainerEdges={true}
           />
         )}
       </div>

@@ -11,7 +11,6 @@ all users of this document from any browser.  It's in the record:
 
 import { useSyncdbRecord } from "@cocalc/frontend/app-framework/syncdb";
 import { useCallback } from "react";
-import { getTables } from "../tables";
 
 const PRIMARY_KEY = { id: "tabs", table: "tables" } as const;
 

@@ -8,13 +8,10 @@ Drag tasks handle (and other support)
 */
 
 import { Icon, Tip } from "../../components";
-import { SortableHandle } from "react-sortable-hoc";
 
 const HandleIcon: React.FC = () => {
   return <Icon style={{ cursor: "pointer" }} name="bars" />;
 };
-
-const SortableDragHandle = SortableHandle(HandleIcon);
 
 const DisabledDragHandle: React.FC = () => {
   return (
@@ -35,7 +32,7 @@ export const DragHandle: React.FC<Props> = ({ sortable }) => {
   let color, Handle;
   if (sortable) {
     color = "#888";
-    Handle = SortableDragHandle;
+    Handle = HandleIcon;
   } else {
     color = "#eee";
     Handle = DisabledDragHandle;
