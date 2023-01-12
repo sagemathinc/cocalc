@@ -33,7 +33,7 @@ export function SortableTabs({
 }: Props) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
-      distance: 5,
+      distance: 2,
     },
   });
   const touchSensor = useSensor(TouchSensor, {

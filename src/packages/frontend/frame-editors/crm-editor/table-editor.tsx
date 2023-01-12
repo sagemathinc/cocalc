@@ -10,6 +10,10 @@ import { TagsProvider } from "./querydb/tags";
 import { AgentsProvider } from "./querydb/use-agents";
 import { QueryCache } from "./querydb/use-query-cache";
 import "./ant-hacks.css";
+import {
+  renderTabBar,
+  SortableTabs,
+} from "@cocalc/frontend/components/sortable-tabs";
 
 interface TabItem {
   label: ReactNode;
@@ -19,20 +23,14 @@ interface TabItem {
 }
 
 export default function TableEditor({ actions }) {
-  const items = useMemo(() => {
+  const { items, tables } = useMemo(() => {
     const items: TabItem[] = [];
+    const tables: string[] = [];
 
     // Home is far from done and maybe should be a different editor panel?
 
-    //     const items: TabItem[] = [
-    //       {
-    //         label: <Icon name="home" />,
-    //         key: "home",
-    //         children: <Home />,
-    //         style: { height: "100%", overflow: "auto" },
-    //       },
-    //     ];
     for (const table of getTables()) {
+      tables.push(table);
       const children = <Views table={table} style={{ margin: "0px 15px" }} />;
       const { title } = getTableDescription(table);
       items.push({
@@ -42,7 +40,7 @@ export default function TableEditor({ actions }) {
         style: { height: "100%", overflow: "hidden" },
       });
     }
-    return items;
+    return { items, tables };
   }, []);
 
   const { id, desc } = useFrameContext();
@@ -56,16 +54,41 @@ export default function TableEditor({ actions }) {
         <TagsProvider>
           <AgentsProvider>
             <QueryCache>
-              <Tabs
-                type="card"
-                activeKey={activeKey}
-                onChange={(activeKey: string) => {
-                  actions.set_frame_tree({ id, "data-tab": activeKey });
+              <SortableTabs
+                items={tables}
+                onDragStart={(event) => {
+                  if (event?.active?.id != activeKey) {
+                    actions.set_frame_tree({
+                      id,
+                      "data-tab": event?.active?.id,
+                    });
+                  }
                 }}
-                size="small"
-                items={items}
-                style={{ height: "100%" }}
-              />
+                onDragEnd={(event) => {
+                  const { active, over } = event;
+                  if (active == null || over == null || active.id == over.id) {
+                    return;
+                  }
+                  const oldIndex = tables.indexOf(active.id);
+                  const newIndex = tables.indexOf(over.id);
+                  console.log("move", { oldIndex, newIndex });
+                }}
+              >
+                <Tabs
+                  type={"editable-card"}
+                  onEdit={(table: string, action: "add" | "remove") => {
+                    console.log("edit", table, action);
+                  }}
+                  renderTabBar={renderTabBar}
+                  activeKey={activeKey}
+                  onChange={(activeKey: string) => {
+                    actions.set_frame_tree({ id, "data-tab": activeKey });
+                  }}
+                  size="small"
+                  items={items}
+                  style={{ height: "100%", margin: "5px" }}
+                />
+              </SortableTabs>
             </QueryCache>
           </AgentsProvider>
         </TagsProvider>
