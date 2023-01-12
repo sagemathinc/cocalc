@@ -16,6 +16,25 @@ import type { TabsProps } from "antd";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab } from "./file-tab";
 import { useActions } from "@cocalc/frontend/app-framework";
+import {
+  renderTabBar,
+  SortableTabs,
+  useSortable,
+} from "@cocalc/frontend/components/sortable-tabs";
+import { path_to_tab } from "@cocalc/util/misc";
+
+function Label({ path, project_id, label }) {
+  const { active } = useSortable({ id: project_id });
+  return (
+    <FileTab
+      key={path}
+      project_id={project_id}
+      path={path}
+      label={label}
+      noPopover={active != null}
+    />
+  );
+}
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
   const actions = useActions({ project_id });
@@ -40,10 +59,9 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     items.push({
       key: paths[index],
       label: (
-        <FileTab
-          key={paths[index]}
-          project_id={project_id}
+        <Label
           path={paths[index]}
+          project_id={project_id}
           label={labels[index]}
         />
       ),
@@ -58,17 +76,45 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       actions.close_tab(path);
     }
   };
+
+  function onDragEnd(event) {
+    if (actions == null) return;
+    const { active, over } = event;
+    if (active == null || over == null || active.id == over.id) return;
+    actions.move_file_tab({
+      old_index: paths.indexOf(active.id),
+      new_index: paths.indexOf(over.id),
+    });
+  }
+
+  const activeKey = activeTab.startsWith("editor-")
+    ? activeTab.slice("editor-".length)
+    : "";
+
+  function onDragStart(event) {
+    if (actions == null) return;
+    if (event?.active?.id != activeKey) {
+      actions.set_active_tab(path_to_tab(event?.active?.id));
+    }
+  }
+
   return (
-    <Tabs
-      tabBarStyle={{ minHeight: "36px" }}
-      onEdit={onEdit}
-      style={{ width: "100%" }}
-      size="small"
-      items={items}
-      activeKey={
-        activeTab.startsWith("editor-") ? activeTab.slice("editor-".length) : ""
-      }
-      type={"editable-card"}
-    />
+    <SortableTabs items={paths} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <Tabs
+        animated={false}
+        renderTabBar={renderTabBar}
+        tabBarStyle={{ minHeight: "36px" }}
+        onEdit={onEdit}
+        style={{ width: "100%" }}
+        size="small"
+        items={items}
+        activeKey={activeKey}
+        type={"editable-card"}
+        onChange={(path) => {
+          if (actions == null) return;
+          actions.set_active_tab(path_to_tab(path));
+        }}
+      />
+    </SortableTabs>
   );
 }

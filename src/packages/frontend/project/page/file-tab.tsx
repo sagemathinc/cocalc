@@ -15,11 +15,11 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { CSSProperties } from "react";
-import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
-import { HiddenXS, Icon, IconName, Tip } from "@cocalc/frontend/components";
+import { path_split, path_to_tab } from "@cocalc/util/misc";
+import { HiddenXS, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI } from "@cocalc/frontend/feature";
+import { Popover } from "antd";
 
 export type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
 
@@ -73,13 +73,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
 
 export const DEFAULT_FILE_TAB_STYLES = {
   borderRadius: "5px 5px 0px 0px",
-  maxWidth: "250px",
+  maxWidth: "200px",
 } as const;
 
 interface Props0 {
   project_id: string;
   label?: string;
   style?: CSSProperties;
+  noPopover?: boolean;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -137,43 +138,6 @@ export function FileTab(props: Props) {
     }
   }
 
-  function DisplayedLabel({ path, label }) {
-    if (path == null) {
-      return <HiddenXS>{label}</HiddenXS>;
-    }
-    // We ONLY show tooltip for filename (it provides the full path).
-    // The "ltr" below is needed because of the direction 'rtl' in label_style, which
-    // we have to compensate for in some situations, e.g., a file name "this is a file!"
-    // will have the ! moved to the beginning by rtl.
-    const shift_open_info = (
-      <span style={{ color: COLORS.GRAY }}>
-        Hint: Shift-Click to open in new window.
-      </span>
-    );
-    // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
-    // though our union type above guarantees this.
-    const tooltip = (
-      <span style={{ fontWeight: "bold" }}>
-        {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
-      </span>
-    );
-
-    return (
-      <div style={label_style}>
-        <span style={{ direction: "ltr" }}>
-          <Tip
-            title={tooltip}
-            tip={shift_open_info}
-            stable={false}
-            placement={"bottom"}
-          >
-            {label}
-          </Tip>
-        </span>
-      </div>
-    );
-  }
-
   let style: CSSProperties;
   if (path != null) {
     style = DEFAULT_FILE_TAB_STYLES;
@@ -188,12 +152,6 @@ export function FileTab(props: Props) {
 
   const icon_style: CSSProperties = has_activity ? { color: "orange" } : {};
 
-  const label_style: CSSProperties = {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  };
-
   if (label == null) {
     if (name != null) {
       label = FIXED_PROJECT_TABS[name].label;
@@ -203,36 +161,16 @@ export function FileTab(props: Props) {
   }
   if (label == null) throw Error("label must not be null");
 
-  const i = label.lastIndexOf("/");
-  if (i !== -1) {
-    if (IS_SAFARI) {
-      // Safari's implementation of direction rtl combined with
-      // ellipsis is really buggy.  E.g.,
-      //   https://developer.apple.com/forums/thread/87131
-      // so for Safari we just show the filename as usual.  I tried
-      // for many hours to find a palatable workaround, but failed.
-      // So we just do something really naive but probably sort of
-      // useful.
-      label = trunc_left(label, 20);
-    } else {
-      // using a full path for the label instead of just a filename
-      label_style.textOverflow = "ellipsis";
-      // so the ellipsis are on the left side of the path, which is most useful
-      label_style.direction = "rtl";
-      label_style.padding = "0 1px"; // need less since have ...
-    }
-  }
-
   const icon =
     path != null
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
-  return (
+  let body = (
     <div
       style={{ ...style, ...props.style }}
-      onClick={click}
       cocalc-test={label}
+      onClick={click}
       onMouseDown={onMouseDown}
     >
       <div
@@ -243,10 +181,69 @@ export function FileTab(props: Props) {
         }}
       >
         <div>
-          <Icon style={{ ...icon_style, marginRight: '5px'}} name={icon} />
+          <Icon style={{ ...icon_style, marginRight: "5px" }} name={icon} />
         </div>
         <DisplayedLabel path={path} label={label} />
       </div>
+    </div>
+  );
+
+  if (props.noPopover) {
+    return body;
+  }
+  // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
+  // though our union type above guarantees this.
+  return (
+    <Popover
+      zIndex={10000}
+      title={
+        <span style={{ fontWeight: "bold" }}>
+          {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
+        </span>
+      }
+      content={
+        <span style={{ color: COLORS.GRAY }}>
+          Hint: Shift-Click to open in new window.
+        </span>
+      }
+      mouseEnterDelay={0.9}
+      placement={"bottom"}
+    >
+      {body}
+    </Popover>
+  );
+}
+
+const LABEL_STYLE = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as CSSProperties;
+
+const FULLPATH_LABEL_STYLE = {
+  // using a full path for the label instead of just a filename
+  textOverflow: "ellipsis",
+  // so the ellipsis are on the left side of the path, which is most useful
+  direction: "rtl",
+  padding: "0 1px", // need less since have ..
+} as const;
+
+function DisplayedLabel({ path, label }) {
+  if (path == null) {
+    return <HiddenXS>{label}</HiddenXS>;
+  }
+
+  // The "ltr" below is needed because of the direction 'rtl' in label_style, which
+  // we have to compensate for in some situations, e.g., a file name "this is a file!"
+  // will have the ! moved to the beginning by rtl.
+  return (
+    <div
+      style={{
+        ...LABEL_STYLE,
+        ...(label.includes("/") ? FULLPATH_LABEL_STYLE : undefined),
+      }}
+    >
+      <span style={{ direction: "ltr" }}>{label}</span>
     </div>
   );
 }

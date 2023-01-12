@@ -22,7 +22,7 @@ interface Props {
   onDragStart?: ((event) => void) | undefined;
   onDragEnd?: ((event) => void) | undefined;
   items: (string | number)[];
-  children?: ReactNode[];
+  children?: ReactNode;
 }
 
 export function SortableTabs({
@@ -33,13 +33,13 @@ export function SortableTabs({
 }: Props) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
-      distance: 10,
+      distance: 5,
     },
   });
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: {
-      delay: 250,
-      tolerance: 5,
+      delay: 100,
+      tolerance: 3,
     },
   });
   const sensors = useSensors(mouseSensor, touchSensor);
@@ -76,5 +76,17 @@ export function SortableTab({ children, id }) {
     >
       {children}
     </div>
+  );
+}
+
+export function renderTabBar(tabBarProps, DefaultTabBar) {
+  return (
+    <DefaultTabBar {...tabBarProps}>
+      {(node) => (
+        <SortableTab key={node.key} id={node.key}>
+          {node}
+        </SortableTab>
+      )}
+    </DefaultTabBar>
   );
 }

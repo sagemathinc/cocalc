@@ -21,9 +21,9 @@ import { useMemo, useState, CSSProperties } from "react";
 import { Loading, Icon } from "@cocalc/frontend//components";
 import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
 import {
-  SortableTab,
   SortableTabs,
   useSortable,
+  renderTabBar,
 } from "@cocalc/frontend/components/sortable-tabs";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
@@ -127,6 +127,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         <Popover
+          zIndex={10000}
           title={title}
           content={renderContent()}
           placement="bottom"
@@ -148,16 +149,6 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     </div>
   );
 }
-
-const renderTabBar = (tabBarProps, DefaultTabBar) => (
-  <DefaultTabBar {...tabBarProps}>
-    {(node) => (
-      <SortableTab key={node.key} id={node.key}>
-        {node}
-      </SortableTab>
-    )}
-  </DefaultTabBar>
-);
 
 export function ProjectsNav({ style }: { style?: CSSProperties }) {
   const actions = useActions("page");
@@ -190,37 +181,38 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
     }
   };
 
-  function handleDragEnd(event) {
+  function onDragEnd(event) {
     const { active, over } = event;
-    if (active.id == over.id) return;
+    if (active == null || over == null || active.id == over.id) return;
     projectActions.move_project_tab({
       old_index: project_ids.indexOf(active.id),
       new_index: project_ids.indexOf(over.id),
     });
   }
 
-  function handleDragStart(event) {
+  function onDragStart(event) {
     if (event?.active?.id != activeTopTab) {
       actions.set_active_tab(event?.active?.id);
     }
   }
 
   return (
-    <SortableTabs
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      items={project_ids}
+    <div
+      style={{
+        flex: 1,
+        overflow: "hidden",
+        height: "36px",
+        ...style,
+      }}
     >
-      <div
-        style={{
-          flex: 1,
-          overflow: "hidden",
-          height: "36px",
-          ...style,
-        }}
-      >
-        {items.length > 0 && (
+      {items.length > 0 && (
+        <SortableTabs
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          items={project_ids}
+        >
           <Tabs
+            animated={false}
             moreIcon={<Icon style={{ fontSize: "18px" }} name="ellipsis" />}
             activeKey={activeTopTab}
             onEdit={onEdit}
@@ -231,8 +223,8 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
             renderTabBar={renderTabBar}
             items={items}
           />
-        )}
-      </div>
-    </SortableTabs>
+        </SortableTabs>
+      )}
+    </div>
   );
 }
