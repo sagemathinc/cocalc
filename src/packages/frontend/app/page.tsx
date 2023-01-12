@@ -60,6 +60,7 @@ const TOP_BAR_STYLE: CSS = {
   zIndex: 100,
   borderRadius: 0,
   top: 0,
+  backgroundColor: "black",
 } as const;
 
 const FILE_USE_STYLE: CSS = {

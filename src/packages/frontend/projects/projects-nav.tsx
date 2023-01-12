@@ -143,7 +143,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
           content={renderContent()}
           placement="bottom"
           open={active != null ? false : undefined}
-          mouseEnterDelay={0.6}
+          mouseEnterDelay={0.9}
         >
           {icon}
           {project?.get("avatar_image_tiny") && (
