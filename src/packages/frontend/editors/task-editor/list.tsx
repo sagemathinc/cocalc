@@ -17,7 +17,7 @@ List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500
 */
 
 import { List, Set as immutableSet } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import Task from "./task";
@@ -25,6 +25,14 @@ import { TaskActions } from "./actions";
 import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 import { useDebouncedCallback } from "use-debounce";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 interface Props {
   actions?: TaskActions;
@@ -59,6 +67,8 @@ export default function TaskList({
   selected_hashtags,
   search_terms,
 }: Props) {
+  const [dragId, setDragId] = useState<string | null>(null);
+
   const main_div_ref = useRef(null);
   const isMountedRef = useIsMountedRef();
   const saveScroll = useDebouncedCallback((scrollState) => {
@@ -108,7 +118,7 @@ export default function TaskList({
     virtuosoRef.current?.scrollIntoView({ index });
   }
 
-  function render_task(index, task_id) {
+  function render_task(task_id, index?) {
     if (index === visible.size) {
       // Empty div at the bottom makes it possible to scroll
       // the calendar into view...
@@ -129,7 +139,7 @@ export default function TaskList({
     } else {
       editing_due_date = editing_desc = false;
     }
-    return (
+    const body = (
       <Task
         key={task_id}
         actions={actions}
@@ -146,6 +156,8 @@ export default function TaskList({
         searchWords={searchWords}
       />
     );
+    if (!sortable) return body;
+    return <SortableTask id={task_id}>{body}</SortableTask>;
   }
 
   function on_click(e) {
@@ -154,7 +166,7 @@ export default function TaskList({
     }
   }
 
-  return (
+  const body = (
     <div
       className="smc-vfill"
       ref={main_div_ref}
@@ -165,10 +177,69 @@ export default function TaskList({
         ref={virtuosoRef}
         totalCount={visible.size + 1}
         itemContent={(index) =>
-          render_task(index, visible.get(index) ?? `${index}filler`)
+          render_task(visible.get(index) ?? `${index}filler`, index)
         }
         {...virtuosoScroll}
       />
+    </div>
+  );
+  if (!sortable) {
+    return body;
+  }
+
+  function onDragEnd({ active, over }) {
+    setDragId(null);
+    if (
+      actions == null ||
+      active == null ||
+      over == null ||
+      active.id == over.id
+    ) {
+      return;
+    }
+    const oldIndex = items.indexOf(active.id);
+    const newIndex = items.indexOf(over.id);
+    actions.reorder_tasks(oldIndex, newIndex);
+  }
+
+  const items = visible.toJS();
+
+  return (
+    <DndContext
+      onDragStart={(event) => setDragId(`${event.active.id}`)}
+      onDragEnd={onDragEnd}
+      modifiers={[restrictToVerticalAxis]}
+    >
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <DragOverlay>
+          {dragId != null && (
+            <div style={{ height: "48px" }}>{render_task(dragId)}</div>
+          )}
+        </DragOverlay>
+        {body}
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableTask({ id, children }) {
+  const { active, transform, transition, setNodeRef } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={
+        active != null
+          ? {
+              transform: transform
+                ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+                : undefined,
+              transition,
+              opacity: active?.id == id ? 0 : undefined,
+            }
+          : undefined
+      }
+    >
+      {children}
     </div>
   );
 }

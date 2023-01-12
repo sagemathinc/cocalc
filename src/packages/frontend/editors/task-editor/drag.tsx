@@ -8,38 +8,51 @@ Drag tasks handle (and other support)
 */
 
 import { Icon, Tip } from "../../components";
+import { useSortable } from "@dnd-kit/sortable";
 
-const HandleIcon: React.FC = () => {
-  return <Icon style={{ cursor: "pointer" }} name="bars" />;
-};
+interface Props {
+  id: string;
+}
 
-const DisabledDragHandle: React.FC = () => {
+function EnabledDragHandle({ id }: Props) {
+  const { attributes, listeners } = useSortable({ id });
+  return (
+    <Icon
+      style={{ cursor: "pointer" }}
+      name="bars"
+      {...attributes}
+      {...listeners}
+    />
+  );
+}
+
+function DisabledDragHandle({}: Props) {
   return (
     <Tip
       title={"Select Custom Order to enable dragging tasks."}
       delayShow={700}
     >
-      <HandleIcon />
+      <Icon style={{ cursor: "pointer" }} name="bars" />
     </Tip>
   );
-};
+}
 
 interface Props {
   sortable?: boolean;
 }
 
-export const DragHandle: React.FC<Props> = ({ sortable }) => {
+export const DragHandle: React.FC<Props> = ({ id, sortable }) => {
   let color, Handle;
   if (sortable) {
     color = "#888";
-    Handle = HandleIcon;
+    Handle = EnabledDragHandle;
   } else {
     color = "#eee";
     Handle = DisabledDragHandle;
   }
   return (
     <span style={{ fontSize: "17pt", color, marginLeft: "15px" }}>
-      <Handle />
+      <Handle id={id} />
     </span>
   );
 };

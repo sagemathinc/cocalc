@@ -103,7 +103,9 @@ export default function Task({
           />
         </Col>
         <Col sm={1}>
-          {actions != null && <DragHandle sortable={sortable} />}
+          {actions != null && (
+            <DragHandle sortable={sortable} id={task.get("task_id")} />
+          )}
           {actions != null && (
             <MinToggle
               actions={actions}
