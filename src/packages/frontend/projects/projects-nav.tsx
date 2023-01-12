@@ -276,7 +276,6 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
           {items.length > 0 && (
             <Tabs
               moreIcon={<Icon style={{fontSize:'18px'}} name="ellipsis" />}
-              animated={false}
               activeKey={activeTopTab}
               onEdit={onEdit}
               onChange={(project_id) => {

@@ -8,8 +8,10 @@ import {
   DEFAULT_FILE_TAB_STYLES,
   FIXED_PROJECT_TABS,
   FileTab,
+  FixedTab,
 } from "./file-tab";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import type { TabsProps } from "antd";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -40,7 +42,7 @@ export default function ProjectTabs({ project_id }) {
       style={{
         width: "100%",
         height: "32px",
-        borderBottom: "1px solid #e1e1e1",
+        paddingTop: "2px",
       }}
     >
       <div style={{ display: "flex" }}>
@@ -48,6 +50,7 @@ export default function ProjectTabs({ project_id }) {
           <FixedTabs
             shrinkFixedTabs={shrinkFixedTabs}
             project_id={project_id}
+            activeTab={activeTab}
           />
         )}
         <div style={{ display: "flex", overflow: "hidden", flex: 1 }}>
@@ -133,26 +136,28 @@ function FileTabs({ openFiles, numGhostTabs, project_id }) {
   return <>{tabs}</>;
 }
 
-function FixedTabs({ shrinkFixedTabs, project_id }) {
+function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
-  const tabs: JSX.Element[] = [];
-  let name: keyof typeof FIXED_PROJECT_TABS;
-  for (name in FIXED_PROJECT_TABS) {
+  const items: TabsProps["items"] = [];
+  for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    const tab = (
-      <FileTab
-        key={name}
-        project_id={project_id}
-        name={name}
-        label={shrinkFixedTabs ? "" : undefined}
-      />
-    );
-    tabs.push(tab);
+    items.push({
+      key: name,
+      label: (
+        <FileTab
+          style={{ margin: shrinkFixedTabs ? "0 -10px 0 -5px" : "0 -10px" }}
+          key={name}
+          project_id={project_id}
+          name={name as FixedTab}
+          label={shrinkFixedTabs ? "" : undefined}
+        />
+      ),
+    });
   }
-  return <div style={{ display: "flex" }}>{tabs}</div>;
+  return <Tabs size="small" items={items} type="card" activeKey={activeTab} />;
 }
 
 function ChatIndicatorTab({

@@ -23,7 +23,7 @@ import { PROJECT_INFO_TITLE } from "../info";
 import { IS_SAFARI } from "@cocalc/frontend/feature";
 import CloseX from "./close-x";
 
-type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
+export type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
 
 type FixedTabs = {
   [name in FixedTab]: {
@@ -84,6 +84,7 @@ export const DEFAULT_FILE_TAB_STYLES = {
 interface Props0 {
   project_id: string;
   label?: string;
+  style?: CSSProperties;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -109,7 +110,7 @@ export function FileTab(props: Props) {
     name === "info" && project_status?.get("alerts")?.size > 0;
 
   // True if this tab is currently selected:
-  const is_selected: boolean = useMemo(() => {
+  const isSelected: boolean = useMemo(() => {
     return active_project_tab == (path != null ? path_to_tab(path) : name);
   }, [active_project_tab, path, name]);
 
@@ -199,7 +200,7 @@ export function FileTab(props: Props) {
 
   let style: CSSProperties;
   if (path != null) {
-    if (is_selected) {
+    if (isSelected) {
       style = {
         ...DEFAULT_FILE_TAB_STYLES,
         backgroundColor: COLORS.ANTD_BG_BLUE_L,
@@ -260,17 +261,17 @@ export function FileTab(props: Props) {
 
   const displayed_label: JSX.Element = render_displayed_label({ path, label });
 
-  const color = is_selected
-    ? "white"
-    : status_alert
-    ? COLORS.BS_RED
-    : COLORS.TAB;
+  //   const color = isSelected
+  //     ? "white"
+  //     : status_alert
+  //     ? COLORS.BS_RED
+  //     : COLORS.TAB;
 
   return (
     <div
       ref={tab_ref}
-      style={style}
-      active={is_selected}
+      style={{ ...style, ...props.style }}
+      active={isSelected}
       onClick={click}
       cocalc-test={label}
       onMouseDown={onMouseDown}
@@ -278,12 +279,11 @@ export function FileTab(props: Props) {
       <div
         style={{
           width: "100%",
-          color,
           cursor: "pointer",
           display: "flex",
         }}
       >
-        <div style={{ paddingRight: "2px", fontSize: "10pt" }}>
+        <div style={{marginRight:"-5px"}}>
           <Icon style={icon_style} name={icon} />
         </div>
         {displayed_label}
