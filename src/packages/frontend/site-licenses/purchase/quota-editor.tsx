@@ -12,6 +12,15 @@ Editing a quota
  - optional: also shows rows for support and network that can't be edited
 
 */
+import {
+  Button,
+  Checkbox,
+  Col,
+  InputNumber,
+  Row,
+  Select,
+  Typography,
+} from "antd";
 
 import {
   CSS,
@@ -28,20 +37,16 @@ import {
   Uptime,
 } from "@cocalc/util/consts/site-license";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
+import {
+  CostMap,
+  COSTS,
+  GCE_COSTS,
+} from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import {
-  Button,
-  Checkbox,
-  Col,
-  InputNumber,
-  Row,
-  Select,
-  Typography,
-} from "antd";
+import { Upgrades } from "@cocalc/util/upgrades/quota";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -83,6 +88,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const isOnPrem = customize_kucalc === KUCALC_ON_PREMISES;
+  const max_upgrades = useTypedRedux("customize", "max_upgrades");
 
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
@@ -106,6 +112,36 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     return quota.user;
   }
 
+  // for onprem setups, the max_upgrades site setting adjust the limits of cpu and memory quotas
+  const custom_max: CostMap = React.useMemo(() => {
+    if (!isOnPrem) return COSTS.custom_max;
+    // otherwise, we make a copy and modify cpu or memory limits
+    const max: CostMap = { ...COSTS.custom_max };
+
+    if (max_upgrades == null) return max;
+    function setQuotaMax(name: keyof CostMap, quota: keyof Upgrades) {
+      let val = max_upgrades.get(quota);
+      if (val == null) return;
+      if (typeof val !== "number" || val < 0) return;
+      switch (quota) {
+        case "memory":
+        case "memory_request":
+          // this is not in MiB for historic reasons (but Math.round hides this anyways)
+          val = val / 1000;
+          break;
+        case "cpu_shares":
+          val = val / 1024;
+          break;
+      }
+      max[name] = Math.round(val);
+    }
+    setQuotaMax("cpu", "cores");
+    setQuotaMax("dedicated_cpu", "cpu_shares");
+    setQuotaMax("ram", "memory");
+    setQuotaMax("dedicated_ram", "memory_request");
+    return max;
+  }, [max_upgrades, isOnPrem]);
+
   const isDedicated =
     quota.dedicated_vm != null || quota.dedicated_disk != null;
 
@@ -116,7 +152,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.cpu}
-            max={COSTS.custom_max.cpu}
+            max={custom_max.cpu}
             value={quota.cpu}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -128,8 +164,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.cpu == COSTS.custom_max.cpu}
-            onClick={() => onChange({ cpu: COSTS.custom_max.cpu })}
+            disabled={quota.cpu == custom_max.cpu}
+            onClick={() => onChange({ cpu: custom_max.cpu })}
           >
             Max
           </Button>
@@ -161,7 +197,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.ram}
-            max={COSTS.custom_max.ram}
+            max={custom_max.ram}
             value={quota.ram}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -173,8 +209,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.ram == COSTS.custom_max.ram}
-            onClick={() => onChange({ ram: COSTS.custom_max.ram })}
+            disabled={quota.ram == custom_max.ram}
+            onClick={() => onChange({ ram: custom_max.ram })}
           >
             Max
           </Button>
@@ -204,7 +240,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.dedicated_cpu}
-            max={COSTS.custom_max.dedicated_cpu}
+            max={custom_max.dedicated_cpu}
             value={quota.dedicated_cpu}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -218,9 +254,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.dedicated_cpu == COSTS.custom_max.dedicated_cpu}
+            disabled={quota.dedicated_cpu == custom_max.dedicated_cpu}
             onClick={() =>
-              onChange({ dedicated_cpu: COSTS.custom_max.dedicated_cpu })
+              onChange({ dedicated_cpu: custom_max.dedicated_cpu })
             }
           >
             Max
@@ -253,7 +289,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.dedicated_ram}
-            max={COSTS.custom_max.dedicated_ram}
+            max={custom_max.dedicated_ram}
             value={quota.dedicated_ram}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -265,9 +301,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.dedicated_ram == COSTS.custom_max.dedicated_ram}
+            disabled={quota.dedicated_ram == custom_max.dedicated_ram}
             onClick={() =>
-              onChange({ dedicated_ram: COSTS.custom_max.dedicated_ram })
+              onChange({ dedicated_ram: custom_max.dedicated_ram })
             }
           >
             Max
@@ -299,7 +335,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.disk}
-            max={COSTS.custom_max.disk}
+            max={custom_max.disk}
             value={quota.disk}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -311,8 +347,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.disk == COSTS.custom_max.disk}
-            onClick={() => onChange({ disk: COSTS.custom_max.disk })}
+            disabled={quota.disk == custom_max.disk}
+            onClick={() => onChange({ disk: custom_max.disk })}
           >
             Max
           </Button>
