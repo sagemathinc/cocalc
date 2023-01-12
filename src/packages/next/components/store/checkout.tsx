@@ -27,9 +27,10 @@ import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
 import { computeCost } from "./compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
-import useProfile from "lib/hooks/profile";
-import { Paragraph } from "components/misc";
+import { useProfileWithReload } from "lib/hooks/profile";
+import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { ChangeEmailAddress } from "components/account/config/account/email";
 
 export default function CheckoutWithCaptcha() {
   const { reCaptchaKey } = useCustomize();
@@ -50,12 +51,15 @@ function Checkout() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
-  const profile = useProfile({ noCache: true });
+  const { profile, reload: reloadProfile } = useProfileWithReload({
+    noCache: true,
+  });
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
 
   const noEmail = useMemo(
     () => profile?.email_address == null,
@@ -66,6 +70,11 @@ function Checkout() {
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
+
+  function onSuccess() {
+    reloadProfile();
+    setEmailSuccess(true);
+  }
 
   const cart = useAPI("/shopping/cart/get");
 
@@ -313,8 +322,62 @@ function Checkout() {
     );
   }
 
+  function renderRequireEmailAddressDescr(): JSX.Element {
+    if (emailSuccess) {
+      return (
+        <Paragraph>
+          Your email address is now:{" "}
+          <Text code>{profile?.email_address ?? ""}</Text>.
+        </Paragraph>
+      );
+    } else {
+      return (
+        <Paragraph
+          style={{
+            backgroundColor: "white",
+            padding: "20px",
+            borderRadius: "10px",
+          }}
+        >
+          <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
+        </Paragraph>
+      );
+    }
+  }
+
+  function renderRequireEmailAddressMesg(): JSX.Element {
+    return (
+      <>
+        <Title level={2}>
+          <Icon name="envelope" />{" "}
+          {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
+        </Title>
+        {!emailSuccess && (
+          <Paragraph>
+            To place an order, we need to know an email address of yours.
+            Please save it to your profile:
+          </Paragraph>
+        )}
+      </>
+    );
+  }
+
+  function renderRequireEmailAddress() {
+    if (!noEmail && !emailSuccess) return;
+
+    return (
+      <Alert
+        style={{ marginBottom: "30px" }}
+        type={emailSuccess ? "success" : "error"}
+        message={renderRequireEmailAddressMesg()}
+        description={renderRequireEmailAddressDescr()}
+      />
+    );
+  }
+
   return (
     <>
+      {renderRequireEmailAddress()}
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
       {renderOrderError()}

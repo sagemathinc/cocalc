@@ -32,6 +32,14 @@ interface Options {
 }
 
 export default function useProfile(opts: Options = {}): Profile | undefined {
+  const { profile } = useProfileWithReload(opts);
+  return profile;
+}
+
+export function useProfileWithReload(opts: Options = {}): {
+  profile: Profile | undefined;
+  reload: () => void;
+} {
   const { account_id, noCache } = opts;
   const isMounted = useIsMounted();
   const [profile, setProfile] = useState<Profile | undefined>(
@@ -60,5 +68,5 @@ export default function useProfile(opts: Options = {}): Profile | undefined {
     getProfile();
   }, [account_id, noCache]);
 
-  return profile;
+  return { profile, reload: getProfile };
 }
