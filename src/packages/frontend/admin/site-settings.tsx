@@ -2,6 +2,9 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+import { Input, InputRef } from "antd";
+import humanizeList from "humanize-list";
+import { isEqual } from "lodash";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -25,7 +28,7 @@ import {
   Icon,
   LabeledRow,
   Markdown,
-  Space /*, Tip*/,
+  Space,
 } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
@@ -41,9 +44,6 @@ import { site_settings_conf } from "@cocalc/util/schema";
 import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
-import { Input, InputRef } from "antd";
-import humanizeList from "humanize-list";
-import { isEqual } from "lodash";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 

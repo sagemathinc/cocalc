@@ -10,12 +10,14 @@
 // If account_id is NOT given, returns the *private* profile for the signed in user, or
 // empty object if user not signed in.
 
+import LRU from "lru-cache";
+import { useEffect, useState } from "react";
+
 import { Profile } from "@cocalc/server/accounts/profile/types";
 import { len } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
-import LRU from "lru-cache";
-import { useEffect, useState } from "react";
 import useIsMounted from "./mounted";
+
 // How often to check for new profile.
 const DEFAULT_CACHE_S = 10;
 
@@ -30,6 +32,14 @@ interface Options {
 }
 
 export default function useProfile(opts: Options = {}): Profile | undefined {
+  const { profile } = useProfileWithReload(opts);
+  return profile;
+}
+
+export function useProfileWithReload(opts: Options = {}): {
+  profile: Profile | undefined;
+  reload: () => void;
+} {
   const { account_id, noCache } = opts;
   const isMounted = useIsMounted();
   const [profile, setProfile] = useState<Profile | undefined>(
@@ -58,5 +68,5 @@ export default function useProfile(opts: Options = {}): Profile | undefined {
     getProfile();
   }, [account_id, noCache]);
 
-  return profile;
+  return { profile, reload: getProfile };
 }

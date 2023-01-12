@@ -30,6 +30,7 @@ import { quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
+import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 
 export type { ProjectState, ProjectStatus };
 
@@ -173,17 +174,18 @@ export abstract class BaseProject extends EventEmitter {
     //     - is project currently running (if not, nothing to do)
     //     - if running, what quotas it was started with and what its quotas are now
     // 2. If quotas differ *AND* project is running, restarts project.
+    // There is also a fix for https://github.com/sagemathinc/cocalc/issues/5633
+    // in here, because we get the site_licenses and site_settings as well.
     const x = await callback2(db().get_project, {
       project_id: this.project_id,
-      columns: ["state", "users", "settings", "run_quota"],
+      columns: ["state", "users", "settings", "run_quota", "site_license"],
     });
     if (!["running", "starting", "pending"].includes(x.state?.state)) {
       dbg("project not active so nothing to do");
       return;
     }
-    // FIX: this quota call misses site_licenses and server_settings
-    // https://github.com/sagemathinc/cocalc/issues/5633
-    const cur = quota(x.settings, x.users);
+    const site_settings = await getQuotaSiteSettings(); // this is quick, usually cached
+    const cur = quota(x.settings, x.users, x.site_license, site_settings);
     if (isEqual(x.run_quota, cur)) {
       dbg("running, but no quotas changed");
       return;

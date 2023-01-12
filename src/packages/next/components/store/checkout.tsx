@@ -6,11 +6,16 @@
 /*
 Checkout -- finalize purchase and pay.
 */
+import { Alert, Button, Col, Row, Table } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
-import { Alert, Button, Col, Row, Table } from "antd";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -20,13 +25,12 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from "react-google-recaptcha-v3";
 import { computeCost } from "./compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
+import { useProfileWithReload } from "lib/hooks/profile";
+import { Paragraph, Title, Text } from "components/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { ChangeEmailAddress } from "components/account/config/account/email";
 
 export default function CheckoutWithCaptcha() {
   const { reCaptchaKey } = useCustomize();
@@ -47,15 +51,30 @@ function Checkout() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
+  const { profile, reload: reloadProfile } = useProfileWithReload({
+    noCache: true,
+  });
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
+
+  const noEmail = useMemo(
+    () => profile?.email_address == null,
+    [profile?.email_address]
+  );
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
+
+  function onSuccess() {
+    reloadProfile();
+    setEmailSuccess(true);
+  }
 
   const cart = useAPI("/shopping/cart/get");
 
@@ -172,7 +191,7 @@ function Checkout() {
   function placeOrderButton() {
     return (
       <Button
-        disabled={subTotal == 0 || placingOrder}
+        disabled={subTotal == 0 || placingOrder || !haveCreditCard || noEmail}
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
         type="primary"
@@ -242,7 +261,11 @@ function Checkout() {
                 The default payment method shown below will be used for this
                 purchase.
               </p>
-              <PaymentMethods startMinimized setTaxRate={setTaxRate} />
+              <PaymentMethods
+                startMinimized
+                setTaxRate={setTaxRate}
+                setHaveCreditCard={setHaveCreditCard}
+              />
             </div>
           </Col>
           <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
@@ -299,8 +322,62 @@ function Checkout() {
     );
   }
 
+  function renderRequireEmailAddressDescr(): JSX.Element {
+    if (emailSuccess) {
+      return (
+        <Paragraph>
+          Your email address is now:{" "}
+          <Text code>{profile?.email_address ?? ""}</Text>.
+        </Paragraph>
+      );
+    } else {
+      return (
+        <Paragraph
+          style={{
+            backgroundColor: "white",
+            padding: "20px",
+            borderRadius: "10px",
+          }}
+        >
+          <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
+        </Paragraph>
+      );
+    }
+  }
+
+  function renderRequireEmailAddressMesg(): JSX.Element {
+    return (
+      <>
+        <Title level={2}>
+          <Icon name="envelope" />{" "}
+          {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
+        </Title>
+        {!emailSuccess && (
+          <Paragraph>
+            To place an order, we need to know an email address of yours.
+            Please save it to your profile:
+          </Paragraph>
+        )}
+      </>
+    );
+  }
+
+  function renderRequireEmailAddress() {
+    if (!noEmail && !emailSuccess) return;
+
+    return (
+      <Alert
+        style={{ marginBottom: "30px" }}
+        type={emailSuccess ? "success" : "error"}
+        message={renderRequireEmailAddressMesg()}
+        description={renderRequireEmailAddressDescr()}
+      />
+    );
+  }
+
   return (
     <>
+      {renderRequireEmailAddress()}
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
       {renderOrderError()}
@@ -342,7 +419,7 @@ function OrderSummary({ items, taxRate }) {
   const full = fullCost(items);
   const tax = cost * taxRate;
   return (
-    <div style={{ textAlign: "left" }}>
+    <Paragraph style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Order Summary</b>
       <div>
         Items ({items.length}):{" "}
@@ -358,19 +435,19 @@ function OrderSummary({ items, taxRate }) {
         Estimated tax:{" "}
         <span style={{ float: "right" }}>{money(tax, true)}</span>
       </div>
-    </div>
+    </Paragraph>
   );
 }
 
 function Terms() {
   return (
-    <div style={{ color: "#666", fontSize: "10pt" }}>
+    <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
       By placing your order, you agree to{" "}
       <A href="/policies/terms" external>
         our terms of service
       </A>{" "}
       regarding refunds and subscriptions.
-    </div>
+    </Paragraph>
   );
 }
 
@@ -436,13 +513,13 @@ function GetAQuote({ items }) {
   }
 
   return (
-    <div style={{ paddingTop: "15px" }}>
+    <Paragraph style={{ paddingTop: "15px" }}>
       <A onClick={() => setMore(!more)}>
         Need to obtain a quote, invoice, modified terms, a purchase order, to
         use PayPal or pay via wire transfer, etc.?
       </A>
       {more && (
-        <div>
+        <Paragraph>
           {fullCost(items) <= MIN_AMOUNT || isSub ? (
             <Alert
               showIcon
@@ -487,8 +564,8 @@ function GetAQuote({ items }) {
               }
             />
           )}
-        </div>
+        </Paragraph>
       )}
-    </div>
+    </Paragraph>
   );
 }

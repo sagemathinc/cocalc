@@ -589,7 +589,10 @@ export function delete_null_fields(obj: object): void {
 
 // for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
 export function unreachable(x: never) {
-  throw new Error(`All types should be exhausted, but I got ${x}`);
+  // if this fails a typecheck here, go back to your switch/case.
+  // you either made a typo in one of the cases or you missed one.
+  const tmp: never = x;
+  tmp;
 }
 
 // Get *all* methods of an object (including from base classes!).

@@ -5,6 +5,9 @@
 
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
+import { fromJS, List, Map } from "immutable";
+import { join } from "path";
+
 import {
   Actions,
   rclass,
@@ -43,9 +46,7 @@ import {
 import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
-import { DefaultQuotaSetting, Quota } from "@cocalc/util/upgrades/quota";
-import { fromJS, List, Map } from "immutable";
-import { join } from "path";
+import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -105,7 +106,7 @@ export interface CustomizeState {
   kucalc: string;
   logo_rectangular: string;
   logo_square: string;
-  max_upgrades: TypedMap<Quota>;
+  max_upgrades: TypedMap<Partial<Upgrades>>;
   nonfree_countries?: List<string>;
   onprem_quota_heading: string;
   organization_email: string;

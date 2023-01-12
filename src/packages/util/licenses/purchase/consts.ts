@@ -52,7 +52,7 @@ const ALWAYS_RUNNING_FACTOR = 2;
 // Another gamble implicit in this is that pre's are available.  When they
 // aren't, cocalc.com switches to uses MUCH more expensive non-preemptibles.
 
-interface CostMap {
+export interface CostMap {
   ram: number;
   dedicated_ram: number;
   cpu: number;
