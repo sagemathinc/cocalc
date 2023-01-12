@@ -17,6 +17,11 @@ export default function useSyncdbRecord<T>({
   defaultValue: T;
 }): [value: T, setValue: (obj: T) => void] {
   const { syncdb } = useSyncdbContext();
+  if (syncdb == null) {
+    throw Error(
+      "useSyncdbRecord hook MUST be used inside SyncdbContext.Provider"
+    );
+  }
 
   const [value, setValue0] = useState<T>(
     syncdb?.get_one(key)?.toJS() ?? { ...defaultValue, ...key }
