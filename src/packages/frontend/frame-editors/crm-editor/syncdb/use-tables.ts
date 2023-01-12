@@ -21,7 +21,7 @@ export default function useTables(): [
 ] {
   const [record, setRecord] = useSyncdbRecord<{ value: string[] }>({
     key: { id: "tabs", table: "tables" } as any,
-    defaultValue: { value: getTables(), ...PRIMARY_KEY },
+    defaultValue: { value: [], ...PRIMARY_KEY },
   });
   const setTables = useCallback(
     (value: string[]) => {
