@@ -20,23 +20,11 @@ import {
 import { useMemo, useState, CSSProperties } from "react";
 import { Loading, Icon } from "@cocalc/frontend//components";
 import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
-
 import {
-  DndContext,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
+  SortableTab,
+  SortableTabs,
   useSortable,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  restrictToHorizontalAxis,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
+} from "@cocalc/frontend/components/sortable-tabs";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
@@ -161,33 +149,12 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   );
 }
 
-function DraggableTabNode({ children, project_id }) {
-  const { attributes, listeners, setNodeRef, transform, transition, active } =
-    useSortable({ id: project_id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: transform
-          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-          : undefined,
-        transition,
-        zIndex: active?.id == project_id ? 1 : undefined,
-      }}
-      {...attributes}
-      {...listeners}
-    >
-      {children}
-    </div>
-  );
-}
-
 const renderTabBar = (tabBarProps, DefaultTabBar) => (
   <DefaultTabBar {...tabBarProps}>
     {(node) => (
-      <DraggableTabNode key={node.key} project_id={node.key}>
+      <SortableTab key={node.key} id={node.key}>
         {node}
-      </DraggableTabNode>
+      </SortableTab>
     )}
   </DefaultTabBar>
 );
@@ -198,19 +165,6 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
   const isAnonymous = useTypedRedux("account", "is_anonymous");
-
-  const mouseSensor = useSensor(MouseSensor, {
-    activationConstraint: {
-      distance: 10,
-    },
-  });
-  const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 250,
-      tolerance: 5,
-    },
-  });
-  const sensors = useSensors(mouseSensor, touchSensor);
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -239,7 +193,6 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
   function handleDragEnd(event) {
     const { active, over } = event;
     if (active.id == over.id) return;
-    console.log("end", active.id, over.id);
     projectActions.move_project_tab({
       old_index: project_ids.indexOf(active.id),
       new_index: project_ids.indexOf(over.id),
@@ -253,41 +206,33 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
   }
 
   return (
-    <DndContext
+    <SortableTabs
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
-      sensors={sensors}
+      items={project_ids}
     >
-      <SortableContext
-        items={project_ids}
-        strategy={horizontalListSortingStrategy}
+      <div
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          height: "36px",
+          ...style,
+        }}
       >
-        <div
-          style={{
-            flex: 1,
-            overflow: "hidden",
-            height: "36px",
-            //display: "flex",
-            //justifyContent: "center",
-            ...style,
-          }}
-        >
-          {items.length > 0 && (
-            <Tabs
-              moreIcon={<Icon style={{fontSize:'18px'}} name="ellipsis" />}
-              activeKey={activeTopTab}
-              onEdit={onEdit}
-              onChange={(project_id) => {
-                actions.set_active_tab(project_id);
-              }}
-              type={isAnonymous ? "card" : "editable-card"}
-              renderTabBar={renderTabBar}
-              items={items}
-            />
-          )}
-        </div>{" "}
-      </SortableContext>
-    </DndContext>
+        {items.length > 0 && (
+          <Tabs
+            moreIcon={<Icon style={{ fontSize: "18px" }} name="ellipsis" />}
+            activeKey={activeTopTab}
+            onEdit={onEdit}
+            onChange={(project_id) => {
+              actions.set_active_tab(project_id);
+            }}
+            type={isAnonymous ? "card" : "editable-card"}
+            renderTabBar={renderTabBar}
+            items={items}
+          />
+        )}
+      </div>
+    </SortableTabs>
   );
 }
