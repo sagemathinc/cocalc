@@ -18,7 +18,6 @@ function Label({ path, project_id, label }) {
   const { active } = useSortable({ id: project_id });
   return (
     <FileTab
-      style={{ width: "175px" }}
       key={path}
       project_id={project_id}
       path={path}

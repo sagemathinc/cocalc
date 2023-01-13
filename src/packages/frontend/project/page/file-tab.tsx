@@ -216,6 +216,7 @@ export function FileTab(props: Props) {
 }
 
 const LABEL_STYLE = {
+  maxWidth: "250px",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
