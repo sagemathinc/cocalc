@@ -43,7 +43,7 @@ export function setup_global_cocalc(client): void {
     return;
   }
 
-  const cocalc : any = window.cc ?? {};
+  const cocalc: any = window.cc ?? {};
   cocalc.client = client;
   cocalc.misc = require("@cocalc/util/misc");
   cocalc.immutable = require("immutable");
@@ -73,6 +73,6 @@ function load_eruda(): void {
   script.src = "//cdn.jsdelivr.net/npm/eruda";
   document.body.appendChild(script);
   script.onload = function () {
-    window.eruda.init();
+    window.eruda?.init();
   };
 }

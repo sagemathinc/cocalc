@@ -100,7 +100,15 @@ function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
       ),
     });
   }
-  return <Tabs size="small" items={items} type="card" activeKey={activeTab} />;
+  return (
+    <Tabs
+      style={{ maxWidth: "30%" }}
+      size="small"
+      items={items}
+      type="card"
+      activeKey={activeTab}
+    />
+  );
 }
 
 function ChatIndicatorTab({
