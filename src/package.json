@@ -3,20 +3,19 @@
   "version": "1.0.0",
   "description": "CoCalc: Collaborative Calculation",
   "scripts": {
-    "make": "./workspaces.py install && pnpm run build",
-    "build": "./workspaces.py build",
-    "make-dev": "./workspaces.py install && pnpm run build-dev",
-    "build-dev": "./workspaces.py build --dev",
-    "clean": "./workspaces.py clean --packages=$npm_config_packages --exclude=$npm_config_exclude",
-    "status": "./workspaces.py status --packages=$npm_config_packages  --exclude=$npm_config_exclude 2>&1 |more",
-    "diff": "./workspaces.py diff --packages=$npm_config_packages --exclude=$npm_config_exclude 2>&1 |more",
+    "make": "pnpm run build",
+    "make-dev": "pnpm run build-dev",
+    "build": "./workspaces.py install && ./workspaces.py build",
+    "build-dev": "./workspaces.py install && ./workspaces.py build --dev",
+    "clean": "./workspaces.py clean",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
     "static": "cd packages/static && npm run webpack",
     "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
     "database": "cd dev/project && ./start_postgres.py",
     "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c",
     "version-check": "pip3 install typing_extensions mypy && ./workspaces.py version-check && mypy scripts/check_npm_packages.py",
-    "test": "pnpm version-check && ./workspaces.py pnpm test --packages=assets,backend,cdn,database,frontend,hub,next,project,server,static,sync,util"
+    "test": "pnpm run version-check && cd packages && pnpm run -r --parallel test",
+    "test1": "pnpm run version-check && cd packages && pnpm run -r  test"
   },
   "repository": {
     "type": "git",
