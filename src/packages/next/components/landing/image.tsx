@@ -1,4 +1,4 @@
-import NextImage from "next/image";
+import NextImage from "next/legacy/image";
 import { MediaURL } from "./util";
 import basePath from "lib/base-path";
 import { join } from "path";

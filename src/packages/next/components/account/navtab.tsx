@@ -1,7 +1,7 @@
 /* The "Account" navigation tab in the bar at the top. */
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import type { MenuProps } from "antd";
-import { Dropdown, Menu } from "antd";
+import { Dropdown } from "antd";
 import Avatar from "components/account/avatar";
 import { LinkStyle } from "components/landing/header";
 import A from "components/misc/A";
@@ -208,7 +208,7 @@ export default function AccountNavTab({ style }: Props) {
           Site Administration
         </A>,
         "settings"
-      )
+      ),
     ];
   }
 
@@ -234,10 +234,10 @@ export default function AccountNavTab({ style }: Props) {
     ...signout,
   ];
 
-  const menu = <Menu mode="vertical" theme="dark" items={items} />;
-
+  // NOTE: we had a dark theme before for the menu, but that's deprecated from antd
+  // https://github.com/ant-design/ant-design/issues/4903
   return (
-    <Dropdown overlay={menu} trigger={"click" as any}>
+    <Dropdown menu={{ items }}>
       <div style={{ ...LinkStyle, cursor: "pointer", ...style }}>
         {/* The negative margin fixes some weird behavior that stretches header. */}
         {account_id && (
