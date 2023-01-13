@@ -7,6 +7,7 @@ declare var DEBUG: boolean; // comes from static webpack; not defined in other c
 
 import React from "react";
 import { CSS } from "../app-framework";
+import useOnFrontend from "./use-on-frontend";
 
 import {
   AimOutlined,
@@ -596,6 +597,11 @@ const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
 
 export const Icon: React.FC<Props> = (props: Props) => {
+  // IMPORTANT: This hook is needed for next.js to support server side rendering.
+  // Otherwise, at least with next 13, it crashes when rendering icons.
+  const onFrontend = useOnFrontend();
+  if (!onFrontend) return null;
+
   if (props.unicode != null) {
     return (
       <span style={{ ...UNICODE_STYLE, ...props.style }}>
@@ -616,7 +622,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (typeof C.IconFont == "string") {
       // @ts-ignore
       if (IconFont == null) {
-        return <div>(IconFonts not available)</div>;
+        return <span>(IconFonts not available)</span>;
       }
       return <IconFont type={"icon-" + C.IconFont} {...props} alt={name} />;
     }
