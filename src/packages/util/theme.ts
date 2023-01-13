@@ -131,5 +131,5 @@ export const COLORS = {
 
   TAB: "#333333",
 
-  FILE_ICON: "#46b8da",
+  FILE_ICON: "rgb(66, 139, 202)",
 } as const;

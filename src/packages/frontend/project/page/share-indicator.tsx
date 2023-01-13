@@ -9,7 +9,12 @@ Indicator about whether or not file or path is publicly shared.
 
 import { containing_public_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { React, redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  React,
+  redux,
+  useMemo,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
@@ -32,9 +37,8 @@ export const ShareIndicator: React.FC<Props> = React.memo(
   ({ project_id, path, shrink_fixed_tabs }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
 
-    const student_project_functionality = useStudentProjectFunctionality(
-      project_id
-    );
+    const student_project_functionality =
+      useStudentProjectFunctionality(project_id);
 
     const is_public = useMemo(() => {
       if (public_paths == null) return false;
@@ -73,7 +77,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
               });
             }}
           >
-            <Icon name={is_public ? "bullhorn" : "lock"} />
+            <Icon
+              name={is_public ? "bullhorn" : "lock"}
+              style={{ color: COLORS.FILE_ICON }}
+            />
             {!shrink_fixed_tabs && (
               <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
                 {is_public ? "Public" : "Private"}

@@ -150,7 +150,9 @@ export function FileTab(props: Props) {
     }
   }
 
-  const icon_style: CSSProperties = has_activity ? { color: "orange" } : {};
+  const icon_style: CSSProperties = has_activity
+    ? { color: "orange" }
+    : { color: COLORS.FILE_ICON };
 
   if (label == null) {
     if (name != null) {

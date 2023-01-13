@@ -6,8 +6,16 @@
 // info button inside the editor when editing a file. links you back to the file listing with the action prompted
 import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { file_actions } from "../project_store";
-import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../components";
+import {
+  DropdownMenu,
+  HiddenXS,
+  MenuItem,
+  Icon,
+  IconName,
+  Space,
+} from "../components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 interface Props {
@@ -21,9 +29,8 @@ interface Props {
 export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
   ({ filename, project_id, is_public, label, style }) => {
     const actions = useActions({ project_id });
-    const student_project_functionality = useStudentProjectFunctionality(
-      project_id
-    );
+    const student_project_functionality =
+      useStudentProjectFunctionality(project_id);
     if (student_project_functionality.disableActions) {
       return <span></span>;
     }
@@ -58,7 +65,10 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_menu_item(name: string, icon: IconName): JSX.Element {
       return (
         <MenuItem key={name} eventKey={name}>
-          <Icon name={icon} style={{ width: "1.125em" }} />{" "}
+          <Icon
+            name={icon}
+            style={{ width: "1.125em", color: COLORS.FILE_ICON }}
+          />{" "}
           {`${capitalize(name)}...`}
         </MenuItem>
       );
@@ -93,7 +103,6 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_title() {
       return (
         <span>
-          {" "}
           <Icon name={"file"} />
           {label && (
             <HiddenXS>

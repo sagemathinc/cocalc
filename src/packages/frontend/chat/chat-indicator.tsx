@@ -108,9 +108,12 @@ export const ChatIndicator: React.FC<Props> = ({
           stable={false}
         >
           <span onClick={toggle_chat}>
-            <Icon name={is_chat_open ? "caret-down" : "caret-left"} />
+            <Icon
+              name={is_chat_open ? "caret-down" : "caret-left"}
+              style={{ color: COLORS.FILE_ICON }}
+            />
             <Space />
-            <Icon name="comment" />
+            <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
             {!shrink_fixed_tabs && (
               <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
                 Chat
