@@ -32,6 +32,20 @@ rm -rf /tmp/webpack-`whoami`
 
 Run `pnpm webpack-measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic that shows how much space each part of CoCalc is using. Use `pnpm webpack-measure-prod` to see what the situation is for the production build.
 
+## Disabling the webpack dev server
+
+Set the env variable `NO_WEBPACK_DEV_SERVER:`
+
+```sh
+~/cocalc/src$ NO_WEBPACK_DEV_SERVER=true pnpm hub
+```
+
+You will need to manually build the webpack assets, e.g., via 
+
+```sh
+~/cocalc/src/packages/static$ pnpm webpack
+```
+
 ## More about development
 
 First we assume you have installed all dev dependencies everywhere for all modules \(`pnpm install; pnpm build-dev`\). To do interactive development of CoCalc, you optionally start typescript in watch mode as explained below. If you're using
