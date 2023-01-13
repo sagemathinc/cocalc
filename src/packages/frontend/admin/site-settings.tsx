@@ -7,12 +7,7 @@ import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  Button,
-  FormControl,
-  FormGroup,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button, FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   Component,
   rclass,
@@ -44,6 +39,7 @@ import { site_settings_conf } from "@cocalc/util/schema";
 import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
+import { JsonEditor } from "./json-editor";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -125,7 +121,10 @@ class SiteSettingsComponent extends Component<
         },
       });
     } catch (err) {
-      this.setState({ state: "error", error: err });
+      this.setState({
+        state: "error",
+        error: `${err} – query error, please try again…`,
+      });
       return;
     }
     const data: { [name: string]: string } = {};
@@ -147,6 +146,7 @@ class SiteSettingsComponent extends Component<
   private toggle_view() {
     switch (this.state.state) {
       case "view":
+      case "error":
         this.load();
       case "edit":
         this.cancel();
@@ -247,16 +247,15 @@ class SiteSettingsComponent extends Component<
     );
   }
 
-  private on_json_entry_change(name) {
+  private on_json_entry_change(name: string, new_val?: string) {
     const e = copy(this.state.edited);
     try {
-      const new_val = findDOMNode(this.refs[name])?.value;
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
       e[name] = new_val;
       this.setState({ edited: e });
     } catch (err) {
-      console.log("default quota error:", err.message);
+      console.log(`error saving json of ${name}`, err.message);
     }
   }
 
@@ -269,15 +268,11 @@ class SiteSettingsComponent extends Component<
     const quotas = Object.assign({}, dflt, jval);
     const value = JSON.stringify(quotas);
     return (
-      <FormGroup>
-        <FormControl
-          ref={name}
-          type="text"
-          value={value}
-          onChange={() => this.on_json_entry_change(name)}
-        />
-        (the entry above must be JSON)
-      </FormGroup>
+      <JsonEditor
+        value={value}
+        rows={10}
+        onSave={(value) => this.on_json_entry_change(name, value)}
+      />
     );
   }
 

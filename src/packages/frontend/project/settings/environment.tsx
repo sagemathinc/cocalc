@@ -12,18 +12,18 @@ NOTE: we haven't implemented deleting of keys in JSONB maps for
 the database yet, so we complicate the code below by making *empty*
 values be treated as deleted.
 */
+import { Button } from "antd";
+import jsonic from "jsonic";
 
 import {
   React,
   useActions,
+  useIsMountedRef,
   useMemo,
   useRedux,
   useState,
-  useIsMountedRef,
-} from "../../app-framework";
-import { Button } from "antd";
-import { ErrorDisplay, SettingBox, Space } from "../../components";
-import jsonic from "jsonic";
+} from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, SettingBox, Space } from "@cocalc/frontend/components";
 
 export const ENV_VARS_ICON = "bars";
 interface Props {
