@@ -1,14 +1,5 @@
 /*
 Tabs for the open files in a project.
-
-  function on_sort_end({ oldIndex, newIndex }): void {
-    if (actions == null) return;
-    actions.move_file_tab({
-      old_index: oldIndex,
-      new_index: newIndex,
-    });
-  }
-
 */
 
 import { Tabs } from "antd";
@@ -27,6 +18,7 @@ function Label({ path, project_id, label }) {
   const { active } = useSortable({ id: project_id });
   return (
     <FileTab
+      style={{ width: "175px" }}
       key={path}
       project_id={project_id}
       path={path}
@@ -101,6 +93,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   return (
     <SortableTabs items={paths} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <Tabs
+        hideAdd
         animated={false}
         renderTabBar={renderTabBar}
         tabBarStyle={{ minHeight: "36px" }}

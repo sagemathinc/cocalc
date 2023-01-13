@@ -15,7 +15,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { CSSProperties } from "react";
-import { path_split, path_to_tab } from "@cocalc/util/misc";
+import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { HiddenXS, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
@@ -73,7 +73,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
 
 export const DEFAULT_FILE_TAB_STYLES = {
   borderRadius: "5px 5px 0px 0px",
-  maxWidth: "200px",
 } as const;
 
 interface Props0 {
@@ -94,7 +93,7 @@ type Props = PropsPath | PropsName;
 
 export function FileTab(props: Props) {
   const { project_id, path, name, label: label_prop } = props;
-  let label = label_prop; // label might be modified in some situations
+  let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   // this is @cocalc/project/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -232,9 +231,15 @@ const FULLPATH_LABEL_STYLE = {
 
 function DisplayedLabel({ path, label }) {
   if (path == null) {
+    // a fixed tab (not an actual file)
     return <HiddenXS>{label}</HiddenXS>;
   }
 
+  let ext = filename_extension(label);
+  if (ext) {
+    ext = "." + ext;
+    label = label.slice(0, -ext.length);
+  }
   // The "ltr" below is needed because of the direction 'rtl' in label_style, which
   // we have to compensate for in some situations, e.g., a file name "this is a file!"
   // will have the ! moved to the beginning by rtl.
@@ -245,7 +250,10 @@ function DisplayedLabel({ path, label }) {
         ...(label.includes("/") ? FULLPATH_LABEL_STYLE : undefined),
       }}
     >
-      <span style={{ direction: "ltr" }}>{label}</span>
+      <span style={{ direction: "ltr" }}>
+        {label}
+        <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
+      </span>
     </div>
   );
 }

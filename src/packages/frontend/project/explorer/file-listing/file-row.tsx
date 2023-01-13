@@ -106,7 +106,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? "#999" : undefined }}>
+        <span style={{ color: !props.mask ? COLORS.FILE_EXT : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
         {render_link_target()}
