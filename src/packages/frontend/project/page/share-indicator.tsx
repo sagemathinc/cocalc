@@ -17,6 +17,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { HiddenXS } from "@cocalc/frontend/components";
 
 const SHARE_INDICATOR_STYLE = {
   fontSize: "14pt",
@@ -30,11 +31,11 @@ const SHARE_INDICATOR_STYLE = {
 interface Props {
   project_id: string;
   path: string;
-  shrink_fixed_tabs: boolean;
+  shrinkFixedTabs: boolean;
 }
 
 export const ShareIndicator: React.FC<Props> = React.memo(
-  ({ project_id, path, shrink_fixed_tabs }) => {
+  ({ project_id, path, shrinkFixedTabs }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
 
     const student_project_functionality =
@@ -81,10 +82,13 @@ export const ShareIndicator: React.FC<Props> = React.memo(
               name={is_public ? "bullhorn" : "lock"}
               style={{ color: COLORS.FILE_ICON }}
             />
-            {!shrink_fixed_tabs && (
-              <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-                {is_public ? "Public" : "Private"}
-              </span>
+            {!shrinkFixedTabs && (
+              <HiddenXS>
+                {" "}
+                <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+                  {is_public ? "Public" : "Private"}
+                </span>
+              </HiddenXS>
             )}
           </span>
         </div>

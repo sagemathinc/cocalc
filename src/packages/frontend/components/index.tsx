@@ -28,14 +28,7 @@ export { DateTimePicker } from "./date-time-picker";
 export { PathLink } from "./path-link";
 export { HelpIcon } from "./help-icon";
 export { TimeAgo, TimeAgoElement, is_different_date } from "./time-ago";
-export {
-  HiddenXS,
-  HiddenSM,
-  HiddenXSSM,
-  VisibleMDLG,
-  VisibleLG,
-  VisibleXSSM,
-} from "./hidden-visible";
+export * from "./hidden-visible";
 export { LoginLink } from "./login-link";
 export { ProjectState } from "./project-state";
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";

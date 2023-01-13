@@ -10,6 +10,7 @@ import { ShareIndicator } from "./share-indicator";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { VisibleXS, HiddenXS } from "@cocalc/frontend/components";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -101,13 +102,14 @@ function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
     });
   }
   return (
-    <Tabs
-      style={{ maxWidth: "30%" }}
-      size="small"
-      items={items}
-      type="card"
-      activeKey={activeTab}
-    />
+    <>
+      <VisibleXS style={{ maxWidth: "130px" }}>
+        <Tabs size="small" items={items} type="card" activeKey={activeTab} />
+      </VisibleXS>
+      <HiddenXS>
+        <Tabs size="small" items={items} type="card" activeKey={activeTab} />
+      </HiddenXS>
+    </>
   );
 }
 
@@ -134,7 +136,7 @@ function ChatIndicatorTab({
         project_id={project_id}
         path={path}
         is_chat_open={isChatOpen}
-        shrink_fixed_tabs={shrinkFixedTabs}
+        shrinkFixedTabs={shrinkFixedTabs}
       />
     </div>
   );
@@ -162,7 +164,7 @@ function ShareIndicatorTab({ shrinkFixedTabs, activeTab, project_id }) {
       <ShareIndicator
         project_id={project_id}
         path={path}
-        shrink_fixed_tabs={shrinkFixedTabs}
+        shrinkFixedTabs={shrinkFixedTabs}
       />
     </div>
   );
