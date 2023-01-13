@@ -24,6 +24,7 @@ interface Props {
   add_inner_style?: React.CSSProperties;
   hide_label?: boolean;
   is_project?: boolean;
+  children?: React.ReactNode;
 }
 
 export const NavTab: React.FC<Props> = React.memo((props) => {

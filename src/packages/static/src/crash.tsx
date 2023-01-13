@@ -3,7 +3,6 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import A from "./link";
 import supportURL from "@cocalc/frontend/support/url";
-import { Icon } from "@cocalc/frontend/components/icon";
 
 const STYLE = {
   display: "none",
@@ -40,16 +39,6 @@ export default function Crash() {
 
   return (
     <div id="cocalc-react-crash" style={STYLE}>
-      <Icon
-        name="close-circle-two-tone"
-        style={{
-          fontSize: "24px",
-          position: "absolute",
-          right: "4px",
-          top: "5px",
-        }}
-        onClick={dismiss}
-      />
       <h1
         style={{
           textAlign: "center",
@@ -58,7 +47,6 @@ export default function Crash() {
           padding: "15px",
         }}
       >
-        <Icon name="robot" />
         &nbsp; CoCalc Crashed
       </h1>
 

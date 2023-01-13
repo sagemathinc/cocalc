@@ -169,6 +169,7 @@ interface FileUploadWrapperProps {
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
   className?: string;
   trackMouse?: boolean; // if true, report mouse location as second arg to event handlers, so you know where something was dropped.
+  children?: React.ReactNode;
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {

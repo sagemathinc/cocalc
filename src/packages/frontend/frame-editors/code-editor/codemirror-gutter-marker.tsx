@@ -8,6 +8,7 @@ React component that represents gutter markers in a codemirror editor.
 */
 
 import { ReactDOM, Component, Rendered } from "../../app-framework";
+import { ReactNode } from "react";
 import { is_different } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 
@@ -16,6 +17,7 @@ interface Props {
   codemirror: CodeMirror.Editor; // codemirror editor instance that we'll put gutter marks in.
   gutter_id: string;
   set_handle: Function;
+  children: ReactNode;
 }
 
 export class GutterMarker extends Component<Props, {}> {

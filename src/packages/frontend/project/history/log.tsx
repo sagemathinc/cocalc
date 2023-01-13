@@ -234,11 +234,13 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
 
   return (
     <div style={{ padding: "15px" }} className={"smc-vfill"}>
-      <h1 style={{ marginTop: "0px" }}>
-        <Icon name="history" /> Project activity log
-      </h1>
-      {render_search()}
-      {render_body()}
+      <>
+        <h1 style={{ marginTop: "0px" }}>
+          <Icon name="history" /> Project activity log
+        </h1>
+        {render_search()}
+        {render_body()}
+      </>
     </div>
   );
 };

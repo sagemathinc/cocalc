@@ -664,16 +664,12 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-export class Redux extends React.Component {
-  render() {
-    return React.createElement(
-      Provider,
-      { store: redux._redux_store },
-      this.props.children
-    );
-  }
+export function Redux({ children }) {
+  return React.createElement(Provider, {
+    store: redux._redux_store,
+    children,
+  });
 }
-
 // The lines above are just the non-tsx version of this:
 //<Provider store={redux._redux_store}>
 //    {@props.children}

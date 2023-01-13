@@ -507,7 +507,7 @@ const IconSpec = {
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
-let IconFont: any = undefined;
+export let IconFont: any = undefined;
 try {
   if (typeof window != "undefined") {
     // obviously won't work if window is undefined based on looking at the code...

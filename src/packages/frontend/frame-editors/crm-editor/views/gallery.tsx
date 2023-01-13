@@ -4,6 +4,7 @@
 import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { Card, Divider, Modal } from "antd";
 import { VirtuosoGrid } from "react-virtuoso";
+import type { GridItemProps } from "react-virtuoso";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import Json from "./json";
@@ -16,9 +17,9 @@ interface Props {
   recordHeight?: number;
 }
 
-function ItemContainer({ children }: { children?: ReactNode }) {
-  return <div style={{ display: "inline-block" }}>{children}</div>;
-}
+const ItemContainer: React.FC<GridItemProps & { children?: ReactNode }> = ({
+  children,
+}) => <div style={{ display: "inline-block" }}>{children}</div>;
 
 const cardStyle = {
   width: "300px",

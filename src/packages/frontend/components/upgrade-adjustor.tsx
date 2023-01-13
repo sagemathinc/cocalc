@@ -60,6 +60,7 @@ interface Props {
   upgrades_you_applied_to_this_project?: object;
   omit_header?: boolean;
   style?: CSS;
+  children?: React.ReactNode;
 }
 
 export const UpgradeAdjustor: React.FC<Props> = (props) => {

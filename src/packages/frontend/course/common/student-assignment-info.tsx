@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
+import { ReactNode } from "react";
 import {
   ErrorDisplay,
   Icon,
@@ -36,7 +37,7 @@ import { useButtonSize } from "../util";
 
 interface StudentAssignmentInfoProps {
   name: string;
-  title: string | object;
+  title: ReactNode;
   student: StudentRecord;
   assignment: AssignmentRecord;
   grade?: string;

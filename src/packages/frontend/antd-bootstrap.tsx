@@ -334,7 +334,7 @@ export function Tabs(props: {
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
   style?: React.CSSProperties;
-  tabBarExtraContent?: React.ReactNode;
+  tabBarExtraContent?;
   tabPosition?: "left" | "top" | "right" | "bottom";
   size?: "small";
   children: any;
