@@ -121,7 +121,6 @@ export default function View({
   const { filteredData, numHidden, Filter, filter } = useFilterInput({
     data,
     id,
-    title,
   });
 
   const [addError, setAddError] = useState<string>("");
