@@ -62,7 +62,10 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     return (
       // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
       // now visible via a big "Connecting..." banner after a few seconds.
-      <span style={{ paddingRight: "5px" }} className="hidden-xs">
+      <span
+        style={{ paddingLeft: "15px", marginRight: "-15px" }}
+        className="hidden-xs"
+      >
         <WebsocketIndicator state={project_websockets?.get(project_id)} />
       </span>
     );
