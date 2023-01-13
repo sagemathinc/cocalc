@@ -23,6 +23,7 @@ export default async function init(app: Application) {
 
   winston.info("Initializing the nextjs server...");
   const handler = await initNextServer({ basePath });
+  winston.info("Initializing the nextjs share server...");
   const shareServer = await runShareServer();
   const shareBasePath = join(basePath, "share");
 
