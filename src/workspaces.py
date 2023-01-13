@@ -297,15 +297,16 @@ def clean(args) -> None:
         banner("Deleting " + ', '.join(paths))
         thread_map(f, paths + ['packages/node_modules'], nb_threads=10)
 
-    banner("Running 'pnpm run clean' if it exists...")
+    if not args.node_modules_only:
+        banner("Running 'pnpm run clean' if it exists...")
 
-    def g(path):
-        # can only use --if-present with npm, but should be fine since clean is
-        # usually just "rm".
-        cmd("npm run clean --if-present", path)
+        def g(path):
+            # can only use --if-present with npm, but should be fine since clean is
+            # usually just "rm".
+            cmd("npm run clean --if-present", path)
 
-    thread_map(g, [os.path.abspath(path) for path in v],
-               nb_threads=3 if args.parallel else 1)
+        thread_map(g, [os.path.abspath(path) for path in v],
+                   nb_threads=3 if args.parallel else 1)
 
 
 def delete_package_lock(args) -> None:
