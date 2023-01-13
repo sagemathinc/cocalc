@@ -69,7 +69,7 @@ export default function TaskList({
 }: Props) {
   const [dragId, setDragId] = useState<string | null>(null);
 
-  const main_div_ref = useRef(null);
+  const mainDivRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
   const saveScroll = useDebouncedCallback((scrollState) => {
     if (isMountedRef.current && actions != null) {
@@ -161,19 +161,19 @@ export default function TaskList({
   }
 
   function on_click(e) {
-    if (e.target === main_div_ref.current) {
+    if (e.target === mainDivRef.current) {
       actions?.enable_key_handler();
     }
   }
-
   const body = (
     <div
       className="smc-vfill"
-      ref={main_div_ref}
+      ref={mainDivRef}
       onClick={on_click}
       style={{ overflow: "hidden" }}
     >
       <Virtuoso
+        overscan={500}
         ref={virtuosoRef}
         totalCount={visible.size + 1}
         itemContent={(index) =>
@@ -187,33 +187,50 @@ export default function TaskList({
     return body;
   }
 
-  function onDragEnd({ active, over }) {
+  function onDragEnd(event) {
+    const { active, over } = event;
     setDragId(null);
-    if (
-      actions == null ||
-      active == null ||
-      over == null ||
-      active.id == over.id
-    ) {
+    if (actions == null || active == null || active.id == over?.id) {
       return;
     }
     const oldIndex = items.indexOf(active.id);
-    const newIndex = items.indexOf(over.id);
+    const newIndex = over == null ? items.length - 1 : items.indexOf(over?.id);
     actions.reorder_tasks(oldIndex, newIndex);
   }
 
   const items = visible.toJS();
+  const dragOverlayRef = useRef<any>(null);
 
   return (
     <DndContext
-      onDragStart={(event) => setDragId(`${event.active.id}`)}
+      onDragStart={(event) => {
+        setDragId(`${event.active.id}`);
+      }}
       onDragEnd={onDragEnd}
+      onDragMove={() => {
+        if (virtuosoRef.current == null) return;
+        const overlay = dragOverlayRef.current?.getBoundingClientRect();
+        if (overlay == null) return;
+        const main = mainDivRef.current?.getBoundingClientRect();
+        if (main == null) return;
+        if (overlay.top < main.top + main.height / 15) {
+          virtuosoRef.current.scrollBy({ top: -50 });
+        } else if (overlay.top < main.top + main.height / 5) {
+          virtuosoRef.current.scrollBy({ top: -5 });
+        } else if (overlay.top > main.bottom - main.height / 15) {
+          virtuosoRef.current.scrollBy({ top: 50 });
+        } else if (overlay.top > main.bottom - main.height / 5) {
+          virtuosoRef.current.scrollBy({ top: 5 });
+        }
+      }}
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DragOverlay>
           {dragId != null && (
-            <div style={{ height: "48px" }}>{render_task(dragId)}</div>
+            <div style={{ height: "48px" }} ref={dragOverlayRef}>
+              {render_task(dragId)}
+            </div>
           )}
         </DragOverlay>
         {body}
