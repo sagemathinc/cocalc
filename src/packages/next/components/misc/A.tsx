@@ -25,9 +25,7 @@ export default function A(props: any) {
     return <a {...props2} target={"_blank"} rel={"noopener"} />;
   }
   return (
-    <Link href={href}>
-      <a {...copyWithout(props, new Set(["external", "href"]))} />
-    </Link>
+    <Link href={href} {...copyWithout(props, new Set(["external", "href"]))} />
   );
 }
 

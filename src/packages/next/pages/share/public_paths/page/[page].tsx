@@ -41,17 +41,13 @@ function Pager({ page, publicPaths }) {
       Page {page}
       &nbsp;&nbsp;
       {page > 1 ? (
-        <Link href={`/share/public_paths/page/${page - 1}`}>
-          <a>Previous</a>
-        </Link>
+        <Link href={`/share/public_paths/page/${page - 1}`}>Previous</Link>
       ) : (
         <span style={{ color: "#888" }}>Previous</span>
       )}
       &nbsp;&nbsp;
       {publicPaths != null && publicPaths.length >= PAGE_SIZE ? (
-        <Link href={`/share/public_paths/page/${page + 1}`}>
-          <a>Next</a>
-        </Link>
+        <Link href={`/share/public_paths/page/${page + 1}`}>Next</Link>
       ) : (
         <span style={{ color: "#888" }}>Next</span>
       )}
@@ -93,7 +89,10 @@ export async function getServerSideProps(context) {
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds("public_paths.last_edited","last_edited")}, projects.avatar_image_tiny,
+    `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds(
+      "public_paths.last_edited",
+      "last_edited"
+    )}, projects.avatar_image_tiny,
     counter::INT,
      (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=public_paths.id) AS stars
     FROM public_paths, projects
