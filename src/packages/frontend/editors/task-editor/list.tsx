@@ -5,19 +5,10 @@
 
 /*
 List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500+ tasks are fully usable!
-
-
-            onSortEnd={({ oldIndex, newIndex }) =>
-              actions.reorder_tasks(oldIndex, newIndex)
-            }
-            useDragHandle={true}
-            lockAxis={"y"}
-            lockToContainerEdges={true}
-
 */
 
 import { List, Set as immutableSet } from "immutable";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import Task from "./task";
@@ -26,13 +17,10 @@ import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 import { useDebouncedCallback } from "use-debounce";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
-import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+  SortableList,
+  SortableItem,
+} from "@cocalc/frontend/components/sortable-list";
 
 interface Props {
   actions?: TaskActions;
@@ -67,8 +55,6 @@ export default function TaskList({
   selected_hashtags,
   search_terms,
 }: Props) {
-  const [dragId, setDragId] = useState<string | null>(null);
-
   const mainDivRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
   const saveScroll = useDebouncedCallback((scrollState) => {
@@ -157,7 +143,7 @@ export default function TaskList({
       />
     );
     if (!sortable) return body;
-    return <SortableTask id={task_id}>{body}</SortableTask>;
+    return <SortableItem id={task_id}>{body}</SortableItem>;
   }
 
   function on_click(e) {
@@ -165,98 +151,32 @@ export default function TaskList({
       actions?.enable_key_handler();
     }
   }
-  const body = (
-    <div
-      className="smc-vfill"
-      ref={mainDivRef}
-      onClick={on_click}
-      style={{ overflow: "hidden" }}
-    >
-      <Virtuoso
-        overscan={500}
-        ref={virtuosoRef}
-        totalCount={visible.size + 1}
-        itemContent={(index) =>
-          render_task(visible.get(index) ?? `${index}filler`, index)
-        }
-        {...virtuosoScroll}
-      />
-    </div>
-  );
-  if (!sortable) {
-    return body;
-  }
-
-  function onDragEnd(event) {
-    const { active, over } = event;
-    setDragId(null);
-    if (actions == null || active == null || active.id == over?.id) {
-      return;
-    }
-    const oldIndex = items.indexOf(active.id);
-    const newIndex = over == null ? items.length - 1 : items.indexOf(over?.id);
-    actions.reorder_tasks(oldIndex, newIndex);
-  }
-
-  const items = visible.toJS();
-  const dragOverlayRef = useRef<any>(null);
 
   return (
-    <DndContext
-      onDragStart={(event) => {
-        setDragId(`${event.active.id}`);
-      }}
-      onDragEnd={onDragEnd}
-      onDragMove={() => {
-        if (virtuosoRef.current == null) return;
-        const overlay = dragOverlayRef.current?.getBoundingClientRect();
-        if (overlay == null) return;
-        const main = mainDivRef.current?.getBoundingClientRect();
-        if (main == null) return;
-        if (overlay.top < main.top + main.height / 15) {
-          virtuosoRef.current.scrollBy({ top: -50 });
-        } else if (overlay.top < main.top + main.height / 5) {
-          virtuosoRef.current.scrollBy({ top: -5 });
-        } else if (overlay.top > main.bottom - main.height / 15) {
-          virtuosoRef.current.scrollBy({ top: 50 });
-        } else if (overlay.top > main.bottom - main.height / 5) {
-          virtuosoRef.current.scrollBy({ top: 5 });
-        }
-      }}
-      modifiers={[restrictToVerticalAxis]}
-    >
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <DragOverlay>
-          {dragId != null && (
-            <div style={{ height: "48px" }} ref={dragOverlayRef}>
-              {render_task(dragId)}
-            </div>
-          )}
-        </DragOverlay>
-        {body}
-      </SortableContext>
-    </DndContext>
-  );
-}
-
-function SortableTask({ id, children }) {
-  const { active, transform, transition, setNodeRef } = useSortable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={
-        active != null
-          ? {
-              transform: transform
-                ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-                : undefined,
-              transition,
-              opacity: active?.id == id ? 0 : undefined,
-            }
-          : undefined
+    <SortableList
+      disabled={!sortable}
+      items={visible.toJS()}
+      Item={({ id }) => render_task(id)}
+      onDragStop={(oldIndex, newIndex) =>
+        actions?.reorder_tasks(oldIndex, newIndex)
       }
     >
-      {children}
-    </div>
+      <div
+        className="smc-vfill"
+        ref={mainDivRef}
+        onClick={on_click}
+        style={{ overflow: "hidden" }}
+      >
+        <Virtuoso
+          overscan={500}
+          ref={virtuosoRef}
+          totalCount={visible.size + 1}
+          itemContent={(index) =>
+            render_task(visible.get(index) ?? `${index}filler`, index)
+          }
+          {...virtuosoScroll}
+        />
+      </div>
+    </SortableList>
   );
 }

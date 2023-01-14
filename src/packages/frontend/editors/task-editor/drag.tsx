@@ -8,21 +8,17 @@ Drag tasks handle (and other support)
 */
 
 import { Icon, Tip } from "../../components";
-import { useSortable } from "@dnd-kit/sortable";
+import { DragHandle as SortableDragHandle } from "@cocalc/frontend/components/sortable-list";
 
 interface Props {
   id: string;
 }
 
 function EnabledDragHandle({ id }: Props) {
-  const { attributes, listeners } = useSortable({ id });
   return (
-    <Icon
-      style={{ cursor: "pointer" }}
-      name="bars"
-      {...attributes}
-      {...listeners}
-    />
+    <SortableDragHandle id={id}>
+      <Icon name="bars" />
+    </SortableDragHandle>
   );
 }
 
