@@ -76,7 +76,9 @@ export function SortableList({
 }
 
 export function SortableItem({ id, children }) {
-  const { active, transform, transition, setNodeRef } = useSortable({ id });
+  const { active, transform, transition, setNodeRef } = useSortable({
+    id,
+  });
   return (
     <div
       ref={setNodeRef}

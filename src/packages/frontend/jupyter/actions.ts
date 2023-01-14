@@ -455,8 +455,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const newPos = this.store.getIn(["cells", newId, "pos"]);
     this.set_cell_pos(oldId, newPos, false);
     this.set_cell_pos(newId, oldPos, save);
-    cell_list = cell_list.set(oldPos, newId);
-    cell_list = cell_list.set(newPos, oldId);
+
+    // This is an attempt to "reduce flicker"; I'm not sure it helps at all.
+    cell_list = cell_list.set(oldIndex, newId);
+    cell_list = cell_list.set(newIndex, oldId);
     this.setState({ cell_list });
   }
 
