@@ -10,7 +10,7 @@ being virtualized with react-virtuoso.
 
 */
 
-import { ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useState } from "react";
 import { Icon } from "./icon";
 
 import { DndContext, DragOverlay } from "@dnd-kit/core";
@@ -100,30 +100,25 @@ export function SortableItem({ id, children }) {
 export function DragHandle({
   id,
   children,
+  style,
 }: {
   id: string | number;
   children?: ReactNode;
+  style?: CSSProperties;
 }) {
   const { attributes, listeners } = useSortable({ id });
 
-  if ((children?.length ?? 0) == 0) {
-    return (
-      <Icon
-        style={{ cursor: "pointer" }}
-        name="bars"
-        {...attributes}
-        {...listeners}
-      />
-    );
-  } else {
-    return (
-      <div
-        style={{ display: "inline-block", cursor: "pointer" }}
-        {...attributes}
-        {...listeners}
-      >
-        {children}
-      </div>
-    );
-  }
+  return (
+    <div
+      style={{
+        display: "inline-block",
+        cursor: "grab",
+        ...style,
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {children ? children : <Icon name="bars" />}
+    </div>
+  );
 }

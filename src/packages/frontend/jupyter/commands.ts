@@ -881,17 +881,17 @@ export function commands(
     },
 
     "write protect": {
-      m: "Edit protect -- toggle whether cells are editable",
+      m: "Edit protect -- toggle whether selected cells are editable",
       f: () => frame_actions.toggle_write_protection_on_selected_cells(),
     },
 
     "delete protect": {
-      m: "Delete protection -- toggle whether cells are deletable",
+      m: "Delete protection -- toggle whether selected cells are deletable",
       f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {
-      m: "Protection -- toggle whether cells are editable and deletable",
+      m: "Protection -- toggle whether selected cells are editable and deletable",
       k: [
         { alt: true, which: 80 },
         { meta: true, which: 80 },

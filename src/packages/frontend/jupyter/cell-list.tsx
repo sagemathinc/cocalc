@@ -67,7 +67,7 @@ const ITEM_STYLE: CSS = {
 };
 
 interface CellListProps {
-  actions?: JupyterActions; // if not defined, then everything read only
+  actions?: JupyterActions; // if not defined, then everything is read only
   name?: string;
   cell_list: immutable.List<string>; // list of ids of cells in order
   cells: immutable.Map<string, any>;
@@ -402,7 +402,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
     return (
       <SortableItem id={id}>
-        <DragHandle id={id} />
+        {actions?.store.is_cell_editable(id) && (
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <DragHandle
+              id={id}
+              style={{
+                position: "absolute",
+                left: 15,
+                top: 2.5,
+                color: "#aaa",
+              }}
+            />
+          </div>
+        )}
         <Cell
           key={id}
           id={id}
@@ -657,10 +669,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
     >
       <SortableList
+        disabled={actions == null}
         items={cell_list.toJS()}
         Item={({ id }) => render_cell(id)}
         onDragStop={(oldIndex, newIndex) => {
-          console.log("move", oldIndex, newIndex);
+          actions?.moveCell(oldIndex, newIndex);
         }}
       >
         {body}

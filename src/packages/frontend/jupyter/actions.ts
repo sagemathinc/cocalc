@@ -434,9 +434,30 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._set({ type: "cell", id, pos }, save);
   }
 
-  public swap_cells(oldIndex: number, newIndex: number): void {
+  public moveCell(
+    oldIndex: number,
+    newIndex: number,
+    save: boolean = true
+  ): void {
     // Move the cell that is currently at position oldIndex to be at position newIndex.
-    // TODO:
+    let cell_list = this.store.get_cell_list();
+    const oldId = cell_list.get(oldIndex);
+    if (oldId == null) {
+      throw Error(`no cell with index ${oldIndex}`);
+    }
+    const newId = cell_list.get(newIndex);
+    if (newId == null) {
+      throw Error(`no cell with index ${newIndex}`);
+    }
+    // We just have to swap the pos attribute of the two cells to
+    // visibly swap them.
+    const oldPos = this.store.getIn(["cells", oldId, "pos"]);
+    const newPos = this.store.getIn(["cells", newId, "pos"]);
+    this.set_cell_pos(oldId, newPos, false);
+    this.set_cell_pos(newId, oldPos, save);
+    cell_list = cell_list.set(oldPos, newId);
+    cell_list = cell_list.set(newPos, oldId);
+    this.setState({ cell_list });
   }
 
   public set_cell_type(
