@@ -30,6 +30,12 @@ import HeadingTagComponent from "./heading-tag";
 import { InsertCell } from "./insert-cell";
 import { NotebookMode, Scroll } from "./types";
 
+import {
+  SortableList,
+  SortableItem,
+  DragHandle,
+} from "@cocalc/frontend/components/sortable-list";
+
 import { createContext, useContext } from "react";
 interface IFrameContextType {
   iframeDivRef?: MutableRefObject<any>;
@@ -385,37 +391,43 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   function render_cell(
     id: string,
-    isScrolling: boolean,
-    index: number,
+    isScrolling?: boolean,
+    index?: number,
     delayRendering?: number
   ) {
     const cell = cells.get(id);
     if (cell == null) return null;
+    if (index == null) {
+      index = cell_list.indexOf(id) ?? 0;
+    }
     return (
-      <Cell
-        key={id}
-        id={id}
-        index={index}
-        actions={actions}
-        name={name}
-        cm_options={cm_options}
-        cell={cell}
-        is_current={id === cur_id}
-        hook_offset={hook_offset}
-        is_selected={sel_ids?.contains(id)}
-        is_markdown_edit={md_edit_ids?.contains(id)}
-        mode={mode}
-        font_size={font_size}
-        project_id={project_id}
-        directory={directory}
-        complete={complete}
-        is_focused={is_focused}
-        more_output={more_output?.get(id)}
-        cell_toolbar={cell_toolbar}
-        trust={trust}
-        is_scrolling={isScrolling}
-        delayRendering={delayRendering}
-      />
+      <SortableItem id={id}>
+        <DragHandle id={id} />
+        <Cell
+          key={id}
+          id={id}
+          index={index}
+          actions={actions}
+          name={name}
+          cm_options={cm_options}
+          cell={cell}
+          is_current={id === cur_id}
+          hook_offset={hook_offset}
+          is_selected={sel_ids?.contains(id)}
+          is_markdown_edit={md_edit_ids?.contains(id)}
+          mode={mode}
+          font_size={font_size}
+          project_id={project_id}
+          directory={directory}
+          complete={complete}
+          is_focused={is_focused}
+          more_output={more_output?.get(id)}
+          cell_toolbar={cell_toolbar}
+          trust={trust}
+          is_scrolling={isScrolling}
+          delayRendering={delayRendering}
+        />
+      </SortableItem>
     );
   }
 
@@ -644,7 +656,15 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     <FileContext.Provider
       value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
     >
-      {body}
+      <SortableList
+        items={cell_list.toJS()}
+        Item={({ id }) => render_cell(id)}
+        onDragStop={(oldIndex, newIndex) => {
+          console.log("move", oldIndex, newIndex);
+        }}
+      >
+        {body}
+      </SortableList>
     </FileContext.Provider>
   );
 };

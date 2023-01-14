@@ -97,7 +97,13 @@ export function SortableItem({ id, children }) {
   );
 }
 
-export function DragHandle({ id, children }) {
+export function DragHandle({
+  id,
+  children,
+}: {
+  id: string | number;
+  children?: ReactNode;
+}) {
   const { attributes, listeners } = useSortable({ id });
 
   if ((children?.length ?? 0) == 0) {

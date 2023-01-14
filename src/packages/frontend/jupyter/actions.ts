@@ -434,6 +434,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._set({ type: "cell", id, pos }, save);
   }
 
+  public swap_cells(oldIndex: number, newIndex: number): void {
+    // Move the cell that is currently at position oldIndex to be at position newIndex.
+    // TODO:
+  }
+
   public set_cell_type(
     id: string,
     cell_type: string = "code",
