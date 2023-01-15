@@ -111,18 +111,9 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
   );
 };
 
-// NOTE: we wrap and put in a fake onItemHover to work around this bug:
-//     https://github.com/react-component/menu/issues/142
 export function MenuItem(props) {
   const M: any = Menu.Item;
-  return (
-    <M
-      {...props}
-      onItemHover={props.onItemHover != null ? props.onItemHover : () => {}}
-    >
-      {props.children}
-    </M>
-  );
+  return <M {...props}>{props.children}</M>;
 }
 
 export const MenuDivider = Menu.Divider;
