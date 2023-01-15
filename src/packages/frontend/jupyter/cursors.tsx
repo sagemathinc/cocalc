@@ -250,7 +250,9 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
 
     function renderCursor(): void {
       if (elt.current != null) {
-        root.current = createRoot(elt.current);
+        if (root.current == null) {
+          root.current = createRoot(elt.current);
+        }
         root.current.render(
           <Cursor
             name={name}
