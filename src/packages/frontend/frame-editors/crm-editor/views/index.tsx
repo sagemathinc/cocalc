@@ -23,6 +23,8 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import Handle from "../components/handle";
 
+import "./views.css";
+
 export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
   gallery: "address-card",

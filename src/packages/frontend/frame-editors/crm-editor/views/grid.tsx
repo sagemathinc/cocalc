@@ -150,11 +150,13 @@ function Column({
   title,
   direction,
   onSortClick,
+  dataIndex,
 }: {
   width?: number | string;
   title: ReactNode;
   direction?: SortDirection;
   onSortClick?: () => void;
+  dataIndex: string;
 }) {
   return (
     <th
@@ -165,6 +167,7 @@ function Column({
         background: "rgb(250, 250, 250)",
         padding: "10px 5px",
         border: "1px solid #eee",
+        position: "relative",
       }}
       onClick={onSortClick}
     >
@@ -175,6 +178,15 @@ function Column({
           name={direction == "ascending" ? "caret-down" : "caret-up"}
         />
       )}
+      <ResizeHandle field={dataIndex} />
     </th>
+  );
+}
+
+function ResizeHandle({ field }) {
+  return (
+    <div
+      className="cocalc-crm-grid-column-resizer"
+    ></div>
   );
 }
