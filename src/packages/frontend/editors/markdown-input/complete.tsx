@@ -141,7 +141,7 @@ export const Complete: React.FC<Props> = ({
     return (
       <div style={{ position: "relative" }}>
         <div style={{ ...offset, position: "absolute" }}>
-          <Dropdown overlay={menu} visible={true}>
+          <Dropdown overlay={menu} open>
             <span />
           </Dropdown>
         </div>
@@ -152,7 +152,7 @@ export const Complete: React.FC<Props> = ({
     return (
       <Portal>
         <div style={{ ...STYLE, ...position }}>
-          <Dropdown overlay={menu} visible={true}>
+          <Dropdown overlay={menu} open>
             <span />
           </Dropdown>
         </div>

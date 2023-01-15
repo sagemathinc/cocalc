@@ -3,16 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ReactDOM, Redux } from "../app-framework";
+import { Redux } from "../app-framework";
+import { createRoot } from "react-dom/client";
 
 export async function render(): Promise<void> {
-  finishedLoading();  // comment this out to leave the loading/sartup banner visible
+  finishedLoading(); // comment this out to leave the loading/startup banner visible so you can use the Chrome dev tools with it.
   const { Page } = await import("./page");
-  ReactDOM.render(
+  const container = document.getElementById("cocalc-webapp-container");
+  const root = createRoot(container!);
+  root.render(
     <Redux>
       <Page />
-    </Redux>,
-    document.getElementById("cocalc-webapp-container")
+    </Redux>
   );
 }
 

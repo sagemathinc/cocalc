@@ -7,7 +7,8 @@
 React component that represents gutter markers in a codemirror editor.
 */
 
-import { ReactDOM, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
+import { createRoot } from "react-dom/client";
 import { ReactNode } from "react";
 import { is_different } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
@@ -23,6 +24,7 @@ interface Props {
 export class GutterMarker extends Component<Props, {}> {
   private _elt: HTMLElement | undefined;
   private _handle: CodeMirror.LineHandle | undefined;
+  private root;
 
   shouldComponentUpdate(props): boolean {
     return is_different(this.props, props, ["line", "gutter_id"]);
@@ -34,7 +36,8 @@ export class GutterMarker extends Component<Props, {}> {
 
   init_gutter(): void {
     this._elt = document.createElement("div");
-    ReactDOM.render(<div>{this.props.children}</div>, this._elt);
+    this.root = createRoot(this._elt);
+    this.root.render(<div>{this.props.children}</div>);
     this._handle = this.props.codemirror.setGutterMarker(
       this.props.line,
       this.props.gutter_id,
@@ -45,7 +48,7 @@ export class GutterMarker extends Component<Props, {}> {
 
   componentWillUnmount(): void {
     if (this._elt !== undefined) {
-      ReactDOM.unmountComponentAtNode(this._elt);
+      this.root.unmount();
       this._elt.remove();
       delete this._elt;
     }

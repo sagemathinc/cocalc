@@ -4,7 +4,8 @@
  */
 
 // info button inside the editor when editing a file. links you back to the file listing with the action prompted
-import { CSS, React, ReactDOM, useActions } from "../app-framework";
+import { CSS, React, useActions } from "../app-framework";
+import { createRoot } from "react-dom/client";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { file_actions } from "../project_store";
@@ -137,14 +138,14 @@ export function render_file_info_dropdown(
   dom_node,
   is_public?
 ) {
-  return ReactDOM.render(
+  const root = createRoot(dom_node);
+  root.render(
     <EditorFileInfoDropdown
       filename={filename}
       project_id={project_id}
       is_public={is_public}
       label={"File"}
       style={{ height: "34px" }}
-    />,
-    dom_node
+    />
   );
 }

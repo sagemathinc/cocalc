@@ -3,8 +3,7 @@
 // loading everything else.
 
 import "./init-app-base-path";
-// @ts-ignore
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import Favicons from "./favicons";
 import Manifest from "./manifest";
 import Meta from "./meta";
@@ -15,20 +14,32 @@ import initError from "./webapp-error";
 
 initError();
 
-ReactDOM.render(
-  <>
-    <Primus />
-    <Manifest />
-    <PreflightCheck />
-    <StartupBanner />
-  </>,
-  document.getElementById("cocalc-load-container")
-);
+const loadContainer = document.getElementById("cocalc-load-container");
+if (loadContainer) {
+  createRoot(loadContainer).render(
+    <>
+      <Primus />
+      <Manifest />
+      <PreflightCheck />
+      <StartupBanner />
+    </>
+  );
+} else {
+  throw Error(
+    "there must be a div with id cocalc-load-container in the document!"
+  );
+}
 
-ReactDOM.render(
-  <span>
-    <Meta />
-    <Favicons />
-  </span>,
-  document.getElementById("cocalc-scripts-container")
-);
+const scriptsContainer = document.getElementById("cocalc-scripts-container");
+if (scriptsContainer != null) {
+  createRoot(scriptsContainer).render(
+    <span>
+      <Meta />
+      <Favicons />
+    </span>
+  );
+} else {
+  throw Error(
+    "there must be a div with id cocalc-scripts-container in the document!"
+  );
+}

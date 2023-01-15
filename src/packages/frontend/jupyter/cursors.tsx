@@ -14,7 +14,8 @@ const HIDE_NAME_TIMEOUT_MS = 1500;
 
 import { MutableRefObject, useRef, useState, useEffect } from "react";
 import { Map } from "immutable";
-import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
+import { React, Rendered, useTypedRedux } from "../app-framework";
+import { createRoot } from "react-dom/client";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 import { times_n } from "./util";
@@ -192,6 +193,7 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
     const { name, color, line, ch, codemirror, time } = props;
     const isMountedRef = useIsMountedRef();
     const elt = useRef<HTMLDivElement | null>(null);
+    const root = useRef<any>(null);
     const posRef = useRef<{ line: number; ch: number } | null>(null);
     const showNameRef = useRef<((time?) => void) | null>(null);
 
@@ -203,7 +205,10 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
       codemirror.addWidget({ line, ch }, elt.current, false);
       return () => {
         if (elt.current != null) {
-          ReactDOM.unmountComponentAtNode(elt.current);
+          if (root.current != null) {
+            root.current.unmount();
+            root.current = null;
+          }
           elt.current.remove();
           elt.current = null;
         }
@@ -245,15 +250,15 @@ const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
 
     function renderCursor(): void {
       if (elt.current != null) {
-        ReactDOM.render(
+        root.current = createRoot(elt.current);
+        root.current.render(
           <Cursor
             name={name}
             color={color}
             top={IS_FIREFOX ? "0px" : IS_SAFARI ? "-1ex" : "-1.2em"}
             time={time}
             showNameRef={showNameRef}
-          />,
-          elt.current
+          />
         );
       }
     }

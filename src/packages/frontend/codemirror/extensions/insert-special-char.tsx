@@ -37,7 +37,7 @@ export async function get_insert_special_char_from_user(): Promise<
     return (
       <Modal
         title={<h3>&Omega; Insert Special Symbol</h3>}
-        visible={true}
+        open
         footer={<Button onClick={() => cb()}>Cancel</Button>}
         onCancel={() => cb()}
         centered
@@ -64,35 +64,36 @@ function insert_special_char(mode: string, opts: Options): string {
   return opts.char;
 }
 
-CodeMirror.defineExtension("insert_special_char", async function (): Promise<
-  void
-> {
-  // @ts-ignore
-  const cm = this;
-  let opts: Options | undefined = undefined;
+CodeMirror.defineExtension(
+  "insert_special_char",
+  async function (): Promise<void> {
+    // @ts-ignore
+    const cm = this;
+    let opts: Options | undefined = undefined;
 
-  try {
-    opts = await get_insert_special_char_from_user();
-  } catch (err) {
-    alert_message({ type: "error", message: err.toString() });
-    return;
-  }
+    try {
+      opts = await get_insert_special_char_from_user();
+    } catch (err) {
+      alert_message({ type: "error", message: err.toString() });
+      return;
+    }
 
-  if (opts == null) {
-    return; // user cancelled
-  }
+    if (opts == null) {
+      return; // user cancelled
+    }
 
-  const selections = cm.listSelections();
-  selections.reverse();
-  for (const sel of selections) {
-    const link = insert_special_char(cm.get_edit_mode(sel.head), opts);
-    if (sel.empty()) {
-      cm.replaceRange(link, sel.head);
-    } else {
-      cm.replaceRange(link, sel.from(), sel.to());
+    const selections = cm.listSelections();
+    selections.reverse();
+    for (const sel of selections) {
+      const link = insert_special_char(cm.get_edit_mode(sel.head), opts);
+      if (sel.empty()) {
+        cm.replaceRange(link, sel.head);
+      } else {
+        cm.replaceRange(link, sel.from(), sel.to());
+      }
     }
   }
-});
+);
 
 const SYMBOLS: Options[] = [
   { code: "Aacute", char: "Á" },

@@ -46,6 +46,9 @@ export default function StartupBanner() {
     <div
       className="cocalc-fade-in"
       style={{
+        left: 0,
+        top: 0,
+        zIndex: 100,
         height: "100vh",
         width: "100vw",
         position: "fixed",
@@ -64,8 +67,8 @@ export default function StartupBanner() {
             padding: "15px",
             height: "75vh",
             width: "90%",
-            maxWidth: "350px",
-            maxHeight: "400px",
+            maxWidth: "300px",
+            maxHeight: "300px",
             textAlign: "center",
           }}
         >
