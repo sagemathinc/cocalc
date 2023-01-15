@@ -25,14 +25,18 @@ interface Props {
   items: (string | number)[];
   Item?;
   children?: ReactNode;
+  onDragStart?: (id) => void;
   onDragStop?: (oldIndex: number, newIndex: number) => void;
+  onDragMove?: () => void;
   disabled?: boolean;
 }
 
 export function SortableList({
   items,
   Item,
+  onDragStart,
   onDragStop,
+  onDragMove,
   children,
   disabled,
 }: Props) {
@@ -57,8 +61,10 @@ export function SortableList({
     <DndContext
       onDragStart={(event) => {
         setDragId(`${event.active.id}`);
+        onDragStart?.(event.active.id);
       }}
       onDragEnd={onDragEnd}
+      onDragMove={onDragMove}
       modifiers={[restrictToVerticalAxis]}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -89,7 +95,10 @@ export function SortableItem({ id, children }) {
                 ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
                 : undefined,
               transition,
-              opacity: active?.id == id ? 0 : undefined,
+              opacity:
+                active?.id == id
+                  ? 0
+                  : undefined /* render it invisible in case its the active one -- want the space it takes up*/,
             }
           : undefined
       }

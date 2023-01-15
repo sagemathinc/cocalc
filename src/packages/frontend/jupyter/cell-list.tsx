@@ -173,6 +173,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   function save_scroll(): void {
     if (use_windowed_list) {
       // TODO -- virtuoso
+      // We don't actually need to do anything though since our virtuoso
+      // integration automatically solves this same problem.
     } else {
       if (cell_list_node.current != null) {
         frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
@@ -181,7 +183,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   async function restore_scroll(): Promise<void> {
-    if (scrollTop == null) return;
+    if (scrollTop == null || use_windowed_list) return;
     /* restore scroll state -- as rendering happens dynamically
        and asynchronously, and I have no idea how to know when
        we are done, we can't just do this once.  Instead, we
@@ -190,13 +192,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let scrollHeight: number = 0;
     for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!is_mounted.current) return;
-      if (!use_windowed_list) {
-        const elt = cell_list_node.current;
-        if (elt != null && elt.scrollHeight !== scrollHeight) {
-          // dynamically rendering actually changed something
-          elt.scrollTop = scrollTop;
-          scrollHeight = elt.scrollHeight;
-        }
+      const elt = cell_list_node.current;
+      if (elt != null && elt.scrollHeight !== scrollHeight) {
+        // dynamically rendering actually changed something
+        elt.scrollTop = scrollTop;
+        scrollHeight = elt.scrollHeight;
       }
       await delay(tm);
     }
@@ -401,7 +401,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       index = cell_list.indexOf(id) ?? 0;
     }
     return (
-      <SortableItem id={id}>
+      <div>
         {actions?.store.is_cell_editable(id) && (
           <div style={{ position: "relative", zIndex: 1 }}>
             <DragHandle
@@ -439,7 +439,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
         />
-      </SortableItem>
+      </div>
     );
   }
 
@@ -457,6 +457,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     offset: 0,
     id: "",
   });
+
   const cellListRef = useRef<any>(cell_list);
   cellListRef.current = cell_list;
   const virtuosoScroll = useVirtuosoScrollHook(
@@ -472,9 +473,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               ...scrollState,
               id: cellListRef.current?.get(scrollState.index - 1),
             };
-            setTimeout(() => {
-              frameActions.current?.set_scrollTop(scrollState);
-            }, 0);
             for (const key in iframeOnScrolls) {
               iframeOnScrolls[key]();
             }
@@ -602,16 +600,18 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
               return BOTTOM_PADDING_CELL;
             }
-            const key = cell_list.get(index - EXTRA_TOP_CELLS);
-            if (key == null) return null;
-            const is_last: boolean = key === cell_list.get(-1);
+            const id = cell_list.get(index - EXTRA_TOP_CELLS);
+            if (id == null) return null;
+            const is_last: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             return (
-              <DivTempHeight height={h ? `${h}px` : undefined}>
-                {render_insert_cell(key, "above")}
-                {render_cell(key, false, index - EXTRA_TOP_CELLS)}
-                {is_last ? render_insert_cell(key, "below") : undefined}
-              </DivTempHeight>
+              <SortableItem id={id}>
+                <DivTempHeight height={h ? `${h}px` : undefined}>
+                  {render_insert_cell(id, "above")}
+                  {render_cell(id, false, index - EXTRA_TOP_CELLS)}
+                  {is_last ? render_insert_cell(id, "below") : undefined}
+                </DivTempHeight>
+              </SortableItem>
             );
           }}
           rangeChanged={(visibleRange) => {
@@ -628,10 +628,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
     cell_list.forEach((id: string) => {
-      if (actions != null) {
-        v.push(render_insert_cell(id));
-      }
-      v.push(render_cell(id, false, index, index));
+      v.push(
+        <SortableItem id={id}>
+          {actions != null && render_insert_cell(id)}
+          {render_cell(id, false, index, index)}
+        </SortableItem>
+      );
       index += 1;
     });
     if (actions != null && v.length > 0) {
@@ -671,9 +673,25 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <SortableList
         disabled={actions == null}
         items={cell_list.toJS()}
-        Item={({ id }) => render_cell(id)}
+        Item={({ id }) => (
+          <div
+            style={{
+              background: "white",
+              boxShadow: "8px 8px 4px 4px #ccc",
+            }}
+          >
+            {render_insert_cell(id, "above")}
+            {render_cell(id)}
+          </div>
+        )}
+        onDragStart={(id) => {
+          frameActions.current?.set_cur_id(id);
+        }}
         onDragStop={(oldIndex, newIndex) => {
           actions?.moveCell(oldIndex, newIndex);
+          setTimeout(() => {
+            frameActions.current?.scroll("cell visible");
+          }, 0);
         }}
       >
         {body}
