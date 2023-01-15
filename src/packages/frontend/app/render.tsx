@@ -18,6 +18,18 @@ export async function render(): Promise<void> {
   );
 }
 
+import ReactDOM from "react-dom";
+export async function xxx_render(): Promise<void> {
+  finishedLoading(); // comment this out to leave the loading/sartup banner visible
+  const { Page } = await import("./page");
+  ReactDOM.render(
+    <Redux>
+      <Page />
+    </Redux>,
+    document.getElementById("cocalc-webapp-container")
+  );
+}
+
 // When loading is done, remove any visible artifacts.
 // This doesn't remove anything added to the head.
 function finishedLoading() {
