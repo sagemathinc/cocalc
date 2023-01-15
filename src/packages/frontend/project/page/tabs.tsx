@@ -22,9 +22,6 @@ export default function ProjectTabs({ project_id }) {
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const fullscreen = useTypedRedux("page", "fullscreen");
 
-  const width = $(window).width() ?? 1000; // default 1000 is to make TS happy
-  const shrinkFixedTabs = width < 376 + openFiles.size * 250;
-
   return (
     <div
       className="smc-file-tabs"
@@ -36,11 +33,7 @@ export default function ProjectTabs({ project_id }) {
     >
       <div style={{ display: "flex" }}>
         {fullscreen != "kiosk" && (
-          <FixedTabs
-            shrinkFixedTabs={shrinkFixedTabs}
-            project_id={project_id}
-            activeTab={activeTab}
-          />
+          <FixedTabs project_id={project_id} activeTab={activeTab} />
         )}
         <div
           style={{
@@ -64,23 +57,15 @@ export default function ProjectTabs({ project_id }) {
             display: "inline-flex",
           }}
         >
-          <ChatIndicatorTab
-            shrinkFixedTabs={shrinkFixedTabs}
-            activeTab={activeTab}
-            project_id={project_id}
-          />
-          <ShareIndicatorTab
-            shrinkFixedTabs={shrinkFixedTabs}
-            activeTab={activeTab}
-            project_id={project_id}
-          />
+          <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
+          <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
         </div>
       </div>
     </div>
   );
 }
 
-function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
+function FixedTabs({ project_id, activeTab }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const items: TabsProps["items"] = [];
   for (const name in FIXED_PROJECT_TABS) {
@@ -92,11 +77,10 @@ function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
       key: name,
       label: (
         <FileTab
-          style={{ margin: shrinkFixedTabs ? "0 -10px 0 -5px" : "0 -10px" }}
+          style={{ margin: "0 -10px 0 -5px" }}
           key={name}
           project_id={project_id}
           name={name as FixedTab}
-          label={shrinkFixedTabs ? "" : undefined}
         />
       ),
     });
@@ -113,11 +97,7 @@ function FixedTabs({ shrinkFixedTabs, project_id, activeTab }) {
   );
 }
 
-function ChatIndicatorTab({
-  shrinkFixedTabs,
-  activeTab,
-  project_id,
-}): JSX.Element | null {
+function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
   const openFileInfo = useTypedRedux({ project_id }, "open_files");
   if (!activeTab?.startsWith("editor-")) {
     // TODO: This is the place in the code where we could support project-wide
@@ -136,13 +116,12 @@ function ChatIndicatorTab({
         project_id={project_id}
         path={path}
         is_chat_open={isChatOpen}
-        shrinkFixedTabs={shrinkFixedTabs}
       />
     </div>
   );
 }
 
-function ShareIndicatorTab({ shrinkFixedTabs, activeTab, project_id }) {
+function ShareIndicatorTab({ activeTab, project_id }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const currentPath = useTypedRedux({ project_id }, "current_path");
 
@@ -161,11 +140,7 @@ function ShareIndicatorTab({ shrinkFixedTabs, activeTab, project_id }) {
   }
   return (
     <div style={INDICATOR_STYLE}>
-      <ShareIndicator
-        project_id={project_id}
-        path={path}
-        shrinkFixedTabs={shrinkFixedTabs}
-      />
+      <ShareIndicator project_id={project_id} path={path} />
     </div>
   );
 }

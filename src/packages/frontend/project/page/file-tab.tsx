@@ -16,7 +16,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { CSSProperties } from "react";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
-import { HiddenXS, Icon, IconName } from "@cocalc/frontend/components";
+import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { Popover } from "antd";
@@ -233,7 +233,7 @@ const FULLPATH_LABEL_STYLE = {
 function DisplayedLabel({ path, label }) {
   if (path == null) {
     // a fixed tab (not an actual file)
-    return <HiddenXS>{label}</HiddenXS>;
+    return <HiddenXSSM>{label}</HiddenXSSM>;
   }
 
   let ext = filename_extension(label);
