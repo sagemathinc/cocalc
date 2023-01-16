@@ -177,7 +177,7 @@ function ColumnHeading({
   width?: number | string;
   title: ReactNode;
   direction?: SortDirection;
-  onSortClick?: () => void;
+  onSortClick: () => void;
   setWidth: (number) => void;
 }) {
   const ignoreClickRef = useRef<boolean>(false);

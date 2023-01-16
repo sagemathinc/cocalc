@@ -18,7 +18,6 @@ import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
 import { getTables } from "../tables";
 import { PlusOutlined } from "@ant-design/icons";
-import { plural } from "@cocalc/util/misc";
 
 interface TabItem {
   label: ReactNode;
