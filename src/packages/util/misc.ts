@@ -2333,3 +2333,29 @@ export function isAcademic(s?: string): boolean {
   if (academicCountry.test(domain)) return true;
   return false;
 }
+
+/**
+ * Test, if the given object is a valid list of JSON-Patch operations.
+ * @returns boolean
+ */
+export function test_valid_jsonpatch(patch: any): boolean {
+  if (!is_array(patch)) {
+    return false;
+  }
+  for (const op of patch) {
+    if (!is_object(op)) return false;
+    if (op.op == null) return false;
+    if (!["add", "remove", "replace", "move", "copy", "test"].includes(op.op)) {
+      return false;
+    }
+    if (op.path == null) return false;
+    if (op.from != null && typeof op.from !== "string") return false;
+    if (
+      op.value != null &&
+      typeof op.value !== "string" &&
+      !is_object(op.value)
+    )
+      return false;
+  }
+  return true;
+}

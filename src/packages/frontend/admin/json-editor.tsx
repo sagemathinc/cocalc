@@ -18,10 +18,11 @@ interface Props {
   value: string;
   rows?: number;
   onSave: (value: string) => void;
+  savePosition?: "top-bottom" | "top";
 }
 
 export const JsonEditor: React.FC<Props> = (props: Props) => {
-  const { value, onSave, rows = 3 } = props;
+  const { value, onSave, rows = 3, savePosition = "top-bottom" } = props;
   const [error, setError] = useState<string>("");
   const [focused, setFocused] = useState<boolean>(false);
   const [editing, setEditing] = useState<string>(value);
@@ -67,6 +68,17 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     setFocused(true);
   }
 
+  function renderSaveNote() {
+    if (value == editing) return;
+    return (
+      <Text type="danger">
+        Use "Save"{" "}
+        {savePosition == "top-bottom" ? "at the top or bottom" : "at the top"}{" "}
+        to actually save changes.
+      </Text>
+    );
+  }
+
   const style: CSS = {
     ...(!focused && { color: COLORS.GRAY, cursor: "pointer" }),
     width: "100%",
@@ -99,11 +111,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
         <Button size="small" disabled={!focused} onClick={doCancel}>
           Cancel
         </Button>
-        {value != editing && (
-          <Text type="danger">
-            Use "Save" (at the top or bottom) to actually save changes.
-          </Text>
-        )}
+        {renderSaveNote()}
       </Space>
     </div>
   );

@@ -44,7 +44,7 @@ import {
 } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round1 } from "@cocalc/util/misc";
+import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
 import Paragraph from "antd/es/typography/Paragraph";
@@ -97,6 +97,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
+  const [jsonPatchError, setJSONPatchError] = useState<string | undefined>(
+    undefined
+  );
+
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
@@ -431,7 +435,24 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function on_json_patch_change(patch: string): void {
+    try {
+      const patchObj = JSON.parse(patch);
+      setJSONPatchError(undefined);
+      if (test_valid_jsonpatch(patchObj)) {
+        onChange({ patch }); // we save the string, not the object!
+      } else {
+        setJSONPatchError(
+          'Must be a list of {`[{"op": "replace", "path": "…", "value": "…"}, …]`} objects.'
+        );
+      }
+    } catch (err) {
+      setJSONPatchError(`Unable to parse JSON: ${err}`);
+    }
+  }
+
   function render_patch_project_pod(): JSX.Element {
+    const value = quota.patch ?? "[]";
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -441,13 +462,17 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             applied right before being submitted to the Kubernetes API. Beware,
             this gives you a lot of power!
           </Paragraph>
-          <Text type="danger">
-            Error: Must be a list of {`[{ ops: "add", ... }, ...]`} objects
-          </Text>
+          {jsonPatchError && (
+            <Text type="danger">
+              JSON Patch Error: {jsonPatchError} – Learn more at{" "}
+              <A href="https://jsonpatch.com/">JSON Patch</A>.
+            </Text>
+          )}
           <JsonEditor
             rows={15}
-            onSave={(patch) => console.log(patch)}
-            value={"[]"}
+            onSave={on_json_patch_change}
+            value={value}
+            savePosition={"top"}
           />
         </Col>
       </Row>

@@ -20,7 +20,7 @@ describe("academic domain", () => {
     expect(ia("me@name.ac.at")).toBe(true);
     expect(ia("me@name.ac.il")).toBe(true);
     expect(ia("name@university.ac.uk")).toBe(true);
-    expect(ia("name+123@sabanciuniv.edu.tr")).toBe(true)
+    expect(ia("name+123@sabanciuniv.edu.tr")).toBe(true);
     expect(ia("student123@stuff.edu")).toBe(true);
   });
 });
@@ -98,5 +98,32 @@ describe("how_long_ago_m", () => {
     const diff = misc.how_long_ago_m(past);
     expect(diff).toBeLessThan(10.1);
     expect(diff).toBeGreaterThan(9.9);
+  });
+});
+
+describe("json patch test", () => {
+  const j = misc.test_valid_jsonpatch;
+  test("empty array is fine", () => expect(j([])).toBe(true));
+  test("a complete example is fine", () => {
+    // taken from https://jsonpatch.com/
+    const patch = [
+      { op: "add", path: "/biscuits/1", value: { name: "Ginger Nut" } },
+      { op: "remove", path: "/biscuits" },
+      { op: "remove", path: "/biscuits/0" },
+      { op: "replace", path: "/biscuits/0/name", value: "Chocolate Digestive" },
+      { op: "copy", from: "/biscuits/0", path: "/best_biscuit" },
+      { op: "move", from: "/biscuits", path: "/cookies" },
+      { op: "test", path: "/best_biscuit/name", value: "Choco Leibniz" },
+    ];
+
+    expect(j(patch)).toBe(true);
+  });
+  test("fails with broken examples", () => {
+    expect(
+      j({ op: "add", path: "/biscuits/1", value: { name: "Ginger Nut" } })
+    ).toBe(false);
+    expect(j([{ opp: "remove", path: "/biscuits" }])).toBe(false);
+    expect(j([{ path: "/biscuits/0" }])).toBe(false);
+    expect(j([{ op: "replacce", path: "/biscuits/0/name" }])).toBe(false);
   });
 });
