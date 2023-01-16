@@ -14,7 +14,7 @@ export default function GoogleSearch() {
       enterButton="Google"
       onSearch={(value) => {
         const host = window.location.host;
-        const url = `https://www.google.com/search?q=site%3A${host}+${value}`;
+        const url = `https://www.google.com/search?q=site%3A${host}/share+${value}`;
         // Open url in a new tab.
         const tab = window.open(url, "_blank");
         if (tab != null) {
