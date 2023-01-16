@@ -10,16 +10,18 @@ declare const $: any;
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
-import { MutableRefObject, useCallback, useEffect, useMemo } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
 
-import {
-  CSS,
-  React,
-  useIsMountedRef,
-  useRef,
-} from "@cocalc/frontend/app-framework";
+import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -471,7 +473,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           onScroll: (scrollState) => {
             lastScrollStateRef.current = {
               ...scrollState,
-              id: cellListRef.current?.get(scrollState.index - 1),
+              id: cellListRef.current?.get(scrollState.index - EXTRA_TOP_CELLS),
             };
             for (const key in iframeOnScrolls) {
               iframeOnScrolls[key]();
@@ -482,7 +484,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       : { disabled: true }
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!use_windowed_list) return;
     if (lastScrollStateRef.current == null) {
       return;
@@ -624,7 +626,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   } else {
     // This is needed for **the share server**, which hasn't had
     // windowing implemented/tested for yet and also for the
-    // non-windowed mode, which we still support as an option.
+    // non-windowed mode, which we will always support as an option.
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
     cell_list.forEach((id: string) => {
