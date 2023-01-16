@@ -267,6 +267,7 @@ export default function View({
     case "grid":
       body = (
         <Grid
+          id={id}
           recordHeight={recordHeight}
           data={filteredData}
           columns={columns}

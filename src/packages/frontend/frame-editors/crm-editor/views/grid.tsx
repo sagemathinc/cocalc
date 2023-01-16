@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useMemo, useState } from "react";
+import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
@@ -7,6 +7,8 @@ import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
 import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
+import useFieldWidths from "../syncdb/use-field-widths";
+import Draggable from "react-draggable";
 
 interface Props {
   data: any[];
@@ -14,6 +16,7 @@ interface Props {
   sortFields;
   setSortField;
   recordHeight?: number;
+  id: string;
 }
 
 export default function Grid({
@@ -22,7 +25,10 @@ export default function Grid({
   sortFields,
   setSortField,
   recordHeight,
+  id,
 }: Props) {
+  const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
+
   return (
     <TableVirtuoso
       overscan={500}
@@ -33,12 +39,15 @@ export default function Grid({
           columns={columns}
           sortFields={sortFields}
           setSortField={setSortField}
+          fieldWidths={fieldWidths}
+          setFieldWidths={setFieldWidths}
         />
       )}
       itemContent={(index) => (
         <GridRow
           data={data[index]}
           columns={columns}
+          fieldWidths={fieldWidths}
           recordHeight={recordHeight}
         />
       )}
@@ -46,13 +55,13 @@ export default function Grid({
   );
 }
 
-function GridRow({ data, columns, recordHeight }) {
+function GridRow({ data, columns, recordHeight, fieldWidths }) {
   const v: any[] = [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
     const text = data?.[column.dataIndex];
     const content = column.render != null ? column.render(text, data) : text;
-    const width = column.width ?? 150;
+    const width = fieldWidths[column.dataIndex] ?? column.width ?? 150;
     const col = (
       <td
         key={column.key}
@@ -109,24 +118,37 @@ function GridRow({ data, columns, recordHeight }) {
 }
 
 function nextSortState(direction?: SortDirection | null) {
-  if (direction == "descending" || direction == null) {
+  if (direction == "descending") {
     return "ascending";
+  } else if (direction == "ascending") {
+    return null;
   } else {
     return "descending";
   }
 }
 
-function Header({ columns, sortFields, setSortField }) {
+function Header({
+  columns,
+  sortFields,
+  setSortField,
+  fieldWidths,
+  setFieldWidths,
+}) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
     return sortDirections(sortFields);
   }, [sortFields]);
 
   return (
-    <tr>
+    <tr style={{ position: "relative" }}>
       {columns.map((column) => (
-        <Column
+        <ColumnHeading
           {...column}
+          width={fieldWidths[column.dataIndex]}
+          setWidth={(newWidth) => {
+            if (newWidth < 20) return;
+            setFieldWidths({ ...fieldWidths, [column.dataIndex]: newWidth });
+          }}
           direction={directions[column.dataIndex]}
           onSortClick={(_event) => {
             // change sort direction and move to top priority field for sort.
@@ -145,19 +167,20 @@ const DIRECTION_STYLE = {
   cursor: "pointer",
 } as CSSProperties;
 
-function Column({
+function ColumnHeading({
   width,
   title,
   direction,
   onSortClick,
-  dataIndex,
+  setWidth,
 }: {
   width?: number | string;
   title: ReactNode;
   direction?: SortDirection;
   onSortClick?: () => void;
-  dataIndex: string;
+  setWidth: (number) => void;
 }) {
+  const ignoreClickRef = useRef<boolean>(false);
   return (
     <th
       style={{
@@ -169,7 +192,13 @@ function Column({
         border: "1px solid #eee",
         position: "relative",
       }}
-      onClick={onSortClick}
+      onClick={() => {
+        if (ignoreClickRef.current) {
+          ignoreClickRef.current = false;
+          return;
+        }
+        onSortClick();
+      }}
     >
       {title}
       {direction && (
@@ -178,15 +207,34 @@ function Column({
           name={direction == "ascending" ? "caret-down" : "caret-up"}
         />
       )}
-      <ResizeHandle field={dataIndex} />
+      <ResizeHandle
+        setWidth={setWidth}
+        width={width ?? 150}
+        ignoreClick={() => {
+          ignoreClickRef.current = true;
+        }}
+      />
     </th>
   );
 }
 
-function ResizeHandle({ field }) {
+function ResizeHandle({ setWidth, width, ignoreClick }) {
+  const [pos, setPos] = useState<any>(undefined);
   return (
-    <div
-      className="cocalc-crm-grid-column-resizer"
-    ></div>
+    <Draggable
+      onMouseDown={ignoreClick}
+      position={pos}
+      axis="x"
+      onStop={() => {
+        setPos({ x: 0, y: 0 });
+      }}
+      onDrag={(_, data) => {
+        setPos({ x: 0, y: 0 });
+        ignoreClick();
+        setWidth(width + data.deltaX);
+      }}
+    >
+      <span className="cocalc-crm-grid-column-resizer"></span>
+    </Draggable>
   );
 }

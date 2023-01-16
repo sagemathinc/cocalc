@@ -1,7 +1,7 @@
 .cocalc-crm-grid-column-resizer {
   cursor: ew-resize;
   position: absolute;
-  width: 10px;
+  width: 15px;
   right: 0;
   top: 0;
   bottom: 0;
@@ -9,5 +9,5 @@
 }
 
 .cocalc-crm-grid-column-resizer:hover {
-  border-right: 2px solid #428bca;
+  border-right: 5px solid #428bca;
 }
