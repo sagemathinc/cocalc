@@ -10,6 +10,8 @@ import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
 import Draggable from "react-draggable";
 
+const DEFAULT_WIDTH = 150;
+
 interface Props {
   data: any[];
   columns: ColumnsType[];
@@ -61,7 +63,8 @@ function GridRow({ data, columns, recordHeight, fieldWidths }) {
   for (const column of columns) {
     const text = data?.[column.dataIndex];
     const content = column.render != null ? column.render(text, data) : text;
-    const width = fieldWidths[column.dataIndex] ?? column.width ?? 150;
+    const width =
+      fieldWidths[column.dataIndex] ?? column.width ?? DEFAULT_WIDTH;
     const col = (
       <td
         key={column.key}
@@ -144,7 +147,7 @@ function Header({
       {columns.map((column) => (
         <ColumnHeading
           {...column}
-          width={fieldWidths[column.dataIndex]}
+          width={fieldWidths[column.dataIndex] ?? column.width ?? DEFAULT_WIDTH}
           setWidth={(newWidth) => {
             if (newWidth < 20) return;
             setFieldWidths({ ...fieldWidths, [column.dataIndex]: newWidth });
@@ -174,7 +177,7 @@ function ColumnHeading({
   onSortClick,
   setWidth,
 }: {
-  width?: number | string;
+  width: number;
   title: ReactNode;
   direction?: SortDirection;
   onSortClick: () => void;
@@ -209,7 +212,7 @@ function ColumnHeading({
       )}
       <ResizeHandle
         setWidth={setWidth}
-        width={width ?? 150}
+        width={width}
         ignoreClick={() => {
           ignoreClickRef.current = true;
         }}
