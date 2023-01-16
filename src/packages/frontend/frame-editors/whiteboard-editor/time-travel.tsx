@@ -8,6 +8,7 @@ import ToolPanel from "./tools/panel";
 import { Element, ElementsMap } from "./types";
 import { Map as iMap } from "immutable";
 import { useEffect, useMemo, useRef } from "react";
+import { DEFAULT_PAGE_ID } from "./actions";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const { id, isFocused, desc, actions } = useFrameContext();
@@ -20,30 +21,34 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   }
 
   useEffect(() => {
-    let pages = 1;
+    let pages = 0;
+    let firstPage = DEFAULT_PAGE_ID;
     elementsMap.forEach((element) => {
-      if ((element.get("page") ?? 1) > pages) {
-        pages = element.get("page") ?? 1;
+      if (element.get("type") == "page") {
+        if (firstPage == DEFAULT_PAGE_ID) {
+          firstPage = element.get("id");
+        }
+        pages += 1;
       }
     });
     if (desc.get("pages") == null || desc.get("pages") < pages) {
       actions.setPages(id, pages);
     }
     if (desc.get("page") == null) {
-      actions.setPage(id, 1);
+      actions.setPage(id, firstPage);
     }
   }, [elementsMap]);
 
   const elementsOnPage = useMemo(() => {
-    const page = desc.get("page") ?? 1;
+    const page = desc.get("page") ?? DEFAULT_PAGE_ID;
     const v: Element[] = [];
     elementsMap.forEach((element) => {
-      if ((element.get("page") ?? 1) == page) {
+      if ((element.get("page") ?? DEFAULT_PAGE_ID) == page) {
         v.push(element.toJS());
       }
     });
     return v;
-  }, [elementsMap, desc.get("page") ?? 1]);
+  }, [elementsMap, desc.get("page") ?? DEFAULT_PAGE_ID]);
 
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (

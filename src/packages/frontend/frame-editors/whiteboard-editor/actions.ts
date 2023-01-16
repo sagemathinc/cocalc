@@ -62,6 +62,9 @@ import debug from "debug";
 
 const log = debug("whiteboard:actions");
 
+// TODO -- this probably won't work...?
+export const DEFAULT_PAGE_ID = "1";
+
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
   pages?: PagesMap;
@@ -93,14 +96,18 @@ export class Actions extends BaseActions<State> {
           const oldElement = elements.get(id);
           if (!element) {
             // there is a delete.
-            const page = oldElement?.get("page") ?? 1;
-            let elementsOnPage = pages.get(page);
-            if (elementsOnPage !== undefined) {
-              elementsOnPage = elementsOnPage.delete(id);
-              if (elementsOnPage.size == 0) {
-                pages = pages.delete(page);
-              } else {
-                pages = pages.set(page, elementsOnPage);
+            if (oldElement?.get("type") == "page") {
+              pages = pages.delete(oldElement.get("id"));
+            } else {
+              const page = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
+              let elementsOnPage = pages.get(page);
+              if (elementsOnPage !== undefined) {
+                elementsOnPage = elementsOnPage.delete(id);
+                if (elementsOnPage.size == 0) {
+                  pages = pages.delete(page);
+                } else {
+                  pages = pages.set(page, elementsOnPage);
+                }
               }
             }
             elements = elements.delete(id);
@@ -108,7 +115,7 @@ export class Actions extends BaseActions<State> {
             // no valid type field - discard
             this._syncstring.delete({ id });
             elements = elements.delete(id);
-            const page = oldElement?.get("page") ?? 1;
+            const page = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
             let elementsOnPage = pages.get(page);
             if (elementsOnPage !== undefined) {
               elementsOnPage = elementsOnPage.delete(id);
@@ -118,12 +125,16 @@ export class Actions extends BaseActions<State> {
                 pages = pages.set(page, elementsOnPage);
               }
             }
+          } else if (element.get("type") == "page") {
+            // this is a page
+            pages = pages.set(id, ImmutableMap({}));
+            elements = elements.set(id, element);
           } else {
-            // create or change an element
+            // create or change an element on a specific page
             // @ts-ignore
             elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page") ?? 1;
-            const newPage = element.get("page") ?? 1;
+            const oldPage = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
+            const newPage = element.get("page") ?? DEFAULT_PAGE_ID;
             const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
             pages = pages.set(newPage, elementsOnNewPage.set(id, element));
             if (oldPage != newPage) {
@@ -141,17 +152,6 @@ export class Actions extends BaseActions<State> {
           }
         }
       });
-
-      // ensure any missing pages are represented
-      // We could delete this when there is a page config object, though it is VERY
-      // good to know that any gaps are filled in, so we can rely on pages.size being
-      // the number of pages, which is assumed in the pages.tsx code.
-      const maxPage = pages.keySeq().max() ?? 1;
-      for (let i = 1; i <= maxPage; i++) {
-        if (pages.get(i) == null) {
-          pages = pages.set(i, ImmutableMap({}));
-        }
-      }
 
       if (elements !== elements0) {
         this.setState({ elements, pages });
@@ -1278,6 +1278,36 @@ export class Actions extends BaseActions<State> {
 
   help(): void {
     open_new_tab("https://doc.cocalc.com/whiteboard.html");
+  }
+
+  // returns id of the new page
+  createPage(commit: boolean = true): string {
+    const id = this.createId();
+    // create pos that is 1 larger than all current pos's
+    let pos = 0;
+    for (const [id] of this.store.get("pages") ?? []) {
+      let pos1 = this.store.getIn(["elements", id, "data", "pos"], 0);
+      if (pos <= pos1) {
+        pos = pos1 + 1;
+      }
+    }
+    this.setElement({
+      create: true,
+      obj: { type: "page", id, z: 0, data: { pos } },
+      commit,
+    });
+    return id;
+  }
+
+  movePage(oldIndex: number, newIndex: number, commit: boolean = true): void {
+    // move the page in position oldIndex to be in position newIndex
+    console.log("movePage", { oldIndex, newIndex, commit });
+  }
+
+  // delete page with given id along with everything that
+  // is one that page.
+  deletePage(id: string, commit: boolean = true): void {
+    console.log("deletePage", { id, commit });
   }
 }
 
