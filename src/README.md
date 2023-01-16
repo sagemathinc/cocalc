@@ -155,6 +155,19 @@ It is handy to have a user with admin rights in your dev cocalc server. With the
 
 Admin users have an extra tab inside the main cocalc app labeled "Admin" where they can configure many aspects of the server, search for users, etc.
 
+#### IDE file autosave settings
+
+During development, Next.js and Webpack will eagerly compile your code changes and hot-reload the page you're working with.
+If your IDE automatically saves files very quickly, this will be very intensive, causing a lot of CPU and disk usage.
+Hence **we recommend to tame or disable autosaving files**.
+
+Regarding VS Code, the relevant settings can be found by searching for "autosave" – or to be more precise, this is recommended:
+
+```json
+"files.autoSave": "afterDelay"
+"files.autoSaveDelay": 10000
+```
+
 ## Packages on [NPMJS.com](http://NPMJS.com) \(DEPRECATED\)
 
 There's some `@cocalc/` packages at [NPMJS.com](http://NPMJS.com). However, _**we're no longer using**_
