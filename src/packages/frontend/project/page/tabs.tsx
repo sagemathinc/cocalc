@@ -27,8 +27,9 @@ export default function ProjectTabs({ project_id }) {
       className="smc-file-tabs"
       style={{
         width: "100%",
-        height: "40px",
+        height: "45px",
         padding: "5px",
+        overflow: "hidden",
       }}
     >
       <div style={{ display: "flex" }}>
@@ -53,7 +54,6 @@ export default function ProjectTabs({ project_id }) {
         </div>
         <div
           style={{
-            borderLeft: "1px solid lightgrey",
             display: "inline-flex",
           }}
         >
