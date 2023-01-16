@@ -1,6 +1,13 @@
 import { Alert, Modal, Select, Tabs } from "antd";
 import { getTableDescription } from "../tables";
-import { useMemo, useState, CSSProperties, ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  CSSProperties,
+  ReactNode,
+} from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import Views from "./index";
 import {
@@ -68,12 +75,9 @@ export default function TableTabs() {
         setTables(newTables);
       }}
     >
-      <AddTable
-        adding={adding}
-        setAdding={setAdding}
-        tables={tables}
-        setTables={setTables}
-      />
+      {adding && (
+        <AddTable setAdding={setAdding} tables={tables} setTables={setTables} />
+      )}
       <Tabs
         type={"editable-card"}
         onEdit={(table: string, action: "add" | "remove") => {
@@ -99,7 +103,7 @@ export default function TableTabs() {
   );
 }
 
-function AddTable({ adding, setAdding, tables, setTables }) {
+function AddTable({ setAdding, tables, setTables }) {
   const options = useMemo(() => {
     const cur = new Set(tables);
     const all = getTables();
@@ -112,36 +116,50 @@ function AddTable({ adding, setAdding, tables, setTables }) {
   }, [tables]);
   const [value, setValue] = useState<string[]>([]);
 
+  // The following is all an ugly hack so that the Select is open and focused
+  // once the modal is displayed.  It's to workaround the animation that makes
+  // the modal appear, since trying to do any of this declaratively makes it
+  // happen *before* things have appeared, hence it is all broken.
+  const selectRef = useRef<any>(null);
+  const [open, setOpen] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    setTimeout(() => {
+      selectRef.current?.focus();
+      setOpen(true);
+    }, 400);
+  }, []);
+
   return (
     <Modal
-      open={adding}
+      closable={false}
+      open
       title={
         <>
           <PlusOutlined style={{ marginRight: "10px" }} />
           Add {tables.length > 0 ? "Additional Tables" : "One or More Tables"}
         </>
       }
-      okText={`Add ${value.length} ${plural(value.length, "Table")}`}
-      okButtonProps={value.length == 0 ? { disabled: true } : undefined}
-      onOk={() => {
+      footer={null}
+      onCancel={() => {
         setTables(tables.concat(value));
         setValue([]);
         setAdding(false);
       }}
-      onCancel={() => setAdding(false)}
     >
       Select one or more tables below to include them among the tables you track
       from this CRM file. You can drag them around later to change their order.
       {options.length == 0 && (
         <Alert
           showIcon
-          style={{ marginTop: "10px" }}
+          style={{ margin: "10px 0 10px 0" }}
           type="info"
-          message="There are no additional tables available."
+          message="There are no additional tables available.  If you close a table you will be able to restore it from here any time later."
         />
       )}
-      {adding && options.length > 0 && (
+      {options.length > 0 && (
         <Select
+          ref={selectRef}
+          open={open}
           mode="multiple"
           allowClear
           value={value}
