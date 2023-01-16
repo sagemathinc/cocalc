@@ -11,6 +11,11 @@ import { Overview } from "./tools/navigation";
 import { State, elementsList } from "./actions";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useResizeObserver from "use-resize-observer";
+import {
+  DragHandle,
+  SortableList,
+  SortableItem,
+} from "@cocalc/frontend/components/sortable-list";
 
 const VMARGIN = 20;
 const HMARGIN = 15;
@@ -60,96 +65,119 @@ export default function Pages() {
   const STYLE = {
     cursor: "pointer",
     width: `${width - 2 * HMARGIN}px`,
-    margin: "0 auto",
+    margin: "0 29px 0 5px",
     padding: `${VMARGIN}px 0`,
     position: "relative",
     overflow: "hidden",
   } as CSSProperties;
 
+  const items: number[] = [];
+  for (let i = 0; i < pages; i++) {
+    items.push(i);
+  }
+
+  const itemContent = (index) => {
+    if (index == (pages ?? 1)) {
+      // Add a new page
+      return (
+        <div style={{ ...STYLE, textAlign: "center" }}>
+          <Popover
+            title={"Create a new page"}
+            content={
+              <div style={{ maxWidth: "400px" }}>
+                Each page is an independent infinite whiteboard canvas. Click
+                this button to create a new page. Easily jump between pages by
+                clicking on a page here.
+              </div>
+            }
+          >
+            <Button
+              shape="round"
+              size="large"
+              onClick={() => {
+                const id = actions.show_focused_frame_of_type("whiteboard");
+                actions.newPage(id);
+                setTimeout(() => {
+                  // after the click
+                  actions.show_focused_frame_of_type("whiteboard");
+                }, 0);
+              }}
+            >
+              <Icon name="plus-circle" /> New
+            </Button>
+          </Popover>
+        </div>
+      );
+    }
+    const elementsOnPage = elementsList(pagesMap?.get(index + 1)) ?? [];
+    if (elementsOnPage == null) {
+      return <div style={{ height: "1px" }}></div>;
+    }
+    return (
+      <div
+        onClick={() => {
+          const frameId = actions.show_focused_frame_of_type("whiteboard");
+          actions.setPage(frameId, index + 1);
+        }}
+        style={{ ...STYLE }}
+      >
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <DragHandle
+            id={index}
+            style={{ marginRight: "5px", color: "#999" }}
+          />
+          <Overview
+            margin={15}
+            elements={elementsOnPage}
+            elementsMap={elementsMap}
+            width={width - 2 * HMARGIN}
+            navMap={"page"}
+            style={{
+              pointerEvents: "none",
+              background: "white",
+              border: "1px solid #ccc",
+              borderRadius: "5px",
+            }}
+            maxScale={2}
+          />
+        </div>
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: "10pt",
+          }}
+        >
+          {index + 1}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="smc-vfill" ref={divRef} style={{ background: "#eee" }}>
-      <Virtuoso
-        style={{
-          width: "100%",
-          height: "100%",
-          marginBottom: "10px",
+      <SortableList
+        items={items}
+        Item={({ id }) => {
+          return itemContent(parseInt(id));
         }}
-        totalCount={pages + 1}
-        increaseViewportBy={1.5 * height}
-        itemContent={(index) => {
-          if (index == (pages ?? 1)) {
-            // Add a new page
-            return (
-              <div style={{ ...STYLE, textAlign: "center" }}>
-                <Popover
-                  title={"Create a new page"}
-                  content={
-                    <div style={{ maxWidth: "400px" }}>
-                      Each page is an independent infinite whiteboard canvas.
-                      Click this button to create a new page. Easily jump
-                      between pages by clicking on a page here.
-                    </div>
-                  }
-                >
-                  <Button
-                    shape="round"
-                    size="large"
-                    onClick={() => {
-                      const id =
-                        actions.show_focused_frame_of_type("whiteboard");
-                      actions.newPage(id);
-                      setTimeout(() => {
-                        // after the click
-                        actions.show_focused_frame_of_type("whiteboard");
-                      }, 0);
-                    }}
-                  >
-                    <Icon name="plus-circle" /> New
-                  </Button>
-                </Popover>
-              </div>
-            );
-          }
-          const elementsOnPage = elementsList(pagesMap?.get(index + 1)) ?? [];
-          if (elementsOnPage == null) {
-            return <div style={{ height: "1px" }}></div>;
-          }
-          return (
-            <div
-              onClick={() => {
-                const frameId =
-                  actions.show_focused_frame_of_type("whiteboard");
-                actions.setPage(frameId, index + 1);
-              }}
-              style={{ ...STYLE }}
-            >
-              <Overview
-                margin={15}
-                elements={elementsOnPage}
-                elementsMap={elementsMap}
-                width={width - 2 * HMARGIN}
-                navMap={"page"}
-                style={{
-                  pointerEvents: "none",
-                  background: "white",
-                  border: "1px solid #ccc",
-                  borderRadius: "5px",
-                }}
-                maxScale={2}
-              />
-              <div
-                style={{
-                  textAlign: "center",
-                  fontSize: "10pt",
-                }}
-              >
-                {index + 1}
-              </div>
-            </div>
-          );
+        onDragStop={(oldIndex, newIndex) => {
+          console.log("onDragStop", { oldIndex, newIndex });
         }}
-        {...virtuosoScroll}
-      />
+      >
+        <Virtuoso
+          style={{
+            width: "100%",
+            height: "100%",
+            marginBottom: "10px",
+          }}
+          totalCount={pages + 1}
+          increaseViewportBy={1.5 * height}
+          itemContent={(index) => {
+            return <SortableItem id={index}>{itemContent(index)}</SortableItem>;
+          }}
+          {...virtuosoScroll}
+        />
+      </SortableList>
     </div>
   );
 }
