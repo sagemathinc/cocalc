@@ -2214,3 +2214,47 @@ describe("quota calculation with rejection reasons", () => {
     expect(q.reasons).toEqual({ "1234-boost": "hosting_incompatible" });
   });
 });
+
+describe("cobine quota/patch with regular licenses", () => {
+  it("applies the license and the patch", () => {
+    const site_licenses: SiteLicenses = {
+      regular: {
+        title: "standard",
+        quota: {
+          cpu: 1,
+          ram: 2,
+          disk: 3,
+          member: true,
+          idle_timeout: "medium",
+        },
+        run_limit: 3,
+        id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
+      },
+      patch: {
+        quota: {
+          patch:
+            '[{"op":"replace","path":"…","value":"…"},{"op":"replace","path":"…","value":"…"}]',
+        },
+        run_limit: 1,
+        id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 3000,
+      idle_timeout: 7200,
+      member_host: true,
+      memory_limit: 2000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+    });
+  });
+});
