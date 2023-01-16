@@ -130,4 +130,8 @@ export const COLORS = {
   LANDING: { LOGIN_BAR_BG: MAIN_COLORS.BLUE_D },
 
   TAB: "#333333",
+
+  FILE_ICON: "rgb(66, 139, 202)",
+
+  FILE_EXT: "#999",
 } as const;

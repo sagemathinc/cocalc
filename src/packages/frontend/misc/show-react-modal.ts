@@ -4,7 +4,8 @@
  */
 
 import { callback } from "awaiting";
-import { ReactDOM } from "../app-framework";
+import { createRoot } from "react-dom/client";
+
 declare var $: any;
 
 /*
@@ -26,7 +27,7 @@ await show_react_modal((cb) => {
     return (
       <Modal
         title="Basic Modal"
-        visible={true}
+        open
         onOk={() => cb(undefined, "result")}
         onCancel={() => cb("cancel-showing exception is raised")}
       >
@@ -42,12 +43,13 @@ export async function show_react_modal(
 ): Promise<any> {
   const elt = $("<div></div>");
   $("body").append(elt);
+  const root = createRoot(elt[0]);
   return await callback((cb) => {
     function call_on_close(err, result) {
-      ReactDOM.unmountComponentAtNode(elt[0]);
+      root.unmount();
       elt.remove();
       cb(err, result);
     }
-    ReactDOM.render(modal_generator(call_on_close), elt[0]);
+    root.render(modal_generator(call_on_close));
   });
 }

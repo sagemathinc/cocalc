@@ -54,7 +54,7 @@
   "devDependencies": {
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.176",
-    "@types/node": "^14.18.10",
+    "@types/node": "^18.11.18",
     "@types/uuid": "^8.3.1",
     "coffee-cache": "^1.0.2",
     "coffee-coverage": "^3.0.1",

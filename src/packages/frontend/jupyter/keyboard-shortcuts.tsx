@@ -521,7 +521,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
 
     return (
       <Modal
-        visible={true}
+        open
         onCancel={close}
         onOk={close}
         width={900}

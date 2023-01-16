@@ -52,6 +52,7 @@ import {
   ReactNode,
   MutableRefObject,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -322,15 +323,18 @@ export default function Canvas({
 
   const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
 
-  useEffect(() => {
-    // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
+  // This must happen before the render, hence the useLayoutEffect
+  // (which wasn't needed before React18)!
+  useLayoutEffect(() => {
     transformsRef.current = getTransforms(elements, margin);
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
   // will jump if we don't offset that change.  That's what we do below:
+  // This must happen before the render, hence the useLayoutEffect
+  // (which wasn't needed before React18)!
   const lastTransforms = useRef<Transforms | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isNavigator) return;
     if (lastTransforms.current != null) {
       // the transforms changed somewhow.   Maybe xmin/ymin changed.

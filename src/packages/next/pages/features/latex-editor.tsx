@@ -40,7 +40,13 @@ export default function LatexEditor({ customize }) {
               logo={Logo}
               title={"Online LaTeX Editor"}
               subtitle={
-                "Focus on writing LaTeX.  CoCalc takes care of everything else."
+                <>
+                  Focus on writing LaTeX. CoCalc takes care of everything else.
+                  <hr />
+                  <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
+                    Learn much more about LaTeX in CoCalc from this new blog post...
+                  </A>
+                </>
               }
               image={LatexEditorImage}
             />

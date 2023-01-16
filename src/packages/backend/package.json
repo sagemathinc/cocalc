@@ -42,7 +42,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
-    "@types/node": "^14.18.10",
+    "@types/node": "^18.11.18",
     "coffee-cache": "^1.0.2",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",

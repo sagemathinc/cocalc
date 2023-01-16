@@ -140,9 +140,11 @@ export const Managers: React.FC<Props> = ({
   }
   return (
     <div>
-      {render_add()}
-      <div>{r_join(v, ", ")}</div>
-      {render_manager_info()}
+      <>
+        {render_add()}
+        <div>{r_join(v, ", ")}</div>
+        {render_manager_info()}
+      </>
     </div>
   );
 };

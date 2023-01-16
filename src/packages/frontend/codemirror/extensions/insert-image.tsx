@@ -104,7 +104,7 @@ export async function get_insert_image_opts_from_user(
             {note}
           </div>
         }
-        visible={true}
+        open
         footer={<Button onClick={() => cb()}>Cancel</Button>}
         onCancel={() => cb()}
       >

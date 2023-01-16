@@ -5,9 +5,12 @@ import type { ColumnsType } from "../fields";
 import { OneCard } from "./gallery";
 import { getFieldSpec } from "../fields";
 import { capitalize } from "@cocalc/util/misc";
-import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { useDraggable } from "@dnd-kit/core";
-import { useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
 import set from "../querydb/set";
 import { Loading } from "@cocalc/frontend/components";
 import Handle from "../components/handle";

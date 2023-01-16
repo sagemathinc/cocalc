@@ -780,7 +780,6 @@ export class NotebookFrameActions {
       return;
     }
     const cells = this.jupyter_actions.store.get("cells");
-    // const changes = immutable.Set(); // TODO: unused
     for (let pos = 0; pos < w.length; pos++) {
       const id = w[pos];
       if (cells.getIn([id, "pos"]) !== pos) {

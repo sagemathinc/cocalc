@@ -28,7 +28,7 @@ export function Layout({ title, children, top }: Props) {
     <>
       <Head>
         <title>
-          {siteName} -- {title}
+          {`${siteName} -- ${title}`}
         </title>
         <meta name="description" content="CoCalc Share Server" />
         {noindex && <meta name="robots" content="noindex,nofollow" />}
@@ -62,7 +62,7 @@ export function Embed({ title, children }: Props) {
     <>
       <Head>
         <title>
-          {siteName} -- {title}
+          {`${siteName} -- ${title}`}
         </title>
         <link rel="icon" href={favicon} />
       </Head>

@@ -6,7 +6,9 @@
 # CoCalc libs
 {defaults, required, optional} = misc = require('@cocalc/util/misc')
 # react aspects
-{React, ReactDOM, redux, Redux} = require('../app-framework')
+{React, redux, Redux} = require('../app-framework')
+{ createRoot } = require("react-dom/client");
+
 
 # Assistant functions
 {SnippetsDialog} = require('./dialog')
@@ -29,5 +31,6 @@ exports.render_snippets_dialog = (opts) ->
     dialog = <Redux redux={redux}>
                  <SnippetsDialog actions={actions} name={name}/>
              </Redux>
-    ReactDOM.render(dialog, opts.target)
+    root = createRoot(opts.target)
+    root.render(dialog)
     return actions

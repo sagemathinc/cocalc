@@ -87,7 +87,7 @@ export async function get_insert_link_opts_from_user(
             <Icon name="link" /> Insert Link
           </h3>
         }
-        visible={true}
+        open
         footer={<Button onClick={() => cb()}>Cancel</Button>}
         onCancel={() => cb()}
       >

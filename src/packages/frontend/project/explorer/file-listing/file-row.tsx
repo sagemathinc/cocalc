@@ -54,7 +54,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : COLORS.TAB,
+      color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
     let body: JSX.Element;
@@ -106,7 +106,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? "#999" : undefined }}>
+        <span style={{ color: !props.mask ? COLORS.FILE_EXT : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
         {render_link_target()}
@@ -333,7 +333,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             checked={props.checked}
             current_path={props.current_path}
             actions={props.actions}
-            style={{ verticalAlign: "sub" }}
+            style={{ verticalAlign: "sub", color: "#888" }}
           />
         )}
         {render_public_file_info()}

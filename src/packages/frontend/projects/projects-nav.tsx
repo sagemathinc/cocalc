@@ -3,64 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Avatar } from "antd";
-import { SortableContainer, SortableElement } from "react-sortable-hoc";
-import { Nav, NavItem } from "react-bootstrap";
-import CloseX from "@cocalc/frontend/project/page/close-x";
+import { Avatar, Popover, Tabs } from "antd";
+import type { TabsProps } from "antd";
 
 import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
-
-import { IS_TOUCH } from "../feature";
-import { set_window_title } from "../browser";
+import { set_window_title } from "@cocalc/frontend/browser";
 import {
   redux,
-  React,
-  ReactDOM,
   useActions,
-  useEffect,
   useRedux,
-  useRef,
-  useState,
   useTypedRedux,
-  CSS,
-} from "../app-framework";
-import { Loading, Icon, Tip } from "../components";
-import { NavTab } from "../app/nav-tab";
-import { WebsocketIndicator } from "../project/websocket/websocket-indicator";
+} from "@cocalc/frontend/app-framework";
+import { useMemo, useState, CSSProperties } from "react";
+import { Loading, Icon } from "@cocalc/frontend//components";
+import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
+import {
+  SortableTabs,
+  useSortable,
+  renderTabBar,
+} from "@cocalc/frontend/components/sortable-tabs";
 
-const NavWrapper = ({ style, children, id, className }) =>
-  React.createElement(Nav, { style, id, className }, children);
-
-const SortableNavTab = SortableElement(NavTab);
-const SortableNav = SortableContainer(NavWrapper);
-
-const GHOST_STYLE: React.CSSProperties = {
-  flexShrink: 1,
-  width: "200px",
-  height: "36px",
-  overflow: "hidden",
-} as const;
-
-const PROJECT_NAME_STYLE: React.CSSProperties = {
+const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-} as const;
-
-const PROJECT_TAB_STYLE: React.CSSProperties = {
-  flexShrink: 1,
-  width: "200px",
   maxWidth: "200px",
-  height: "36px",
-  overflow: "hidden",
-  lineHeight: "1.75em",
 } as const;
 
 interface ProjectTabProps {
-  index: number;
   project_id: string;
 }
 
@@ -68,223 +41,193 @@ function useProjectStatusAlerts(project_id: string) {
   const [any_alerts, set_any_alerts] = useState<boolean>(false);
   const project_status = useTypedRedux({ project_id }, "status");
   const any = project_status?.get("alerts").size > 0;
-  React.useMemo(() => {
+  useMemo(() => {
     set_any_alerts(any);
   }, [any]);
   return any_alerts;
 }
 
-const ProjectTab: React.FC<ProjectTabProps> = React.memo(
-  ({ project_id, index }) => {
-    /* This href hack below is to workaround issues with Firefox.  Without this hack,
-    in the project bar in the dev app, I can grab the tab for a project and pull it down
-    from the bar. Just the label, not the whole browser tab. And when I let go, the
-    tab returns to the project bar but its horizontal motion still tracks mouse
-    cursor position. Clicking mouse releases the tab to a correct position in the
-    project bar. That does not happen in with Chrome.  I reproduced the above with
-    the latest Firefox in June 2020.
-    My plan to get rid of this is that it'll hopefully just "go away" when I rewrite
-    the navbar using antd.
-    */
-    const tab_ref = useRef(null);
-    useEffect(() => {
-      ReactDOM.findDOMNode(tab_ref.current)?.children[0].removeAttribute(
-        "href"
-      );
-    });
+function ProjectTab({ project_id }: ProjectTabProps) {
+  const { active } = useSortable({ id: project_id });
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const project = useRedux(["projects", "project_map", project_id]);
+  const public_project_titles = useTypedRedux(
+    "projects",
+    "public_project_titles"
+  );
+  const project_websockets = useTypedRedux("projects", "project_websockets");
+  const any_alerts = useProjectStatusAlerts(project_id);
 
-    const actions = useActions("page");
-    const active_top_tab = useTypedRedux("page", "active_top_tab");
-    const project = useRedux(["projects", "project_map", project_id]);
-    const public_project_titles = useTypedRedux(
-      "projects",
-      "public_project_titles"
-    );
-    const project_websockets = useTypedRedux("projects", "project_websockets");
-    const is_anonymous = useTypedRedux("account", "is_anonymous");
-    const any_alerts = useProjectStatusAlerts(project_id);
-
-    function render_websocket_indicator() {
-      return (
-        // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
-        // now visible via a big "Connecting..." banner after a few seconds.
-        <span style={{ paddingRight: "5px" }} className="hidden-xs">
-          <WebsocketIndicator state={project_websockets?.get(project_id)} />
-        </span>
-      );
-    }
-
-    function render_close_x() {
-      if (is_anonymous) {
-        // you have one project and you can't close it.
-        return;
-      }
-      return (
-        <CloseX
-          closeFile={() => actions.close_project_tab(project_id)}
-          clearGhostFileTabs={() => actions.clear_ghost_tabs()}
-        />
-      );
-    }
-
-    const title =
-      project?.get("title") ?? public_project_titles?.get(project_id);
-    if (title == null) {
-      if (active_top_tab == project_id) {
-        set_window_title("Loading");
-      }
-      return <Loading key={project_id} />;
-    }
-
-    if (active_top_tab == project_id) {
-      set_window_title(title);
-    }
-
-    const nav_style: CSS = {
-      ...PROJECT_TAB_STYLE,
-      color:
-        project_id === active_top_tab ? COLORS.TOP_BAR.TEXT_ACTIVE : undefined,
-    };
-
-    const nav_style_inner: CSS = {
-      float: "right",
-      whiteSpace: "nowrap",
-    };
-
-    const project_state = project?.getIn(["state", "state"]);
-
-    const icon =
-      any_alerts && project_state === "running" ? (
-        <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
-      ) : (
-        <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
-      );
-
-    function click_title(e) {
-      // we intercept a click with a modification key in order to open that project in a new window
-      if (e.ctrlKey || e.shiftKey || e.metaKey) {
-        e.stopPropagation();
-        e.preventDefault();
-        const actions = redux.getProjectActions(project_id);
-        actions.open_file({ path: "", new_browser_window: true });
-      }
-    }
-
-    function render_tip() {
-      return (
-        <>
-          <ProjectAvatarImage
-            project_id={project_id}
-            size={120}
-            style={{ textAlign: "center" }}
-          />
-          <div style={{ textAlign: "center" }}>
-            {trunc(project?.get("description") ?? "", 128)}
-          </div>
-          <hr />
-          <div style={{ color: COLORS.GRAY }}>
-            Hint: shift+click any project or file tab to open it in new window.
-          </div>
-        </>
-      );
-    }
-
+  function renderWebsocketIndicator() {
     return (
-      <SortableNavTab
-        ref={tab_ref}
-        index={index}
-        name={project_id}
-        active_top_tab={active_top_tab}
-        style={nav_style}
-        is_project={true}
+      // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
+      // now visible via a big "Connecting..." banner after a few seconds.
+      <span
+        style={{ paddingLeft: "15px", marginRight: "-15px" }}
+        className="hidden-xs"
       >
-        <div style={nav_style_inner}>
-          {render_websocket_indicator()}
-          {render_close_x()}
-        </div>
-        <div style={PROJECT_NAME_STYLE} onClick={click_title}>
-          <Tip title={title} tip={render_tip()} placement="bottom" size="small">
-            {icon}
-            {project?.get("avatar_image_tiny") && (
-              <Avatar
-                style={{ marginTop: "-2px" }}
-                shape="circle"
-                icon={<img src={project.get("avatar_image_tiny")} />}
-                size={20}
-              />
-            )}
-            <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
-          </Tip>
-        </div>
-      </SortableNavTab>
+        <WebsocketIndicator state={project_websockets?.get(project_id)} />
+      </span>
     );
   }
-);
 
-export const ProjectsNav: React.FC<{ style? }> = React.memo(({ style }) => {
-  const actions = useActions("projects");
+  const title = project?.get("title") ?? public_project_titles?.get(project_id);
+  if (title == null) {
+    if (active_top_tab == project_id) {
+      set_window_title("Loading");
+    }
+    return <Loading key={project_id} />;
+  }
 
-  const num_ghost_tabs = useTypedRedux("page", "num_ghost_tabs");
-  const open_projects = useTypedRedux("projects", "open_projects");
+  if (active_top_tab == project_id) {
+    set_window_title(title);
+  }
 
-  function on_sort_end({ oldIndex, newIndex }) {
-    actions.move_project_tab({
-      old_index: oldIndex,
-      new_index: newIndex,
+  const nav_style_inner: CSSProperties = {
+    float: "right",
+    whiteSpace: "nowrap",
+  };
+
+  const project_state = project?.getIn(["state", "state"]);
+
+  const icon =
+    any_alerts && project_state === "running" ? (
+      <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
+    ) : (
+      <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
+    );
+
+  function click_title(e) {
+    // we intercept a click with a modification key in order to open that project in a new window
+    if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      e.stopPropagation();
+      e.preventDefault();
+      const actions = redux.getProjectActions(project_id);
+      actions.open_file({ path: "", new_browser_window: true });
+    }
+  }
+
+  function renderContent() {
+    return (
+      <div style={{ maxWidth: "400px" }}>
+        <ProjectAvatarImage
+          project_id={project_id}
+          size={120}
+          style={{ textAlign: "center" }}
+        />
+        <div style={{ textAlign: "center" }}>
+          {trunc(project?.get("description") ?? "", 128)}
+        </div>
+        <hr />
+        <div style={{ color: COLORS.GRAY }}>
+          Hint: shift+click any project or file tab to open it in new window.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
+      <div style={PROJECT_NAME_STYLE} onClick={click_title}>
+        <Popover
+          zIndex={10000}
+          title={title}
+          content={renderContent()}
+          placement="bottom"
+          open={active != null ? false : undefined}
+          mouseEnterDelay={0.9}
+        >
+          {icon}
+          {project?.get("avatar_image_tiny") && (
+            <Avatar
+              style={{ marginTop: "-2px" }}
+              shape="circle"
+              icon={<img src={project.get("avatar_image_tiny")} />}
+              size={20}
+            />
+          )}
+          <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
+export function ProjectsNav({ style }: { style?: CSSProperties }) {
+  const actions = useActions("page");
+  const projectActions = useActions("projects");
+  const activeTopTab = useTypedRedux("page", "active_top_tab");
+  const openProjects = useTypedRedux("projects", "open_projects");
+  const isAnonymous = useTypedRedux("account", "is_anonymous");
+
+  const items: TabsProps["items"] = useMemo(() => {
+    if (openProjects == null) return [];
+    return openProjects.toJS().map((project_id) => {
+      return {
+        label: <ProjectTab project_id={project_id} />,
+        key: project_id,
+      };
+    });
+  }, [openProjects]);
+
+  const project_ids: string[] = useMemo(() => {
+    if (openProjects == null) return [];
+    return openProjects.toJS().map((project_id) => project_id);
+  }, [openProjects]);
+
+  const onEdit = (project_id: string, action: "add" | "remove") => {
+    if (action == "add") {
+      actions.set_active_tab("projects");
+    } else {
+      // close given project
+      actions.close_project_tab(project_id);
+    }
+  };
+
+  function onDragEnd(event) {
+    const { active, over } = event;
+    if (active == null || over == null || active.id == over.id) return;
+    projectActions.move_project_tab({
+      old_index: project_ids.indexOf(active.id),
+      new_index: project_ids.indexOf(over.id),
     });
   }
 
-  function render_project_tabs(): undefined | JSX.Element[] {
-    if (open_projects == null) {
-      return;
+  function onDragStart(event) {
+    if (event?.active?.id != activeTopTab) {
+      actions.set_active_tab(event?.active?.id);
     }
-    const v: JSX.Element[] = [];
-    open_projects.map((project_id, index) => {
-      v.push(
-        <ProjectTab index={index} project_id={project_id} key={project_id} />
-      );
-    });
-
-    if (num_ghost_tabs === 0) {
-      return v;
-    }
-
-    const num_real_tabs = open_projects.size;
-    const num_tabs = num_real_tabs + num_ghost_tabs;
-    for (let index = num_real_tabs; index < num_tabs; index++) {
-      v.push(<NavItem key={index} style={GHOST_STYLE} />);
-    }
-    return v;
   }
 
-  // NOTE!!! The margin:'0' in the style in SortableNav below is
-  // critical; without it, when you make the screen skinny, the tabs
-  // get mangled looking.  DO NOT delete without being aware of this!
   return (
     <div
       style={{
-        display: "flex",
-        flex: "1",
+        flex: 1,
         overflow: "hidden",
         height: "36px",
-        margin: "0",
         ...style,
       }}
     >
-      <SortableNav
-        id={"smc-project-tab-floating"}
-        className="smc-project-tab-sorter"
-        style={{ display: "flex", overflow: "hidden", margin: "0" }}
-        helperClass={"smc-project-tab-floating"}
-        onSortEnd={on_sort_end}
-        axis={"x"}
-        lockAxis={"x"}
-        lockToContainerEdges={true}
-        distance={!IS_TOUCH ? 3 : undefined}
-        pressDelay={IS_TOUCH ? 200 : undefined}
-      >
-        {render_project_tabs()}
-      </SortableNav>
+      {items.length > 0 && (
+        <SortableTabs
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          items={project_ids}
+        >
+          <Tabs
+            animated={false}
+            moreIcon={<Icon style={{ fontSize: "18px" }} name="ellipsis" />}
+            activeKey={activeTopTab}
+            onEdit={onEdit}
+            onChange={(project_id) => {
+              actions.set_active_tab(project_id);
+            }}
+            type={isAnonymous ? "card" : "editable-card"}
+            renderTabBar={renderTabBar}
+            items={items}
+          />
+        </SortableTabs>
+      )}
     </div>
   );
-});
+}

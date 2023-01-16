@@ -137,8 +137,10 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <Menu main={main} />
-            {body()}
+            <>
+              <Menu main={main} />
+              {body()}
+            </>
           </div>
         </Content>
       </Layout>

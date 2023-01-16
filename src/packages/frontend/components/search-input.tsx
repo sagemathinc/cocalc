@@ -139,7 +139,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
 
   return (
     <Input
-      style={props.style}
+      style={{ minWidth: "150px", ...props.style }}
       cocalc-test="search-input"
       autoFocus={props.autoFocus}
       ref={input_ref}

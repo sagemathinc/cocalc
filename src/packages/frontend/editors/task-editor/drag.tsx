@@ -8,41 +8,47 @@ Drag tasks handle (and other support)
 */
 
 import { Icon, Tip } from "../../components";
-import { SortableHandle } from "react-sortable-hoc";
+import { DragHandle as SortableDragHandle } from "@cocalc/frontend/components/sortable-list";
 
-const HandleIcon: React.FC = () => {
-  return <Icon style={{ cursor: "pointer" }} name="bars" />;
-};
+interface Props {
+  id: string;
+}
 
-const SortableDragHandle = SortableHandle(HandleIcon);
+function EnabledDragHandle({ id }: Props) {
+  return (
+    <SortableDragHandle id={id}>
+      <Icon name="bars" />
+    </SortableDragHandle>
+  );
+}
 
-const DisabledDragHandle: React.FC = () => {
+function DisabledDragHandle({}: Props) {
   return (
     <Tip
       title={"Select Custom Order to enable dragging tasks."}
       delayShow={700}
     >
-      <HandleIcon />
+      <Icon style={{ cursor: "pointer" }} name="bars" />
     </Tip>
   );
-};
+}
 
 interface Props {
   sortable?: boolean;
 }
 
-export const DragHandle: React.FC<Props> = ({ sortable }) => {
+export const DragHandle: React.FC<Props> = ({ id, sortable }) => {
   let color, Handle;
   if (sortable) {
     color = "#888";
-    Handle = SortableDragHandle;
+    Handle = EnabledDragHandle;
   } else {
     color = "#eee";
     Handle = DisabledDragHandle;
   }
   return (
     <span style={{ fontSize: "17pt", color, marginLeft: "15px" }}>
-      <Handle />
+      <Handle id={id} />
     </span>
   );
 };

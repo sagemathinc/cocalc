@@ -21,9 +21,7 @@ export default function Home({ customize }) {
           <br />
           Browse recent{" "}
           <Link href="/share/public_paths/page/1">
-            <a>
-              <SiteName /> Shared Public Files...
-            </a>
+            <SiteName /> Shared Public Files...
           </Link>
         </div>
         <Footer />

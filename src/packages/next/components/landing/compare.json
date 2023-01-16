@@ -232,6 +232,37 @@
         "authorea": false
       },
       {
+        "feature": "Run Python, R and other scripts as part of compilation",
+        "cocalc": {
+          "type": true,
+          "note": "CoCalc is particularly good at this."
+        },
+        "overleaf": { "type": true, "note": "But limited." },
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "R/Knitr",
+        "cocalc": true,
+        "overleaf": "Limited - very few packages, limited syntax, no caching, slow",
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "SageTex",
+        "cocalc": true,
+        "overleaf": false,
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "PythonTex",
+        "cocalc": true,
+        "overleaf": false,
+        "authorea": false,
+        "papeeria": false
+      },
+      {
         "feature": "Upload files",
         "cocalc": true,
         "overleaf": true,
@@ -287,37 +318,6 @@
         },
         "overleaf": true,
         "authorea": true,
-        "papeeria": false
-      },
-      {
-        "feature": "Run Python, R and other scripts as part of compilation",
-        "cocalc": {
-          "type": true,
-          "note": "CoCalc is particularly good at this."
-        },
-        "overleaf": { "type": true, "note": "But limited." },
-        "authorea": false,
-        "papeeria": false
-      },
-      {
-        "feature": "R/Knitr",
-        "cocalc": true,
-        "overleaf": "Limited - very few packages, limited syntax, no caching, slow",
-        "authorea": false,
-        "papeeria": false
-      },
-      {
-        "feature": "SageTex",
-        "cocalc": true,
-        "overleaf": false,
-        "authorea": false,
-        "papeeria": false
-      },
-      {
-        "feature": "PythonTex",
-        "cocalc": true,
-        "overleaf": false,
-        "authorea": false,
         "papeeria": false
       },
       {

@@ -13,9 +13,7 @@ export default function Head({ title }: Props) {
   const { siteName } = useCustomize();
   return (
     <NextHead>
-      <title>
-        {siteName} {siteName ? "–" : ""} {title}
-      </title>
+      <title>{`${siteName} ${siteName ? "–" : ""} ${title}`}</title>
       <meta
         name="description"
         content="CoCalc landing pages and documentation"

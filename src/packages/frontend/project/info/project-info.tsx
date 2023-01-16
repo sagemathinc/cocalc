@@ -483,7 +483,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             return (
               <Modal
                 title="Process info"
-                visible={true}
+                open
                 width={"75vw"}
                 footer={render_modal_footer()}
                 onCancel={() => set_modal(undefined)}

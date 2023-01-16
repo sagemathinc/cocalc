@@ -121,7 +121,6 @@ export default function View({
   const { filteredData, numHidden, Filter, filter } = useFilterInput({
     data,
     id,
-    title,
   });
 
   const [addError, setAddError] = useState<string>("");
@@ -268,6 +267,7 @@ export default function View({
     case "grid":
       body = (
         <Grid
+          id={id}
           recordHeight={recordHeight}
           data={filteredData}
           columns={columns}

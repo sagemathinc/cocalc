@@ -5,9 +5,9 @@
 */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
+
 declare var $: any;
-console.log("define processIcons plugin?", typeof $);
 $.fn.processIcons = function () {
   return this.each(function () {
     // @ts-ignore
@@ -15,9 +15,9 @@ $.fn.processIcons = function () {
     for (const elt of that.find(".fa")) {
       for (const cls of elt.className.split(/\s+/)) {
         if (cls.startsWith("fa-")) {
-          ReactDOM.render(
-            <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />,
-            elt
+          const root = createRoot(elt);
+          root.render(
+            <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />
           );
           break;
         }

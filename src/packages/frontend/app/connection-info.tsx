@@ -24,7 +24,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
   return (
     <Modal
       width={900}
-      visible={true}
+      open
       onCancel={close}
       onOk={close}
       title={

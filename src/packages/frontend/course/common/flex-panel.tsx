@@ -3,12 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export const FlexPanel: React.FC<{ header: any }> = (props) => {
-  const { header, children } = props;
+import { ReactNode } from "react";
+
+export function FlexPanel({
+  header,
+  children,
+}: {
+  header: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div className={"panel panel-default smc-vfill"}>
       <div className="panel-heading">{header}</div>
       <div className="panel-body smc-vfill">{children}</div>
     </div>
   );
-};
+}

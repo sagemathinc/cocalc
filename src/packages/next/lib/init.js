@@ -18,7 +18,6 @@ const { join } = require("path");
 const getLogger = require("@cocalc/backend/logger").default;
 const next = require("next");
 const conf = require("../next.config");
-
 const winston = getLogger("next:init");
 
 async function init({ basePath }) {
@@ -33,10 +32,23 @@ async function init({ basePath }) {
   conf.env.BASE_PATH = basePath;
 
   winston.info(`creating next.js app with dev=${dev}`);
-  const app = next({ dev, conf, dir: join(__dirname, "..") });
+  const app = next({ dev, dir: join(__dirname, ".."), conf });
   const handle = app.getRequestHandler();
   winston.info("preparing next.js app...");
+
+  // WARNING: This webpack init below is a workaround for a bug that was
+  // introduced in Nextjs 13.  The custom server functionality described here
+  //    https://nextjs.org/docs/advanced-features/custom-server
+  // which we are using to init this server from the hub for some
+  // reasons tries to import a build of webpack that needs to be init'd.
+  // I couldn't find a report of this bug anywhere, but trying to make
+  // a custom server with conf set to anything caused it, but without
+  // conf things worked fine.  Somehow I tediously figured out the
+  // following workaround, which is just to explicitly init webpack
+  // before it gets used in prepare below:
+  require("next/dist/compiled/webpack/webpack").init(); // see comment above.
   await app.prepare();
+
   winston.info("ready to handle requests:");
   return (req, res) => {
     winston.http(`req.url=${req.url}`);

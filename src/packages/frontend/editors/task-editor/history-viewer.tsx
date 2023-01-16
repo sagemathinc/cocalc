@@ -8,7 +8,7 @@ History viewer for Tasks notebooks  --- very similar to same file in jupyter/ di
 */
 
 import { fromJS, Map } from "immutable";
-import { TaskList } from "./list";
+import TaskList from "./list";
 import { CSS, React, useState } from "../../app-framework";
 import { Icon } from "../../components";
 import { cmp } from "@cocalc/util/misc";

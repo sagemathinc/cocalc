@@ -10,6 +10,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Icon, Tip, Space } from "@cocalc/frontend/components";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import VideoChatButton from "./video/launch-button";
+import { HiddenXSSM } from "@cocalc/frontend/components";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
@@ -34,14 +35,12 @@ interface Props {
   project_id: string;
   path: string;
   is_chat_open?: boolean;
-  shrink_fixed_tabs?: boolean;
 }
 
 export const ChatIndicator: React.FC<Props> = ({
   project_id,
   path,
   is_chat_open,
-  shrink_fixed_tabs,
 }) => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const file_use = useTypedRedux("file_use", "file_use");
@@ -108,14 +107,15 @@ export const ChatIndicator: React.FC<Props> = ({
           stable={false}
         >
           <span onClick={toggle_chat}>
-            <Icon name={is_chat_open ? "caret-down" : "caret-left"} />
+            <Icon
+              name={is_chat_open ? "caret-down" : "caret-left"}
+              style={{ color: COLORS.FILE_ICON }}
+            />
             <Space />
-            <Icon name="comment" />
-            {!shrink_fixed_tabs && (
-              <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-                Chat
-              </span>
-            )}
+            <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
+            <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+              Chat
+            </HiddenXSSM>
           </span>
         </Tip>
       </div>

@@ -222,7 +222,7 @@ export default function Stopwatch(props: StopwatchProps) {
                 {frame.path}" is Finished
               </>
             }
-            visible={true}
+            open
             onOk={() => {
               props.clickButton("reset");
               redux
