@@ -1310,6 +1310,14 @@ export class Actions extends BaseActions<State> {
     return n == -1 ? null : n + 1;
   }
 
+  setPage(frameId: string, pageNumber: number): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    super.setPage(frameId, pageNumber);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
   setPageId(frameId: string, pageId: string): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
@@ -1321,14 +1329,6 @@ export class Actions extends BaseActions<State> {
   newPage(frameId: string): string {
     const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
-    const element = this.createElement(frameId, {
-      type: "text",
-      str: "# New Page",
-      x: 0,
-      y: 0,
-      page,
-    });
-    this.centerElement(element.id, frameId);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
     return page;
@@ -1375,6 +1375,7 @@ export class Actions extends BaseActions<State> {
   // delete page with given id along with everything that
   // is one that page.
   deletePage(id: string, commit: boolean = true): void {
+    // TODO: this is NOT implemented yet, and not used in the UI, yet.
     console.log("deletePage", { id, commit });
   }
 }

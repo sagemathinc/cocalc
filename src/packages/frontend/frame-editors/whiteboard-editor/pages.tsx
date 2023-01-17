@@ -163,7 +163,10 @@ export default function Pages() {
           return itemContent(sortedPageIds.indexOf(id));
         }}
         onDragStop={(oldIndex, newIndex) => {
+          if (oldIndex == newIndex) return;
           actions.movePage(oldIndex, newIndex);
+          const frameId = actions.show_focused_frame_of_type("whiteboard");
+          actions.setPage(frameId, newIndex + 1);
         }}
       >
         <Virtuoso
