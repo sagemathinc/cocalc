@@ -126,7 +126,9 @@ export class Actions extends BaseActions<State> {
             }
           } else if (element.get("type") == "page") {
             // this is a page
-            pages = pages.set(id, ImmutableMap({}));
+            if (!pages.has(id)) {
+              pages = pages.set(id, ImmutableMap({}));
+            }
             elements = elements.set(id, element);
           } else {
             // create or change an element on a specific page
@@ -156,9 +158,6 @@ export class Actions extends BaseActions<State> {
 
       if (elements !== elements0) {
         this.setState({ elements });
-      }
-
-      if (pages !== pages0) {
         const v: { id: string; pos: number }[] = [];
         for (const [id] of pages ?? []) {
           v.push({
@@ -168,7 +167,11 @@ export class Actions extends BaseActions<State> {
         }
         v.sort(field_cmp("pos"));
         const sortedPageIds = fromJS(v.map((x) => x.id));
-        this.setState({ pages, sortedPageIds });
+        this.setState({ sortedPageIds });
+      }
+
+      if (pages !== pages0) {
+        this.setState({ pages });
       }
 
       this._syncstring.on(
