@@ -1296,16 +1296,16 @@ export default function Canvas({
     }
   };
 
-  //   if (!isNavigator) {
-  //     window.x = {
-  //       scaleDivRef,
-  //       canvasRef,
-  //       offset,
-  //       scale,
-  //       frame,
-  //       saveViewport,
-  //     };
-  //   }
+  if (!isNavigator) {
+    window.x = {
+      scaleDivRef,
+      canvasRef,
+      offset,
+      scale,
+      frame,
+      saveViewport,
+    };
+  }
 
   return (
     <div

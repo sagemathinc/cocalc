@@ -7,8 +7,8 @@ import { useFrameContext } from "./hooks";
 import ToolPanel from "./tools/panel";
 import { Element, ElementsMap } from "./types";
 import { Map as iMap } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
-import { DEFAULT_PAGE_ID } from "./actions";
+import { useMemo, useRef } from "react";
+import { field_cmp } from "@cocalc/util/misc";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const { id, isFocused, desc, actions } = useFrameContext();
@@ -20,35 +20,39 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
     elementsMap = elementsMap.set(element.get("id"), element);
   }
 
-  useEffect(() => {
-    let pages = 0;
-    let firstPage = DEFAULT_PAGE_ID;
+  const pageIds: string[] = useMemo(() => {
+    const v: { id: string; pos: number }[] = [];
     elementsMap.forEach((element) => {
       if (element.get("type") == "page") {
-        if (firstPage == DEFAULT_PAGE_ID) {
-          firstPage = element.get("id");
-        }
-        pages += 1;
+        v.push({
+          id: element.get("id"),
+          pos: element.getIn(["data", "pos"], 0),
+        });
       }
     });
-    if (desc.get("pages") == null || desc.get("pages") < pages) {
-      actions.setPages(id, pages);
+    v.sort(field_cmp("pos"));
+    const numPages = v.length;
+
+    if (desc.get("pages") == null || desc.get("pages") < numPages) {
+      actions.setPages(id, numPages);
     }
+    const pageIds = v.map((x) => x.id);
     if (desc.get("page") == null) {
-      actions.setPage(id, firstPage);
+      actions.setPage(id, 1);
     }
+    return pageIds;
   }, [elementsMap]);
 
   const elementsOnPage = useMemo(() => {
-    const page = desc.get("page") ?? DEFAULT_PAGE_ID;
+    const pageId = pageIds[desc.get("page", "")] ?? pageIds[0];
     const v: Element[] = [];
     elementsMap.forEach((element) => {
-      if ((element.get("page") ?? DEFAULT_PAGE_ID) == page) {
+      if (element.get("page") == pageId) {
         v.push(element.toJS());
       }
     });
     return v;
-  }, [elementsMap, desc.get("page") ?? DEFAULT_PAGE_ID]);
+  }, [elementsMap, desc.get("page")]);
 
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (

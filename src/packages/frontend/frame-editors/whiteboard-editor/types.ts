@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map as iMap } from "immutable";
+import { Map as iMap, List as iList } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
@@ -121,6 +121,8 @@ export type ElementsMap = iMap<string, ElementMap>;
 
 // Immutable map from page id to the ElementsMap consisting of all the elements on a given page.
 export type PagesMap = iMap<string, ElementsMap>;
+
+export type SortedPageList = iList<string>;
 
 // Copied from what Antd does for tooltips: https://ant.design/components/tooltip/
 export type Placement =

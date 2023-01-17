@@ -21,11 +21,12 @@ import {
   ElementsMap,
   ElementType,
   PagesMap,
+  SortedPageList,
   Point,
   Rect,
   Placement,
 } from "./types";
-import { uuid } from "@cocalc/util/misc";
+import { uuid, field_cmp } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
   getPageSpan,
@@ -62,12 +63,10 @@ import debug from "debug";
 
 const log = debug("whiteboard:actions");
 
-// TODO -- this probably won't work...?
-export const DEFAULT_PAGE_ID = "1";
-
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
   pages?: PagesMap;
+  sortedPageIds?: SortedPageList;
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
   contents?: TableOfContentsEntryList; // table of contents data.
 }
@@ -86,6 +85,7 @@ export class Actions extends BaseActions<State> {
     this.setState({});
     this._syncstring.on("change", (keys) => {
       const elements0 = this.store.get("elements");
+      const pages0 = this.store.get("pages");
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (this.store.get("pages") ??
         ImmutableMap({})) as PagesMap;
@@ -99,7 +99,7 @@ export class Actions extends BaseActions<State> {
             if (oldElement?.get("type") == "page") {
               pages = pages.delete(oldElement.get("id"));
             } else {
-              const page = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
+              const page = oldElement?.get("page") ?? this.defaultPageId();
               let elementsOnPage = pages.get(page);
               if (elementsOnPage !== undefined) {
                 elementsOnPage = elementsOnPage.delete(id);
@@ -115,7 +115,7 @@ export class Actions extends BaseActions<State> {
             // no valid type field - discard
             this._syncstring.delete({ id });
             elements = elements.delete(id);
-            const page = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
+            const page = oldElement?.get("page") ?? this.defaultPageId();
             let elementsOnPage = pages.get(page);
             if (elementsOnPage !== undefined) {
               elementsOnPage = elementsOnPage.delete(id);
@@ -133,8 +133,8 @@ export class Actions extends BaseActions<State> {
             // create or change an element on a specific page
             // @ts-ignore
             elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page") ?? DEFAULT_PAGE_ID;
-            const newPage = element.get("page") ?? DEFAULT_PAGE_ID;
+            const oldPage = oldElement?.get("page") ?? this.defaultPageId();
+            const newPage = element.get("page") ?? this.defaultPageId();
             const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
             pages = pages.set(newPage, elementsOnNewPage.set(id, element));
             if (oldPage != newPage) {
@@ -154,7 +154,20 @@ export class Actions extends BaseActions<State> {
       });
 
       if (elements !== elements0) {
-        this.setState({ elements, pages });
+        this.setState({ elements });
+      }
+
+      if (pages !== pages0) {
+        const v: { id: string; pos: number }[] = [];
+        for (const [id] of pages ?? []) {
+          v.push({
+            id,
+            pos: elements.getIn([id, "data", "pos"], 0),
+          });
+        }
+        v.sort(field_cmp("pos"));
+        const sortedPageIds = fromJS(v.map((x) => x.id));
+        this.setState({ pages, sortedPageIds });
       }
 
       this._syncstring.on(
@@ -218,11 +231,13 @@ export class Actions extends BaseActions<State> {
     // so it avoids intersecting other frames.  E.g., if a note is
     // in a frame, we should get another note possibly in the frame
     // that is adjacent.
-    const page = element.page ?? 1;
+    const page = element.page ?? this.defaultPageId();
     const filter =
       element.type == "frame"
         ? undefined
-        : (elt) => elt.get("type") != "frame" && (elt.get("page") ?? 1) == page;
+        : (elt) =>
+            elt.get("type") != "frame" &&
+            (elt.get("page") ?? this.defaultPageId()) == page;
     const elements = this.getElements(filter);
     const p = placement.toLowerCase();
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
@@ -360,8 +375,12 @@ export class Actions extends BaseActions<State> {
       setDefaultSize(obj);
     }
     if (obj.page == null) {
+      const pages = this.sortedPageIds();
       obj.page =
-        frameId == null ? 1 : this._get_frame_node(frameId)?.get("page") ?? 1;
+        frameId == null
+          ? this.defaultPageId()
+          : pages.get(this._get_frame_node(frameId)?.get("page")) ??
+            this.defaultPageId();
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -705,7 +724,9 @@ export class Actions extends BaseActions<State> {
     // We adjust any edges below, discarding any that aren't
     // part of what is being pasted.
     const page =
-      frameId != null ? this._get_frame_node(frameId)?.get("page") ?? 1 : 1;
+      frameId != null
+        ? this._get_frame_node(frameId)?.get("page") ?? this.defaultPageId()
+        : this.defaultPageId();
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -894,7 +915,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
-    super.setPage(frameId, element.page ?? 1);
+    super.setPage(frameId, element.page ?? this.defaultPageId());
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1178,20 +1199,6 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, search });
   }
 
-  newPage(frameId: string): void {
-    const page = (this._get_frame_node(frameId)?.get("pages") ?? 1) + 1;
-    const element = this.createElement(frameId, {
-      type: "text",
-      str: "# New Page",
-      x: 0,
-      y: 0,
-      page,
-    });
-    this.setPages(frameId, page);
-    this.setPage(frameId, page);
-    this.centerElement(element.id, frameId);
-  }
-
   async programmatical_goto_line(
     line: string | number,
     _cursor?: boolean,
@@ -1213,21 +1220,19 @@ export class Actions extends BaseActions<State> {
     this.zoom100(frameId);
   }
 
-  setPage(frameId: string, page: string | number): void {
-    const node = this._get_frame_node(frameId);
-    if (node == null) return;
-    super.setPage(frameId, page);
-    this.setFragmentIdToPage(frameId);
-    this.fitToScreen(frameId);
-  }
-
   async gotoFragment(fragmentId: FragmentId) {
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
     if (!frameId) return;
     const { id, page } = fragmentId as any;
     if (page != null) {
-      this.setPage(frameId, parseInt(page));
+      if (typeof page == "number") {
+        // older page number links need to still work
+        this.setPage(frameId, page);
+      } else {
+        // new page id's:
+        this.setPageId(frameId, page);
+      }
       this.fitToScreen(frameId);
       return;
     }
@@ -1278,6 +1283,51 @@ export class Actions extends BaseActions<State> {
 
   help(): void {
     open_new_tab("https://doc.cocalc.com/whiteboard.html");
+  }
+
+  defaultPageId(): string {
+    const pages = this.sortedPageIds();
+    if (pages.size > 0) {
+      return pages.get(0) ?? "";
+    }
+    return this.createPage();
+  }
+
+  // TODO: no attempt at caching yet, so not efficient...
+  // To cache, probably just put in _init2() above.
+  sortedPageIds(): SortedPageList {
+    return this.store.get("sortedPageIds") ?? fromJS([]);
+  }
+
+  // returns page number corresponding to an id; if the id is not known,
+  // this just returns null
+  pageToNumber(page: string): number | null {
+    const n = this.sortedPageIds().indexOf(page);
+    return n == -1 ? null : n;
+  }
+
+  setPageId(frameId: string, pageId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    this.setPage(frameId, this.pageToNumber(pageId) ?? 1);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
+  newPage(frameId: string): string {
+    const n = this.store.get("pages")?.size ?? 0;
+    const page = this.createPage(false);
+    const element = this.createElement(frameId, {
+      type: "text",
+      str: "# New Page",
+      x: 0,
+      y: 0,
+      page,
+    });
+    this.centerElement(element.id, frameId);
+    this.setPages(frameId, n + 1);
+    this.setPageId(frameId, page);
+    return page;
   }
 
   // returns id of the new page
