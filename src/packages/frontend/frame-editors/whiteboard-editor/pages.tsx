@@ -1,7 +1,7 @@
 /* Shows an overview of all pages in the whiteboard */
 
 import { Button, Popover } from "antd";
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "./hooks";
@@ -104,17 +104,12 @@ export default function Pages() {
         </div>
       );
     }
-    let elementsOnPage = null;
-    if (sortedPageIds != null && pagesMap != null) {
-      const pageId = sortedPageIds.get(index);
-      if (pageId != -1) {
-        const pages = pagesMap.get(pageId);
-        elementsOnPage = pages ? elementsList(pages) : [];
-      }
-    }
-    if (elementsOnPage == null) {
+    const pageId = sortedPageIds?.get(index);
+    if (pageId == null || pagesMap == null) {
       return <div style={{ height: "1px" }}></div>;
     }
+    const thisPage = pagesMap.get(pageId);
+    const elementsOnPage = thisPage ? elementsList(thisPage) : [];
     return (
       <div
         onClick={() => {
@@ -125,12 +120,12 @@ export default function Pages() {
       >
         <div style={{ display: "flex", alignItems: "center" }}>
           <DragHandle
-            id={sortedPageIds.get(index)}
+            id={`${sortedPageIds.get(index)}`}
             style={{ marginRight: "5px", color: "#999" }}
           />
           <Overview
             margin={15}
-            elements={elementsOnPage}
+            elements={elementsOnPage ?? []}
             elementsMap={elementsMap}
             width={width - 2 * HMARGIN}
             navMap={"page"}
