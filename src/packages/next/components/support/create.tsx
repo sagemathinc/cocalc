@@ -71,7 +71,7 @@ export default function Create() {
       // used to pass context info along in the url when
       // creating a support ticket,
       // e.g., from the crash reporter.
-      info.context = router.query.context;
+      info.context = `${router.query.context}`;
     }
     const options = { type, files, email, body, url, subject, info };
     setSubmitError("");
