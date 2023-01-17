@@ -2,7 +2,7 @@ import { Element } from "../types";
 import { field_cmp } from "@cocalc/util/misc";
 
 // the old page format
-function parseSyncdbFilePageNumbers(content: string): Element[][] {
+export function parseSyncdbFileUsingPageNumbers(content: string): Element[][] {
   const pages: Element[][] = [];
   let maxPage = 1;
   for (const line of content.split("\n")) {
@@ -28,7 +28,7 @@ function parseSyncdbFilePageNumbers(content: string): Element[][] {
 }
 
 // the new page format.
-function parseSyncdbFilePageIds(content: string): Element[][] {
+function parseSyncdbFileUsingPageIds(content: string): Element[][] {
   const v: { pos: number; id: string }[] = [];
   const pageMap: { [id: string]: Element[] } = {};
   for (const line of content.split("\n")) {
@@ -70,8 +70,8 @@ function isOldPageFormat(content: string): boolean {
 
 export function parseSyncdbFile(content: string): Element[][] {
   if (isOldPageFormat(content)) {
-    return parseSyncdbFilePageNumbers(content);
+    return parseSyncdbFileUsingPageNumbers(content);
   } else {
-    return parseSyncdbFilePageIds(content);
+    return parseSyncdbFileUsingPageIds(content);
   }
 }

@@ -85,18 +85,17 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({});
-    let ignoreChanges = false;
     this._syncstring.on("change", (keys) => {
-      if (ignoreChanges) return;
       const elements0 = this.store.get("elements");
+
       if (
+        // if it's the first load check to see if a random element has a numerical page number; if so, we have to migrate this.
         elements0 == null &&
         typeof this._syncstring.get_one().get("page") == "number"
       ) {
-        ignoreChanges = true;
         migrateToNewPageNumbers(this._syncstring);
-        ignoreChanges = false;
       }
+
       const pages0 = this.store.get("pages");
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (this.store.get("pages") ??
