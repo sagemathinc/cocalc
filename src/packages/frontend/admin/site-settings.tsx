@@ -40,6 +40,7 @@ import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { JsonEditor } from "./json-editor";
+import { ReadOnlyContext } from "../editors/slate/slate-react/hooks/use-read-only";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -262,7 +263,7 @@ class SiteSettingsComponent extends Component<
   // this is specific to on-premises kubernetes setups
   // the production site works differently
   // TODO make this a more sophisticated data editor
-  private render_json_entry(name, data) {
+  private render_json_entry(name, data, readonly: boolean) {
     const jval = JSON.parse(data ?? "{}") ?? {};
     const dflt = FIELD_DEFAULTS[name];
     const quotas = Object.assign({}, dflt, jval);
@@ -270,6 +271,7 @@ class SiteSettingsComponent extends Component<
     return (
       <JsonEditor
         value={value}
+        readonly={readonly}
         rows={10}
         onSave={(value) => this.on_json_entry_change(name, value)}
       />
@@ -434,13 +436,31 @@ class SiteSettingsComponent extends Component<
     multiline?: number
   ) {
     if (this.state.isReadonly == null) return; // typescript
+    const readonly = (readonly) => {
+      if (readonly)
+        return (
+          <>
+            Value controlled via{" "}
+            <code>
+              ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+            </code>
+            .
+          </>
+        );
+    };
     if (row_type == ("header" as RowType)) {
       return <div />;
     } else {
       switch (name) {
         case "default_quotas":
         case "max_upgrades":
-          return this.render_json_entry(name, value);
+          const ro: boolean = this.state.isReadonly[name];
+          return (
+            <>
+              {this.render_json_entry(name, value, ro)}
+              {readonly(ro)}
+            </>
+          );
         default:
           return (
             <FormGroup>
@@ -455,15 +475,7 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
-                {this.state.isReadonly[name] && (
-                  <>
-                    Value controlled via{" "}
-                    <code>
-                      ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-                    </code>
-                    .
-                  </>
-                )}
+                {readonly(this.state.isReadonly[name])}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>

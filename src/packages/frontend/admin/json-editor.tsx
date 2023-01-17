@@ -10,7 +10,7 @@ import React, { useState } from "react";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 
-const { Text } = Typography;
+const { Text, Paragraph } = Typography;
 
 // this is a simple json editor, basically a textarea that processes its content using jsonic
 
@@ -19,10 +19,17 @@ interface Props {
   rows?: number;
   onSave: (value: string) => void;
   savePosition?: "top-bottom" | "top";
+  readonly?: boolean;
 }
 
 export const JsonEditor: React.FC<Props> = (props: Props) => {
-  const { value, onSave, rows = 3, savePosition = "top-bottom" } = props;
+  const {
+    value,
+    onSave,
+    rows = 3,
+    savePosition = "top-bottom",
+    readonly = false,
+  } = props;
   const [error, setError] = useState<string>("");
   const [focused, setFocused] = useState<boolean>(false);
   const [editing, setEditing] = useState<string>(value);
@@ -64,6 +71,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
   }
 
   function onFocus() {
+    if (readonly) return;
     setFormatted();
     setFocused(true);
   }
@@ -84,21 +92,40 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     width: "100%",
   };
 
-  return (
-    <div>
-      <div>
+  function renderMain(): JSX.Element {
+    if (focused) {
+      return (
         <textarea
           spellCheck="false"
           onFocus={onFocus}
           style={style}
-          rows={focused ? rows : 1}
+          rows={rows}
           value={editing}
           onChange={(event) => {
             onChange(event.target.value);
           }}
         />
-      </div>
-      {renderError()}
+      );
+    } else {
+      return (
+        <Paragraph
+          onClick={onFocus}
+          type={readonly ? "secondary" : undefined}
+          style={{
+            ...(readonly ? {} : { cursor: "pointer" }),
+            fontFamily: "monospace",
+            fontSize: "90%",
+          }}
+        >
+          {editing}
+        </Paragraph>
+      );
+    }
+  }
+
+  function renderButtons() {
+    if (readonly) return;
+    return (
       <Space>
         <Button
           size="small"
@@ -113,6 +140,15 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
         </Button>
         {renderSaveNote()}
       </Space>
+    );
+  }
+
+  return (
+    <div>
+      <div>{renderMain()}</div>
+      {renderError()}
+
+      {renderButtons()}
     </div>
   );
 };
