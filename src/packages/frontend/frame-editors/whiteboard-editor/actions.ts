@@ -85,18 +85,34 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({});
-    this._syncstring.on("change", (keys) => {
+    this._syncstring.on(
+      "change",
+      debounce(this.updateTableOfContents.bind(this), 1500)
+    );
+    const handleChange = (keys) => {
       const elements0 = this.store.get("elements");
 
       if (
-        // if it's the first load check to see if a random element has a numerical page number; if so, we have to migrate this.
+        // if it's the first load check to see if a random element has a numerical page number;
+        // if so, we have to migrate this.
         elements0 == null &&
         typeof this._syncstring.get_one().get("page") == "number"
       ) {
+        // This modifies the syncdoc in one commit:
         migrateToNewPageNumbers(this._syncstring);
+        // We then handle that everything changed:
+        handleChange(
+          this._syncstring.get().map((x) => {
+            return fromJS({ id: x.get("id") });
+          })
+        );
+        // and don't do the handling below, obviously.
+        return;
       }
 
       const pages0 = this.store.get("pages");
+      const sortedPageIds0 = this.store.get("sortedPageIds");
+      let somePageChanged = false;
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (this.store.get("pages") ??
         ImmutableMap({})) as PagesMap;
@@ -136,6 +152,7 @@ export class Actions extends BaseActions<State> {
             }
           } else if (element.get("type") == "page") {
             // this is a page
+            somePageChanged = true;
             if (!pages.has(id)) {
               pages = pages.set(id, ImmutableMap({}));
             }
@@ -168,6 +185,9 @@ export class Actions extends BaseActions<State> {
 
       if (elements !== elements0) {
         this.setState({ elements });
+      }
+
+      if (somePageChanged || sortedPageIds0 == null) {
         const v: { id: string; pos: number }[] = [];
         for (const [id] of pages ?? []) {
           v.push({
@@ -183,12 +203,9 @@ export class Actions extends BaseActions<State> {
       if (pages !== pages0) {
         this.setState({ pages });
       }
+    };
 
-      this._syncstring.on(
-        "change",
-        debounce(this.updateTableOfContents.bind(this), 1500)
-      );
-    });
+    this._syncstring.on("change", handleChange);
   }
 
   // This mutates the cursors by putting the id in them.
