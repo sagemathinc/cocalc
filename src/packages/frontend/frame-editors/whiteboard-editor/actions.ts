@@ -466,7 +466,10 @@ export class Actions extends BaseActions<State> {
     const page = node?.get("page");
     if (this.store.get("visible")) {
       if (page != null) {
-        Fragment.set({ page });
+        const pageId = this.store.get("sortedPageIds")?.get(page - 1);
+        if (pageId) {
+          Fragment.set({ page: pageId });
+        }
       } else {
         Fragment.clear();
       }
@@ -1257,8 +1260,10 @@ export class Actions extends BaseActions<State> {
     if (!frameId) return;
     const { id, page } = fragmentId as any;
     if (page != null) {
-      if (typeof page == "number") {
-        // older page number links need to still work
+      if (page.length <= 4) {
+        // id's are length 8 so if <= 4 characters then it is
+        // very likely an older page number.  We want these links
+        // to still work.
         this.setPage(frameId, page);
       } else {
         // new page id's:
@@ -1399,6 +1404,37 @@ export class Actions extends BaseActions<State> {
       obj: { id: pages.get(oldIndex), data: { pos } },
       commit,
     });
+    this.ensurePagePositionsAreDistinct();
+  }
+
+  // Ensure that the the page pos's aren't too close.  This could happen if
+  // the above movePage function hit the "averaging" case a large number of time,
+  // e.g., by a user fiddling, and then averaging runs out of precision.
+  private ensurePagePositionsAreDistinct(epsilon = 0.0000000001): void {
+    const elements = this.store.get("elements");
+    if (elements == null) return;
+    const sortedPageIds = this.store.get("sortedPageIds");
+    if (sortedPageIds == null) return;
+    const positions = sortedPageIds.map((pageId) =>
+      elements.getIn([pageId, "data", "pos"])
+    );
+    console.log(positions.toJS());
+    let tooClose = false;
+    for (let i = 1; i < positions.size; i++) {
+      if (positions.get(i) - positions.get(i - 1) < epsilon) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (!tooClose) return;
+    // Just space them out as distinct integers; don't try to be too clever,
+    // since this is rare.
+    for (let pos = 0; pos < sortedPageIds.size; pos++) {
+      this.setElement({
+        obj: { id: sortedPageIds.get(pos), data: { pos } },
+        commit: pos == sortedPageIds.size - 1,
+      });
+    }
   }
 
   // delete page with given id along with everything that
