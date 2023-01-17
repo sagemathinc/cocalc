@@ -5,7 +5,7 @@
 
 import { Avatar, Popover, Tabs } from "antd";
 import type { TabsProps } from "antd";
-
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
@@ -125,31 +125,37 @@ function ProjectTab({ project_id }: ProjectTabProps) {
       </div>
     );
   }
-  return (
+  const body = (
     <div>
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
-        <Popover
-          zIndex={10000}
-          title={title}
-          content={renderContent()}
-          placement="bottom"
-          open={active != null ? false : undefined}
-          mouseEnterDelay={0.9}
-        >
-          {icon}
-          {project?.get("avatar_image_tiny") && (
-            <Avatar
-              style={{ marginTop: "-2px" }}
-              shape="circle"
-              icon={<img src={project.get("avatar_image_tiny")} />}
-              size={20}
-            />
-          )}
-          <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
-        </Popover>
+        {icon}
+        {project?.get("avatar_image_tiny") && (
+          <Avatar
+            style={{ marginTop: "-2px" }}
+            shape="circle"
+            icon={<img src={project.get("avatar_image_tiny")} />}
+            size={20}
+          />
+        )}{" "}
+        <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
       </div>
     </div>
+  );
+  if (IS_MOBILE) {
+    return body;
+  }
+  return (
+    <Popover
+      zIndex={10000}
+      title={title}
+      content={renderContent()}
+      placement="bottom"
+      open={active != null ? false : undefined}
+      mouseEnterDelay={0.9}
+    >
+      {body}
+    </Popover>
   );
 }
 

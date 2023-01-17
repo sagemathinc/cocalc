@@ -10,7 +10,6 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ListingItem } from "./types";
 import { output_style_searchbox } from "./mini-terminal";
 import { webapp_client } from "../../webapp-client";
-import { IS_TOUCH } from "../../feature";
 import { Alert } from "react-bootstrap";
 import { path_to_file } from "@cocalc/util/misc";
 
@@ -261,8 +260,8 @@ export const SearchBar = React.memo((props: Props) => {
   return (
     <span>
       <SearchInput
-        autoFocus={!IS_TOUCH}
-        autoSelect={!IS_TOUCH}
+        autoFocus
+        autoSelect
         placeholder="Search or create file"
         value={file_search}
         on_change={on_change}
