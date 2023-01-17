@@ -147,7 +147,6 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     <div>
       <div>{renderMain()}</div>
       {renderError()}
-
       {renderButtons()}
     </div>
   );

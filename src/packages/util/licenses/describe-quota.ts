@@ -103,7 +103,6 @@ export function describe_quota(
     onPremQuota = true;
     v.push("read/write access to global files");
   }
-  console.log("patch: ", quota.patch);
   if (typeof quota.patch === "string" && quota.patch.length > 0) {
     onPremQuota = true;
     const n = loadPatch(quota.patch).length;

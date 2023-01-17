@@ -468,12 +468,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               <A href="https://jsonpatch.com/">JSON Patch</A>.
             </Text>
           )}
-          <JsonEditor
-            rows={15}
-            onSave={on_json_patch_change}
-            value={value}
-            savePosition={"top"}
-          />
+          <JsonEditor rows={15} onSave={on_json_patch_change} value={value} />
         </Col>
       </Row>
     );
