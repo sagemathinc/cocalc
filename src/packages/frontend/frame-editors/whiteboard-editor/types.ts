@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map as iMap } from "immutable";
+import { Map as iMap, List as iList } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
@@ -21,7 +21,8 @@ export type ElementType =
   | "timer"
   | "frame"
   | "edge"
-  | "selection";
+  | "selection"
+  | "page";
 
 export type Point = { x: number; y: number };
 
@@ -58,6 +59,7 @@ export interface Data {
   kernel?: string;
   start?: number;
   end?: number;
+  pos?: number; // used for sorting similar objects, e.g., pages
 }
 
 /*
@@ -99,7 +101,7 @@ export interface Element extends Rect {
   id: string;
   type: ElementType;
   z: number; // zIndex
-  page?: number; // the page that this element is on; default value is 1
+  page?: string; // the id of the page that this element is on (this used to be a page number)
   data?: Data; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
   group?: string; // group id if object is part of a group
@@ -117,8 +119,10 @@ export type ElementMap = TypedMap<Element>;
 // An immutable map from id to Element as a map.
 export type ElementsMap = iMap<string, ElementMap>;
 
-// Immutable map from page number to the ElementsMap that has all the elements on a given page.
-export type PagesMap = iMap<number, ElementsMap>;
+// Immutable map from page id to the ElementsMap consisting of all the elements on a given page.
+export type PagesMap = iMap<string, ElementsMap>;
+
+export type SortedPageList = iList<string>;
 
 // Copied from what Antd does for tooltips: https://ant.design/components/tooltip/
 export type Placement =

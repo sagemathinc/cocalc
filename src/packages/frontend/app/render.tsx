@@ -20,7 +20,7 @@ export async function render(): Promise<void> {
 
 import ReactDOM from "react-dom";
 export async function xxx_render(): Promise<void> {
-  finishedLoading(); // comment this out to leave the loading/sartup banner visible
+  finishedLoading(); // comment this out to leave the loading/startup banner visible
   const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>
@@ -36,5 +36,6 @@ function finishedLoading() {
   const load = document.getElementById("cocalc-load-container");
   if (load != null) {
     load.innerHTML = "";
+    load.remove();
   }
 }

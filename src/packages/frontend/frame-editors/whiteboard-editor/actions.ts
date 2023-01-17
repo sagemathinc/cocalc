@@ -21,11 +21,12 @@ import {
   ElementsMap,
   ElementType,
   PagesMap,
+  SortedPageList,
   Point,
   Rect,
   Placement,
 } from "./types";
-import { uuid } from "@cocalc/util/misc";
+import { uuid, field_cmp } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
   getPageSpan,
@@ -59,12 +60,15 @@ import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
+import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
+import { migrateToNewPageNumbers } from "./migrate";
 
 const log = debug("whiteboard:actions");
 
 export interface State extends CodeEditorState {
   elements?: ElementsMap;
   pages?: PagesMap;
+  sortedPageIds?: SortedPageList;
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
   contents?: TableOfContentsEntryList; // table of contents data.
 }
@@ -81,8 +85,34 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({});
-    this._syncstring.on("change", (keys) => {
+    this._syncstring.on(
+      "change",
+      debounce(this.updateTableOfContents.bind(this), 1500)
+    );
+    const handleChange = (keys) => {
       const elements0 = this.store.get("elements");
+
+      if (
+        // if it's the first load check to see if a random element has a numerical page number;
+        // if so, we have to migrate this.
+        elements0 == null &&
+        typeof this._syncstring.get_one().get("page") == "number"
+      ) {
+        // This modifies the syncdoc in one commit:
+        migrateToNewPageNumbers(this._syncstring);
+        // We then handle that everything changed:
+        handleChange(
+          this._syncstring.get().map((x) => {
+            return fromJS({ id: x.get("id") });
+          })
+        );
+        // and don't do the handling below, obviously.
+        return;
+      }
+
+      const pages0 = this.store.get("pages");
+      const sortedPageIds0 = this.store.get("sortedPageIds");
+      let somePageChanged = false;
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (this.store.get("pages") ??
         ImmutableMap({})) as PagesMap;
@@ -93,14 +123,18 @@ export class Actions extends BaseActions<State> {
           const oldElement = elements.get(id);
           if (!element) {
             // there is a delete.
-            const page = oldElement?.get("page") ?? 1;
-            let elementsOnPage = pages.get(page);
-            if (elementsOnPage !== undefined) {
-              elementsOnPage = elementsOnPage.delete(id);
-              if (elementsOnPage.size == 0) {
-                pages = pages.delete(page);
-              } else {
-                pages = pages.set(page, elementsOnPage);
+            if (oldElement?.get("type") == "page") {
+              // deleting a page
+              pages = pages.delete(oldElement.get("id"));
+            } else {
+              // deleting an element on a page
+              const page = oldElement?.get("page");
+              if (page) {
+                let elementsOnPage = pages.get(page);
+                if (elementsOnPage != null) {
+                  elementsOnPage = elementsOnPage.delete(id);
+                  pages = pages.set(page, elementsOnPage);
+                }
               }
             }
             elements = elements.delete(id);
@@ -108,25 +142,32 @@ export class Actions extends BaseActions<State> {
             // no valid type field - discard
             this._syncstring.delete({ id });
             elements = elements.delete(id);
-            const page = oldElement?.get("page") ?? 1;
-            let elementsOnPage = pages.get(page);
-            if (elementsOnPage !== undefined) {
-              elementsOnPage = elementsOnPage.delete(id);
-              if (elementsOnPage.size == 0) {
-                pages = pages.delete(page);
-              } else {
+            const page = oldElement?.get("page");
+            if (page) {
+              let elementsOnPage = pages.get(page);
+              if (elementsOnPage != null) {
+                elementsOnPage = elementsOnPage.delete(id);
                 pages = pages.set(page, elementsOnPage);
               }
             }
+          } else if (element.get("type") == "page") {
+            // this is a page
+            somePageChanged = true;
+            if (!pages.has(id)) {
+              pages = pages.set(id, ImmutableMap({}));
+            }
+            elements = elements.set(id, element);
           } else {
-            // create or change an element
+            // create or change an element on a specific page
             // @ts-ignore
             elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page") ?? 1;
-            const newPage = element.get("page") ?? 1;
-            const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
-            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
-            if (oldPage != newPage) {
+            const oldPage = oldElement?.get("page");
+            const newPage = element.get("page");
+            if (newPage) {
+              const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
+              pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+            }
+            if (oldPage && oldPage != newPage) {
               // change page, so delete element from the old page
               let elementsOnOldPage = pages.get(oldPage);
               if (elementsOnOldPage !== undefined) {
@@ -142,26 +183,29 @@ export class Actions extends BaseActions<State> {
         }
       });
 
-      // ensure any missing pages are represented
-      // We could delete this when there is a page config object, though it is VERY
-      // good to know that any gaps are filled in, so we can rely on pages.size being
-      // the number of pages, which is assumed in the pages.tsx code.
-      const maxPage = pages.keySeq().max() ?? 1;
-      for (let i = 1; i <= maxPage; i++) {
-        if (pages.get(i) == null) {
-          pages = pages.set(i, ImmutableMap({}));
-        }
-      }
-
       if (elements !== elements0) {
-        this.setState({ elements, pages });
+        this.setState({ elements });
       }
 
-      this._syncstring.on(
-        "change",
-        debounce(this.updateTableOfContents.bind(this), 1500)
-      );
-    });
+      if (somePageChanged || sortedPageIds0 == null) {
+        const v: { id: string; pos: number }[] = [];
+        for (const [id] of pages ?? []) {
+          v.push({
+            id,
+            pos: elements.getIn([id, "data", "pos"], 0),
+          });
+        }
+        v.sort(field_cmp("pos"));
+        const sortedPageIds = fromJS(v.map((x) => x.id));
+        this.setState({ sortedPageIds });
+      }
+
+      if (pages !== pages0) {
+        this.setState({ pages });
+      }
+    };
+
+    this._syncstring.on("change", handleChange);
   }
 
   // This mutates the cursors by putting the id in them.
@@ -218,11 +262,13 @@ export class Actions extends BaseActions<State> {
     // so it avoids intersecting other frames.  E.g., if a note is
     // in a frame, we should get another note possibly in the frame
     // that is adjacent.
-    const page = element.page ?? 1;
+    const page = element.page ?? this.defaultPageId();
     const filter =
       element.type == "frame"
         ? undefined
-        : (elt) => elt.get("type") != "frame" && (elt.get("page") ?? 1) == page;
+        : (elt) =>
+            elt.get("type") != "frame" &&
+            (elt.get("page") ?? this.defaultPageId()) == page;
     const elements = this.getElements(filter);
     const p = placement.toLowerCase();
     const axis = p.includes("top") || p.includes("bottom") ? "x" : "y";
@@ -360,8 +406,12 @@ export class Actions extends BaseActions<State> {
       setDefaultSize(obj);
     }
     if (obj.page == null) {
+      const pages = this.sortedPageIds();
       obj.page =
-        frameId == null ? 1 : this._get_frame_node(frameId)?.get("page") ?? 1;
+        frameId == null
+          ? this.defaultPageId()
+          : pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
+            this.defaultPageId();
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -416,7 +466,10 @@ export class Actions extends BaseActions<State> {
     const page = node?.get("page");
     if (this.store.get("visible")) {
       if (page != null) {
-        Fragment.set({ page });
+        const pageId = this.store.get("sortedPageIds")?.get(page - 1);
+        if (pageId) {
+          Fragment.set({ page: pageId });
+        }
       } else {
         Fragment.clear();
       }
@@ -705,7 +758,9 @@ export class Actions extends BaseActions<State> {
     // We adjust any edges below, discarding any that aren't
     // part of what is being pasted.
     const page =
-      frameId != null ? this._get_frame_node(frameId)?.get("page") ?? 1 : 1;
+      frameId != null
+        ? this._get_frame_node(frameId)?.get("page") ?? this.defaultPageId()
+        : this.defaultPageId();
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -894,7 +949,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
-    super.setPage(frameId, element.page ?? 1);
+    this.setPageId(frameId, element.page ?? this.defaultPageId());
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1178,20 +1233,6 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, search });
   }
 
-  newPage(frameId: string): void {
-    const page = (this._get_frame_node(frameId)?.get("pages") ?? 1) + 1;
-    const element = this.createElement(frameId, {
-      type: "text",
-      str: "# New Page",
-      x: 0,
-      y: 0,
-      page,
-    });
-    this.setPages(frameId, page);
-    this.setPage(frameId, page);
-    this.centerElement(element.id, frameId);
-  }
-
   async programmatical_goto_line(
     line: string | number,
     _cursor?: boolean,
@@ -1213,21 +1254,21 @@ export class Actions extends BaseActions<State> {
     this.zoom100(frameId);
   }
 
-  setPage(frameId: string, page: string | number): void {
-    const node = this._get_frame_node(frameId);
-    if (node == null) return;
-    super.setPage(frameId, page);
-    this.setFragmentIdToPage(frameId);
-    this.fitToScreen(frameId);
-  }
-
   async gotoFragment(fragmentId: FragmentId) {
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
     if (!frameId) return;
     const { id, page } = fragmentId as any;
     if (page != null) {
-      this.setPage(frameId, parseInt(page));
+      if (page.length <= 4) {
+        // id's are length 8 so if <= 4 characters then it is
+        // very likely an older page number.  We want these links
+        // to still work.
+        this.setPage(frameId, page);
+      } else {
+        // new page id's:
+        this.setPageId(frameId, page);
+      }
       this.fitToScreen(frameId);
       return;
     }
@@ -1268,7 +1309,9 @@ export class Actions extends BaseActions<State> {
     const elements = this.store.get("elements");
     if (elements == null) return;
 
-    const contents = fromJS(parseTableOfContents(elements));
+    const contents = fromJS(
+      parseTableOfContents(elements, this.store.get("sortedPageIds"))
+    );
     this.setState({ contents });
   }
 
@@ -1278,6 +1321,127 @@ export class Actions extends BaseActions<State> {
 
   help(): void {
     open_new_tab("https://doc.cocalc.com/whiteboard.html");
+  }
+
+  defaultPageId(): string {
+    const pages = this.sortedPageIds();
+    if (pages.size > 0) {
+      return pages.get(0) ?? ""; // ?? for typescript
+    }
+    return this.createPage();
+  }
+
+  // TODO: no attempt at caching yet, so not efficient...
+  // To cache, probably just put in _init2() above.
+  sortedPageIds(): SortedPageList {
+    return this.store.get("sortedPageIds") ?? fromJS([]);
+  }
+
+  // returns page number corresponding to an id; if the id is not known,
+  // this just returns null
+  pageToNumber(page: string): number | null {
+    const n = this.sortedPageIds().indexOf(page);
+    return n == -1 ? null : n + 1;
+  }
+
+  setPage(frameId: string, pageNumber: number): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    super.setPage(frameId, pageNumber);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
+  setPageId(frameId: string, pageId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    this.setPage(frameId, this.pageToNumber(pageId) ?? 1);
+    this.setFragmentIdToPage(frameId);
+    this.fitToScreen(frameId);
+  }
+
+  newPage(frameId: string): string {
+    const n = this.store.get("pages")?.size ?? 1;
+    const page = this.createPage(false);
+    this.setPages(frameId, n + 1);
+    this.setPageId(frameId, page);
+    return page;
+  }
+
+  // returns id of the new page
+  createPage(commit: boolean = true): string {
+    const id = this.createId();
+    // create pos that is 1 larger than all current pos's
+    let pos = 0;
+    for (const [id] of this.store.get("pages") ?? []) {
+      let pos1 = this.store.getIn(["elements", id, "data", "pos"], 0);
+      if (pos <= pos1) {
+        pos = pos1 + 1;
+      }
+    }
+    this.setElement({
+      create: true,
+      obj: { type: "page", id, z: 0, data: { pos } },
+      commit,
+    });
+    return id;
+  }
+
+  movePage(oldIndex: number, newIndex: number, commit: boolean = true): void {
+    // move the page in position oldIndex to be in position newIndex
+    const pages = this.sortedPageIds();
+    const pos = moveCell({
+      oldIndex,
+      newIndex,
+      size: pages.size,
+      getPos: (index) =>
+        this.store.getIn(
+          ["elements", pages.get(index) ?? "", "data", "pos"],
+          0
+        ),
+    });
+    this.setElement({
+      obj: { id: pages.get(oldIndex), data: { pos } },
+      commit,
+    });
+    this.ensurePagePositionsAreDistinct();
+  }
+
+  // Ensure that the the page pos's aren't too close.  This could happen if
+  // the above movePage function hit the "averaging" case a large number of time,
+  // e.g., by a user fiddling, and then averaging runs out of precision.
+  private ensurePagePositionsAreDistinct(epsilon = 0.0000000001): void {
+    const elements = this.store.get("elements");
+    if (elements == null) return;
+    const sortedPageIds = this.store.get("sortedPageIds");
+    if (sortedPageIds == null) return;
+    const positions = sortedPageIds.map((pageId) =>
+      elements.getIn([pageId, "data", "pos"])
+    );
+    console.log(positions.toJS());
+    let tooClose = false;
+    for (let i = 1; i < positions.size; i++) {
+      if (positions.get(i) - positions.get(i - 1) < epsilon) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (!tooClose) return;
+    // Just space them out as distinct integers; don't try to be too clever,
+    // since this is rare.
+    for (let pos = 0; pos < sortedPageIds.size; pos++) {
+      this.setElement({
+        obj: { id: sortedPageIds.get(pos), data: { pos } },
+        commit: pos == sortedPageIds.size - 1,
+      });
+    }
+  }
+
+  // delete page with given id along with everything that
+  // is one that page.
+  deletePage(id: string, commit: boolean = true): void {
+    // TODO: this is NOT implemented yet, and not used in the UI, yet.
+    console.log("deletePage", { id, commit });
   }
 }
 

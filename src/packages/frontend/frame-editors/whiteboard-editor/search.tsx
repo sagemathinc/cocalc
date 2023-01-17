@@ -20,6 +20,7 @@ export default function Search() {
 
   const isLoaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
+  const sortedPageIds = useEditor("sortedPageIds");
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function Search() {
   const elements: undefined | Element[] = useMemo(() => {
     if (elementsMap == null) return undefined;
     const search = desc.get("search")?.toLowerCase().trim();
-    return sortedElements(elementsMap, search);
+    return sortedElements(elementsMap, sortedPageIds, search);
   }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({

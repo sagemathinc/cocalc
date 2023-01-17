@@ -15,19 +15,19 @@ type WhiteboardFrameContext = Modify<
   }
 >;
 
+import type { PagesMap } from "./types";
+
 export function useFrameContext(): WhiteboardFrameContext {
   return useFrameContextGeneric() as WhiteboardFrameContext;
 }
 
 // ensure current page and number of pages is set for this frame:
-export function usePageInfo(pagesMap) {
+export function usePageInfo(pagesMap?: PagesMap) {
   const { desc, actions, id } = useFrameContext();
   useEffect(() => {
+    if (pagesMap == null) return;
     let page = desc.get("page") ?? 1;
-    let pages = 1;
-    pagesMap?.forEach((_, n) => {
-      pages = Math.max(pages, n);
-    });
+    const pages = pagesMap.size;
     if (pages != desc.get("pages")) {
       actions.setPages(id, pages);
     }

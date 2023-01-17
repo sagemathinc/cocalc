@@ -1,14 +1,15 @@
 import { parseTableOfContents as parseMarkdownTOC } from "@cocalc/frontend/markdown";
 import { TableOfContentsEntry as Entry } from "@cocalc/frontend/components";
-import { ElementsMap } from "./types";
+import { ElementsMap, SortedPageList } from "./types";
 import sortedElements from "./sorted-elements";
 
 export default function parseTableOfContents(
-  elementsMap: ElementsMap
+  elementsMap: ElementsMap,
+  sortedPageIds?: SortedPageList
 ): Entry[] {
   const entries: Entry[] = [];
   const state: any = {};
-  for (const element of sortedElements(elementsMap)) {
+  for (const element of sortedElements(elementsMap, sortedPageIds)) {
     if (element.str) {
       let n = 0;
       for (const entry of parseMarkdownTOC(element.str, state)) {
