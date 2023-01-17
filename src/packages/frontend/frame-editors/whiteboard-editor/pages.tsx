@@ -1,7 +1,7 @@
 /* Shows an overview of all pages in the whiteboard */
 
 import { Button, Popover } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "./hooks";
@@ -27,10 +27,10 @@ export default function Pages() {
   const [width, setWidth] = useState<number>(200);
 
   const isLoaded = useEditor("is_loaded");
-  //const readOnly = useEditor("read_only");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
   const pages = pagesMap?.size ?? 1;
+  const sortedPageIds = useEditor("sortedPageIds");
 
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `whiteboard-pages-${project_id}-${path}-${desc.get("id")}`,
@@ -58,7 +58,7 @@ export default function Pages() {
     }
   }, [desc]);
 
-  if (!isLoaded) {
+  if (!isLoaded || sortedPageIds == null || pagesMap == null) {
     return <Loading theme="medium" />;
   }
 
@@ -71,13 +71,8 @@ export default function Pages() {
     overflow: "hidden",
   } as CSSProperties;
 
-  const items: number[] = [];
-  for (let i = 0; i < pages; i++) {
-    items.push(i);
-  }
-
   const itemContent = (index) => {
-    if (index == (pages ?? 1)) {
+    if (index == pages) {
       // Add a new page
       return (
         <div style={{ ...STYLE, textAlign: "center" }}>
@@ -109,7 +104,14 @@ export default function Pages() {
         </div>
       );
     }
-    const elementsOnPage = elementsList(pagesMap?.get(index + 1)) ?? [];
+    let elementsOnPage = null;
+    if (sortedPageIds != null && pagesMap != null) {
+      const pageId = sortedPageIds.get(index);
+      if (pageId != -1) {
+        const pages = pagesMap.get(pageId);
+        elementsOnPage = pages ? elementsList(pages) : [];
+      }
+    }
     if (elementsOnPage == null) {
       return <div style={{ height: "1px" }}></div>;
     }
@@ -123,7 +125,7 @@ export default function Pages() {
       >
         <div style={{ display: "flex", alignItems: "center" }}>
           <DragHandle
-            id={index}
+            id={sortedPageIds.get(index)}
             style={{ marginRight: "5px", color: "#999" }}
           />
           <Overview
@@ -156,12 +158,12 @@ export default function Pages() {
   return (
     <div className="smc-vfill" ref={divRef} style={{ background: "#eee" }}>
       <SortableList
-        items={items}
+        items={sortedPageIds.toJS()}
         Item={({ id }) => {
-          return itemContent(parseInt(id));
+          return itemContent(sortedPageIds.indexOf(id));
         }}
         onDragStop={(oldIndex, newIndex) => {
-          console.log("onDragStop", { oldIndex, newIndex });
+          actions.movePage(oldIndex, newIndex);
         }}
       >
         <Virtuoso
@@ -173,7 +175,11 @@ export default function Pages() {
           totalCount={pages + 1}
           increaseViewportBy={1.5 * height}
           itemContent={(index) => {
-            return <SortableItem id={index}>{itemContent(index)}</SortableItem>;
+            return (
+              <SortableItem id={sortedPageIds.get(index) ?? index}>
+                {itemContent(index)}
+              </SortableItem>
+            );
           }}
           {...virtuosoScroll}
         />

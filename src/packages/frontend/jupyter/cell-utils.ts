@@ -181,3 +181,31 @@ export function move_selected_cells(
   }
   return w;
 }
+
+export function moveCell({
+  oldIndex,
+  newIndex,
+  getPos,
+  size,
+}: {
+  oldIndex: number;
+  newIndex: number;
+  getPos: (index: number) => number;
+  size: number;
+}): number {
+  if (oldIndex == newIndex) {
+    // no-op -- better to not call in this case.
+    return getPos(newIndex);
+  }
+  const pos = getPos(newIndex);
+  if (newIndex == 0) {
+    // easy special case: to beginning
+    return pos - 1;
+  } else if (newIndex >= size - 1) {
+    // the end
+    return pos + 1;
+  } else {
+    const pos1 = getPos(oldIndex < newIndex ? newIndex + 1 : newIndex - 1);
+    return (pos + pos1) / 2;
+  }
+}

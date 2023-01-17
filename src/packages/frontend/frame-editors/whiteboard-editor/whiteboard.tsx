@@ -25,10 +25,19 @@ export default function Whiteboard() {
   const readOnly = useEditor("read_only");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
+  const sortedPageIds = useEditor("sortedPageIds");
+
+  const pageId = useMemo(() => {
+    if (sortedPageIds == null || pagesMap == null) return null;
+    const pageNumber = desc.get("page");
+    return sortedPageIds.get(pageNumber - 1);
+  }, [desc.get("page"), sortedPageIds]);
 
   const elementsOnPage = useMemo(() => {
-    return elementsList(pagesMap?.get(desc.get("page") ?? 1)) ?? [];
-  }, [pagesMap?.get(desc.get("page") ?? 1)]);
+    if (sortedPageIds == null || pagesMap == null) return null;
+    if (pageId == null) return [];
+    return elementsList(pagesMap.get(pageId)) ?? [];
+  }, [pagesMap?.get(pageId ?? "")]);
 
   usePageInfo(pagesMap);
 

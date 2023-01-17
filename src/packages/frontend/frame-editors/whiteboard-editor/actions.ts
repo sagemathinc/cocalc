@@ -60,6 +60,7 @@ import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
+import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
 
 const log = debug("whiteboard:actions");
 
@@ -379,7 +380,7 @@ export class Actions extends BaseActions<State> {
       obj.page =
         frameId == null
           ? this.defaultPageId()
-          : pages.get(this._get_frame_node(frameId)?.get("page")) ??
+          : pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
             this.defaultPageId();
     }
 
@@ -1288,7 +1289,7 @@ export class Actions extends BaseActions<State> {
   defaultPageId(): string {
     const pages = this.sortedPageIds();
     if (pages.size > 0) {
-      return pages.get(0) ?? "";
+      return pages.get(0) ?? ""; // ?? for typescript
     }
     return this.createPage();
   }
@@ -1303,7 +1304,7 @@ export class Actions extends BaseActions<State> {
   // this just returns null
   pageToNumber(page: string): number | null {
     const n = this.sortedPageIds().indexOf(page);
-    return n == -1 ? null : n;
+    return n == -1 ? null : n + 1;
   }
 
   setPageId(frameId: string, pageId: string): void {
@@ -1325,7 +1326,6 @@ export class Actions extends BaseActions<State> {
       page,
     });
     this.centerElement(element.id, frameId);
-    console.log(frameId, " n = ", n);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
     return page;
@@ -1352,7 +1352,21 @@ export class Actions extends BaseActions<State> {
 
   movePage(oldIndex: number, newIndex: number, commit: boolean = true): void {
     // move the page in position oldIndex to be in position newIndex
-    console.log("movePage", { oldIndex, newIndex, commit });
+    const pages = this.sortedPageIds();
+    const pos = moveCell({
+      oldIndex,
+      newIndex,
+      size: pages.size,
+      getPos: (index) =>
+        this.store.getIn(
+          ["elements", pages.get(index) ?? "", "data", "pos"],
+          0
+        ),
+    });
+    this.setElement({
+      obj: { id: pages.get(oldIndex), data: { pos } },
+      commit,
+    });
   }
 
   // delete page with given id along with everything that
