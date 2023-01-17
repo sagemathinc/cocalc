@@ -8,6 +8,21 @@ Input box for setting the account creation token.
 */
 
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import {
+  Button as AntdButton,
+  Checkbox,
+  DatePicker,
+  Form,
+  Input,
+  InputNumber,
+  Popconfirm,
+  Switch,
+  Table,
+} from "antd";
+import dayjs from "dayjs";
+import { List } from "immutable";
+import { pick, sortBy } from "lodash";
+
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -21,20 +36,6 @@ import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import {
-  Button as AntdButton,
-  Checkbox,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Popconfirm,
-  Switch,
-  Table,
-} from "antd";
-import { List } from "immutable";
-import { pick, sortBy } from "lodash";
-import dayjs from "dayjs";
 
 interface Token {
   key?: string; // used in the table, not for the database

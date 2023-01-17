@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { Input, InputRef } from "antd";
+import { Input, InputRef, Popover } from "antd";
 import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
 
@@ -40,7 +40,6 @@ import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { JsonEditor } from "./json-editor";
-import { ReadOnlyContext } from "../editors/slate/slate-react/hooks/use-read-only";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -436,7 +435,7 @@ class SiteSettingsComponent extends Component<
     multiline?: number
   ) {
     if (this.state.isReadonly == null) return; // typescript
-    const readonly = (readonly) => {
+    const renderReadonly = (readonly) => {
       if (readonly)
         return (
           <>
@@ -458,7 +457,7 @@ class SiteSettingsComponent extends Component<
           return (
             <>
               {this.render_json_entry(name, value, ro)}
-              {readonly(ro)}
+              {renderReadonly(ro)}
             </>
           );
         default:
@@ -475,7 +474,7 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
-                {readonly(this.state.isReadonly[name])}
+                {renderReadonly(this.state.isReadonly[name])}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>
@@ -500,6 +499,26 @@ class SiteSettingsComponent extends Component<
     return this.render_row(name, conf);
   }
 
+  private renderRowHelp(help?: string) {
+    if (typeof help !== "string") return;
+    return (
+      <Popover
+        content={
+          <StaticMarkdown
+            className={"admin-site-setting-popover-help"}
+            style={{ fontSize: "90%" }}
+            value={help}
+          />
+        }
+        trigger={["hover", "click"]}
+        placement="right"
+        overlayStyle={{ maxWidth: "500px" }}
+      >
+        <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
+      </Popover>
+    );
+  }
+
   private render_row(name: string, conf: Config): Rendered | undefined {
     // don't show certain fields, i.e. where show evals to false
     if (typeof conf.show == "function" && !conf.show(this.state.edited)) {
@@ -520,7 +539,7 @@ class SiteSettingsComponent extends Component<
 
     const label = (
       <>
-        <strong>{conf.name}</strong>
+        <strong>{conf.name}</strong> {this.renderRowHelp(conf.help)}
         <br />
         <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
       </>
