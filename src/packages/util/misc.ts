@@ -2350,12 +2350,7 @@ export function test_valid_jsonpatch(patch: any): boolean {
     }
     if (op.path == null) return false;
     if (op.from != null && typeof op.from !== "string") return false;
-    if (
-      op.value != null &&
-      typeof op.value !== "string" &&
-      !is_object(op.value)
-    )
-      return false;
+    // we don't test on value
   }
   return true;
 }

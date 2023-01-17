@@ -39,6 +39,7 @@ const reasons = reasons0 as (a?, b?, c?, d?) => ReturnType<typeof reasons0>;
 import { PRICES } from "./upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "./consts/site-license";
 import { SiteLicenses } from "./types/site-licenses";
+import { deep_copy } from "./misc";
 
 describe("main quota functionality", () => {
   it("basics are fine", () => {
@@ -2217,6 +2218,65 @@ describe("quota calculation with rejection reasons", () => {
 
 describe("cobine quota/patch with regular licenses", () => {
   it("applies the license and the patch", () => {
+    const patch1 = [
+      { op: "replace", path: "/foo", value: "bar" },
+      { op: "add", path: "/bar/baz/-", value: [1, 2, 3] },
+    ] as const;
+    const patch2 = [{ op: "replace", path: "/zetta", value: "zulu" }] as const;
+    // NOTE member is true/false, but all patches apply
+    const site_licenses: SiteLicenses = {
+      standard: {
+        id: "standard",
+        title: "standard",
+        quota: {
+          cpu: 1,
+          ram: 2,
+          member: true,
+        },
+      },
+      patch1: {
+        id: "patch1",
+        title: "patch1",
+        quota: {
+          cpu: 1,
+          member: false,
+          patch: JSON.stringify(patch1),
+        },
+      },
+      patch2: {
+        id: "patch2",
+        title: "patch2",
+        quota: {
+          cpu: 2,
+          member: true,
+          patch: JSON.stringify(patch2),
+        },
+      },
+    };
+
+    const q = quota({}, {}, site_licenses);
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 3,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      patch: [...deep_copy(patch1), ...deep_copy(patch2)],
+      disk_quota: 3000,
+      idle_timeout: 1800,
+      member_host: true,
+      memory_limit: 2000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+    });
+  });
+});
+
+describe("cobine ext_rw with regular licenses", () => {
+  it("applies the license and the patch", () => {
+    // NOTE: member is true vs. false, but ext_rw still applies
     const site_licenses: SiteLicenses = {
       regular: {
         title: "standard",
@@ -2231,10 +2291,7 @@ describe("cobine quota/patch with regular licenses", () => {
         id: "eb5ae598-1350-48d7-88c7-ee599a967e81",
       },
       patch: {
-        quota: {
-          patch:
-            '[{"op":"replace","path":"…","value":"…"},{"op":"replace","path":"…","value":"…"}]',
-        },
+        quota: { cpu: 1, ram: 1, member: false, ext_rw: true },
         run_limit: 1,
         id: "3f5ea6cb-d334-4dfe-a43f-2072073c2b13",
       },
@@ -2249,6 +2306,7 @@ describe("cobine quota/patch with regular licenses", () => {
       dedicated_disks: [],
       dedicated_vm: false,
       disk_quota: 3000,
+      ext_rw: true,
       idle_timeout: 7200,
       member_host: true,
       memory_limit: 2000,
