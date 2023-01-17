@@ -61,6 +61,7 @@ import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
 import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
+import { migrateToNewPageNumbers } from "./migrate";
 
 const log = debug("whiteboard:actions");
 
@@ -84,8 +85,18 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({});
+    let ignoreChanges = false;
     this._syncstring.on("change", (keys) => {
+      if (ignoreChanges) return;
       const elements0 = this.store.get("elements");
+      if (
+        elements0 == null &&
+        typeof this._syncstring.get_one().get("page") == "number"
+      ) {
+        ignoreChanges = true;
+        migrateToNewPageNumbers(this._syncstring);
+        ignoreChanges = false;
+      }
       const pages0 = this.store.get("pages");
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (this.store.get("pages") ??
