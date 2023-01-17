@@ -1074,9 +1074,11 @@ total_quota =  {            max_upgrades = {
                             }
 */
 
+const IGNORED_KEYS = ["dedicated_disks", "dedicated_vm", "patch"] as const;
+
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+    if (IGNORED_KEYS.includes(key as any)) {
       // they are ignored
     } else if (typeof val === "boolean") {
       total_quota[key] &&= val;
