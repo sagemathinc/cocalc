@@ -51,6 +51,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const { active } = useSortable({ id: project_id });
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const project = useRedux(["projects", "project_map", project_id]);
+  const pageActions = useActions("page");
   const public_project_titles = useTypedRedux(
     "projects",
     "public_project_titles"
@@ -120,13 +121,23 @@ function ProjectTab({ project_id }: ProjectTabProps) {
         </div>
         <hr />
         <div style={{ color: COLORS.GRAY }}>
-          Hint: shift+click any project or file tab to open it in new window.
+          Hint: Shift+click any project or file tab to open it in new window.
         </div>
       </div>
     );
   }
+
+  function onMouseUp(e: React.MouseEvent) {
+    // if middle mouse button has been clicked, close the project
+    if (e.button === 1) {
+      e.stopPropagation();
+      e.preventDefault();
+      pageActions.close_project_tab(project_id);
+    }
+  }
+
   return (
-    <div>
+    <div onMouseUp={onMouseUp}>
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         <Popover
