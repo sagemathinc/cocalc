@@ -101,7 +101,7 @@ export interface Element extends Rect {
   id: string;
   type: ElementType;
   z: number; // zIndex
-  page?: string; // the id of the page that this element is on  (number is for historical reasons)
+  page?: string; // the id of the page that this element is on (this used to be a page number)
   data?: Data; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
   group?: string; // group id if object is part of a group

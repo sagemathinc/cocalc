@@ -97,15 +97,15 @@ export class Actions extends BaseActions<State> {
           if (!element) {
             // there is a delete.
             if (oldElement?.get("type") == "page") {
+              // deleting a page
               pages = pages.delete(oldElement.get("id"));
             } else {
-              const page = oldElement?.get("page") ?? this.defaultPageId();
-              let elementsOnPage = pages.get(page);
-              if (elementsOnPage !== undefined) {
-                elementsOnPage = elementsOnPage.delete(id);
-                if (elementsOnPage.size == 0) {
-                  pages = pages.delete(page);
-                } else {
+              // deleting an element on a page
+              const page = oldElement?.get("page");
+              if (page) {
+                let elementsOnPage = pages.get(page);
+                if (elementsOnPage != null) {
+                  elementsOnPage = elementsOnPage.delete(id);
                   pages = pages.set(page, elementsOnPage);
                 }
               }
@@ -115,13 +115,11 @@ export class Actions extends BaseActions<State> {
             // no valid type field - discard
             this._syncstring.delete({ id });
             elements = elements.delete(id);
-            const page = oldElement?.get("page") ?? this.defaultPageId();
-            let elementsOnPage = pages.get(page);
-            if (elementsOnPage !== undefined) {
-              elementsOnPage = elementsOnPage.delete(id);
-              if (elementsOnPage.size == 0) {
-                pages = pages.delete(page);
-              } else {
+            const page = oldElement?.get("page");
+            if (page) {
+              let elementsOnPage = pages.get(page);
+              if (elementsOnPage != null) {
+                elementsOnPage = elementsOnPage.delete(id);
                 pages = pages.set(page, elementsOnPage);
               }
             }
@@ -133,11 +131,13 @@ export class Actions extends BaseActions<State> {
             // create or change an element on a specific page
             // @ts-ignore
             elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page") ?? this.defaultPageId();
-            const newPage = element.get("page") ?? this.defaultPageId();
-            const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
-            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
-            if (oldPage != newPage) {
+            const oldPage = oldElement?.get("page");
+            const newPage = element.get("page");
+            if (newPage) {
+              const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
+              pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+            }
+            if (oldPage && oldPage != newPage) {
               // change page, so delete element from the old page
               let elementsOnOldPage = pages.get(oldPage);
               if (elementsOnOldPage !== undefined) {
@@ -1315,7 +1315,7 @@ export class Actions extends BaseActions<State> {
   }
 
   newPage(frameId: string): string {
-    const n = this.store.get("pages")?.size ?? 0;
+    const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
     const element = this.createElement(frameId, {
       type: "text",
@@ -1325,6 +1325,7 @@ export class Actions extends BaseActions<State> {
       page,
     });
     this.centerElement(element.id, frameId);
+    console.log(frameId, " n = ", n);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
     return page;

@@ -33,12 +33,15 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
     v.sort(field_cmp("pos"));
     const numPages = v.length;
 
-    if (desc.get("pages") == null || desc.get("pages") < numPages) {
+    if (desc.get("pages") == null || desc.get("pages") != numPages) {
       actions.setPages(id, numPages);
     }
     const pageIds = v.map((x) => x.id);
     if (desc.get("page") == null) {
       actions.setPage(id, 1);
+    }
+    if (desc.get("page") > numPages) {
+      actions.setPage(id, numPages);
     }
     return pageIds;
   }, [elementsMap]);

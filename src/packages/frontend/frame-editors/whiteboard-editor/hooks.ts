@@ -24,10 +24,7 @@ export function usePageInfo(pagesMap) {
   const { desc, actions, id } = useFrameContext();
   useEffect(() => {
     let page = desc.get("page") ?? 1;
-    let pages = 1;
-    pagesMap?.forEach((_, n) => {
-      pages = Math.max(pages, n);
-    });
+    const pages = pagesMap.size ?? 1;
     if (pages != desc.get("pages")) {
       actions.setPages(id, pages);
     }
