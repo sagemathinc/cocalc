@@ -946,7 +946,7 @@ export class Actions extends BaseActions<State> {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
-    super.setPage(frameId, element.page ?? this.defaultPageId());
+    this.setPageId(frameId, element.page ?? this.defaultPageId());
     this.setViewportCenter(frameId, centerOfRect(element));
   }
 
@@ -1304,7 +1304,9 @@ export class Actions extends BaseActions<State> {
     const elements = this.store.get("elements");
     if (elements == null) return;
 
-    const contents = fromJS(parseTableOfContents(elements));
+    const contents = fromJS(
+      parseTableOfContents(elements, this.store.get("sortedPageIds"))
+    );
     this.setState({ contents });
   }
 
