@@ -6,6 +6,7 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Backups from "components/landing/backups";
 import Comparison from "components/landing/compare";
 import Content from "components/landing/content";
@@ -30,7 +31,6 @@ import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 import JupyterLab from "/public/features/jupyter-lab.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
-import { COLORS } from "@cocalc/util/theme";
 
 export default function JupyterNotebook({ customize }) {
   function pitchNoSetup() {
@@ -115,7 +115,7 @@ export default function JupyterNotebook({ customize }) {
       <Layout>
         <Header page="features" subPage="jupyter-notebook" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={"Jupyter"}
               logo={JupyterLogo}

@@ -1,24 +1,31 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
-import SignIn from "components/landing/sign-in";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Image from "components/landing/image";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
+import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Image from "components/landing/image";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-import logo from "public/features/julia-logo.svg";
+import juliaCode from "public/features/julia-code.png";
 import splash from "public/features/julia-jupyter.png";
+import logo from "public/features/julia-logo.svg";
+import nbgraderScreenshot from "public/features/julia-nbgrader.png";
 import plutoLogo from "public/features/pluto-logo.svg";
 import plutoScreenshot from "public/features/pluto-plot.png";
-import nbgraderScreenshot from "public/features/julia-nbgrader.png";
-import juliaCode from "public/features/julia-code.png";
 
 const component = "Julia";
 const title = `Run ${component} Online`;
@@ -30,7 +37,7 @@ export default function Julia({ customize }) {
       <Layout>
         <Header page="features" subPage="julia" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={logo}

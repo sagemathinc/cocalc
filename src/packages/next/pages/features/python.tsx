@@ -1,28 +1,35 @@
-import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import A from "components/misc/A";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
-import { Icon } from "@cocalc/frontend/components/icon";
-import LaTeX from "components/landing/latex";
-import Publishing from "components/landing/publishing";
-import Code from "components/landing/code";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import PythonLogo from "public/features/python-logo.svg";
-import FrameEditorPython from "public/features/frame-editor-python.png";
-import CollabRTC from "public/features/cocalc-real-time-jupyter.png";
-import CocalcPythonJupyter from "public/features/cocalc-python-jupyter.png";
-import CoCalcLaTeXPythonTex from "public/features/cocalc-latex-pythontex.png";
-import FormatGIF from "public/features/cocalc-jupyter-format-python.gif";
+import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import Code from "components/landing/code";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Info from "components/landing/info";
+import LaTeX from "components/landing/latex";
+import Pitch from "components/landing/pitch";
+import Publishing from "components/landing/publishing";
+import SignIn from "components/landing/sign-in";
+import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
 import CommandLineTerminal from "public/features/cocalc-frame-editor-python.png";
+import FormatGIF from "public/features/cocalc-jupyter-format-python.gif";
 import SideChatImage from "public/features/cocalc-jupyter-python-sidechat.png";
+import CoCalcLaTeXPythonTex from "public/features/cocalc-latex-pythontex.png";
+import CocalcPythonJupyter from "public/features/cocalc-python-jupyter.png";
+import CollabRTC from "public/features/cocalc-real-time-jupyter.png";
+import FrameEditorPython from "public/features/frame-editor-python.png";
+import PythonLogo from "public/features/python-logo.svg";
 
 const component = "Python";
 const title = `Run ${component} Online`;
@@ -34,7 +41,7 @@ export default function Octave({ customize }) {
       <Layout>
         <Header page="features" subPage="python" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={PythonLogo}

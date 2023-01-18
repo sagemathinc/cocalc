@@ -30,6 +30,7 @@ import latexLogo from "public/features/latex-logo.svg";
 import linuxLogo from "public/features/linux-logo.svg";
 import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import conley from "public/features/will_conley.jpg";
+import { COLORS } from "@cocalc/util/theme";
 
 export default function Teaching({ customize }) {
   const pitchPcLab = (
@@ -157,7 +158,7 @@ export default function Teaching({ customize }) {
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
-          <Paragraph style={{ backgroundColor: "#c7d9f5" }}>
+          <Paragraph style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={"CoCalc"}
               aboveImage={<></>}
@@ -298,7 +299,7 @@ export default function Teaching({ customize }) {
             </Paragraph>
           </Info>
 
-          <div style={{ padding: "30px 10%", backgroundColor: "#c7d9f5" }}>
+          <div style={{ padding: "30px 10%", backgroundColor: COLORS.LANDING.TOP_BG}}>
             <Title
               level={1}
               style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}

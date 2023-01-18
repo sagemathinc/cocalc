@@ -1,23 +1,30 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
+
+import { COLORS } from "@cocalc/util/theme";
+import Code from "components/landing/code";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Image from "components/landing/image";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
+import SignIn from "components/landing/sign-in";
 import A from "components/misc/A";
-import Code from "components/landing/code";
-import Image from "components/landing/image";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-import x11Logo from "/public/features/x11-logo.svg";
+import swirlCourse from "/public/features/swirl-course.png";
+import swirl from "/public/features/swirl_new_large_final.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import applications from "/public/features/x11-applications.png";
-import swirl from "/public/features/swirl_new_large_final.png";
-import swirlCourse from "/public/features/swirl-course.png";
 import x11Firefox from "/public/features/x11-firefox.png";
+import x11Logo from "/public/features/x11-logo.svg";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -29,7 +36,7 @@ export default function X11({ customize }) {
       <Layout>
         <Header page="features" subPage="x11" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={x11Logo}

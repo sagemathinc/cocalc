@@ -1,4 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
+
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
 import Header from "components/landing/header";
@@ -16,6 +22,7 @@ import Collaboration from "components/landing/collaboration";
 import Code from "components/landing/code";
 import Comparison from "components/landing/compare";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 
 import Logo from "public/features/latex-logo.svg";
 import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
@@ -34,7 +41,7 @@ export default function LatexEditor({ customize }) {
       <Layout>
         <Header page="features" subPage="latex-editor" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={<LaTeX />}
               logo={Logo}
@@ -44,7 +51,8 @@ export default function LatexEditor({ customize }) {
                   Focus on writing LaTeX. CoCalc takes care of everything else.
                   <hr />
                   <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
-                    Learn much more about LaTeX in CoCalc from this new blog post...
+                    Learn much more about LaTeX in CoCalc from this new blog
+                    post...
                   </A>
                 </>
               }

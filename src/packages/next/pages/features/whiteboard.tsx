@@ -1,18 +1,25 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import Head from "components/landing/head";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Image from "components/landing/image";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
-import Image from "components/landing/image";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import WhiteboardPostIt from "/public/features/whiteboard-post-it.png";
+import WhiteboardImage from "/public/features/whiteboard-sage.png";
 
 export default function Whiteboard({ customize }) {
   return (
@@ -21,7 +28,7 @@ export default function Whiteboard({ customize }) {
       <Layout>
         <Header page="features" subPage="whiteboard" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
               startup={"Whiteboard"}

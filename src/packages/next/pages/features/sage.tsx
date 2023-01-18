@@ -1,25 +1,32 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
-import LaTeX from "components/landing/latex";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Info from "components/landing/info";
+import LaTeX from "components/landing/latex";
+import Pitch from "components/landing/pitch";
+import SignIn from "components/landing/sign-in";
+import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
+import sageNbgrader from "public/features/sage-nbgrader.png";
+import sageLogo from "public/features/sage-squared.svg";
+import sageScreenshot from "public/features/sage-worksheet.png";
 
 const component = "SageMath";
 const title = `Use SageMath Online`;
-
-import sageLogo from "public/features/sage-squared.svg";
-import sageScreenshot from "public/features/sage-worksheet.png";
-import sageNbgrader from "public/features/sage-nbgrader.png";
 
 export default function Sage({ customize }) {
   return (
@@ -28,7 +35,7 @@ export default function Sage({ customize }) {
       <Layout>
         <Header page="features" subPage="sage" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={sageLogo}

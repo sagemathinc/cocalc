@@ -1,20 +1,27 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import Header from "components/landing/header";
+
+import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
+import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
-import logo from "public/features/octave-logo.svg";
 import octaveJupyter from "public/features/cocalc-octave-jupyter-20200511.png";
 import octaveTerminal from "public/features/cocalc-octave-terminal-20200511.png";
 import octaveX11 from "public/features/cocalc-octave-x11-20200511.png";
+import logo from "public/features/octave-logo.svg";
 import x11Terminal from "public/features/octave-x11-terminal.png";
 
 const octave = <A href="https://www.gnu.org/software/octave/index">Octave</A>;
@@ -27,7 +34,7 @@ export default function Octave({ customize }) {
       <Layout>
         <Header page="features" subPage="octave" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={"Octave"}
               logo={logo}

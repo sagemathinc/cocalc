@@ -3,19 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import Link from "next/link";
 import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { COLORS } from "@cocalc/util/theme";
+import AccountNavTab from "components/account/navtab";
+import Analytics from "components/analytics";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
-import { join } from "path";
-import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
-import SubNav, { Page, SubPage } from "./sub-nav";
-import Analytics from "components/analytics";
-import AccountNavTab from "components/account/navtab";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
+import Link from "next/link";
+import { join } from "path";
+import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
 
@@ -27,7 +29,7 @@ export const LinkStyle: React.CSSProperties = {
 
 const SelectedStyle: React.CSSProperties = {
   ...LinkStyle,
-  color: "#c7d9f5",
+  color: COLORS.LANDING.TOP_BG,
   fontWeight: "bold",
   borderBottom: "5px solid #c7d9f5",
 } as const;

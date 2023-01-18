@@ -1,5 +1,12 @@
-import { Icon } from "@cocalc/frontend/components/icon";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -26,7 +33,7 @@ export default function Linux({ customize }) {
       <Layout>
         <Header page="features" subPage="linux" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={"Linux"}
               logo={logo}

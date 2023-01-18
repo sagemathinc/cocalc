@@ -22,6 +22,7 @@ import logo from "/public/features/linux-logo.svg";
 import collabDemo from "/public/features/cocalc-terminal-collab.gif";
 import shellScript from "/public/features/cocalc-shell-script-run.png";
 import stack from "/public/features/terminal-software.png";
+import { COLORS } from "@cocalc/util/theme";
 
 export default function Terminal({ customize }) {
   return (
@@ -30,7 +31,7 @@ export default function Terminal({ customize }) {
       <Layout>
         <Header page="features" subPage="terminal" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={logo}

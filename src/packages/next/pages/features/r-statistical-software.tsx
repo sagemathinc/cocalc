@@ -1,30 +1,37 @@
-import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
-import Publishing from "components/landing/publishing";
-import A from "components/misc/A";
-import LaTeX from "components/landing/latex";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Code from "components/landing/code";
-import Contact from "components/landing/contact";
-import Collaboration from "components/landing/collaboration";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import logo from "public/features/r-logo.svg";
-import rJupyter from "public/features/cocalc-r-jupyter.png";
-import rLatex from "public/features/cocalc-r-latex.png";
-import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
-import rcode from "public/features/cocalc-rcode.png";
-import sidechat from "public/features/cocalc-r-side-chat.png";
+import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import Code from "components/landing/code";
+import Collaboration from "components/landing/collaboration";
+import Contact from "components/landing/contact";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Info from "components/landing/info";
+import LaTeX from "components/landing/latex";
+import Pitch from "components/landing/pitch";
+import Publishing from "components/landing/publishing";
+import SignIn from "components/landing/sign-in";
+import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
 import rEnvironment from "public/features/cocalc-r-environment.png";
 import jupyterCollab from "public/features/cocalc-r-jupyter-collaborate.png";
+import rJupyter from "public/features/cocalc-r-jupyter.png";
+import rLatex from "public/features/cocalc-r-latex.png";
+import sidechat from "public/features/cocalc-r-side-chat.png";
+import rcode from "public/features/cocalc-rcode.png";
+import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
+import logo from "public/features/r-logo.svg";
 
 const component = "R";
 const title = `Run ${component} Online`;
@@ -36,7 +43,7 @@ export default function R({ customize }) {
       <Layout>
         <Header page="features" subPage="r-statistical-software" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={logo}
