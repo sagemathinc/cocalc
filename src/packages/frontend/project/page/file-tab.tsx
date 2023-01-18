@@ -72,10 +72,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   },
 } as const;
 
-export const DEFAULT_FILE_TAB_STYLES = {
-  borderRadius: "5px 5px 0px 0px",
-} as const;
-
 interface Props0 {
   project_id: string;
   label?: string;
@@ -140,7 +136,7 @@ export function FileTab(props: Props) {
 
   let style: CSSProperties;
   if (path != null) {
-    style = DEFAULT_FILE_TAB_STYLES;
+    style = {};
   } else {
     // highlight info tab if there is at least one alert
     if (status_alert) {

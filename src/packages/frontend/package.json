@@ -155,7 +155,7 @@
     "use-async-effect": "^2.2.2",
     "use-debounce": "^7.0.1",
     "use-deep-compare-effect": "^1.8.1",
-    "use-resize-observer": "^8.0.0",
+    "use-resize-observer": "^9.1.0",
     "utility-types": "^3.10.0",
     "xss": "^1.0.11",
     "xterm": "5.1.0",

@@ -13,8 +13,10 @@ import {
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { path_to_tab } from "@cocalc/util/misc";
+import { CSSProperties, useMemo, useRef, useState } from "react";
+import useResizeObserver from "use-resize-observer";
 
-function Label({ path, project_id, label }) {
+function Label({ path, project_id, label, style }) {
   const { active } = useSortable({ id: project_id });
   return (
     <FileTab
@@ -23,11 +25,13 @@ function Label({ path, project_id, label }) {
       path={path}
       label={label}
       noPopover={active != null}
+      style={style}
     />
   );
 }
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
+  const divRef = useRef<any>(null);
   const actions = useActions({ project_id });
   if (openFiles == null) {
     return null;
@@ -44,8 +48,50 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
     paths.push(path);
   });
+
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
+
+  const [hover, setHover] = useState<boolean>(false);
+  const resize = useResizeObserver({ ref: divRef });
+  const lastRef = useRef<{
+    width: number;
+    length: number;
+    style: CSSProperties | undefined;
+  } | null>(null);
+  const labelStyle = useMemo(() => {
+    const last = lastRef.current;
+    if (
+      last != null &&
+      last.width == resize.width &&
+      labels.length <= last.length &&
+      hover
+    ) {
+      // @ts-ignore
+      lastRef.current.length = labels.length;
+      return last.style;
+    }
+    const style =
+      divRef.current == null
+        ? undefined
+        : {
+            width:
+              Math.max(
+                150,
+                Math.min(
+                  250 + 65,
+                  (resize?.width ?? 0) / Math.max(1, labels.length)
+                )
+              ) - 65, // the 55 accounts for the margin and x for an antd tab.
+          };
+    lastRef.current = {
+      width: resize.width ?? 0,
+      length: labels.length,
+      style,
+    };
+    return style;
+  }, [resize.width, labels.length, divRef.current, hover]);
+
   for (let index = 0; index < labels.length; index++) {
     items.push({
       key: paths[index],
@@ -54,6 +100,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
           path={paths[index]}
           project_id={project_id}
           label={labels[index]}
+          style={labelStyle}
         />
       ),
     });
@@ -90,23 +137,34 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   }
 
   return (
-    <SortableTabs items={paths} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <Tabs
-        hideAdd
-        animated={false}
-        renderTabBar={renderTabBar}
-        tabBarStyle={{ minHeight: "36px" }}
-        onEdit={onEdit}
-        style={{ width: "100%" }}
-        size="small"
-        items={items}
-        activeKey={activeKey}
-        type={"editable-card"}
-        onChange={(path) => {
-          if (actions == null) return;
-          actions.set_active_tab(path_to_tab(path));
-        }}
-      />
-    </SortableTabs>
+    <div
+      style={{ width: "100%" }}
+      ref={divRef}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <SortableTabs
+        items={paths}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
+        <Tabs
+          hideAdd
+          animated={false}
+          renderTabBar={renderTabBar}
+          tabBarStyle={{ minHeight: "36px" }}
+          onEdit={onEdit}
+          style={{ width: "100%" }}
+          size="small"
+          items={items}
+          activeKey={activeKey}
+          type={"editable-card"}
+          onChange={(path) => {
+            if (actions == null) return;
+            actions.set_active_tab(path_to_tab(path));
+          }}
+        />
+      </SortableTabs>
+    </div>
   );
 }
