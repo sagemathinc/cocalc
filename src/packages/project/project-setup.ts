@@ -101,11 +101,12 @@ export function cleanup(): void {
   process.env.PATH = process.env.PATH.split(":")
     .filter((x) => !x.startsWith("/cocalc/nvm"))
     .join(":");
+  // don't delete NODE_ENV below, since it's potentially confusing to have the value of NODE_ENV change
+  // during a running program.
   const envrm = [
     "DATA",
     "BASE_PATH",
     "NODE_PATH",
-    "NODE_ENV",
     "NODE_VERSION",
     "NVM_CD_FLAGS",
     "NVM_DIR",
