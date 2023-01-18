@@ -1,5 +1,12 @@
-import { Icon } from "@cocalc/frontend/components/icon";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Col, Layout, Row } from "antd";
+import { ReactNode } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -10,6 +17,7 @@ import Info from "components/landing/info";
 import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -22,15 +30,14 @@ import latexLogo from "public/features/latex-logo.svg";
 import linuxLogo from "public/features/linux-logo.svg";
 import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import conley from "public/features/will_conley.jpg";
-import { ReactNode } from "react";
 
 export default function Teaching({ customize }) {
   const pitchPcLab = (
-    <div>
-      <h2>
+    <Paragraph>
+      <Title level={2}>
         <Icon name="server" style={{ fontSize: "32px", marginRight: "10px" }} />{" "}
         An entire computer lab in the cloud
-      </h2>
+      </Title>
       <ul>
         <li>
           Every student works 100% online – inside their own dedicated
@@ -73,15 +80,15 @@ export default function Teaching({ customize }) {
           <strong>has ever asked us to install since 2013!</strong>
         </li>
       </ul>
-    </div>
+    </Paragraph>
   );
 
   const pitchNoSetup = (
-    <div>
-      <h2>
+    <Paragraph>
+      <Title level={2}>
         <Icon name="laptop" style={{ fontSize: "32px", marginRight: "10px" }} />{" "}
         No software setup <small>100% online</small>
-      </h2>
+      </Title>
       <p>
         <strong>Fully managed software environment</strong>:
       </p>
@@ -137,7 +144,7 @@ export default function Teaching({ customize }) {
           </li>
         </ul>
       </p>
-    </div>
+    </Paragraph>
   );
 
   return (
@@ -150,9 +157,10 @@ export default function Teaching({ customize }) {
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <Paragraph style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={"CoCalc"}
+              aboveImage={<></>}
               logo={logo}
               title={"Teach scientific software online using Jupyter Notebooks"}
               subtitle={
@@ -165,20 +173,20 @@ export default function Teaching({ customize }) {
               image={assignments}
               alt={"Cocalc's course management interface"}
             />
-          </div>
+          </Paragraph>
 
           <Pitch col1={pitchPcLab} col2={pitchNoSetup} />
 
           <Pitch
             col1={
-              <div>
-                <h2>
+              <Paragraph>
+                <Title level={2}>
                   <Icon
                     name="files"
                     style={{ fontSize: "32px", marginRight: "10px" }}
                   />{" "}
                   Manage all files
-                </h2>
+                </Title>
                 <p>
                   The{" "}
                   <strong>
@@ -196,18 +204,17 @@ export default function Teaching({ customize }) {
                     alt="Diagram showing how to use CoCalc for teaching."
                   />
                 </div>
-              </div>
+              </Paragraph>
             }
             col2={
-              <div>
-                <h2>
-                  {" "}
+              <Paragraph>
+                <Title level={2}>
                   <Icon
                     name="book"
                     style={{ fontSize: "32px", marginRight: "10px" }}
                   />{" "}
                   Learn more
-                </h2>
+                </Title>
                 <ul>
                   <li>
                     Start{" "}
@@ -257,13 +264,9 @@ export default function Teaching({ customize }) {
                   </A>
                   !
                 </p>
-              </div>
+              </Paragraph>
             }
           />
-
-          <SignIn />
-
-          <div style={{ height: "60px", backgroundColor: "white" }}></div>
 
           <Info.Heading>Feature Overview</Info.Heading>
 
@@ -274,34 +277,35 @@ export default function Teaching({ customize }) {
             alt="Editing an NBgrader Jupyter notebook"
             anchor="a-nbgrader"
           >
-            <p>
+            <Paragraph>
               CoCalc's Jupyter Notebooks fully support{" "}
               <strong>automatic</strong> and <strong>manual grading</strong>{" "}
               <A href="https://doc.cocalc.com/teaching-nbgrader.html">
                 using our version of NBGrader
               </A>{" "}
               with no configuration!
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               The teacher's notebook contains exercise cells for students and
               test cells, some of which students can also run to get immediate
               feedback. Once collected, you tell CoCalc to automatically run the
               full test suite across all student notebooks and tabulate the
               results.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               By default, tests run in the student's project, so malicious code
               won't impact anybody except the student.
-            </p>
+            </Paragraph>
           </Info>
 
           <div style={{ padding: "30px 10%", backgroundColor: "#c7d9f5" }}>
-            <h1
+            <Title
+              level={1}
               style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}
             >
               <Icon name="wrench" style={{ marginRight: "10px" }} />
               Available tools
-            </h1>
+            </Title>
             <Row>
               <Col lg={6}>
                 <Tool
@@ -369,12 +373,13 @@ export default function Teaching({ customize }) {
           </div>
 
           <div style={{ padding: "30px 10%", backgroundColor: "#fff" }}>
-            <h1
+            <Title
+              level={1}
               style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}
             >
               <Icon name="comment" style={{ marginRight: "10px" }} />{" "}
               Testimonials
-            </h1>
+            </Title>
 
             <Row>
               <Col lg={12}>
@@ -437,16 +442,16 @@ function Tool({ image, alt, href, title, children }: ToolProps) {
   return (
     <div style={{ padding: "15px" }}>
       <div
-        style={{ textAlign: "center", marginBottom: "30px", height: "70px" }}
+        style={{ textAlign: "center", marginBottom: "15px", height: "75px" }}
       >
         <A href={href}>
-          <Image style={{ width: "70px" }} src={image} alt={alt} />
+          <Image style={{ width: "75px" }} src={image} alt={alt} />
         </A>
       </div>
-      <h2 style={{ textAlign: "center" }}>
+      <Title level={3} style={{ textAlign: "center" }}>
         <A href={href}>{title}</A>
-      </h2>
-      {children}
+      </Title>
+      <Paragraph>{children}</Paragraph>
     </div>
   );
 }
@@ -477,10 +482,12 @@ function Testimonial({ image, name, coords, children }: TestimonialProps) {
           margin: "15px",
         }}
       />
-      {children}
-      <footer style={{ marginTop: "15px", color: "#666" }}>
-        — <strong>{name}</strong> — {coords}
-      </footer>
+      <Paragraph>
+        {children}
+        <footer style={{ marginTop: "15px", color: "#666" }}>
+          — <strong>{name}</strong> — {coords}
+        </footer>
+      </Paragraph>
     </blockquote>
   );
 }

@@ -1,15 +1,22 @@
-import { Row, Col } from "antd";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { CSSProperties, ReactNode } from "react";
-import { MediaURL } from "./util";
-import Image, { StaticImageData } from "./image";
-import { MAX_WIDTH } from "lib/config";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-const showcase = {
+import { Col, Row } from "antd";
+import { CSSProperties, ReactNode } from "react";
+
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { MAX_WIDTH } from "lib/config";
+import Image, { StaticImageData } from "./image";
+import { MediaURL } from "./util";
+import { Paragraph, Title } from "components/misc";
+
+const showcase: CSSProperties = {
   width: "100%",
   boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
   borderRadius: "3px",
-} as CSSProperties;
+} as const;
 
 interface Props {
   anchor: string;
@@ -41,7 +48,8 @@ export default function Info(props: Props) {
   } = props;
 
   const head = (
-    <h1
+    <Title
+      level={1}
       id={anchor}
       style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}
     >
@@ -51,7 +59,7 @@ export default function Info(props: Props) {
         </span>
       )}
       {title}
-    </h1>
+    </Title>
   );
 
   let graphic: ReactNode = null;
@@ -96,7 +104,7 @@ export default function Info(props: Props) {
     }
 
     return (
-      <div style={{ width: "100%" }}>
+      <Paragraph style={{ width: "100%" }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
           <div style={noGraphicTextStyle}>
             <div style={{ textAlign: "center" }}>{head}</div>
@@ -107,7 +115,7 @@ export default function Info(props: Props) {
             </div>
           </div>
         </div>
-      </div>
+      </Paragraph>
     );
   }
 
@@ -189,15 +197,18 @@ Info.Heading = ({ children, description, style }: HeadingProps) => {
         ...style,
       }}
     >
-      <h1
+      <Title
+        level={1}
         style={{
           fontSize: "400%",
           color: "#444",
         }}
       >
         {children}
-      </h1>
-      <div style={{ fontSize: "13pt", color: "#666" }}>{description}</div>
+      </Title>
+      <Paragraph style={{ fontSize: "13pt", color: "#666" }}>
+        {description}
+      </Paragraph>
     </div>
   );
 };
