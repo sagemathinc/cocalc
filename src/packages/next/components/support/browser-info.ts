@@ -10,6 +10,7 @@ export default function browserInfo(): {
     | "ipados"
     | "other"
     | "node";
+  context?: string; // could get filled in later by caller with some extra info.
 } {
   const userAgent = navigator?.userAgent;
   if (!userAgent) {

@@ -177,7 +177,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> <VisibleMDLG>Newest Messages</VisibleMDLG>
+          <Icon name="arrow-down" /> <VisibleMDLG>Newest</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -238,7 +238,13 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_video_chat_button() {
     if (project_id == null || path == null) return;
     return (
-      <VideoChatButton project_id={project_id} path={path} button={true} />
+      <VideoChatButton
+        project_id={project_id}
+        path={path}
+        button={true}
+        label={"Video"}
+        sendChat={(value) => actions.send_chat(value)}
+      />
     );
   }
 

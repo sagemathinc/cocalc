@@ -18,6 +18,7 @@ interface Options {
   info?: {
     userAgent?: string;
     browser?: string;
+    context?: string;
   };
 }
 
@@ -46,6 +47,9 @@ export default async function createTicket(options: Options): Promise<string> {
     body += "\n\n\nBROWSER INFO:\n\n";
     body += `\n\n- userAgent="${info.userAgent}"`;
     body += `\n\n- browser="${info.browser}"`;
+    if (info.context) {
+      body += `\n\n- context="${info.context}"`;
+    }
   }
 
   body += "\n\n\nUSER:\n\n";

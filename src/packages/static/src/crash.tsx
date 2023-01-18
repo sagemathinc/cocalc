@@ -26,7 +26,7 @@ export default function Crash() {
   const getSupport = supportURL({
     subject: "CoCalc Crashed",
     body: "CoCalc is crashing...",
-    type: "question",
+    type: "problem",
     hideExtra: true,
   });
   const dismiss = () => {

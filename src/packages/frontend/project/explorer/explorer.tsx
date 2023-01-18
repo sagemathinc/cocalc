@@ -52,6 +52,7 @@ import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import { ListingItem } from "./types";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 
@@ -574,31 +575,33 @@ export const Explorer = rclass(
             alignItems: "stretch",
           }}
         >
-          <div
-            style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
-          >
-            <SearchBar
-              project_id={this.props.project_id}
-              key={this.props.current_path}
-              file_search={this.props.file_search}
-              actions={this.props.actions}
-              current_path={this.props.current_path}
-              selected_file={
-                visible_listing != undefined
-                  ? visible_listing[this.props.selected_file_index || 0]
-                  : undefined
-              }
-              selected_file_index={this.props.selected_file_index}
-              file_creation_error={this.props.file_creation_error}
-              num_files_displayed={
-                visible_listing != undefined
-                  ? visible_listing.length
-                  : undefined
-              }
-              create_file={this.create_file}
-              create_folder={this.create_folder}
-            />
-          </div>
+          {!IS_MOBILE && (
+            <div
+              style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
+            >
+              <SearchBar
+                project_id={this.props.project_id}
+                key={this.props.current_path}
+                file_search={this.props.file_search}
+                actions={this.props.actions}
+                current_path={this.props.current_path}
+                selected_file={
+                  visible_listing != undefined
+                    ? visible_listing[this.props.selected_file_index || 0]
+                    : undefined
+                }
+                selected_file_index={this.props.selected_file_index}
+                file_creation_error={this.props.file_creation_error}
+                num_files_displayed={
+                  visible_listing != undefined
+                    ? visible_listing.length
+                    : undefined
+                }
+                create_file={this.create_file}
+                create_folder={this.create_folder}
+              />
+            </div>
+          )}
           <div
             style={{
               flex: "0 1 auto",

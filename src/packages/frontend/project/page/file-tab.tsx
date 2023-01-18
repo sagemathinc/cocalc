@@ -20,6 +20,7 @@ import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { Popover } from "antd";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 export type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
 
@@ -189,7 +190,7 @@ export function FileTab(props: Props) {
     </div>
   );
 
-  if (props.noPopover) {
+  if (props.noPopover || IS_MOBILE) {
     return body;
   }
   // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
