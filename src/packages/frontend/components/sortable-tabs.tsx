@@ -15,14 +15,15 @@ import {
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import {
+  CSSProperties,
   ReactNode,
   useMemo,
   useRef,
-  useState,
   createContext,
   useContext,
 } from "react";
 import useResizeObserver from "use-resize-observer";
+import useMouse from "@react-hook/mouse-position";
 
 export { useSortable };
 
@@ -31,14 +32,15 @@ interface Props {
   onDragEnd?: ((event) => void) | undefined;
   items: (string | number)[];
   children?: ReactNode;
+  style?: CSSProperties;
 }
 
 interface ItemContextType {
-  width: number | null;
+  width: number | undefined;
 }
 
 const ItemContext = createContext<ItemContextType>({
-  width: null,
+  width: undefined,
 });
 
 export function useItemContext() {
@@ -50,6 +52,7 @@ export function SortableTabs({
   onDragEnd,
   items,
   children,
+  style,
 }: Props) {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -65,25 +68,29 @@ export function SortableTabs({
   const sensors = useSensors(mouseSensor, touchSensor);
 
   const divRef = useRef<any>(null);
-  const [hover, setHover] = useState<boolean>(false);
   const resize = useResizeObserver({ ref: divRef });
   const lastRef = useRef<{
     width: number;
     length: number;
     itemWidth: number;
+    mouseY: number | null;
   } | null>(null);
+  const { y: mouseY } = useMouse(divRef, {
+    enterDelay: 1000,
+    leaveDelay: 1000,
+  });
 
   const itemWidth = useMemo(() => {
     if (divRef.current == null) {
       lastRef.current = null;
-      return null;
+      return undefined;
     }
     const last = lastRef.current;
     if (
       last != null &&
       last.width == resize.width &&
       items.length <= last.length &&
-      hover
+      last.mouseY == mouseY
     ) {
       // @ts-ignore
       lastRef.current.length = items.length;
@@ -98,17 +105,13 @@ export function SortableTabs({
       width: resize.width ?? 0,
       length: items.length,
       itemWidth,
+      mouseY,
     };
     return itemWidth;
-  }, [resize.width, items.length, divRef.current, hover]);
+  }, [resize.width, items.length, divRef.current, mouseY]);
 
   return (
-    <div
-      style={{ width: "100%" }}
-      ref={divRef}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
+    <div style={{ width: "100%", ...style }} ref={divRef}>
       <ItemContext.Provider value={{ width: itemWidth }}>
         <DndContext
           onDragStart={onDragStart}

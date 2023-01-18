@@ -13,6 +13,7 @@ import Views from "./index";
 import {
   renderTabBar,
   SortableTabs,
+  useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
@@ -26,6 +27,16 @@ interface TabItem {
   style?: CSSProperties;
 }
 
+function Label({ table }) {
+  const { width } = useItemContext();
+  const { title } = getTableDescription(table);
+  return (
+    <div style={{ width, overflow: "hidden", textOverflow: "ellipsis" }}>
+      {title}
+    </div>
+  );
+}
+
 export default function TableTabs() {
   const [tables, setTables] = useTables();
 
@@ -34,9 +45,8 @@ export default function TableTabs() {
 
     for (const table of tables) {
       const children = <Views table={table} style={{ margin: "0px 15px" }} />;
-      const { title } = getTableDescription(table);
       items.push({
-        label: title,
+        label: <Label table={table} />,
         key: table,
         children,
         style: { height: "100%", overflow: "hidden" },
@@ -54,6 +64,7 @@ export default function TableTabs() {
 
   return (
     <SortableTabs
+      style={{ height: "100%" }}
       items={tables}
       onDragStart={(event) => {
         if (event?.active?.id != activeKey) {
