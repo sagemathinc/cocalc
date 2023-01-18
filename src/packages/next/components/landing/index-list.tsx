@@ -8,7 +8,7 @@ import { ReactNode, useMemo } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
-import { Paragraph } from "components/misc";
+import { Paragraph, Title } from "components/misc";
 import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
@@ -62,9 +62,12 @@ export default function IndexList({ title, description, dataSource }: Props) {
           backgroundColor: "white",
         }}
       >
-        <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
+        <Title
+          level={1}
+          style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+        >
           {title}
-        </h1>
+        </Title>
         <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
         <DataList dataSource={filtedDataSource} />
       </div>
@@ -81,7 +84,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
       renderItem={(item) => {
         const icon = (
           <div style={{ marginTop: "2.5px" }}>
-            {typeof item.logo == "string" ? (
+            {typeof item.logo === "string" ? (
               <Icon name={item.logo} style={{ fontSize: "75px" }} />
             ) : (
               <Image src={item.logo} width={75} height={75} alt="Logo" />
@@ -107,7 +110,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                     <Avatar
                       style={{
                         marginTop: "20px",
-                        backgroundColor: item.logoBackground ,
+                        backgroundColor: item.logoBackground,
                       }}
                       alt={item.title + " logo "}
                       size={80}
@@ -118,14 +121,14 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                 )
               }
               title={
-                <A href={item.link} style={{ fontSize: "16pt" }}>
-                  {item.title}
-                </A>
+                <Title level={4}>
+                  <A href={item.link}>{item.title}</A>
+                </Title>
               }
               description={
-                <span style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
+                <Paragraph style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
                   {item.description}
-                </span>
+                </Paragraph>
               }
             />
           </List.Item>

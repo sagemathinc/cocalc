@@ -1,37 +1,47 @@
-import A from "components/misc/A";
-import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import LaTeX from "components/landing/latex";
-import IndexList, { DataSource } from "components/landing/index-list";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import JupyterLogo from "/public/features/jupyter-logo.svg";
-import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
-import PythonLogo from "/public/features/python-logo.svg";
-import FrameEditorPython from "/public/features/frame-editor-python.png";
-import Rlogo from "/public/features/r-logo.svg";
-import RJupyter from "/public/features/cocalc-r-jupyter.png";
-import LatexLogo from "/public/features/latex-logo.svg";
-import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
-import WhiteboardImage from "/public/features/whiteboard-sage.png";
-import octaveLogo from "/public/features/octave-logo.svg";
-import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
-import x11Logo from "/public/features/x11-logo.svg";
-import x11Screenshot from "/public/features/x11-01.png";
-import linuxLogo from "/public/features/linux-logo.svg";
-import linuxShellScript from "/public/features/cocalc-shell-script-run.png";
-import terminalLogo from "/public/features/linux-logo.svg";
-import terminalScreenshot from "/public/features/terminal.png";
-import teachingLogo from "/public/features/fa-graduation-cap.svg";
-import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
-import apiScreenshot from "/public/features/api-screenshot.png";
-import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
-import sageScreenshot from "public/features/sage-worksheet.png";
-import juliaLogo from "public/features/julia-logo.svg";
+import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import IndexList, { DataSource } from "components/landing/index-list";
+import LaTeX from "components/landing/latex";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
 import juliaScreenshot from "public/features/julia-jupyter.png";
+import juliaLogo from "public/features/julia-logo.svg";
+import sageScreenshot from "public/features/sage-worksheet.png";
+import apiScreenshot from "/public/features/api-screenshot.png";
+import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
+import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
+import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
+import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+import RJupyter from "/public/features/cocalc-r-jupyter.png";
+import linuxShellScript from "/public/features/cocalc-shell-script-run.png";
+import teachingLogo from "/public/features/fa-graduation-cap.svg";
+import FrameEditorPython from "/public/features/frame-editor-python.png";
+import JupyterLogo from "/public/features/jupyter-logo.svg";
+import LatexLogo from "/public/features/latex-logo.svg";
+import {
+  default as linuxLogo,
+  default as terminalLogo,
+} from "/public/features/linux-logo.svg";
+import octaveLogo from "/public/features/octave-logo.svg";
+import PythonLogo from "/public/features/python-logo.svg";
+import Rlogo from "/public/features/r-logo.svg";
+import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
+import terminalScreenshot from "/public/features/terminal.png";
+import WhiteboardImage from "/public/features/whiteboard-sage.png";
+import x11Screenshot from "/public/features/x11-01.png";
+import x11Logo from "/public/features/x11-logo.svg";
+import { COLORS } from "@cocalc/util/theme";
 
 const dataSource = [
   {
@@ -39,6 +49,7 @@ const dataSource = [
     title: "Jupyter notebooks",
     logo: JupyterLogo,
     image: JupyterTF,
+    logoBackground: "white",
     description: (
       <>
         We provide a CoCalc specific version of Jupyter notebooks with real-time
@@ -53,6 +64,7 @@ const dataSource = [
     title: "Huge installed Python stack",
     logo: PythonLogo,
     image: FrameEditorPython,
+    logoBackground: "white",
     description: (
       <>
         Use Python in CoCalc for data science, statistics, mathematics, physics,
@@ -79,6 +91,7 @@ const dataSource = [
     title: "R Statistical Software",
     logo: Rlogo,
     image: RJupyter,
+    logoBackground: "white",
     description: (
       <>
         Use Jupyter notebooks with the R kernel, the R command line, X11
@@ -95,6 +108,7 @@ const dataSource = [
       </>
     ),
     logo: LatexLogo,
+    logoBackground: "white",
     image: LatexEditorImage,
     description: (
       <>
@@ -109,6 +123,7 @@ const dataSource = [
     title: "SageMath Online",
     logo: sageLogo,
     image: sageScreenshot,
+    logoBackground: "white",
     description: (
       <>
         <A href="/features/sage">SageMath</A> is very well supported in CoCalc,
@@ -126,6 +141,7 @@ const dataSource = [
     link: "/features/octave",
     title: "GNU Octave",
     logo: octaveLogo,
+    logoBackground: "white",
     image: octaveJupyter,
     description: (
       <>
@@ -141,6 +157,7 @@ const dataSource = [
     link: "/features/julia",
     title: "Julia",
     logo: juliaLogo,
+    logoBackground: "white",
     image: juliaScreenshot,
     description: (
       <>
@@ -158,6 +175,7 @@ const dataSource = [
     link: "/features/x11",
     title: "Linux graphical X11 desktop",
     logo: x11Logo,
+    logoBackground: "white",
     image: x11Screenshot,
     description: (
       <>
@@ -171,6 +189,7 @@ const dataSource = [
     link: "/features/linux",
     title: "Online Linux environment",
     logo: linuxLogo,
+    logoBackground: "white",
     image: linuxShellScript,
     description: (
       <>
@@ -185,6 +204,7 @@ const dataSource = [
     link: "/features/terminal",
     title: "Linux Terminal",
     logo: terminalLogo,
+    logoBackground: "white",
     image: terminalScreenshot,
     description: (
       <>
@@ -197,6 +217,7 @@ const dataSource = [
     link: "/features/teaching",
     title: "Teaching a Course",
     logo: teachingLogo,
+    logoBackground: "white",
     image: teachingScreenshot,
     description: (
       <>
@@ -214,6 +235,7 @@ const dataSource = [
     title: "API Interface",
     image: apiScreenshot,
     logo: "server",
+    logoBackground: COLORS.YELL_D,
     description: (
       <>
         Programmatically control CoCalc from your own server. Embed CoCalc
@@ -224,8 +246,9 @@ const dataSource = [
   {
     link: "https://doc.cocalc.com",
     title: "There is much more to explore",
-    logo: sageLogo,
+    logo: "flash",
     image: sageScreenshot,
+    logoBackground: COLORS.BS_GREEN_BGRND,
     description: (
       <>
         Use <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A>,{" "}
