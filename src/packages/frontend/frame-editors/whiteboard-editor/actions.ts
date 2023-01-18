@@ -96,7 +96,7 @@ export class Actions extends BaseActions<State> {
         // if it's the first load check to see if a random element has a numerical page number;
         // if so, we have to migrate this.
         elements0 == null &&
-        typeof this._syncstring.get_one().get("page") == "number"
+        typeof this._syncstring.get_one()?.get("page") == "number"
       ) {
         // This modifies the syncdoc in one commit:
         migrateToNewPageNumbers(this._syncstring);

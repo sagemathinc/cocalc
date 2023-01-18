@@ -595,11 +595,6 @@ export function commands(
       },
     },
 
-    "print preview": {
-      m: "Print preview...",
-      f: () => jupyter_actions.show_nbconvert_dialog("html"),
-    },
-
     "refresh kernels": {
       m: "Refresh kernel list",
       f: () => jupyter_actions.fetch_jupyter_kernels(),

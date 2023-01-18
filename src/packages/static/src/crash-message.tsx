@@ -13,12 +13,12 @@ export default function CrashMessage({
     subject: showLoadFail
       ? "Crash Report: CoCalc Failed to Load"
       : "CoCalc Crash Report",
-    body: `\n\nCONTEXT:\n\n${JSON.stringify(
+    context: `\n\nCONTEXT:\n\n${JSON.stringify(
       { msg, lineNo, columnNo, stack, url },
       undefined,
       2
     )}`,
-    type: "question",
+    type: "problem",
     hideExtra: true,
   });
 

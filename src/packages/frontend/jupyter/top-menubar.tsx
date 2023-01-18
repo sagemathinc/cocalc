@@ -159,7 +159,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         "table of contents",
         "time travel",
         "",
-        "print preview",
         "slideshow",
         "nbconvert slides",
         "<Save and Download as...",

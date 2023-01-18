@@ -4,8 +4,8 @@
  */
 
 import Link from "next/link";
-import { Button, Layout } from "antd";
-
+import { Layout } from "antd";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import { join } from "path";
@@ -65,17 +65,22 @@ export default function Header(props: Props) {
           textAlign: "center",
         }}
       >
-        {isCommercial && (
-          <Button
+        {isCommercial && !IS_MOBILE && (
+          <A
             type="primary"
             size="large"
             href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
             title="Ask a question"
-            style={{ float: "left" }}
+            style={{
+              position: "absolute",
+              right: 15,
+              top: 25,
+              color: "white",
+            }}
           >
-            <Icon name="question-circle" /> Ask Us Anything!
-          </Button>
-        )}{" "}
+            <Icon style={{ fontSize: "24px" }} name="question-circle" />
+          </A>
+        )}
         <A href="/">
           {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
           <div

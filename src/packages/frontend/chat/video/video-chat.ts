@@ -40,6 +40,11 @@ export class VideoChat {
     return len(this.get_users());
   }
 
+  public get_user_name(): string | undefined {
+    const users = redux.getStore("users");
+    return users.get_name(this.account_id);
+  }
+
   public get_user_names(): string[] {
     const users = redux.getStore("users");
     const v: string[] = [];
@@ -86,6 +91,11 @@ export class VideoChat {
     return client_db.sha1(secret_token, this.path);
   }
 
+  public url(): string {
+    const room_id = this.chatroom_id();
+    return `${VIDEO_CHAT_SERVER}/${room_id}`;
+  }
+
   // Open the video chat window, if it isn't already opened
   public open_video_chat_window(): void {
     const room_id = this.chatroom_id();
@@ -106,8 +116,7 @@ export class VideoChat {
     );
 
     //const title = `CoCalc Video Chat: ${trunc_middle(this.path, 30)}`;
-    const url = `${VIDEO_CHAT_SERVER}/${room_id}`;
-    const w = video_window(url);
+    const w = video_window(this.url());
     // https://github.com/sagemathinc/cocalc/issues/3648
     if (w == null) {
       return;
