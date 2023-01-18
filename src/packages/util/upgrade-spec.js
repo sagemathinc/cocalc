@@ -172,6 +172,26 @@ upgrades.params = {
     input_type: "checkbox",
     desc: "",
   },
+  ext_rw: {
+    display: "Read/write global files",
+    unit: "read/write global files",
+    display_unit: "read/write global files",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "checkbox",
+    desc: "Allows you to read and write files in the global file system.",
+  },
+  patch: {
+    display: "Patching project",
+    unit: "patch",
+    display_unit: "patch",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "string",
+    desc: "Modifies the project's specification how it runs in the cluster.",
+  }
 };
 
 upgrades.field_order = [
@@ -184,6 +204,8 @@ upgrades.field_order = [
   "memory_request",
   "cores",
   "cpu_shares",
+  "ext_rw",  // cocalc-cloud only
+  "patch", // cocalc-cloud only
 ];
 
 // live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.

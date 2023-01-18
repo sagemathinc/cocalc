@@ -142,6 +142,8 @@ export interface Upgrades {
   always_running: number;
   ephemeral_state: number;
   ephemeral_disk: number;
+  ext_rw?: number;
+  patch?: Patch;
 }
 
 // this is onprem specific only!
