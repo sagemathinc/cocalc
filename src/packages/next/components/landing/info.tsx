@@ -11,6 +11,7 @@ import { MAX_WIDTH } from "lib/config";
 import Image, { StaticImageData } from "./image";
 import { MediaURL } from "./util";
 import { Paragraph, Title } from "components/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 const showcase: CSSProperties = {
   width: "100%",
@@ -30,6 +31,7 @@ interface Props {
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   swapCols?: boolean; // if true, then put text on left and image on right.
   textStyleExtra?: CSSProperties;
+  style?: CSSProperties;
 }
 
 export default function Info(props: Props) {
@@ -45,13 +47,18 @@ export default function Info(props: Props) {
     wide,
     swapCols,
     textStyleExtra,
+    style,
   } = props;
 
   const head = (
     <Title
       level={1}
       id={anchor}
-      style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}
+      style={{
+        textAlign: "center",
+        marginBottom: "30px",
+        color: COLORS.GRAY_D,
+      }}
     >
       {icon && (
         <span style={{ fontSize: "24pt", marginRight: "5px" }}>
@@ -84,7 +91,13 @@ export default function Info(props: Props) {
         {graphic}
         <br />
         <br />
-        <div style={{ textAlign: "center", color: "#666", fontSize: "13pt" }}>
+        <div
+          style={{
+            textAlign: "center",
+            color: COLORS.GRAY_D,
+            fontSize: "13pt",
+          }}
+        >
           {caption}
         </div>
       </div>
@@ -104,7 +117,7 @@ export default function Info(props: Props) {
     }
 
     return (
-      <Paragraph style={{ width: "100%" }}>
+      <Paragraph style={{ width: "100%", ...style }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
           <div style={noGraphicTextStyle}>
             <div style={{ textAlign: "center" }}>{head}</div>
@@ -120,15 +133,12 @@ export default function Info(props: Props) {
   }
 
   const textColStyle: CSSProperties = {
-    border: "1px solid white",
-    borderRadius: "5px",
     padding: "0 20px 0 20px",
     marginBottom: "15px",
     display: "flex",
     justifyContent: "start",
     alignContent: "start",
     flexDirection: "column",
-    fontSize: "12pt",
   };
 
   if (textStyleExtra != null) {
@@ -154,7 +164,7 @@ export default function Info(props: Props) {
   const cols = swapCols ? [textCol, graphicCol] : [graphicCol, textCol];
 
   return (
-    <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
+    <div style={{ padding: "40px 5%", background: "white", fontSize: "11pt", ...style }}>
       <>
         {head}
         <Row>{cols}</Row>
