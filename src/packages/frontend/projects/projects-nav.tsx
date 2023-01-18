@@ -24,6 +24,7 @@ import {
   SortableTabs,
   useSortable,
   renderTabBar,
+  useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
@@ -48,6 +49,7 @@ function useProjectStatusAlerts(project_id: string) {
 }
 
 function ProjectTab({ project_id }: ProjectTabProps) {
+  const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const project = useRedux(["projects", "project_map", project_id]);
@@ -126,7 +128,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     );
   }
   const body = (
-    <div>
+    <div style={width != null ? { width } : undefined}>
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         {icon}

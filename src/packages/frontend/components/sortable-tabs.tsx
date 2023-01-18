@@ -123,7 +123,6 @@ export function SortableTabs({
             {children}
           </SortableContext>
         </DndContext>
-        {children}
       </ItemContext.Provider>
     </div>
   );
