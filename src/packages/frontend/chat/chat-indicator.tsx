@@ -11,6 +11,8 @@ import { Icon, Tip, Space } from "@cocalc/frontend/components";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import VideoChatButton from "./video/launch-button";
 import { HiddenXSSM } from "@cocalc/frontend/components";
+import { hidden_meta_file } from "@cocalc/util/misc";
+import type { ChatActions } from "./actions";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
@@ -96,6 +98,13 @@ export const ChatIndicator: React.FC<Props> = ({
               project_id={project_id}
               path={path}
               button={false}
+              sendChat={(value) => {
+                const actions = redux.getEditorActions(
+                  project_id,
+                  hidden_meta_file(path, "sage-chat")
+                ) as ChatActions;
+                actions.send_chat(value);
+              }}
             />
           </span>
         )}

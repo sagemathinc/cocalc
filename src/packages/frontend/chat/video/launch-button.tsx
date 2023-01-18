@@ -20,6 +20,7 @@ interface Props {
   path: string;
   label?: string | JSX.Element;
   button?: boolean;
+  sendChat?: (string) => void;
 }
 
 export default function VideoChatButton({
@@ -27,6 +28,7 @@ export default function VideoChatButton({
   path,
   label,
   button,
+  sendChat,
 }: Props) {
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
@@ -49,6 +51,13 @@ export default function VideoChatButton({
       } else {
         video_chat.current.start_chatting(); // not chatting, so start
         user_activity("side_chat", "start_video");
+        if (sendChat != null) {
+          sendChat(
+            `${
+              video_chat.current.get_user_name() ?? "User"
+            } joined [the video chat](${video_chat.current.url()}).`
+          );
+        }
       }
     },
     750,
