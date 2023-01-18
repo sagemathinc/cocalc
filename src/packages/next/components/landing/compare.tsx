@@ -7,11 +7,11 @@ import { Alert, Table } from "antd";
 import { ReactNode } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Contact from "components/landing/contact";
+import { Text } from "components/misc";
 import A from "components/misc/A";
 import DATA from "./compare.json";
-import { Paragraph, Text } from "components/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 function cmp(a, b) {
   a = `${a}`;

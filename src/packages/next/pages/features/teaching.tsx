@@ -34,77 +34,82 @@ import { COLORS } from "@cocalc/util/theme";
 
 export default function Teaching({ customize }) {
   const pitchPcLab = (
-    <Paragraph>
+    <>
       <Title level={2}>
         <Icon name="server" style={{ fontSize: "32px", marginRight: "10px" }} />{" "}
         An entire computer lab in the cloud
       </Title>
-      <ul>
-        <li>
-          Every student works 100% online – inside their own dedicated
-          workspace.
-        </li>
-        <li>Follow the progress of each student in real time.</li>
-        <li>
-          At any time you and your teaching assistants can{" "}
-          <strong>jump into a student's file</strong>, right where they are
-          working, and answer their questions.
-        </li>
-        <li>
-          Use{" "}
-          <strong>
-            <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>
-          </strong>{" "}
-          to see every step a student took to get to their solution, and to get
-          context when helping them.
-        </li>
-        <li>
-          <strong>
-            <A href="https://doc.cocalc.com/chat.html">Integrated chat rooms</A>
-          </strong>{" "}
-          allow you to guide students directly where they are working or discuss
-          collected files with your teaching assistants.
-        </li>
-        <li>
-          The project's{" "}
-          <strong>
-            <A href="https://doc.cocalc.com/project-log.html">Activity Log</A>
-          </strong>{" "}
-          records exactly when and by whom a file was accessed.{" "}
-        </li>
-        <li>
-          CoCalc's massive default{" "}
-          <strong>
-            <A href="/software">Software Environment</A>
-          </strong>{" "}
-          provides nearly everything anybody{" "}
-          <strong>has ever asked us to install since 2013!</strong>
-        </li>
-      </ul>
-    </Paragraph>
+      <Paragraph>
+        {" "}
+        <ul>
+          <li>
+            Every student works 100% online – inside their own dedicated
+            workspace.
+          </li>
+          <li>Follow the progress of each student in real time.</li>
+          <li>
+            At any time you and your teaching assistants can{" "}
+            <strong>jump into a student's file</strong>, right where they are
+            working, and answer their questions.
+          </li>
+          <li>
+            Use{" "}
+            <strong>
+              <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>
+            </strong>{" "}
+            to see every step a student took to get to their solution, and to
+            get context when helping them.
+          </li>
+          <li>
+            <strong>
+              <A href="https://doc.cocalc.com/chat.html">
+                Integrated chat rooms
+              </A>
+            </strong>{" "}
+            allow you to guide students directly where they are working or
+            discuss collected files with your teaching assistants.
+          </li>
+          <li>
+            The project's{" "}
+            <strong>
+              <A href="https://doc.cocalc.com/project-log.html">Activity Log</A>
+            </strong>{" "}
+            records exactly when and by whom a file was accessed.{" "}
+          </li>
+          <li>
+            CoCalc's massive default{" "}
+            <strong>
+              <A href="/software">Software Environment</A>
+            </strong>{" "}
+            provides nearly everything anybody{" "}
+            <strong>has ever asked us to install since 2013!</strong>
+          </li>
+        </ul>
+      </Paragraph>
+    </>
   );
 
   const pitchNoSetup = (
-    <Paragraph>
+    <>
       <Title level={2}>
         <Icon name="laptop" style={{ fontSize: "32px", marginRight: "10px" }} />{" "}
         No software setup <small>100% online</small>
       </Title>
-      <p>
+      <Paragraph>
         <strong>Fully managed software environment</strong>:
-      </p>
-      <ul>
-        <li>
-          Forget any complicated software setup – everyone is able to start
-          working in seconds!
-        </li>
-        <li>
-          Since everyone works with exactly the same software stack, all
-          inconsistencies are eliminated.
-        </li>
-      </ul>
+        <ul>
+          <li>
+            Forget any complicated software setup – everyone is able to start
+            working in seconds!
+          </li>
+          <li>
+            Since everyone works with exactly the same software stack, all
+            inconsistencies are eliminated.
+          </li>
+        </ul>
+      </Paragraph>
 
-      <p>
+      <Paragraph>
         <strong>Batteries included</strong>: CoCalc includes much of what you
         need to teach your course
         <p></p>
@@ -144,8 +149,8 @@ export default function Teaching({ customize }) {
             with embedded Jupyter Cells to bring your ideas across.
           </li>
         </ul>
-      </p>
-    </Paragraph>
+      </Paragraph>
+    </>
   );
 
   return (
@@ -299,7 +304,12 @@ export default function Teaching({ customize }) {
             </Paragraph>
           </Info>
 
-          <div style={{ padding: "30px 10%", backgroundColor: COLORS.LANDING.TOP_BG}}>
+          <div
+            style={{
+              padding: "30px 10%",
+              backgroundColor: COLORS.LANDING.TOP_BG,
+            }}
+          >
             <Title
               level={1}
               style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}

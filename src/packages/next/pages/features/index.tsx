@@ -5,7 +5,6 @@
 
 import { Layout } from "antd";
 
-import { Icon } from "@cocalc/frontend/components/icon";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -15,6 +14,7 @@ import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
+import { COLORS } from "@cocalc/util/theme";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
@@ -41,7 +41,6 @@ import terminalScreenshot from "/public/features/terminal.png";
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import x11Logo from "/public/features/x11-logo.svg";
-import { COLORS } from "@cocalc/util/theme";
 
 const dataSource = [
   {

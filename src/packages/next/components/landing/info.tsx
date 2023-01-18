@@ -32,6 +32,7 @@ interface Props {
   swapCols?: boolean; // if true, then put text on left and image on right.
   textStyleExtra?: CSSProperties;
   style?: CSSProperties;
+  below?: ReactNode;
 }
 
 export default function Info(props: Props) {
@@ -46,6 +47,7 @@ export default function Info(props: Props) {
     children,
     wide,
     swapCols,
+    below,
     textStyleExtra,
     style,
   } = props;
@@ -117,7 +119,7 @@ export default function Info(props: Props) {
     }
 
     return (
-      <Paragraph style={{ width: "100%", ...style }}>
+      <div style={{ width: "100%", ...style }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
           <div style={noGraphicTextStyle}>
             <div style={{ textAlign: "center" }}>{head}</div>
@@ -126,9 +128,10 @@ export default function Info(props: Props) {
             >
               {children}
             </div>
+            {below && <div style={{ marginTop: "20px" }}>{below}</div>}
           </div>
         </div>
-      </Paragraph>
+      </div>
     );
   }
 
@@ -164,10 +167,24 @@ export default function Info(props: Props) {
   const cols = swapCols ? [textCol, graphicCol] : [graphicCol, textCol];
 
   return (
-    <div style={{ padding: "40px 5%", background: "white", fontSize: "11pt", ...style }}>
+    <div
+      style={{
+        padding: "40px 5%",
+        background: "white",
+        fontSize: "11pt",
+        ...style,
+      }}
+    >
       <>
         {head}
-        <Row>{cols}</Row>
+        <Row>
+          {cols}
+          {below && (
+            <Col lg={16} offset={4}>
+              {below}
+            </Col>
+          )}
+        </Row>
       </>
     </div>
   );

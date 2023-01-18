@@ -1,28 +1,35 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Code from "components/landing/code";
-import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
-import { FullLinuxTerminal } from "./linux";
-import Comparison from "components/landing/compare";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import Code from "components/landing/code";
+import Comparison from "components/landing/compare";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Info from "components/landing/info";
+import SignIn from "components/landing/sign-in";
+import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+import { FullLinuxTerminal } from "./linux";
+
+import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
+import shellScript from "/public/features/cocalc-shell-script-run.png";
+import collabDemo from "/public/features/cocalc-terminal-collab.gif";
+import logo from "/public/features/linux-logo.svg";
+import stack from "/public/features/terminal-software.png";
+import terminal from "/public/features/terminal.png";
 
 const component = "a Linux Terminal";
 const title = `Online Linux Terminal`;
-
-import terminal from "/public/features/terminal.png";
-import logo from "/public/features/linux-logo.svg";
-import collabDemo from "/public/features/cocalc-terminal-collab.gif";
-import shellScript from "/public/features/cocalc-shell-script-run.png";
-import stack from "/public/features/terminal-software.png";
-import { COLORS } from "@cocalc/util/theme";
 
 export default function Terminal({ customize }) {
   return (
@@ -65,22 +72,22 @@ export default function Terminal({ customize }) {
             alt={"Video showing synchronized terminals"}
             wide
           >
-            <p>
+            <Paragraph>
               The same terminal can be opened by two or more users. Both see the
               same view, which adaptively resizes to a common size.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Additionally, open a{" "}
               <A href="https://doc.cocalc.com/chat.html">side chat</A> panel to
               exchange thoughts and ideas.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               This is ideal for getting advice by a colleague or{" "}
               <A href="https://doc.cocalc.com/teaching-interactions.html">
                 helping a student of yours
               </A>
               .
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -96,7 +103,7 @@ export default function Terminal({ customize }) {
               </>
             }
           >
-            <p>
+            <Paragraph>
               CoCalc's{" "}
               <A href="https://doc.cocalc.com/frame-editor.html">
                 frame editor
@@ -106,8 +113,8 @@ export default function Terminal({ customize }) {
                 <A href="https://doc.cocalc.com/terminal.html">terminal</A>
               </strong>
               .
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               To get started, create a file with a suitable ending, e.g.{" "}
               <Code>.py</Code>, <Code>.sh</Code>, <Code>.r</Code>, ... Then open
               that file (via <Code>open filename.ext</Code>) and you can edit it
@@ -115,7 +122,7 @@ export default function Terminal({ customize }) {
               frame and select the Terminal, like you can see it in the
               screenshot. Execute <Code>python3 script.py</Code>,{" "}
               <Code>bash -f script.sh</Code>, ... to run it.{" "}
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -129,7 +136,7 @@ export default function Terminal({ customize }) {
             }
             wide
           >
-            <p>
+            <Paragraph>
               Many <strong>popular applications</strong> are included in CoCalc:{" "}
               <A href="https://git-scm.com/">Git</A> to interact with{" "}
               <A href="https://www.github.com">GitHub</A>,{" "}
@@ -139,8 +146,8 @@ export default function Terminal({ customize }) {
               , <A href="https://www.r-project.org/">R</A>,{" "}
               <A href="https://www.gnu.org/software/octave/index">Octave</A> and{" "}
               <A href="https://www.sagemath.org/">SageMath</A>.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               There is also support for many programming languages and
               compilers. <A href="/features/python">Python</A>, JAVA, C/C++ via{" "}
               <A href="https://gcc.gnu.org/">GCC</A> and{" "}
@@ -155,14 +162,14 @@ export default function Terminal({ customize }) {
               </A>
               , <A href="https://en.wikipedia.org/wiki/Smalltalk">Smalltalk</A>,{" "}
               <A href="https://www.rust-lang.org/">Rust</A> and many more.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Look at our{" "}
               <strong>
                 <A href="/software/executables">list of executables</A>
               </strong>{" "}
               to check what is available!{" "}
-            </p>
+            </Paragraph>
           </Info>
 
           <Snapshots />
@@ -171,9 +178,9 @@ export default function Terminal({ customize }) {
             name="terminal"
             disclaimer
             title={
-              <h2 style={{ textAlign: "center" }}>
+              <Title level={2} style={{ textAlign: "center" }}>
                 <Icon name="bolt" /> Terminals in CoCalc versus the competition
-              </h2>
+              </Title>
             }
           />
 

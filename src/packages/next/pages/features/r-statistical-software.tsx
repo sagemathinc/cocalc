@@ -32,6 +32,7 @@ import sidechat from "public/features/cocalc-r-side-chat.png";
 import rcode from "public/features/cocalc-rcode.png";
 import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
 import logo from "public/features/r-logo.svg";
+import { Paragraph, Title } from "components/misc";
 
 const component = "R";
 const title = `Run ${component} Online`;
@@ -67,12 +68,12 @@ export default function R({ customize }) {
 
           <Pitch
             col1={
-              <div>
-                <h3>
-                  <Icon name="cocalc-ring" style={{ marginRight: "10px" }} />
+              <>
+                <Title level={3}>
+                  <Icon name="pencil-alt" style={{ marginRight: "10px" }} />
                   CoCalc makes working with R easy
-                </h3>
-                <p>
+                </Title>
+                <Paragraph>
                   CoCalc handles all the tedious details for you, regardless of
                   whether you want to work on the{" "}
                   <A href="/features/terminal">command line</A>, run{" "}
@@ -82,45 +83,47 @@ export default function R({ customize }) {
                     Knitr in <LaTeX /> documents
                   </A>
                   .
-                </p>
-                <p>
+                </Paragraph>
+                <Paragraph>
                   This page is about ways to use R in the{" "}
                   <A href="../">CoCalc platform</A>.
-                </p>
-              </div>
+                </Paragraph>
+              </>
             }
             col2={
-              <div>
-                <h3>
+              <>
+                <Title level={3}>
                   <Icon name="lightbulb" style={{ marginRight: "10px" }} /> Zero
                   setup
-                </h3>
-                <ul>
-                  <li>
-                    No need for you to download and install{" "}
-                    <A href="https://www.r-project.org/">R</A>.
-                  </li>
-                  <li>
-                    CoCalc already{" "}
-                    <A href="/software/r">provides many packages</A> for you.
-                  </li>
-                  <li>
-                    The <A href="/features/latex-editor">LaTeX editor</A> is
-                    already integrated with R.
-                  </li>
-                  <li>
-                    You no longer have to maintain everything on your own.
-                  </li>
-                </ul>
-                <div>
+                </Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      No need for you to download and install{" "}
+                      <A href="https://www.r-project.org/">R</A>.
+                    </li>
+                    <li>
+                      CoCalc already{" "}
+                      <A href="/software/r">provides many packages</A> for you.
+                    </li>
+                    <li>
+                      The <A href="/features/latex-editor">LaTeX editor</A> is
+                      already integrated with R.
+                    </li>
+                    <li>
+                      You no longer have to maintain everything on your own.
+                    </li>
+                  </ul>
+                </Paragraph>
+                <Paragraph>
                   Start working by creating or{" "}
                   <A href="https://doc.cocalc.com/howto/upload.html">
                     uploading R files
                   </A>
                   , RMarkdown documents, or{" "}
                   <A href="/features/jupyter-notebook">Jupyter notebooks</A>.
-                </div>
-              </div>
+                </Paragraph>
+              </>
             }
           />
 
@@ -141,7 +144,7 @@ export default function R({ customize }) {
             anchor="a-jupyternotebook"
             alt={"Using R via the Jupyter notebook"}
           >
-            <p>
+            <Paragraph>
               CoCalc offers a{" "}
               <strong>
                 <A href="/features/jupyter-notebook">complete rewrite</A>
@@ -153,13 +156,13 @@ export default function R({ customize }) {
                 tightly integrated into CoCalc
               </A>{" "}
               and adds real-time collaboration, TimeTravel history and more.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               There is also support in CoCalc for easily using R with the{" "}
               <A href="https://doc.cocalc.com/jupyter.html#classical-versus-cocalc">
                 classical Jupyter notebook and JupyterLab.
               </A>
-            </p>
+            </Paragraph>
           </Info>
 
           <Collaboration image={jupyterCollab} />
@@ -174,8 +177,44 @@ export default function R({ customize }) {
             image={rLatex}
             anchor="a-latex"
             alt="Using Knitr in CoCalc to create an R-enhanced LaTeX document."
+            below={
+              <>
+                <Paragraph>
+                  This means you can move{" "}
+                  <strong>your entire workflow online to CoCalc</strong>:
+                </Paragraph>
+                <Paragraph>
+                  <ol>
+                    <li>
+                      <A href="https://doc.cocalc.com/howto/upload.html">
+                        Upload
+                      </A>{" "}
+                      or fetch your datasets,
+                    </li>
+                    <li>
+                      Use <A href="#a-jupyternotebook">Jupyter Notebooks</A> to
+                      explore the data and test your hypothesis,
+                    </li>
+                    <li>
+                      <A href="#a-chat">Discuss</A> and{" "}
+                      <A href="#a-collaboration">collaborate</A> with your
+                      research team,
+                    </li>
+                    <li>
+                      Write your research paper in an <Code>.Rtex</Code> or{" "}
+                      <Code>.Rnw</Code> document,
+                    </li>
+                    <li>
+                      <A href="#a-publishing">Publish</A> your datasets, your
+                      research code, and the PDF of your paper online, all
+                      hosted on CoCalc.{" "}
+                    </li>
+                  </ol>
+                </Paragraph>
+              </>
+            }
           >
-            <p>
+            <Paragraph>
               The fully integrated{" "}
               <A href="/features/latex-editor">
                 CoCalc <LaTeX /> editor
@@ -184,70 +223,47 @@ export default function R({ customize }) {
               <Code>.Rnw</Code> and <Code>.Rtex</Code> files. The document is
               synchronized with your collaborators in realtime and everyone sees
               the same compiled PDF. In particular, this <LaTeX /> editor
-            </p>
-            <ul>
-              <li>Manages the entire compilation pipeline for you,</li>
-              <li>
-                Automatically processes{" "}
-                <strong>
-                  <Code>.Rnw</Code> and <Code>.Rtex</Code> files
-                </strong>{" "}
-                using{" "}
-                <strong>
-                  <A href="https://yihui.name/knitr/">Knitr</A>
-                </strong>
-                ,
-              </li>
-              <li>
-                Supports{" "}
-                <strong>
-                  <A href="https://doc.cocalc.com/latex-features.html#forward-inverse-search">
-                    forward and inverse search
+            </Paragraph>
+            <Paragraph>
+              <ul>
+                <li>Manages the entire compilation pipeline for you,</li>
+                <li>
+                  Automatically processes{" "}
+                  <strong>
+                    <Code>.Rnw</Code> and <Code>.Rtex</Code> files
+                  </strong>{" "}
+                  using{" "}
+                  <strong>
+                    <A href="https://yihui.name/knitr/">Knitr</A>
+                  </strong>
+                  ,
+                </li>
+                <li>
+                  Supports{" "}
+                  <strong>
+                    <A href="https://doc.cocalc.com/latex-features.html#forward-inverse-search">
+                      forward and inverse search
+                    </A>
+                  </strong>{" "}
+                  to help you navigating in your document,
+                </li>
+                <li>
+                  Captures and shows you{" "}
+                  <strong>
+                    where each <LaTeX /> or R error happened
+                  </strong>
+                  ,
+                </li>
+                <li>
+                  and you can use
+                  <A href="https://doc.cocalc.com/time-travel.html">
+                    TimeTravel
                   </A>
-                </strong>{" "}
-                to help you navigating in your document,
-              </li>
-              <li>
-                Captures and shows you{" "}
-                <strong>
-                  where each <LaTeX /> or R error happened
-                </strong>
-                ,
-              </li>
-              <li>
-                and you can use
-                <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>
-                to go back in time to see your latest edits and{" "}
-                <strong>easily recover from a recent mistake</strong>.
-              </li>
-            </ul>
-            <p>
-              This means you can move{" "}
-              <strong>your entire workflow online to CoCalc</strong>:
-            </p>
-            <ol>
-              <li>
-                <A href="https://doc.cocalc.com/howto/upload.html">Upload</A> or
-                fetch your datasets,
-              </li>
-              <li>
-                Use <A href="#a-jupyternotebook">Jupyter Notebooks</A> to
-                explore the data and test your hypothesis,
-              </li>
-              <li>
-                <A href="#a-chat">Discuss</A> and{" "}
-                <A href="#a-collaboration">collaborate</A> with your research
-                team,
-              </li>
-              <li>
-                Write your research paper in an <Code>.Rtex</Code> or{" "}
-                <Code>.Rnw</Code> document,
-              </li>
-              <li>
-                <A href="#a-publishing">Publish</A> your datasets, your research
-                code, and the PDF of your paper online, all hosted on CoCalc.{" "}
-              </li>
-            </ol>
+                  to go back in time to see your latest edits and{" "}
+                  <strong>easily recover from a recent mistake</strong>.
+                </li>
+              </ul>
+            </Paragraph>
           </Info>
 
           <Info
@@ -257,30 +273,30 @@ export default function R({ customize }) {
             anchor="a-rmarkdown"
             alt="An Rmarkdown document with a plot"
           >
-            <p>
+            <Paragraph>
               <strong>
                 You can edit{" "}
                 <A href="https://rmarkdown.rstudio.com/">RMarkdown files</A> in
                 CoCalc's code editor.
               </strong>
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               The source file is processed according to the YAML-frontmatter
               configuration and the view of the generated file is automatically
               updated in an HTML or PDF panel.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               <strong>Syntax highlighting</strong> for markdown and embedded
               programming code—according to their language—makes it easy to
               visually understand the source file.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               <A href="https://doc.cocalc.com/project-library.html">
                 CoCalc's library
               </A>{" "}
               features selected example files to get started quickly: e.g. HTML
               reports, article templates and a beamer presentation.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -293,10 +309,10 @@ export default function R({ customize }) {
             anchor="a-codeformatting"
             alt="Video showing formatting of R in a Jupyter notebook"
           >
-            <p>
+            <Paragraph>
               <strong>CoCalc is able to format your R code.</strong>
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               By simply clicking one button,{" "}
               <strong>
                 your R source code is formatted in a clean and consistent way
@@ -306,12 +322,12 @@ export default function R({ customize }) {
                 formatR package
               </A>
               .
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               This reduces cognitive load reading source code, brings everyone
               in the team on the same page, and reduces misunderstandings.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               R code formatting works with{" "}
               <strong>
                 pure <code>.r</code> files
@@ -322,7 +338,7 @@ export default function R({ customize }) {
                 kernel
               </strong>
               .{" "}
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -332,7 +348,7 @@ export default function R({ customize }) {
             anchor="a-commandline"
             alt="Using R from a command line terminal"
           >
-            <p>
+            <Paragraph>
               All your existing R scripts run on the command line right in
               CoCalc.{" "}
               <A href="https://doc.cocalc.com/terminal.html">Open a Terminal</A>{" "}
@@ -341,23 +357,23 @@ export default function R({ customize }) {
               <A href="https://www.git-scm.com">Git</A> and{" "}
               <A href="/software/executables">a large number of commands...</A>{" "}
               <strong>Feel at home and run your analysis as usual!</strong>
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Terminals can be used <em>by multiple users at once</em>. This
               means you can work with your collaborators in the same session at
               the same time. Everyone sees the same output, and via{" "}
               <A href="https://doc.cocalc.com/chat.html">side chat</A> next to
               the terminal, the whole team can coordinate.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Beyond that, you can simultaneously work with several terminal
               sessions. This gives you the ability to run your code
               concurrently.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               For long-running programs, you can even close your browser and
               check on the result later.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -367,22 +383,24 @@ export default function R({ customize }) {
             anchor="a-chat"
             alt="Chatting about an R Jupyter notebook"
           >
-            <p>
+            <Paragraph>
               Collaboration is a first class citizen on CoCalc. A{" "}
               <A href="https://doc.cocalc.com/chat.html">side-by-side chat</A>{" "}
               next to your R code, <LaTeX /> files and notebooks makes it easy
               to discuss content with your colleagues or students. You can also
               create dedicated chatrooms.
-            </p>
-            <p>Avatars show who is currently working on a file.</p>
-            <p>
+            </Paragraph>
+            <Paragraph>
+              Avatars show who is currently working on a file.
+            </Paragraph>
+            <Paragraph>
               Collaborators who are not online will be notified about new
               messages the next time they sign in.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               <A href="https://doc.cocalc.com/chat.html">Chat</A> also supports
               markdown formatting and <LaTeX /> formulas.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -392,16 +410,16 @@ export default function R({ customize }) {
             anchor="a-environment"
             alt="Exploring the stack of installed R packages in a Jupyter notebook"
           >
-            <p>
+            <Paragraph>
               CoCalc makes sure that the computational environment for R is
               regularly updated and ready to work with. Our goal is enabling you
               to get started with your analysis without any overhead.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Look at our <A href="/software/r">list of available packages</A>{" "}
               in more detail. If something is missing, please tell us about it (
               <Contact lower />) so we can install that package globally.
-            </p>
+            </Paragraph>
           </Info>
 
           <Publishing />
@@ -418,7 +436,7 @@ export default function R({ customize }) {
             anchor="a-timetravel"
             alt="Video showing the time travel slider in an R Jupyter notebook"
           >
-            <p>
+            <Paragraph>
               The{" "}
               <strong>
                 <A href="https://doc.cocalc.com/time-travel.html">
@@ -429,18 +447,18 @@ export default function R({ customize }) {
               editable files like R source code, Jupyter notebook and <LaTeX />
               documents in fine detail. You can go back and forth in time across
               thousands of changes to recover your previous edits.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               This allows you to easily recover any part of any version of your
               file by copying and pasting. You can also see exactly what changed
               from one version to the next.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               You can visualize the entire process of creating a Jupyter
               notebook from the start. This lets you discover how you arrived at
               a particular solution and see what you (or your student) attempted
               before the final solution.
-            </p>
+            </Paragraph>
           </Info>
           <SignIn startup={component} />
         </Layout.Content>
