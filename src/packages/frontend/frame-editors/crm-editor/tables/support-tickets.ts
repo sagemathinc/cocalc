@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "support-tickets",
   title: "Support Tickets",
+  icon: "medkit",
   query: {
     crm_support_tickets: [
       {

@@ -5,6 +5,8 @@ register({
 
   title: "People",
 
+  icon: "address-card",
+
   query: {
     crm_people: [
       {

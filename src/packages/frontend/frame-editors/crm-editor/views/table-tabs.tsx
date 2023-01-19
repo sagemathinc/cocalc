@@ -122,7 +122,7 @@ function AddTable({ setAdding, tables, setTables }) {
       .sort()
       .filter((x) => !cur.has(x))
       .map((table) => {
-        return { value: table, label: getTableDescription(table).title };
+        return { value: table, label: <Label table={table} /> };
       });
   }, [tables]);
   const [value, setValue] = useState<string[]>([]);

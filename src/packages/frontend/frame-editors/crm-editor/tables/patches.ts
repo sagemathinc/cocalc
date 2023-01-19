@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "patches",
   title: "Patches",
+  icon: "exchange",
   query: {
     crm_patches: [
       {

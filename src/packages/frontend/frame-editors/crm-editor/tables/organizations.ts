@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "organizations",
   title: "Organizations",
+  icon: "home",
   query: {
     crm_organizations: [
       {

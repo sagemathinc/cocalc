@@ -5,6 +5,8 @@ register({
 
   title: "Vouchers",
 
+  icon: "credit-card",
+
   query: {
     vouchers: [
       {

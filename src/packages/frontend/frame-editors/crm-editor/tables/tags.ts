@@ -5,6 +5,8 @@ register({
 
   title: "Tags",
 
+  icon: "tags-outlined",
+
   allowCreate: true,
   changes: true,
 
