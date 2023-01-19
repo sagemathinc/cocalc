@@ -10,10 +10,9 @@ import A from "components/misc/A";
 import Code from "./code";
 import { CSS, Paragraph } from "components/misc";
 
-const STYLE_PITCH: CSS = {
+export const STYLE_PITCH: CSS = {
   padding: "30px 10%",
   backgroundColor: "white",
-  fontSize: "11pt",
 } as const;
 
 interface Props {

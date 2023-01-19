@@ -7,11 +7,11 @@ import { Col, Row } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
 import { MAX_WIDTH } from "lib/config";
 import Image, { StaticImageData } from "./image";
 import { MediaURL } from "./util";
-import { Paragraph, Title } from "components/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 const showcase: CSSProperties = {
   width: "100%",
@@ -20,36 +20,36 @@ const showcase: CSSProperties = {
 } as const;
 
 interface Props {
-  anchor: string;
-  icon?: IconName;
-  title: ReactNode;
-  image?: string | StaticImageData;
   alt: string;
-  video?: string | string[];
+  anchor: string;
+  below?: ReactNode;
   caption?: ReactNode;
   children: ReactNode;
-  wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  icon?: IconName;
+  image?: string | StaticImageData;
+  style?: CSSProperties;
   swapCols?: boolean; // if true, then put text on left and image on right.
   textStyleExtra?: CSSProperties;
-  style?: CSSProperties;
-  below?: ReactNode;
+  title: ReactNode;
+  video?: string | string[];
+  wide?: boolean; // if given image is wide and could use more space or its very hard to see.
 }
 
 export default function Info(props: Props) {
   const {
-    anchor,
-    icon,
-    title,
-    image,
     alt,
-    video,
+    anchor,
+    below,
     caption,
     children,
-    wide,
-    swapCols,
-    below,
-    textStyleExtra,
+    icon,
+    image,
     style,
+    swapCols,
+    textStyleExtra,
+    title,
+    video,
+    wide,
   } = props;
 
   const head = (
@@ -93,15 +93,14 @@ export default function Info(props: Props) {
         {graphic}
         <br />
         <br />
-        <div
+        <Paragraph
           style={{
             textAlign: "center",
             color: COLORS.GRAY_D,
-            fontSize: "13pt",
           }}
         >
           {caption}
-        </div>
+        </Paragraph>
       </div>
     );
   }
@@ -158,7 +157,7 @@ export default function Info(props: Props) {
     <Col
       key="graphics"
       lg={wide ? 17 : 15}
-      style={{ padding: "0 30px", width: "100%" }}
+      style={{ padding: "0 30px 15px 30px", width: "100%" }}
     >
       {graphic}
     </Col>
@@ -180,7 +179,11 @@ export default function Info(props: Props) {
         <Row>
           {cols}
           {below && (
-            <Col lg={16} offset={4}>
+            <Col
+              lg={{ span: 16, offset: 4 }}
+              md={{ span: 18, offset: 3 }}
+              style={{ paddingTop: "30px" }}
+            >
               {below}
             </Col>
           )}
@@ -220,7 +223,12 @@ Info.Heading = ({ children, description, style }: HeadingProps) => {
   return (
     <div
       style={{
-        ...{ textAlign: "center", margin: "40px" },
+        ...{
+          textAlign: "center",
+          margin: "0",
+          padding: "20px",
+          borderTop: `1px solid ${COLORS.GRAY_L}`,
+        },
         ...style,
       }}
     >
@@ -233,7 +241,7 @@ Info.Heading = ({ children, description, style }: HeadingProps) => {
       >
         {children}
       </Title>
-      <Paragraph style={{ fontSize: "13pt", color: "#666" }}>
+      <Paragraph style={{ fontSize: "13pt", color: COLORS.GRAY_D }}>
         {description}
       </Paragraph>
     </div>

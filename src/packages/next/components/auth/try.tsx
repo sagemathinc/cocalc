@@ -64,14 +64,20 @@ function Try0({ minimal, onSuccess }: Props) {
         throw Error(JSON.stringify(result.issues)); // TODO: should not happen, except for captcha error...
       }
       onSuccess?.();
+      setState("done");
     } catch (err) {
       setError(err.message);
       setState("wait");
     }
   }
 
+  const style: React.CSSProperties = {
+    margin: "30px",
+    ...(state == "done" && { minHeight: "50vh" }),
+  };
+
   return (
-    <div style={{ margin: "30px", minHeight: "50vh" }}>
+    <div style={style}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <SquareLogo

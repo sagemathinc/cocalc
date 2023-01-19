@@ -14,6 +14,7 @@ import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -55,65 +56,72 @@ export default function Octave({ customize }) {
           <Pitch
             col1={
               <>
-                <h3>Run Octave on CoCalc</h3>
-                <ul>
-                  <li>
-                    Via CoCalc's own real-time synchronized{" "}
-                    <strong>
-                      <A href="/features/jupyter-notebook">Jupyter Notebooks</A>
-                    </strong>
-                    .
-                  </li>
-                  <li>
-                    A full, collaborative, real-time synchronized{" "}
-                    <strong>
-                      <A href="/features/terminal">Linux Terminal</A>
-                    </strong>
-                    .
-                  </li>
-                  <li>
-                    A{" "}
-                    <strong>
-                      <A href="/features/x11">
-                        virtual X11 graphical Linux desktop
-                      </A>
-                    </strong>
-                    .
-                  </li>
-                </ul>
-                <br />
-                <h3>Packages</h3>
-                <div>
+                <Title level={2}>Run Octave on CoCalc</Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      Via CoCalc's own real-time synchronized{" "}
+                      <strong>
+                        <A href="/features/jupyter-notebook">
+                          Jupyter Notebooks
+                        </A>
+                      </strong>
+                      .
+                    </li>
+                    <li>
+                      A full, collaborative, real-time synchronized{" "}
+                      <strong>
+                        <A href="/features/terminal">Linux Terminal</A>
+                      </strong>
+                      .
+                    </li>
+                    <li>
+                      A{" "}
+                      <strong>
+                        <A href="/features/x11">
+                          virtual X11 graphical Linux desktop
+                        </A>
+                      </strong>
+                      .
+                    </li>
+                  </ul>
+                </Paragraph>
+
+                <Title level={2}>Packages</Title>
+                <Paragraph>
                   Browse a{" "}
                   <A href="/software/octave">
                     list of all installed Octave packages...
                   </A>
-                </div>
+                </Paragraph>
               </>
             }
             col2={
               <>
-                <h3>Benefits of working online</h3>
-                <ul>
-                  <li>
-                    You no longer have to <strong>install and maintain</strong>{" "}
-                    Octave. In particular when you're{" "}
-                    <A href="/features/teaching">teaching a class</A>, students
-                    just have to sign in to CoCalc to get started!
-                  </li>
-                  <li>
-                    All your files are private, stored persistently, snapshotted
-                    and backed up.
-                  </li>
-                  <li>
-                    You can invite <strong>collaborators</strong> to your
-                    project to simultaneously edit the same files.
-                  </li>
-                  <li>
-                    Everything runs remotely, which means you do not have to
-                    worry about messing up your own computer.{" "}
-                  </li>
-                </ul>
+                <Title level={3}>Benefits of working online</Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      You no longer have to{" "}
+                      <strong>install and maintain</strong> Octave. In
+                      particular when you're{" "}
+                      <A href="/features/teaching">teaching a class</A>,
+                      students just have to sign in to CoCalc to get started!
+                    </li>
+                    <li>
+                      All your files are private, stored persistently,
+                      snapshotted and backed up.
+                    </li>
+                    <li>
+                      You can invite <strong>collaborators</strong> to your
+                      project to simultaneously edit the same files.
+                    </li>
+                    <li>
+                      Everything runs remotely, which means you do not have to
+                      worry about messing up your own computer.{" "}
+                    </li>
+                  </ul>
+                </Paragraph>
               </>
             }
           />
@@ -135,30 +143,32 @@ export default function Octave({ customize }) {
             anchor="a-jupyter"
             alt="Using Octave in a Jupyter notebook"
           >
-            <p>
+            <Paragraph>
               CoCalc offers its own Jupyter Notebook implementation. It has a
               few key advantages.
-            </p>
-            <ol>
-              <li>
-                <strong>Realtime synchronization</strong>: two or more
-                collaborators can edit the same notebook at the same time.
-                Everyone sees what others are typing.
-              </li>
-              <li>
-                <strong>Remote session</strong>: the notebook's kernel runs
-                remotely. This means you only need a web browser and Internet
-                access. Don't worry about software setup.
-              </li>
-              <li>
-                If you depend on using the classical Jupyter notebook or
-                JupyterLab, it is also very easy to{" "}
-                <A href="https://doc.cocalc.com/jupyter.html#alternatives-plain-jupyter-server-and-jupyterlab-server">
-                  use Octave via these services as well
-                </A>
-                .
-              </li>
-            </ol>
+            </Paragraph>
+            <Paragraph>
+              <ol>
+                <li>
+                  <strong>Realtime synchronization</strong>: two or more
+                  collaborators can edit the same notebook at the same time.
+                  Everyone sees what others are typing.
+                </li>
+                <li>
+                  <strong>Remote session</strong>: the notebook's kernel runs
+                  remotely. This means you only need a web browser and Internet
+                  access. Don't worry about software setup.
+                </li>
+                <li>
+                  If you depend on using the classical Jupyter notebook or
+                  JupyterLab, it is also very easy to{" "}
+                  <A href="https://doc.cocalc.com/jupyter.html#alternatives-plain-jupyter-server-and-jupyterlab-server">
+                    use Octave via these services as well
+                  </A>
+                  .
+                </li>
+              </ol>
+            </Paragraph>
           </Info>
 
           <Info
@@ -169,19 +179,19 @@ export default function Octave({ customize }) {
             alt="Using Octave in a CoCalc terminal"
             caption="Octave in CoCalc's Terminal"
           >
-            <p>
+            <Paragraph>
               You can edit Octave code and run it in a Terminal as{" "}
               <A href="https://doc.cocalc.com/frame-editor.html">
                 explained here
               </A>
               .
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               File changes are tracked in detail via{" "}
               <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>:
               this means you can see the progress of your changes or see exactly
               what collaborators and students did when you weren't looking.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -192,16 +202,16 @@ export default function Octave({ customize }) {
             alt="Using the traditional Octave GUI via X11"
             wide
           >
-            <p>
+            <Paragraph>
               You can start Octave's GUI in a full remote desktop as{" "}
               <A href="https://doc.cocalc.com/x11.html">explained here</A>.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Accessing a full GUI app remotely adds latency, but you're freed
               from the limitations of a Terminal or Jupyter Notebook. Multiple
               people can interact with the graphical Octave app from different
               web browsers, though you're limited to one mouse cursor.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -213,15 +223,15 @@ export default function Octave({ customize }) {
             alt="Using a Terminal with Octave and X11 to draw an interactive 3D plot"
             wide
           >
-            <p>
+            <Paragraph>
               Run any graphical applications written for Octave in your web
               browser!
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               You can start Octave in the X11 graphical terminal. When you plot
               graphics they will appear in a window to the right. In the example
               in the screenshot, it is possible to grab and rotate the 3D plot.
-            </p>
+            </Paragraph>
           </Info>
 
           <Snapshots />

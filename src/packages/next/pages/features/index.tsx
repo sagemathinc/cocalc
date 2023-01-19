@@ -171,16 +171,15 @@ const dataSource = [
     ),
   },
   {
-    link: "/features/x11",
-    title: "Linux graphical X11 desktop",
-    logo: x11Logo,
+    link: "/features/terminal",
+    title: "Linux Terminal",
+    logo: terminalLogo,
     logoBackground: "white",
-    image: x11Screenshot,
+    image: terminalScreenshot,
     description: (
       <>
-        Run graphical applications in CoCalc's remote virtual desktop
-        environment. Read more in the{" "}
-        <A href="https://doc.cocalc.com/x11.html">X11 documentation</A>.
+        Work in a collaborative remote Linux shell. Read more in our{" "}
+        <A href="https://doc.cocalc.com/terminal.html">documentation</A>.
       </>
     ),
   },
@@ -200,19 +199,6 @@ const dataSource = [
     ),
   },
   {
-    link: "/features/terminal",
-    title: "Linux Terminal",
-    logo: terminalLogo,
-    logoBackground: "white",
-    image: terminalScreenshot,
-    description: (
-      <>
-        Work in a collaborative remote Linux shell. Read more in our{" "}
-        <A href="https://doc.cocalc.com/terminal.html">documentation</A>.
-      </>
-    ),
-  },
-  {
     link: "/features/teaching",
     title: "Teaching a Course",
     logo: teachingLogo,
@@ -226,6 +212,20 @@ const dataSource = [
           instructor guide
         </A>
         .
+      </>
+    ),
+  },
+  {
+    link: "/features/x11",
+    title: "Linux graphical X11 desktop",
+    logo: x11Logo,
+    logoBackground: "white",
+    image: x11Screenshot,
+    description: (
+      <>
+        Run graphical applications in CoCalc's remote virtual desktop
+        environment. Read more in the{" "}
+        <A href="https://doc.cocalc.com/x11.html">X11 documentation</A>.
       </>
     ),
   },

@@ -8,23 +8,24 @@ Edit a file using the CoCalc app.
 */
 
 import { Alert } from "antd";
-import { CSSProperties } from "react";
-import basePath from "lib/base-path";
-import editURL from "lib/share/edit-url";
 import { join } from "path";
-import IFrame from "./iframe";
-import useCustomize from "lib/use-customize";
+import { CSSProperties } from "react";
+
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import OpenAnonymously from "components/share/edit/open-anonymously";
+import basePath from "lib/base-path";
+import editURL from "lib/share/edit-url";
+import useCustomize from "lib/use-customize";
+import IFrame from "./iframe";
 
 interface Props {
-  project_id: string;
-  path?: string;
-  style?: CSSProperties;
-  fullscreen?: boolean;
-  embed?: boolean;
   description?: string;
+  embed?: boolean;
+  fullscreen?: boolean;
+  path?: string;
+  project_id: string;
   start?: boolean; // if true, immediately load editor rather than waiting for user to click a button.
+  style?: CSSProperties;
 }
 
 export default function Path(props: Props) {

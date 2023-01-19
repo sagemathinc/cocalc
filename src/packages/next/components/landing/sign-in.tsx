@@ -20,7 +20,7 @@ interface Props {
 
 const STYLE: CSSProperties = {
   textAlign: "center",
-  padding: "30px 15px",
+  padding: "30px 15px 15px 15px",
 } as const;
 
 export default function SignIn({ startup, hideFree, style }: Props) {
@@ -28,7 +28,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
   const router = useRouter();
   if (account != null) {
     return (
-      <div style={{ ...STYLE, ...style }}>
+      <Paragraph style={{ ...STYLE, ...style }}>
         <A
           className="ant-btn"
           href={join(basePath, "projects")}
@@ -38,7 +38,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
         >
           View Your {siteName} Projects...
         </A>
-      </div>
+      </Paragraph>
     );
   }
   return (
@@ -73,7 +73,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
         Sign Up
       </Button>
       {!hideFree && (
-        <div style={{ padding: "15px 0 30px 0" }}>
+        <div style={{ padding: "15px 0 0 0" }}>
           Start free today. Upgrade later.
         </div>
       )}

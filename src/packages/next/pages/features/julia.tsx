@@ -16,6 +16,7 @@ import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -60,73 +61,80 @@ export default function Julia({ customize }) {
           <Pitch
             col1={
               <>
-                <h3>
+                <Title level={2}>
                   <Icon name="julia" /> Run{" "}
                   <A href="https://julialang.org/">Julia</A> on CoCalc
-                </h3>
-                <ul>
-                  <li>
-                    Use CoCalc's own realtime collaborative{" "}
-                    <strong>
-                      <A href="/features/jupyter-notebook">Jupyter Notebooks</A>
-                    </strong>
-                    .
-                  </li>
-                  <li>
-                    Use Julia from the collaborative,{" "}
-                    <strong>
-                      <A href="/features/terminal">Linux Terminal</A>
-                    </strong>{" "}
-                    or{" "}
-                    <A href="/features/x11">
-                      virtual X11 graphical Linux desktop
-                    </A>
-                    .
-                  </li>
-                  <li>
-                    Easily launch a{" "}
-                    <A href="https://doc.cocalc.com/howto/pluto.html">
-                      Pluto.jl notebook server
-                    </A>{" "}
-                    in your CoCalc project.
-                  </li>
-                </ul>
-                <br />
-                <h3>Packages</h3>
-                <div>
+                </Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      Use CoCalc's own realtime collaborative{" "}
+                      <strong>
+                        <A href="/features/jupyter-notebook">
+                          Jupyter Notebooks
+                        </A>
+                      </strong>
+                      .
+                    </li>
+                    <li>
+                      Use Julia from the collaborative,{" "}
+                      <strong>
+                        <A href="/features/terminal">Linux Terminal</A>
+                      </strong>{" "}
+                      or{" "}
+                      <A href="/features/x11">
+                        virtual X11 graphical Linux desktop
+                      </A>
+                      .
+                    </li>
+                    <li>
+                      Easily launch a{" "}
+                      <A href="https://doc.cocalc.com/howto/pluto.html">
+                        Pluto.jl notebook server
+                      </A>{" "}
+                      in your CoCalc project.
+                    </li>
+                  </ul>
+                </Paragraph>
+
+                <Title level={2}>Packages</Title>
+                <Paragraph>
                   CoCalc includes over 500{" "}
                   <A href="/software/julia">pre-installed Julia packages,</A>{" "}
                   and if something is missing you can{" "}
                   <A href="https://doc.cocalc.com/howto/install-julia-package.html">
                     easily install more packages.
                   </A>
-                </div>
+                </Paragraph>
               </>
             }
             col2={
               <>
-                <h3>Benefits of working with Julia online</h3>
-                <ul>
-                  <li>
-                    You no longer have to <strong>install and maintain</strong>{" "}
-                    Julia. In particular when you're{" "}
-                    <A href="/features/teaching">teaching a class</A>, students
-                    just have to sign in to CoCalc to get started!
-                  </li>
-                  <li>
-                    All your files are private, stored persistently, snapshotted
-                    and backed up.
-                  </li>
-                  <li>
-                    You can invite <strong>collaborators</strong> to your
-                    project to simultaneously edit the same notebooks or code
-                    files.
-                  </li>
-                  <li>
-                    Everything runs remotely, which means you do not have to
-                    worry about messing up your own computer.{" "}
-                  </li>
-                </ul>
+                <Title level={2}>Benefits of working with Julia online</Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      You no longer have to{" "}
+                      <strong>install and maintain</strong> Julia. In particular
+                      when you're{" "}
+                      <A href="/features/teaching">teaching a class</A>,
+                      students just have to sign in to CoCalc to get started!
+                    </li>
+                    <li>
+                      All your files are private, stored persistently,
+                      snapshotted and backed up.
+                    </li>
+                    <li>
+                      You can invite <strong>collaborators</strong> to your
+                      project to simultaneously edit the same notebooks or code
+                      files.
+                    </li>
+                    <li>
+                      Everything runs remotely, which means you do not have to
+                      worry about messing up your own computer.{" "}
+                    </li>
+                  </ul>
+                </Paragraph>
               </>
             }
           />
@@ -159,15 +167,16 @@ export default function Julia({ customize }) {
             image={plutoScreenshot}
             alt={"A screenshot of the Pluto notebook."}
             anchor="pluto"
+            wide
           >
-            <p>
+            <Paragraph>
               You can use the{" "}
               <A href="https://doc.cocalc.com/howto/pluto.html">
                 Pluto.jl notebook server
               </A>{" "}
               in any CoCalc project. Pluto is an open source lightweight and
               reactive notebook written in Julia.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -176,7 +185,7 @@ export default function Julia({ customize }) {
             alt={"A screenshot using nbgrader with Julia."}
             anchor="nbgrader"
           >
-            <p>
+            <Paragraph>
               CoCalc's{" "}
               <A href="/features/teaching">
                 integrated course management system
@@ -186,14 +195,14 @@ export default function Julia({ customize }) {
                 using nbgrader together with Julia
               </A>{" "}
               Jupyter Notebooks.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               We provide custom Julia templates for all the nbgrader cell types.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Tests run in the student's project, so malicious code won't impact
               anybody except the student.
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -202,17 +211,17 @@ export default function Julia({ customize }) {
             alt={"A screenshot involving Julia code, a terminal, and chat."}
             anchor="code"
           >
-            <p>
+            <Paragraph>
               CoCalc includes a realtime collaborative Julia code editor with
               syntax highlighting and code folding.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               You can also run Julia code in a terminal side-by-side the .jl
               file you are editing.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               In addition, you can chat with other CoCalc users about your code.
-            </p>
+            </Paragraph>
           </Info>
 
           <Snapshots />

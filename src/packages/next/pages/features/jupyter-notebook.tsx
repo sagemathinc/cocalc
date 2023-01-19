@@ -17,11 +17,11 @@ import Info from "components/landing/info";
 import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-import { Paragraph, Title } from "components/misc";
 import JupyterChat from "/public/features/cocalc-chat-jupyter-20171120-2.png";
 import JupyterKernels from "/public/features/cocalc-jupyter-kernels.png";
 import Nbgrader from "/public/features/cocalc-jupyter-nbgrader-overview.png";

@@ -203,9 +203,13 @@ export default function Header(props: Props) {
           </>
         )}
       </Layout.Header>
-      {page && (page === "software" || landingPages || imprintOrPolicies) && (
-        <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      )}
+      {page &&
+        (page === "software" ||
+          page === "features" ||
+          landingPages ||
+          imprintOrPolicies) && (
+          <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
+        )}
     </>
   );
 }

@@ -115,17 +115,21 @@ export default function Content(props: Props) {
   }
 
   function renderAboveImage() {
-    return aboveImage != null
-      ? aboveImage
-      : sandboxProjectId && (
-          <div style={{ margin: "15px" }}>
-            <Path
-              style={{ marginBottom: "15px" }}
-              project_id={sandboxProjectId}
-              description="Public Sandbox"
-            />
-          </div>
-        );
+    if (aboveImage != null) return aboveImage;
+  }
+
+  function renderBelowImage() {
+    if (aboveImage == null && sandboxProjectId) {
+      return (
+        <div style={{ margin: "15px" }}>
+          <Path
+            style={{ marginBottom: "15px" }}
+            project_id={sandboxProjectId}
+            description="Public Sandbox"
+          />
+        </div>
+      );
+    }
   }
 
   return (
@@ -158,6 +162,7 @@ export default function Content(props: Props) {
         <Col sm={14} xs={24}>
           {renderAboveImage()}
           {renderImage()}
+          {renderBelowImage()}
         </Col>
         {renderSubtitleBelow()}
       </Row>
