@@ -120,6 +120,16 @@ export const License: React.FC<Props> = (props: Props) => {
         </Row>
       );
     }
+    if (typeof edits?.size === "number" && edits.size > 0) {
+      const id = license.get("id");
+      v.push(
+        <Row key="save" style={{ borderTop: "1px solid lightgrey" }}>
+          <Col span={24} style={{ textAlign: "right" }}>
+            {render_save_cancel(id)}
+          </Col>
+        </Row>
+      );
+    }
     return v;
   }
 
@@ -507,25 +517,29 @@ export const License: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_save_cancel(id): JSX.Element {
+    return (
+      <>
+        <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
+          Cancel
+        </Button>
+        <Space />
+        <Button
+          disabled={edits == null || edits.size <= 1 || saving}
+          bsStyle="success"
+          onClick={() => actions.save_editing(id)}
+        >
+          <Icon name={"save"} /> {saving ? "Saving..." : "Save"}
+        </Button>
+      </>
+    );
+  }
+
   function render_buttons(): Rendered {
     let buttons;
     const id = license.get("id");
     if (editing) {
-      buttons = (
-        <>
-          <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
-            Cancel
-          </Button>
-          <Space />
-          <Button
-            disabled={edits == null || edits.size <= 1 || saving}
-            bsStyle="success"
-            onClick={() => actions.save_editing(id)}
-          >
-            <Icon name={"save"} /> {saving ? "Saving..." : "Save"}
-          </Button>
-        </>
-      );
+      buttons = render_save_cancel(id);
     } else {
       buttons = (
         <Button bsStyle={"primary"} onClick={() => actions.start_editing(id)}>

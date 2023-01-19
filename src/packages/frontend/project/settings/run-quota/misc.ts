@@ -12,6 +12,7 @@ export const QUOTAS_BOOLEAN = [
   "member_host",
   "network",
   "always_running",
+  "ext_rw",
 ] as const;
 
 export const SHOW_MAX: readonly string[] = [
@@ -54,4 +55,3 @@ export function booleanValueStr(quota) {
     return "N/A";
   }
 }
-
