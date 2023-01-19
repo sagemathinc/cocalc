@@ -3,20 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
+
+import { COLORS } from "@cocalc/util/theme";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
+import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
+import Error from "next/error";
 import { useRouter } from "next/router";
 import HowUsed from "./how-used";
 import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
 import Menu from "./menu";
 import Overview from "./overview";
-import { MAX_WIDTH } from "lib/config";
-import Error from "next/error";
 
 const { Content } = Layout;
 
