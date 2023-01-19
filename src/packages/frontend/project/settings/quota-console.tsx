@@ -106,7 +106,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
 
   function render_quota_row(
     name: keyof QuotaParams,
-    quota: { edit: string; view: string },
+    quota: { edit: string; view: string } | undefined,
     base_value: number,
     upgrades: QuotaParams,
     params_data: {
@@ -117,6 +117,10 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     },
     site_license: number
   ): Rendered {
+    if (quota == null) {
+      // happens for cocalc-cloud only params
+      return;
+    }
     if (
       kucalc == KUCALC_DISABLED &&
       name != "mintime" &&

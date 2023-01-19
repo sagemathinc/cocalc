@@ -2274,7 +2274,7 @@ describe("cobine quota/patch with regular licenses", () => {
   });
 });
 
-describe("cobine ext_rw with regular licenses", () => {
+describe("combine ext_rw with regular licenses", () => {
   it("applies the license and the patch", () => {
     // NOTE: member is true vs. false, but ext_rw still applies
     const site_licenses: SiteLicenses = {
