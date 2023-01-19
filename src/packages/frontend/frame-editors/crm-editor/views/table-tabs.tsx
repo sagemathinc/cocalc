@@ -19,6 +19,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
 import { getTables } from "../tables";
 import { PlusOutlined } from "@ant-design/icons";
+import { Icon } from "@cocalc/frontend/components";
 
 interface TabItem {
   label: ReactNode;
@@ -29,10 +30,10 @@ interface TabItem {
 
 function Label({ table }) {
   const { width } = useItemContext();
-  const { title } = getTableDescription(table);
+  const { icon, title } = getTableDescription(table);
   return (
     <div style={{ width, overflow: "hidden", textOverflow: "ellipsis" }}>
-      {title}
+      {icon != null && <Icon name={icon} />} {title}
     </div>
   );
 }

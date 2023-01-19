@@ -12,7 +12,7 @@ extra things for all crm_ tables to ensure safety, e.g., ensuring admin.
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
-const ID = {
+export const ID = {
   type: "integer",
   desc: "Automatically generated sequential id that uniquely determines this row.",
   pg_type: "SERIAL UNIQUE",
@@ -53,12 +53,12 @@ const STATUS_FIELD = {
   },
 } as FieldSpec;
 
-const CREATED = {
+export const CREATED = {
   type: "timestamp",
   desc: "When the record was created.",
 } as FieldSpec;
 
-const LAST_EDITED = {
+export const LAST_EDITED = {
   type: "timestamp",
   desc: "When this record was last edited.",
 } as FieldSpec;

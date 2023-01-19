@@ -100,7 +100,7 @@ export function SortableTabs({
       Math.max(
         150,
         Math.min(250 + 65, (resize?.width ?? 0) / Math.max(1, items.length))
-      ) - 65; // the 55 accounts for the margin and x for an antd tab.
+      ) - 70; // the constant accounts for the margin and x for an antd tab.
     lastRef.current = {
       width: resize.width ?? 0,
       length: items.length,
