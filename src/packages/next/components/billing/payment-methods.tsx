@@ -18,6 +18,8 @@ import ReactDOM from "react-dom";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { cmp } from "@cocalc/util/misc";
 import salesTax from "@cocalc/util/stripe/sales-tax";
+import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import HelpEmail from "components/misc/help-email";
 import Loading from "components/share/loading";
@@ -27,8 +29,6 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import useCustomize from "lib/use-customize";
 import Script from "next/script";
-import { COLORS } from "@cocalc/util/theme";
-import { Paragraph } from "components/misc";
 
 const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
@@ -270,12 +270,14 @@ export default function PaymentMethods(props: Props) {
       )}
       {!startMinimized && (
         <>
-          <h3>Credit Cards ({cards.length})</h3>
-          {cards.length > 0 ? (
-            <>These are the credit cards that you have currently setup.</>
-          ) : (
-            <>Please enter your credit card below.</>
-          )}{" "}
+          <Title level={2}>Credit Cards ({cards.length})</Title>
+          <Paragraph>
+            {cards.length > 0 ? (
+              <>These are the credit cards that you have currently setup.</>
+            ) : (
+              <>Please enter your credit card below.</>
+            )}
+          </Paragraph>
         </>
       )}
       <AddPaymentMethod
