@@ -210,6 +210,15 @@ const PEOPLE = {
   },
 } as FieldSpec;
 
+const NOTES = {
+  type: "string",
+  desc: "Open ended text in markdown about this organization.",
+  render: {
+    type: "markdown",
+    editable: true,
+  },
+} as FieldSpec;
+
 // TODO: add image -- probably want to use blob table (?) but maybe do like with projects. Not sure.
 Table({
   name: "crm_organizations",
@@ -242,14 +251,7 @@ Table({
       type: "boolean",
       desc: "True if this org has been deleted.",
     },
-    notes: {
-      type: "string",
-      desc: "Open ended text in markdown about this organization.",
-      render: {
-        type: "markdown",
-        editable: true,
-      },
-    },
+    notes: NOTES,
     timezone: {
       type: "string",
       desc: "The organizations's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
@@ -642,6 +644,7 @@ Table({
       pg_type: "VARCHAR(30)",
       render: { type: "color", editable: true },
     },
+    notes: NOTES,
     created: CREATED,
     last_edited: LAST_EDITED,
     last_modified_by: LAST_MODIFIED_BY,
@@ -658,6 +661,7 @@ Table({
           name: null,
           icon: null,
           description: null,
+          notes: null,
           color: null,
           created: null,
           last_edited: null,
@@ -671,6 +675,7 @@ Table({
           name: true,
           icon: true,
           description: true,
+          notes: true,
           color: true,
           created: true,
           last_edited: true,

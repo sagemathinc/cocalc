@@ -17,6 +17,7 @@ register({
         icon: null,
         color: null,
         description: null,
+        notes: null,
         last_edited: null,
         last_modified_by: null,
         created: null,
