@@ -175,6 +175,16 @@ Table({
   },
 });
 
+const ORGANIZATIONS = {
+  type: "array",
+  pg_type: "INTEGER[]",
+  desc: "Zero or more organizations in the Organizations table",
+  render: {
+    type: "organizations",
+    editable: true,
+  },
+} as FieldSpec;
+
 const PERSON = {
   type: "integer",
   desc: "One person in the People table",
@@ -509,15 +519,12 @@ Table({
       },
     },
     priority: PRORITIES_FIELD,
-    related_to: {
-      type: "map",
-      desc: "Object {table:'...', id:number} describing one organization, deal,  lead, etc. that this tasks is related to.",
-    },
-    person: PERSON,
     support_ticket: {
       type: "integer",
       desc: "Support ticket that this task is connected to, if any.",
     },
+    people: PEOPLE,
+    organizations: ORGANIZATIONS,
     created_by: {
       type: "uuid",
       desc: "Account that created this task.",
@@ -558,8 +565,8 @@ Table({
           status: null,
           progress: null,
           priority: null,
-          related_to: null,
-          person: null,
+          people: null,
+          organizations: null,
           support_ticket: null,
           created_by: null,
           last_modified_by: null,
@@ -582,8 +589,8 @@ Table({
           status: true,
           progress: true,
           priority: true,
-          related_to: true,
-          person: true,
+          people: true,
+          organizations: null,
           support_ticket: true,
           created_by: true,
           last_modified_by: true,
