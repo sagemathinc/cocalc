@@ -5,6 +5,8 @@ register({
 
   title: "Public Paths",
 
+  icon: "bullhorn",
+
   query: {
     crm_public_paths: [
       {

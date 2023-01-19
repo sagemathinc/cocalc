@@ -64,10 +64,7 @@ export function Person({ id, inline }: { id: number; inline?: boolean }) {
       style={
         inline
           ? {
-              textOverflow: "ellipsis",
-              width: "200px",
               overflow: "auto",
-              whiteSpace: "nowrap",
               display: "inline-block",
             }
           : { padding: "5px", border: "1px solid #ddd" }

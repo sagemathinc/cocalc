@@ -5,6 +5,8 @@ register({
 
   title: "Accounts",
 
+  icon: "user",
+
   query: {
     crm_accounts: [
       {

@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "support-messages",
   title: "Support Messages",
+  icon: "support",
   query: {
     crm_support_messages: [
       {

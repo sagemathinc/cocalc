@@ -5,6 +5,8 @@ register({
 
   title: "Leads",
 
+  icon: "users",
+
   query: {
     crm_leads: [
       {

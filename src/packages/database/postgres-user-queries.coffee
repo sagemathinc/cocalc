@@ -1056,8 +1056,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         # Sanity check: make sure there is something in the query
         # that gets only things in this table that this user
-        # is allowed to see, or at least a check_hook.
-        if not r.client_query.get.pg_where? and not r.client_query.get.check_hook?
+        # is allowed to see, or at least a check_hook.  This is not required
+        # for admins.
+        if not r.client_query.get.pg_where? and not r.client_query.get.check_hook? and not r.require_admin
             return {err: "FATAL: user get query not allowed for #{opts.table} (no getAll filter - pg_where or check_hook)"}
 
         # Apply default options to the get query (don't impact changefeed)

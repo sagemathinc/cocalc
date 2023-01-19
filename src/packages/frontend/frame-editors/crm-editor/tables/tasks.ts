@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "tasks",
   title: "Tasks",
+  icon: "tasks",
   query: {
     crm_tasks: [
       {
@@ -16,8 +17,8 @@ register({
         last_edited: null,
         status: null,
         priority: null,
-        related_to: null,
-        person: null,
+        people: null,
+        organizations: null,
         support_ticket: null,
         created_by: null,
         created: null,

@@ -50,6 +50,7 @@ import "./system-notifications";
 import "./syncstring-schema";
 import "./tracking";
 import "./usage-info";
+import "./vouchers";
 import "./webapp-errors";
 import "./site-whitelabeling";
 
