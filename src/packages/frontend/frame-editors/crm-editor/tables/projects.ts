@@ -5,6 +5,8 @@ register({
 
   title: "Projects",
 
+  icon: "pencil",
+
   query: {
     crm_projects: [
       {

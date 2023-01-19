@@ -29,7 +29,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Space } from "@cocalc/frontend/components";
+import { A, Space } from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
@@ -44,9 +44,13 @@ import {
 } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round1 } from "@cocalc/util/misc";
+import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
+import Paragraph from "antd/es/typography/Paragraph";
+import { JsonEditor } from "../../admin/json-editor";
+
+const { Text } = Typography;
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -93,6 +97,10 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
+  const [jsonPatchError, setJSONPatchError] = useState<string | undefined>(
+    undefined
+  );
+
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
@@ -244,7 +252,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             value={quota.dedicated_cpu}
             onChange={(x) => {
               if (typeof x != "number") return;
-              onChange({ dedicated_cpu: round1(x) });
+              if (x <= 0) {
+                onChange({ dedicated_cpu: undefined });
+              } else {
+                onChange({ dedicated_cpu: round1(x) });
+              }
             }}
           />
           <Space />
@@ -293,7 +305,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             value={quota.dedicated_ram}
             onChange={(x) => {
               if (typeof x != "number") return;
-              onChange({ dedicated_ram: Math.round(x) });
+              if (x <= 0) {
+                onChange({ dedicated_ram: undefined });
+              } else {
+                onChange({ dedicated_ram: round1(x) });
+              }
             }}
           />
           <Space />
@@ -408,10 +424,51 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <Checkbox
             checked={quota.ext_rw}
             disabled={disabled}
+            style={{ fontWeight: "normal" }}
             onChange={(e) => onChange({ ext_rw: e.target.checked })}
           >
-            on-premises: mount <code>/ext</code> read/writeable
+            on-premises: mount <code>/ext</code> volume read/writeable (intended
+            for instructors/administrators)
           </Checkbox>
+        </Col>
+      </Row>
+    );
+  }
+
+  function on_json_patch_change(patch: string): void {
+    try {
+      const patchObj = JSON.parse(patch);
+      setJSONPatchError(undefined);
+      if (test_valid_jsonpatch(patchObj)) {
+        onChange({ patch }); // we save the string, not the object!
+      } else {
+        setJSONPatchError(
+          'Must be a list of {`[{"op": "replace", "path": "…", "value": "…"}, …]`} objects.'
+        );
+      }
+    } catch (err) {
+      setJSONPatchError(`Unable to parse JSON: ${err}`);
+    }
+  }
+
+  function render_patch_project_pod(): JSX.Element {
+    const value = quota.patch ?? "[]";
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control}>
+          <Paragraph type="secondary">
+            Define a list of <A href={"https://jsonpatch.com/"}>JSON Patch</A>{" "}
+            operations for the generated project pod specification. They'll be
+            applied right before being submitted to the Kubernetes API. Beware,
+            this gives you a lot of power!
+          </Paragraph>
+          {jsonPatchError && (
+            <Text type="danger">
+              JSON Patch Error: {jsonPatchError} – Learn more at{" "}
+              <A href="https://jsonpatch.com/">JSON Patch</A>.
+            </Text>
+          )}
+          <JsonEditor rows={15} onSave={on_json_patch_change} value={value} />
         </Col>
       </Row>
     );
@@ -568,7 +625,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <div>
+    <>
       {render_cpu()}
       {render_ram()}
       {render_disk()}
@@ -580,7 +637,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && render_dedicated_cpu()}
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
-      {isOnPrem && render_ext_rw()}
-    </div>
+      {show_advanced && isOnPrem && render_ext_rw()}
+      {show_advanced && isOnPrem && render_patch_project_pod()}
+    </>
   );
 };

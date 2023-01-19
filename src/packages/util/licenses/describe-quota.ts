@@ -10,6 +10,7 @@ import {
 } from "../consts/site-license";
 import { capitalize, plural } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
+import { loadPatch } from "../upgrades/quota";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
 import { PurchaseInfo } from "./purchase/types";
 
@@ -95,10 +96,24 @@ export function describe_quota(
     intro = short ? "License" : "License providing";
   }
 
-  if (quota.ram) {
+  // If onPremQuota becomes true, we only want to show non-trivial upgrades in the license description. Why?
+  // Usually, upgrades to quotas are provided by other licenses, not the ones that provide on-prem modifications.
+  let onPremQuota = false;
+  if (quota.ext_rw) {
+    onPremQuota = true;
+    v.push("read/write access to global files");
+  }
+  if (typeof quota.patch === "string" && quota.patch.length > 0) {
+    onPremQuota = true;
+    const n = loadPatch(quota.patch).length;
+    v.push(`${n} deployment ${plural(n, "patch", "patches")}`);
+  }
+  hideNetwork ||= onPremQuota;
+
+  if (onPremQuota ? (quota.ram ?? 1) > 2 : quota.ram) {
     v.push(`${quota.ram}G RAM`);
   }
-  if (quota.cpu) {
+  if (onPremQuota ? (quota.cpu ?? 1) > 1 : quota.cpu) {
     v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
   }
   if (quota.disk) {
@@ -142,7 +157,7 @@ export function describe_quota(
   } else {
     if (quota.idle_timeout != null) {
       const it = LicenseIdleTimeouts[quota.idle_timeout];
-      if (it != null) {
+      if (it != null && (onPremQuota ? quota.idle_timeout != "short" : true)) {
         v.push(`${it.label} timeout`);
       }
     }

@@ -4,14 +4,17 @@
  */
 
 import { PoweroffOutlined } from "@ant-design/icons";
-import { React, useTypedRedux, useMemo } from "@cocalc/frontend/app-framework";
+import { Table, Typography } from "antd";
+
+import { React, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { plural } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { DedicatedResources } from "@cocalc/util/types/dedicated";
 import { upgrade2quota_key, Upgrades } from "@cocalc/util/upgrades/quota";
-import { Table, Typography } from "antd";
 import { Project } from "../types";
 import { renderBoolean } from "./components";
 import {
@@ -47,7 +50,8 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const projectIsRunning = project_state === "running";
   //const projectStatus = project.get("status");
   const currentUsage = useCurrentUsage({ project_id });
-  const is_commercial = useTypedRedux("customize", "is_commercial");
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const cocalcCom = kucalc === KUCALC_COCALC_COM;
   const runQuota = useRunQuota(project_id, null);
   const maxUpgrades = useMaxUpgrades();
   const displayedFields = useDisplayedFields();
@@ -140,9 +144,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       case "memory_limit":
       case "cpu_limit":
       case "cpu_request":
-        return is_commercial ? dedicatedVM : <></>;
+        return cocalcCom ? dedicatedVM : <></>;
       case "disk_quota":
-        return is_commercial ? dedicatedDisk : <></>;
+        return cocalcCom ? dedicatedDisk : <></>;
       case "idle_timeout":
         // special case: if we have always running, don't tell the user to increase idle timeout (stupid)
         return record.quota != INFINITY_CHAR ? idleTimeoutInfo : <></>;
@@ -155,6 +159,14 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     const { key, quota, quotaDedicated, usage } = record;
     if (QUOTAS_BOOLEAN.includes(key as any)) {
       return `This quota is ${booleanValueStr(quota)}.`;
+    } else if (key === "patch") {
+      return usage != null
+        ? `There are ${usage.display} ${plural(
+            usage.display,
+            "patch",
+            "patches"
+          )} in total.`
+        : ``;
     } else {
       const curStr =
         usage != null
@@ -205,6 +217,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
     if (!projectIsRunning) return;
     // the usage of a boolean quota is always the same as its value
     if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
+    if (record.key === "patch") return;
     const usage: Usage = record.usage;
     if (usage == null) return;
     const { element } = usage;
@@ -231,6 +244,8 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       if (record.key === "idle_timeout") {
         return val;
       }
+    } else if (Array.isArray(val)) {
+      return val.length;
     } else {
       return (
         <Text strong={true} style={style}>

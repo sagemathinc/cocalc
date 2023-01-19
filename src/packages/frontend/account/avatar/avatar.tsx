@@ -4,8 +4,7 @@
  */
 
 import { Tooltip } from "antd";
-import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
+
 import {
   CSS,
   React,
@@ -13,22 +12,24 @@ import {
   useAsyncEffect,
   useState,
   useTypedRedux,
-} from "../../app-framework";
-import { Space } from "../../components";
+} from "@cocalc/frontend/app-framework";
+import { Space } from "@cocalc/frontend/components";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
-import { ProjectTitle } from "../../projects/project-title";
-import { DEFAULT_COLOR } from "../../users/store";
 
-const CIRCLE_OUTER_STYLE = {
+const CIRCLE_OUTER_STYLE: CSS = {
   textAlign: "center",
   cursor: "pointer",
-} as CSS;
+} as const;
 
-const CIRCLE_INNER_STYLE = {
+const CIRCLE_INNER_STYLE: CSS = {
   display: "block",
   borderRadius: "50%",
   fontFamily: "sans-serif",
-} as CSS;
+} as const;
 
 interface Props {
   account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet)

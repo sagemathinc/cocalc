@@ -2,7 +2,7 @@ import { register } from "./tables";
 
 register({
   name: "shopping-cart-items",
-  title: "Shopping",
+  title: "Shopping Cart Items",
   icon: "shopping-cart",
   query: {
     crm_shopping_cart_items: [

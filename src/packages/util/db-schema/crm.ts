@@ -12,7 +12,7 @@ extra things for all crm_ tables to ensure safety, e.g., ensuring admin.
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
-const ID = {
+export const ID = {
   type: "integer",
   desc: "Automatically generated sequential id that uniquely determines this row.",
   pg_type: "SERIAL UNIQUE",
@@ -53,12 +53,12 @@ const STATUS_FIELD = {
   },
 } as FieldSpec;
 
-const CREATED = {
+export const CREATED = {
   type: "timestamp",
   desc: "When the record was created.",
 } as FieldSpec;
 
-const LAST_EDITED = {
+export const LAST_EDITED = {
   type: "timestamp",
   desc: "When this record was last edited.",
 } as FieldSpec;
@@ -175,6 +175,22 @@ Table({
   },
 });
 
+const ORGANIZATIONS = {
+  type: "array",
+  pg_type: "INTEGER[]",
+  desc: "Zero or more organizations in the Organizations table",
+  render: {
+    type: "organizations",
+    editable: true,
+  },
+} as FieldSpec;
+
+export const CREATED_BY = {
+  type: "uuid",
+  desc: "Account that created this record.",
+  render: { type: "account" },
+} as FieldSpec;
+
 const PERSON = {
   type: "integer",
   desc: "One person in the People table",
@@ -190,6 +206,15 @@ const PEOPLE = {
   desc: "Array of 0 or more people in the People table that are connected with this",
   render: {
     type: "people",
+    editable: true,
+  },
+} as FieldSpec;
+
+const NOTES = {
+  type: "string",
+  desc: "Open ended text in markdown about this organization.",
+  render: {
+    type: "markdown",
     editable: true,
   },
 } as FieldSpec;
@@ -226,14 +251,7 @@ Table({
       type: "boolean",
       desc: "True if this org has been deleted.",
     },
-    notes: {
-      type: "string",
-      desc: "Open ended text in markdown about this organization.",
-      render: {
-        type: "markdown",
-        editable: true,
-      },
-    },
+    notes: NOTES,
     timezone: {
       type: "string",
       desc: "The organizations's time zone, e.g., 'Europe/Paris' or 'US/Pacific'.",
@@ -509,20 +527,13 @@ Table({
       },
     },
     priority: PRORITIES_FIELD,
-    related_to: {
-      type: "map",
-      desc: "Object {table:'...', id:number} describing one organization, deal,  lead, etc. that this tasks is related to.",
-    },
-    person: PERSON,
     support_ticket: {
       type: "integer",
       desc: "Support ticket that this task is connected to, if any.",
     },
-    created_by: {
-      type: "uuid",
-      desc: "Account that created this task.",
-      render: { type: "account" },
-    },
+    people: PEOPLE,
+    organizations: ORGANIZATIONS,
+    created_by: CREATED_BY,
     last_modified_by: LAST_MODIFIED_BY,
     assignee: ASSIGNEE,
     cc: {
@@ -558,8 +569,8 @@ Table({
           status: null,
           progress: null,
           priority: null,
-          related_to: null,
-          person: null,
+          people: null,
+          organizations: null,
           support_ticket: null,
           created_by: null,
           last_modified_by: null,
@@ -582,8 +593,8 @@ Table({
           status: true,
           progress: true,
           priority: true,
-          related_to: true,
-          person: true,
+          people: true,
+          organizations: null,
           support_ticket: true,
           created_by: true,
           last_modified_by: true,
@@ -633,6 +644,7 @@ Table({
       pg_type: "VARCHAR(30)",
       render: { type: "color", editable: true },
     },
+    notes: NOTES,
     created: CREATED,
     last_edited: LAST_EDITED,
     last_modified_by: LAST_MODIFIED_BY,
@@ -649,6 +661,7 @@ Table({
           name: null,
           icon: null,
           description: null,
+          notes: null,
           color: null,
           created: null,
           last_edited: null,
@@ -662,6 +675,7 @@ Table({
           name: true,
           icon: true,
           description: true,
+          notes: true,
           color: true,
           created: true,
           last_edited: true,

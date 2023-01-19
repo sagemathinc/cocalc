@@ -11,10 +11,12 @@ import {
   renderTabBar,
   SortableTabs,
   useSortable,
+  useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { path_to_tab } from "@cocalc/util/misc";
 
 function Label({ path, project_id, label }) {
+  const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
   return (
     <FileTab
@@ -23,6 +25,7 @@ function Label({ path, project_id, label }) {
       path={path}
       label={label}
       noPopover={active != null}
+      style={width != null ? { width } : undefined}
     />
   );
 }
@@ -44,8 +47,10 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
     paths.push(path);
   });
+
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
+
   for (let index = 0; index < labels.length; index++) {
     items.push({
       key: paths[index],

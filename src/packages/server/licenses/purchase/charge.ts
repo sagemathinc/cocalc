@@ -231,31 +231,52 @@ async function stripePurchaseProduct(
 
   // coupons are only for quota license upgrades, not dedicated VMs
   if (info.type === "quota") {
+    logger.debug("stripePurchaseProduct -- applying coupon");
     const coupon = await getSelfServiceDiscountCoupon(conn);
     await conn.customers.update(customer, { coupon });
   }
 
   const invoice_id = (await conn.invoices.create(options)).id;
+  logger.debug("stripePurchaseProduct -- finalizeInvoice");
   await conn.invoices.finalizeInvoice(invoice_id, {
     auto_advance: true,
   });
-  const invoice = await conn.invoices.pay(invoice_id, {
-    payment_method: info.payment_method,
-  });
-  if (info.type === "quota") {
-    // remove coupon so it isn't automatically applied
-    await conn.customers.deleteDiscount(customer);
-  }
-  await stripe.update_database();
-  if (!invoice.paid) {
-    // We void it so user doesn't get charged later.  Of course,
-    // we plan to rewrite this to keep trying and once they pay it
-    // somehow, then they get their license.  But that's a TODO!
-    await conn.invoices.voidInvoice(invoice_id);
-    throw Error(
-      "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
+  logger.debug("stripePurchaseProduct -- pay invoice");
+  try {
+    const invoice = await conn.invoices.pay(invoice_id, {
+      payment_method: info.payment_method,
+    });
+    logger.debug("stripePurchaseProduct -- paid = ", invoice.paid);
+    if (info.type === "quota") {
+      logger.debug("stripePurchaseProduct -- remove discount from customer");
+      // remove coupon so it isn't automatically applied
+      await conn.customers.deleteDiscount(customer);
+    }
+
+    if (!invoice.paid) {
+      logger.debug(
+        "stripePurchaseProduct -- invoice failed to be paid, so cancel"
+      );
+      // We void it so user doesn't get charged later.  Of course,
+      // we plan to rewrite this to keep trying and once they pay it
+      // somehow, then they get their license.  But that's a TODO!
+      await conn.invoices.voidInvoice(invoice_id);
+      throw Error(
+        "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
+      );
+    }
+  } catch (err) {
+    logger.debug(
+      "stripePurchaseProduct -- error paying invoice, so voiding it"
     );
+    await conn.invoices.voidInvoice(invoice_id);
+    throw err;
   }
+  logger.debug(
+    "stripePurchaseProduct -- update info about user in our database"
+  );
+  await stripe.update_database();
+
   return { type: "invoice", id: invoice_id };
 }
 

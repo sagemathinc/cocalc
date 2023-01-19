@@ -80,6 +80,7 @@ export interface Config {
   readonly clearable?: boolean; // default false
   readonly multiline?: number;
   readonly cocalc_only?: boolean; // only for use on cocalc.com (or subdomains)
+  readonly help?: string; // markdown formatted help text
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
@@ -173,6 +174,41 @@ const KUCALC_VALID_VALS = [
   KUCALC_DISABLED,
 ] as const;
 export type KucalcValues = typeof KUCALC_VALID_VALS[number];
+
+const DEFAULT_QUOTAS_HELP = `
+### Default quotas
+
+Define the default quotas for a project pod, and overcommitment factors if there are additional upgrades.
+
+| Name | Example | Unit | Description |
+| :--------- | :--------- | :----- | :----- |
+| idle_timeout | 3600 | seconds | after how many seconds of inactivity a project is stopped |
+| internet | true  | boolean  | if false, project pod is annotated in a way to disable network access |
+| mem  | 1000 | MB | shared memory limit |
+| cpu | 1  | Cores | shared CPU limit |
+| mem_oc | 5 | 1:N | Memory overcommitment factor, used to calculate the memory request unless explicilty given |
+| cpu_oc | 10 | 1:N | CPU overcommitment factor, used to calculate the cpu request unless explicilty given |
+`;
+
+const MAX_UPGRADES_HELP = `
+### Maximum Upgrades
+
+These are limits for the total upgrade of a project pod.
+
+| Name | Example | Unit | Description |
+| :--------- | :--------- | :----- | :----- |
+| memory | 16000 | MB | shared memory |
+| memory_request | 8000 | MB | requested memory, must be smaller than memory |
+| cores | 32 | cores | limit of cores
+| cpu_shares| 2048 | 1/1024th | fraction of a core for the cpu request limit |
+| mintime | 80000 | seconds | max idle timeout, unless always running is set
+| always_running | 1 | | 0 or 1 | if true, project pod is started automatically |
+| network | 1 | | 0 or 1  | network access |
+| disk_quota | | |  not applicable |
+| member_host | | | not applicable  |
+| ephemeral_state | | | not applicable |
+| ephemeral_disk | | | not applicable |
+`;
 
 const help_email_name = "Help email";
 const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
@@ -388,6 +424,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Default Quotas",
     desc: "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's `quota.ts` code",
     default: "{}",
+    help: DEFAULT_QUOTAS_HELP,
     show: only_onprem,
     to_val: from_json,
   },
@@ -395,6 +432,7 @@ export const site_settings_conf: SiteSettings = {
     name: "Maximum Quota Upgrades",
     desc: "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}",
+    help: MAX_UPGRADES_HELP,
     show: only_onprem,
     to_val: from_json,
   },

@@ -13,17 +13,29 @@ import Views from "./index";
 import {
   renderTabBar,
   SortableTabs,
+  useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
 import { getTables } from "../tables";
 import { PlusOutlined } from "@ant-design/icons";
+import { Icon } from "@cocalc/frontend/components";
 
 interface TabItem {
   label: ReactNode;
   key: string;
   children: ReactNode;
   style?: CSSProperties;
+}
+
+function Label({ table }) {
+  const { width } = useItemContext();
+  const { icon, title } = getTableDescription(table);
+  return (
+    <div style={{ width, overflow: "hidden", textOverflow: "ellipsis" }}>
+      {icon != null && <Icon name={icon} />} {title}
+    </div>
+  );
 }
 
 export default function TableTabs() {
@@ -34,9 +46,8 @@ export default function TableTabs() {
 
     for (const table of tables) {
       const children = <Views table={table} style={{ margin: "0px 15px" }} />;
-      const { title } = getTableDescription(table);
       items.push({
-        label: title,
+        label: <Label table={table} />,
         key: table,
         children,
         style: { height: "100%", overflow: "hidden" },
@@ -54,6 +65,7 @@ export default function TableTabs() {
 
   return (
     <SortableTabs
+      style={{ height: "100%" }}
       items={tables}
       onDragStart={(event) => {
         if (event?.active?.id != activeKey) {
@@ -110,7 +122,7 @@ function AddTable({ setAdding, tables, setTables }) {
       .sort()
       .filter((x) => !cur.has(x))
       .map((table) => {
-        return { value: table, label: getTableDescription(table).title };
+        return { value: table, label: <Label table={table} /> };
       });
   }, [tables]);
   const [value, setValue] = useState<string[]>([]);

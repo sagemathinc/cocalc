@@ -72,10 +72,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   },
 } as const;
 
-export const DEFAULT_FILE_TAB_STYLES = {
-  borderRadius: "5px 5px 0px 0px",
-} as const;
-
 interface Props0 {
   project_id: string;
   label?: string;
@@ -129,8 +125,8 @@ export function FileTab(props: Props) {
     }
   }
 
-  // middle mouse click closes
-  function onMouseDown(e) {
+  // middle mouse click closes – onMouseUp is important, because otherwise the clipboard buffer is inserted (on Linux)
+  function onMouseUp(e) {
     if (e.button === 1) {
       e.stopPropagation();
       e.preventDefault();
@@ -140,7 +136,7 @@ export function FileTab(props: Props) {
 
   let style: CSSProperties;
   if (path != null) {
-    style = DEFAULT_FILE_TAB_STYLES;
+    style = {};
   } else {
     // highlight info tab if there is at least one alert
     if (status_alert) {
@@ -173,7 +169,7 @@ export function FileTab(props: Props) {
       style={{ ...style, ...props.style }}
       cocalc-test={label}
       onClick={click}
-      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
     >
       <div
         style={{
@@ -205,7 +201,7 @@ export function FileTab(props: Props) {
       }
       content={
         <span style={{ color: COLORS.GRAY }}>
-          Hint: Shift-Click to open in new window.
+          Hint: Shift+click to open in new window.
         </span>
       }
       mouseEnterDelay={0.9}

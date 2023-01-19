@@ -61,10 +61,12 @@ Table({
     account_id: {
       type: "uuid",
       desc: "who",
+      render: { type: "account" },
     },
     event: {
       type: "map",
       desc: "what",
+      render: { type: "json" },
     },
   },
 });
@@ -84,3 +86,18 @@ schema.project_log_all.user_query.get.options = [
   { order_by: "-time" },
   { limit: 7500 },
 ];
+
+Table({
+  name: "crm_project_log",
+  rules: {
+    virtual: "project_log",
+    primary_key: "id",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        fields: schema.project_log.user_query?.get?.fields ?? {},
+      },
+    },
+  },
+  fields: schema.project_log.fields,
+});
