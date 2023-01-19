@@ -1,11 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Table } from "antd";
+
 import { HistoricCounts } from "@cocalc/util/db-schema/stats";
+import { Paragraph, Title } from "components/misc";
 import { ZEROS } from "./misc";
 
 interface Props {
   active: HistoricCounts;
   created: HistoricCounts;
   hubServers: { host: string; clients: number }[];
+  style?: React.CSSProperties;
 }
 
 const columns = [
@@ -24,20 +32,25 @@ function connectedUsers(hubServers): number {
   }
 }
 
-export default function ActiveUsers({ created, active, hubServers }: Props) {
+export default function ActiveUsers({
+  created,
+  active,
+  hubServers,
+  style,
+}: Props) {
   const rows = [
     { type: "In use", ...ZEROS, ...active },
     { type: "Created", ...ZEROS, ...created },
   ];
   return (
-    <div>
-      <h2>Connected Users: {connectedUsers(hubServers)}</h2>
-      <p>
+    <div style={style}>
+      <Title level={2}>Connected Users: {connectedUsers(hubServers)}</Title>
+      <Paragraph>
         There are {connectedUsers(hubServers)} users connected right now; of
         these {active["5min"]} actively edited a file in the last 5 minutes.
-        Track the number of users that were recently active or created new accounts
-        below.
-      </p>
+        Track the number of users that were recently active or created new
+        accounts below.
+      </Paragraph>
 
       <Table
         dataSource={rows}

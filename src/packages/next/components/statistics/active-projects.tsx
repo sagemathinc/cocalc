@@ -1,11 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Table } from "antd";
+
 import { HistoricCounts } from "@cocalc/util/db-schema/stats";
+import { Paragraph, Title } from "components/misc";
 import { ZEROS } from "./misc";
 
 interface Props {
   active: HistoricCounts;
   created: HistoricCounts;
   running: { free: number; member: number };
+  style?: React.CSSProperties;
 }
 
 const columns = [
@@ -17,19 +25,24 @@ const columns = [
   { title: "Month", dataIndex: "30d", key: "30d" },
 ];
 
-export default function ActiveProject({ created, active, running }: Props) {
+export default function ActiveProject({
+  created,
+  active,
+  running,
+  style,
+}: Props) {
   const rows = [
     { type: "Actively being used", ...ZEROS, ...active },
     { type: "Created", ...ZEROS, "5min": "-", ...created },
   ];
   return (
-    <div>
-      <h2>Running Projects: {running.free + running.member}</h2>
-      <p>
+    <div style={style}>
+      <Title level={2}>Running Projects: {running.free + running.member}</Title>
+      <Paragraph>
         There are {running.free + running.member} projects running right now.
-        Track the number of projects that were actively being used
-        and the number that were created below.
-      </p>
+        Track the number of projects that were actively being used and the
+        number that were created below.
+      </Paragraph>
       <Table
         dataSource={rows}
         columns={columns}

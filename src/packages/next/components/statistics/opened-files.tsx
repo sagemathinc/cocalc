@@ -1,10 +1,17 @@
-import { useMemo, useState } from "react";
-import { Stats } from "@cocalc/util/db-schema/stats";
-import A from "components/misc/A";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Switch, Table } from "antd";
-import { file_associations } from "@cocalc/frontend/file-associations";
+import { useMemo, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { file_associations } from "@cocalc/frontend/file-associations";
 import { cmp, field_cmp } from "@cocalc/util/cmp";
+import { Stats } from "@cocalc/util/db-schema/stats";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
 
 const openedFilesColumns = [
   {
@@ -145,8 +152,10 @@ function processFilesOpened(
 
 export default function OpenedFiles({
   filesOpened,
+  style,
 }: {
   filesOpened: Stats["files_opened"];
+  style?: React.CSSProperties;
 }) {
   const [distinct, setDistinct] = useState<boolean>(true);
   const { rows, lastHour } = useMemo(
@@ -155,17 +164,17 @@ export default function OpenedFiles({
   );
 
   return (
-    <div>
-      <div style={{ float: "right" }}>
+    <div style={style}>
+      <Paragraph style={{ float: "right" }}>
         <Switch checked={distinct} onChange={setDistinct} /> Distinct
-      </div>
-      <h2>
+      </Paragraph>
+      <Title level={2}>
         {distinct ? "Distinct " : ""}Files Used in the Last Hour: {lastHour}{" "}
-      </h2>
-      <p>
+      </Title>
+      <Paragraph>
         Track the number of {distinct ? "distinct" : ""} files of each type that
         people opened during the last hour, day, week and month.
-      </p>
+      </Paragraph>
       <Table
         dataSource={rows}
         columns={openedFilesColumns}
