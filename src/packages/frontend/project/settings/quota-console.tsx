@@ -125,8 +125,10 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     },
     site_license: number
   ): Rendered {
-    if (quota == null) return;
-
+    if (quota == null) {
+      // happens for cocalc-cloud only params
+      return;
+    }
     if (
       kucalc == KUCALC_DISABLED &&
       name != "mintime" &&
