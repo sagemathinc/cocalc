@@ -12,8 +12,9 @@ register({
       {
         id: null,
         code: null,
-        void: null,
         created: null,
+        created_by: null,
+        void: null,
       },
     ],
   },

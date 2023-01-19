@@ -2,8 +2,8 @@ import { register } from "./tables";
 
 register({
   name: "syncstrings",
-  title: "Synchronized Documents",
-  icon: "file",
+  title: "Sync Files",
+  icon: "files",
   query: {
     crm_syncstrings: [
       {

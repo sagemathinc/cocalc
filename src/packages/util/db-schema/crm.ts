@@ -185,6 +185,12 @@ const ORGANIZATIONS = {
   },
 } as FieldSpec;
 
+export const CREATED_BY = {
+  type: "uuid",
+  desc: "Account that created this record.",
+  render: { type: "account" },
+} as FieldSpec;
+
 const PERSON = {
   type: "integer",
   desc: "One person in the People table",
@@ -525,11 +531,7 @@ Table({
     },
     people: PEOPLE,
     organizations: ORGANIZATIONS,
-    created_by: {
-      type: "uuid",
-      desc: "Account that created this task.",
-      render: { type: "account" },
-    },
+    created_by: CREATED_BY,
     last_modified_by: LAST_MODIFIED_BY,
     assignee: ASSIGNEE,
     cc: {

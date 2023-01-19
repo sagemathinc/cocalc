@@ -1,5 +1,5 @@
 import { Table } from "./types";
-import { CREATED, ID } from "./crm";
+import { CREATED, CREATED_BY, ID } from "./crm";
 
 Table({
   name: "vouchers",
@@ -17,6 +17,7 @@ Table({
       },
     },
     created: CREATED,
+    created_by: CREATED_BY,
     void: {
       type: "boolean",
       desc: "True if this voucher was voided, so it can't be used.",
@@ -37,6 +38,7 @@ Table({
           id: null,
           code: null,
           created: null,
+          created_by: null,
           void: null,
         },
       },
@@ -46,6 +48,7 @@ Table({
           id: true,
           code: true,
           created: true,
+          created_by: true,
           void: true,
         },
       },
