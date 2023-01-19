@@ -338,14 +338,14 @@ export class StripeClient {
 
     const options = {
       customer: customer_id,
-      payment_behavior: "error_if_incomplete" as "error_if_incomplete", // see https://github.com/sagemathinc/cocalc/issues/5234
+      payment_behavior: "error_if_incomplete", // see https://github.com/sagemathinc/cocalc/issues/5234
       items: [{ quantity, plan }],
       coupon: mesg.coupon_id,
       cancel_at_period_end: schema.cancel_at_period_end,
       tax_percent: tax_percent
         ? Math.round(tax_percent * 100 * 100) / 100
         : undefined,
-    };
+    } as Stripe.SubscriptionCreateParams;
 
     dbg("add customer subscription to stripe");
     await (await getConn()).subscriptions.create(options);
