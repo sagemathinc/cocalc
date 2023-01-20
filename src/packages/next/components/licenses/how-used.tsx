@@ -1,18 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
-import Loading from "components/share/loading";
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Checkbox, Input, Popover, Table } from "antd";
-import SelectLicense from "./select-license";
+import { useEffect, useMemo, useState } from "react";
+
+import { capitalize, cmp, search_match, search_split } from "@cocalc/util/misc";
 import Avatar from "components/account/avatar";
-import { search_split, search_match } from "@cocalc/util/misc";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import apiPost from "lib/api/post";
-import { capitalize, cmp } from "@cocalc/util/misc";
-import editURL from "lib/share/edit-url";
-import { Details as License } from "./license";
-import { quotaColumn, Quota } from "./managed";
-import { useRouter } from "next/router";
 import Copyable from "components/misc/copyable";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import editURL from "lib/share/edit-url";
+import { useRouter } from "next/router";
+import { Details as License } from "./license";
 import { LastEdited } from "./licensed-projects";
+import { Quota, quotaColumn } from "./managed";
+import SelectLicense from "./select-license";
 
 function TitleId({ title, project_id, collaborators, account_id, label }) {
   return (
@@ -186,13 +192,15 @@ export default function HowLicenseUsed({ account_id }) {
 
   return (
     <div style={{ width: "100%", overflowX: "auto", minHeight: "50vh" }}>
-      <h3>How a License You Manage is Being Used</h3>
-      Select a license you manage to see how it is being used. You can see{" "}
-      <i>all</i> projects that have this license applied to them (even if you
-      are not a collaborator on them!), remove licenses from projects, and view
-      analytics about how the license has been used over time to better inform
-      your decision making.
-      <div style={{ margin: "15px 0", width: "100%", textAlign:'center' }}>
+      <Title level={2}>How a License You Manage is Being Used</Title>
+      <Paragraph>
+        Select a license you manage to see how it is being used. You can see{" "}
+        <i>all</i> projects that have this license applied to them (even if you
+        are not a collaborator on them!), remove licenses from projects, and
+        view analytics about how the license has been used over time to better
+        inform your decision making.
+      </Paragraph>
+      <div style={{ margin: "15px 0", width: "100%", textAlign: "center" }}>
         <SelectLicense
           disabled={loading}
           onSelect={(license_id) => {

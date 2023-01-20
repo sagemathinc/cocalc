@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
+
+import { capitalize } from "@cocalc/util/misc";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -13,7 +14,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 export default function Preferences({ customize, page }) {
-  const subpage = page[0] != null ? ` - ${capitalize(page[0])}` : "";
+  const subpage = page[0] != null ? ` – ${capitalize(page[0])}` : "";
 
   return (
     <Customize value={customize}>

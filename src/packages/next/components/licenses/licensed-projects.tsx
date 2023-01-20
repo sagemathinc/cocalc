@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useState } from "react";
+import { Alert, Input, Popover, Table } from "antd";
+
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
-import { Alert, Input, Popover, Table } from "antd";
 import editURL from "lib/share/edit-url";
 import A from "components/misc/A";
 import { cmp, keys } from "@cocalc/util/misc";
@@ -10,6 +16,7 @@ import { r_join } from "@cocalc/frontend/components/r_join";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
 import Timestamp from "components/misc/timestamp";
+import { Paragraph, Title as AntdTitle } from "components/misc";
 
 function Title({ title, project_id }) {
   return (
@@ -163,27 +170,29 @@ export default function LicensedProjects() {
     result = doSearch(result, search);
   }
   return (
-    <div>
-      <h3>Your Licensed Projects ({result.length})</h3>
-      These are the licensed projects that you are a collaborator on. You might
-      not be a manager of some of the licenses listed below. If you're teaching
-      a course, the student projects are likely hidden from your normal project
-      list, but are included below.
-      <div style={{ margin: "15px 0" }}>
+    <>
+      <AntdTitle level={2}>Your Licensed Projects ({result.length})</AntdTitle>
+      <Paragraph>
+        These are the licensed projects that you are a collaborator on. You
+        might not be a manager of some of the licenses listed below. If you're
+        teaching a course, the student projects are likely hidden from your
+        normal project list, but are included below.
+      </Paragraph>
+      <Paragraph style={{ margin: "15px 0" }}>
         <Input.Search
           placeholder="Search..."
           allowClear
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: "40ex" }}
         />
-      </div>
+      </Paragraph>
       <Table
         columns={columns}
         dataSource={result}
         rowKey={"project_id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-    </div>
+    </>
   );
 }
 

@@ -3,14 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import useAPI from "lib/hooks/api";
-import Loading from "components/share/loading";
 import { Alert, Table } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import { cmp, stripeAmount } from "@cocalc/util/misc";
 import License from "components/licenses/license";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
+import Loading from "components/share/loading";
+import useAPI from "lib/hooks/api";
 
 function Description({ hosted_invoice_url, lines, metadata }) {
   const license_id = metadata?.license_id ?? lines.data[0].metadata?.license_id;
@@ -108,9 +110,11 @@ export default function InvoicesAndReceipts() {
   }
   return (
     <div>
-      <h3>Invoices and Receipts</h3>
-      Your invoices and receipts are listed below. Click on the "Invoice" link
-      to get a printable invoice or receipt version.
+      <Title level={2}>Invoices and Receipts</Title>
+      <Paragraph style={{ marginBottom: "30px" }}>
+        Your invoices and receipts are listed below. Click on the "Invoice" link
+        to get a printable invoice or receipt version.
+      </Paragraph>
       <Table
         columns={columns as any}
         dataSource={result.data ?? []}

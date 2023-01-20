@@ -1,6 +1,7 @@
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { capitalize } from "@cocalc/util/misc";
 import { Alert, Popover, Progress } from "antd";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Copyable from "components/misc/copyable";
 import Timestamp from "components/misc/timestamp";
@@ -77,16 +78,16 @@ export function Details({
   return (
     <div>
       {(result.title || result.is_manager) && (
-        <div style={{ fontWeight: "bold", fontSize: "13pt" }}>
+        <Paragraph style={{ fontWeight: "bold", fontSize: "13pt" }}>
           {result.is_manager ? (
             <EditableTitle license_id={license_id} title={result.title} />
           ) : (
             "Title: " + result.title
           )}
-        </div>
+        </Paragraph>
       )}
       {(result.description || result.is_manager) && (
-        <div>
+        <Paragraph>
           {result.is_manager ? (
             <EditableDescription
               license_id={license_id}
@@ -95,22 +96,22 @@ export function Details({
           ) : (
             "Description: " + result.description
           )}
-        </div>
+        </Paragraph>
       )}
-      {result.managers != null && <div>You are a manager of this license.</div>}
-      <div>
+      {result.managers != null && <Paragraph>You are a manager of this license.</Paragraph>}
+      <Paragraph>
         <DateRange {...result} />
-      </div>
+      </Paragraph>
       {result.last_used != null && (
-        <div>
+        <Paragraph>
           Last used: <Timestamp epoch={result.last_used} />
-        </div>
+        </Paragraph>
       )}
-      <div>
+      <Paragraph>
         Quota: <Quota quota={result.quota} upgrades={result.upgrades} />
-      </div>
+      </Paragraph>
       {result.run_limit != null && (
-        <div style={{ width: "100%", display: "flex" }}>
+        <Paragraph style={{ width: "100%", display: "flex" }}>
           Run limit: {result.run_limit}
           {result.number_running != null
             ? `; Currently running: ${result.number_running}`
@@ -126,7 +127,7 @@ export function Details({
               )}
             />
           )}
-        </div>
+        </Paragraph>
       )}
       {result.is_manager && (
         <Copyable label="ID:" value={license_id} style={{ marginTop: "5px" }} />
