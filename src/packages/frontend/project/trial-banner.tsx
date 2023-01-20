@@ -82,20 +82,23 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     // when to show the more intimidating red banner:
     // after $ELEVATED_DAYS days
     // but not if there are already any licenses applied to the project
-    // and also if user manages at least one license
-    const elevated =
-      ageDays >= ELEVATED_DAYS &&
-      projectSiteLicenses.length === 0 &&
-      managedLicenses?.size === 0;
+    // or if user manages at least one license
+    const no_licenses =
+      projectSiteLicenses.length === 0 && managedLicenses?.size === 0;
+    const elevated = ageDays >= ELEVATED_DAYS && no_licenses;
+
     const style = elevated ? ALERT_STYLE_ELEVATED : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
-    const trial_project = (
+    // If user has any licenses or there is a license applied to the project (even when expired), we no longer call this a "Trial"
+    const trial_project = no_licenses ? (
       <strong>
         <A href={DOC_TRIAL} style={a_style}>
           Free Trial (Day {Math.floor(ageDays)})
         </A>
       </strong>
+    ) : (
+      <strong>No upgrades</strong>
     );
 
     function renderMessage(): JSX.Element | undefined {
@@ -132,7 +135,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       } else if (host) {
         return (
           <span>
-            {trial_project} – upgrade to{" "}
+            <strong>Low-grade hosting</strong> – upgrade to{" "}
             <A href={MEMBER_QUOTA} style={a_style}>
               <u>Member Hosting</u>
             </A>{" "}
@@ -172,9 +175,13 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       );
     }
 
+    // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
+    const closable = !host || !internet || !no_licenses;
+
     return (
       <Alert
         type="warning"
+        closable={closable}
         style={style}
         icon={
           <Icon

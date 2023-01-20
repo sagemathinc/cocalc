@@ -74,7 +74,7 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
           <div>
             <Button
               size="small"
-              type="primary"
+              type="default"
               icon={<Icon name="times-circle" />}
               onClick={() => actions?.close_project_no_internet_warning()}
             >
