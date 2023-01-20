@@ -1,13 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Alert, Popover, Progress } from "antd";
+import { CSSProperties } from "react";
+
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { capitalize } from "@cocalc/util/misc";
-import { Alert, Popover, Progress } from "antd";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Copyable from "components/misc/copyable";
 import Timestamp from "components/misc/timestamp";
 import Loading from "components/share/loading";
 import useAPI from "lib/hooks/api";
-import { CSSProperties } from "react";
 import { EditableDescription, EditableTitle } from "./editable-license";
 
 interface Props {
@@ -62,12 +68,14 @@ export default function License({ license_id, style }: Props) {
 }
 */
 
-export function Details({
-  license_id,
-}: {
-  license_id: string;
-  style?: CSSProperties;
-}) {
+interface DetailsProps {
+  license_id: string; // the license id
+  style?: CSSProperties; // style for the outer div
+  condensed?: boolean; // if true, only show a brief run_limit x quota description
+}
+
+export function Details(props: DetailsProps) {
+  const { license_id, style, condensed = false } = props;
   const { result, error } = useAPI("licenses/get-license", { license_id }, 3); // 3s cache
   if (error) {
     return <Alert type="error" message={error} />;
@@ -75,9 +83,11 @@ export function Details({
   if (!result) {
     return <Loading />;
   }
-  return (
-    <div>
-      {(result.title || result.is_manager) && (
+
+  function title() {
+    if (condensed) return;
+    return (
+      (result.title || result.is_manager) && (
         <Paragraph style={{ fontWeight: "bold", fontSize: "13pt" }}>
           {result.is_manager ? (
             <EditableTitle license_id={license_id} title={result.title} />
@@ -85,8 +95,14 @@ export function Details({
             "Title: " + result.title
           )}
         </Paragraph>
-      )}
-      {(result.description || result.is_manager) && (
+      )
+    );
+  }
+
+  function description() {
+    if (condensed) return;
+    return (
+      (result.description || result.is_manager) && (
         <Paragraph>
           {result.is_manager ? (
             <EditableDescription
@@ -97,20 +113,52 @@ export function Details({
             "Description: " + result.description
           )}
         </Paragraph>
-      )}
-      {result.managers != null && <Paragraph>You are a manager of this license.</Paragraph>}
+      )
+    );
+  }
+
+  function managers() {
+    if (condensed) return;
+    return (
+      result.managers != null && (
+        <Paragraph>You are a manager of this license.</Paragraph>
+      )
+    );
+  }
+
+  function date() {
+    if (condensed) return;
+    return (
       <Paragraph>
         <DateRange {...result} />
       </Paragraph>
-      {result.last_used != null && (
+    );
+  }
+
+  function lastUsed() {
+    if (condensed) return;
+    return (
+      result.last_used != null && (
         <Paragraph>
           Last used: <Timestamp epoch={result.last_used} />
         </Paragraph>
-      )}
+      )
+    );
+  }
+
+  function quota() {
+    return (
       <Paragraph>
-        Quota: <Quota quota={result.quota} upgrades={result.upgrades} />
+        {condensed ? `${result.run_limit ?? 1} x` : "Quota:"}{" "}
+        <Quota quota={result.quota} upgrades={result.upgrades} />
       </Paragraph>
-      {result.run_limit != null && (
+    );
+  }
+
+  function runLimit() {
+    if (condensed) return null;
+    return (
+      result.run_limit != null && (
         <Paragraph style={{ width: "100%", display: "flex" }}>
           Run limit: {result.run_limit}
           {result.number_running != null
@@ -128,10 +176,29 @@ export function Details({
             />
           )}
         </Paragraph>
-      )}
-      {result.is_manager && (
+      )
+    );
+  }
+
+  function copyId() {
+    if (condensed) return;
+    return (
+      result.is_manager && (
         <Copyable label="ID:" value={license_id} style={{ marginTop: "5px" }} />
-      )}
+      )
+    );
+  }
+
+  return (
+    <div style={style}>
+      {title()}
+      {description()}
+      {managers()}
+      {date()}
+      {lastUsed()}
+      {quota()}
+      {runLimit()}
+      {copyId()}
     </div>
   );
 }
