@@ -756,11 +756,13 @@ export class Actions extends BaseActions<State> {
       }
     }
     // We adjust any edges below, discarding any that aren't
-    // part of what is being pasted.
+    // part of what is being pasted. We also update the page
+    // number for every element below.
     const page =
       frameId != null
-        ? this._get_frame_node(frameId)?.get("page") ?? this.defaultPageId()
+        ? this.numberToPageId(this._get_frame_node(frameId)?.get("page"))
         : this.defaultPageId();
+    console.log("page = ", page);
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -1324,11 +1326,7 @@ export class Actions extends BaseActions<State> {
   }
 
   defaultPageId(): string {
-    const pages = this.sortedPageIds();
-    if (pages.size > 0) {
-      return pages.get(0) ?? ""; // ?? for typescript
-    }
-    return this.createPage();
+    return this.numberToPageId(0);
   }
 
   // TODO: no attempt at caching yet, so not efficient...
@@ -1342,6 +1340,19 @@ export class Actions extends BaseActions<State> {
   pageToNumber(page: string): number | null {
     const n = this.sortedPageIds().indexOf(page);
     return n == -1 ? null : n + 1;
+  }
+
+  numberToPageId(pageNumber: number): string {
+    const pages = this.sortedPageIds();
+    // page numbers are 1-based, hence the "-1":
+    const id = pages.get(pageNumber - 1);
+    if (id) {
+      return id;
+    }
+    if (pages.size > 0) {
+      return pages.get(0) ?? "";
+    }
+    return this.createPage();
   }
 
   setPage(frameId: string, pageNumber: number): void {
@@ -1410,7 +1421,7 @@ export class Actions extends BaseActions<State> {
   // Ensure that the the page pos's aren't too close.  This could happen if
   // the above movePage function hit the "averaging" case a large number of time,
   // e.g., by a user fiddling, and then averaging runs out of precision.
-  // I don't know where this random seeming epsilon came from. 
+  // I don't know where this random seeming epsilon came from.
   private ensurePagePositionsAreDistinct(epsilon = 0.0000000001): void {
     const elements = this.store.get("elements");
     if (elements == null) return;
