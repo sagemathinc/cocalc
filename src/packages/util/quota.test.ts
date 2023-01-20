@@ -31,6 +31,7 @@ import expect from "expect";
 // import { quota } from "./upgrades/quota";
 import {
   quota as quota0,
+  quota_with_reasons,
   quota_with_reasons as reasons0,
 } from "./upgrades/quota";
 const quota = quota0 as (a?, b?, c?, d?) => ReturnType<typeof quota0>;
@@ -725,6 +726,67 @@ describe("main quota functionality", () => {
       memory_request: 300,
       network: true,
       privileged: false,
+    });
+  });
+
+  it("allow for much larger max_upgrades /2", () => {
+    const site_settings = {
+      default_quotas: {
+        internet: true,
+        idle_timeout: 1800,
+        mem: 2000,
+        cpu: 1,
+        cpu_oc: 20,
+        mem_oc: 10,
+      },
+      max_upgrades: {
+        disk_quota: 20000,
+        memory: 50000,
+        memory_request: 1000,
+        cores: 16,
+        network: 1,
+        cpu_shares: 1024,
+        mintime: 7776000,
+        member_host: 1,
+        ephemeral_state: 1,
+        ephemeral_disk: 1,
+        always_running: 1,
+      },
+      kucalc: "onprem",
+      datastore: true,
+    };
+
+    const site_license = {
+      a: {
+        quota: { cpu: 2, ram: 13 },
+      },
+      b: {
+        quota: { cpu: 3, ram: 32 },
+      },
+    };
+
+    const q1 = quota_with_reasons(
+      {},
+      { userX: {} },
+      site_license,
+      site_settings
+    );
+    expect(q1).toEqual({
+      quota: {
+        always_running: false,
+        cpu_limit: 5,
+        cpu_request: 0.25,
+        dedicated_disks: [],
+        dedicated_vm: false,
+        disk_quota: 3000,
+        idle_timeout: 1800,
+        member_host: false,
+        memory_limit: 45000,
+        memory_request: 1000,
+        network: true,
+        privileged: false,
+      },
+      reasons: {},
     });
   });
 
