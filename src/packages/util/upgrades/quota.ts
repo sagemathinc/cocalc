@@ -45,7 +45,7 @@ import {
   LicenseIdleTimeouts,
   LicenseIdleTimeoutsKeysOrdered,
 } from "../consts/site-license";
-import { len, test_valid_jsonpatch } from "../misc";
+import { deep_copy, len, test_valid_jsonpatch } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
 // TODO how to use the logger ?
 //import { getLogger } from "@cocalc/backend/logger";
@@ -881,6 +881,13 @@ export function quota_with_reasons(
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas
 ): { quota: Quota; reasons: { [key: string]: string } } {
+  // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
+  // tests to catch this are in postgres/site-license/hook.test.ts
+  settings_arg = deep_copy(settings_arg);
+  users_arg = deep_copy(users_arg);
+  site_licenses = deep_copy(site_licenses);
+  site_settings = deep_copy(site_settings);
+
   // empirically, this is sometimes a string -- we want this to be a number, though!
   if (typeof settings_arg?.disk_quota === "string") {
     settings_arg.disk_quota = to_int(settings_arg.disk_quota);
