@@ -1410,6 +1410,7 @@ export class Actions extends BaseActions<State> {
   // Ensure that the the page pos's aren't too close.  This could happen if
   // the above movePage function hit the "averaging" case a large number of time,
   // e.g., by a user fiddling, and then averaging runs out of precision.
+  // I don't know where this random seeming epsilon came from. 
   private ensurePagePositionsAreDistinct(epsilon = 0.0000000001): void {
     const elements = this.store.get("elements");
     if (elements == null) return;
@@ -1418,7 +1419,6 @@ export class Actions extends BaseActions<State> {
     const positions = sortedPageIds.map((pageId) =>
       elements.getIn([pageId, "data", "pos"])
     );
-    console.log(positions.toJS());
     let tooClose = false;
     for (let i = 1; i < positions.size; i++) {
       if (positions.get(i) - positions.get(i - 1) < epsilon) {
