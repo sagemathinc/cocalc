@@ -1,25 +1,33 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
-import LaTeX from "components/landing/latex";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Info from "components/landing/info";
+import LaTeX from "components/landing/latex";
+import Pitch from "components/landing/pitch";
+import SignIn from "components/landing/sign-in";
+import Snapshots from "components/landing/snapshots";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
+import sageNbgrader from "public/features/sage-nbgrader.png";
+import sageLogo from "public/features/sage-squared.svg";
+import sageScreenshot from "public/features/sage-worksheet.png";
 
 const component = "SageMath";
 const title = `Use SageMath Online`;
-
-import sageLogo from "public/features/sage-squared.svg";
-import sageScreenshot from "public/features/sage-worksheet.png";
-import sageNbgrader from "public/features/sage-nbgrader.png";
 
 export default function Sage({ customize }) {
   return (
@@ -28,7 +36,7 @@ export default function Sage({ customize }) {
       <Layout>
         <Header page="features" subPage="sage" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={sageLogo}
@@ -56,87 +64,98 @@ export default function Sage({ customize }) {
           <Pitch
             col1={
               <>
-                <h3>
+                <Title level={2}>
                   <Icon name="sagemath" /> Run{" "}
                   <A href="https://sagemath.org/">SageMath</A> on CoCalc
-                </h3>
-                <ul>
-                  <li>
-                    Use CoCalc's own realtime collaborative{" "}
-                    <strong>
-                      <A href="/features/jupyter-notebook">Jupyter Notebooks</A>
-                    </strong>
-                    .
-                  </li>
-                  <li>
-                    Use SageMath from the collaborative,{" "}
-                    <strong>
-                      <A href="/features/terminal">Linux Terminal</A>
-                    </strong>{" "}
-                    or{" "}
-                    <A href="/features/x11">
-                      virtual X11 graphical Linux desktop
-                    </A>
-                    .
-                  </li>
-                  <li>
-                    Use Sage optimized{" "}
-                    <A href="https://doc.cocalc.com/sagews.html">Worksheets</A>,
-                    which provide a single document experience that can be more
-                    friendly than the Jupyter notebook "multiple cells"
-                    approach.
-                  </li>
-                  <li>
-                    Easily embed Sage code in your{" "}
-                    <A href="/features/latex-editor">
-                      <LaTeX /> documents
-                    </A>
-                    .
-                  </li>
-                  <li>
-                    Install almost any{" "}
-                    <A href="https://pypi.org/">Python package</A> for use with
-                    Sage:
-                    <br />
-                    <Code>sage --pip install package_name</Code>
-                  </li>
-                </ul>
+                </Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      Use CoCalc's own realtime collaborative{" "}
+                      <strong>
+                        <A href="/features/jupyter-notebook">
+                          Jupyter Notebooks
+                        </A>
+                      </strong>
+                      .
+                    </li>
+                    <li>
+                      Use SageMath from the collaborative,{" "}
+                      <strong>
+                        <A href="/features/terminal">Linux Terminal</A>
+                      </strong>{" "}
+                      or{" "}
+                      <A href="/features/x11">
+                        virtual X11 graphical Linux desktop
+                      </A>
+                      .
+                    </li>
+                    <li>
+                      Use Sage optimized{" "}
+                      <A href="https://doc.cocalc.com/sagews.html">
+                        Worksheets
+                      </A>
+                      , which provide a single document experience that can be
+                      more friendly than the Jupyter notebook "multiple cells"
+                      approach.
+                    </li>
+                    <li>
+                      Easily embed Sage code in your{" "}
+                      <A href="/features/latex-editor">
+                        <LaTeX /> documents
+                      </A>
+                      .
+                    </li>
+                    <li>
+                      Install almost any{" "}
+                      <A href="https://pypi.org/">Python package</A> for use
+                      with Sage:
+                      <br />
+                      <Code>sage --pip install package_name</Code>
+                    </li>
+                  </ul>
+                </Paragraph>
               </>
             }
             col2={
               <>
-                <h3>Benefits of working with SageMath online</h3>
-                <ul>
-                  <li>
-                    You no longer have to{" "}
-                    <strong>
-                      <A href="https://www.sagemath.org/download.html">
-                        install and maintain
-                      </A>
-                    </strong>{" "}
-                    SageMath, which can be challenging since Sage is large. When
-                    you're <A href="/features/teaching">teaching a class</A>,
-                    students just have to sign in to CoCalc to get started!
-                  </li>
-                  <li>
-                    You can still easily run <b>older versions of Sage</b> since
-                    many are all preinstalled in every CoCalc project.
-                  </li>
-                  <li>
-                    All your files are private, stored persistently, snapshotted
-                    and backed up; moreover, you can <b>rsync</b> them to your
-                    computer or push them to <b>GitHub</b>.
-                  </li>
-                  <li>
-                    You can invite <strong>collaborators</strong> to your
-                    project to simultaneously edit the same notebooks or code
-                    files.
-                  </li>
-                  <li>
-                    Everything runs remotely, which means you do not have to
-                    worry about messing up your own computer.{" "}
-                  </li>
-                </ul>
+                <Title level={2}>
+                  Benefits of working with SageMath online
+                </Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      You no longer have to{" "}
+                      <strong>
+                        <A href="https://www.sagemath.org/download.html">
+                          install and maintain
+                        </A>
+                      </strong>{" "}
+                      SageMath, which can be challenging since Sage is large.
+                      When you're{" "}
+                      <A href="/features/teaching">teaching a class</A>,
+                      students just have to sign in to CoCalc to get started!
+                    </li>
+                    <li>
+                      You can still easily run <b>older versions of Sage</b>{" "}
+                      since many are all preinstalled in every CoCalc project.
+                    </li>
+                    <li>
+                      All your files are private, stored persistently,
+                      snapshotted and backed up; moreover, you can <b>rsync</b>{" "}
+                      them to your computer or push them to <b>GitHub</b>.
+                    </li>
+                    <li>
+                      You can invite <strong>collaborators</strong> to your
+                      project to simultaneously edit the same notebooks or code
+                      files.
+                    </li>
+                    <li>
+                      Everything runs remotely, which means you do not have to
+                      worry about messing up your own computer.{" "}
+                    </li>
+                  </ul>
+                </Paragraph>
               </>
             }
           />
@@ -151,28 +170,13 @@ export default function Sage({ customize }) {
             Feature Overview
           </Info.Heading>
 
-          {/*
-
-
-
-          <Info
-            title="title"
-            icon="square"
-            image="image.png"
-            anchor="a-"
-            alt={"TODO"}
-          >
-            <p>CoCalc offers...</p>
-          </Info>
-          */}
-
           <Info
             title={"Teach using SageMath and Nbgrader"}
             image={sageNbgrader}
             alt={"A screenshot using nbgrader with SageMath."}
             anchor="nbgrader"
           >
-            <p>
+            <Paragraph>
               CoCalc's{" "}
               <A href="/features/teaching">
                 integrated course management system
@@ -182,15 +186,15 @@ export default function Sage({ customize }) {
                 using nbgrader together with SageMath
               </A>{" "}
               Jupyter Notebooks.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               We provide custom Python templates for all the nbgrader cell
               types.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Tests run in the student's project by default, so malicious code
               won't impact anybody except the student.
-            </p>
+            </Paragraph>
           </Info>
 
           <Snapshots />

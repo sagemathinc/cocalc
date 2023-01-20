@@ -1,16 +1,33 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Table } from "antd";
-import A from "components/misc/A";
-import DATA from "./compare.json";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Contact from "components/landing/contact";
 import { ReactNode } from "react";
 
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import Contact from "components/landing/contact";
+import { Text } from "components/misc";
+import A from "components/misc/A";
+import DATA from "./compare.json";
+
+function cmp(a, b) {
+  a = `${a}`;
+  b = `${b}`;
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
 interface Props {
   name?: string;
   disclaimer?: boolean;
   title?: ReactNode;
 }
-export default function Compare({ name, disclaimer, title }: Props) {
+
+export default function Compare(props: Props) {
+  const { name, disclaimer, title } = props;
   const v: JSX.Element[] = [];
   for (const table of DATA) {
     if (name != null && table.name != name) continue;
@@ -24,14 +41,6 @@ export default function Compare({ name, disclaimer, title }: Props) {
     );
   }
   return <div style={{ background: "white", width: "100%" }}>{v}</div>;
-}
-
-function cmp(a, b) {
-  a = `${a}`;
-  b = `${b}`;
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
 }
 
 // undefined = unknown
@@ -84,7 +93,7 @@ function ComparisonTable({
           return (
             <Icon
               name="question-circle"
-              style={{ color: "#888", fontSize: "20px" }}
+              style={{ color: COLORS.GRAY, fontSize: "20px" }}
             />
           );
         }
@@ -171,11 +180,11 @@ export function Disclaimer() {
       style={{ margin: "30px auto", maxWidth: "900px" }}
       message=""
       description={
-        <span style={{ fontSize: "10pt" }}>
+        <Text style={{ fontSize: "10pt" }}>
           These comparisons were made in good faith; however, they may contain
           errors, since we know CoCalc better and the products are constantly
           improving. <Contact /> if anything looks wrong or incomplete!
-        </span>
+        </Text>
       }
       type="warning"
       showIcon

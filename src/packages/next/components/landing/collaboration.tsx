@@ -1,12 +1,19 @@
-import Info from "./info";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { StaticImageData } from "./image";
+import Info from "./info";
 
 interface Props {
   image: StaticImageData;
 }
 
-export default function Collaboration({ image }: Props) {
+export default function Collaboration(props: Props) {
+  const { image } = props;
   return (
     <Info
       anchor="a-realtimesync"
@@ -15,7 +22,7 @@ export default function Collaboration({ image }: Props) {
       image={image}
       alt="Editing a document in two browser windows"
     >
-      <p>
+      <Paragraph>
         Privately share your project with{" "}
         <A href="https://doc.cocalc.com/project-settings.html#about-collaborators">
           <strong>an unlimited number of collaborators</strong>
@@ -24,15 +31,17 @@ export default function Collaboration({ image }: Props) {
         <strong>synchronized in real time</strong>. You see the cursors of
         others while they edit the document and also see the presence of
         watching collaborators.
-      </p>
-      <p>
+      </Paragraph>
+
+      <Paragraph>
         Additionally, any compilation status and output is synchronized between
         everyone, because everything runs online and is fully managed by CoCalc.
-      </p>
-      <p>
+      </Paragraph>
+
+      <Paragraph>
         This ensures that everyone involved experiences editing the document in
         exactly the same way.
-      </p>
+      </Paragraph>
     </Info>
   );
 }

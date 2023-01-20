@@ -4,6 +4,7 @@
  */
 
 import { Button } from "antd";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
@@ -14,19 +15,20 @@ import { CSSProperties, ReactNode } from "react";
 interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
   hideFree?: boolean;
+  style?: React.CSSProperties;
 }
 
 const STYLE: CSSProperties = {
   textAlign: "center",
-  padding: "30px 15px 0 15px",
+  padding: "30px 15px 15px 15px",
 } as const;
 
-export default function SignIn({ startup, hideFree }: Props) {
+export default function SignIn({ startup, hideFree, style }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();
   const router = useRouter();
   if (account != null) {
     return (
-      <div style={STYLE}>
+      <Paragraph style={{ ...STYLE, ...style }}>
         <A
           className="ant-btn"
           href={join(basePath, "projects")}
@@ -36,11 +38,11 @@ export default function SignIn({ startup, hideFree }: Props) {
         >
           View Your {siteName} Projects...
         </A>
-      </div>
+      </Paragraph>
     );
   }
   return (
-    <div style={STYLE}>
+    <Paragraph style={STYLE}>
       {/* We use className="ant-btn" instead of an actual Button, because otherwise
             we get a ton of useLayoutEffects due to server-side rendering.*/}
       {anonymousSignup && (
@@ -71,10 +73,10 @@ export default function SignIn({ startup, hideFree }: Props) {
         Sign Up
       </Button>
       {!hideFree && (
-        <div style={{ padding: "15px 0 30px 0" }}>
+        <div style={{ padding: "15px 0 0 0" }}>
           Start free today. Upgrade later.
         </div>
       )}
-    </div>
+    </Paragraph>
   );
 }

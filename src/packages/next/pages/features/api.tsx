@@ -1,12 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
+
+import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import Footer from "components/landing/footer";
 import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Info from "components/landing/info";
 import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 import screenshot from "public/features/api-screenshot.png";
 
@@ -19,7 +26,7 @@ export default function API({ customize }) {
       <Layout>
         <Header page="features" subPage="api" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={"CoCalc"}
               title={title}

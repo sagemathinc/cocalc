@@ -190,7 +190,7 @@ export default function SubNav(props: Props) {
       }}
     >
       {r_join(tabs, SEP)}
-      {(page == "software" || page == "features") && renderSoftwareEnvs()}
+      {page == "software" && renderSoftwareEnvs()}
     </div>
   );
 }

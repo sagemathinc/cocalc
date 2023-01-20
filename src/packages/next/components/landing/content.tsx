@@ -10,6 +10,7 @@ import { ReactNode } from "react";
 import Image from "./image";
 import useCustomize from "lib/use-customize";
 import Path from "components/app/path";
+import { Paragraph, Title } from "components/misc";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -71,7 +72,11 @@ export default function Content(props: Props) {
 
   function renderSubtitleTop() {
     if (subtitleBelow) return;
-    return <h2 style={{ color: "#333" }}>{subtitle}</h2>;
+    return (
+      <Title level={3} style={{ color: "#333" }}>
+        {subtitle}
+      </Title>
+    );
   }
 
   function renderSubtitleBelow() {
@@ -80,9 +85,9 @@ export default function Content(props: Props) {
       <>
         <Col xs={0} sm={4}></Col>
         <Col xs={24} sm={16}>
-          <h2 style={{ color: "#333", textAlign: "center", marginTop: "30px" }}>
+          <Title level={3} style={{ textAlign: "center", marginTop: "30px" }}>
             {subtitle}
-          </h2>
+          </Title>
         </Col>
       </>
     );
@@ -100,25 +105,31 @@ export default function Content(props: Props) {
           style={{ padding: "15px" }}
           alt={alt ?? `Image illustrating ${title}`}
         />
-        <div style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}>
+        <Paragraph
+          style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
+        >
           {caption}
-        </div>
+        </Paragraph>
       </>
     );
   }
 
   function renderAboveImage() {
-    return aboveImage != null
-      ? aboveImage
-      : sandboxProjectId && (
-          <div style={{ margin: "15px" }}>
-            <Path
-              style={{ marginBottom: "15px" }}
-              project_id={sandboxProjectId}
-              description="Public Sandbox"
-            />
-          </div>
-        );
+    if (aboveImage != null) return aboveImage;
+  }
+
+  function renderBelowImage() {
+    if (aboveImage == null && sandboxProjectId) {
+      return (
+        <div style={{ margin: "15px" }}>
+          <Path
+            style={{ marginBottom: "15px" }}
+            project_id={sandboxProjectId}
+            description="Public Sandbox"
+          />
+        </div>
+      );
+    }
   }
 
   return (
@@ -133,25 +144,33 @@ export default function Content(props: Props) {
             paddingTop: "15px",
           }}
         >
-          <div
+          <Paragraph
             style={{ textAlign: "center", margin: "auto", padding: "0 10%" }}
           >
             <Logo logo={logo} title={title} />
             <br />
             <br />
-
-            <h1 style={{ color: "#333" }}>{title}</h1>
+            <Title level={2} style={{ color: "#333" }}>
+              {title}
+            </Title>
             {renderSubtitleTop()}
-            <h3 style={{ color: "#666" }}>{description}</h3>
-          </div>
+            <Title level={3} style={{ color: "#666" }}>
+              {description}
+            </Title>
+          </Paragraph>
         </Col>
         <Col sm={14} xs={24}>
           {renderAboveImage()}
           {renderImage()}
+          {renderBelowImage()}
         </Col>
         {renderSubtitleBelow()}
       </Row>
-      <SignIn startup={startup ?? title} hideFree={true} />
+      <SignIn
+        startup={startup ?? title}
+        hideFree={true}
+        style={{ paddingBottom: 0 }}
+      />
     </div>
   );
 }

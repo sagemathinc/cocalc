@@ -1,23 +1,31 @@
-import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
-import Head from "components/landing/head";
-import A from "components/misc/A";
-import Code from "components/landing/code";
-import Image from "components/landing/image";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-import x11Logo from "/public/features/x11-logo.svg";
+import { Col, Layout, Row } from "antd";
+
+import { COLORS } from "@cocalc/util/theme";
+import Code from "components/landing/code";
+import Content from "components/landing/content";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import Image from "components/landing/image";
+import Info from "components/landing/info";
+import Pitch, { STYLE_PITCH } from "components/landing/pitch";
+import SignIn from "components/landing/sign-in";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+
+import swirlCourse from "/public/features/swirl-course.png";
+import swirl from "/public/features/swirl_new_large_final.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import applications from "/public/features/x11-applications.png";
-import swirl from "/public/features/swirl_new_large_final.png";
-import swirlCourse from "/public/features/swirl-course.png";
 import x11Firefox from "/public/features/x11-firefox.png";
+import x11Logo from "/public/features/x11-logo.svg";
+import { Paragraph, Title } from "components/misc";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -29,7 +37,7 @@ export default function X11({ customize }) {
       <Layout>
         <Header page="features" subPage="x11" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
+          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
             <Content
               startup={component}
               logo={x11Logo}
@@ -52,9 +60,9 @@ export default function X11({ customize }) {
 
           <Pitch
             col1={
-              <div>
-                <h1>Run graphical software in your browser</h1>
-                <p>
+              <>
+                <Title level={2}>Run graphical software in your browser</Title>
+                <Paragraph>
                   CoCalc is able to{" "}
                   <strong>
                     run{" "}
@@ -64,47 +72,49 @@ export default function X11({ customize }) {
                     via your browser
                   </strong>
                   .
-                </p>
-                <p>
+                </Paragraph>
+                <Paragraph>
                   The application with a graphical user interface runs remotely
                   on CoCalc using a virtual display provided by{" "}
                   <A href="https://xpra.org/">XPRA</A>.{" "}
-                </p>
-              </div>
+                </Paragraph>
+              </>
             }
             col2={
-              <div>
-                <h1>Features</h1>
-                <ul>
-                  <li>
-                    You no longer have to <strong>install and maintain</strong>{" "}
-                    the applications. In particular when you're teaching a
-                    class, students just have to sign in to CoCalc to get
-                    started!
-                  </li>
-                  <li>
-                    These virtual desktops are <strong>persistent</strong> as
-                    long as your project is running; you can close your browser
-                    and come back later.
-                  </li>
-                  <li>
-                    More than one person can <strong>collaboratively</strong>{" "}
-                    interact with the same X11 application at the same time.
-                  </li>
-                  <li>
-                    You can <strong>copy and paste</strong> between your local
-                    desktop environment and the virtual graphical X11 session.
-                  </li>
-                </ul>
-              </div>
+              <>
+                <Title level={2}>Features</Title>
+                <Paragraph>
+                  <ul>
+                    <li>
+                      You no longer have to{" "}
+                      <strong>install and maintain</strong> the applications. In
+                      particular when you're teaching a class, students just
+                      have to sign in to CoCalc to get started!
+                    </li>
+                    <li>
+                      These virtual desktops are <strong>persistent</strong> as
+                      long as your project is running; you can close your
+                      browser and come back later.
+                    </li>
+                    <li>
+                      More than one person can <strong>collaboratively</strong>{" "}
+                      interact with the same X11 application at the same time.
+                    </li>
+                    <li>
+                      You can <strong>copy and paste</strong> between your local
+                      desktop environment and the virtual graphical X11 session.
+                    </li>
+                  </ul>
+                </Paragraph>
+              </>
             }
           />
 
           <Pitch
             col1={
-              <div>
-                <h1>Popular Applications</h1>
-                <p>
+              <>
+                <Title level={2}>Popular Applications</Title>
+                <Paragraph>
                   <strong>Popular applications that are preinstalled</strong>{" "}
                   include <A href="http://maxima.sourceforge.net/">Maxima</A>,{" "}
                   <A href="https://www.libreoffice.org/">LibreOffice</A>,{" "}
@@ -115,8 +125,8 @@ export default function X11({ customize }) {
                   </A>
                   , <A href="http://www.xm1math.net/texmaker/">TexMaker</A>, and
                   much more …
-                </p>
-                <p>
+                </Paragraph>
+                <Paragraph>
                   Please check out our comprehensive table of{" "}
                   <strong>
                     <A href="https://doc.cocalc.com/x11.html#installed-applications">
@@ -124,13 +134,13 @@ export default function X11({ customize }) {
                     </A>
                   </strong>{" "}
                   for additional details.{" "}
-                </p>
-              </div>
+                </Paragraph>
+              </>
             }
             col2={
-              <div>
-                <h1>Documentation/Technical Background</h1>
-                <p>
+              <>
+                <Title level={2}>Documentation/Technical Background</Title>
+                <Paragraph>
                   The{" "}
                   <strong>
                     <A href="https://doc.cocalc.com/x11.html">
@@ -138,31 +148,33 @@ export default function X11({ customize }) {
                     </A>
                   </strong>{" "}
                   explains how to use a virtual desktop on CoCalc.
-                </p>
-                <p>
+                </Paragraph>
+                <Paragraph>
                   Read our{" "}
                   <A href="http://blog.sagemath.com/cocalc/2018/11/05/x11.html">
                     blog post
                   </A>{" "}
                   to learn more about this features!{" "}
-                </p>
-              </div>
+                </Paragraph>
+              </>
             }
           />
 
-          <div
-            style={{
-              textAlign: "center",
-              paddingBottom: "30px",
-              background: "white",
-            }}
-          >
-            <Image
-              style={{ width: "80%" }}
-              src={applications}
-              alt="Image showing buttons for many X11 Applications in CoCalc"
-            />
-          </div>
+          <Row style={STYLE_PITCH}>
+            <Col
+              lg={24}
+              style={{
+                paddingBottom: "30px",
+                background: "white",
+              }}
+            >
+              <Image
+                style={{ width: "100%" }}
+                src={applications}
+                alt="Image showing buttons for many X11 Applications in CoCalc"
+              />
+            </Col>
+          </Row>
 
           <Info.Heading
             description={
@@ -185,26 +197,26 @@ export default function X11({ customize }) {
               style={{ width: "100%", marginBottom: "15px" }}
               alt="Using Swirl and X11 in CoCalc"
             />
-            <p>
+            <Paragraph>
               CoCalc provides a way to use the{" "}
               <A href="https://swirlstats.com/">
                 interactive R tutorial package Swirl
               </A>{" "}
               in your web browser, even though Swirl doesn't work with Jupyter
               notebooks due to its complicated IO model.
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Create an X11 desktop, then in the terminal, type "R", then{" "}
               <Code>
                 options(swirl_courses_dir="~/R/courses",swirl_data_dir="~/R/data")
               </Code>{" "}
               then
               <Code>library("swirl"); swirl()</Code>
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               You can use swirl in{" "}
               <A href="/features/teaching">teaching a course.</A>
-            </p>
+            </Paragraph>
           </Info>
 
           <Info
@@ -214,17 +226,17 @@ export default function X11({ customize }) {
             anchor="a-firefox"
             alt="Using Firefox to connect to a local web server"
           >
-            <p>
+            <Paragraph>
               You can use Firefox running from within your CoCalc project to
               connect to a server running there only listening on localhost.
               This avoids any{" "}
               <A href="https://doc.cocalc.com/howto/webserver.html">
                 proxying or url rewriting.
               </A>
-            </p>
-            <p>
+            </Paragraph>
+            <Paragraph>
               Firefox works very well in the X11 graphical desktop on CoCalc.
-            </p>
+            </Paragraph>
           </Info>
 
           <SignIn startup={component} />
