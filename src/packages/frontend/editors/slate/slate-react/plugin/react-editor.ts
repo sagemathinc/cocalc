@@ -51,7 +51,14 @@ export const ReactEditor = {
 
     if (!key) {
       key = new Key();
-      NODE_TO_KEY.set(node, key);
+      if (typeof node == "object") {
+        // Once in production I saw the error "Uncaught TypeError: Invalid value used as weak map key"
+        // happen here.  The rule is that the key key of WeakMap must be an object.   If for some reason
+        // node isn't an object (so maybe null/undefined, due to typescript failing to detect it somehow),
+        // then it's probably way better to just not set this.  The way weak maps work, it would just be
+        // the case later that the node can't be found in the cache, hopefully.
+        NODE_TO_KEY.set(node, key);
+      }
     }
 
     return key;
