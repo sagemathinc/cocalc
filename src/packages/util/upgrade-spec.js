@@ -204,8 +204,6 @@ upgrades.field_order = [
   "memory_request",
   "cores",
   "cpu_shares",
-  "ext_rw",  // cocalc-cloud only
-  "patch", // cocalc-cloud only
 ];
 
 // live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.

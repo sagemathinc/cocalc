@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, cmp, planInterval, stripeAmount } from "@cocalc/util/misc";
 import License from "components/licenses/license";
-import { Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import HelpEmail from "components/misc/help-email";
 import Timestamp from "components/misc/timestamp";
@@ -17,14 +17,17 @@ import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
+import { Details as LicenseLoader } from "../licenses/license";
 
-function Description({ latest_invoice, metadata, invoices }) {
+function Description(props) {
+  const { latest_invoice, metadata, invoices } = props;
+  const style: CSS = { wordWrap: "break-word", wordBreak: "break-word" };
   for (const invoice of invoices.data) {
     if (latest_invoice != invoice.id) continue;
     const cnt = invoice.lines?.total_count ?? 1;
     const url = invoice.hosted_invoice_url;
     return (
-      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+      <div style={style}>
         {invoice.lines.data[0].description}
         {cnt > 1 && ", etc."}
         {url && (
@@ -39,6 +42,15 @@ function Description({ latest_invoice, metadata, invoices }) {
             License: <License license_id={metadata?.license_id} />
           </div>
         )}
+      </div>
+    );
+  }
+  // in case the above didn't return, i.e. invoice was not found in the invoices.data array, we try to load it:
+  if (metadata?.license_id) {
+    return (
+      <div style={style}>
+        <LicenseLoader license_id={metadata.license_id} condensed={true} />
+        License: <License license_id={metadata.license_id} />
       </div>
     );
   }
