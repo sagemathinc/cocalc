@@ -28,3 +28,9 @@ test("store tab", async ({ page }) => {
   // Expects the URL to end with /store
   await expect(page).toHaveURL(/.*\/store/);
 });
+
+test("load the static fronend app", async ({ page }) => {
+  await page.goto(`${site}/static/app.html`);
+  // Expects the URL to end with /settings, since that's what happens.
+  await expect(page).toHaveURL(/.*\/settings/);
+});
