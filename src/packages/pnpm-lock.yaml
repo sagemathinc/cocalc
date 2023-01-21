@@ -688,6 +688,12 @@ importers:
       '@types/node': 18.11.18
       react-test-renderer: 18.2.0_react@18.2.0
 
+  playwright:
+    specifiers:
+      '@playwright/test': ^1.29.2
+    devDependencies:
+      '@playwright/test': 1.29.2
+
   project:
     specifiers:
       '@cocalc/backend': workspace:*
@@ -4120,6 +4126,15 @@ packages:
     resolution: {integrity: sha512-2KhFjtPueJG6xVj2HnqXt9BlANOfYCVLyu+pXYjPGBDT8yk+vQwc/6tsceIj+mayKcoxMau2JimggXRPHgoc8w==}
     engines: {node: '>= 6.0.0'}
     dev: false
+
+  /@playwright/test/1.29.2:
+    resolution: {integrity: sha512-+3/GPwOgcoF0xLz/opTnahel1/y42PdcgZ4hs+BZGIUjtmEFSXGg+nFoaH3NSmuc7a6GSFwXDJ5L7VXpqzigNg==}
+    engines: {node: '>=14'}
+    hasBin: true
+    dependencies:
+      '@types/node': 18.11.18
+      playwright-core: 1.29.2
+    dev: true
 
   /@pmmmwh/react-refresh-webpack-plugin/0.5.10_dqo753xklcanelwcllkshxmsne:
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
@@ -12000,6 +12015,12 @@ packages:
   /pkginfo/0.4.1:
     resolution: {integrity: sha512-8xCNE/aT/EXKenuMDZ+xTVwkT8gsoHN2z/Q29l80u0ppGEXVvsKRzNMbtKhg8LS8k1tJLAHHylf6p4VFmP6XUQ==}
     engines: {node: '>= 0.4.0'}
+    dev: true
+
+  /playwright-core/1.29.2:
+    resolution: {integrity: sha512-94QXm4PMgFoHAhlCuoWyaBYKb92yOcGVHdQLoxQ7Wjlc7Flg4aC/jbFW7xMR52OfXMVkWicue4WXE7QEegbIRA==}
+    engines: {node: '>=14'}
+    hasBin: true
     dev: true
 
   /plur/4.0.0:
