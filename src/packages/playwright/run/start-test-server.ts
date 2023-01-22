@@ -58,16 +58,17 @@ export async function startHub() {
   const cwd = resolve(join(__dirname, "..", "..", "..", "hub"));
   const env = {
     ...process.env,
-    PORT,
+    PORT: `${PORT}`,
     NODE_ENV: "production",
     PGUSER: "smc",
     PGHOST: SOCKET,
     DATA: join(PATH, "data"),
-    COCALC_ROOT: undefined,
-    BASE_PATH: undefined,
     DEBUG: "cocalc:*,-cocalc:silly:*",
     NODE_OPTIONS: "--max_old_space_size=16000",
   };
+  delete env["BASE_PATH"];
+  delete env["COCALC_ROOT"];
+  delete env["COCALC_PROJECT_ID"];
   log("spawning cocalc-hub-server");
   const args = [
     "cocalc-hub-server",
@@ -77,16 +78,16 @@ export async function startHub() {
     "--hostname=localhost",
   ];
   log("pnpm", args.join(" "));
-  const child = spawnAsync("pnpm", args, { cwd, env, detached: true });
-  try {
-    const b = await child;
-    console.log(b.toString());
-  } catch (err) {
-    console.log(err.stdout.toString());
-    console.log(err.stderr.toString());
+  const response = spawnAsync("pnpm", args, {
+    cwd,
+    env,
+    detached: true,
+    stdio: process.env.VERBOSE ? "inherit" : undefined,
+  });
+  if (response.child.pid) {
+    log("spawned hub with pid=", response.child.pid);
+    await writeFile(HUB_PID, `${response.child.pid}`);
   }
-  log("spawned hub with pid=", child.pid);
-  await writeFile(HUB_PID, `${child.pid}`);
 }
 
 export async function main() {

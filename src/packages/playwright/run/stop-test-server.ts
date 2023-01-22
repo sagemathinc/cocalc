@@ -21,10 +21,10 @@ async function stop(path: string) {
   let pid;
   try {
     pid = parseInt((await readFile(path)).toString());
+    kill(pid);
   } catch (_err) {
     return;
   }
-  kill(pid);
   await unlink(path);
 }
 
