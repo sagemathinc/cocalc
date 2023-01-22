@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./*.ts"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm exec tsc",
     "test": "pnpm exec playwright test --project chromium",
     "report": "pnpm exec playwright show-report",
     "test-all": "pnpm exec playwright test",
@@ -21,6 +23,8 @@
   "devDependencies": {
     "@cocalc/playwright": "workspace:*",
     "@playwright/test": "^1.29.2",
-    "@types/node": "^18.11.18"
+    "@types/node": "^18.11.18",
+    "awaiting": "^3.0.0",
+    "node-fetch": "^2.6.7"
   }
 }

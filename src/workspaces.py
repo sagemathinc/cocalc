@@ -114,6 +114,7 @@ def all_packages() -> List[str]:
         'packages/database',  # packages/next also assumes this is built
     ]
     for x in os.listdir('packages'):
+        if x == 'playwright': continue # install, build separately.
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path) and os.path.exists(
                 os.path.join(path, 'package.json')):

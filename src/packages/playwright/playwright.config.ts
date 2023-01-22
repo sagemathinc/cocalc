@@ -1,5 +1,6 @@
 import type { PlaywrightTestConfig } from "@playwright/test";
 import { devices } from "@playwright/test";
+import { STORAGE_STATE_PATH } from "./global-setup";
 
 /**
  * Read environment variables from file.
@@ -43,7 +44,7 @@ const config: PlaywrightTestConfig = {
     trace: "on-first-retry",
 
     // Tell all tests to load signed-in state from 'storageState.json'.
-    storageState: "auth/storageState.json",
+    storageState: STORAGE_STATE_PATH,
   },
 
   /* Configure projects for major browsers */

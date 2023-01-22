@@ -1,10 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { getUrl } from "@cocalc/playwright/global-setup";
-
-const url = getUrl();
+import { URL } from "@cocalc/playwright/global-setup";
 
 test("quota upgrade store tab", async ({ page }) => {
-  await page.goto(url);
+  await page.goto(URL);
 
   // Click the store tab.
   await page.locator("header").getByRole("link", { name: "Store" }).click();

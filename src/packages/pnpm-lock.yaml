@@ -693,10 +693,14 @@ importers:
       '@cocalc/playwright': workspace:*
       '@playwright/test': ^1.29.2
       '@types/node': ^18.11.18
+      awaiting: ^3.0.0
+      node-fetch: ^2.6.7
     devDependencies:
       '@cocalc/playwright': 'link:'
       '@playwright/test': 1.29.2
       '@types/node': 18.11.18
+      awaiting: 3.0.0
+      node-fetch: 2.6.7
 
   project:
     specifiers:

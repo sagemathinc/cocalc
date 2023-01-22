@@ -1,17 +1,15 @@
 import { test, expect } from "@playwright/test";
-import { getUrl } from "@cocalc/playwright/global-setup";
-
-const url = getUrl();
+import { URL } from "@cocalc/playwright/global-setup";
 
 test("has title", async ({ page }) => {
-  await page.goto(url);
+  await page.goto(URL);
 
   // Expect a title "to contain" a substring.
   await expect(page).toHaveTitle(/Collaborative Calculation/);
 });
 
 test("features tab", async ({ page }) => {
-  await page.goto(url);
+  await page.goto(URL);
 
   // Click the features tab.
   await page.getByRole("link", { name: /^Features/ }).nth(1).click();
@@ -21,7 +19,7 @@ test("features tab", async ({ page }) => {
 });
 
 test("load the static frontend app", async ({ page }) => {
-  await page.goto(`${url}/static/app.html`);
-  // Expects the URL to end with /settings, since that's what happens.
-  await expect(page).toHaveURL(/.*\/settings/);
+  await page.goto(`${URL}/static/app.html`);
+  // Since we are assumed to be signed in, we end up at projects:
+  await expect(page).toHaveURL(/.*\/projects/);
 });
