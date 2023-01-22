@@ -690,9 +690,13 @@ importers:
 
   playwright:
     specifiers:
+      '@cocalc/playwright': workspace:*
       '@playwright/test': ^1.29.2
+      '@types/node': ^18.11.18
     devDependencies:
+      '@cocalc/playwright': 'link:'
       '@playwright/test': 1.29.2
+      '@types/node': 18.11.18
 
   project:
     specifiers:
@@ -1383,7 +1387,7 @@ packages:
       '@babel/core': ^7.0.0
     dependencies:
       '@babel/compat-data': 7.18.13
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-validator-option': 7.18.6
       browserslist: 4.21.4
       semver: 6.3.0
@@ -1395,7 +1399,7 @@ packages:
       '@babel/core': ^7.0.0
     dependencies:
       '@babel/compat-data': 7.20.10
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-validator-option': 7.18.6
       browserslist: 4.21.4
       lru-cache: 5.1.1
@@ -1456,7 +1460,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-annotate-as-pure': 7.18.6
       regexpu-core: 5.1.0
 
@@ -1762,7 +1766,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining/7.18.9_@babel+core@7.18.13:
@@ -1771,7 +1775,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.13.0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/helper-skip-transparent-expression-wrappers': 7.18.9
       '@babel/plugin-proposal-optional-chaining': 7.18.9_@babel+core@7.18.13
@@ -1895,7 +1899,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-do-expressions': 7.18.6_@babel+core@7.18.13
     dev: false
@@ -1906,7 +1910,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-dynamic-import': 7.8.3_@babel+core@7.18.13
 
@@ -1916,7 +1920,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-export-default-from': 7.18.6_@babel+core@7.18.13
     dev: false
@@ -1927,7 +1931,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-export-namespace-from': 7.8.3_@babel+core@7.18.13
 
@@ -1937,7 +1941,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-function-bind': 7.18.6_@babel+core@7.18.13
     dev: false
@@ -1976,7 +1980,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-json-strings': 7.8.3_@babel+core@7.18.13
 
@@ -1986,7 +1990,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-logical-assignment-operators': 7.10.4_@babel+core@7.18.13
 
@@ -1996,7 +2000,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3_@babel+core@7.18.13
 
@@ -2006,7 +2010,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-numeric-separator': 7.10.4_@babel+core@7.18.13
 
@@ -2017,7 +2021,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/compat-data': 7.20.10
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-compilation-targets': 7.20.7_@babel+core@7.18.13
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-object-rest-spread': 7.8.3_@babel+core@7.18.13
@@ -2029,7 +2033,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-optional-catch-binding': 7.8.3_@babel+core@7.18.13
 
@@ -2039,7 +2043,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/helper-skip-transparent-expression-wrappers': 7.18.9
       '@babel/plugin-syntax-optional-chaining': 7.8.3_@babel+core@7.18.13
@@ -2050,7 +2054,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-pipeline-operator': 7.18.6_@babel+core@7.18.13
     dev: false
@@ -2115,7 +2119,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-syntax-throw-expressions': 7.18.6_@babel+core@7.18.13
     dev: false
@@ -2126,7 +2130,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-create-regexp-features-plugin': 7.18.6_@babel+core@7.18.13
       '@babel/helper-plugin-utils': 7.20.2
 
@@ -2135,7 +2139,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-async-generators/7.8.4_@babel+core@7.20.12:
@@ -2161,7 +2165,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-class-properties/7.12.13_@babel+core@7.20.12:
@@ -2179,7 +2183,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-decorators/7.18.6_@babel+core@7.18.13:
@@ -2188,7 +2192,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2198,7 +2202,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2207,7 +2211,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-export-default-from/7.18.6_@babel+core@7.18.13:
@@ -2216,7 +2220,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2225,7 +2229,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-function-bind/7.18.6_@babel+core@7.18.13:
@@ -2234,7 +2238,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2244,7 +2248,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2254,7 +2258,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-import-meta/7.10.4_@babel+core@7.18.13:
@@ -2262,7 +2266,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2280,7 +2284,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-json-strings/7.8.3_@babel+core@7.20.12:
@@ -2317,7 +2321,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-logical-assignment-operators/7.10.4_@babel+core@7.20.12:
@@ -2334,7 +2338,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-nullish-coalescing-operator/7.8.3_@babel+core@7.20.12:
@@ -2351,7 +2355,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-numeric-separator/7.10.4_@babel+core@7.20.12:
@@ -2368,7 +2372,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-object-rest-spread/7.8.3_@babel+core@7.20.12:
@@ -2385,7 +2389,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-optional-catch-binding/7.8.3_@babel+core@7.20.12:
@@ -2402,7 +2406,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-optional-chaining/7.8.3_@babel+core@7.20.12:
@@ -2420,7 +2424,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2430,7 +2434,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-throw-expressions/7.18.6_@babel+core@7.18.13:
@@ -2439,7 +2443,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
     dev: false
 
@@ -2449,7 +2453,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-syntax-top-level-await/7.14.5_@babel+core@7.20.12:
@@ -2478,7 +2482,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-async-to-generator/7.18.6_@babel+core@7.18.13:
@@ -2514,7 +2518,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-block-scoping/7.18.9_@babel+core@7.18.13:
@@ -2523,7 +2527,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-classes/7.18.9_@babel+core@7.18.13:
@@ -2569,7 +2573,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-destructuring/7.18.13_@babel+core@7.18.13:
@@ -2578,7 +2582,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-dotall-regex/7.18.6_@babel+core@7.18.13:
@@ -2587,7 +2591,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-create-regexp-features-plugin': 7.18.6_@babel+core@7.18.13
       '@babel/helper-plugin-utils': 7.20.2
 
@@ -2597,7 +2601,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-exponentiation-operator/7.18.6_@babel+core@7.18.13:
@@ -2606,7 +2610,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-builder-binary-assignment-operator-visitor': 7.18.9
       '@babel/helper-plugin-utils': 7.20.2
 
@@ -2616,7 +2620,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-function-name/7.18.9_@babel+core@7.18.13:
@@ -2625,7 +2629,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-compilation-targets': 7.20.7_@babel+core@7.18.13
       '@babel/helper-function-name': 7.19.0
       '@babel/helper-plugin-utils': 7.20.2
@@ -2636,7 +2640,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-member-expression-literals/7.18.6_@babel+core@7.18.13:
@@ -2645,7 +2649,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-modules-amd/7.18.6_@babel+core@7.18.13:
@@ -2766,7 +2770,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-create-regexp-features-plugin': 7.18.6_@babel+core@7.18.13
       '@babel/helper-plugin-utils': 7.20.2
 
@@ -2776,7 +2780,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-object-super/7.18.6_@babel+core@7.18.13:
@@ -2810,7 +2814,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-property-literals/7.18.6_@babel+core@7.18.13:
@@ -2819,7 +2823,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-react-jsx/7.20.7_@babel+core@7.18.13:
@@ -2842,7 +2846,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       regenerator-transform: 0.15.0
 
@@ -2852,7 +2856,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-shorthand-properties/7.18.6_@babel+core@7.18.13:
@@ -2861,7 +2865,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-spread/7.18.9_@babel+core@7.18.13:
@@ -2870,7 +2874,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/helper-skip-transparent-expression-wrappers': 7.18.9
 
@@ -2880,7 +2884,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-template-literals/7.18.9_@babel+core@7.18.13:
@@ -2889,7 +2893,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-typeof-symbol/7.18.9_@babel+core@7.18.13:
@@ -2898,7 +2902,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-unicode-escapes/7.18.10_@babel+core@7.18.13:
@@ -2907,7 +2911,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
 
   /@babel/plugin-transform-unicode-regex/7.18.6_@babel+core@7.18.13:
@@ -2916,7 +2920,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-create-regexp-features-plugin': 7.18.6_@babel+core@7.18.13
       '@babel/helper-plugin-utils': 7.20.2
 
@@ -3104,7 +3108,7 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.18.13
+      '@babel/core': 7.18.13_supports-color@9.3.1
       '@babel/helper-plugin-utils': 7.20.2
       '@babel/plugin-proposal-unicode-property-regex': 7.18.6_@babel+core@7.18.13
       '@babel/plugin-transform-dotall-regex': 7.18.6_@babel+core@7.18.13

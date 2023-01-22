@@ -2,12 +2,25 @@
   "name": "@cocalc/playwright",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": { "test": "pnpm exec playwright test" },
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "test": "pnpm exec playwright test --project chromium",
+    "report": "pnpm exec playwright show-report",
+    "test-all": "pnpm exec playwright test",
+    "chromium": "pnpm exec playwright test --project chromium",
+    "firefox": "pnpm exec playwright test --project firefox",
+    "safari": "pnpm exec playwright test --project safari",
+    "iphone": "pnpm exec playwright test --project iphone",
+    "tsc": "pnpm exec tsc -w"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.29.2"
+    "@cocalc/playwright": "workspace:*",
+    "@playwright/test": "^1.29.2",
+    "@types/node": "^18.11.18"
   }
 }

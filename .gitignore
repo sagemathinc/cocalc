@@ -139,3 +139,7 @@ tsconfig.tsbuildinfo
 **/.successful-build
 src/packages/next/cache
 src/packages/next/software-inventory/*.json
+**/playwright-report/
+**/playwright/auth/
+--wait-apps
+http:/
