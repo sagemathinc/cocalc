@@ -9,6 +9,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc",
     "test": "pnpm exec playwright test --project chromium",
+    "test-headed": "pnpm exec playwright test --project chromium --headed",
     "report": "pnpm exec playwright show-report",
     "test-all": "pnpm exec playwright test",
     "chromium": "pnpm exec playwright test --project chromium",

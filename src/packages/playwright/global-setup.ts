@@ -51,6 +51,7 @@ export default async function globalSetup(_config: FullConfig) {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(`${URL}/app?auth_token=${auth_token}`);
+  // TODO: why?
   await delay(3000);
   await page.context().storageState({ path: STORAGE_STATE_PATH });
   await browser.close();
