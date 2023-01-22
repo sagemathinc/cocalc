@@ -1,9 +1,6 @@
 /*
 Start an ephemeral personal hub server and postgresql database server
 specifically for playwright automated testing purposes.
-
-PGUSER='smc' PGHOST=`pwd`/../../data/postgres/socket
-
 */
 
 import { existsSync } from "fs";
@@ -54,8 +51,42 @@ export async function startPostgres() {
   log("finished starting postgres");
 }
 
-export function startHub() {
+/* unset DATA COCALC_ROOT BASE_PATH && PORT=5500 PGUSER='smc' PGHOST=`pwd`/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=production NODE_OPTIONS='--max_old_space_size=16000' pnpm cocalc-hub-server --mode=single-user --personal --all --hostname=localhost
+ */
+export async function startHub() {
   log("starting hub");
+  const cwd = resolve(join(__dirname, "..", "..", "..", "hub"));
+  const env = {
+    ...process.env,
+    PORT,
+    NODE_ENV: "production",
+    PGUSER: "smc",
+    PGHOST: SOCKET,
+    DATA: join(PATH, "data"),
+    COCALC_ROOT: undefined,
+    BASE_PATH: undefined,
+    DEBUG: "cocalc:*,-cocalc:silly:*",
+    NODE_OPTIONS: "--max_old_space_size=16000",
+  };
+  log("spawning cocalc-hub-server");
+  const args = [
+    "cocalc-hub-server",
+    "--mode=single-user",
+    "--personal",
+    "--all",
+    "--hostname=localhost",
+  ];
+  log("pnpm", args.join(" "));
+  const child = spawnAsync("pnpm", args, { cwd, env, detached: true });
+  try {
+    const b = await child;
+    console.log(b.toString());
+  } catch (err) {
+    console.log(err.stdout.toString());
+    console.log(err.stderr.toString());
+  }
+  log("spawned hub with pid=", child.pid);
+  await writeFile(HUB_PID, `${child.pid}`);
 }
 
 export async function main() {
