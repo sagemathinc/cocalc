@@ -36,7 +36,8 @@ export async function startPostgres() {
     `\nunix_socket_directories='${SOCKET}'\nlisten_addresses=''\n`
   );
   log("Start database running in background as daemon");
-  spawnAsync("pg_ctl", ["start", "-D", PG_DATA]);
+  spawnAsync("pg_ctl", ["start", "-D", PG_DATA]); // do NOT await this
+  await delay(250);
   for (let i = 0; i < 5; i++) {
     // Create the smc user with no password -- this should fail
     // once or twice due to postgres not having fully started above.
@@ -45,14 +46,17 @@ export async function startPostgres() {
       await spawnAsync("createuser", ["-h", SOCKET, "-sE", "smc"]);
       break;
     } catch (err) {
-      log("error creating user", err);
+      log("error creating user", `${err}`);
     }
-    log("will try again in 1 seconds...");
-    await delay(1000);
+    log("will try again in 0.5 seconds...");
+    await delay(500);
   }
+  log("finished starting postgres");
 }
 
-export function startHub() {}
+export function startHub() {
+  log("starting hub");
+}
 
 export async function main() {
   log("starting test server");
@@ -65,6 +69,8 @@ export async function main() {
   await mkdir(PATH);
   await startPostgres();
   await startHub();
+  log("started services");
+  process.exit(0); // because of some state left from "pg_ctl start"
 }
 
 if (require.main === module) {
