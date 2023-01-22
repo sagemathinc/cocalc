@@ -693,13 +693,17 @@ importers:
       '@cocalc/playwright': workspace:*
       '@playwright/test': ^1.29.2
       '@types/node': ^18.11.18
+      await-spawn: ^4.0.2
       awaiting: ^3.0.0
+      debug: ^4.3.2
       node-fetch: ^2.6.7
     devDependencies:
       '@cocalc/playwright': 'link:'
       '@playwright/test': 1.29.2
       '@types/node': 18.11.18
+      await-spawn: 4.0.2
       awaiting: 3.0.0
+      debug: 4.3.4
       node-fetch: 2.6.7
 
   project:
@@ -5738,7 +5742,6 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       bl: 4.1.0
-    dev: false
 
   /awaiting/3.0.0:
     resolution: {integrity: sha512-19i4G7Hjxj9idgMlAM0BTRII8HfvsOdlr4D9cf3Dm1MZhvcKjBpzY8AMNEyIKyi+L9TIK15xZatmdcPG003yww==}
@@ -6009,7 +6012,6 @@ packages:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.0
-    dev: false
 
   /blocked/1.3.0:
     resolution: {integrity: sha512-tAb98b4F01wLnKIjCpp17hheKIKnd7j+SgxwgNHQNjQ+EcvOCRZ1HPVNZt3/XnpMjFymVdIZlBQysi+s7OltLw==}
@@ -6187,7 +6189,6 @@ packages:
     dependencies:
       base64-js: 1.5.1
       ieee754: 1.2.1
-    dev: false
 
   /buffer/6.0.3:
     resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}

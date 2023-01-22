@@ -7,6 +7,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "start-server": "pnpm ",
     "build": "pnpm exec tsc",
     "test": "pnpm exec playwright test --project chromium",
     "test-headed": "pnpm exec playwright test --project chromium --headed",
@@ -25,7 +26,13 @@
     "@cocalc/playwright": "workspace:*",
     "@playwright/test": "^1.29.2",
     "@types/node": "^18.11.18",
+    "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
+    "debug": "^4.3.2",
     "node-fetch": "^2.6.7"
+  },
+  "bin": {
+    "stop-test-server": "./dist/run/stop-test-server.js",
+    "start-test-server": "./dist/run/start-test-server.js"
   }
 }
