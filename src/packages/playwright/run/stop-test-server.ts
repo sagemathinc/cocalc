@@ -7,14 +7,14 @@ PGUSER='smc' PGHOST=`pwd`/../../data/postgres/socket
 */
 
 import { existsSync } from "fs";
-import { rm, readFile, unlink } from "fs/promises";
+import { rm, readFile, unlink, writeFile } from "fs/promises";
 import { kill } from "process";
 import debug from "debug";
 import spawnAsync from "await-spawn";
 
 const log = debug("test-server");
 
-import { PATH, HUB_PID, PG_DATA } from "./start-test-server";
+import { PATH, HUB_PID, PG_DATA, URL_FILE } from "./start-test-server";
 
 async function stop(path: string) {
   log("stop", path);
@@ -34,8 +34,8 @@ export async function stopPostgres() {
   } catch (_err) {}
 }
 
-export function stopHub() {
-  stop(HUB_PID);
+export async function stopHub() {
+  await stop(HUB_PID);
 }
 
 export async function main() {
@@ -47,6 +47,10 @@ export async function main() {
   await stopHub();
   log("deleting data directory", PATH);
   await rm(PATH, { recursive: true });
+  await writeFile(
+    URL_FILE,
+    `export const URL="";\nthrow Error('run "pnpm start" to start the Cocalc test server');`
+  );
 }
 
 if (require.main === module) {

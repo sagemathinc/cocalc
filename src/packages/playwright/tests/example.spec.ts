@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { URL } from "@cocalc/playwright/global-setup";
+import { URL } from "@cocalc/playwright/url";
 
 test("has title", async ({ page }) => {
   await page.goto(URL);
@@ -8,18 +8,18 @@ test("has title", async ({ page }) => {
   await expect(page).toHaveTitle(/Collaborative Calculation/);
 });
 
-test("features tab", async ({ page }) => {
+test("docs tab", async ({ page }) => {
   await page.goto(URL);
 
-  // Click the features tab.
-  await page.getByRole("link", { name: /^Features/ }).nth(1).click();
+  // Click the docs tab.
+  await page.getByRole("link", { name: /^Docs$/ }).click();
 
-  // Expects the URL to end with /features
-  await expect(page).toHaveURL(/.*\/features$/);
+  // Expects the URL to end with /info (yes, docs would make more sense...)
+  await expect(page).toHaveURL(/.*\/info/);
 });
 
-test("load the static frontend app", async ({ page }) => {
-  await page.goto(`${URL}/static/app.html`);
+test("load the frontend app projects listing", async ({ page }) => {
+  await page.goto(`${URL}/projects`);
   // Since we are assumed to be signed in, we end up at projects:
   await expect(page).toHaveURL(/.*\/projects/);
 });

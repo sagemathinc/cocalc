@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { URL } from "@cocalc/playwright/global-setup";
+import { URL } from "@cocalc/playwright/url";
 
 // @ts-ignore
 import { delay } from "awaiting";
