@@ -235,17 +235,17 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     useEffect(() => {
       if (props.actions == null) return;
       if (props.is_focused) {
-        props.actions.syncdb.on("before-change", beforeChange);
+        props.actions.syncdb?.on("before-change", beforeChange);
       } else {
         // On loss of focus, we call it once just to be sure that any
         // changes are saved.  Not doing this would definitely result
         // in lost work, if user made a change, then immediately switched
         // cells right when upstream changes are coming in.
         beforeChange();
-        props.actions.syncdb.removeListener("before-change", beforeChange);
+        props.actions.syncdb?.removeListener("before-change", beforeChange);
       }
       return () => {
-        props.actions?.syncdb.removeListener("before-change", beforeChange);
+        props.actions?.syncdb?.removeListener("before-change", beforeChange);
       };
     }, [props.is_focused]);
 

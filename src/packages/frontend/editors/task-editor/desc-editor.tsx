@@ -51,7 +51,7 @@ export default function DescriptionEditor({
     };
     actions.syncdb.on("before-change", beforeChange);
     return () => {
-      actions.syncdb.removeListener("before-change", beforeChange);
+      actions.syncdb?.removeListener("before-change", beforeChange);
     };
   }, []);
 
