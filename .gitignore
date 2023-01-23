@@ -140,6 +140,6 @@ tsconfig.tsbuildinfo
 src/packages/next/cache
 src/packages/next/software-inventory/*.json
 **/playwright-report/
-**/playwright/url.ts
+**/playwright/.url
 --wait-apps
 http:/
