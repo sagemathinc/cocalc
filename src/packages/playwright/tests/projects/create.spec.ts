@@ -5,7 +5,7 @@ Create a new project
 import { test, expect } from "@playwright/test";
 import { URL } from "@cocalc/playwright/url";
 
-test("Create a new project", async ({ page }) => {
+test("do arithmetic via the miniterminal", async ({ page }) => {
   await page.goto(`${URL}/projects`);
   await expect(page).toHaveURL(/.*\/projects/);
   const BigCreateButton = page.getByRole("button", {

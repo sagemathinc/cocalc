@@ -10,7 +10,6 @@ import { delay } from "awaiting";
 import spawnAsync from "await-spawn";
 import { spawn } from "child_process";
 import debug from "debug";
-import { main as cleanUp } from "./stop-test-server";
 
 const log = debug("test-server");
 
