@@ -10,6 +10,7 @@ import { delay } from "awaiting";
 import spawnAsync from "await-spawn";
 import { spawn } from "child_process";
 import debug from "debug";
+import { main as cleanUp } from "./stop-test-server";
 
 const log = debug("test-server");
 
@@ -18,7 +19,9 @@ export const HUB_PID = join(PATH, "hub.pid");
 export const PG_DATA = resolve(join(PATH, "postgres"));
 export const URL_FILE = resolve(join(__dirname, "..", "..", ".url"));
 
-const PORT = parseInt(process.env.PLAYWRIGHT_PORT ?? "9000");
+const PORT = parseInt(process.env.PLAYWRIGHT_PORT ?? "10123");
+
+log("Port = ", PORT);
 
 const SOCKET = join(PATH, "socket");
 
@@ -38,15 +41,19 @@ export async function startPostgres() {
   spawnAsync("pg_ctl", ["start", "-D", PG_DATA]); // do NOT await this
   let d = 250;
   await delay(d);
-  for (let i = 0; i < 5; i++) {
+  while (true) {
     // Create the smc user with no password -- this should fail
     // once or twice due to postgres not having fully started above.
     try {
       log("creating smc user");
-      await spawnAsync("createuser", ["-h", SOCKET, "-sE", "smc"]);
+      const args = ["-h", SOCKET, "-sE", "smc"];
+      log("createuser", args.join(" "));
+      const env = { ...process.env };
+      delete env["PGUSER"];
+      await spawnAsync("createuser", args, { env });
       break;
     } catch (err) {
-      log("error creating user", `${err}`);
+      log("error creating user", `${err}`, err.stdout, err.stderr);
     }
     d *= 1.3;
     log(`will try again in ${d / 1000} seconds...`);
@@ -75,10 +82,7 @@ export async function startHub() {
   delete env["COCALC_ROOT"];
   delete env["COCALC_PROJECT_ID"];
   log("spawning cocalc-hub-server");
-  log("NOTE: Run with env variable VERBOSE=1 to debug startup issues.");
-  log(
-    "WARNING: You must have run 'pnpm build' in the next and static packages or this will silently fail."
-  );
+  log("NOTE: Run with env variable FOREGROUND=yes to debug startup issues.");
   const args = [
     "cocalc-hub-server",
     "--mode=single-user",
@@ -90,11 +94,13 @@ export async function startHub() {
   const child = spawn("pnpm", args, {
     cwd,
     env,
-    detached: true,
-    stdio: process.env.VERBOSE ? "inherit" : "ignore",
+    detached: !process.env.FOREGROUND,
+    stdio: process.env.FOREGROUND ? "inherit" : "ignore",
   });
   if (child.pid) {
-    child.unref();
+    if (!process.env.FOREGROUND) {
+      child.unref();
+    }
     log("spawned hub with pid=", child.pid);
     await writeFile(HUB_PID, `${child.pid}`);
     await writeFile(URL_FILE, `http://localhost:${PORT}`);
@@ -113,12 +119,12 @@ export async function main() {
   await startPostgres();
   await startHub();
   log("started services");
-  process.exit(0); // because of some state left from "pg_ctl start"
+  log(`Personal CoCalc Server should be running at http://localhost:${PORT}`);
+  if (!process.env.FOREGROUND) {
+    process.exit(0); // because of some state left from "pg_ctl start"
+  }
 }
 
 if (require.main === module) {
   main();
-  console.log(
-    `Personal CoCalc Server should be running at http://localhost:${PORT}`
-  );
 }
