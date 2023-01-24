@@ -1,20 +1,23 @@
+import { Alert, Checkbox, Col, Radio, Row, Space, Upload } from "antd";
 import { useEffect, useState } from "react";
-import register from "../register";
-import { Alert, Checkbox, Col, Row, Radio, Space, Upload } from "antd";
-import Loading from "components/share/loading";
-import useEditTable from "lib/hooks/edit-table";
-import { ColorPicker } from "@cocalc/frontend/colorpicker";
-import { Icon } from "@cocalc/frontend/components/icon";
-import A from "components/misc/A";
-import { DisplayAvatar } from "components/account/avatar";
-import useProfile from "lib/hooks/profile";
-import useCustomize from "lib/use-customize";
+
+import { InboxOutlined } from "@ant-design/icons";
+import ImgCrop from "@cocalc/antd-img-crop";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
-import ImgCrop from "@cocalc/antd-img-crop";
-import { InboxOutlined } from "@ant-design/icons";
-import Code from "components/landing/code";
+import { ColorPicker } from "@cocalc/frontend/colorpicker";
+import { Icon } from "@cocalc/frontend/components/icon";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
+import { COLORS } from "@cocalc/util/theme";
+import { DisplayAvatar } from "components/account/avatar";
+import Code from "components/landing/code";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import useEditTable from "lib/hooks/edit-table";
+import useProfile from "lib/hooks/profile";
+import useCustomize from "lib/use-customize";
+import register from "../register";
 
 interface Data {
   email_address?: string;
@@ -63,7 +66,7 @@ register({
         <Row>
           <Col md={6} sm={24}>
             <div style={{ marginRight: "15px" }}>
-              <h3 style={{ marginTop: "10px" }}>
+              <Title level={3} style={{ marginTop: "10px" }}>
                 <DisplayAvatar
                   style={{ marginRight: "10px" }}
                   size={40}
@@ -72,7 +75,7 @@ register({
                   letter={profile?.first_name?.[0]}
                 />
                 Preview
-              </h3>
+              </Title>
               <br />
               {profile && (
                 <span
@@ -96,31 +99,31 @@ register({
               />
               <br />
               <br />
-              <div style={{ fontSize: "10px", color: "#666" }}>
+              <Paragraph style={{ fontSize: "10px", color: COLORS.GRAY }}>
                 (It will take a while for your avatar to update at the top of
                 the page, even after you save it.)
-              </div>
+              </Paragraph>
             </div>
           </Col>
           <Col md={18} sm={24}>
             <Space direction="vertical">
-              <h3>
+              <Title level={3}>
                 <Icon name="colors" /> Color
-              </h3>
-              <div>
+              </Title>
+              <Paragraph>
                 {desc.color}{" "}
                 <A href="/config/account/name">Change your name.</A>
-              </div>
-              <div style={{ width: "100%" }}>
+              </Paragraph>
+              <div style={{ margin: "20px 0" }}>
                 <ColorPicker
                   color={edited.profile.color}
-                  style={{ width: "200px", margin: "auto" }}
+                  style={{ width: "100%" }}
                   onChange={(color) => setEdited(color, "profile.color")}
                 />
               </div>
-              <h3>
+              <Title level={3}>
                 <Icon name="image" /> Image
-              </h3>
+              </Title>
               {desc.image}
               <Checkbox
                 checked={useImage}
@@ -186,12 +189,12 @@ function EditImage({ value, email_address, onChange }) {
           type="info"
           style={{ maxWidth: "500px" }}
           message={
-            <>
+            <Paragraph>
               Gravatar is a service for using a common avatar across websites.
               Go to the{" "}
               <A href="https://gravatar.com">Wordpress Gravatar site</A> and
               sign in (or create an account) using <Code>{email_address}</Code>.
-            </>
+            </Paragraph>
           }
         />
       )}

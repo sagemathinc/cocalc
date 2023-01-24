@@ -69,9 +69,9 @@ export default function ConfigLayout({ page }: Props) {
       style={{
         padding: 24,
         margin: 0,
-        minHeight: 280,
+        minHeight: 500,
         ...(info?.danger
-          ? { color: "#ff4d4f", backgroundColor: "#fff1f0" }
+          ? { color: "#ff4d4f", backgroundColor: COLORS.ATND_BG_RED_L }
           : undefined),
       }}
     >
@@ -124,7 +124,7 @@ export default function ConfigLayout({ page }: Props) {
       </Sider>
       <Layout
         style={{
-          padding: "0 24px 24px",
+          padding: "0",
           backgroundColor: "white",
           color: COLORS.GRAY_D,
         }}

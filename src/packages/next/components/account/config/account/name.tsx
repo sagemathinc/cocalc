@@ -7,7 +7,7 @@ import { Alert, Checkbox, Input, Space } from "antd";
 import { useEffect, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Paragraph } from "components/misc";
+import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import SaveButton from "components/misc/save-button";
 import Loading from "components/share/loading";
@@ -102,64 +102,58 @@ function ConfigureName() {
             />
             <br />
             <Paragraph>
-              <Paragraph strong>First Name</Paragraph>
-              <Paragraph type="secondary">{firstNameDesc}</Paragraph>
-              <Input
-                addonBefore={"First name"}
-                defaultValue={get.value.accounts.first_name}
-                onChange={onChange("first_name")}
-              />
+              <Text strong>First Name</Text> {firstNameDesc}
             </Paragraph>
+            <Input
+              addonBefore={"First name"}
+              defaultValue={get.value.accounts.first_name}
+              onChange={onChange("first_name")}
+            />
             <br />
             <Paragraph>
-              <Paragraph strong>Last Name</Paragraph>
-              <Paragraph type="secondary">{lastNameDesc}</Paragraph>
-              <Input
-                addonBefore={"Last name"}
-                defaultValue={get.value.accounts.last_name}
-                onChange={onChange("last_name")}
-              />
+              <Text strong>Last Name</Text> {lastNameDesc}
             </Paragraph>
+            <Input
+              addonBefore={"Last name"}
+              defaultValue={get.value.accounts.last_name}
+              onChange={onChange("last_name")}
+            />
             <br />
             <Paragraph>
-              <Paragraph strong>Username</Paragraph>
-              <Paragraph type="secondary">
-                Your username provides a{" "}
-                {edited.name ? (
-                  <A external href={`/${edited.name}`}>
-                    nice URL
-                  </A>
-                ) : (
-                  "nice URL"
-                )}{" "}
-                for content you share publicly.
-                {original.name && (
-                  <>
-                    {" "}
-                    (Changing your name could break links that you have shared.)
-                  </>
-                )}
-              </Paragraph>
-              <Input
-                addonBefore={"Name"}
-                defaultValue={get.value.accounts.name}
-                onChange={onChange("name")}
-              />
+              <Text strong>Username</Text> Your username provides a{" "}
+              {edited.name ? (
+                <A external href={`/${edited.name}`}>
+                  nice URL
+                </A>
+              ) : (
+                "nice URL"
+              )}{" "}
+              for content you share publicly.
+              {original.name && (
+                <>
+                  {" "}
+                  (Changing your name could break links that you have shared.)
+                </>
+              )}
             </Paragraph>
+            <Input
+              addonBefore={"Name"}
+              defaultValue={get.value.accounts.name}
+              onChange={onChange("name")}
+            />
             <br />
-
             <Paragraph>
-              <Paragraph strong>
+              <Text strong>
                 <Icon name="user-secret" /> Unlisted
-              </Paragraph>
-              <Paragraph type="secondary">{unlistedDesc}</Paragraph>
-              <Checkbox
-                defaultChecked={get.value.accounts.unlisted}
-                onChange={onChange("unlisted", "checked")}
-              >
-                Unlisted
-              </Checkbox>
+              </Text>{" "}
+              {unlistedDesc}
             </Paragraph>
+            <Checkbox
+              defaultChecked={get.value.accounts.unlisted}
+              onChange={onChange("unlisted", "checked")}
+            >
+              Unlisted
+            </Checkbox>
           </Space>
         </form>
       )}

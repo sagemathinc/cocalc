@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Input, Space } from "antd";
-import useDatabase from "lib/hooks/database";
-import Loading from "components/share/loading";
-import SaveButton from "components/misc/save-button";
-import apiPost from "lib/api/post";
-import register from "../register";
-import useAPI from "lib/hooks/api";
+import { useEffect, useState } from "react";
+
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import { Paragraph } from "components/misc";
+import { Paragraph, Text } from "components/misc";
+import SaveButton from "components/misc/save-button";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useDatabase from "lib/hooks/database";
+import register from "../register";
 
 interface Data {
   email_address?: string;
@@ -72,7 +78,7 @@ export function ChangeEmailAddress(props: Props) {
         >
           {!embedded && (
             <Paragraph>
-              <b>Your email address</b> {emailDesc}
+              <Text strong>Your email address</Text> {emailDesc}
             </Paragraph>
           )}
           <Input
