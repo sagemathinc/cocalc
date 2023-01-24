@@ -175,6 +175,7 @@ importers:
       antd: ^5.1.6
       async: ^2.6.3
       async-await-utils: ^3.0.1
+      audio-extensions: ^0.0.0
       awaiting: ^3.0.0
       bootbox: ^4.4.0
       bootstrap: '=3.4.1'
@@ -205,6 +206,7 @@ importers:
       html-react-parser: ^1.4.14
       htmlparser: ^1.7.7
       humanize-list: ^1.0.1
+      image-extensions: ^1.1.0
       immutable: 4.0.0-rc.12
       install: ^0.13.0
       is-hotkey: ^0.2.0
@@ -278,6 +280,7 @@ importers:
       use-deep-compare-effect: ^1.8.1
       use-resize-observer: ^9.1.0
       utility-types: ^3.10.0
+      video-extensions: ^1.2.0
       xss: ^1.0.11
       xterm: 5.1.0
       xterm-addon-fit: ^0.7.0
@@ -313,6 +316,7 @@ importers:
       antd: 5.1.6_biqbaboplfbrettd7655fr4n2y
       async: 2.6.4
       async-await-utils: 3.0.1
+      audio-extensions: 0.0.0
       awaiting: 3.0.0
       bootbox: 4.4.0
       bootstrap: 3.4.1
@@ -341,6 +345,7 @@ importers:
       html-react-parser: 1.4.14_react@18.2.0
       htmlparser: 1.7.7
       humanize-list: 1.0.1
+      image-extensions: 1.1.0
       immutable: 4.0.0-rc.12
       install: 0.13.0
       is-hotkey: 0.2.0
@@ -411,6 +416,7 @@ importers:
       use-deep-compare-effect: 1.8.1_react@18.2.0
       use-resize-observer: 9.1.0_biqbaboplfbrettd7655fr4n2y
       utility-types: 3.10.0
+      video-extensions: 1.2.0
       xss: 1.0.14
       xterm: 5.1.0
       xterm-addon-fit: 0.7.0_xterm@5.1.0
@@ -5705,6 +5711,11 @@ packages:
     engines: {node: '>= 4.0.0'}
     dev: false
 
+  /audio-extensions/0.0.0:
+    resolution: {integrity: sha512-yj9C819u3ED3/OyRd9mLKMXGy8wsElaf6bkkv6OqZEKrNAT461TjiznS4IfPBy8Mmh6DWaXCQCVYSq3+VHkpjQ==}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /available-typed-arrays/1.0.5:
     resolution: {integrity: sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==}
     engines: {node: '>= 0.4'}
@@ -9018,6 +9029,11 @@ packages:
     resolution: {integrity: sha512-CmxgYGiEPCLhfLnpPp1MoRmifwEIOgjcHXxOBjv7mY96c+eWScsOP9c112ZyLdWHi0FxHjI+4uVhKYp/gcdRmQ==}
     engines: {node: '>= 4'}
     dev: true
+
+  /image-extensions/1.1.0:
+    resolution: {integrity: sha512-P0t7ByhK8Jk9TU05ct/7+f7h8dNuXq5OY4m0IO/T+1aga/qHkpC0Wf472x3FLdq/zFDG17pgapCM3JDTxwZzow==}
+    engines: {node: '>=0.10.0'}
+    dev: false
 
   /image-size/0.5.5:
     resolution: {integrity: sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==}
@@ -15183,6 +15199,11 @@ packages:
       assert-plus: 1.0.0
       core-util-is: 1.0.2
       extsprintf: 1.4.1
+    dev: false
+
+  /video-extensions/1.2.0:
+    resolution: {integrity: sha512-TriMl18BHEsh2KuuSA065tbu4SNAC9fge7k8uKoTTofTq89+Xsg4K1BGbmSVETwUZhqSjd9KwRCNwXAW/buXMg==}
+    engines: {node: '>=0.10.0'}
     dev: false
 
   /w3c-hr-time/1.0.2:

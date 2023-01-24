@@ -14,6 +14,10 @@ via the newer registration system.
 
 import { IconName } from "./components/icon";
 
+import imageExtensions from "image-extensions";
+import videoExtensions from "video-extensions";
+import audioExtensions from "audio-extensions";
+
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   asm: "text/x-gas",
@@ -362,39 +366,15 @@ for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
   };
 }
 
-// See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
-export const IMAGE_EXTS = Object.freeze([
-  "jpg",
-  "jpeg",
-  "png",
-  "bmp",
-  "gif",
-  "apng",
-  "svg",
-  "ico",
-]) as ReadonlyArray<string>;
-
-export const VIDEO_EXTS = Object.freeze([
-  "webm",
-  "mp4",
-  "avi",
-  "mkv",
-  "ogv",
-  "ogm",
-  "3gp",
-]) as ReadonlyArray<string>;
-
-export const AUDIO_EXTS = Object.freeze([
-  "wav",
-  "ogg",
-  "mp3",
-  "aiff",
-  "flac",
-  "asnd",
-  "aif",
-  "au",
-  "snd",
-]) as ReadonlyArray<string>;
+export const IMAGE_EXTS = Object.freeze(
+  imageExtensions
+) as ReadonlyArray<string>;
+export const VIDEO_EXTS = Object.freeze(
+  videoExtensions
+) as ReadonlyArray<string>;
+export const AUDIO_EXTS = Object.freeze(
+  audioExtensions
+) as ReadonlyArray<string>;
 
 file_associations["pdf"] = {
   editor: "pdf",
