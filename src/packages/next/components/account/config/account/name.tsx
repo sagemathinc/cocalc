@@ -3,14 +3,16 @@ Very bad experimental first account name configuration page.
 This is extremely preliminary and just for experimentation.
 */
 
-import { useEffect, useState } from "react";
 import { Alert, Checkbox, Input, Space } from "antd";
+import { useEffect, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph } from "components/misc";
+import A from "components/misc/A";
+import SaveButton from "components/misc/save-button";
 import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
-import SaveButton from "components/misc/save-button";
-import A from "components/misc/A";
 import register from "../register";
-import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Data {
   first_name?: string;
@@ -99,54 +101,65 @@ function ConfigureName() {
               table="accounts"
             />
             <br />
-            <b>First Name</b> {firstNameDesc}
-            <Input
-              addonBefore={"First name"}
-              defaultValue={get.value.accounts.first_name}
-              onChange={onChange("first_name")}
-            />
+            <Paragraph>
+              <Paragraph strong>First Name</Paragraph>
+              <Paragraph type="secondary">{firstNameDesc}</Paragraph>
+              <Input
+                addonBefore={"First name"}
+                defaultValue={get.value.accounts.first_name}
+                onChange={onChange("first_name")}
+              />
+            </Paragraph>
             <br />
-            <b>Last Name</b> {lastNameDesc}
-            <Input
-              addonBefore={"Last name"}
-              defaultValue={get.value.accounts.last_name}
-              onChange={onChange("last_name")}
-            />
+            <Paragraph>
+              <Paragraph strong>Last Name</Paragraph>
+              <Paragraph type="secondary">{lastNameDesc}</Paragraph>
+              <Input
+                addonBefore={"Last name"}
+                defaultValue={get.value.accounts.last_name}
+                onChange={onChange("last_name")}
+              />
+            </Paragraph>
             <br />
-            <b>Username</b>
-            <div>
-              Your username provides a{" "}
-              {edited.name ? (
-                <A external href={`/${edited.name}`}>
-                  nice URL
-                </A>
-              ) : (
-                "nice URL"
-              )}{" "}
-              for content you share publicly.
-              {original.name && (
-                <>
-                  {" "}
-                  (Changing your name could break links that you have shared.)
-                </>
-              )}
-            </div>
-            <Input
-              addonBefore={"Name"}
-              defaultValue={get.value.accounts.name}
-              onChange={onChange("name")}
-            />
+            <Paragraph>
+              <Paragraph strong>Username</Paragraph>
+              <Paragraph type="secondary">
+                Your username provides a{" "}
+                {edited.name ? (
+                  <A external href={`/${edited.name}`}>
+                    nice URL
+                  </A>
+                ) : (
+                  "nice URL"
+                )}{" "}
+                for content you share publicly.
+                {original.name && (
+                  <>
+                    {" "}
+                    (Changing your name could break links that you have shared.)
+                  </>
+                )}
+              </Paragraph>
+              <Input
+                addonBefore={"Name"}
+                defaultValue={get.value.accounts.name}
+                onChange={onChange("name")}
+              />
+            </Paragraph>
             <br />
-            <b>
-              <Icon name="user-secret" /> Unlisted
-            </b>
-            <div>{unlistedDesc}</div>
-            <Checkbox
-              defaultChecked={get.value.accounts.unlisted}
-              onChange={onChange("unlisted", "checked")}
-            >
-              Unlisted
-            </Checkbox>
+
+            <Paragraph>
+              <Paragraph strong>
+                <Icon name="user-secret" /> Unlisted
+              </Paragraph>
+              <Paragraph type="secondary">{unlistedDesc}</Paragraph>
+              <Checkbox
+                defaultChecked={get.value.accounts.unlisted}
+                onChange={onChange("unlisted", "checked")}
+              >
+                Unlisted
+              </Checkbox>
+            </Paragraph>
           </Space>
         </form>
       )}
