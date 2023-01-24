@@ -13,14 +13,14 @@ fully unit test it via mocking of components.
 */
 
 import * as immutable from "immutable";
+import json_stable from "json-stable-stringify";
+import * as underscore from "underscore";
+
 import { JupyterActions as JupyterActions0 } from "./actions";
 
 import { callback2, once } from "@cocalc/util/async-utils";
 //import { reuseInFlight } from "async-await-utils/hof";
-
-import * as underscore from "underscore";
 import * as misc from "@cocalc/util/misc";
-import json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";
 
@@ -119,11 +119,7 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("initialize_manager");
     dbg();
 
-    let cells = this.store.get("cells");
-    if (cells != null) {
-      5;
-      cells = cells.toJS();
-    }
+    let cells = this.store.get("cells")?.toJS();
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
 
     this.sync_exec_state = underscore.debounce(this.sync_exec_state, 2000);

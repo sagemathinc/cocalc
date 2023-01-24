@@ -356,9 +356,10 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">confirm restart kernel and run all cells",
         ">confirm restart kernel and run all cells without halting on error",
         "",
-        "<Change kernel...",
       ]
+        .concat([items?.length ?? 0 > 0 ? "<Change kernel..." : "<No Kernels available!"])
         .concat((items as any) || [])
+        .concat(["", "no kernel"])
         .concat(["", "refresh kernels"])
         .concat(["", "custom kernel"]);
 

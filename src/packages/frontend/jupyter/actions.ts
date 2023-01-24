@@ -16,30 +16,30 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
 declare const localStorage: any;
 
-import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
+import * as awaiting from "awaiting";
+import * as immutable from "immutable";
 import { debounce } from "lodash";
 
+import { Actions } from "@cocalc/frontend/app-framework";
+import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-const { close, required, defaults } = misc;
-import * as awaiting from "awaiting";
-import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { Cell, KernelInfo } from "./types";
-import { Syntax } from "@cocalc/util/code-formatter";
 
-import { Actions } from "../app-framework";
-import {
-  JupyterStoreState,
-  JupyterStore,
-  show_kernel_selector_reasons,
-} from "./store";
-import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
 import { cm_options } from "./cm_options";
+import * as parsing from "./parsing";
+import {
+  JupyterStore,
+  JupyterStoreState,
+  show_kernel_selector_reasons,
+} from "./store";
+import { Cell, KernelInfo } from "./types";
 
-// map project_id (string) -> kernels (immutable)
-import { Kernels, Kernel } from "./util";
+const { close, required, defaults } = misc;
+
+// local cache: map project_id (string) -> kernels (immutable)
+import { Kernel, Kernels } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
 import { IPynbImporter } from "./import-from-ipynb";
@@ -49,9 +49,9 @@ import { JupyterKernelInterface } from "./project-interface";
 import { parse_headings } from "./contents";
 
 import {
+  char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-  char_idx_to_js_idx,
 } from "./util";
 
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
@@ -93,7 +93,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public initialize_manager: any;
   public manager_on_cell_change: any;
   public manager_run_cell_process_queue: any;
-  public store: any;
+  public store: JupyterStore;
   public syncdb: SyncDB;
 
   public _init(
@@ -312,7 +312,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cur = this.store.get("error");
     // don't show the same error more than once
-    if ((cur != null ? cur.indexOf(err) : undefined) >= 0) {
+    if ((cur?.indexOf(err) ?? -1) >= 0) {
       return;
     }
     if (cur) {
@@ -370,6 +370,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cells == null) return; // nothing to do
     for (const id of cell_ids) {
       const cell = cells.get(id);
+      if (cell == null) continue;
       if (cell.get("output") != null || cell.get("exec_count")) {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
@@ -450,7 +451,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       getPos: (index) =>
         this.store.getIn(["cells", cell_list.get(index) ?? "", "pos"]) ?? 0,
     });
-    this.set_cell_pos(cell_list.get(oldIndex), newPos, save);
+    this.set_cell_pos(cell_list.get(oldIndex) ?? "", newPos, save);
   }
 
   public set_cell_type(
@@ -986,6 +987,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         continue;
       }
       const cell = this.store.getIn(["cells", id]);
+      if (cell == null) continue;
       if (
         cell.get("cell_type", "code") == "code" &&
         cell.get("input", "").trim() == "" &&
@@ -1024,7 +1026,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     save: boolean = true,
     no_halt: boolean = false
   ): void {
+    // don't run if read-only
     if (this.store.get("read_only")) return;
+
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
@@ -1033,6 +1037,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cell_type = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
+        if (this.store.get("kernel") == null) {
+          // don't attempt to run a code-cell if there is no kernel defined
+          this.set_error(
+            "No kernel defined. Therefore it is not possible to run a code cell."
+          );
+          return;
+        }
         const code = this.get_cell_input(id).trim();
         if (this.is_project) {
           // when the backend is running code, just don't worry about
@@ -1438,7 +1449,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cells = this.store.get("cells");
     if (delta === -1 || delta === 0) {
       // one before first selected
-      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]);
+      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]) ?? "";
     } else if (delta === 1) {
       // last selected
       cell_before_pasted_id = cell_ids[cell_ids.length - 1];
@@ -1563,7 +1574,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: string) => {
+  set_kernel = (kernel: string | null) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
@@ -2570,7 +2581,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        const syntax: Syntax = this.store.get_kernel_syntax();
+        const syntax = this.store.get_kernel_syntax();
         if (syntax == null) {
           return; // no-op on these.
         }
@@ -2717,9 +2728,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  select_kernel = (kernel_name: string): void => {
+  select_kernel = (kernel_name: string | null): void => {
     this.set_kernel(kernel_name);
-    this.set_default_kernel(kernel_name);
+    if (kernel_name != null) {
+      this.set_default_kernel(kernel_name);
+    }
     this.focus(true);
     this.hide_select_kernel();
   };

@@ -251,6 +251,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   ): Promise<undefined | { command: string; args: string[] }> {
     id = id; // not used
     const connection_file = this.jupyter_actions.store.get("connection_file");
+    if (connection_file == null) return;
     return {
       command: "jupyter",
       args: ["console", "--existing", connection_file],

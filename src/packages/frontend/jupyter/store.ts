@@ -7,15 +7,22 @@
 The Store
 */
 
+import { fromJS, List, Map, OrderedMap, Set } from "immutable";
+
+import { Store } from "@cocalc/frontend/app-framework";
+import {
+  delete_local_storage,
+  get_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { Syntax } from "@cocalc/util/code-formatter";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
-import { fromJS, List, Map, OrderedMap, Set } from "immutable";
-import { Store } from "../app-framework";
-import { delete_local_storage, get_local_storage } from "../misc/local-storage";
+
 import { export_to_ipynb } from "./export-to-ipynb";
+import { KernelSpec } from "./nbviewer/parse";
 import { Cell, CellToolbarName, KernelInfo } from "./types";
 import { Kernel, Kernels } from "./util";
+import { NBGraderStore } from "./nbgrader/store";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -24,7 +31,7 @@ let global_clipboard: any = undefined;
 export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
 export function canonical_language(
-  kernel?: string,
+  kernel?: string | null,
   kernel_info_lang?: string
 ): string | undefined {
   let lang;
@@ -51,7 +58,7 @@ export interface JupyterStoreState {
   fatal: string;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
-  kernel?: string;
+  kernel?: string | null;
   kernels?: Kernels;
   kernel_info?: any;
   max_output_length: number;
@@ -105,7 +112,11 @@ export const initial_jupyter_store_state: {
 
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
-  private _more_output: any;
+  // manipulated in jupyter/project-actions.ts
+  public _more_output: any;
+
+  // eventually set in jupyter/nbgrader/actions.ts
+  nbgrader?: NBGraderStore;
 
   private deprecated(f: string, ...args): void {
     const s = "DEPRECATED JupyterStore." + f;
@@ -204,16 +215,23 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
-  get_kernel_info = (kernel: string | undefined): any | undefined => {
+  get_kernel_info = (
+    kernel: string | null | undefined
+  ): KernelSpec | undefined => {
     // slow/inefficient, but ok since this is rarely called
     let info: any = undefined;
     const kernels = this.get("kernels");
-    if (kernels == null) {
-      return;
+    if (kernels === undefined) return;
+    if (kernels === null) {
+      return {
+        name: "No Kernel",
+        language: "",
+        display_name: "No Kernel",
+      };
     }
     kernels.forEach((x: any) => {
       if (x.get("name") === kernel) {
-        info = x.toJS();
+        info = x.toJS() as KernelSpec;
         return false;
       }
     });

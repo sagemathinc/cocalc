@@ -12,8 +12,9 @@
  */
 
 import { delay } from "awaiting";
+
 import { once } from "@cocalc/util/async-utils";
-import { redux } from "../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { QueryParams } from "../misc/query-params";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { JupyterActions } from "@cocalc/frontend/jupyter/actions";
@@ -139,7 +140,7 @@ export class WelcomeFile {
     }
     jactions.set_kernel(kernel);
     await jactions.save(); // TODO how to make sure get_cell_list() has at least one cell?
-    let cell_id = jactions.store.get_cell_list().first();
+    let cell_id: string = jactions.store.get_cell_list().first();
 
     WelcomeSetups[kernel].forEach((cell) => {
       jactions.set_cell_input(cell_id, cell.content);

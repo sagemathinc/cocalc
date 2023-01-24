@@ -279,6 +279,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
     if (scroll.startsWith("cell")) {
       // find index of cur_id cell.
+      if (cur_id == null) return;
       const cellList = actions?.store.get("cell_list");
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;

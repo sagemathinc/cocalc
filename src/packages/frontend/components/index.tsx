@@ -46,3 +46,5 @@ export { QuestionMarkText } from "./question-mark-text";
 export { r_human_list } from "./r_human_list";
 import Delay from "./delay";
 export { Delay };
+import { Typography } from "antd";
+export const { Text, Title, Paragraph } = Typography;

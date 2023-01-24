@@ -4,6 +4,9 @@
  */
 
 // help users selecting a kernel
+import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
+import * as antd from "antd";
+import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 
 import { SiteName } from "@cocalc/frontend/customize";
 import {
@@ -13,25 +16,28 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend//app-framework";
-import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import * as misc from "@cocalc/util/misc";
 import { isIconName, Icon, Loading } from "@cocalc/frontend/components";
 import { Col, Row } from "../antd-bootstrap";
-import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
-import * as antd from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { Kernel as KernelType } from "./util";
+import { Paragraph, Text } from "@cocalc/frontend/components";
 
-const main_style: CSS = {
+const MAIN_STYLE: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
 } as const;
 
-const section_style: CSS = {
+const SELECTION_STYLE: CSS = {
   marginTop: "2em",
-};
+} as const;
+
+const ALL_LANGS_LABEL_STYLE: CSS = {
+  fontWeight: "bold",
+  color: COLORS.GRAY_D,
+} as const;
 
 interface KernelSelectorProps {
   actions: JupyterActions;
@@ -159,7 +165,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           title="Suggested kernels"
           bordered
           column={1}
-          style={section_style}
+          style={SELECTION_STYLE}
         >
           {entries}
         </Descriptions>
@@ -167,8 +173,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     }
 
     function render_custom(): Rendered {
+      if (kernels_by_language?.size == 0) return;
       return (
-        <Descriptions bordered column={1} style={section_style}>
+        <Descriptions bordered column={1} style={SELECTION_STYLE}>
           <Descriptions.Item label={"Custom kernels"}>
             <a onClick={() => actions.custom_jupyter_kernel_docs()}>
               How to create a custom kernel...
@@ -178,19 +185,49 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       );
     }
 
-    function render_all_langs(): Rendered[] | undefined {
-      if (kernels_by_language == null) return;
+    function render_no_kernels(): Rendered[] {
+      return [
+        <Descriptions.Item key="no_kernels" label={<Icon name="ban" />}>
+          <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+            <Paragraph>
+              There are no kernels available. <SiteName /> searches the standard
+              paths of Jupyter{" "}
+              <antd.Popover
+                trigger={["click", "hover"]}
+                content={
+                  <>
+                    i.e. essentially <Text code>jupyter kernelspec list</Text>{" "}
+                    going through{" "}
+                    <Text code>jupyter --paths --json | jq .data</Text>
+                  </>
+                }
+              >
+                <Icon
+                  style={{ color: COLORS.GRAY, cursor: "pointer" }}
+                  name="question-circle"
+                />
+              </antd.Popover>{" "}
+              for kernels. You can also define{" "}
+              <a onClick={() => actions.custom_jupyter_kernel_docs()}>
+                a custom kernel
+              </a>
+              .
+            </Paragraph>
+          </Radio.Group>
+        </Descriptions.Item>,
+      ];
+    }
 
-      const label_style: React.CSSProperties = {
-        fontWeight: "bold",
-        color: COLORS.GRAY_D,
-      };
+    function render_all_langs(): Rendered[] | undefined {
+      if (kernels_by_language == null) return render_no_kernels();
 
       const all: Rendered[] = [];
       kernels_by_language.forEach((names, lang) => {
         const kernels = names.map((name) => render_kernel_button(name, false));
 
-        const label = <span style={label_style}>{misc.capitalize(lang)}</span>;
+        const label = (
+          <span style={ALL_LANGS_LABEL_STYLE}>{misc.capitalize(lang)}</span>
+        );
 
         all.push(
           <Descriptions.Item key={lang} label={label}>
@@ -202,20 +239,22 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         return true;
       });
 
+      if (all.length == 0) return render_no_kernels();
+
       return all;
     }
 
     function render_all() {
-      if (kernels_by_language == null) return;
+      const all = render_all_langs();
 
       return (
         <Descriptions
           title="All kernels by language"
           bordered
           column={1}
-          style={section_style}
+          style={SELECTION_STYLE}
         >
-          {render_all_langs()}
+          {all}
         </Descriptions>
       );
     }
@@ -231,7 +270,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         editor_settings.get("ask_jupyter_kernel") ?? true;
 
       return (
-        <Descriptions bordered column={1} style={section_style}>
+        <Descriptions bordered column={1} style={SELECTION_STYLE}>
           <Descriptions.Item label={"Quick select"}>
             <div>
               Your most recently selected kernel is {render_kernel_button(name)}
@@ -276,9 +315,20 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         }
         return (
           <Row style={{ marginLeft: 0, marginRight: 0 }}>
-            <strong>{msg}</strong> A working kernel is required in order to
-            evaluate the code in the notebook. Please select one for the
-            programming language you want to work with.
+            <Paragraph>
+              <Text strong>{msg}</Text> A working kernel is required in order to
+              evaluate the code in the notebook. Please select one for the
+              programming language you want to work with. Otherwise continue
+              without a kernel.
+            </Paragraph>
+            <Paragraph style={{ textAlign: "center", width: "100%" }}>
+              <Button
+                onClick={() => actions.select_kernel(null)}
+                type="primary"
+              >
+                Continue without a kernel
+              </Button>
+            </Paragraph>
           </Row>
         );
       } else {
@@ -315,9 +365,11 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_footer(): Rendered {
       return (
         <Row style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
-          <strong>Note:&nbsp;</strong> You can always change the selected kernel
-          later in the Kernel menu or by clicking on the kernel information at
-          the top right.
+          <Paragraph>
+            <Text strong>Note:</Text> You can always change the selected kernel
+            later in the Kernel menu or by clicking on the kernel information at
+            the top right.
+          </Paragraph>
         </Row>
       );
     }
@@ -383,7 +435,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       return null;
     }
     return (
-      <div style={main_style} className={"smc-vfill"}>
+      <div style={MAIN_STYLE} className={"smc-vfill"}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
           {render_head()}
           {render_body()}
