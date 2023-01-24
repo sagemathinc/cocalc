@@ -47,7 +47,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   }, [elementsMap]);
 
   const elementsOnPage = useMemo(() => {
-    const pageId = pageIds[desc.get("page", "")] ?? pageIds[0];
+    const pageId = pageIds[desc.get("page", 1) - 1] ?? pageIds[0];
     const v: Element[] = [];
     elementsMap.forEach((element) => {
       if (element.get("page") == pageId) {
