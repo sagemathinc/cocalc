@@ -34,7 +34,16 @@ export default function ProjectTabs({ project_id }) {
     >
       <div style={{ display: "flex" }}>
         {fullscreen != "kiosk" && (
-          <FixedTabs project_id={project_id} activeTab={activeTab} />
+          <div style={{ width: "470px", maxWidth: "30%" }}>
+            {/* This fixed width above is to fix the flickering tabs bug! Namely,
+            without it at 80% zoom, tabs go insane.  This bug was very hard to fix.
+            Basically, antd is broken when you have two sets of Tabs next to
+            each other using flex.  But using a fixed width gets around that.
+            The right longterm fix is to move these fixed tabs to a column, like
+            in VSCode, but that takes significantly more care and time.
+            */}
+            <FixedTabs project_id={project_id} activeTab={activeTab} />
+          </div>
         )}
         <div
           style={{
