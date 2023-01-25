@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { db } from "@cocalc/database";
 import { verify_email_send_token } from "@cocalc/hub/auth";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { isValidUUID, is_valid_email_address } from "@cocalc/util/misc";
@@ -23,6 +24,7 @@ export default async function sendEmailVerification(
       account_id,
       email_address,
       only_verify: true,
+      database: db(),
     });
   } catch (err) {
     return err.message;

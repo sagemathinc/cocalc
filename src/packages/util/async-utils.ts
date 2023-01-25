@@ -114,6 +114,7 @@ export async function retry_until_success<T>(
 }
 
 import { EventEmitter } from "events";
+import { CB } from "./types/database";
 
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
@@ -169,10 +170,14 @@ async function once_with_timeout(
 
 // Alternative to callback_opts that behaves like the
 // callback defined in awaiting.
-export async function callback2(f: Function, opts: any = {}): Promise<any> {
-  function g(cb): void {
-    opts.cb = cb;
-    f(opts);
+export async function callback2<T = any>(
+  f: (opts: T & { cb: CB }) => void,
+  opts?: T
+): Promise<any> {
+  const optsCB: T & { cb: CB } = (opts ?? {}) as any;
+  function g(cb: CB): void {
+    optsCB.cb = cb;
+    f(optsCB);
   }
   return await awaiting.callback(g);
 }

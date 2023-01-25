@@ -16,7 +16,6 @@ import {
   set_email_address_verified,
 } from "./account-queries";
 import {
-  CB,
   CreatePassportOpts,
   DeletePassportOpts,
   PassportExistsOpts,
@@ -25,6 +24,7 @@ import {
 } from "./types";
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
 import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
+import { CB } from "@cocalc/util/types/database";
 
 export async function set_passport_settings(
   db: PostgreSQL,
@@ -68,7 +68,7 @@ export async function get_all_passport_settings(
   db: PostgreSQL
 ): Promise<PassportStrategyDB[]> {
   return (
-    await db.async_query({
+    await db.async_query<PassportStrategyDB>({
       query: "SELECT strategy, conf, info FROM passport_settings",
     })
   ).rows;

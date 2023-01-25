@@ -782,14 +782,16 @@ export async function is_password_correct(
     cb: required,
   });
 
+  const { account_id, email_address } = opts;
+
   if (opts.password_hash != null) {
     const r = verifyPassword(opts.password, opts.password_hash);
     opts.cb(undefined, r);
-  } else if (opts.account_id != null || opts.email_address != null) {
+  } else if (account_id != null || email_address != null) {
     try {
       const account = await cb2(opts.database.get_account, {
-        account_id: opts.account_id,
-        email_address: opts.email_address,
+        account_id,
+        email_address,
         columns: ["password_hash"],
       });
 

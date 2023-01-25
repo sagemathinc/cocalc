@@ -8,6 +8,7 @@ import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 import { Client } from "pg";
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { CB } from "@cocalc/util/types/database";
 
 export type QuerySelect = object;
 
@@ -17,8 +18,10 @@ export type QueryWhere =
   | string
   | string[];
 
+type UntypedQueryResult = { [key: string]: any };
+
 // There are many more options still -- add them as needed.
-export interface QueryOptions {
+export interface QueryOptions<T = UntypedQueryResult> {
   select?: string | string[];
   table?: string;
   where?: QueryWhere;
@@ -35,17 +38,14 @@ export interface QueryOptions {
   limit?: number;
   timeout_s?: number;
   conflict?: string;
-  cb?: Function;
+  cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions extends Omit<QueryOptions, "cb"> {}
+export interface AsyncQueryOptions<T = UntypedQueryResult>
+  extends Omit<QueryOptions<T>, "cb"> {}
 
-export type QueryResult = { [key: string]: any };
-
-export type CB<T = any> = (
-  err: string | Error | null | undefined,
-  result?: T
-) => any;
+export type QueryRows<T = UntypedQueryResult> = { rows: QueryResult<T>[] };
+export type QueryResult<T = { [key: string]: any }> = T;
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
@@ -54,7 +54,6 @@ export interface ChangefeedOptions {
   where: QueryWhere; // Condition involving only the fields in select; or function taking
   // obj with select and returning true or false
   watch: string[]; // Array of field names we watch for changes
-
   cb: CB;
 }
 
@@ -106,7 +105,7 @@ export interface PostgreSQL extends EventEmitter {
 
   get_site_settings(opts: { cb: CB }): void;
 
-  async_query(opts: AsyncQueryOptions): Promise<any>;
+  async_query<T = any>(opts: AsyncQueryOptions): Promise<QueryRows<T>>;
 
   _listen(table: string, select: QuerySelect, watch: string[], cb: CB): void;
 
@@ -116,7 +115,12 @@ export interface PostgreSQL extends EventEmitter {
 
   get_project(opts: { project_id: string; columns?: string[]; cb: CB }): void;
 
-  get_account(opts: { account_id: string; columns?: string[]; cb: CB }): void;
+  get_account(opts: {
+    account_id?: string;
+    email_address?: string;
+    columns?: string[];
+    cb: CB;
+  }): void;
 
   add_user_to_project(opts: {
     account_id: string;
@@ -181,8 +185,8 @@ export interface PostgreSQL extends EventEmitter {
   server_settings_synctable(): any; // returns a table
 
   create_account(opts: {
-    first_name: string;
-    last_name: string;
+    first_name?: string; // invalid name will throw Error
+    last_name?: string; // invalid name will throw Error
     created_by?: string;
     email_address?: string;
     password_hash?: string;
