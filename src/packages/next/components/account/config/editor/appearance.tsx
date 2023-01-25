@@ -10,6 +10,7 @@ import CodeMirror from "components/share/codemirror";
 import Loading from "components/share/loading";
 import useEditTable from "lib/hooks/edit-table";
 import register from "../register";
+import { Title } from "components/misc";
 
 interface Data {
   font_size: number;
@@ -64,10 +65,12 @@ register({
     }
 
     return (
-      <Space direction="vertical" style={{ width: "100%" }}>
-        <Row>
-          <Col md={14} sm={24} style={{ paddingRight: "15px" }}>
-            <Save />
+      <Row gutter={[20, 30]}>
+        <Col md={24}>
+          <Save />
+        </Col>
+        <Col md={14} sm={24}>
+          <Space direction="vertical" size="large">
             <EditNumber
               path="font_size"
               icon="text-height"
@@ -94,23 +97,23 @@ register({
               path="editor_settings.line_numbers"
               desc={desc.line_numbers}
             />
-          </Col>
-          <Col md={10} sm={24}>
-            <h3 style={{ marginTop: "10px" }}>Preview</h3>
-            <CodeMirror
-              content={EXAMPLE}
-              filename="a.py"
-              fontSize={edited.font_size}
-              options={{
-                // @ts-ignore
-                theme: edited.editor_settings.theme,
-                lineNumbers: edited.editor_settings.line_numbers,
-                lineWrapping: edited.editor_settings.line_wrapping,
-              }}
-            />
-          </Col>
-        </Row>
-      </Space>
+          </Space>
+        </Col>
+        <Col md={10} sm={24}>
+          <Title level={3}>Preview</Title>
+          <CodeMirror
+            content={EXAMPLE}
+            filename="a.py"
+            fontSize={edited.font_size}
+            options={{
+              // @ts-ignore
+              theme: edited.editor_settings.theme,
+              lineNumbers: edited.editor_settings.line_numbers,
+              lineWrapping: edited.editor_settings.line_wrapping,
+            }}
+          />
+        </Col>
+      </Row>
     );
   },
 });

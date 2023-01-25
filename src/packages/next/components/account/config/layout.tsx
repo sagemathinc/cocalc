@@ -127,6 +127,7 @@ export default function ConfigLayout({ page }: Props) {
           padding: "0",
           backgroundColor: "white",
           color: COLORS.GRAY_D,
+          maxWidth: "1200px",
         }}
       >
         {content}

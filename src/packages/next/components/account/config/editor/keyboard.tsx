@@ -38,7 +38,7 @@ register({
     }
 
     return (
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical" size="large">
         <Save />
         <EditSelect
           path="editor_settings.bindings"

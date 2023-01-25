@@ -41,6 +41,21 @@ interface Options {
   noSave?: boolean;
 }
 
+interface HeadingProps {
+  path?: string;
+  title?: string;
+  desc?: ReactNode;
+  icon?: IconName;
+}
+
+interface EditBooleanProps {
+  path: string;
+  title?: string;
+  desc?: ReactNode;
+  label?: ReactNode;
+  icon?: IconName;
+}
+
 export default function useEditTable<T extends object>(
   query: object,
   options?: Options
@@ -89,17 +104,8 @@ export default function useEditTable<T extends object>(
     );
   }
 
-  function Heading({
-    path,
-    title,
-    icon,
-    desc,
-  }: {
-    path?: string;
-    title?: string;
-    desc?: ReactNode;
-    icon?: IconName;
-  }) {
+  function Heading(props: HeadingProps) {
+    const { path, title, icon, desc } = props;
     return (
       <>
         <Title level={3}>
@@ -111,19 +117,8 @@ export default function useEditTable<T extends object>(
     );
   }
 
-  function EditBoolean({
-    path,
-    title,
-    desc,
-    label,
-    icon,
-  }: {
-    path: string;
-    title?: string;
-    desc?: ReactNode;
-    label?: ReactNode;
-    icon?: IconName;
-  }) {
+  function EditBoolean(props: EditBooleanProps) {
+    const { path, title, desc, label, icon } = props;
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>
         <Heading path={path} title={title} icon={icon} desc={desc} />

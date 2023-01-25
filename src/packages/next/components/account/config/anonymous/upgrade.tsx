@@ -1,12 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, Input, Space } from "antd";
+import { delay } from "awaiting";
 import { CSSProperties, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { TermsCheckbox } from "components/auth/sign-up";
 import SSO from "components/auth/sso";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Title } from "components/misc";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
-import { delay } from "awaiting";
 
 interface Props {
   style: CSSProperties;
@@ -24,10 +31,8 @@ export default function Upgrade({ style }: Props) {
       <br />
       {terms && (
         <SSO
-          style={{ margin: "5px 0" }}
-          header={
-            <h3 style={{ marginBottom: "10px" }}>Or Use Single Sign On</h3>
-          }
+          style={{ margin: "30px 0" }}
+          header={<Title level={3}>Or Use Single Sign On</Title>}
         />
       )}
     </div>
@@ -59,7 +64,7 @@ function EmailPassword() {
   }
   return (
     <>
-      <h3>Set an Email Address and Password</h3>
+      <Title level={3}>Set an Email Address and Password</Title>
       {error && (
         <Alert
           type="error"
