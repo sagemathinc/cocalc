@@ -42,7 +42,10 @@ export interface AsyncQueryOptions extends Omit<QueryOptions, "cb"> {}
 
 export type QueryResult = { [key: string]: any };
 
-export type CB = (err: string | Error | null | undefined, result?: any) => any;
+export type CB<T = any> = (
+  err: string | Error | null | undefined,
+  result?: T
+) => any;
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
@@ -313,4 +316,12 @@ export interface PostgreSQL extends EventEmitter {
   projects_that_need_to_be_started(): Promise<string[]>;
 
   is_connected(): boolean;
+
+  verify_email_create_token(opts: {
+    account_id: string;
+    cb: CB<{
+      token: string;
+      email_address: string;
+    }>;
+  }): Promise<void>;
 }

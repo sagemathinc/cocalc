@@ -1,9 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Col, Row, Space } from "antd";
-import Loading from "components/share/loading";
-import register from "../register";
-import useEditTable from "lib/hooks/edit-table";
+
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
 import CodeMirror from "components/share/codemirror";
+import Loading from "components/share/loading";
+import useEditTable from "lib/hooks/edit-table";
+import register from "../register";
 
 interface Data {
   font_size: number;

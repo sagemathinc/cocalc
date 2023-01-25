@@ -822,7 +822,14 @@ export async function is_password_correct(
   }
 }
 
-export async function verify_email_send_token(opts) {
+interface VerifyEmailOpts {
+  database: PostgreSQL;
+  account_id: string;
+  only_verify: boolean;
+  cb: (err?) => void;
+}
+
+export async function verify_email_send_token(opts: VerifyEmailOpts) {
   opts = defaults(opts, {
     database: required,
     account_id: required,

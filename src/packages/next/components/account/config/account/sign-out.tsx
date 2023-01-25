@@ -1,9 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+
 import { Button, Space } from "antd";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph } from "components/misc";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import register from "../register";
-import { Paragraph } from "components/misc";
 
 register({
   path: "account/sign-out",
