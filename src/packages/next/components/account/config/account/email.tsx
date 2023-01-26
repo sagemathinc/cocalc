@@ -29,9 +29,7 @@ can add you as collaborators to projects by searching for your exact
 email address. (There is no way to do a search for partial email
 addresses, and your email address is never revealed to other users.)`;
 
-const verificationDesc = `Your email is considered verified,
-if we either sent you a verification email and you clicked on the link with a secret token to open that link,
-or if you did sign up using a registered single-sign-on provider (e.g. Google/Gmail or your university).`;
+const verificationDesc = `Your email is verified if we either sent you a verification email and you clicked on the link, or if you signed up using a registered single-sign-on provider (e.g., Google/Gmail or your university).`;
 
 const EMAIL_ACCOUNT_Q = {
   accounts: { email_address: null, email_address_verified: null },
