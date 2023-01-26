@@ -4,13 +4,13 @@
  */
 
 import { Button } from "antd";
+import { join } from "path";
+import { CSSProperties, ReactNode } from "react";
+
 import { Paragraph } from "components/misc";
-import A from "components/misc/A";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import { useRouter } from "next/router";
-import { join } from "path";
-import { CSSProperties, ReactNode } from "react";
 
 interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
@@ -29,22 +29,19 @@ export default function SignIn({ startup, hideFree, style }: Props) {
   if (account != null) {
     return (
       <Paragraph style={{ ...STYLE, ...style }}>
-        <A
-          className="ant-btn"
-          href={join(basePath, "projects")}
-          external={true}
-          style={{ margin: "15px", fontSize: "14pt" }}
-          title={`Open the ${siteName} app and view your projects`}
+        <Button
+          size="large"
+          onClick={() => router.push(join(basePath, "projects"))}
+          title={`Open the ${siteName} app and view your projects.`}
+          type="primary"
         >
-          View Your {siteName} Projects...
-        </A>
+          Open your {siteName} projects...
+        </Button>
       </Paragraph>
     );
   }
   return (
     <Paragraph style={STYLE}>
-      {/* We use className="ant-btn" instead of an actual Button, because otherwise
-            we get a ton of useLayoutEffects due to server-side rendering.*/}
       {anonymousSignup && (
         <Button
           size="large"

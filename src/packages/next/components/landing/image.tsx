@@ -1,8 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import NextImage from "next/legacy/image";
-import { MediaURL } from "./util";
-import basePath from "lib/base-path";
 import { join } from "path";
 import { CSSProperties } from "react";
+
+import basePath from "lib/base-path";
+import { MediaURL } from "./util";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
 // since it seems not exported...
@@ -22,15 +28,9 @@ interface Props {
   priority?: boolean;
 }
 
-export default function Image({
-  src,
-  style,
-  alt,
-  width,
-  height,
-  priority = false,
-}: Props) {
-  if (typeof src == "string") {
+export default function Image(props: Props) {
+  const { src, style, alt, width, height, priority = false } = props;
+  if (typeof src === "string") {
     return (
       <img
         src={MediaURL(src)}
@@ -51,25 +51,34 @@ export default function Image({
     src.src = join(basePath, src.src);
   }
   if (height != null && width != null) {
-    return <NextImage src={src} alt={alt} height={height} width={width} />;
-  }
-  return (
-    <div
-      style={{
-        width: "100%",
-        ...style,
-        display: "inline-block",
-      }}
-    >
-      <div style={{ position: "relative", width: "100%" }}>
-        <NextImage
-          src={src}
-          alt={alt}
-          layout="responsive"
-          width={width}
-          priority={priority}
-        />
+    return (
+      <NextImage
+        src={src}
+        alt={alt}
+        height={height}
+        width={width}
+        priority={priority}
+      />
+    );
+  } else {
+    return (
+      <div
+        style={{
+          width: "100%",
+          ...style,
+          display: "inline-block",
+        }}
+      >
+        <div style={{ position: "relative", width: "100%" }}>
+          <NextImage
+            src={src}
+            alt={alt}
+            layout="responsive"
+            width={width}
+            priority={priority}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }

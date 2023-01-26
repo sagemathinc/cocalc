@@ -3,25 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Layout, Space } from "antd";
+
 import A from "components/misc/A";
-import Logo from "components/logo-rectangular";
-import { Layout } from "antd";
+import Logo from "components/logo";
 import { useCustomize } from "lib/customize";
 import Contact from "./contact";
+import { CSS, Paragraph } from "components/misc";
 
-function Item({
-  first,
-  children,
-}: {
+const STYLE: CSS = {
+  textAlign: "center",
+  borderTop: "1px solid lightgrey",
+  backgroundColor: "white",
+};
+
+interface Props {
   first?: boolean;
   children: string | JSX.Element;
-}) {
-  if (first) return <>{children}</>;
-  return (
-    <>
-      &nbsp;{" – "}&nbsp;{children}
-    </>
-  );
+}
+
+function Item(props: Props): JSX.Element {
+  const { first, children } = props;
+
+  if (first) {
+    return <>{children}</>;
+  } else {
+    return (
+      <>
+        &nbsp;{" – "}&nbsp;{children}
+      </>
+    );
+  }
 }
 
 export default function Footer() {
@@ -52,59 +64,54 @@ export default function Footer() {
   }
 
   return (
-    <Layout.Footer
-      style={{
-        textAlign: "center",
-        borderTop: "1px solid lightgrey",
-        backgroundColor: "white",
-      }}
-    >
-      <div>
-        <Item first>{siteName ?? "CoCalc"}</Item>
-        {onCoCalcCom && (
+    <Layout.Footer style={STYLE}>
+      <Space size="middle" direction="vertical">
+        <Paragraph>
+          <Item first>{siteName ?? "CoCalc"}</Item>
+          {onCoCalcCom && (
+            <Item>
+              <A href="https://about.cocalc.com/">About</A>
+            </Item>
+          )}
+          {renderOrganization()}
+          {!landingPages && termsOfServiceURL && (
+            <Item>
+              <A href={termsOfServiceURL}>Terms of Service</A>
+            </Item>
+          )}
+          {contactEmail && (
+            <Item>
+              <Contact showEmail={false} />
+            </Item>
+          )}
+          {imprint && (
+            <Item>
+              <A href="/policies/imprint">Imprint</A>
+            </Item>
+          )}
+          {(landingPages || imprintOrPolicies) && (
+            <Item>
+              <A href="/policies">Policies</A>
+            </Item>
+          )}
+          {isCommercial && (
+            <Item>
+              <A href="/pricing">Products and Pricing</A>
+            </Item>
+          )}
+          {landingPages && (
+            <Item>
+              <A href="/software">Software</A>
+            </Item>
+          )}
           <Item>
-            <A href="https://about.cocalc.com/">About</A>
+            <A href="/info/status">Status</A>
           </Item>
-        )}
-        {renderOrganization()}
-        {!landingPages && termsOfServiceURL && (
-          <Item>
-            <A href={termsOfServiceURL}>Terms of Service</A>
-          </Item>
-        )}
-        {contactEmail && (
-          <Item>
-            <Contact showEmail={false} />
-          </Item>
-        )}
-        {imprint && (
-          <Item>
-            <A href="/policies/imprint">Imprint</A>
-          </Item>
-        )}
-        {(landingPages || imprintOrPolicies) && (
-          <Item>
-            <A href="/policies">Policies</A>
-          </Item>
-        )}
-        {isCommercial && (
-          <Item>
-            <A href="/pricing">Products and Pricing</A>
-          </Item>
-        )}
-        {landingPages && (
-          <Item>
-            <A href="/software">Software</A>
-          </Item>
-        )}
-        <Item>
-          <A href="/info/status">Status</A>
-        </Item>
-      </div>
-      <br />
-      <div>
-        <Logo style={{ height: "40px", width: "40px" }} />
-      </div>
+        </Paragraph>
+        <Paragraph>
+          <Logo type="rectangular" width={200} />
+        </Paragraph>
+      </Space>
     </Layout.Footer>
   );
 }

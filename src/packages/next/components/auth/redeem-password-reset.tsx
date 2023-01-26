@@ -1,13 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, Input } from "antd";
 import { useState } from "react";
-import SquareLogo from "components/logo-square";
+import { useRouter } from "next/router";
+
+import Logo from "components/logo";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
 import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
-import { useRouter } from "next/router";
 
 export default function PasswordReset({ passwordResetId }) {
   const { account, siteName } = useCustomize();
@@ -39,7 +45,7 @@ export default function PasswordReset({ passwordResetId }) {
   return (
     <div style={{ padding: "15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px" }} />
+        <Logo type="icon" style={{ width: "100px", height: "100px" }} />
         <h1>
           {account ? "Successfully " : ""}Reset Your {siteName} Password
         </h1>

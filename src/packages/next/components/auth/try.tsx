@@ -1,20 +1,26 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Create an anonymous account.
 */
 
-import { useState } from "react";
 import { Alert, Button } from "antd";
-import SquareLogo from "components/logo-square";
-import useCustomize from "lib/use-customize";
-import { LOGIN_STYLE } from "./shared";
-import A from "components/misc/A";
-import api from "lib/api/post";
-import { len } from "@cocalc/util/misc";
-import Loading from "components/share/loading";
+import { useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+
+import { len } from "@cocalc/util/misc";
+import Logo from "components/logo";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import api from "lib/api/post";
+import useCustomize from "lib/use-customize";
+import { LOGIN_STYLE } from "./shared";
 
 interface Props {
   minimal?: boolean;
@@ -80,7 +86,8 @@ function Try0({ minimal, onSuccess }: Props) {
     <div style={style}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <SquareLogo
+          <Logo
+            type="icon"
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
           />
           <h1>Use {siteName} Anonymously</h1>

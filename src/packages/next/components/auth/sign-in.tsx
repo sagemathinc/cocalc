@@ -3,18 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert, Button, Input } from "antd";
-import Contact from "components/landing/contact";
-import SquareLogo from "components/logo-square";
-import A from "components/misc/A";
-import apiPost from "lib/api/post";
-import useCustomize from "lib/use-customize";
 import { useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import Contact from "components/landing/contact";
+import Logo from "components/logo";
+import A from "components/misc/A";
+import apiPost from "lib/api/post";
+import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
@@ -84,7 +85,8 @@ function SignIn0(props: Props) {
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <SquareLogo
+          <Logo
+            type="icon"
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
             priority={true}
           />

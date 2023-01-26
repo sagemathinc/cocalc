@@ -4,19 +4,19 @@
  */
 
 import { Layout } from "antd";
+import Link from "next/link";
+import { join } from "path";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
-import SquareLogo from "components/logo-square";
+import Logo from "components/logo";
 import A from "components/misc/A";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
-import Link from "next/link";
-import { join } from "path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
@@ -95,7 +95,8 @@ export default function Header(props: Props) {
               marginRight: "64px",
             }}
           >
-            <SquareLogo
+            <Logo
+              type="icon"
               style={{
                 height: "40px",
                 width: "40px",

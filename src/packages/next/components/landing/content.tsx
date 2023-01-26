@@ -4,13 +4,15 @@
  */
 
 import { Col, Row } from "antd";
-import SignIn from "components/landing/sign-in";
-import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { ReactNode } from "react";
-import Image from "./image";
-import useCustomize from "lib/use-customize";
+
 import Path from "components/app/path";
+import SignIn from "components/landing/sign-in";
 import { Paragraph, Title } from "components/misc";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { MAX_WIDTH_LANDING } from "lib/config";
+import useCustomize from "lib/use-customize";
+import Image from "./image";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -133,8 +135,10 @@ export default function Content(props: Props) {
   }
 
   return (
-    <div style={{ padding: "30px 0" }}>
-      <Row>
+    <div
+      style={{ padding: "15px", margin: "auto", maxWidth: MAX_WIDTH_LANDING }}
+    >
+      <Row gutter={[20, 30]}>
         <Col
           sm={10}
           xs={24}
@@ -144,9 +148,7 @@ export default function Content(props: Props) {
             paddingTop: "15px",
           }}
         >
-          <Paragraph
-            style={{ textAlign: "center", margin: "auto", padding: "0 10%" }}
-          >
+          <Paragraph style={{ textAlign: "center" }}>
             <Logo logo={logo} title={title} />
             <br />
             <br />
