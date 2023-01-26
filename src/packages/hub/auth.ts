@@ -840,12 +840,12 @@ export async function verify_email_send_token(opts: VerifyEmailOpts) {
   });
 
   try {
-    const { token, email_address } = await cb2(
-      opts.database.verify_email_create_token,
-      {
-        account_id: opts.account_id,
-      }
-    );
+    const { token, email_address } = await cb2<{
+      token: string;
+      email_address: string;
+    }>(opts.database.verify_email_create_token, {
+      account_id: opts.account_id,
+    });
     const settings = await cb2(opts.database.get_server_settings_cached);
     await cb2(welcome_email, {
       to: email_address,

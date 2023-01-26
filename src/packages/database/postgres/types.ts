@@ -3,12 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { Stripe } from "@cocalc/server/stripe/client";
 import { EventEmitter } from "events";
-import { Changes } from "./changefeed";
 import { Client } from "pg";
+
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
-import { CB } from "@cocalc/util/types/database";
+import type { Stripe } from "@cocalc/server/stripe/client";
+import {
+  CB,
+  CBDB,
+  QueryResult,
+  QueryRows,
+  UntypedQueryResult,
+} from "@cocalc/util/types/database";
+import { Changes } from "./changefeed";
+
+export type { QueryResult };
 
 export type QuerySelect = object;
 
@@ -17,8 +26,6 @@ export type QueryWhere =
   | { [field: string]: any }[]
   | string
   | string[];
-
-type UntypedQueryResult = { [key: string]: any };
 
 // There are many more options still -- add them as needed.
 export interface QueryOptions<T = UntypedQueryResult> {
@@ -43,9 +50,6 @@ export interface QueryOptions<T = UntypedQueryResult> {
 
 export interface AsyncQueryOptions<T = UntypedQueryResult>
   extends Omit<QueryOptions<T>, "cb"> {}
-
-export type QueryRows<T = UntypedQueryResult> = { rows: QueryResult<T>[] };
-export type QueryResult<T = { [key: string]: any }> = T;
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
@@ -105,7 +109,9 @@ export interface PostgreSQL extends EventEmitter {
 
   get_site_settings(opts: { cb: CB }): void;
 
-  async_query<T = any>(opts: AsyncQueryOptions): Promise<QueryRows<T>>;
+  async_query<T = UntypedQueryResult>(
+    opts: AsyncQueryOptions
+  ): Promise<QueryRows<T>>;
 
   _listen(table: string, select: QuerySelect, watch: string[], cb: CB): void;
 
@@ -119,7 +125,7 @@ export interface PostgreSQL extends EventEmitter {
     account_id?: string;
     email_address?: string;
     columns?: string[];
-    cb: CB;
+    cb: CBDB;
   }): void;
 
   add_user_to_project(opts: {
@@ -212,7 +218,7 @@ export interface PostgreSQL extends EventEmitter {
   get_project_ids_with_user(opts: {
     account_id: string;
     is_owner?: boolean;
-    cb: CB;
+    cb: CBDB;
   }): void;
 
   get_remember_me(opts: { hash: string; cb: CB });

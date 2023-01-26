@@ -23,7 +23,6 @@ import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import { ColorPicker } from "@cocalc/frontend/colorpicker";
 import { Icon } from "@cocalc/frontend/components/icon";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
-import { COLORS } from "@cocalc/util/theme";
 import { DisplayAvatar } from "components/account/avatar";
 import Code from "components/landing/code";
 import { Paragraph, Title } from "components/misc";

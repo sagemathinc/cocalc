@@ -168,14 +168,14 @@ async function once_with_timeout(
   return val;
 }
 
-// Alternative to callback_opts that behaves like the
-// callback defined in awaiting.
-export async function callback2<T = any>(
-  f: (opts: T & { cb: CB }) => void,
-  opts?: T
-): Promise<any> {
-  const optsCB: T & { cb: CB } = (opts ?? {}) as any;
-  function g(cb: CB): void {
+// Alternative to callback_opts that behaves like the callback defined in awaiting.
+// Pass in the type of the returned value, and it will be inferred.
+export async function callback2<R = any>(
+  f: (opts) => void,
+  opts?: object
+): Promise<R> {
+  const optsCB = (opts ?? {}) as typeof opts & { cb: CB<R> };
+  function g(cb: CB<R>): void {
     optsCB.cb = cb;
     f(optsCB);
   }
