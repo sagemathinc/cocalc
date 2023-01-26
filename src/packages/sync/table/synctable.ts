@@ -33,15 +33,15 @@ import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import mergeDeep from "./immutable-deep-merge";
 
-export type Query = any; // todo
-export type QueryOptions = any[]; // todo
+export type Query = any; // TODO typing
+export type QueryOptions = any[]; // TODO typing
 
 // What we need the client below to implement so we can use
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
   dbg: (str: string) => Function;
-  query: Function;
+  query: Query; // TODO typing
   query_cancel: Function;
   server_time: Function;
   alert_message?: Function;

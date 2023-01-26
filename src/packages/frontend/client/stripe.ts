@@ -10,9 +10,10 @@ stripe payments api via backend hub
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { HubClient } from "./hub";
 
 export class StripeClient {
-  private call_api: Function;
+  private call_api: typeof HubClient.prototype.call;
 
   constructor(call_api) {
     this.call_api = call_api;

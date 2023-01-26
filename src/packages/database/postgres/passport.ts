@@ -5,26 +5,26 @@
 
 // DEVELOPMENT: use scripts/auth/gen-sso.py to generate some test data
 
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
 import {
   getPassportsCached,
-  setPassportsCached,
+  setPassportsCached
 } from "@cocalc/server/settings/server-settings";
 import { to_json } from "@cocalc/util/misc";
+import { CB } from "@cocalc/util/types/database";
 import {
   set_account_info_if_different,
   set_account_info_if_not_set,
-  set_email_address_verified,
+  set_email_address_verified
 } from "./account-queries";
 import {
-  CB,
   CreatePassportOpts,
   DeletePassportOpts,
   PassportExistsOpts,
   PostgreSQL,
-  UpdateAccountInfoAndPassportOpts,
+  UpdateAccountInfoAndPassportOpts
 } from "./types";
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
-import { isBlockedUnlinkStrategy } from "@cocalc/server/auth/sso/unlink-strategy";
 
 export async function set_passport_settings(
   db: PostgreSQL,
@@ -52,7 +52,7 @@ export async function set_passport_settings(
 
 export async function get_passport_settings(
   db: PostgreSQL,
-  opts: { strategy: string; cb?: CB }
+  opts: { strategy: string; cb?: (data: object) => void }
 ): Promise<any> {
   const { rows } = await db.async_query({
     query: "SELECT conf, info FROM passport_settings",
@@ -68,7 +68,7 @@ export async function get_all_passport_settings(
   db: PostgreSQL
 ): Promise<PassportStrategyDB[]> {
   return (
-    await db.async_query({
+    await db.async_query<PassportStrategyDB>({
       query: "SELECT strategy, conf, info FROM passport_settings",
     })
   ).rows;

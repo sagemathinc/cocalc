@@ -44,6 +44,7 @@ export interface Customize {
   policies_html?: string;
   reCaptchaKey?: string;
   sandboxProjectId?: string;
+  verifyEmailAddresses?: boolean;
   strategies: Strategy[];
 }
 
@@ -138,6 +139,8 @@ export default async function getCustomize(): Promise<Customize> {
 
     // public info about SSO strategies
     strategies,
+
+    verifyEmailAddresses: settings.verify_emails && settings.email_enabled,
   } as Customize;
 
   return cachedCustomize;

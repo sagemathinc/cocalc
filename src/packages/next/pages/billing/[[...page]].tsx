@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { capitalize } from "@cocalc/util/misc";
 import { Layout } from "antd";
+
+import { capitalize } from "@cocalc/util/misc";
 import { MainPages, MainPagesType } from "components/billing/consts";
 import BillingLayout from "components/billing/layout";
 import Footer from "components/landing/footer";

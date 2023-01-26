@@ -1,5 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { IconName } from "@cocalc/frontend/components/icon";
-import { search_split, search_match } from "@cocalc/util/misc";
+import { search_match, search_split } from "@cocalc/util/misc";
 
 interface Info0 {
   path: string;

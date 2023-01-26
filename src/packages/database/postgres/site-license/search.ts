@@ -55,7 +55,7 @@ export async function matching_site_licenses(
 ): Promise<{ id: string }[]> {
   if (is_valid_uuid_string(search)) {
     return (
-      await db.async_query({
+      await db.async_query<{id :string}>({
         cache: true,
         query: "SELECT id FROM site_licenses WHERE id=$1",
         params: [search],

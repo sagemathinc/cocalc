@@ -1,34 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Menu } from "antd";
+import { useEffect, useMemo, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useRouter } from "next/router";
-import { ReactNode, useEffect, useState } from "react";
-import { menu, topIcons } from "./register";
 import { capitalize } from "@cocalc/util/misc";
-
-const { SubMenu } = Menu;
-
-function menuBody() {
-  const v: ReactNode[] = [];
-  for (const main in menu) {
-    const title = capitalize(main);
-    const icon = topIcons[main] ?? "gear";
-    const w: ReactNode[] = [];
-    for (const sub in menu[main]) {
-      const { title, icon, danger } = menu[main][sub];
-      w.push(
-        <Menu.Item key={main + "/" + sub} danger={danger}>
-          <Icon name={icon} style={{ marginRight: "5px" }} /> {title}
-        </Menu.Item>
-      );
-    }
-    v.push(
-      <SubMenu key={main} icon={<Icon name={icon} />} title={title}>
-        {w}
-      </SubMenu>
-    );
-  }
-  return v;
-}
+import { menuItem, MenuItems } from "components/antd-menu-items";
+import { useRouter } from "next/router";
+import { menu, topIcons } from "./register";
 
 export default function ConfigMenu({ main, sub }) {
   const router = useRouter();
@@ -42,6 +24,21 @@ export default function ConfigMenu({ main, sub }) {
       setOpenKeys(openKeys.concat([main]));
     }
   }, [main]);
+
+  const items: MenuItems = useMemo(
+    () =>
+      Object.keys(menu).map((main) => {
+        const sub = Object.keys(menu[main]).map((sub) => {
+          const { title, icon, danger } = menu[main][sub];
+          return menuItem(`${main}/${sub}`, title, icon, undefined, danger);
+        });
+
+        const title = capitalize(main);
+        const icon = topIcons[main] ?? "gear";
+        return menuItem(main, title, <Icon name={icon} />, sub);
+      }),
+    []
+  );
 
   return (
     <Menu
@@ -57,8 +54,7 @@ export default function ConfigMenu({ main, sub }) {
           scroll: false,
         });
       }}
-    >
-      {menuBody()}
-    </Menu>
+      items={items}
+    />
   );
 }

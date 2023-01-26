@@ -1,13 +1,18 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Input, List } from "antd";
+import { join } from "path";
 import { useState } from "react";
-import { Info } from "./entries";
-import register from "../register";
-import { search } from "./entries";
-import A from "components/misc/A";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import A from "components/misc/A";
 import { useRouter } from "next/router";
-import { join } from "path";
+import register from "../register";
+import { Info, search } from "./entries";
 
 interface Props {
   allowEmpty?: boolean; // if true allow empty search
@@ -75,6 +80,7 @@ function SearchResults({
       bordered
       itemLayout="horizontal"
       dataSource={results}
+      locale={{ emptyText: <>No results</> }}
       renderItem={(item) => {
         const top = item.path.split("/")[0];
         return (

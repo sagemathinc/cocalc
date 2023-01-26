@@ -1,9 +1,16 @@
-import { useState } from "react";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, Input, Space } from "antd";
-import register from "../register";
+import { useState } from "react";
+
+import { Title, Text, Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
+import register from "../register";
 
 register({
   path: "account/password",
@@ -36,38 +43,41 @@ register({
 
     return (
       <Space direction="vertical">
-        <h2>Change Password</h2>
+        <Title level={3}>Change Password</Title>
         {error && (
           <Alert
             type="error"
             message={
               <>
-                {error}{" "}
-                <A href="/auth/password-reset">Reset password...</A>
+                {error} <A href="/auth/password-reset">Reset password...</A>
               </>
             }
             showIcon
           />
         )}
-        <b>Current password:</b>
-        <Input.Password
-          disabled={changing}
-          placeholder="Current password..."
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-        />
-        (leave blank if you have not set a password)
-        <b>New password:</b>
-        <Input.Password
-          disabled={changing}
-          placeholder="New password..."
-          value={newPassword}
-          onChange={(e) => {
-            setNewPassword(e.target.value);
-          }}
-          onPressEnter={resetPassword}
-        />
-        (at least 6 characters)
+        <Paragraph>
+          <Text strong>Current password:</Text>
+          <Input.Password
+            disabled={changing}
+            placeholder="Current password..."
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          (leave blank if you have not set a password)
+        </Paragraph>
+        <Paragraph>
+          <Text strong>New password:</Text>
+          <Input.Password
+            disabled={changing}
+            placeholder="New password..."
+            value={newPassword}
+            onChange={(e) => {
+              setNewPassword(e.target.value);
+            }}
+            onPressEnter={resetPassword}
+          />
+          (at least 6 characters)
+        </Paragraph>
         <Button
           type="primary"
           disabled={
@@ -92,11 +102,11 @@ register({
           />
         )}
         <br />
-        <h2>Reset Password</h2>
-        <div>
+        <Title level={3}>Reset Password</Title>
+        <Paragraph>
           You can also <A href="/auth/password-reset">reset your password</A>,
           in case you don't remember it.
-        </div>
+        </Paragraph>
       </Space>
     );
   },

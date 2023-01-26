@@ -5,9 +5,11 @@
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { len } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Strategy } from "@cocalc/util/types/sso";
 import { Alert, Button, Popconfirm, Space } from "antd";
 import { StrategyAvatar } from "components/auth/sso";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -77,68 +79,72 @@ register({
     );
 
     return (
-      <div style={{ color: "#555" }}>
+      <div style={{ color: COLORS.GRAY_D }}>
         {error && <Alert showIcon type="error" message={error} />}
-        {unlinking && (
-          <Loading style={{ fontSize: "16pt" }}>
-            Unlinking your passport...
-          </Loading>
-        )}
-        {len(passports) > 0 && (
-          <>
-            <Heading title="Your account is linked with" />
-            <Unlink
-              passports={passports}
-              strategies={strategies.result}
-              onUnlink={async (name: string, strategy: Strategy) => {
-                if (unlinking) return;
-                if (len(passports) == 1 && !hasPassword.result.hasPassword) {
-                  setError(
-                    <>
-                      You cannot unlink sign on using {strategy.display}, since
-                      you would then have no way to sign into your account!
-                      Please add another SSO method first or{" "}
-                      <A href="/config/account/email">set an email address</A>{" "}
-                      and <A href="/config/account/password">a password</A>, or{" "}
-                      <A href="/config/account/delete">delete your account</A>.
-                    </>
-                  );
-                  return;
-                }
-
-                try {
-                  setError(null);
-                  setUnlinking(true);
-                  await apiPost("/auth/unlink-strategy", { name });
-                } catch (err) {
-                  setError(err.message);
-                  return;
-                } finally {
-                  setUnlinking(false);
-                }
-
-                const passports0 = edited?.passports;
-                if (!passports0) return;
-                for (const x in passports0) {
-                  if (x == name) {
-                    delete passports0[x];
-                    break;
+        <Space direction="vertical">
+          {unlinking && (
+            <Loading style={{ fontSize: "16pt" }}>
+              Unlinking your passport...
+            </Loading>
+          )}
+          {len(passports) > 0 && (
+            <>
+              <Heading title="Your account is linked with" />
+              <Unlink
+                passports={passports}
+                strategies={strategies.result}
+                onUnlink={async (name: string, strategy: Strategy) => {
+                  if (unlinking) return;
+                  if (len(passports) == 1 && !hasPassword.result.hasPassword) {
+                    setError(
+                      <>
+                        You cannot unlink sign on using {strategy.display},
+                        since you would then have no way to sign into your
+                        account! Please add another SSO method first or{" "}
+                        <A href="/config/account/email">set an email address</A>{" "}
+                        and <A href="/config/account/password">a password</A>,
+                        or{" "}
+                        <A href="/config/account/delete">delete your account</A>
+                        .
+                      </>
+                    );
+                    return;
                   }
-                }
-                setEdited({ passports: passports0 });
-              }}
-            />
-            <br />
-            <br />
-          </>
-        )}
 
-        {strategies.result.length > 0 && (
-          <>
-            <Heading title="Click to link your account" />
-            <Link strategies={strategies.result} linked={linkedNames} />
-          </>
-        )}
+                  try {
+                    setError(null);
+                    setUnlinking(true);
+                    await apiPost("/auth/unlink-strategy", { name });
+                  } catch (err) {
+                    setError(err.message);
+                    return;
+                  } finally {
+                    setUnlinking(false);
+                  }
+
+                  const passports0 = edited?.passports;
+                  if (!passports0) return;
+                  for (const x in passports0) {
+                    if (x == name) {
+                      delete passports0[x];
+                      break;
+                    }
+                  }
+                  setEdited({ passports: passports0 });
+                }}
+              />
+              <br />
+              <br />
+            </>
+          )}
+
+          {strategies.result.length > 0 && (
+            <>
+              <Heading title="Click to link your account" />
+              <Link strategies={strategies.result} linked={linkedNames} />
+            </>
+          )}
+        </Space>
       </div>
     );
   },
@@ -195,7 +201,7 @@ function Link({
   // link to the page for additional non-public institutional SSOs
   function hidden() {
     return (
-      <div style={{ marginTop: "1rem" }}>
+      <Paragraph style={{ marginTop: "1rem" }}>
         or other{" "}
         <Button
           type="link"
@@ -205,7 +211,7 @@ function Link({
           institutional SSO options
         </Button>
         .
-      </div>
+      </Paragraph>
     );
   }
 

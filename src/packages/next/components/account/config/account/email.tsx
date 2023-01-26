@@ -1,13 +1,22 @@
-import { useEffect, useState } from "react";
-import { Alert, Input, Space } from "antd";
-import useDatabase from "lib/hooks/database";
-import Loading from "components/share/loading";
-import SaveButton from "components/misc/save-button";
-import apiPost from "lib/api/post";
-import register from "../register";
-import useAPI from "lib/hooks/api";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Alert, Button, Input, Space } from "antd";
+import { useEffect, useMemo, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import { Paragraph } from "components/misc";
+import { Paragraph, Text, Title } from "components/misc";
+import SaveButton from "components/misc/save-button";
+import Timestamp from "components/misc/timestamp";
+import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useDatabase from "lib/hooks/database";
+import register from "../register";
+import { useCustomize } from "lib/customize";
 
 interface Data {
   email_address?: string;
@@ -20,22 +29,30 @@ can add you as collaborators to projects by searching for your exact
 email address. (There is no way to do a search for partial email
 addresses, and your email address is never revealed to other users.)`;
 
+const verificationDesc = `Your email is considered verified,
+if we either sent you a verification email and you clicked on the link with a secret token to open that link,
+or if you did sign up using a registered single-sign-on provider (e.g. Google/Gmail or your university).`;
+
+const EMAIL_ACCOUNT_Q = {
+  accounts: { email_address: null, email_address_verified: null },
+} as const;
 interface Props {
-  embedded?: boolean;
+  embedded?: boolean; // set to true if this is used elsewhere to set/change email address
   onSuccess?: () => void;
 }
 
 export function ChangeEmailAddress(props: Props) {
   const { embedded = false, onSuccess } = props;
 
+  const { verifyEmailAddresses } = useCustomize();
   const hasPassword = useAPI("auth/has-password");
-  const { loading, value } = useDatabase({
-    accounts: { email_address: null },
-  });
+
+  const { loading, value, query } = useDatabase(EMAIL_ACCOUNT_Q);
   const [password, setPassword] = useState<string>("");
   const [lastSuccess, setLastSuccess] = useState<string>("");
   const [original, setOriginal] = useState<Data | undefined>(undefined);
   const [edited, setEdited] = useState<Data | undefined>(undefined);
+  const [emailChanged, setEmailChanged] = useState<boolean>(false);
 
   useEffect(() => {
     if (!loading && original === undefined && value.accounts != null) {
@@ -50,6 +67,8 @@ export function ChangeEmailAddress(props: Props) {
     if (!lastSuccess) return;
 
     if (lastSuccess == password + edited.email_address) {
+      setEmailChanged(true);
+      query(EMAIL_ACCOUNT_Q);
       onSuccess?.();
     }
   }, [lastSuccess, edited?.email_address, password]);
@@ -72,7 +91,7 @@ export function ChangeEmailAddress(props: Props) {
         >
           {!embedded && (
             <Paragraph>
-              <b>Your email address</b> {emailDesc}
+              <Text strong>Your email address</Text> {emailDesc}
             </Paragraph>
           )}
           <Input
@@ -113,11 +132,165 @@ export function ChangeEmailAddress(props: Props) {
               message={"Email address and password successfully saved."}
             />
           )}
+          {!embedded && verifyEmailAddresses && (
+            <EmailVerification
+              loading={loading}
+              emailChanged={emailChanged}
+              account={value?.accounts}
+            />
+          )}
         </Space>
       </form>
     </div>
   );
 }
+
+interface VeryProps {
+  loading?: boolean;
+  emailChanged?: boolean; // if true, email has been changed and verification email has been sent already
+  account?: {
+    email_address?: string;
+    email_address_verified?: { [key: string]: string /* an ISO date */ };
+  };
+}
+
+const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
+  const { loading, account, emailChanged = false } = props;
+  const [emailSent, setEmailSent] = useState<boolean>(false);
+  const [emailSentSuccess, setEmailSentSuccess] = useState<boolean>(false);
+  const [emailSentError, setEmaiSentError] = useState<string | undefined>();
+
+  const isVerified = useMemo((): Date | boolean => {
+    if (account == null) return false;
+    const { email_address, email_address_verified } = account;
+    if (email_address == null) return false;
+    const when = email_address_verified?.[email_address];
+    if (when) {
+      try {
+        return new Date(when);
+      } catch (err) {
+        console.warn(
+          `Error converting verified email time: ${when} – considering it as verified, though.`
+        );
+        return true;
+      }
+    }
+    return false;
+  }, [account, loading]);
+
+  async function sendVerificationEmail() {
+    setEmailSent(true);
+    try {
+      apiPost("/accounts/send-verification-email", {
+        email_address: account?.email_address,
+      });
+      setEmailSentSuccess(true);
+    } catch (err) {
+      setEmaiSentError(err.messaage);
+    }
+  }
+
+  function renderStatus(status: boolean): JSX.Element {
+    return (
+      <Paragraph strong>
+        Status:{" "}
+        {status ? (
+          <Text strong type="success">
+            <Icon name="check" /> Verified
+          </Text>
+        ) : (
+          <Text strong type="danger">
+            <Icon name="times" /> Not Verified
+          </Text>
+        )}
+      </Paragraph>
+    );
+  }
+
+  function renderVerify() {
+    if (loading) return <Loading />;
+    if (isVerified) {
+      return (
+        <>
+          {renderStatus(true)}
+          <Paragraph>
+            Your email address has been verified
+            {isVerified instanceof Date && (
+              <>
+                {" "}
+                <Timestamp datetime={isVerified} />
+              </>
+            )}
+            .
+          </Paragraph>
+        </>
+      );
+    }
+    if (account == null) return;
+    const { email_address } = account;
+    if (email_address == null) {
+      return (
+        <>
+          {renderStatus(false)}
+          <Paragraph>
+            There is no email address to verify. Please set one above!
+          </Paragraph>
+        </>
+      );
+    }
+    return (
+      <>
+        {renderStatus(false)}
+        <Paragraph>
+          To verify your email address, we sent you an email with a link to
+          click on. You can also{" "}
+          <Button
+            disabled={emailChanged || emailSent}
+            size="small"
+            type="primary"
+            onClick={sendVerificationEmail}
+          >
+            resend the verification email
+          </Button>
+          .
+        </Paragraph>
+        {(emailSentSuccess || emailChanged) && (
+          <Alert
+            type="success"
+            message={
+              <>
+                <Icon name="mail" /> Verification email sent to{" "}
+                <code>{email_address}</code>. Please check your inbox and click
+                on the link in that email!
+              </>
+            }
+          />
+        )}
+        {emailSentError && (
+          <Alert
+            type="error"
+            message={
+              <>
+                <Icon name="times" /> Error sending verification email:{" "}
+                <code>{emailSentError}</code>
+              </>
+            }
+          />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <br />
+      <Title level={3}>Verified Email Address</Title>
+      <Paragraph>{verificationDesc}</Paragraph>
+      {/* <pre>{JSON.stringify(account, null, 2)}</pre> */}
+      {renderVerify()}
+    </>
+  );
+};
 
 register({
   path: "account/email",

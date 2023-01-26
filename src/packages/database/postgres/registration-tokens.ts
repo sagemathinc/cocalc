@@ -1,4 +1,5 @@
 import { callback2 } from "@cocalc/util/async-utils";
+import { PostgreSQL } from "./types";
 
 function isDelete(options: { delete?: boolean }[]) {
   return options.some((v) => v?.delete === true);
@@ -13,7 +14,7 @@ interface Query {
 }
 
 export default async function registrationTokensQuery(
-  db: { _query: Function },
+  db: PostgreSQL,
   options: { delete?: boolean }[],
   query: Query
 ) {

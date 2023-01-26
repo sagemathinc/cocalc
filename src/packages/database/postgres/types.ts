@@ -3,11 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { Stripe } from "@cocalc/server/stripe/client";
 import { EventEmitter } from "events";
-import { Changes } from "./changefeed";
 import { Client } from "pg";
+
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import type { Stripe } from "@cocalc/server/stripe/client";
+import {
+  CB,
+  CBDB,
+  QueryResult,
+  QueryRows,
+  UntypedQueryResult,
+} from "@cocalc/util/types/database";
+import { Changes } from "./changefeed";
+
+export type { QueryResult };
 
 export type QuerySelect = object;
 
@@ -18,7 +28,7 @@ export type QueryWhere =
   | string[];
 
 // There are many more options still -- add them as needed.
-export interface QueryOptions {
+export interface QueryOptions<T = UntypedQueryResult> {
   select?: string | string[];
   table?: string;
   where?: QueryWhere;
@@ -35,14 +45,11 @@ export interface QueryOptions {
   limit?: number;
   timeout_s?: number;
   conflict?: string;
-  cb?: Function;
+  cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions extends Omit<QueryOptions, "cb"> {}
-
-export type QueryResult = { [key: string]: any };
-
-export type CB = (err: string | Error | null | undefined, result?: any) => any;
+export interface AsyncQueryOptions<T = UntypedQueryResult>
+  extends Omit<QueryOptions<T>, "cb"> {}
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
@@ -51,7 +58,6 @@ export interface ChangefeedOptions {
   where: QueryWhere; // Condition involving only the fields in select; or function taking
   // obj with select and returning true or false
   watch: string[]; // Array of field names we watch for changes
-
   cb: CB;
 }
 
@@ -103,7 +109,9 @@ export interface PostgreSQL extends EventEmitter {
 
   get_site_settings(opts: { cb: CB }): void;
 
-  async_query(opts: AsyncQueryOptions): Promise<any>;
+  async_query<T = UntypedQueryResult>(
+    opts: AsyncQueryOptions
+  ): Promise<QueryRows<T>>;
 
   _listen(table: string, select: QuerySelect, watch: string[], cb: CB): void;
 
@@ -113,7 +121,12 @@ export interface PostgreSQL extends EventEmitter {
 
   get_project(opts: { project_id: string; columns?: string[]; cb: CB }): void;
 
-  get_account(opts: { account_id: string; columns?: string[]; cb: CB }): void;
+  get_account(opts: {
+    account_id?: string;
+    email_address?: string;
+    columns?: string[];
+    cb: CBDB;
+  }): void;
 
   add_user_to_project(opts: {
     account_id: string;
@@ -178,8 +191,8 @@ export interface PostgreSQL extends EventEmitter {
   server_settings_synctable(): any; // returns a table
 
   create_account(opts: {
-    first_name: string;
-    last_name: string;
+    first_name?: string; // invalid name will throw Error
+    last_name?: string; // invalid name will throw Error
     created_by?: string;
     email_address?: string;
     password_hash?: string;
@@ -205,7 +218,7 @@ export interface PostgreSQL extends EventEmitter {
   get_project_ids_with_user(opts: {
     account_id: string;
     is_owner?: boolean;
-    cb: CB;
+    cb: CBDB;
   }): void;
 
   get_remember_me(opts: { hash: string; cb: CB });
@@ -313,4 +326,12 @@ export interface PostgreSQL extends EventEmitter {
   projects_that_need_to_be_started(): Promise<string[]>;
 
   is_connected(): boolean;
+
+  verify_email_create_token(opts: {
+    account_id: string;
+    cb: CB<{
+      token: string;
+      email_address: string;
+    }>;
+  }): Promise<void>;
 }
