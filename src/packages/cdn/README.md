@@ -11,7 +11,13 @@ This directory contains additional resources for at least the `/index.html` and 
 
 Obviously, you can't use `pnpm update package` because of the package\-lock.json!!
 
-Instead, copy `package.json` and `package-lock.json` into a tmp directory, use normal npm commands to update your package, then copy them back. Sorry, yes that is very ugly, but _**until the script**_ _**`setup.py`**_ _**gets rewritten to work with pnpm**_, that is what we have to do.  It's not obvious how to rewrite `setup.py`, since the whole approach makes assumptions that aren't satisfied by pnpm.
+Instead:
+
+1. copy `package.json` and `package-lock.json` into a tmp directory, use normal npm commands to update your package, then copy them back. 
+2. Make sure to still run `pnpm install` after doing this, so that the top-level pnpm lock file is properly updated.  We want our version-check script, etc., to still scan package.json.
+
+
+Sorry, yes that is very ugly, but _**until the script**_ _**`setup.py`**_ _**gets rewritten to work with pnpm**_, that is what we have to do.  It's not obvious how to rewrite `setup.py`, since the whole approach makes assumptions that aren't satisfied by pnpm.
 
 ## How to build?
 
