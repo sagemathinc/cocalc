@@ -36,7 +36,11 @@ export default function ConfigLayout({ page }: Props) {
   const isBrowser = useIsBrowser();
   const profile = useProfile({ noCache: true });
   if (!profile) {
-    return <Loading />;
+    return (
+      <div style={{ textAlign: "center", minHeight: "400px", paddingTop: "100px" }}>
+        <Loading large />
+      </div>
+    );
   }
   const { account_id, is_anonymous } = profile;
 

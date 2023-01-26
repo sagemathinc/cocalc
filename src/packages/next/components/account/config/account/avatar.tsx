@@ -1,4 +1,19 @@
-import { Alert, Checkbox, Col, Radio, Row, Space, Upload } from "antd";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import {
+  Alert,
+  Checkbox,
+  Col,
+  Divider,
+  List,
+  Radio,
+  Row,
+  Space,
+  Upload,
+} from "antd";
 import { useEffect, useState } from "react";
 
 import { InboxOutlined } from "@ant-design/icons";
@@ -62,21 +77,16 @@ register({
 
     return (
       <Space direction="vertical">
-        <Save />
-        <Row>
+        <Row gutter={[20, 30]}>
+          <Col md={24} sm={24}>
+            <Save />
+          </Col>
           <Col md={6} sm={24}>
-            <div style={{ marginRight: "15px" }}>
-              <Title level={3} style={{ marginTop: "10px" }}>
-                <DisplayAvatar
-                  style={{ marginRight: "10px" }}
-                  size={40}
-                  color={edited.profile.color}
-                  image={edited.profile.image}
-                  letter={profile?.first_name?.[0]}
-                />
-                Preview
-              </Title>
-              <br />
+            <Title level={3}>
+              <Icon name="solution" /> Preview
+            </Title>
+            <List>
+              <Paragraph type="secondary">Name</Paragraph>
               {profile && (
                 <span
                   style={{
@@ -89,27 +99,37 @@ register({
                   {profile?.first_name} {profile?.last_name}
                 </span>
               )}
-              <br />
-              <br />
+              <Divider plain />
+              <Paragraph type="secondary">Small</Paragraph>
+              <DisplayAvatar
+                style={{ marginRight: "10px" }}
+                size={40}
+                color={edited.profile.color}
+                image={edited.profile.image}
+                letter={profile?.first_name?.[0]}
+              />
+              <Divider plain />
+              <Paragraph type="secondary">Large</Paragraph>
               <DisplayAvatar
                 size={120}
                 color={edited.profile.color}
                 image={edited.profile.image}
                 letter={profile?.first_name?.[0]}
               />
-              <br />
-              <br />
-              <Paragraph style={{ fontSize: "10px", color: COLORS.GRAY }}>
+              <Paragraph
+                type="secondary"
+                style={{ fontSize: "10px", marginTop: "20px" }}
+              >
                 (It will take a while for your avatar to update at the top of
                 the page, even after you save it.)
               </Paragraph>
-            </div>
+            </List>
           </Col>
           <Col md={18} sm={24}>
-            <Space direction="vertical">
-              <Title level={3}>
-                <Icon name="colors" /> Color
-              </Title>
+            <Title level={3}>
+              <Icon name="colors" /> Color
+            </Title>
+            <Space direction="vertical" size="middle">
               <Paragraph>
                 {desc.color}{" "}
                 <A href="/config/account/name">Change your name.</A>
