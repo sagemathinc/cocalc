@@ -8,12 +8,13 @@ import { isEmpty } from "lodash";
 import Image from "components/landing/image";
 import useCustomize from "lib/use-customize";
 import rectangular from "public/logo/rectangular.svg";
+import fullLogo from "public/logo/full.svg";
 import icon from "public/logo/icon.svg";
 import { CSS } from "./misc";
 import { unreachable } from "@cocalc/util/misc";
 
 interface Props {
-  type: "rectangular" | "icon";
+  type: "rectangular" | "icon" | "full";
   style?: React.CSSProperties;
   width?: number; // px
   priority?: boolean;
@@ -21,13 +22,13 @@ interface Props {
 
 export default function Logo(props: Props) {
   const { priority, type } = props;
-  const { logoRectangularURL, logoSquareURL } = useCustomize();
+  const { logoRectangularURL, logoSquareURL, siteName } = useCustomize();
 
   function config(): { alt: string; src: string; custom: boolean } {
     switch (type) {
       case "rectangular":
         return {
-          alt: "Rectangular CoCalc Logo",
+          alt: `Rectangular ${siteName} Logo`,
           src: logoRectangularURL ? logoRectangularURL : rectangular,
           custom: !!logoRectangularURL,
         };
@@ -36,6 +37,12 @@ export default function Logo(props: Props) {
           alt: "CoCalc Logo Icon",
           src: logoSquareURL ? logoSquareURL : icon,
           custom: !!logoSquareURL,
+        };
+      case "full":
+        return {
+          alt: `${siteName} Logo`,
+          src: fullLogo,
+          custom: false,
         };
       default:
         unreachable(type);

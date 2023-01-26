@@ -85,7 +85,7 @@ export default function Home(props: Props) {
       <div
         style={{
           textAlign: "center",
-          margin: "30px 0 -15px 0",
+          margin: "30px 0 15px 0",
         }}
       >
         <Title level={1} style={{ color: COLORS.GRAY }}>
@@ -182,7 +182,8 @@ export default function Home(props: Props) {
                 style={{
                   maxHeight: "60vh",
                   overflow: "auto",
-                  marginRight: "15px",
+                  marginRight: "10px",
+                  marginLeft: "10px",
                 }}
               >
                 <ProxyInput />
@@ -195,6 +196,10 @@ export default function Home(props: Props) {
     );
   }
 
+  function logo(): JSX.Element {
+    return <Logo type="full" style={{ width: "200px" }} />;
+  }
+
   return (
     <Customize value={customize}>
       <Head title="Collaborative Calculation" />
@@ -203,9 +208,8 @@ export default function Home(props: Props) {
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
           <Content
-            logo={
-              <Logo type="icon" style={{ width: "120px", height: "120px" }} />
-            }
+            alignItems="flex-start"
+            logo={logo()}
             title={siteName}
             subtitle={siteDescription}
             description={contentDescription()}

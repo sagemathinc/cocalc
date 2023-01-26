@@ -13,6 +13,7 @@ import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
+import { COLORS } from "@cocalc/util/theme";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -34,6 +35,7 @@ interface Props {
   subtitle: ReactNode;
   subtitleBelow?: boolean;
   title: ReactNode;
+  alignItems?: "center" | "flex-start";
 }
 
 function Logo({ logo, title }) {
@@ -59,6 +61,7 @@ export default function Content(props: Props) {
     startup,
     subtitle,
     subtitleBelow = false,
+    alignItems = "center",
   } = props;
 
   const { sandboxProjectId } = useCustomize();
@@ -75,7 +78,7 @@ export default function Content(props: Props) {
   function renderSubtitleTop() {
     if (subtitleBelow) return;
     return (
-      <Title level={3} style={{ color: "#333" }}>
+      <Title level={3} style={{ color: COLORS.GRAY_DD }}>
         {subtitle}
       </Title>
     );
@@ -108,7 +111,11 @@ export default function Content(props: Props) {
           alt={alt ?? `Image illustrating ${title}`}
         />
         <Paragraph
-          style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
+          style={{
+            textAlign: "center",
+            color: COLORS.GRAY_DD,
+            fontSize: "12pt",
+          }}
         >
           {caption}
         </Paragraph>
@@ -136,7 +143,7 @@ export default function Content(props: Props) {
 
   return (
     <div
-      style={{ padding: "15px", margin: "auto", maxWidth: MAX_WIDTH_LANDING }}
+      style={{ padding: "30px 0", margin: "auto", maxWidth: MAX_WIDTH_LANDING }}
     >
       <Row gutter={[20, 30]}>
         <Col
@@ -144,22 +151,24 @@ export default function Content(props: Props) {
           xs={24}
           style={{
             display: "flex",
-            alignItems: "center",
-            paddingTop: "15px",
+            alignItems: alignItems,
           }}
         >
-          <Paragraph style={{ textAlign: "center" }}>
-            <Logo logo={logo} title={title} />
+          <div style={{ textAlign: "center", width: "100%" }}>
+            <>
+              {typeof logo === "string" ? (
+                <Logo logo={logo} title={title} />
+              ) : (
+                logo
+              )}
+            </>
             <br />
             <br />
-            <Title level={2} style={{ color: "#333" }}>
-              {title}
-            </Title>
             {renderSubtitleTop()}
-            <Title level={3} style={{ color: "#666" }}>
+            <Title level={3} style={{ color: COLORS.GRAY }}>
               {description}
             </Title>
-          </Paragraph>
+          </div>
         </Col>
         <Col sm={14} xs={24}>
           {renderAboveImage()}
