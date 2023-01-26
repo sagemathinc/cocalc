@@ -7,13 +7,21 @@ This directory contains additional resources for at least the `/index.html` and 
 1. If any of these CDN's go down, [CoCalc.com](http://CoCalc.com) would get mangled or not load. That's no good.
 2. If you use a private install of cocalc on a computer that doesn't have network access, it doesn't work at all ever. That's definitely not good.
 
-## How?
+## IMPORTANT: How do I update a package version?
+
+Obviously, you can't use `pnpm update package` because of the package\-lock.json!!
+
+Instead, copy `package.json` and `package-lock.json` into a tmp directory, use normal npm commands to update your package, then copy them back. Sorry, yes that is very ugly, but _**until the script**_ _**`setup.py`**_ _**gets rewritten to work with pnpm**_, that is what we have to do.  It's not obvious how to rewrite `setup.py`, since the whole approach makes assumptions that aren't satisfied by pnpm.
+
+## How to build?
 
 The build of this depends on npm, but we switched to pnpm. So that's confusing.
 So we do some hacks that accomplish the following when running `pnpm build`.
 In particular, do NOT delete package-lock.json, which this depends on.
 
-Run `npm ci` to install the modules in the node_modules directory, as usual. The run `npm run build` to update the `dist/` subdirectory with all relevant data ready to be served via various webservers. The `setup.py` script (that `npm run build` uses) makes sure to include a version number in the path, because all files will be served with a long cache time.
+You just run `pnpm run build` to build this as for everything else.  Under the hood, that actually runs normal `npm` in a subdirectory, then copies out the build artificats.
+
+The `setup.py` script \(that `npm run build` uses\) makes sure to include a version number in the path, because all files will be served with a long cache time.
 
 ## Notes
 
