@@ -51,8 +51,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     try
         socket = await connectToLockedSocket({port:opts.port, host:opts.host, token:opts.secret_token, timeout:opts.timeout})
         misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
-        socket.on 'data', (data) ->
-            misc_node.keep_portforward_alive(opts.port)
         opts.cb(undefined, socket)
     catch err
         opts.cb(err)
