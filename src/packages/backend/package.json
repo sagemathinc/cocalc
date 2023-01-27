@@ -9,16 +9,13 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "build": "npx tsc",
-    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/",
+    "build": "pnpm exec tsc",
+    "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
+    "test": "pnpm exec jest dist/",
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",

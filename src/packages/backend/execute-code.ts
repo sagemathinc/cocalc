@@ -80,7 +80,7 @@ async function executeCodeNoAggregate(
   if (opts.verbose == null) opts.verbose = true;
 
   if (opts.verbose) {
-    log.debug(`input: "${opts.command} ${opts.args?.join(" ")}"`);
+    log.debug(`input: ${opts.command} ${opts.args?.join(" ")}`);
   }
 
   const s = opts.command.split(/\s+/g); // split on whitespace
@@ -114,8 +114,9 @@ async function executeCodeNoAggregate(
         // command really does die no matter what; it's
         // better than killing from outside, since it gets
         // all subprocesses since they inherit the limits.
-        // Leave it to the OS.
-        cmd = `ulimit -t ${opts.timeout}\n${opts.command}`;
+        // Leave it to the OS.  Note that the argument to ulimit
+        // must be a whole number.
+        cmd = `ulimit -t ${Math.ceil(opts.timeout)}\n${opts.command}`;
       } else {
         cmd = opts.command;
       }
@@ -157,6 +158,7 @@ function doSpawn(opts, cb) {
     );
   }
   const spawnOptions = {
+    detached: true, // so we can kill the entire process group if it times out
     cwd: opts.path,
     ...(opts.uid ? { uid: opts.uid } : undefined),
     ...(opts.gid ? { uid: opts.gid } : undefined),
@@ -250,7 +252,7 @@ function doSpawn(opts, cb) {
   });
 
   let callback_done = false;
-  function finish() {
+  function finish(err?) {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
       // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
       // set, so we let the rest of them get set before actually finishing up.
@@ -262,6 +264,11 @@ function doSpawn(opts, cb) {
     }
     // finally finish up.
     callback_done = true;
+
+    if (timer != null) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
         "finished exec of",
@@ -279,7 +286,9 @@ function doSpawn(opts, cb) {
         exit_code
       );
     }
-    if (opts.err_on_exit && exit_code != 0) {
+    if (err) {
+      cb(err);
+    } else if (opts.err_on_exit && exit_code != 0) {
       cb(
         `command '${opts.command}' (args=${opts.args?.join(
           " "
@@ -312,32 +321,32 @@ function doSpawn(opts, cb) {
     }
   }
 
+  let timer: any = undefined;
   if (opts.timeout) {
     // setup a timer that will kill the command after a certain amount of time.
     function f() {
-      if (r.exitCode === null) {
+      if (r.exitCode != null) {
+        // command already exited.
+        return;
+      }
+      if (opts.verbose) {
+        log.debug(
+          "subprocess did not exit after",
+          opts.timeout,
+          "seconds, so killing with SIGKILL"
+        );
+      }
+      try {
+        killed = true;
+        process.kill(-r.pid, "SIGKILL"); // this should kill process group
+      } catch (err) {
+        // Exceptions can happen, which left uncaught messes up calling code big time.
         if (opts.verbose) {
-          log.debug(
-            "subprocess did not exit after",
-            opts.timeout,
-            "seconds, so killing with SIGKILL"
-          );
-        }
-        try {
-          killed = true;
-          r.kill("SIGKILL"); // this does not kill the process group :-(
-        } catch (err) {
-          // Exceptions can happen, which left uncaught messes up calling code bigtime.
-          if (opts.verbose) {
-            log.debug("r.kill raised an exception", err);
-          }
-        }
-        if (!callback_done) {
-          callback_done = true;
-          cb(`killed command '${opts.command} ${opts.args?.join(" ")}'`);
+          log.debug("r.kill raised an exception", err);
         }
       }
+      finish(`killed command '${opts.command} ${opts.args?.join(" ")}'`);
     }
-    setTimeout(f, opts.timeout * 1000);
+    timer = setTimeout(f, opts.timeout * 1000);
   }
 }
