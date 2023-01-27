@@ -8,6 +8,4 @@ export { enable_mesg };
 export { sha1, uuidsha1 } from "./sha1";
 import abspath from "./misc/abspath";
 export { abspath };
-
-const { execute_code } = require("./execute-code");
-export { execute_code };
+export { execute_code } from "./execute-code";
