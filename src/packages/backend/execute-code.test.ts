@@ -13,7 +13,9 @@ describe("hello world", () => {
 describe("tests involving bash mode", () => {
   it("runs normal code in bash", async () => {
     const { stdout } = await executeCode({ command: "echo 'abc' | wc -c" });
-    expect(stdout).toBe("       4\n");
+    // on GitHub actions the output of wc is different than on other machines,
+    // so we normalize by trimming.
+    expect(stdout.trim()).toBe("4");
   });
 
   it("reports missing executable in non-bash mode", async () => {
