@@ -1,25 +1,34 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Divider, Layout, Space } from "antd";
-import Config from "components/account/config";
-import A from "components/misc/A";
 import { join } from "path";
-import basePath from "lib/base-path";
-import ConfigMenu from "./menu";
-import useIsBrowser from "lib/hooks/is-browser";
-import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import { menu } from "./register";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import Search from "./search/component";
-import Avatar from "components/account/avatar";
-import useProfile from "lib/hooks/profile";
 import { capitalize } from "@cocalc/util/misc";
+import Avatar from "components/account/avatar";
+import Config from "components/account/config";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
+import basePath from "lib/base-path";
+import useIsBrowser from "lib/hooks/is-browser";
+import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
 import Anonymous from "./anonymous";
+import ConfigMenu from "./menu";
+import { menu } from "./register";
+import Search from "./search/component";
+import { Paragraph, Text, Title } from "components/misc";
+import { COLORS } from "@cocalc/util/theme";
+import SiteName from "components/share/site-name";
 
 const { Content, Sider } = Layout;
 
 interface Props {
-  page: string;
+  page: string[]; // e.g. ["account", "name"]
 }
 
 export default function ConfigLayout({ page }: Props) {
@@ -27,7 +36,11 @@ export default function ConfigLayout({ page }: Props) {
   const isBrowser = useIsBrowser();
   const profile = useProfile({ noCache: true });
   if (!profile) {
-    return <Loading />;
+    return (
+      <div style={{ textAlign: "center", minHeight: "400px", paddingTop: "100px" }}>
+        <Loading large />
+      </div>
+    );
   }
   const { account_id, is_anonymous } = profile;
 
@@ -60,44 +73,30 @@ export default function ConfigLayout({ page }: Props) {
       style={{
         padding: 24,
         margin: 0,
-        minHeight: 280,
+        minHeight: 500,
         ...(info?.danger
-          ? { color: "#ff4d4f", backgroundColor: "#fff1f0" }
+          ? { color: "#ff4d4f", backgroundColor: COLORS.ATND_BG_RED_L }
           : undefined),
       }}
     >
-      <div style={{ float: "right", marginBottom: "15px" }}>
-        <Alert
-          showIcon
-          type="info"
-          message={
-            <>
-              This is the account configuration page.{" "}
-              <A href={join(basePath, "settings")} external>
-                You can also adjust key preferences in the main app...
-              </A>
-            </>
-          }
-        />
-      </div>
       <Space style={{ marginBottom: "15px" }}>
         <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
-        <div style={{ color: "#666" }}>
-          <b style={{ fontSize: "13pt" }}>
+        <div style={{ color: COLORS.GRAY }}>
+          <Text strong style={{ fontSize: "13pt" }}>
             {profile?.first_name} {profile?.last_name}
             {profile.name ? ` (@${profile.name})` : ""}
-          </b>
+          </Text>
           <div>Your account</div>
         </div>
       </Space>
       {main != "search" && <Search />}
       {info && (
         <>
-          <h2>
+          <Title level={2}>
             <Icon name={info.icon} style={{ marginRight: "5px" }} />{" "}
             {capitalize(main)} - {info.title}
-          </h2>
-          {info.desc}
+          </Title>
+          <Paragraph type="secondary">{info.desc}</Paragraph>
           <Divider />
         </>
       )}
@@ -106,14 +105,14 @@ export default function ConfigLayout({ page }: Props) {
           style={{ margin: "15px auto", maxWidth: "600px" }}
           message={<b>Under Constructions</b>}
           description={
-            <>
-              This page is under construction. To configure your CoCalc account,
-              visit{" "}
+            <Paragraph>
+              This page is under construction. To configure your <SiteName />{" "}
+              account, visit{" "}
               <A href={join(basePath, "settings")} external>
                 Account Preferences
               </A>
               .
-            </>
+            </Paragraph>
           }
           type="warning"
           showIcon
@@ -129,9 +128,10 @@ export default function ConfigLayout({ page }: Props) {
       </Sider>
       <Layout
         style={{
-          padding: "0 24px 24px",
+          padding: "0",
           backgroundColor: "white",
-          color: "#555",
+          color: COLORS.GRAY_D,
+          maxWidth: "1200px",
         }}
       >
         {content}

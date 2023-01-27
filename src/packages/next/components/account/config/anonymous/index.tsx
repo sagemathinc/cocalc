@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 The config page for anonymous users.  An anonymous user *is* signed in using a full account.
 This page does belong in configuration -- it's about taking the steps to convert their
 anonymous account into a full account so they won't lose their work.  Most important
@@ -6,9 +11,11 @@ is an email address or SSO sign on link.
 
 Non-anonymous users get the layout page.
 */
-import SiteName from "components/share/site-name";
 import { Button, Popconfirm } from "antd";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph, Title } from "components/misc";
+import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import Upgrade from "./upgrade";
@@ -42,11 +49,13 @@ export default function Anonymous() {
           <Icon name="sign-out-alt" /> Sign Out
         </Button>
       </Popconfirm>
-      <h2>
+      <Title level={3}>
         Thank you for trying <SiteName /> anonymously!
-      </h2>
-      Signing up for an account will prevent losing your work, and unlock
-      additional features.
+      </Title>
+      <Paragraph>
+        Signing up for an account will prevent losing your work, and unlock
+        additional features.
+      </Paragraph>
       <Upgrade style={{ margin: "15px 0px" }} />
     </div>
   );

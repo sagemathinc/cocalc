@@ -1,12 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Button, Input, Space } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
-import apiPost from "lib/api/post";
-import { useRouter } from "next/router";
-import A from "components/misc/A";
 import { useEffect, useState } from "react";
-import useCustomize from "lib/use-customize";
-import useDatabase from "lib/hooks/database";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
+import apiPost from "lib/api/post";
+import useDatabase from "lib/hooks/database";
+import useCustomize from "lib/use-customize";
+import { useRouter } from "next/router";
 import register from "../register";
 
 register({
@@ -40,23 +47,23 @@ register({
 
     return (
       <Space direction="vertical">
-        <h2>
-          Are you sure you want to <b>delete your {siteName} account</b>?
-        </h2>
-        <p>
+        <Title level={3}>
+          Are you sure you want to <i>delete your {siteName} account</i>?
+        </Title>
+        <Paragraph>
           You will immediately lose access to all of{" "}
           <A external href="/projects">
             your projects
           </A>
           , and any purchased subscriptions will be canceled.
-        </p>
-        <p>
+        </Paragraph>
+        <Paragraph>
           Do NOT delete your account if you are{" "}
           <A href="https://github.com/sagemathinc/cocalc/issues/3243">
             a current student in a course...
           </A>
-        </p>
-        <p>
+        </Paragraph>
+        <Paragraph>
           To <b>DELETE YOUR ACCOUNT</b>, first type your full name "{fullName}"
           below (without quotes):
           <br />
@@ -69,7 +76,7 @@ register({
               return false;
             }}
           />
-        </p>
+        </Paragraph>
         <Button
           disabled={name != fullName || deleting}
           type="primary"

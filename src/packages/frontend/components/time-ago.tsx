@@ -8,9 +8,10 @@
  * TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
  */
 
-import { default as UpstreamTimeAgo } from "react-timeago";
 import React, { CSSProperties as CSS } from "react";
-import { useTypedRedux } from "../app-framework";
+import { default as UpstreamTimeAgo } from "react-timeago";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
 import { Tip } from "./tip";
 
@@ -149,7 +150,16 @@ interface TimeAgoProps {
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
-    const { popover, placement, tip, live, style, date, minPeriod, time_ago_absolute } = props;
+    const {
+      popover,
+      placement,
+      tip,
+      live,
+      style,
+      date,
+      minPeriod,
+      time_ago_absolute,
+    } = props;
 
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
@@ -161,7 +171,9 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         placement={placement}
         tip={tip}
         live={live}
-        time_ago_absolute={time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false}
+        time_ago_absolute={
+          time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false
+        }
         style={style}
         minPeriod={minPeriod}
       />

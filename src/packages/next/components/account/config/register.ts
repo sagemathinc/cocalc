@@ -1,8 +1,13 @@
-import { register as registerSearch } from "./search/entries";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import { register as registerSearch } from "./search/entries";
 
-export const components: any = {};
+export const components: { [main: string]: { [sub: string]: Function } } = {};
 
 interface Options {
   path: string;
@@ -14,34 +19,33 @@ interface Options {
   search?: string | object;
 }
 
+interface Entry {
+  title: string;
+  icon?: IconName;
+  desc?: string;
+  danger?: boolean;
+}
+
 export const menu: {
   [main: string]: {
-    [sub: string]: {
-      title: string;
-      icon?: IconName;
-      desc?: string;
-      danger?: boolean;
-    };
+    [sub: string]: Entry;
   };
 } = {};
 
 export default function register(opts: Options) {
-  let { path, title, icon, desc, Component, danger, search } = opts;
+  const { path, icon, desc = "", Component, danger, search } = opts;
   const [main, sub] = path.split("/");
-  if(!title) {
-    title = capitalize(sub);
-  }
-  if (!desc) {
-    desc = '';
-  }
+  const title = opts.title ?? capitalize(sub);
+
   if (components[main] == null) {
-    components[main] = { [sub]: Component };
-  } else {
-    components[main][sub] = Component;
+    components[main] = {};
   }
+  components[main][sub] = Component;
+
   if (desc || search) {
     registerSearch({ path, title, desc, icon, search });
   }
+
   if (menu[main] == null) {
     menu[main] = {};
   }
@@ -56,4 +60,4 @@ export const topIcons: { [key: string]: IconName } = {
   licenses: "key",
   purchases: "credit-card",
   support: "support",
-};
+} as const;

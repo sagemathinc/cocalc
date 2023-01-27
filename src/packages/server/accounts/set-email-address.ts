@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Set email address of an account.
 
 The password must also be provided. If the email address is already set in the
@@ -22,9 +27,11 @@ import {
   isValidUUID,
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
+import { StripeClient } from "../stripe/client";
 import accountCreationActions, {
   creationActionsDone,
 } from "./account-creation-actions";
+import sendEmailVerification from "./send-email-verification";
 
 export default async function setEmailAddress(
   account_id: string,
@@ -44,13 +51,18 @@ export default async function setEmailAddress(
 
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT email_address, password_hash FROM accounts WHERE account_id=$1",
+    "SELECT email_address, password_hash, email_address_verified, stripe_customer_id FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
     throw Error("no such account");
   }
-  const { password_hash, email_address: old_email_address } = rows[0];
+  const {
+    password_hash,
+    email_address: old_email_address,
+    email_address_verified,
+    stripe_customer_id,
+  } = rows[0];
 
   // if you have an email address that's controlled by an "exclusive" SSO strategy
   // you're not allowed to change your email address
@@ -110,4 +122,23 @@ export default async function setEmailAddress(
   // Do any pending account creation actions for this email.
   await accountCreationActions(email_address, account_id);
   await creationActionsDone(account_id);
+
+  // sync new email address with stripe
+  if (stripe_customer_id != null) {
+    try {
+      const stripe = new StripeClient({ account_id });
+      await stripe.update_database();
+    } catch (err) {
+      console.warn(
+        `ERROR syncing new email address with stripe: ${err} – ignoring`
+      );
+    }
+  }
+
+  // if the email_address is not in the dict of verified email addresses, send a verification email
+  // we do this at the very end, since we don't want an error sending the verification email
+  // disrupt the account creation process above
+  if (email_address_verified?.[email_address] == null) {
+    await sendEmailVerification(account_id, email_address);
+  }
 }
