@@ -10,10 +10,9 @@ https://stackoverflow.com/questions/48358556/firefox-headless-print-to-pdf-optio
 
 import which from "which";
 import { join, parse } from "path";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 // time google-chrome --headless --disable-gpu --no-sandbox --print-to-pdf=a.pdf --run-all-compositor-stages-before-draw --virtual-time-budget=10000 a.html
-const { execute_code } = require("@cocalc/backend/misc_node");
-import { callback_opts } from "@cocalc/util/async-utils";
 
 export default async function htmlToPDF(
   path: string,
@@ -32,7 +31,7 @@ export default async function htmlToPDF(
     `--virtual-time-budget=${timeout * 1000}`,
     path,
   ];
-  const output = await callback_opts(execute_code)({
+  const output = await executeCode({
     command,
     args,
     err_on_exit: false,

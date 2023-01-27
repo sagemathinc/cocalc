@@ -3,18 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { promisify } from "util";
-import {
-  writeFile as writeFileCB,
-  access as accessCB,
-  constants as fs_constants,
-} from "fs";
-const writeFile = promisify(writeFileCB);
-const access = promisify(accessCB);
+import { constants as fs_constants } from "fs";
+import { access, writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-const { execute_code } = require("@cocalc/backend/misc_node");
-const { callback2: cb2 } = require("@cocalc/util/async-utils");
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const EXCLUDES_FN = join(homedir(), ".gitexcludes");
 
@@ -98,7 +91,7 @@ pythontex-files-*/
 export async function init_gitconfig(winston: {
   debug: Function;
 }): Promise<void> {
-  const conf = await cb2(execute_code, {
+  const conf = await executeCode({
     command: "git",
     args: ["config", "--global", "--get", "core.excludesfile"],
     bash: false,
@@ -117,7 +110,7 @@ export async function init_gitconfig(winston: {
       `git: writing '${EXCLUDES_FN}' file and setting global git config`
     );
     await writeFile(EXCLUDES_FN, EXCLUDES, "utf8");
-    await cb2(execute_code, {
+    await executeCode({
       command: "git",
       args: ["config", "--global", "--add", "core.excludesfile", EXCLUDES_FN],
       bash: false,

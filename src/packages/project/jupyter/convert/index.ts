@@ -7,8 +7,7 @@
 Node.js interface to nbconvert.
 */
 
-const { execute_code } = require("@cocalc/backend/misc_node");
-import { callback_opts } from "@cocalc/util/async-utils";
+import { executeCode } from "@cocalc/backend/execute-code";
 import ipynbToHtml, { htmlPath } from "./ipynb-to-html";
 import htmlToPDF from "./html-to-pdf";
 import { NbconvertParams, parseSource, parseTo } from "./util";
@@ -85,7 +84,7 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
     // Note about bash/ulimit_timeout below.  This is critical since nbconvert
     // could launch things like pdflatex that might run forever and without
     // ulimit they do not get killed properly; this has happened in production!
-    const output = await callback_opts(execute_code)({
+    const output = await executeCode({
       command,
       args,
       path: opts.directory,

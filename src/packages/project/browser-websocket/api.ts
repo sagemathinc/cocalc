@@ -14,10 +14,6 @@
 //  -- one request
 //  -- one response
 
-// This require is just because typescript is confused by
-// the path for now.  Growing pains.
-const { callback_opts } = require("@cocalc/util/async-utils");
-
 import { browser_symmetric_channel } from "./symmetric_channel";
 import { canonical_paths } from "./canonical-path";
 import { eval_code } from "./eval-code";
@@ -183,12 +179,14 @@ async function listing(
 import { handle_request as jupyter } from "../jupyter/websocket-api";
 
 // Execute code
-const { execute_code } = require("@cocalc/backend/misc_node");
-interface ExecuteOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-}
-export async function exec(opts: any): Promise<ExecuteOutput> {
-  return await callback_opts(execute_code)(opts);
+import {
+  executeCode,
+  ExecuteCodeOptions,
+  ExecuteCodeOutput,
+} from "@cocalc/backend/execute-code";
+
+export async function exec(
+  opts: ExecuteCodeOptions
+): Promise<ExecuteCodeOutput> {
+  return await executeCode(opts);
 }
