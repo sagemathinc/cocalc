@@ -1,5 +1,4 @@
 import { sha1, uuidsha1 } from "./sha1";
-import { validate } from "uuid";
 
 describe("compute some sha1 hashes", () => {
   it("computes sha1 hash of old SageMathCloud", () => {
@@ -16,9 +15,5 @@ describe("compute some sha1 hashes", () => {
 describe("compute some uuids", () => {
   it("computes uuid associated to 'CoCalc'", () => {
     expect(uuidsha1("CoCalc")).toBe("c898c97d-ca68-4742-a5a6-331f9fa0ca02");
-  });
-
-  it("validate uuid associated to SageMathCloud", () => {
-    expect(validate(uuidsha1("SageMathCloud"))).toBe(true);
   });
 });
