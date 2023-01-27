@@ -17,7 +17,6 @@ interface Props {
 
 export default function Head({ title }: Props) {
   const { siteName, logoSquareURL } = useCustomize();
-  console.log("src", IconLogo.src);
 
   const faviconURL = logoSquareURL
     ? logoSquareURL

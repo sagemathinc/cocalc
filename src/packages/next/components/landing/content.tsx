@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Col, Row, Space } from "antd";
 import { ReactNode } from "react";
 
 import Path from "components/app/path";
@@ -14,6 +14,7 @@ import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
 import { COLORS } from "@cocalc/util/theme";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -40,12 +41,13 @@ interface Props {
 
 function Logo({ logo, title }) {
   if (!logo) return null;
-  if (typeof logo == "string" || logo?.src != null) {
+  if (typeof logo === "string" || logo.src != null) {
     return (
       <Image src={logo} style={{ width: "200px" }} alt={`${title} logo`} />
     );
+  } else {
+    return logo;
   }
-  return logo;
 }
 
 export default function Content(props: Props) {
@@ -79,7 +81,11 @@ export default function Content(props: Props) {
     if (subtitleBelow) return;
     return (
       <Title level={3} style={{ color: COLORS.GRAY_DD }}>
-        {subtitle}
+        {typeof subtitle === "string" ? (
+          <StaticMarkdown value={subtitle} />
+        ) : (
+          subtitle
+        )}
       </Title>
     );
   }
@@ -142,10 +148,14 @@ export default function Content(props: Props) {
   }
 
   return (
-    <div
-      style={{ padding: "30px 0", margin: "auto", maxWidth: MAX_WIDTH_LANDING }}
-    >
-      <Row gutter={[20, 30]}>
+    <>
+      <Row
+        gutter={[20, 30]}
+        style={{
+          padding: "30px 0",
+          maxWidth: MAX_WIDTH_LANDING,
+        }}
+      >
         <Col
           sm={10}
           xs={24}
@@ -154,21 +164,24 @@ export default function Content(props: Props) {
             alignItems: alignItems,
           }}
         >
-          <div style={{ textAlign: "center", width: "100%" }}>
+          <Space
+            size="middle"
+            direction="vertical"
+            style={{ textAlign: "center", width: "100%" }}
+          >
             <>
-              {typeof logo === "string" ? (
+              {typeof logo === "string" ||
+              (logo as StaticImageData)?.src != null ? (
                 <Logo logo={logo} title={title} />
               ) : (
                 logo
               )}
             </>
-            <br />
-            <br />
             {renderSubtitleTop()}
-            <Title level={3} style={{ color: COLORS.GRAY }}>
+            <Title level={4} style={{ color: COLORS.GRAY }}>
               {description}
             </Title>
-          </div>
+          </Space>
         </Col>
         <Col sm={14} xs={24}>
           {renderAboveImage()}
@@ -177,11 +190,7 @@ export default function Content(props: Props) {
         </Col>
         {renderSubtitleBelow()}
       </Row>
-      <SignIn
-        startup={startup ?? title}
-        hideFree={true}
-        style={{ paddingBottom: 0 }}
-      />
-    </div>
+      <SignIn startup={startup ?? title} hideFree={true} />
+    </>
   );
 }

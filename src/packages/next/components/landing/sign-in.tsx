@@ -20,15 +20,17 @@ interface Props {
 
 const STYLE: CSSProperties = {
   textAlign: "center",
-  padding: "30px 15px 15px 15px",
+  padding: "30px 15px",
+  marginBottom: "0",
 } as const;
 
 export default function SignIn({ startup, hideFree, style }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();
+  style = { ...STYLE, ...style };
   const router = useRouter();
   if (account != null) {
     return (
-      <Paragraph style={{ ...STYLE, ...style }}>
+      <Paragraph style={style}>
         <Button
           size="large"
           onClick={() => router.push(join(basePath, "projects"))}
@@ -41,7 +43,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
     );
   }
   return (
-    <Paragraph style={STYLE}>
+    <Paragraph style={style}>
       {anonymousSignup && (
         <Button
           size="large"

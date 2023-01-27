@@ -50,20 +50,15 @@ export default function Home(props: Props) {
   function contentDescription() {
     return (
       <div>
-        An instance of <A href="https://cocalc.com">CoCalc</A>{" "}
-        {organizationName && organizationURL && (
+        {onCoCalcCom ? (
           <>
-            hosted by <A href={organizationURL}>{organizationName}</A>
-          </>
-        )}
-        {onCoCalcCom && (
-          <div style={{ marginTop: "15px" }}>
-            <A href="https://about.cocalc.com">
-              Mission and Features of CoCalc
-            </A>
-            <br />
-            <br />
+            <div>
+              <A href="https://about.cocalc.com">
+                Mission and Features of CoCalc
+              </A>
+            </div>
             <iframe
+              style={{ marginTop: "30px" }}
               width="210"
               height="300"
               src="https://www.youtube.com/embed/PQ5p92DN0bs"
@@ -72,8 +67,17 @@ export default function Home(props: Props) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             ></iframe>
-            <br />
-          </div>
+          </>
+        ) : (
+          <>
+            An instance of <A href="https://cocalc.com">CoCalc</A>{" "}
+            {organizationName && organizationURL && (
+              <>
+                hosted by <A href={organizationURL}>{organizationName}</A>
+              </>
+            )}
+            .
+          </>
         )}
       </div>
     );

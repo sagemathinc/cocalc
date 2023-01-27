@@ -5,13 +5,13 @@
 
 import { isEmpty } from "lodash";
 
+import { unreachable } from "@cocalc/util/misc";
 import Image from "components/landing/image";
 import useCustomize from "lib/use-customize";
-import rectangular from "public/logo/rectangular.svg";
 import fullLogo from "public/logo/full.svg";
 import icon from "public/logo/icon.svg";
+import rectangular from "public/logo/rectangular.svg";
 import { CSS } from "./misc";
-import { unreachable } from "@cocalc/util/misc";
 
 interface Props {
   type: "rectangular" | "icon" | "full";
@@ -62,8 +62,32 @@ export default function Logo(props: Props) {
     style.maxWidth = `${props.width}px`;
   }
 
+  // we "fake" a full logo it by stacking the suare logo on top of the rectangular one in a div
+  function fakeFull(): JSX.Element {
+    return (
+      <div
+        style={{ position: "relative", ...props.style, textAlign: "center" }}
+      >
+        <img
+          alt={alt}
+          src={logoSquareURL}
+          style={{
+            width: "75%",
+          }}
+        />
+        <div>
+          <img src={logoRectangularURL} alt={alt} style={{ width: "100%" }} />
+        </div>
+      </div>
+    );
+  }
+
   if (custom) {
-    return <img alt={alt} src={src} style={style} />;
+    if (type === "full" && logoSquareURL && logoRectangularURL) {
+      return fakeFull();
+    } else {
+      return <img alt={alt} src={src} style={style} />;
+    }
   } else {
     return <Image alt={alt} src={src} style={style} priority={priority} />;
   }
