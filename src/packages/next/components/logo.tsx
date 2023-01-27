@@ -63,31 +63,38 @@ export default function Logo(props: Props) {
   }
 
   // we "fake" a full logo it by stacking the suare logo on top of the rectangular one in a div
-  function fakeFull(): JSX.Element {
+  function customFull(): JSX.Element {
     return (
       <div
-        style={{ position: "relative", ...props.style, textAlign: "center" }}
+        style={{
+          ...props.style,
+          textAlign: "center",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
       >
         <img
           alt={alt}
           src={logoSquareURL}
           style={{
-            width: "75%",
+            width: "50%",
           }}
         />
         <div>
-          <img src={logoRectangularURL} alt={alt} style={{ width: "100%" }} />
+          <img
+            src={logoRectangularURL}
+            alt={alt}
+            style={{ width: "100%", marginTop: "1rem" }}
+          />
         </div>
       </div>
     );
   }
 
-  if (custom) {
-    if (type === "full" && logoSquareURL && logoRectangularURL) {
-      return fakeFull();
-    } else {
-      return <img alt={alt} src={src} style={style} />;
-    }
+  if (type === "full" && logoSquareURL && logoRectangularURL) {
+    return customFull();
+  } else if (custom) {
+    return <img alt={alt} src={src} style={style} />;
   } else {
     return <Image alt={alt} src={src} style={style} priority={priority} />;
   }

@@ -7,6 +7,8 @@ import { Col, Layout, Row } from "antd";
 import { ReactNode } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { AvailableTools } from "components/landing/available-tools";
 import Contact from "components/landing/contact";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -14,7 +16,6 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
 import Info from "components/landing/info";
-import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import { Paragraph, Title } from "components/misc";
@@ -26,11 +27,7 @@ import nbgrader from "public/features/cocalc-jupyter-nbgrader-overview.png";
 import teaching from "public/features/cocalc-teaching.png";
 import logo from "public/features/fa-graduation-cap.svg";
 import kiran from "public/features/kiran.jpeg";
-import latexLogo from "public/features/latex-logo.svg";
-import linuxLogo from "public/features/linux-logo.svg";
-import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import conley from "public/features/will_conley.jpg";
-import { COLORS } from "@cocalc/util/theme";
 
 export default function Teaching({ customize }) {
   const pitchPcLab = (
@@ -304,84 +301,7 @@ export default function Teaching({ customize }) {
             </Paragraph>
           </Info>
 
-          <div
-            style={{
-              padding: "30px 10%",
-              backgroundColor: COLORS.LANDING.TOP_BG,
-            }}
-          >
-            <Title
-              level={1}
-              style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}
-            >
-              <Icon name="wrench" style={{ marginRight: "10px" }} />
-              Available tools
-            </Title>
-            <Row>
-              <Col lg={6}>
-                <Tool
-                  image={logo}
-                  href="/features/jupyter-notebook"
-                  title="Jupyter Notebooks"
-                  alt="Jupyter logo"
-                >
-                  CoCalc's own{" "}
-                  <A href="/features/jupyter-notebook">Jupyter Notebook</A>{" "}
-                  implementation offers realtime synchronization, TimeTravel,
-                  automatic grading, side chat, and more.
-                </Tool>
-              </Col>
-              <Col lg={6}>
-                <Tool
-                  image={sticker}
-                  href="https://doc.cocalc.com/sagews.html"
-                  title="Sage Worksheets"
-                  alt="SageMath sticker logo"
-                >
-                  <A href="https://doc.cocalc.com/sagews.html">
-                    Sage Worksheets
-                  </A>{" "}
-                  are similar to Jupyter Notebooks, but made to work well with{" "}
-                  <A href="https://www.sagemath.org">SageMath</A>. They offer a
-                  single-document model that scales to large documents and
-                  integrated 3d graphics.
-                </Tool>
-              </Col>
-              <Col lg={6}>
-                <Tool
-                  image={latexLogo}
-                  href="/features/latex-editor"
-                  alt="LaTeX Logo"
-                  title={
-                    <>
-                      <LaTeX /> Editor
-                    </>
-                  }
-                >
-                  A full{" "}
-                  <A href="/features/latex-editor">
-                    <LaTeX />
-                    editor
-                  </A>{" "}
-                  supporting preview rendering, forward/inverse search, error
-                  reporting, and{" "}
-                  <A href="https://doc.cocalc.com/latex.html">much more</A>.
-                </Tool>
-              </Col>
-              <Col lg={6}>
-                <Tool
-                  image={linuxLogo}
-                  href="/features/terminal"
-                  title="Linux Terminal"
-                  alt="Tux Linux Penguin"
-                >
-                  Use the collaborative CoCalc terminal to access all powerful
-                  command line tools in a{" "}
-                  <A href="/features/linux">full Ubuntu Linux environment</A>.
-                </Tool>
-              </Col>
-            </Row>
-          </div>
+          <AvailableTools style={{}} />
 
           <div style={{ padding: "30px 10%", backgroundColor: "#fff" }}>
             <Title
@@ -439,32 +359,6 @@ export default function Teaching({ customize }) {
 
 export async function getServerSideProps(context) {
   return await withCustomize({ context });
-}
-
-interface ToolProps {
-  image;
-  alt: string;
-  href: string;
-  title: ReactNode;
-  children: ReactNode;
-}
-
-function Tool({ image, alt, href, title, children }: ToolProps) {
-  return (
-    <div style={{ padding: "15px" }}>
-      <div
-        style={{ textAlign: "center", marginBottom: "15px", height: "75px" }}
-      >
-        <A href={href}>
-          <Image style={{ width: "75px" }} src={image} alt={alt} />
-        </A>
-      </div>
-      <Title level={3} style={{ textAlign: "center" }}>
-        <A href={href}>{title}</A>
-      </Title>
-      <Paragraph>{children}</Paragraph>
-    </div>
-  );
 }
 
 interface TestimonialProps {

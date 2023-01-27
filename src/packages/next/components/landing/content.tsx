@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 
 import Path from "components/app/path";
 import SignIn from "components/landing/sign-in";
-import { Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
@@ -25,19 +25,26 @@ interface StaticImageData {
 }
 
 interface Props {
+  aboveImage?: ReactNode;
+  alignItems?: "center" | "flex-start";
   alt?: string;
   caption?: string;
   description?: ReactNode;
   image?: string | StaticImageData;
-  aboveImage?: ReactNode;
-  indexInfo?: string;
+  imageAlternative?: JSX.Element | string; // string as markdown, replaces the image
   logo?: ReactNode | string | StaticImageData;
   startup?: ReactNode;
+  style?: React.CSSProperties;
   subtitle: ReactNode;
   subtitleBelow?: boolean;
   title: ReactNode;
-  alignItems?: "center" | "flex-start";
 }
+
+const SUBTITLE_STYLE: CSS = {
+  color: COLORS.GRAY_D,
+  textAlign: "center",
+  marginTop: "30px",
+};
 
 function Logo({ logo, title }) {
   if (!logo) return null;
@@ -52,35 +59,43 @@ function Logo({ logo, title }) {
 
 export default function Content(props: Props) {
   const {
-    title,
+    aboveImage,
+    alignItems = "center",
     alt,
     caption,
     description,
     image,
-    aboveImage,
-    indexInfo,
+    imageAlternative,
     logo,
     startup,
+    style,
     subtitle,
     subtitleBelow = false,
-    alignItems = "center",
+    title,
   } = props;
 
   const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
-    if (!indexInfo) return;
-    return (
-      <Col xs={20}>
-        <SanitizedMarkdown value={indexInfo} style={{ padding: "20xp" }} />
-      </Col>
-    );
+    if (!imageAlternative) return;
+    if (typeof imageAlternative === "string") {
+      return (
+        <Col xs={20}>
+          <SanitizedMarkdown
+            value={imageAlternative}
+            style={{ padding: "20xp" }}
+          />
+        </Col>
+      );
+    } else {
+      return <Col xs={20}>{imageAlternative}</Col>;
+    }
   }
 
   function renderSubtitleTop() {
     if (subtitleBelow) return;
     return (
-      <Title level={3} style={{ color: COLORS.GRAY_DD }}>
+      <Title level={3} style={SUBTITLE_STYLE}>
         {typeof subtitle === "string" ? (
           <StaticMarkdown value={subtitle} />
         ) : (
@@ -96,7 +111,7 @@ export default function Content(props: Props) {
       <>
         <Col xs={0} sm={4}></Col>
         <Col xs={24} sm={16}>
-          <Title level={3} style={{ textAlign: "center", marginTop: "30px" }}>
+          <Title level={3} style={SUBTITLE_STYLE}>
             {subtitle}
           </Title>
         </Col>
@@ -106,14 +121,14 @@ export default function Content(props: Props) {
 
   function renderImage() {
     // if the index info is anything more than an empty string, we render this here instead
-    if (!!indexInfo) return renderIndexInfo();
+    if (!!imageAlternative) return renderIndexInfo();
     if (!image) return;
     return (
       <>
         <Image
           src={image}
           priority={true}
-          style={{ padding: "15px" }}
+          style={{ paddingRight: "15px", paddingLeft: "15px" }}
           alt={alt ?? `Image illustrating ${title}`}
         />
         <Paragraph
@@ -147,6 +162,14 @@ export default function Content(props: Props) {
     }
   }
 
+  function renderLogo() {
+    if (typeof logo === "string" || (logo as StaticImageData)?.src != null) {
+      return <Logo logo={logo} title={title} />;
+    } else {
+      return <>{logo}</>;
+    }
+  }
+
   return (
     <>
       <Row
@@ -154,6 +177,8 @@ export default function Content(props: Props) {
         style={{
           padding: "30px 0",
           maxWidth: MAX_WIDTH_LANDING,
+          margin: "0 auto",
+          ...style,
         }}
       >
         <Col
@@ -165,18 +190,11 @@ export default function Content(props: Props) {
           }}
         >
           <Space
-            size="middle"
+            size="large"
             direction="vertical"
             style={{ textAlign: "center", width: "100%" }}
           >
-            <>
-              {typeof logo === "string" ||
-              (logo as StaticImageData)?.src != null ? (
-                <Logo logo={logo} title={title} />
-              ) : (
-                logo
-              )}
-            </>
+            {renderLogo()}
             {renderSubtitleTop()}
             <Title level={4} style={{ color: COLORS.GRAY }}>
               {description}

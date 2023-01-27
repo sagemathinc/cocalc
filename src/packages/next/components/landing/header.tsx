@@ -51,9 +51,46 @@ export default function Header(props: Props) {
     landingPages,
     account,
     imprintOrPolicies,
+    onCoCalcCom,
   } = useCustomize();
 
   if (basePath == null) return null;
+
+  function ask() {
+    if (onCoCalcCom && !IS_MOBILE) {
+      return (
+        <span
+          style={{
+            float: "right",
+            right: 15,
+            top: 25,
+            color: "white",
+            backgroundColor: "black",
+            outline: `1px solid ${COLORS.GRAY_L}`,
+            padding: "2px 8px",
+            borderRadius: "5px",
+          }}
+        >
+          <A
+            type="primary"
+            size="large"
+            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            title="Ask a question"
+            style={{
+              color: "white",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <Icon style={{ fontSize: "20px" }} name="question-circle" />{" "}
+            <div>Ask</div>
+          </A>
+        </span>
+      );
+    }
+  }
 
   return (
     <>
@@ -67,22 +104,7 @@ export default function Header(props: Props) {
           textAlign: "center",
         }}
       >
-        {isCommercial && !IS_MOBILE && (
-          <A
-            type="primary"
-            size="large"
-            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
-            title="Ask a question"
-            style={{
-              position: "absolute",
-              right: 15,
-              top: 25,
-              color: "white",
-            }}
-          >
-            <Icon style={{ fontSize: "24px" }} name="question-circle" />
-          </A>
-        )}
+        {ask()}
         <A href="/">
           {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
           <div

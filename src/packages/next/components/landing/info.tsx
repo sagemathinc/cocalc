@@ -8,8 +8,9 @@ import { CSSProperties, ReactNode } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
+import { TitleProps } from "antd/es/typography/Title";
 import { Paragraph, Title } from "components/misc";
-import { MAX_WIDTH } from "lib/config";
+import { MAX_WIDTH, MAX_WIDTH_LANDING } from "lib/config";
 import Image, { StaticImageData } from "./image";
 import { MediaURL } from "./util";
 
@@ -20,7 +21,7 @@ const showcase: CSSProperties = {
 } as const;
 
 interface Props {
-  alt: string;
+  alt?: string;
   anchor: string;
   below?: ReactNode;
   caption?: ReactNode;
@@ -33,6 +34,7 @@ interface Props {
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  level?: TitleProps["level"];
 }
 
 export default function Info(props: Props) {
@@ -50,11 +52,12 @@ export default function Info(props: Props) {
     title,
     video,
     wide,
+    level = 1,
   } = props;
 
   const head = (
     <Title
-      level={1}
+      level={level}
       id={anchor}
       style={{
         textAlign: "center",
@@ -74,7 +77,7 @@ export default function Info(props: Props) {
   let graphic: ReactNode = null;
 
   if (image != null) {
-    graphic = <Image style={showcase} src={image} alt={alt ?? caption} />;
+    graphic = <Image style={showcase} src={image} alt={alt ?? ""} />;
   } else if (video != null) {
     const videoSrcs = typeof video == "string" ? [video] : video;
     verifyHasMp4(videoSrcs);
@@ -107,9 +110,7 @@ export default function Info(props: Props) {
 
   if (!graphic) {
     const noGraphicTextStyle: CSSProperties = {
-      background: "#fafafa",
-      padding: "20px",
-      marginBottom: "15px",
+      ...style,
     };
 
     if (textStyleExtra != null) {
@@ -118,8 +119,17 @@ export default function Info(props: Props) {
     }
 
     return (
-      <div style={{ width: "100%", ...style }}>
-        <div style={{ maxWidth: MAX_WIDTH, margin: "0 auto" }}>
+      <div
+        style={{
+          width: "100%",
+          paddingTop: "30px",
+          paddingBottom: "15px",
+          paddingLeft: "15px",
+          paddingRight: "15px",
+          ...style,
+        }}
+      >
+        <div style={{ maxWidth: MAX_WIDTH_LANDING, margin: "0 auto" }}>
           <div style={noGraphicTextStyle}>
             <div style={{ textAlign: "center" }}>{head}</div>
             <div
@@ -168,7 +178,7 @@ export default function Info(props: Props) {
   return (
     <div
       style={{
-        padding: "40px 5%",
+        padding: "40px 0",
         background: "white",
         fontSize: "11pt",
         ...style,
@@ -176,7 +186,13 @@ export default function Info(props: Props) {
     >
       <>
         {head}
-        <Row>
+        <Row
+          style={{
+            maxWidth: MAX_WIDTH_LANDING,
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}
+        >
           {cols}
           {below && (
             <Col
@@ -217,9 +233,11 @@ interface HeadingProps {
   children: ReactNode;
   description?: ReactNode;
   style?: CSSProperties;
+  level?: TitleProps["level"];
 }
 
-Info.Heading = ({ children, description, style }: HeadingProps) => {
+Info.Heading = (props: HeadingProps) => {
+  const { level = 1, children, description, style } = props;
   return (
     <div
       style={{
@@ -233,9 +251,8 @@ Info.Heading = ({ children, description, style }: HeadingProps) => {
       }}
     >
       <Title
-        level={1}
+        level={level}
         style={{
-          fontSize: "400%",
           color: "#444",
         }}
       >

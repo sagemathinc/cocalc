@@ -8,23 +8,21 @@ import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import Path from "components/app/path";
+import { COLORS } from "@cocalc/util/theme";
+import CoCalcComFeatures from "components/landing/cocalc-com-features";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Logo from "components/logo";
+import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import ProxyInput from "components/share/proxy-input";
-import PublicPaths from "components/share/public-paths";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import { CSS, Paragraph, Title } from "components/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
@@ -49,37 +47,22 @@ export default function Home(props: Props) {
 
   function contentDescription() {
     return (
-      <div>
+      <Paragraph type="secondary">
         {onCoCalcCom ? (
-          <>
-            <div>
-              <A href="https://about.cocalc.com">
-                Mission and Features of CoCalc
-              </A>
-            </div>
-            <iframe
-              style={{ marginTop: "30px" }}
-              width="210"
-              height="300"
-              src="https://www.youtube.com/embed/PQ5p92DN0bs"
-              title="YouTube video player"
-              frameBorder={0}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </>
+          <>by Sagemath, Inc.</>
         ) : (
           <>
-            An instance of <A href="https://cocalc.com">CoCalc</A>{" "}
+            An instance of <A href="https://cocalc.com">CoCalc</A>
             {organizationName && organizationURL && (
               <>
+                {" "}
                 hosted by <A href={organizationURL}>{organizationName}</A>
               </>
             )}
             .
           </>
         )}
-      </div>
+      </Paragraph>
     );
   }
 
@@ -159,75 +142,69 @@ export default function Home(props: Props) {
     );
   }
 
-  function renderAboveImage() {
-    return (
-      <>
-        {sandboxProjectId && (
-          <div style={{ marginBottom: "30px" }}>
-            <h3 style={{ textAlign: "center", color: "#666" }}>
-              The Public {siteName} Sandbox
-            </h3>
-            <Path
-              style={{ marginRight: "15px", marginBottom: "15px" }}
-              project_id={sandboxProjectId}
-              description="Public Sandbox"
-            />
-          </div>
-        )}
-        {shareServer && onCoCalcCom && (
-          <>
-            <Title level={3} style={{ textAlign: "center" }}>
-              Explore what{" "}
-              <A href="/share/public_paths/page/1">people have shared</A> using{" "}
-              {siteName}!
-            </Title>
-            {publicPaths && (
-              <div
-                style={{
-                  maxHeight: "60vh",
-                  overflow: "auto",
-                  marginRight: "10px",
-                  marginLeft: "10px",
-                }}
-              >
-                <ProxyInput />
-                <PublicPaths publicPaths={publicPaths} />
-              </div>
-            )}
-          </>
-        )}
-      </>
-    );
+  function renderCoCalcComFeatures() {
+    if (onCoCalcCom)
+      return (
+        <CoCalcComFeatures
+          siteName={siteName ?? "CoCalc"}
+          shareServer={shareServer ?? false}
+          publicPaths={publicPaths}
+          sandboxProjectId={sandboxProjectId}
+        />
+      );
   }
 
   function logo(): JSX.Element {
     return <Logo type="full" style={{ width: "200px" }} />;
   }
 
+  function imageAlternative() {
+    if (onCoCalcCom) {
+      return (
+        <div style={{ margin: "0 auto", textAlign: "center" }}>
+          <Title level={3}>
+            <A href="https://about.cocalc.com">
+              Mission and Features of CoCalc
+            </A>
+          </Title>
+          <Paragraph>
+            <iframe
+              style={{ marginTop: "30px" }}
+              width="210"
+              height="375"
+              src="https://www.youtube.com/embed/PQ5p92DN0bs"
+              title="YouTube video player"
+              frameBorder={0}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </Paragraph>
+        </div>
+      );
+    } else {
+      return indexInfo;
+    }
+  }
+
   return (
     <Customize value={customize}>
-      <Head title="Collaborative Calculation" />
+      <Head title={siteDescription ?? "Collaborative Calculation"} />
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
           <Content
-            alignItems="flex-start"
+            style={{ minHeight: "30vh" }}
             logo={logo()}
             title={siteName}
             subtitle={siteDescription}
             description={contentDescription()}
-            image={
-              sandboxProjectId
-                ? undefined
-                : splashImage
-                ? splashImage
-                : screenshot
-            }
-            aboveImage={renderAboveImage()}
+            image={splashImage ? splashImage : screenshot}
             alt={"Screenshot showing CoCalc in action!"}
-            indexInfo={indexInfo}
+            imageAlternative={imageAlternative()}
           />
+
+          {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>
       </Layout>
