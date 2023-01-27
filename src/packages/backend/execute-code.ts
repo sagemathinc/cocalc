@@ -7,7 +7,9 @@
 
 import getLogger from "@cocalc/backend/logger";
 import { callback } from "awaiting";
-import { chmod, rm, writeFile } from "fs/promises";
+import { chmod, mkdtemp, rm, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 import { spawn } from "child_process";
 import shellEscape from "shell-escape";
 import { aggregate } from "@cocalc/util/aggregate";
@@ -78,7 +80,7 @@ async function executeCodeNoAggregate(
   if (opts.verbose == null) opts.verbose = true;
 
   if (opts.verbose) {
-    log.debug(`execute_code: \"${opts.command} ${opts.args?.join(" ")}\"`);
+    log.debug(`input: "${opts.command} ${opts.args?.join(" ")}"`);
   }
 
   const s = opts.command.split(/\s+/g); // split on whitespace
@@ -100,7 +102,7 @@ async function executeCodeNoAggregate(
     opts.path = opts.home + "/" + opts.path;
   }
 
-  let tempPath: string | undefined = undefined;
+  let tempDir: string | undefined = undefined;
 
   try {
     if (opts.bash) {
@@ -118,18 +120,15 @@ async function executeCodeNoAggregate(
         cmd = opts.command;
       }
 
-      if (opts.verbose) {
-        log.debug(
-          "execute_code: writing temporary file that contains bash program."
-        );
-      }
       // We write the cmd to a file, and replace the command and args
       // with bash and the filename, then do everything below as we would
       // have done anyways.
       opts.command = "bash";
-      // We use this type of import because tempy is a pure ESM package,
-      // and some stuff in the hub testing breaks otherwise.
-      tempPath = (await import("tempy")).temporaryFile({ extension: ".sh" });
+      tempDir = await mkdtemp(join(tmpdir(), "cocalc-"));
+      const tempPath = join(tempDir, "a.sh");
+      if (opts.verbose) {
+        log.debug("writing temp file that contains bash program", tempPath);
+      }
       opts.args = [tempPath];
       await writeFile(tempPath, cmd);
       await chmod(tempPath, 0o700);
@@ -137,32 +136,24 @@ async function executeCodeNoAggregate(
     return await callback(doSpawn, opts);
   } finally {
     // clean up
-    if (tempPath) {
-      await rm(tempPath, { force: true });
+    if (tempDir) {
+      await rm(tempDir, { force: true, recursive: true });
     }
   }
 }
-/*
-    (err) => {
-      if (!opts.err_on_exit && ran_code) {
-        // as long as we made it to running some code, we consider this a
-        // success (that is what err_on_exit means).
-        opts.cb?.(undefined, { stdout, stderr, exit_code });
-      } else {
-        opts.cb?.(err, { stdout, stderr, exit_code });
-      }
-    }
-  );
-  }
-}
-*/
 
 function doSpawn(opts, cb) {
   const start_time = walltime();
 
   if (opts.verbose) {
     log.debug(
-      `Spawning the command ${opts.command} with given args ${opts.args} and timeout of ${opts.timeout}s...`
+      "spawning",
+      opts.command,
+      "with args",
+      opts.args,
+      "and timeout",
+      opts.timeout,
+      "seconds"
     );
   }
   const spawnOptions = {
@@ -198,7 +189,7 @@ function doSpawn(opts, cb) {
   ran_code = true;
 
   if (opts.verbose) {
-    log.debug("Listen for stdout, stderr and exit events.");
+    log.debug("listening for stdout, stderr and exit_code...");
   }
   let stdout = "";
   let stderr = "";
@@ -271,29 +262,38 @@ function doSpawn(opts, cb) {
     }
     // finally finish up.
     callback_done = true;
-    if (opts.verbose) {
+    if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
-        `finished exec of ${opts.command} (took ${walltime(start_time)}s)`
+        "finished exec of",
+        opts.command,
+        "took",
+        walltime(start_time),
+        "seconds"
       );
       log.debug(
-        `stdout='${trunc(stdout, 512)}', stderr='${trunc(
-          stderr,
-          512
-        )}', exit_code=${exit_code}`
+        "stdout=",
+        trunc(stdout, 512),
+        "stderr=",
+        trunc(stderr, 512),
+        "exit_code=",
+        exit_code
       );
     }
     if (opts.err_on_exit && exit_code != 0) {
       cb(
         `command '${opts.command}' (args=${opts.args?.join(
           " "
-        )}) exited with nonzero code ${exit_code} -- stderr='${stderr}'`
+        )}) exited with nonzero code ${exit_code} -- stderr='${trunc(
+          stderr,
+          1024
+        )}'`
       );
     } else if (!ran_code) {
       // regardless of opts.err_on_exit !
       cb(
         `command '${opts.command}' (args=${opts.args?.join(
           " "
-        )}) was not able to run -- stderr='${stderr}'`
+        )}) was not able to run -- stderr='${trunc(stderr, 1024)}'`
       );
     } else {
       if (opts.max_output != null) {
@@ -318,16 +318,18 @@ function doSpawn(opts, cb) {
       if (r.exitCode === null) {
         if (opts.verbose) {
           log.debug(
-            `execute_code: subprocess did not exit after ${opts.timeout} seconds, so killing with SIGKILL`
+            "subprocess did not exit after",
+            opts.timeout,
+            "seconds, so killing with SIGKILL"
           );
         }
         try {
           killed = true;
           r.kill("SIGKILL"); // this does not kill the process group :-(
-        } catch (e) {
+        } catch (err) {
           // Exceptions can happen, which left uncaught messes up calling code bigtime.
           if (opts.verbose) {
-            log.debug("execute_code: r.kill raised an exception.");
+            log.debug("r.kill raised an exception", err);
           }
         }
         if (!callback_done) {

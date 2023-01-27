@@ -16,7 +16,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
+    "build": "npx tsc",
     "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test"
@@ -33,7 +33,6 @@
     "password-hash": "^1.2.2",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
-    "tempy": "^3.0.0",
     "underscore": "^1.12.1"
   },
   "repository": {
@@ -43,8 +42,6 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "@types/node": "^18.11.18",
-    "coffee-cache": "^1.0.2",
-    "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "nyc": "^15.1.0"
   }
