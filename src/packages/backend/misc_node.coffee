@@ -18,39 +18,9 @@ message = require('@cocalc/util/message')
 
 exports.enable_mesg = require('./tcp/enable-messaging-protocol').default
 
-###
-sha1 hash functionality
-###
-
-crypto = require('crypto')
-# compute sha1 hash of data in hex
-exports.sha1 = (data) ->
-    if typeof(data) == 'string'
-        # CRITICAL: Code below assumes data is a Buffer; it will seem to work on a string, but give
-        # the wrong result where wrong means that it doesn't agree with the frontend version defined
-        # in misc.
-        data = Buffer.from(data)
-    sha1sum = crypto.createHash('sha1')
-    sha1sum.update(data)
-    return sha1sum.digest('hex')
-
-# Compute a uuid v4 from the Sha-1 hash of data.
-# Optionally, if sha1 is given, just uses that, rather than recomputing it.
-exports.uuidsha1 = (data, sha1) ->
-    if sha1
-        s = sha1
-    else
-        s = exports.sha1(data)
-    i = -1
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) ->
-        i += 1
-        switch c
-            when 'x'
-                return s[i]
-            when 'y'
-                # take 8 + low order 3 bits of hex number.
-                return ((parseInt('0x'+s[i],16)&0x3)|0x8).toString(16)
-    )
+{sha1, uuidsha1} = require('./sha1');
+exports.sha1 = sha1;
+exports.uuidsha1 = uuidsha1;
 
 {execute_code} = require('./execute-code')
 exports.execute_code = execute_code  # since a lot of modules import this from misc_node, not execute-code.

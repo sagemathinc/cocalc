@@ -3,9 +3,9 @@
   "version": "1.21.1",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
+    "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./server-settings": "./dist/server-settings/index.js",
-    "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },

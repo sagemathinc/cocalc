@@ -1,10 +1,10 @@
 import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
-//import { uuidsha1 } from "@cocalc/backend/misc_node";
-const { uuidsha1 } = require("@cocalc/backend/misc_node");
+import { uuidsha1 } from "@cocalc/backend/sha1";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { save_blob } from "@cocalc/util/message";
 import getLogger from "@cocalc/backend/logger";
+
 const logger = getLogger("project-connection:handle-blob");
 
 // Blobs (e.g., files and images dynamically appearing as output in worksheets) are kept for this
