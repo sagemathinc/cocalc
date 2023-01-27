@@ -197,7 +197,7 @@ function doSpawn(opts, cb) {
   let stderr = "";
   let exit_code: undefined | number = undefined;
 
-  r.stdout.on("data", function (data) {
+  r.stdout.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stdout.length < opts.max_output) {
@@ -208,7 +208,7 @@ function doSpawn(opts, cb) {
     }
   });
 
-  r.stderr.on("data", function (data) {
+  r.stderr.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stderr.length < opts.max_output) {
@@ -241,7 +241,7 @@ function doSpawn(opts, cb) {
   // This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
   // an unhandled exception gets raised, which is nasty.
   // From docs: "Note that the exit-event may or may not fire after an error has occurred. "
-  r.on("error", function (err) {
+  r.on("error", (err) => {
     if (exit_code == null) {
       exit_code = 1;
     }
@@ -252,7 +252,7 @@ function doSpawn(opts, cb) {
   });
 
   let callback_done = false;
-  function finish(err?) {
+  const finish = (err?) => {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
       // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
       // set, so we let the rest of them get set before actually finishing up.
@@ -319,12 +319,12 @@ function doSpawn(opts, cb) {
       }
       cb(undefined, { stdout, stderr, exit_code });
     }
-  }
+  };
 
   let timer: any = undefined;
   if (opts.timeout) {
     // setup a timer that will kill the command after a certain amount of time.
-    function f() {
+    const f = () => {
       if (r.exitCode != null) {
         // command already exited.
         return;
@@ -346,7 +346,7 @@ function doSpawn(opts, cb) {
         }
       }
       finish(`killed command '${opts.command} ${opts.args?.join(" ")}'`);
-    }
+    };
     timer = setTimeout(f, opts.timeout * 1000);
   }
 }
