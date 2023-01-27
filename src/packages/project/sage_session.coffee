@@ -12,6 +12,7 @@ winston = require('./logger').getLogger('sage-session')
 
 misc      = require('@cocalc/util/misc')
 misc_node = require('@cocalc/backend/misc_node')
+{ connectToLockedSocket } = require("@cocalc/backend/tcp/locked-socket")
 message   = require('@cocalc/util/message')
 secret_token = require('./servers/secret-token')
 
@@ -116,19 +117,14 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
                     cb()
         (cb) =>
             winston.debug("get and unlock socket")
-            misc_node.connect_to_locked_socket
-                port  : port
-                token : secret_token.secretToken
-                cb    : (err, _socket) =>
-                    if err
-                        port_manager.forget_port('sage')
-                        winston.debug("unlock socket: _new_session: sage session denied connection: #{err}")
-                        cb("_new_session: sage session denied connection: #{err}")
-                        return
-                    sage_socket = _socket
-                    winston.debug("Successfully unlocked a sage session connection.")
-                    cb()
-
+            try
+                sage_socket = await connectToLockedSocket({port:port, token:secret_token.secretToken})
+                winston.debug("Successfully unlocked a sage session connection.")
+                cb()
+            catch err
+                port_manager.forget_port('sage')
+                winston.debug("unlock socket: _new_session: sage session denied connection: #{err}")
+                cb("_new_session: sage session denied connection: #{err}")
         (cb) =>
             winston.debug("request sage session from server.")
             misc_node.enable_mesg(sage_socket)

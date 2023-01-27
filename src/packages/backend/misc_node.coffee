@@ -18,63 +18,6 @@ message = require('@cocalc/util/message')
 
 exports.enable_mesg = require('./tcp/enable-messaging-protocol').default
 
-# Connect to a locked socket on host, unlock it, and do
-#       cb(err, unlocked_socket).
-# WARNING: Use only on an encrypted VPN, since this is not
-# an *encryption* protocol.
-exports.connect_to_locked_socket = (opts) ->
-    {port, host, token, timeout, cb} = defaults opts,
-        host    : 'localhost'
-        port    : required
-        token   : required
-        timeout : 5
-        cb      : required
-
-    if not (port > 0 and port <  65536)
-        cb("connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: #{port}")
-        return
-    winston = getLogger('misc_node.connect_to_locked_socket')
-
-    winston.debug("misc_node: connecting to a locked socket on port #{port}...")
-    timer = undefined
-
-    timed_out = () ->
-        m = "misc_node: timed out trying to connect to locked socket on port #{port}"
-        winston.debug(m)
-        cb?(m)
-        cb = undefined  # NOTE: here and everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
-        socket?.end()
-        timer = undefined
-
-    timer = setTimeout(timed_out, timeout*1000)
-
-    socket = net.connect {host:host, port:port}, () =>
-        listener = (data) ->
-            winston.debug("misc_node: got back response: #{data}")
-            socket.removeListener('data', listener)
-            if data.toString() == 'y'
-                if timer?
-                    clearTimeout(timer)
-                    cb?(undefined, socket)
-                    cb = undefined
-            else
-                socket.destroy()
-                if timer?
-                    clearTimeout(timer)
-                    cb?("Permission denied (invalid secret token) when connecting to the local hub.")
-                    cb = undefined
-        socket.on 'data', listener
-        winston.debug("misc_node: connected, now sending secret token")
-        socket.write(token)
-
-    # This is called in case there is an error trying to make the connection, e.g., "connection refused".
-    socket.on "error", (err) =>
-        if timer?
-            clearTimeout(timer)
-        cb?(err)
-        cb = undefined
-
-
 ###
 sha1 hash functionality
 ###

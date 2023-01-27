@@ -1,5 +1,9 @@
+import { createConnection } from "net";
 import type { Socket } from "net";
 import { callback } from "awaiting";
+import getLogger from "@cocalc/backend/logger";
+
+const log = getLogger("locked-socket");
 
 /*
 unlockSocket - Wait to receive token over the socket; when it is received, call
@@ -7,8 +11,18 @@ cb(false), then send back "y". If any mistake is made (or the socket times out
 after 10 seconds), send back "n" and close the connection.
 */
 
-export async function unlockSocket(socket: Socket, token: string): Promise<void> {
-  await callback(unlock, socket, token);
+export async function unlockSocket(
+  socket: Socket,
+  token: string
+): Promise<void> {
+  log.debug("unlockSocket: waiting for secret token...");
+  try {
+    await callback(unlock, socket, token);
+    log.debug("unlockSocket: SUCCESS");
+  } catch (err) {
+    log.debug("unlockSocket: FAILED");
+    throw err;
+  }
 }
 
 function unlock(socket, token, cb: (err?) => void) {
@@ -41,75 +55,84 @@ function unlock(socket, token, cb: (err?) => void) {
   socket.on("data", listener);
 }
 
-// Connect to a locked socket on host, unlock it, and do
-//       cb(err, unlocked_socket).
-// WARNING: Use only on an encrypted VPN, since this is not
-// an *encryption* protocol.
 /*
-function connectToLockedSocket(opts) {
-  let { port, host, token, timeout, cb } = defaults(opts, {
-    host: "localhost",
-    port: required,
-    token: required,
-    timeout: 5,
-    cb: required,
-  });
+Connect to a locked socket on remove server.
+WARNING: Use only on a network where you do not have to worry about
+an attacker listening to all traffic, since this is not an *encryption*
+protocol, and it's just a symmetric key.
 
-  if (!(port > 0 && port < 65536)) {
-    cb(
-      `connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: ${port}`
-    );
-    return;
+In CoCalc this is used to allow a hub to connect to a project.
+It is not used in any other way.
+*/
+export async function connectToLockedSocket({
+  port,
+  host = "localhost",
+  token,
+  timeout = 5, // in seconds (not milliseconds)
+}: {
+  port: number;
+  host: string;
+  token: string;
+  timeout?: number;
+}): Promise<Socket> {
+  if (port <= 0 || port >= 65536) {
+    // little consistency check
+    throw Error(`RangeError: port should be > 0 and < 65536: ${port}`);
   }
-  const winston = getLogger("misc_node.connect_to_locked_socket");
+  log.debug("connectToLockedSocket:", `${host}:${port}`);
+  return await callback(connect, port, host, token, timeout);
+}
 
-  winston.debug(`misc_node: connecting to a locked socket on port ${port}...`);
-  let timer = undefined;
+function connect(port, host, token, timeout, cb) {
+  let timer: any = null;
+  function finish(err?) {
+    // NOTE: we set cb to undefined after calling it, and only
+    // call it if defined, since the event and timer callback stuff is
+    // very hard to do right without calling cb more than once
+    // (which is VERY bad to do).
+    if (timer != null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    if (cb == null) return;
+    if (err) {
+      log.debug(`connectToLockedSocket: ERROR - ${err}`);
+      cb(err);
+    } else {
+      log.debug("connectToLockedSocket: SUCCESS");
+      cb(undefined, socket);
+    }
+    cb = null;
+  }
 
-  const timed_out = function () {
-    const m = `misc_node: timed out trying to connect to locked socket on port ${port}`;
-    winston.debug(m);
-    cb?.(m);
-    cb = undefined; // NOTE: here and everywhere below we set cb to undefined after calling it, and only call it if defined, since the event and timer callback stuff is very hard to do right here without calling cb more than once (which is VERY bad to do).
-    socket?.end();
-    return (timer = undefined);
-  };
-
-  timer = setTimeout(timed_out, timeout * 1000);
-
-  var socket = net.connect({ host, port }, () => {
-    var listener = function (data) {
-      winston.debug(`misc_node: got back response: ${data}`);
-      socket.removeListener("data", listener);
+  const socket = createConnection({ host, port }, function onceConnected() {
+    socket.once("data", (data: Buffer) => {
+      log.debug("connectToLockedSocket: got back response");
       if (data.toString() === "y") {
-        if (timer != null) {
-          clearTimeout(timer);
-          cb?.(undefined, socket);
-          return (cb = undefined);
-        }
+        finish();
       } else {
         socket.destroy();
-        if (timer != null) {
-          clearTimeout(timer);
-          cb?.(
-            "Permission denied (invalid secret token) when connecting to the local hub."
-          );
-          return (cb = undefined);
-        }
+        finish(
+          "Permission denied (invalid secret token) when connecting to the local hub."
+        );
       }
-    };
-    socket.on("data", listener);
-    winston.debug("misc_node: connected, now sending secret token");
-    return socket.write(token);
+    });
+    log.debug("connectToLockedSocket: connected, now sending secret token");
+    socket.write(token);
   });
 
   // This is called in case there is an error trying to make the connection, e.g., "connection refused".
-  return socket.on("error", (err) => {
-    if (timer != null) {
-      clearTimeout(timer);
-    }
-    cb?.(err);
-    return (cb = undefined);
+  socket.on("error", (err) => {
+    finish(err);
   });
+
+  function timedOut() {
+    timer = null;
+    finish(
+      `connectToLockedSocket: timed out trying to connect to locked socket at ${host}:${port}`
+    );
+    socket.end();
+  }
+
+  timer = setTimeout(timedOut, timeout * 1000);
 }
-*/
