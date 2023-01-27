@@ -18,31 +18,6 @@ message = require('@cocalc/util/message')
 
 exports.enable_mesg = require('./tcp/enable-messaging-protocol').default
 
-# Wait to receive token over the socket; when it is received, call
-# cb(false), then send back "y".  If any mistake is made (or the
-# socket times out after 10 seconds), send back "n" and close the
-# connection.
-exports.unlock_socket = (socket, token, cb) ->     # cb(err)
-    timeout = setTimeout((() -> socket.destroy(); cb("Unlock socket -- timed out waiting for secret token")), 10000)
-
-    user_token = ''
-    listener = (data) ->
-        user_token += data.toString()
-        if user_token.slice(0,token.length) == token
-            socket.removeListener('data', listener)
-            # got it!
-            socket.write('y')
-            clearTimeout(timeout)
-            cb(false)
-        else if user_token.length > token.length or token.slice(0, user_token.length) != user_token
-            socket.removeListener('data', listener)
-            socket.write('n')
-            socket.write("Invalid secret token.")
-            socket.destroy()
-            clearTimeout(timeout)
-            cb("Invalid secret token.")
-    socket.on('data', listener)
-
 # Connect to a locked socket on host, unlock it, and do
 #       cb(err, unlocked_socket).
 # WARNING: Use only on an encrypted VPN, since this is not
@@ -99,53 +74,6 @@ exports.connect_to_locked_socket = (opts) ->
         cb?(err)
         cb = undefined
 
-
-# Connect two sockets together.
-# If max_burst is optionally given, then parts of a big burst of data
-# from s2 will be replaced by '[...]'.
-exports.plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
-    last_tm = misc.mswalltime()
-    last_data = ''
-    amount  = 0
-    # Connect the sockets together.
-    s1_data = (data) ->
-        if not s2.writable
-            s1.removeListener('data', s1_data)
-        else
-            s2.write(data)
-    s2_data = (data) ->
-        if not s1.writable
-            s2.removeListener('data', s2_data)
-        else
-            if max_burst?
-                tm = misc.mswalltime()
-                if tm - last_tm >= 20
-                    if amount < 0 # was truncating
-                        try
-                            x = last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4)))
-                        catch e
-                            # I don't know why the above sometimes causes an exception, but it *does* in
-                            # Buffer.slice, which is a serious problem.   Best to ignore that data.
-                            x = ''
-                        data = "]" + x + data
-                    #console.log("max_burst: reset")
-                    amount = 0
-                last_tm = tm
-                #console.log("max_burst: amount=#{amount}")
-                if amount >= max_burst
-                    last_data = data
-                    data = data.slice(0,Math.floor(max_burst/4)) + "[..."
-                    amount = -1 # so do only once every 20ms.
-                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
-                else if amount < 0
-                    last_data += data
-                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
-                else
-                    amount += data.length
-                # Never push more than max_burst characters at once to hub, since that could overwhelm
-            s1.write(data)
-    s1.on('data', s1_data)
-    s2.on('data', s2_data)
 
 ###
 sha1 hash functionality

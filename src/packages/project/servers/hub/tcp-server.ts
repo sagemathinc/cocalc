@@ -6,7 +6,7 @@ import { callback } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/project/logger";
 import { hubPortFile } from "@cocalc/project/data";
-const { unlock_socket } = require("@cocalc/backend/misc_node");
+import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
 import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { options } from "@cocalc/project/init-program";
 import { secretToken } from "@cocalc/project/servers/secret-token";
@@ -49,7 +49,7 @@ async function handleConnection(socket) {
   });
 
   try {
-    await callback(unlock_socket, socket, secretToken);
+    await unlockSocket(socket, secretToken);
   } catch (err) {
     winston.error(
       "failed to unlock socket -- ignoring any future messages and closing connection"
