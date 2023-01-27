@@ -4,7 +4,8 @@ import { Button, Input, InputNumber, Popover, Select, Space } from "antd";
 import type { ColumnsType } from "../../fields";
 import { getFieldSpec } from "../../fields";
 import { Icon } from "@cocalc/frontend/components";
-import { Operator, OPERATORS, AtomicSearch } from "../../syncdb/use-search";
+import { Operator, AtomicSearch } from "../../syncdb/use-search";
+import { OPERATORS } from "@cocalc/util/db-schema";
 import { capitalize } from "@cocalc/util/misc";
 import TimeValue from "./time-value";
 
