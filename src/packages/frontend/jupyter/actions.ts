@@ -17,7 +17,6 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 declare const localStorage: any;
 
 import { reuseInFlight } from "async-await-utils/hof";
-import * as awaiting from "awaiting";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
 
@@ -25,16 +24,14 @@ import { Actions } from "@cocalc/frontend/app-framework";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-
-import * as cell_utils from "./cell-utils";
-import { cm_options } from "./cm_options";
-import * as parsing from "./parsing";
+import * as awaiting from "awaiting";
+import { Cell, KernelInfo } from "./types";
 import {
-  JupyterStore,
   JupyterStoreState,
+  JupyterStore,
   show_kernel_selector_reasons,
 } from "./store";
-import { Cell, KernelInfo } from "./types";
+import * as cell_utils from "./cell-utils";
 
 const { close, required, defaults } = misc;
 
@@ -54,8 +51,6 @@ import {
   js_idx_to_char_idx,
 } from "./util";
 
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
-
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { get_local_storage, set_local_storage } from "../misc/local-storage";
 
@@ -68,7 +63,7 @@ underlying synchronized state.
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
-export class JupyterActions extends Actions<JupyterStoreState> {
+export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private is_project: boolean;
   protected path: string;
   public project_id: string;
@@ -1019,63 +1014,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb?.in_undo_mode() ?? false;
   }
 
-  // in the future, might throw a CellWriteProtectedException.
-  // for now, just running is ok.
-  public run_cell(
-    id: string,
-    save: boolean = true,
-    no_halt: boolean = false
-  ): void {
-    // don't run if read-only
-    if (this.store.get("read_only")) return;
-
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
-    }
-
-    const cell_type = cell.get("cell_type", "code");
-    switch (cell_type) {
-      case "code":
-        if (this.store.get("kernel") == null) {
-          // don't attempt to run a code-cell if there is no kernel defined
-          this.set_error(
-            "No kernel defined. Therefore it is not possible to run a code cell."
-          );
-          return;
-        }
-        const code = this.get_cell_input(id).trim();
-        if (this.is_project) {
-          // when the backend is running code, just don't worry about
-          // trying to parse things like "foo?" out. We can't do
-          // it without CodeMirror, and it isn't worth it for that
-          // application.
-          this.run_code_cell(id, save, no_halt);
-        } else {
-          const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-          const language = this.store.get_kernel_language();
-          switch (parsing.run_mode(code, cm_mode, language)) {
-            case "show_source":
-              this.introspect(code.slice(0, code.length - 2), 1);
-              break;
-            case "show_doc":
-              this.introspect(code.slice(0, code.length - 1), 0);
-              break;
-            case "empty":
-              this.clear_cell(id, save);
-              break;
-            case "execute":
-              this.run_code_cell(id, save, no_halt);
-              break;
-          }
-        }
-        break;
-    }
-    if (save) {
-      this.save_asap();
-    }
-  }
-
   public run_code_cell(
     id: string,
     save: boolean = true,
@@ -1087,6 +1025,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
+      return;
+    }
+    if (this.store.get("kernel") == null) {
+      // don't attempt to run a code-cell if there is no kernel defined
+      this.set_error(
+        "No kernel defined. Therefore it is not possible to run a code cell."
+      );
       return;
     }
 
@@ -1147,6 +1092,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   run_selected_cells = (): void => {
     this.deprecated("run_selected_cells");
   };
+
+  public abstract run_cell(id: string, save?: boolean, no_halt?: boolean): void;
 
   run_all_cells = (no_halt: boolean = false): void => {
     this.store.get_cell_list().forEach((id) => {
@@ -1570,7 +1517,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Version of the cell's input stored in store.
   // (A live codemirror editor could have a slightly
   // newer version, so this is only a fallback).
-  private get_cell_input(id: string): string {
+  get_cell_input(id: string): string {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
@@ -2046,31 +1993,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   protected set_cm_options(): void {
-    const mode = this.store.get_cm_mode();
-    const account = this.redux.getStore("account");
-    if (account == null) return;
-    const immutable_editor_settings = account.get("editor_settings");
-    if (immutable_editor_settings == null) return;
-    const editor_settings = immutable_editor_settings.toJS();
-    const line_numbers =
-      this.store.get_local_storage("line_numbers") ??
-      immutable_editor_settings.get("jupyter_line_numbers") ??
-      false;
-    const read_only = this.store.get("read_only");
-    const x = immutable.fromJS({
-      options: cm_options(mode, editor_settings, line_numbers, read_only),
-      markdown: cm_options(
-        { name: "gfm2" },
-        editor_settings,
-        line_numbers,
-        read_only
-      ),
-    });
-
-    if (!x.equals(this.store.get("cm_options"))) {
-      // actually changed
-      this.setState({ cm_options: x });
-    }
+    // this only does something in browser-actions.
   }
 
   set_trust_notebook = (trust: any, save: boolean = true) => {
@@ -2556,93 +2479,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
     });
-  }
-
-  private async api_call_formatter(
-    str: string,
-    config: FormatterConfig,
-    timeout_ms?: number
-  ): Promise<string | undefined> {
-    if (this._state === "closed") {
-      throw Error("closed");
-    }
-    return await (
-      await this.init_project_conn()
-    ).api.formatter_string(str, config, timeout_ms);
-  }
-
-  private async format_cell(id: string): Promise<void> {
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      throw new Error(`no cell with id ${id}`);
-    }
-    let code: string = cell.get("input", "").trim();
-    let config: FormatterConfig;
-    const cell_type: string = cell.get("cell_type", "code");
-    switch (cell_type) {
-      case "code":
-        const syntax = this.store.get_kernel_syntax();
-        if (syntax == null) {
-          return; // no-op on these.
-        }
-        config = { syntax: syntax };
-        break;
-      case "markdown":
-        config = { syntax: "markdown" };
-        break;
-      default:
-        // no-op -- do not format unknown cells
-        return;
-    }
-    //  console.log("FMT", cell_type, options, code);
-    let resp: string | undefined;
-    try {
-      code = parsing.process_magics(code, config.syntax, "escape");
-      resp = await this.api_call_formatter(code, config);
-      resp = parsing.process_magics(resp, config.syntax, "unescape");
-    } catch (err) {
-      this.set_error(err);
-      // Do not process response (probably empty anyways) if
-      // there is a problem
-      return;
-    }
-    if (resp == null) return; // make everyone happy …
-    // We additionally trim the output, because formatting code introduces
-    // a trailing newline
-    this.set_cell_input(id, JupyterActions.trim_code(resp), false);
-  }
-
-  private static trim_code(str: string): string {
-    str = str.trim();
-    if (str.length > 0 && str.slice(-1) == "\n") {
-      return str.slice(0, -2);
-    }
-    return str;
-  }
-
-  public async format_cells(
-    cell_ids: string[],
-    sync: boolean = true
-  ): Promise<void> {
-    this.set_error(null);
-    const jobs: string[] = cell_ids.filter((id) =>
-      this.store.is_cell_editable(id)
-    );
-
-    try {
-      await awaiting.map(jobs, 4, this.format_cell.bind(this));
-    } catch (err) {
-      this.set_error(err.message);
-      return;
-    }
-
-    if (sync) {
-      this._sync();
-    }
-  }
-
-  public async format_all_cells(sync: boolean = true): Promise<void> {
-    await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
   private check_select_kernel(): void {
