@@ -3,44 +3,16 @@
 If you want to develop this, edit packages/frontend/app/render.tsx as indicated there so the
 startup banner doesn't vanish.
 */
-
-import React from "react";
 // @ts-ignore -- this is a webpack thing, which confuses typescript.
 import cocalc_word from "./cocalc-word.svg";
 // @ts-ignore
 import cocalc_circle from "./cocalc-circle.svg";
 // @ts-ignore
+import useCustomize from "./customize";
 import "./startup-banner.css";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export default function StartupBanner() {
-  // The hook business below loads the custom logo via the customize
-  // JSON endpoint, then updates the component and displays the
-  // logo if still mounted.  We have to wrap the async calls in
-  // an async function, since useEffect has to return a normal function.
-  const isMountedRef = React.useRef<boolean>(true);
-  const [logo, setLogo] = React.useState<string | undefined>(undefined);
-  React.useEffect(() => {
-    (async () => {
-      let logo: string | undefined = undefined;
-      try {
-        // check for a custom logo
-        const customizeData = await fetch(join(appBasePath, "customize"));
-        logo = (await customizeData.json())?.configuration?.logo_rectangular;
-      } catch (err) {
-        console.log("WARNING: problem loading customize data", err);
-      }
-      if (logo && isMountedRef.current) {
-        // got a logo and still mounted, so set the logo.
-        setLogo(logo);
-      }
-    })();
-    return () => {
-      // component unmounted, so don't bother setting the logo.
-      isMountedRef.current = false;
-    };
-  }, []);
+  const customize = useCustomize();
 
   return (
     <div
@@ -57,8 +29,8 @@ export default function StartupBanner() {
         alignItems: "center" /* vertically center */,
       }}
     >
-      {logo ? (
-        <img style={{ maxWidth: "50%" }} src={logo} />
+      {customize.logo_rectangular ? (
+        <img style={{ maxWidth: "50%" }} src={customize.logo_rectangular} />
       ) : (
         <div
           style={{
