@@ -5,7 +5,8 @@
 
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
-import { Layout } from "antd";
+import { Layout, Typography } from "antd";
+const { Text } = Typography;
 import Path from "components/app/path";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -14,7 +15,6 @@ import Header from "components/landing/header";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import ProxyInput from "components/share/proxy-input";
-import PublicPaths from "components/share/public-paths";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
@@ -59,26 +59,16 @@ export default function Home(props: Props) {
             />
           </div>
         )}
-        {shareServer && onCoCalcCom && (
-          <>
-            <h3 style={{ textAlign: "center" }}>
-              <A href="/share/public_paths/page/1">
-                Explore what people have shared using {siteName}!
-              </A>
-            </h3>
-            {publicPaths && (
-              <div
-                style={{
-                  maxHeight: "60vh",
-                  overflow: "auto",
-                  marginRight: "15px",
-                }}
-              >
-                <ProxyInput />
-                <PublicPaths publicPaths={publicPaths} />
-              </div>
-            )}
-          </>
+        {shareServer && onCoCalcCom && publicPaths && (
+          <div
+            style={{
+              maxHeight: "60vh",
+              overflow: "auto",
+              marginRight: "15px",
+            }}
+          >
+            <ProxyInput />
+          </div>
         )}
       </>
     );
@@ -90,6 +80,34 @@ export default function Home(props: Props) {
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
+          {shareServer && onCoCalcCom && (
+            <Text>
+              <div
+                style={{
+                  fontSize: "12pt",
+                  maxWidth: "800px",
+                  margin: "20px auto 10px auto",
+                }}
+              >
+                {siteName} is used in{" "}
+                <A href="https://link.springer.com/article/10.1007/s11538-022-00999-4">
+                  huge courses at UCLA
+                </A>
+                , by{" "}
+                <A href="https://www.cambridge.org/core/journals/journal-of-fluid-mechanics/jfm-notebooks">
+                  Cambridge University Press's books and journals
+                </A>
+                , and is embedded in{" "}
+                <A href="https://www.yields.io/">
+                  Yields.io's risk management platform.
+                </A>{" "}
+                There are{" "}
+                <A href="/share/public_paths/page/1">
+                  thousands of other ways people use {siteName}...
+                </A>
+              </div>
+            </Text>
+          )}
           {customize.account && (
             <div
               style={{
