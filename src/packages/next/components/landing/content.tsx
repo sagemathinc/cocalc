@@ -95,7 +95,7 @@ export default function Content(props: Props) {
   function renderSubtitleTop() {
     if (subtitleBelow) return;
     return (
-      <Title level={3} style={SUBTITLE_STYLE}>
+      <Title level={4} style={SUBTITLE_STYLE}>
         {typeof subtitle === "string" ? (
           <StaticMarkdown value={subtitle} />
         ) : (
@@ -111,7 +111,7 @@ export default function Content(props: Props) {
       <>
         <Col xs={0} sm={4}></Col>
         <Col xs={24} sm={16}>
-          <Title level={3} style={SUBTITLE_STYLE}>
+          <Title level={4} style={SUBTITLE_STYLE}>
             {subtitle}
           </Title>
         </Col>
@@ -195,6 +195,9 @@ export default function Content(props: Props) {
             style={{ textAlign: "center", width: "100%" }}
           >
             {renderLogo()}
+            <Title level={2} style={{ color: COLORS.GRAY_DD }}>
+              {title}
+            </Title>
             {renderSubtitleTop()}
             <Title level={4} style={{ color: COLORS.GRAY }}>
               {description}

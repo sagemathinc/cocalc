@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 
 import Image from "components/landing/image";
 import LaTeX from "components/landing/latex";
-import { Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import logo from "public/features/fa-graduation-cap.svg";
 import latexLogo from "public/features/latex-logo.svg";
@@ -107,10 +107,22 @@ interface ToolProps {
   children: ReactNode;
   icon?: IconName;
   size?: number;
+  style?: CSS;
+  textStyle?: CSS;
 }
 
 export function Tool(props: ToolProps) {
-  const { size = 75, image, alt, href, title, children, icon } = props;
+  const {
+    size = 75,
+    image,
+    alt,
+    href,
+    title,
+    children,
+    icon,
+    style,
+    textStyle,
+  } = props;
 
   return (
     <div style={{ padding: "15px" }}>
@@ -122,27 +134,30 @@ export function Tool(props: ToolProps) {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
+          ...style,
         }}
       >
         <A href={href}>
           {image ? (
             <Image
-              style={{ width: "75px", margin: "auto" }}
+              style={{ width: "75px", margin: "auto", ...textStyle }}
               src={image}
               alt={alt}
             />
           ) : (
             <Icon
               name={icon}
-              style={{ color: "black", fontSize: `${size}px` }}
+              style={{ color: "black", fontSize: `${size}px`, ...textStyle }}
             />
           )}
         </A>
       </div>
       <Title level={3} style={{ textAlign: "center" }}>
-        <A href={href}>{title}</A>
+        <A href={href} style={{ ...textStyle }}>
+          {title}
+        </A>
       </Title>
-      <Paragraph>{children}</Paragraph>
+      <Paragraph style={{ ...textStyle }}>{children}</Paragraph>
     </div>
   );
 }

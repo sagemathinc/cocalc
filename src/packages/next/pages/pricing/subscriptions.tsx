@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Layout, List } from "antd";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -14,21 +16,20 @@ import {
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { COLORS } from "@cocalc/util/theme";
-import { Alert, Layout, List } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import A from "components/misc/A";
-import { LinkToStore, StoreConf } from "components/store/link";
-import { MAX_WIDTH } from "lib/config";
-import { Customize } from "lib/customize";
-import withCustomize from "lib/with-customize";
 import {
   applyLicense,
   listedPrices,
   pricingQuestions,
 } from "components/share/pricing";
+import { LinkToStore, StoreConf } from "components/store/link";
+import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 interface Item {
   title: string;

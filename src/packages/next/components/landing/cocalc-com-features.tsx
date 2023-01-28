@@ -10,7 +10,7 @@ import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
-import { Paragraph, Text, Title } from "components/misc";
+import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
@@ -41,9 +41,9 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
       >
         <Paragraph>
-          Have you ever been frustrated sending files back and forth with
-          collaborators? Spending too much time on reviewing changes and merging
-          documents?
+          Have you ever been frustrated sending files back and forth between
+          your collaborators? Having to spend too much time on reviewing changes
+          and merging documents?
         </Paragraph>
         <Paragraph>
           Share your computational documents like{" "}
@@ -78,8 +78,19 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           the pain of teaching scientific software.
         </Paragraph>
         <Paragraph>
-          <Text strong>Pre-installed Software</Text> like in a computer lab, all
-          software you need is already installed and ready to use.
+          <Text strong>Hassle-free assignments</Text>: {siteName} keeps all
+          files well organized! Due to real-time synchronization you never have
+          to deal with multiple versions of the same file. There is even support
+          for{" "}
+          <A href={"https://doc.cocalc.com/teaching-nbgrader.html"}>
+            automated grading via NBGrader
+          </A>
+          .
+        </Paragraph>
+        <Paragraph>
+          <Text strong>Pre-installed Software</Text> like in a computer lab,{" "}
+          <A href={"/software"}>all software you need</A> is already installed
+          and ready to use.
         </Paragraph>
         <Paragraph>
           <Text strong>Real-time Collaboration</Text> allows you to virtually
@@ -99,16 +110,19 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   function renderSandbox() {
     if (sandboxProjectId)
       return (
-        <div style={{ marginBottom: "30px" }}>
-          <Title level={3} style={{ textAlign: "center", color: COLORS.GRAY }}>
-            The Public {siteName} Sandbox
-          </Title>
+        <Info
+          title={<>The Public {siteName} Sandbox</>}
+          level={2}
+          icon="share-square"
+          anchor="a-sandbox"
+          style={{ backgroundColor: COLORS.GRAY_LLL }}
+        >
           <Path
-            style={{ marginRight: "15px", marginBottom: "15px" }}
+            style={{ marginBottom: "15px" }}
             project_id={sandboxProjectId}
             description="Public Sandbox"
           />
-        </div>
+        </Info>
       );
   }
 
@@ -126,7 +140,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           level={2}
           icon="share-square"
           anchor="a-teaching"
-          style={{ backgroundColor: "white" }}
+          style={{ backgroundColor: COLORS.GRAY_LLL }}
         >
           <div
             style={{
@@ -144,7 +158,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
       );
   }
 
-  function renderMore() {
+  function renderMore(): JSX.Element {
     return (
       <Info
         title="And much more …"
@@ -155,10 +169,10 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         <Row>
           <Col lg={8}>
             <Tool
-              icon="network-wired"
+              icon="hdd"
               href="/software"
-              title="Software"
-              alt="Software"
+              title="Available Software"
+              alt="Available Software"
             >
               <Paragraph>
                 {siteName} comes with a variety of software pre-installed, e.g.{" "}
@@ -167,11 +181,10 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 <A href={"/features/octave"}>Octave</A>. You can install
                 additional software locally in your project as well.
               </Paragraph>
-              <Paragraph>
+              <Paragraph style={{ textAlign: "center" }}>
                 <A href="/software">
                   <strong>Learn more about software on {siteName}</strong>
                 </A>
-                .
               </Paragraph>
             </Tool>
           </Col>
@@ -179,14 +192,14 @@ export default function CoCalcComFeatures(props: CCFeatures) {
             <Tool
               icon="layout"
               href="/features/whiteboard"
-              title="Whiteboard"
-              alt="Whiteboard"
+              title="Computational Whiteboard"
+              alt="Computational Whiteboard"
             >
               <Paragraph>
                 Use a full featured collaborative whiteboard – with support for
                 computational elements – to express and share your ideas.
               </Paragraph>
-              <Paragraph>
+              <Paragraph style={{ textAlign: "center" }}>
                 <A href="/features/whiteboard">
                   <strong>Learn more about the whiteboard</strong>
                 </A>
@@ -198,14 +211,14 @@ export default function CoCalcComFeatures(props: CCFeatures) {
               icon="wrench"
               href="/features"
               alt="Features"
-              title={<>All Features</>}
+              title="Features Overview"
             >
               <Paragraph>
                 {siteName} offers a variety of features to make your life
                 easier. You can find a list of all features{" "}
                 <A href="/features">here</A>.
               </Paragraph>
-              <Paragraph>
+              <Paragraph style={{ textAlign: "center" }}>
                 <A href="/features">
                   <strong>Learn more about all features</strong>
                 </A>
@@ -218,26 +231,133 @@ export default function CoCalcComFeatures(props: CCFeatures) {
     );
   }
 
+  function renderAvailableProducts(): JSX.Element {
+    const txtCol = COLORS.GRAY_LLL;
+    const toolCol = "white";
+    const link: CSS = {
+      color: "white",
+      fontWeight: "bold",
+    };
+    const bottom: CSS = {
+      color: txtCol,
+      textAlign: "center",
+      fontSize: "150%",
+    };
+    return (
+      <Info
+        title="Available Products"
+        icon="wrench"
+        anchor="products"
+        style={{ backgroundColor: COLORS.BLUE_D }}
+        textStyle={{ color: COLORS.GRAY_LLL }}
+      >
+        <Row>
+          <Col lg={8}>
+            <Tool
+              icon="server"
+              href="/pricing/products"
+              title="Personal use"
+              alt="Personal use"
+              textStyle={{ color: toolCol }}
+            >
+              <Paragraph style={{ color: txtCol }}>
+                You can start using {siteName} for free today. Create a{" "}
+                <A style={link} href={"https://doc.cocalc.com/trial.html"}>
+                  trial project
+                </A>{" "}
+                and{" "}
+                <A
+                  style={link}
+                  href={"https://doc.cocalc.com/getting-started.html"}
+                >
+                  start exploring
+                </A>{" "}
+                {siteName}.{" "}
+              </Paragraph>
+              <Paragraph style={{ color: txtCol }}>
+                Upgrade your projects at any time, to unlock internet access,
+                better hosting quality, and other upgrades by purchasing a{" "}
+                <A style={link} href={"https://doc.cocalc.com/licenses.html"}>
+                  site license
+                </A>
+                .
+              </Paragraph>
+              <Paragraph style={bottom}>
+                <A href="/pricing/products" style={link}>
+                  <strong>Products Overview</strong>
+                </A>
+              </Paragraph>
+            </Tool>
+          </Col>
+          <Col lg={8}>
+            <Tool
+              icon="graduation-cap"
+              href="/pricing/courses"
+              title="Teaching a Course"
+              alt="Teaching a Course"
+              textStyle={{ color: toolCol }}
+            >
+              <Paragraph style={{ color: txtCol }}>
+                {siteName} is made for teaching a course fully online. Explore{" "}
+                <A style={link} href="pricing/courses">
+                  course license
+                </A>{" "}
+                options to learn how to get started.
+              </Paragraph>
+              <Paragraph style={bottom}>
+                <A href="/pricing/courses" style={link}>
+                  <strong>Course Licenses</strong>
+                </A>
+              </Paragraph>
+            </Tool>
+          </Col>
+          <Col lg={8}>
+            <Tool
+              icon="network-wired"
+              href="/features"
+              alt="On-premises"
+              title={"On-premises"}
+              textStyle={{ color: toolCol }}
+            >
+              <Paragraph style={{ color: txtCol }}>
+                It is possible to run {siteName} on your own infrastructure.
+                There are two options available: a single-server variant for a
+                small working group, or a highly scalable variant for a
+                Kubernetes cluster.
+              </Paragraph>
+              <Paragraph style={bottom}>
+                <A href="/pricing/onprem" style={link}>
+                  <strong>On-premises Offerings</strong>
+                </A>
+              </Paragraph>
+            </Tool>
+          </Col>
+        </Row>
+      </Info>
+    );
+  }
+
   return (
     <>
       <Info.Heading
+        textStyle={{ color: "white" }}
         style={{
-          backgroundColor: COLORS.GRAY_LLL,
-          marginBottom: "30px",
+          backgroundColor: COLORS.BLUE_D,
+          paddingBottom: "30px",
           marginTop: "30px",
-          paddingTop: "30px",
+          paddingTop: "45px",
         }}
-        description={<>See what {siteName} can do for you in more depth.</>}
+        description={<>See what {siteName} can do for you in more detail.</>}
       >
         <Icon name="lightbulb" /> Learn all about {siteName}
       </Info.Heading>
-
       {renderSandbox()}
       {renderShareServer()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}
       {renderMore()}
+      {renderAvailableProducts()}
       <SignIn startup={siteName} hideFree={true} />
     </>
   );

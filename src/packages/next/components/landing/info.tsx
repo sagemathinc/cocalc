@@ -9,8 +9,8 @@ import { CSSProperties, ReactNode } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 import { TitleProps } from "antd/es/typography/Title";
-import { Paragraph, Title } from "components/misc";
-import { MAX_WIDTH, MAX_WIDTH_LANDING } from "lib/config";
+import { CSS, Paragraph, Title } from "components/misc";
+import { MAX_WIDTH_LANDING } from "lib/config";
 import Image, { StaticImageData } from "./image";
 import { MediaURL } from "./util";
 
@@ -35,6 +35,7 @@ interface Props {
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   level?: TitleProps["level"];
+  textStyle?: CSSProperties;
 }
 
 export default function Info(props: Props) {
@@ -47,6 +48,7 @@ export default function Info(props: Props) {
     icon,
     image,
     style,
+    textStyle,
     swapCols,
     textStyleExtra,
     title,
@@ -63,6 +65,7 @@ export default function Info(props: Props) {
         textAlign: "center",
         marginBottom: "30px",
         color: COLORS.GRAY_D,
+        ...textStyle,
       }}
     >
       {icon && (
@@ -75,6 +78,14 @@ export default function Info(props: Props) {
   );
 
   let graphic: ReactNode = null;
+
+  // common for "text" and "text + image" div wrappers
+  const padding: CSS = {
+    paddingTop: "45px",
+    paddingBottom: "45px",
+    paddingLeft: "15px",
+    paddingRight: "15px",
+  };
 
   if (image != null) {
     graphic = <Image style={showcase} src={image} alt={alt ?? ""} />;
@@ -122,10 +133,7 @@ export default function Info(props: Props) {
       <div
         style={{
           width: "100%",
-          paddingTop: "30px",
-          paddingBottom: "15px",
-          paddingLeft: "15px",
-          paddingRight: "15px",
+          ...padding,
           ...style,
         }}
       >
@@ -178,7 +186,7 @@ export default function Info(props: Props) {
   return (
     <div
       style={{
-        padding: "40px 0",
+        ...padding,
         background: "white",
         fontSize: "11pt",
         ...style,
@@ -233,11 +241,12 @@ interface HeadingProps {
   children: ReactNode;
   description?: ReactNode;
   style?: CSSProperties;
+  textStyle?: CSSProperties;
   level?: TitleProps["level"];
 }
 
 Info.Heading = (props: HeadingProps) => {
-  const { level = 1, children, description, style } = props;
+  const { level = 1, children, description, style, textStyle } = props;
   return (
     <div
       style={{
@@ -254,11 +263,14 @@ Info.Heading = (props: HeadingProps) => {
         level={level}
         style={{
           color: "#444",
+          ...textStyle,
         }}
       >
         {children}
       </Title>
-      <Paragraph style={{ fontSize: "13pt", color: COLORS.GRAY_D }}>
+      <Paragraph
+        style={{ fontSize: "13pt", color: COLORS.GRAY_D, ...textStyle }}
+      >
         {description}
       </Paragraph>
     </div>
