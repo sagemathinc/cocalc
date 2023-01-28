@@ -71,6 +71,12 @@ webapp from memory and also automatically updates it when there are changes.
 If there are errors, you'll see them displayed in the webapp via an overlay,
 and also in the console where you launched the hub.
 
+**WARNING:** There's a bunch of subtle situations where the hot module reloading
+won't properly update the frontend, and there is no easy way to tell. If in
+doubt, you may have to refresh your browser. Basically modern-style code using
+only react hooks automatically refreshes properly, but older code with Redux
+actions, etc., might not.
+
 Note that the hub is ALSO running another copy of webpack at the same time
 as part of nextjs, to compile serve the code in packages/next, with server side
 rendering. That also supports hot module loading, so there's a lot going on
