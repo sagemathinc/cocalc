@@ -3,6 +3,15 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
+###
+NOTE/ATTENTION!
+
+A "local hub" is exactly the same thing as a "project".  I just used to call
+them "local hubs" a very long time ago.
+
+###
+
+
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('@cocalc/util/heartbeat')
 
 # Connection to a Project (="local hub", for historical reasons only.)
@@ -16,6 +25,7 @@ underscore = require('underscore')
 
 message = require('@cocalc/util/message')
 misc_node = require('@cocalc/backend/misc_node')
+{connectToLockedSocket} = require("@cocalc/backend/tcp/locked-socket")
 misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
@@ -38,19 +48,12 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         timeout      : 10
         cb           : required
 
-    misc_node.connect_to_locked_socket
-        port    : opts.port
-        host    : opts.host
-        token   : opts.secret_token
-        timeout : opts.timeout
-        cb      : (err, socket) =>
-            if err
-                opts.cb(err)
-            else
-                misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
-                socket.on 'data', (data) ->
-                    misc_node.keep_portforward_alive(opts.port)
-                opts.cb(undefined, socket)
+    try
+        socket = await connectToLockedSocket({port:opts.port, host:opts.host, token:opts.secret_token, timeout:opts.timeout})
+        misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
+        opts.cb(undefined, socket)
+    catch err
+        opts.cb(err)
 
 _local_hub_cache = {}
 exports.new_local_hub = (project_id, database, compute_server) ->

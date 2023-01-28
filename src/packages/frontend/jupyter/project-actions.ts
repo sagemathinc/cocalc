@@ -40,6 +40,29 @@ export class JupyterActions extends JupyterActions0 {
   private clear_kernel_error?: any;
   private running_manager_run_cell_process_queue: boolean = false;
 
+  public run_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
+    if (this.store.get("read_only")) return;
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw Error(`can't run cell ${id} since it does not exist`);
+    }
+    const cell_type = cell.get("cell_type", "code");
+    if (cell_type == "code") {
+      // when the backend is running code, just don't worry about
+      // trying to parse things like "foo?" out. We can't do
+      // it without CodeMirror, and it isn't worth it for that
+      // application.
+      this.run_code_cell(id, save, no_halt);
+    }
+    if (save) {
+      this.save_asap();
+    }
+  }
+
   private set_backend_state(backend_state: BackendState): void {
     this.dbg("set_backend_state")(backend_state);
 

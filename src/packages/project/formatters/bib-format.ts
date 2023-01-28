@@ -3,11 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { writeFile, readFile, unlink } = require("fs");
-const tmp = require("tmp");
-const { callback } = require("awaiting");
-const { execute_code } = require("@cocalc/backend/execute-code");
-const { callback_opts } = require("@cocalc/util/async-utils");
+import { writeFile, readFile, unlink } from "fs";
+import * as tmp from "tmp";
+import { callback } from "awaiting";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 interface ParserOptions {
   parser: string;
@@ -26,7 +25,7 @@ async function biber(input_path, output_path) {
     input_path,
   ];
 
-  return await callback_opts(execute_code)({
+  return await executeCode({
     command: "biber",
     args: args,
     err_on_exit: false,

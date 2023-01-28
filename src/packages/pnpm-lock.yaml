@@ -31,36 +31,28 @@ importers:
       '@cocalc/util': workspace:*
       '@types/debug': ^4.1.7
       '@types/node': ^18.11.18
-      async: ^1.5.2
       async-await-utils: ^3.0.1
       awaiting: ^3.0.0
-      coffee-cache: ^1.0.2
-      coffeescript: ^2.5.1
       debug: ^4.3.2
       expect: ^26.6.2
       nyc: ^15.1.0
       password-hash: ^1.2.2
       shell-escape: ^0.2.0
       supports-color: ^9.0.2
-      temp: ^0.9.4
       underscore: ^1.12.1
     dependencies:
       '@cocalc/backend': 'link:'
       '@cocalc/util': link:../util
       '@types/debug': 4.1.7
-      async: 1.5.2
       async-await-utils: 3.0.1_supports-color@9.3.1
       awaiting: 3.0.0
       debug: 4.3.4_supports-color@9.3.1
       password-hash: 1.2.2
       shell-escape: 0.2.0
       supports-color: 9.3.1
-      temp: 0.9.4
       underscore: 1.13.4
     devDependencies:
       '@types/node': 18.11.18
-      coffee-cache: 1.0.2
-      coffeescript: 2.7.0
       expect: 26.6.2
       nyc: 15.1.0_supports-color@9.3.1
 
