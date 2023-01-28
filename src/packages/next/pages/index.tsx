@@ -86,7 +86,8 @@ export default function Home(props: Props) {
                 style={{
                   fontSize: "12pt",
                   maxWidth: "800px",
-                  margin: "20px auto 10px auto",
+                  margin: "5px auto 0px auto",
+                  padding: "10px",
                 }}
               >
                 {siteName} is used in{" "}
