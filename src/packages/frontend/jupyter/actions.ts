@@ -859,6 +859,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // *changes* the syncdb by updating the last save time.
     try {
       // Make sure syncdb content is all sent to the project.
+      // This does not actually save the syncdb file to disk.
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.

@@ -271,15 +271,11 @@ export class JupyterActions extends JupyterActions0 {
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
-    if (kernel == null) {
-      dbg("no kernel set -- can't do anything");
-      return;
-    }
 
     let current: string | undefined = undefined;
     if (this.jupyter_kernel != null) {
       current = this.jupyter_kernel.name;
-      if (current === kernel && this.jupyter_kernel.get_state() != "closed") {
+      if (current == kernel && this.jupyter_kernel.get_state() != "closed") {
         dbg("everything is properly setup and working");
         return;
       }

@@ -188,7 +188,11 @@ export class JupyterKernel
   extends EventEmitter
   implements JupyterKernelInterface
 {
-  public name: string;
+  // name -- if undefined that means "no actual Jupyter kernel" (i.e., this JupyterKernel exists
+  // here, but there is no actual separate real Jupyter kernel process and one won't be created).
+  // Everything should work, except you can't *spawn* such a kernel.
+  public name: string | undefined;
+
   public store: any; // used mainly for stdin support right now...
   public readonly identity: string = uuid();
 
@@ -207,7 +211,7 @@ export class JupyterKernel
   constructor(name, _path, _actions) {
     super();
 
-    this.spawn = reuseInFlight(this.spawn.bind(this)); // TODO -- test carefully!
+    this.spawn = reuseInFlight(this.spawn.bind(this));
 
     this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
     this.nbconvert = reuseInFlight(this.nbconvert.bind(this));
@@ -259,6 +263,10 @@ export class JupyterKernel
     if (this._state === "closed") {
       // game over!
       throw Error("closed");
+    }
+    if (!this.name) {
+      // spawning not allowed.
+      throw Error("cannot spawn since no kernel is set");
     }
     if (["running", "starting"].includes(this._state)) {
       // Already spawned, so no need to do it again.
@@ -535,7 +543,9 @@ export class JupyterKernel
   dbg(f: string): Function {
     return (...args) => {
       winston.debug(
-        `jupyter.Kernel('${this.name}',path='${this._path}').${f}`,
+        `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
+          this._path
+        }').${f}`,
         ...args
       );
     };
