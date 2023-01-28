@@ -65,8 +65,8 @@ export default function Header(props: Props) {
             right: 15,
             top: 25,
             color: "white",
-            backgroundColor: "black",
-            outline: `1px solid ${COLORS.GRAY_L}`,
+            backgroundColor: COLORS.BLUE_D,
+            outline: `1px solid ${COLORS.BLUE_DD}`,
             padding: "2px 8px",
             borderRadius: "5px",
           }}
@@ -111,6 +111,7 @@ export default function Header(props: Props) {
             style={{
               position: "relative",
               display: "inline-block",
+              top: "15px",
               height: "40px",
               width: "40px",
               marginTop: "-30px",
@@ -123,7 +124,6 @@ export default function Header(props: Props) {
                 height: "40px",
                 width: "40px",
                 position: "absolute",
-                top: "15px",
               }}
             />
           </div>

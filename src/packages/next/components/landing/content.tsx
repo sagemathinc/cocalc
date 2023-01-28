@@ -43,15 +43,12 @@ interface Props {
 const SUBTITLE_STYLE: CSS = {
   color: COLORS.GRAY_D,
   textAlign: "center",
-  marginTop: "30px",
 };
 
 function Logo({ logo, title }) {
   if (!logo) return null;
   if (typeof logo === "string" || logo.src != null) {
-    return (
-      <Image src={logo} style={{ width: "200px" }} alt={`${title} logo`} />
-    );
+    return <Image src={logo} style={{ width: "40%" }} alt={`${title} logo`} />;
   } else {
     return logo;
   }
@@ -90,6 +87,15 @@ export default function Content(props: Props) {
     } else {
       return <Col xs={20}>{imageAlternative}</Col>;
     }
+  }
+
+  function renderTitle() {
+    if (title)
+      return (
+        <Title level={2} style={{ color: COLORS.GRAY_DD }}>
+          {title}
+        </Title>
+      );
   }
 
   function renderSubtitleTop() {
@@ -195,9 +201,7 @@ export default function Content(props: Props) {
             style={{ textAlign: "center", width: "100%" }}
           >
             {renderLogo()}
-            <Title level={2} style={{ color: COLORS.GRAY_DD }}>
-              {title}
-            </Title>
+            {renderTitle()}
             {renderSubtitleTop()}
             <Title level={4} style={{ color: COLORS.GRAY }}>
               {description}

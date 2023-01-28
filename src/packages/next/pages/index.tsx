@@ -155,7 +155,7 @@ export default function Home(props: Props) {
   }
 
   function logo(): JSX.Element {
-    return <Logo type="full" style={{ width: "200px" }} />;
+    return <Logo type="full" style={{ width: "50%" }} />;
   }
 
   function imageAlternative() {
@@ -196,7 +196,7 @@ export default function Home(props: Props) {
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
-            title={siteName}
+            title={onCoCalcCom ? "" : siteName}
             subtitle={siteDescription}
             description={contentDescription()}
             image={splashImage ? splashImage : screenshot}

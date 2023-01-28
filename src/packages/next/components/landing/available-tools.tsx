@@ -6,16 +6,16 @@
 import { Col, Row } from "antd";
 import { ReactNode } from "react";
 
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import Image from "components/landing/image";
 import LaTeX from "components/landing/latex";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import logo from "public/features/fa-graduation-cap.svg";
 import latexLogo from "public/features/latex-logo.svg";
 import linuxLogo from "public/features/linux-logo.svg";
 import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import Info from "./info";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import JupyterLogo from "/public/features/jupyter-logo.svg";
 
 interface Props {
   style?: React.CSSProperties;
@@ -26,7 +26,7 @@ export function AvailableTools(props: Props) {
 
   return (
     <Info
-      title="Available tools"
+      title="Available Tools"
       icon="wrench"
       anchor="available-tools"
       style={{ ...style }}
@@ -34,7 +34,7 @@ export function AvailableTools(props: Props) {
       <Row>
         <Col lg={6}>
           <Tool
-            image={logo}
+            image={JupyterLogo}
             href="/features/jupyter-notebook"
             title="Jupyter Notebooks"
             alt="Jupyter logo"

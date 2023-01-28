@@ -42,7 +42,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
       >
         <Paragraph>
           Have you ever been frustrated sending files back and forth between
-          your collaborators? Having to spend too much time on reviewing changes
+          your collaborators? Do you spend too much time on reviewing changes
           and merging documents?
         </Paragraph>
         <Paragraph>
@@ -51,12 +51,14 @@ export default function CoCalcComFeatures(props: CCFeatures) {
             <strong>Jupyter Notebooks</strong>
           </A>
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
-          <A href={"/features/whiteboar"}>Whiteboards</A> and many more on{" "}
-          {siteName} with your project collaborators.
+          <A href="/features/sage">SageMath Worksheets</A>,{" "}
+          <A href={"/features/whiteboard"}>Computational Whiteboards</A> and
+          many more with your collaborators.
         </Paragraph>
         <Paragraph>
-          All modifications are <strong>synchronized in real time</strong> and
-          your code runs in the very same environment.
+          Everyone always stays on the same page, because all modifications are{" "}
+          <strong>synchronized in real time</strong> and your code runs in the
+          very same environment.
         </Paragraph>
       </Info>
     );
@@ -133,8 +135,8 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           title={
             <>
               Explore what{" "}
-              <A href="/share/public_paths/page/1">people have published</A>{" "}
-              using {siteName}!
+              <A href="/share/public_paths/page/1">people have published</A> on{" "}
+              {siteName}!
             </>
           }
           level={2}
@@ -245,8 +247,8 @@ export default function CoCalcComFeatures(props: CCFeatures) {
     };
     return (
       <Info
-        title="Available Products"
-        icon="wrench"
+        title="Offered Solutions"
+        icon="shopping-cart"
         anchor="products"
         style={{ backgroundColor: COLORS.BLUE_D }}
         textStyle={{ color: COLORS.GRAY_LLL }}
@@ -272,7 +274,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 >
                   start exploring
                 </A>{" "}
-                {siteName}.{" "}
+                {siteName}.
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
                 Upgrade your projects at any time, to unlock internet access,
@@ -281,11 +283,6 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                   site license
                 </A>
                 .
-              </Paragraph>
-              <Paragraph style={bottom}>
-                <A href="/pricing/products" style={link}>
-                  <strong>Products Overview</strong>
-                </A>
               </Paragraph>
             </Tool>
           </Col>
@@ -298,16 +295,15 @@ export default function CoCalcComFeatures(props: CCFeatures) {
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
-                {siteName} is made for teaching a course fully online. Explore{" "}
-                <A style={link} href="pricing/courses">
-                  course license
-                </A>{" "}
-                options to learn how to get started.
-              </Paragraph>
-              <Paragraph style={bottom}>
-                <A href="/pricing/courses" style={link}>
-                  <strong>Course Licenses</strong>
+                {siteName} is made for{" "}
+                <A style={link} href="/features/teaching">
+                  teaching a course online
                 </A>
+                . Explore{" "}
+                <A style={link} href="pricing/courses">
+                  course license options
+                </A>{" "}
+                to learn about pricing and how to get started.
               </Paragraph>
             </Tool>
           </Col>
@@ -325,12 +321,28 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 small working group, or a highly scalable variant for a
                 Kubernetes cluster.
               </Paragraph>
-              <Paragraph style={bottom}>
-                <A href="/pricing/onprem" style={link}>
-                  <strong>On-premises Offerings</strong>
-                </A>
-              </Paragraph>
             </Tool>
+          </Col>
+          <Col lg={8}>
+            <Paragraph style={bottom}>
+              <A href="/pricing/products" style={link}>
+                <strong>Products Overview</strong>
+              </A>
+            </Paragraph>
+          </Col>
+          <Col lg={8}>
+            <Paragraph style={bottom}>
+              <A href="/pricing/courses" style={link}>
+                <strong>Course Licenses</strong>
+              </A>
+            </Paragraph>
+          </Col>
+          <Col lg={8}>
+            <Paragraph style={bottom}>
+              <A href="/pricing/onprem" style={link}>
+                <strong>On-premises Offerings</strong>
+              </A>
+            </Paragraph>
           </Col>
         </Row>
       </Info>
