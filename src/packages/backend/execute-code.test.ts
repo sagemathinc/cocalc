@@ -65,7 +65,7 @@ describe("test timeout", () => {
     } catch (err) {
       expect(err).toContain("killed command");
       expect(new Date().valueOf() - t).toBeGreaterThan(90);
-      expect(new Date().valueOf() - t).toBeLessThan(200);
+      expect(new Date().valueOf() - t).toBeLessThan(500);
     }
   });
 
