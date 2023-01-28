@@ -30,6 +30,7 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { Paragraph, Title } from "components/misc";
 
 interface Item {
   title: string;
@@ -226,98 +227,94 @@ function Body(): JSX.Element {
         backgroundColor: "white",
       }}
     >
-      <div style={{ textAlign: "center", color: "#444" }}>
-        <h1 style={{ fontSize: "28pt" }}>
-          <Icon name="calendar" style={{ marginRight: "30px" }} /> CoCalc -
-          Subscriptions
-        </h1>
-      </div>
-      <div style={{ fontSize: "12pt" }}>
-        <a id="subscriptions"></a>
-        <p>
-          Initially, you start using CoCalc under a{" "}
-          <A href="https://doc.cocalc.com/trial.html">free trial plan</A> in
-          order to test out the service. If CoCalc works for you, please
-          purchase a license.
-        </p>
-        <p>
-          A subscription provides you with a{" "}
-          <A href="https://doc.cocalc.com/licenses.html">license key</A> for{" "}
-          <A href="https://doc.cocalc.com/project-settings.html#licenses">
-            upgrading your projects
-          </A>{" "}
-          or other projects where you are a collaborator — everyone using an
-          upgraded project benefits equally. Such a{" "}
-          <A href="/billing/subscriptions">subscription</A>{" "}
-          <b>automatically renews</b> at the end of each period. You can{" "}
-          <A href="/billing/subscriptions">
-            <b>cancel at any time</b>
-          </A>
-          .
-        </p>
+      <Title level={1}>
+        <Icon name="calendar" style={{ marginRight: "30px" }} /> CoCalc -
+        Subscriptions
+      </Title>
+      <a id="subscriptions"></a>
+      <Paragraph>
+        Initially, you start using CoCalc under a{" "}
+        <A href="https://doc.cocalc.com/trial.html">free trial plan</A> in order
+        to test out the service. If CoCalc works for you, please purchase a
+        license.
+      </Paragraph>
+      <Paragraph>
+        A subscription provides you with a{" "}
+        <A href="https://doc.cocalc.com/licenses.html">license key</A> for{" "}
+        <A href="https://doc.cocalc.com/project-settings.html#licenses">
+          upgrading your projects
+        </A>{" "}
+        or other projects where you are a collaborator — everyone using an
+        upgraded project benefits equally. Such a{" "}
+        <A href="/billing/subscriptions">subscription</A>{" "}
+        <b>automatically renews</b> at the end of each period. You can{" "}
+        <A href="/billing/subscriptions">
+          <b>cancel at any time</b>
+        </A>
+        .
+      </Paragraph>
 
-        {applyLicense()}
+      {applyLicense()}
 
-        <h2>Examples</h2>
-        <p>
-          We list three typical configurations below, which you can{" "}
-          <A href="/store/site-license">modify and purchase here</A>. All
-          parameters can be adjusted to fit your needs. Listed upgrades are for
-          each project. Exact prices may vary. Below ${MIN_QUOTE}, only online
-          purchases are available (no purchase orders). Subscriptions receive a{" "}
-          {discount_monthly_pct}% discount for monthly and {discount_yearly_pct}
-          % for yearly periods.
-        </p>
-        <List
-          grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
-          dataSource={data}
-          renderItem={(item) => (
-            <PricingItem title={item.title} icon={item.icon}>
-              <Line amount={item.projects} desc="Projects" />
-              <Line amount={item.shared_ram} desc="Shared RAM per project" />
-              <Line amount={item.shared_cores} desc="Shared CPU per project" />
-              <Line amount={item.disk} desc="Disk space per project" />
-              <Line amount={item.uptime} desc="Idle timeout" />
-              <Line amount={"Unlimited"} desc="Collaborators" />
-              {item.academic ? (
-                <Line amount="40%" desc="Academic discount" />
-              ) : (
-                <Line amount="" desc="" />
-              )}
+      <Title level={2}>Examples</Title>
+      <Paragraph>
+        We list three typical configurations below, which you can{" "}
+        <A href="/store/site-license">modify and purchase here</A>. All
+        parameters can be adjusted to fit your needs. Listed upgrades are for
+        each project. Exact prices may vary. Below ${MIN_QUOTE}, only online
+        purchases are available (no purchase orders). Subscriptions receive a{" "}
+        {discount_monthly_pct}% discount for monthly and {discount_yearly_pct}%
+        for yearly periods.
+      </Paragraph>
+      <List
+        grid={{ gutter: 15, column: 3, xs: 1, sm: 1 }}
+        dataSource={data}
+        renderItem={(item) => (
+          <PricingItem title={item.title} icon={item.icon}>
+            <Line amount={item.projects} desc="Projects" />
+            <Line amount={item.shared_ram} desc="Shared RAM per project" />
+            <Line amount={item.shared_cores} desc="Shared CPU per project" />
+            <Line amount={item.disk} desc="Disk space per project" />
+            <Line amount={item.uptime} desc="Idle timeout" />
+            <Line amount={"Unlimited"} desc="Collaborators" />
+            {item.academic ? (
+              <Line amount="40%" desc="Academic discount" />
+            ) : (
+              <Line amount="" desc="" />
+            )}
 
-              <br />
-              <br />
-              <div>
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: "18pt",
-                    color: COLORS.GRAY_DD,
-                  }}
-                >
-                  {money(item.monthly, true)}
-                </span>{" "}
-                / month
-              </div>
-              <div>
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: "18pt",
-                    color: COLORS.GRAY_DD,
-                  }}
-                >
-                  {money(item.yearly, true)}
-                </span>{" "}
-                / year
-              </div>
-              <LinkToStore conf={item.conf} />
-            </PricingItem>
-          )}
-        />
-        {listedPrices()}
-        {pricingQuestions()}
-      </div>
+            <br />
+            <br />
+            <div>
+              <span
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "18pt",
+                  color: COLORS.GRAY_DD,
+                }}
+              >
+                {money(item.monthly, true)}
+              </span>{" "}
+              / month
+            </div>
+            <div>
+              <span
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "18pt",
+                  color: COLORS.GRAY_DD,
+                }}
+              >
+                {money(item.yearly, true)}
+              </span>{" "}
+              / year
+            </div>
+            <LinkToStore conf={item.conf} />
+          </PricingItem>
+        )}
+      />
+      {listedPrices()}
+      {pricingQuestions()}
       {dedicated()}
     </div>
   );

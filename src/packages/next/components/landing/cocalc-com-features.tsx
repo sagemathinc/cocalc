@@ -10,7 +10,7 @@ import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
-import { CSS, Paragraph, Text, Title } from "components/misc";
+import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";

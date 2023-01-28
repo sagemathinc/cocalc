@@ -229,6 +229,7 @@ export default function Header(props: Props) {
       {page &&
         (page === "software" ||
           page === "features" ||
+          page === "pricing" ||
           landingPages ||
           imprintOrPolicies) && (
           <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
