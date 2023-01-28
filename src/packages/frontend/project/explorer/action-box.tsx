@@ -297,38 +297,73 @@ export const ActionBox = rclass<ReactProps>(
       this.props.actions.set_all_files_unchecked();
     }
 
+    private filename_length_test(name: string): boolean {
+      return name.length > 250;
+    }
+
+    private filename_illegal_chars(name: string): string | false {
+      if (misc.contains(name, "/")) return "/";
+      return false;
+    }
+
+    private filename_illegal_extension(name: string): boolean {
+      const ext = misc.filename_extension(name);
+      return ext !== ext.trim();
+    }
+
     render_rename_warning(): JSX.Element | undefined {
       const initial_ext = misc.filename_extension(
         this.props.checked_files.first()
       );
-      const current_ext = misc.filename_extension(this.state.new_name ?? "");
-      if (initial_ext !== current_ext) {
-        let message;
-        if (initial_ext === "") {
+      const new_name = this.state.new_name ?? "";
+      const current_ext = misc.filename_extension(new_name);
+      let message;
+      let bsStyle: "warning" | "danger" = "warning";
+
+      const illegal_char = this.filename_illegal_chars(new_name);
+
+      if (this.filename_length_test(new_name)) {
+        bsStyle = "danger";
+        message = "The filename is too long.";
+      } else if (illegal_char) {
+        bsStyle = "danger";
+        message = `The filename contains the illegal character '${illegal_char}'.`;
+      } else if (initial_ext !== current_ext) {
+        if (this.filename_illegal_extension(new_name)) {
+          bsStyle = "danger";
+          message =
+            "You're about to add a space character to the start or end of the extension.";
+        } else if (initial_ext === "") {
           message = `Are you sure you want to add the extension ${current_ext}?`;
         } else if (current_ext === "") {
           message = `Are you sure you want to remove the extension ${initial_ext}?`;
         } else {
           message = `Are you sure you want to change the file extension from ${initial_ext} to ${current_ext}?`;
         }
-
-        return (
-          <Alert bsStyle="warning" style={{ wordWrap: "break-word" }}>
-            <h4>
-              <Icon name="exclamation-triangle" /> Warning
-            </h4>
-            <p>{message}</p>
-            <p>This may cause your file to no longer open properly.</p>
-          </Alert>
-        );
+      } else {
+        return; // no warning or error
       }
+      return (
+        <Alert bsStyle={bsStyle} style={{ wordWrap: "break-word" }}>
+          <h4>
+            <Icon name="exclamation-triangle" /> Warning
+          </h4>
+          <p>{message}</p>
+          {bsStyle === "danger" ? (
+            <p>This is not allowed.</p>
+          ) : (
+            <p>This may cause your file to no longer open properly.</p>
+          )}
+        </Alert>
+      );
     }
 
     valid_rename_input = (single_item: string): boolean => {
       if (this.state.new_name == null) return false;
       if (
-        this.state.new_name.length > 250 ||
-        misc.contains(this.state.new_name, "/")
+        this.filename_length_test(this.state.new_name) ||
+        this.filename_illegal_chars(this.state.new_name) ||
+        this.filename_illegal_extension(this.state.new_name)
       ) {
         return false;
       }

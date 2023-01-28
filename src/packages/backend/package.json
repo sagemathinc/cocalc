@@ -3,21 +3,19 @@
   "version": "1.21.1",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
+    "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./server-settings": "./dist/server-settings/index.js",
-    "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
-    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
-    "test": "npx jest dist/",
+    "clean": "rm -rf dist node_modules",
+    "build": "pnpm exec tsc",
+    "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
+    "test": "pnpm exec jest dist/",
     "prepublishOnly": "pnpm test"
   },
   "author": "SageMath, Inc.",
@@ -26,14 +24,12 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.7",
-    "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
     "password-hash": "^1.2.2",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
-    "temp": "^0.9.4",
     "underscore": "^1.12.1"
   },
   "repository": {
@@ -43,8 +39,6 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "@types/node": "^18.11.18",
-    "coffee-cache": "^1.0.2",
-    "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "nyc": "^15.1.0"
   }

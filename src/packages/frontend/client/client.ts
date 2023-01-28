@@ -23,6 +23,7 @@ import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
+import { Query } from "@cocalc/sync/table";
 
 export type AsyncCall = (opts: object) => Promise<any>;
 
@@ -70,7 +71,7 @@ export interface WebappClient extends EventEmitter {
   dbg: (str: string) => Function;
   is_project: () => boolean;
   is_connected: () => boolean;
-  query: Function;
+  query: Query; // TODO typing
   query_cancel: Function;
   is_deleted: Function;
   set_deleted: Function;
@@ -144,7 +145,7 @@ class Client extends EventEmitter implements WebappClient {
   send: Function;
   call: Function;
   is_connected: () => boolean;
-  query: Function;
+  query: typeof QueryClient.prototype.query;
   query_cancel: Function;
 
   is_deleted: Function;

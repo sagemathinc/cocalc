@@ -10,14 +10,11 @@ This will also try to start the project up to about a minute.
 import { reuseInFlight } from "async-await-utils/hof";
 import { getProject } from "@cocalc/server/projects/control";
 import getLogger from "@cocalc/backend/logger";
-import { callback2 } from "@cocalc/util/async-utils";
 import initialize from "./initialize";
 import { cancelAll } from "./handle-query";
 import { delay } from "awaiting";
 
-// misc_node is still in coffeescript :-(
-//import { connect_to_locked_socket } from "@cocalc/backend/misc_node";
-const { connect_to_locked_socket } = require("@cocalc/backend/misc_node");
+import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 
 const logger = getLogger("project-connection:connect");
 type Connection = any;
@@ -46,11 +43,7 @@ async function connect(project_id: string): Promise<Connection> {
     try {
       const { host, port, secret_token: token } = await project.address();
       dbg("got ", host, port);
-      socket = await callback2(connect_to_locked_socket, {
-        host,
-        port,
-        token,
-      });
+      socket = await connectToLockedSocket({ host, port, token });
       break;
     } catch (err) {
       dbg(err);

@@ -133,18 +133,22 @@ class Logger {
     for (const level of LEVELS) {
       this.debuggers[level] = DEBUGGERS[level].extend(name);
       this[level] = (...args) => {
-        this.counter("error");
+        this.counter(level);
         // @ts-ignore
         this.debuggers[level](...args);
       };
     }
   }
 
+  public isEnabled(level: Level): boolean {
+    return this.debuggers[level].enabled;
+  }
+
   public extend(name: string) {
     return new Logger(`${this.name}:${name}`);
   }
 
-  private counter(level: string): void {
+  private counter(level: Level): void {
     if (counter == null) return;
     counter.labels(this.name, level).inc(1);
   }
@@ -159,6 +163,7 @@ interface WinstonLogger {
   debug: Function;
   silly: Function;
   extend: (name: string) => WinstonLogger;
+  isEnabled: (level: Level) => boolean;
 }
 
 const cache: { [name: string]: WinstonLogger } = {};

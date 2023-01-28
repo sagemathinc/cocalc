@@ -1,11 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Alert, Button, Input, Popconfirm, Space } from "antd";
 import { useState } from "react";
 
-import register from "../register";
-import { Alert, Button, Input, Popconfirm, Space } from "antd";
-import useAPI from "lib/hooks/api";
+import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
-import A from "components/misc/A";
+import useAPI from "lib/hooks/api";
+import register from "../register";
+import { Paragraph, Text } from "components/misc";
 
 register({
   path: "account/api",
@@ -107,21 +113,23 @@ register({
       body = (
         <Space direction="vertical">
           API Key:
-          <Input value={apiKey} readOnly style={{ width: "60ex" }} />
+          <Text code strong style={{ fontSize: "150%" }} copyable>
+            {apiKey}
+          </Text>
           <br />
           <A href="https://doc.cocalc.com/api/">Learn about the API...</A>
           <br />
           <Popconfirm
             title={
-              <div style={{ maxWidth: "50ex" }}>
-                Are you sure you want to delete your API key?{" "}
-                <b>
-                  <i>
-                    Anything using the current API key will stop working until
-                    you create and enter a new key.
-                  </i>
-                </b>
-              </div>
+              <>
+                <Paragraph style={{ maxWidth: "50ex" }}>
+                  Are you sure you want to delete your API key?
+                </Paragraph>
+                <Paragraph type="danger">
+                  Anything using the current API key will stop working until you
+                  create and enter a new key.
+                </Paragraph>
+              </>
             }
             onConfirm={() => apiAction("delete")}
             okText={"Yes, delete my key"}

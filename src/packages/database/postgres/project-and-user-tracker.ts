@@ -171,9 +171,9 @@ export class ProjectAndUserTracker extends EventEmitter {
     dbg(new_val);
     // users on a project changed or project created
     const { project_id } = new_val;
-    let users: QueryResult[];
+    let users: QueryResult<{ account_id: string }>[];
     try {
-      users = await query(this.db, {
+      users = await query<{ account_id: string }>(this.db, {
         query: "SELECT jsonb_object_keys(users) AS account_id FROM projects",
         where: { "project_id = $::UUID": project_id },
       });
@@ -490,9 +490,9 @@ function all_query(db: PostgreSQL, opts: QueryOptions, cb: Function): void {
   db._query(opts);
 }
 
-async function query(
+async function query<T>(
   db: PostgreSQL,
   opts: QueryOptions
-): Promise<QueryResult[]> {
+): Promise<QueryResult<T>[]> {
   return await callback(all_query, db, opts);
 }
