@@ -177,14 +177,13 @@ export default function Content(props: Props) {
   }
 
   return (
-    <>
+    <div style={style}>
       <Row
         gutter={[20, 30]}
         style={{
           padding: "30px 0",
           maxWidth: MAX_WIDTH_LANDING,
           margin: "0 auto",
-          ...style,
         }}
       >
         <Col
@@ -214,8 +213,10 @@ export default function Content(props: Props) {
           {renderBelowImage()}
         </Col>
         {renderSubtitleBelow()}
+        <Col lg={24}>
+          <SignIn startup={startup ?? title} hideFree={true} />
+        </Col>
       </Row>
-      <SignIn startup={startup ?? title} hideFree={true} />
-    </>
+    </div>
   );
 }

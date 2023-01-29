@@ -23,6 +23,7 @@ import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+import BannerWithLinks from "components/landing/banner-with-links";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
@@ -193,6 +194,7 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
+          {shareServer && onCoCalcCom && <BannerWithLinks />}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
@@ -203,7 +205,6 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
-
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>

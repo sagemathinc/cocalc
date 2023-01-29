@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Col, Grid, Row } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
@@ -29,6 +29,7 @@ interface CCFeatures {
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
 export default function CoCalcComFeatures(props: CCFeatures) {
   const { sandboxProjectId, siteName, shareServer, publicPaths } = props;
+  const width = Grid.useBreakpoint();
 
   function renderCollaboration(): JSX.Element {
     return (
@@ -236,15 +237,48 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   function renderAvailableProducts(): JSX.Element {
     const txtCol = COLORS.GRAY_LLL;
     const toolCol = "white";
+
     const link: CSS = {
       color: "white",
       fontWeight: "bold",
     };
+
     const bottom: CSS = {
       color: txtCol,
       textAlign: "center",
       fontSize: "150%",
     };
+
+    const productsLink = (
+      <Col lg={8}>
+        <Paragraph style={bottom}>
+          <A href="/pricing/products" style={link}>
+            <strong>Products Overview</strong>
+          </A>
+        </Paragraph>
+      </Col>
+    );
+
+    const courseLink = (
+      <Col lg={8}>
+        <Paragraph style={bottom}>
+          <A href="/pricing/courses" style={link}>
+            <strong>Course Licenses</strong>
+          </A>
+        </Paragraph>
+      </Col>
+    );
+
+    const onpremLink = (
+      <Col lg={8}>
+        <Paragraph style={bottom}>
+          <A href="/pricing/onprem" style={link}>
+            <strong>On-premises Offerings</strong>
+          </A>
+        </Paragraph>
+      </Col>
+    );
+
     return (
       <Info
         title="Offered Solutions"
@@ -284,6 +318,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 </A>
                 .
               </Paragraph>
+              {!width.lg && productsLink}
             </Tool>
           </Col>
           <Col lg={8}>
@@ -305,6 +340,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 </A>{" "}
                 to learn about pricing and how to get started.
               </Paragraph>
+              {!width.lg && courseLink}
             </Tool>
           </Col>
           <Col lg={8}>
@@ -321,29 +357,16 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 small working group, or a highly scalable variant for a
                 Kubernetes cluster.
               </Paragraph>
+              {!width.lg && onpremLink}
             </Tool>
           </Col>
-          <Col lg={8}>
-            <Paragraph style={bottom}>
-              <A href="/pricing/products" style={link}>
-                <strong>Products Overview</strong>
-              </A>
-            </Paragraph>
-          </Col>
-          <Col lg={8}>
-            <Paragraph style={bottom}>
-              <A href="/pricing/courses" style={link}>
-                <strong>Course Licenses</strong>
-              </A>
-            </Paragraph>
-          </Col>
-          <Col lg={8}>
-            <Paragraph style={bottom}>
-              <A href="/pricing/onprem" style={link}>
-                <strong>On-premises Offerings</strong>
-              </A>
-            </Paragraph>
-          </Col>
+          {width.lg && (
+            <>
+              {productsLink}
+              {courseLink}
+              {onpremLink}
+            </>
+          )}
         </Row>
       </Info>
     );

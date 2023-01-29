@@ -9,6 +9,7 @@ import { ReactNode } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 import { AvailableTools } from "components/landing/available-tools";
+import BannerWithLinks from "components/landing/banner-with-links";
 import Contact from "components/landing/contact";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -30,6 +31,8 @@ import kiran from "public/features/kiran.jpeg";
 import conley from "public/features/will_conley.jpg";
 
 export default function Teaching({ customize }) {
+  const { onCoCalcCom, shareServer } = customize;
+
   const pitchPcLab = (
     <>
       <Title level={2}>
@@ -160,23 +163,23 @@ export default function Teaching({ customize }) {
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
-          <Paragraph style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={"CoCalc"}
-              aboveImage={<></>}
-              logo={logo}
-              title={"Teach scientific software online using Jupyter Notebooks"}
-              subtitle={
-                <>
-                  CoCalc is a virtual online computer lab: it takes away the
-                  pain of teaching scientific software!
-                </>
-              }
-              subtitleBelow={true}
-              image={assignments}
-              alt={"Cocalc's course management interface"}
-            />
-          </Paragraph>
+          {shareServer && onCoCalcCom && <BannerWithLinks />}
+          <Content
+            style={{ backgroundColor: COLORS.LANDING.TOP_BG }}
+            startup={"CoCalc"}
+            aboveImage={<></>}
+            logo={logo}
+            title={"Teach scientific software online using Jupyter Notebooks"}
+            subtitle={
+              <>
+                CoCalc is a virtual online computer lab: it takes away the pain
+                of teaching scientific software!
+              </>
+            }
+            subtitleBelow={true}
+            image={assignments}
+            alt={"Cocalc's course management interface"}
+          />
 
           <Pitch col1={pitchPcLab} col2={pitchNoSetup} />
 
