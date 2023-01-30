@@ -142,9 +142,9 @@ export function blocksCursor(editor, up: boolean = false): boolean {
     editor.selection != null &&
     ((up && isAtBeginningOfBlock(editor, { mode: "highest" })) ||
       (!up && isAtEndOfBlock(editor, { mode: "highest" }))) &&
-    (elt.type == "blockquote" ||
-      elt.type == "ordered_list" ||
-      elt.type == "bullet_list")
+    (elt?.type == "blockquote" ||
+      elt?.type == "ordered_list" ||
+      elt?.type == "bullet_list")
   ) {
     return true;
   }

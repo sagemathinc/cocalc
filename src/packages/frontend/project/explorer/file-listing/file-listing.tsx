@@ -50,11 +50,13 @@ interface Props {
   other_settings?: immutable.Map<any, any>;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
+  isRunning?: boolean; // true if this project is running
 }
 
 export const FileListing: React.FC<Props> = (props: Props) => {
   const {
     actions,
+    redux,
     name,
     active_file_sort,
     listing,
@@ -69,6 +71,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     sort_by,
     configuration_main,
     file_search = "",
+    isRunning,
   } = props;
 
   const prev_current_path = usePrevious(current_path);
@@ -213,6 +216,21 @@ export const FileListing: React.FC<Props> = (props: Props) => {
 
   return (
     <>
+      {!isRunning && listing.length > 0 && (
+        <div
+          style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
+        >
+          To update the directory listing,{" "}
+          <a
+            onClick={() => {
+              redux.getActions("projects").start_project(project_id);
+            }}
+          >
+            start this project
+          </a>
+          .
+        </div>
+      )}
       <Col
         sm={12}
         style={{

@@ -70,6 +70,18 @@ export class IdleClient {
       "click mousemove keydown focusin touchstart",
       this.idle_reset
     );
+
+    // Every 30s, if the document is visible right now, then we
+    // reset the idle timeout., just as if the mouse moved.  This means
+    // that users never get the standby timeout if their current browser
+    // tab is considered visible according to the Page Visibility API
+    // https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
+    // See also https://github.com/sagemathinc/cocalc/issues/6371
+    setInterval(() => {
+      if (!document.hidden) {
+        this.idle_reset();
+      }
+    }, 30 * 1000);
   }
 
   private idle_check(): void {
