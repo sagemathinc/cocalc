@@ -1,13 +1,18 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* The startup banner
 
 If you want to develop this, edit packages/frontend/app/render.tsx as indicated there so the
 startup banner doesn't vanish.
 */
+
 // @ts-ignore -- this is a webpack thing, which confuses typescript.
 import cocalc_word from "./cocalc-word.svg";
 // @ts-ignore
 import cocalc_circle from "./cocalc-circle.svg";
-// @ts-ignore
 import useCustomize from "./customize";
 import "./startup-banner.css";
 

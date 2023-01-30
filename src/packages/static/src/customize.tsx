@@ -4,15 +4,10 @@
  */
 
 import { join } from "path";
-import { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-
-// subset of CustomizeState
-interface Customize {
-  logo_rectangular: string;
-  logo_square: string;
-}
+import { Customize, DEFAULT_CUSTOMIZE } from "./consts";
 
 async function _loadCustomize(): Promise<Customize | undefined> {
   // check for a custom logo
@@ -29,11 +24,12 @@ async function loadCustomize() {
 
 export default function useCustomize() {
   const isMountedRef = useRef<boolean>(true);
-  const [customize, setCustomize] = useState<Customize>({
-    logo_rectangular: "",
-    logo_square: join(appBasePath, "webapp/favicon.ico"),
-  });
-  useEffect(() => {
+  const [customize, setCustomize] = useState<Customize>(DEFAULT_CUSTOMIZE);
+  React.useEffect(() => {
+    // The hook business below loads the custom logo via the customize
+    // JSON endpoint, then updates the component and displays the
+    // logo if still mounted.  We have to wrap the async calls in
+    // an async function, since useEffect has to return a normal function.
     (async () => {
       try {
         const customize = await loadCustomize();
