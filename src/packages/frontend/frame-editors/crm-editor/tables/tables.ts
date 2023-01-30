@@ -13,6 +13,7 @@ import "./tags";
 import "./support-tickets";
 import "./support-messages";
 import "./client-error-log";
+import "./central-log";
 import "./file-access-log";
 import "./file-use";
 import "./site-licenses";
