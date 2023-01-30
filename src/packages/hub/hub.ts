@@ -297,7 +297,7 @@ function addErrorListeners(uncaught_exception_total) {
     winston.error(
       "BUG UNHANDLED REJECTION *********************************************************"
     );
-    database?.uncaught_exception(p);
+    database?.uncaught_exception(reason);
     uncaught_exception_total.inc(1);
   });
 }
