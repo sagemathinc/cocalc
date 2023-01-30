@@ -12,7 +12,11 @@ export default function LoadFavicons() {
     <Helmet>
       <link
         rel="icon"
-        href={customize.logo_square ?? join(appBasePath, "webapp/favicon.ico")}
+        href={
+          customize.logo_square
+            ? customize.logo_square
+            : join(appBasePath, "webapp/favicon.ico")
+        }
       />
     </Helmet>
   );
