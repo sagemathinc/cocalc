@@ -525,6 +525,13 @@ export const Explorer = rclass(
             }}
           >
             <FileListing
+              isRunning={
+                this.props.project_map?.getIn([
+                  this.props.project_id,
+                  "state",
+                  "state",
+                ]) == "running"
+              }
               name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
