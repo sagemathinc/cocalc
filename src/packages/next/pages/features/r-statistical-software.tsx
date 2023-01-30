@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Collaboration from "components/landing/collaboration";
 import Contact from "components/landing/contact";
@@ -20,10 +19,10 @@ import Pitch from "components/landing/pitch";
 import Publishing from "components/landing/publishing";
 import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import rEnvironment from "public/features/cocalc-r-environment.png";
 import jupyterCollab from "public/features/cocalc-r-jupyter-collaborate.png";
 import rJupyter from "public/features/cocalc-r-jupyter.png";
@@ -32,7 +31,6 @@ import sidechat from "public/features/cocalc-r-side-chat.png";
 import rcode from "public/features/cocalc-rcode.png";
 import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
 import logo from "public/features/r-logo.svg";
-import { Paragraph, Title } from "components/misc";
 
 const component = "R";
 const title = `Run ${component} Online`;
@@ -44,27 +42,26 @@ export default function R({ customize }) {
       <Layout>
         <Header page="features" subPage="r-statistical-software" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={logo}
-              title={title}
-              subtitle={
-                <>
-                  Run <A href="https://www.r-project.org/">R code</A>,{" "}
-                  <A href="#a-jupyternotebook">R in Jupyter notebooks</A>,
-                  RMarkdown, or even{" "}
-                  <A href="#a-latex">
-                    Knitr/Rnw <LaTeX />
-                  </A>{" "}
-                  in a full, remote online R environment.
-                </>
-              }
-              subtitleBelow={true}
-              image={rJupyter}
-              alt={"Use of R in Jupyter"}
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={logo}
+            title={title}
+            subtitle={
+              <>
+                Run <A href="https://www.r-project.org/">R code</A>,{" "}
+                <A href="#a-jupyternotebook">R in Jupyter notebooks</A>,
+                RMarkdown, or even{" "}
+                <A href="#a-latex">
+                  Knitr/Rnw <LaTeX />
+                </A>{" "}
+                in a full, remote online R environment.
+              </>
+            }
+            subtitleBelow={true}
+            image={rJupyter}
+            alt={"Use of R in Jupyter"}
+          />
 
           <Pitch
             col1={

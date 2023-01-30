@@ -5,7 +5,7 @@
 
 import { Layout } from "antd";
 
-import { COLORS } from "@cocalc/util/theme";
+import { Icon } from "@cocalc/frontend/components/icon";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -20,28 +20,28 @@ import screenshot from "public/features/api-screenshot.png";
 const title = "API";
 
 export default function API({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
         <Header page="features" subPage="api" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={"CoCalc"}
-              title={title}
-              subtitle={
-                <>
-                  Programmatically control CoCalc from your own server. Embed
-                  CoCalc within other products with a customized external look
-                  and feel.
-                </>
-              }
-              image={screenshot}
-              alt={"Using the API"}
-            />
-          </div>
-
+          <Content
+            landing
+            startup={siteName}
+            title={title}
+            logo={<Icon name="api" style={{ fontSize: "60px" }} />}
+            subtitle={
+              <>
+                Programmatically control CoCalc from your own server. Embed
+                CoCalc within other products with a customized external look and
+                feel.
+              </>
+            }
+            image={screenshot}
+            alt={"Using the API"}
+          />
           <Info.Heading
             description={
               <>

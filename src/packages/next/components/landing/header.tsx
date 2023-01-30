@@ -4,19 +4,19 @@
  */
 
 import { Layout } from "antd";
+import Link from "next/link";
+import { join } from "path";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
-import SquareLogo from "components/logo-square";
+import Logo from "components/logo";
 import A from "components/misc/A";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
-import Link from "next/link";
-import { join } from "path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
@@ -51,9 +51,46 @@ export default function Header(props: Props) {
     landingPages,
     account,
     imprintOrPolicies,
+    onCoCalcCom,
   } = useCustomize();
 
   if (basePath == null) return null;
+
+  function ask() {
+    if (onCoCalcCom && !IS_MOBILE) {
+      return (
+        <span
+          style={{
+            float: "right",
+            right: 15,
+            top: 25,
+            color: "white",
+            backgroundColor: COLORS.BLUE_D,
+            outline: `1px solid ${COLORS.BLUE_DD}`,
+            padding: "2px 8px",
+            borderRadius: "5px",
+          }}
+        >
+          <A
+            type="primary"
+            size="large"
+            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            title="Ask a question"
+            style={{
+              color: "white",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <Icon style={{ fontSize: "20px" }} name="question-circle" />{" "}
+            <div>Ask</div>
+          </A>
+        </span>
+      );
+    }
+  }
 
   return (
     <>
@@ -67,40 +104,26 @@ export default function Header(props: Props) {
           textAlign: "center",
         }}
       >
-        {isCommercial && !IS_MOBILE && (
-          <A
-            type="primary"
-            size="large"
-            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
-            title="Ask a question"
-            style={{
-              position: "absolute",
-              right: 15,
-              top: 25,
-              color: "white",
-            }}
-          >
-            <Icon style={{ fontSize: "24px" }} name="question-circle" />
-          </A>
-        )}
+        {ask()}
         <A href="/">
           {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
           <div
             style={{
               position: "relative",
               display: "inline-block",
+              top: "15px",
               height: "40px",
               width: "40px",
               marginTop: "-30px",
               marginRight: "64px",
             }}
           >
-            <SquareLogo
+            <Logo
+              type="icon"
               style={{
                 height: "40px",
                 width: "40px",
                 position: "absolute",
-                top: "15px",
               }}
             />
           </div>
@@ -206,6 +229,7 @@ export default function Header(props: Props) {
       {page &&
         (page === "software" ||
           page === "features" ||
+          page === "pricing" ||
           landingPages ||
           imprintOrPolicies) && (
           <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />

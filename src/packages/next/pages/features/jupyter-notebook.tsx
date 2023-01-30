@@ -115,19 +115,18 @@ export default function JupyterNotebook({ customize }) {
       <Layout>
         <Header page="features" subPage="jupyter-notebook" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={"Jupyter"}
-              logo={JupyterLogo}
-              title={"Online Jupyter Notebooks"}
-              subtitle={
-                "CoCalc's own collaborative, fully compatible and supercharged notebooks."
-              }
-              subtitleBelow={true}
-              image={JupyterTF}
-              alt={"Using Pandas and Tensorflow in a Jupyter notebook"}
-            />
-          </div>
+          <Content
+            landing
+            startup={"Jupyter"}
+            logo={JupyterLogo}
+            title={"Online Jupyter Notebooks"}
+            subtitle={
+              "CoCalc's own collaborative, fully compatible and supercharged notebooks."
+            }
+            subtitleBelow={true}
+            image={JupyterTF}
+            alt={"Using Pandas and Tensorflow in a Jupyter notebook"}
+          />
 
           <Pitch col1={pitchTeaching()} col2={pitchNoSetup()} ext="ipynb" />
 

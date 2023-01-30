@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import { Card, List } from "antd";
 import { ReactNode } from "react";
+
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   children: ReactNode;
@@ -16,7 +17,7 @@ interface Props {
 
 export default function PricingItem({ icon, children, title }: Props) {
   return (
-    <List.Item>
+    <List.Item style={{ padding: 0 }}>
       <Card
         headStyle={{ backgroundColor: "#d9edf7" }}
         style={{ color: COLORS.GRAY }}

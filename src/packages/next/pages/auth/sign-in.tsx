@@ -4,6 +4,8 @@
  */
 
 import { Layout } from "antd";
+import { useRouter } from "next/router";
+
 import SignIn from "components/auth/sign-in";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -11,7 +13,6 @@ import Header from "components/landing/header";
 import basePath from "lib/base-path";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { useRouter } from "next/router";
 
 export default function Home({ customize }) {
   const { siteName } = customize;

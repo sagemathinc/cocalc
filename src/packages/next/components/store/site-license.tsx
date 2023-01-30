@@ -6,10 +6,12 @@
 /*
 Create a new site license.
 */
+import { Form, Input } from "antd";
+import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { Form, Input } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -18,7 +20,6 @@ import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
@@ -33,6 +34,7 @@ import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
+import { Paragraph, Title } from "components/misc";
 
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
@@ -67,14 +69,14 @@ export default function SiteLicense(props: Props) {
 
   return (
     <>
-      <h3 ref={headerRef}>
+      <Title level={3} ref={headerRef}>
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Site License in Shopping Cart"
           : "Buy a Quota Upgrades License"}
-      </h3>
+      </Title>
       {router.query.id == null && (
-        <p>
+        <Paragraph>
           <A href="https://doc.cocalc.com/licenses.html">
             <SiteName /> site licenses
           </A>{" "}
@@ -85,7 +87,7 @@ export default function SiteLicense(props: Props) {
           users across an entire department of school. Create a license using
           the form below then add it to your{" "}
           <A href="/store/cart">shopping cart</A>.
-        </p>
+        </Paragraph>
       )}
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}

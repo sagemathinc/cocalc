@@ -15,13 +15,11 @@ import Header from "components/landing/header";
 import Info from "components/landing/info";
 import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { FullLinuxTerminal } from "./linux";
-
-import { COLORS } from "@cocalc/util/theme";
-import { Paragraph, Title } from "components/misc";
 import shellScript from "/public/features/cocalc-shell-script-run.png";
 import collabDemo from "/public/features/cocalc-terminal-collab.gif";
 import logo from "/public/features/linux-logo.svg";
@@ -38,19 +36,16 @@ export default function Terminal({ customize }) {
       <Layout>
         <Header page="features" subPage="terminal" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={logo}
-              title={title}
-              subtitle={
-                "A Linux Terminal that can't mess up your own computer."
-              }
-              subtitleBelow={true}
-              image={terminal}
-              alt={"Running Sage in a Terminal"}
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={logo}
+            title={title}
+            subtitle={"A Linux Terminal that can't mess up your own computer."}
+            subtitleBelow={true}
+            image={terminal}
+            alt={"Running Sage in a Terminal"}
+          />
 
           <FullLinuxTerminal />
 

@@ -9,9 +9,10 @@ import { ReactNode } from "react";
 import A from "components/misc/A";
 import Code from "./code";
 import { CSS, Paragraph } from "components/misc";
+import { MAX_WIDTH_LANDING } from "lib/config";
 
 export const STYLE_PITCH: CSS = {
-  padding: "30px 10%",
+  padding: "60px 15px",
   backgroundColor: "white",
 } as const;
 
@@ -25,7 +26,10 @@ export default function Pitch(props: Props) {
   const { col1, col2, ext } = props;
   return (
     <div style={STYLE_PITCH}>
-      <Row gutter={20}>
+      <Row
+        gutter={20}
+        style={{ maxWidth: MAX_WIDTH_LANDING, margin: "0 auto" }}
+      >
         <Col lg={12}>{col1}</Col>
         <Col lg={12}>{col2}</Col>
       </Row>

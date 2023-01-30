@@ -5,6 +5,7 @@
 
 import { Layout } from "antd";
 
+import { COLORS } from "@cocalc/util/theme";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -13,8 +14,6 @@ import LaTeX from "components/landing/latex";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
-import { COLORS } from "@cocalc/util/theme";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";

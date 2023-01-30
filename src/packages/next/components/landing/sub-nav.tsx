@@ -186,7 +186,8 @@ export default function SubNav(props: Props) {
         backgroundColor: "white",
         textAlign: "center",
         color: COLORS.GRAY,
-        padding: "15px 0",
+        padding: "15px",
+        lineHeight: "2rem",
       }}
     >
       {r_join(tabs, SEP)}

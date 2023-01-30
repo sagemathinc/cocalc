@@ -71,6 +71,8 @@ const MAIN_COLORS = {
   BRWN: "#593E05",
   YELL_D: "#bf7b00",
   YELL_L: "#fbb635",
+  YELL_LL: "#fddc7f",
+  YELL_LLL: "#fff2d0",
   GRAY_DDD: "#dddddd",
   GRAY_DD: "#303030",
   GRAY_D: "#434343",

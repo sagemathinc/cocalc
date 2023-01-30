@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -42,25 +41,24 @@ export default function Octave({ customize }) {
       <Layout>
         <Header page="features" subPage="python" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={PythonLogo}
-              title={title}
-              subtitle={
-                <>
-                  <div>
-                    Run {component} scripts,{" "}
-                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>,
-                    or even a <A href="/features/x11">graphical application</A>{" "}
-                    in a full, remote {component} environment.
-                  </div>
-                </>
-              }
-              subtitleBelow={true}
-              image={FrameEditorPython}
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={PythonLogo}
+            title={title}
+            subtitle={
+              <>
+                <div>
+                  Run {component} scripts,{" "}
+                  <A href="/features/jupyter-notebook">Jupyter notebooks</A>, or
+                  even a <A href="/features/x11">graphical application</A> in a
+                  full, remote {component} environment.
+                </div>
+              </>
+            }
+            subtitleBelow={true}
+            image={FrameEditorPython}
+          />
 
           <Pitch
             col1={
