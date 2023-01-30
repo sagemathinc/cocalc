@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -20,7 +19,6 @@ import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import juliaCode from "public/features/julia-code.png";
 import splash from "public/features/julia-jupyter.png";
 import logo from "public/features/julia-logo.svg";
@@ -38,26 +36,26 @@ export default function Julia({ customize }) {
       <Layout>
         <Header page="features" subPage="julia" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={logo}
-              title={title}
-              subtitle={
-                <>
-                  <div>
-                    Run {component} scripts, <A href="">Pluto notebooks</A>,{" "}
-                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>{" "}
-                    in a full, online environment.
-                  </div>
-                </>
-              }
-              image={splash}
-              alt={
-                "Using Julia in a Jupyter notebook to plot and do symbolic computation"
-              }
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={logo}
+            title={title}
+            subtitleBelow={true}
+            subtitle={
+              <>
+                <div>
+                  Run {component} scripts, <A href="">Pluto notebooks</A>,{" "}
+                  <A href="/features/jupyter-notebook">Jupyter notebooks</A> in
+                  a full, online environment.
+                </div>
+              </>
+            }
+            image={splash}
+            alt={
+              "Using Julia in a Jupyter notebook to plot and do symbolic computation"
+            }
+          />
           <Pitch
             col1={
               <>

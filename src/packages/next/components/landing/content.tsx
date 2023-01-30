@@ -32,6 +32,7 @@ interface Props {
   description?: ReactNode;
   image?: string | StaticImageData;
   imageAlternative?: JSX.Element | string; // string as markdown, replaces the image
+  landing?: boolean;
   logo?: ReactNode | string | StaticImageData;
   startup?: ReactNode;
   style?: React.CSSProperties;
@@ -63,6 +64,7 @@ export default function Content(props: Props) {
     description,
     image,
     imageAlternative,
+    landing = false, // for all pages on /landing/* – makes the splash content background at the top blue-ish
     logo,
     startup,
     style,
@@ -177,7 +179,12 @@ export default function Content(props: Props) {
   }
 
   return (
-    <div style={style}>
+    <div
+      style={{
+        ...(landing && { backgroundColor: COLORS.LANDING.TOP_BG }),
+        ...style,
+      }}
+    >
       <Row
         gutter={[20, 30]}
         style={{

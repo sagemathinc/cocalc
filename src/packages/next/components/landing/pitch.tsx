@@ -12,7 +12,7 @@ import { CSS, Paragraph } from "components/misc";
 import { MAX_WIDTH_LANDING } from "lib/config";
 
 export const STYLE_PITCH: CSS = {
-  padding: "60px 0",
+  padding: "60px 15px",
   backgroundColor: "white",
 } as const;
 

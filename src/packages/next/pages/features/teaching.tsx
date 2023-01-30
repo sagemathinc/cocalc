@@ -7,7 +7,6 @@ import { Col, Layout, Row } from "antd";
 import { ReactNode } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import { AvailableTools } from "components/landing/available-tools";
 import BannerWithLinks from "components/landing/banner-with-links";
 import Contact from "components/landing/contact";
@@ -165,7 +164,7 @@ export default function Teaching({ customize }) {
         <Layout.Content>
           {shareServer && onCoCalcCom && <BannerWithLinks />}
           <Content
-            style={{ backgroundColor: COLORS.LANDING.TOP_BG }}
+            landing
             startup={"CoCalc"}
             aboveImage={<></>}
             logo={logo}

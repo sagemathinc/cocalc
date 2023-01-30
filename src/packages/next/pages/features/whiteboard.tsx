@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -18,7 +17,6 @@ import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import WhiteboardPostIt from "/public/features/whiteboard-post-it.png";
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
 
@@ -29,24 +27,23 @@ export default function Whiteboard({ customize }) {
       <Layout>
         <Header page="features" subPage="whiteboard" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
-              startup={"Whiteboard"}
-              title={
-                "Online Collaborative Computational Whiteboards for Mathematics and Computation"
-              }
-              subtitle={
-                <>
-                  <hr />
-                  Sketch out ideas and run Jupyter code cells with CoCalc's
-                  computational whiteboard
-                </>
-              }
-              image={WhiteboardImage}
-              alt={"Collaborative Computational Whiteboard"}
-            />
-          </div>
+          <Content
+            landing
+            logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
+            startup={"Whiteboard"}
+            title={
+              "Online Collaborative Computational Whiteboards for Mathematics and Computation"
+            }
+            subtitleBelow={true}
+            subtitle={
+              <>
+                Sketch out ideas and run Jupyter code cells with CoCalc's
+                computational whiteboard
+              </>
+            }
+            image={WhiteboardImage}
+            alt={"Collaborative Computational Whiteboard"}
+          />
 
           <Pitch
             col1={

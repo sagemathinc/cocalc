@@ -5,7 +5,6 @@
 
 import { Layout } from "antd";
 
-import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -18,7 +17,6 @@ import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import octaveJupyter from "public/features/cocalc-octave-jupyter-20200511.png";
 import octaveTerminal from "public/features/cocalc-octave-terminal-20200511.png";
 import octaveX11 from "public/features/cocalc-octave-x11-20200511.png";
@@ -35,23 +33,22 @@ export default function Octave({ customize }) {
       <Layout>
         <Header page="features" subPage="octave" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={"Octave"}
-              logo={logo}
-              title={title}
-              subtitle={
-                <>
-                  Run {octave} in an online Terminal, a Jupyter Notebook or an
-                  X11 desktop. Octave is largely compatible with MATLAB®! For
-                  many teaching purposes you can use Octave instead of MATLAB.
-                </>
-              }
-              subtitleBelow={true}
-              image={octaveJupyter}
-              alt="Plotting a Sombrero in a Jupyter notebook using Octave"
-            />
-          </div>
+          <Content
+            landing
+            startup={"Octave"}
+            logo={logo}
+            title={title}
+            subtitle={
+              <>
+                Run {octave} in an online Terminal, a Jupyter Notebook or an X11
+                desktop. Octave is largely compatible with MATLAB®! For many
+                teaching purposes you can use Octave instead of MATLAB.
+              </>
+            }
+            subtitleBelow={true}
+            image={octaveJupyter}
+            alt="Plotting a Sombrero in a Jupyter notebook using Octave"
+          />
 
           <Pitch
             col1={
