@@ -88,7 +88,7 @@ export function AvailableTools(props: Props) {
             alt="Tux Linux Penguin"
           >
             The very sophisticated collaborative{" "}
-            <A href={"/features/linux"}>Linux</A> Terminal makes you incredible
+            <A href={"/features/linux"}>Linux</A> Terminal makes you incredibly
             productive. Many programming languages and hundreds of tools are
             available at your fingertips in a{" "}
             <A href="/features/linux">full Ubuntu Linux environment</A>.

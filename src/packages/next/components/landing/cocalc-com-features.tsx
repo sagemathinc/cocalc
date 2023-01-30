@@ -162,6 +162,27 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   }
 
   function renderMore(): JSX.Element {
+    const software = (
+      <Paragraph style={{ textAlign: "center" }}>
+        <A href="/software">
+          <strong>Learn more about software on {siteName}</strong>
+        </A>
+      </Paragraph>
+    );
+    const whiteboard = (
+      <Paragraph style={{ textAlign: "center" }}>
+        <A href="/features/whiteboard">
+          <strong>Learn more about the whiteboard</strong>
+        </A>
+      </Paragraph>
+    );
+    const features = (
+      <Paragraph style={{ textAlign: "center" }}>
+        <A href="/features">
+          <strong>Learn more about all features</strong>
+        </A>
+      </Paragraph>
+    );
     return (
       <Info
         title="And much more …"
@@ -170,7 +191,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         style={{ backgroundColor: COLORS.YELL_LLL }}
       >
         <Row>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="hdd"
               href="/software"
@@ -184,14 +205,10 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 <A href={"/features/octave"}>Octave</A>. You can install
                 additional software locally in your project as well.
               </Paragraph>
-              <Paragraph style={{ textAlign: "center" }}>
-                <A href="/software">
-                  <strong>Learn more about software on {siteName}</strong>
-                </A>
-              </Paragraph>
+              {!width.md && software}
             </Tool>
           </Col>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="layout"
               href="/features/whiteboard"
@@ -202,14 +219,10 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 Use a full featured collaborative whiteboard – with support for
                 computational elements – to express and share your ideas.
               </Paragraph>
-              <Paragraph style={{ textAlign: "center" }}>
-                <A href="/features/whiteboard">
-                  <strong>Learn more about the whiteboard</strong>
-                </A>
-              </Paragraph>
+              {!width.md && whiteboard}
             </Tool>
           </Col>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="wrench"
               href="/features"
@@ -221,21 +234,23 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 easier. You can find a list of all features{" "}
                 <A href="/features">here</A>.
               </Paragraph>
-              <Paragraph style={{ textAlign: "center" }}>
-                <A href="/features">
-                  <strong>Learn more about all features</strong>
-                </A>
-                .
-              </Paragraph>
+              {!width.md && features}
             </Tool>
           </Col>
+          {width.md && (
+            <>
+              <Col md={8}>{software}</Col>
+              <Col md={8}>{whiteboard}</Col>
+              <Col md={8}>{features}</Col>
+            </>
+          )}
         </Row>
       </Info>
     );
   }
 
   function renderAvailableProducts(): JSX.Element {
-    const txtCol = COLORS.GRAY_LLL;
+    const txtCol = COLORS.GRAY_LL;
     const toolCol = "white";
 
     const link: CSS = {
@@ -250,33 +265,27 @@ export default function CoCalcComFeatures(props: CCFeatures) {
     };
 
     const productsLink = (
-      <Col lg={8}>
-        <Paragraph style={bottom}>
-          <A href="/pricing/products" style={link}>
-            <strong>Products Overview</strong>
-          </A>
-        </Paragraph>
-      </Col>
+      <Paragraph style={bottom}>
+        <A href="/pricing/products" style={link}>
+          <strong>Products Overview</strong>
+        </A>
+      </Paragraph>
     );
 
     const courseLink = (
-      <Col lg={8}>
-        <Paragraph style={bottom}>
-          <A href="/pricing/courses" style={link}>
-            <strong>Course Licenses</strong>
-          </A>
-        </Paragraph>
-      </Col>
+      <Paragraph style={bottom}>
+        <A href="/pricing/courses" style={link}>
+          <strong>Course Licenses</strong>
+        </A>
+      </Paragraph>
     );
 
     const onpremLink = (
-      <Col lg={8}>
-        <Paragraph style={bottom}>
-          <A href="/pricing/onprem" style={link}>
-            <strong>On-premises Offerings</strong>
-          </A>
-        </Paragraph>
-      </Col>
+      <Paragraph style={bottom}>
+        <A href="/pricing/onprem" style={link}>
+          <strong>On-premises Offerings</strong>
+        </A>
+      </Paragraph>
     );
 
     return (
@@ -285,15 +294,15 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         icon="shopping-cart"
         anchor="products"
         style={{ backgroundColor: COLORS.BLUE_D }}
-        textStyle={{ color: COLORS.GRAY_LLL }}
+        textStyle={{ color: COLORS.GRAY_LL }}
       >
         <Row>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="server"
               href="/pricing/products"
-              title="Personal use"
-              alt="Personal use"
+              title="Professional use"
+              alt="Professional use"
               textStyle={{ color: toolCol }}
             >
               <Paragraph style={{ color: txtCol }}>
@@ -312,16 +321,16 @@ export default function CoCalcComFeatures(props: CCFeatures) {
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
                 Upgrade your projects at any time, to unlock internet access,
-                better hosting quality, and other upgrades by purchasing a{" "}
-                <A style={link} href={"https://doc.cocalc.com/licenses.html"}>
-                  site license
+                better hosting quality, and other upgrades by{" "}
+                <A style={link} href={"/store/site-license"}>
+                  purchasing a site license
                 </A>
                 .
               </Paragraph>
-              {!width.lg && productsLink}
+              {!width.md && productsLink}
             </Tool>
           </Col>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="graduation-cap"
               href="/pricing/courses"
@@ -334,16 +343,20 @@ export default function CoCalcComFeatures(props: CCFeatures) {
                 <A style={link} href="/features/teaching">
                   teaching a course online
                 </A>
-                . Explore{" "}
+                .
+              </Paragraph>
+              <Paragraph style={{ color: txtCol }}>
+                The{" "}
                 <A style={link} href="pricing/courses">
                   course license options
                 </A>{" "}
-                to learn about pricing and how to get started.
+                are very flexible: they range from small professional training
+                up to large university courses.
               </Paragraph>
-              {!width.lg && courseLink}
+              {!width.md && courseLink}
             </Tool>
           </Col>
-          <Col lg={8}>
+          <Col md={8}>
             <Tool
               icon="network-wired"
               href="/features"
@@ -353,18 +366,19 @@ export default function CoCalcComFeatures(props: CCFeatures) {
             >
               <Paragraph style={{ color: txtCol }}>
                 It is possible to run {siteName} on your own infrastructure.
-                There are two options available: a single-server variant for a
-                small working group, or a highly scalable variant for a
-                Kubernetes cluster.
+                There are two options available: an easy to setup{" "}
+                <strong>single-server</strong> variant for a small working group
+                and a highly scalable variant for a{" "}
+                <strong>Kubernetes cluster</strong>.
               </Paragraph>
-              {!width.lg && onpremLink}
+              {!width.md && onpremLink}
             </Tool>
           </Col>
-          {width.lg && (
+          {width.md && (
             <>
-              {productsLink}
-              {courseLink}
-              {onpremLink}
+              <Col md={8}>{productsLink}</Col>
+              <Col md={8}>{courseLink}</Col>
+              <Col md={8}>{onpremLink}</Col>
             </>
           )}
         </Row>
