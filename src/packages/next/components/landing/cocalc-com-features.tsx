@@ -14,7 +14,7 @@ import { CSS, Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import ProxyInput from "components/share/proxy-input";
 import PublicPaths from "components/share/public-paths";
-import { MAX_WIDTH_LANDING } from "lib/config";
+import { MAX_WIDTH, MAX_WIDTH_LANDING } from "lib/config";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import SignIn from "./sign-in";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
@@ -389,6 +389,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
   return (
     <>
       <Info.Heading
+        level={2}
         textStyle={{ color: "white" }}
         style={{
           backgroundColor: COLORS.BLUE_D,
@@ -396,9 +397,25 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           marginTop: "30px",
           paddingTop: "45px",
         }}
-        description={<>See what {siteName} can do for you in more detail.</>}
+        description={
+          <Paragraph
+            italic
+            style={{
+              color: COLORS.GRAY_LL,
+              paddingTop: "30px",
+              maxWidth: MAX_WIDTH, // bit less wide on wide screens, so its easier to read
+              margin: "0 auto",
+            }}
+          >
+            <strong>Mission</strong>: Redefining collaboration in science,
+            engineering and mathematics by providing easily accessible and
+            sustainably supported tools for computing, teaching, and publishing
+            research.
+          </Paragraph>
+        }
       >
-        <Icon name="lightbulb" /> Learn all about {siteName}
+        <Icon name="lightbulb" /> CoCalc is a cloud-based collaborative software
+        oriented towards research, teaching, and scientific publishing purposes.
       </Info.Heading>
       {renderSandbox()}
       {renderShareServer()}

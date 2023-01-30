@@ -263,6 +263,8 @@ Info.Heading = (props: HeadingProps) => {
         level={level}
         style={{
           color: "#444",
+          maxWidth: MAX_WIDTH_LANDING,
+          margin: "0 auto",
           ...textStyle,
         }}
       >

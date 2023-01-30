@@ -33,7 +33,7 @@ export default function SignIn({ startup, hideFree, style }: Props) {
       <Paragraph style={style}>
         <Button
           size="large"
-          onClick={() => router.push(join(basePath, "projects"))}
+          onClick={() => (window.location.href = join(basePath, "projects"))}
           title={`Open the ${siteName} app and view your projects.`}
           type="primary"
         >
