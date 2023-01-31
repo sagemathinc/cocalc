@@ -18,6 +18,7 @@ interface Message {
   id?: string;
   uuid?: string;
   blob?: Buffer | string;
+  ttlSeconds?: number;
 }
 
 interface RecvMesgOpts {

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Create the TCP server that communicates with hubs */
 
 import { callback } from "awaiting";
@@ -5,7 +10,9 @@ import { writeFile } from "node:fs";
 import { createServer } from "node:net";
 import * as uuid from "uuid";
 
-import enableMessagingProtocol, { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import enableMessagingProtocol, {
+  CoCalcSocket,
+} from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
 import * as client from "@cocalc/project/client";
 import { hubPortFile } from "@cocalc/project/data";
@@ -39,7 +46,6 @@ export default async function init(): Promise<void> {
   winston.info(`hub tcp_server listening ${options.hostname}:${port}`);
   await callback(writeFile, hubPortFile, `${port}`);
 }
-
 
 async function handleConnection(socket: CoCalcSocket) {
   winston.info(`*new* connection from ${socket.remoteAddress}`);
