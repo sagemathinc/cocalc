@@ -28,9 +28,6 @@ interface Status {
   oom_kills: number;
 }
 
-// global variable
-let PROJECT_ID: string | undefined = undefined;
-
 // Prometheus client setup -- https://github.com/siimon/prom-client
 import prom_client from "prom-client";
 
@@ -335,9 +332,6 @@ export function init_health_metrics(raw_server, project_id): void {
   if (!exports.IN_KUCALC) {
     return;
   }
-
-  PROJECT_ID = project_id;
-
   // Setup health and metrics (no url base prefix needed)
   raw_server.use("/health", function (_req, res): void {
     res.setHeader("Content-Type", "text/plain");
