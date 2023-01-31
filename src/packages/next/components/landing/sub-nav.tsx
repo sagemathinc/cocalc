@@ -4,6 +4,8 @@
  */
 
 import { Divider } from "antd";
+import { isEmpty } from "lodash";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
@@ -18,7 +20,6 @@ import {
   SOFTWARE_ENV_DEFAULT,
   SOFTWARE_ENV_NAMES,
 } from "lib/landing/consts";
-import { useEffect, useRef, useState } from "react";
 
 const BASE_STYLE: CSS = {
   backgroundColor: "white",
@@ -145,7 +146,7 @@ export type SubPage =
   | keyof typeof support;
 
 interface Props {
-  page: Page;
+  page?: Page;
   subPage?: SubPage;
   softwareEnv?: SoftwareEnvNames;
 }
@@ -171,9 +172,10 @@ export default function SubNav(props: Props) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [subnavRef]);
 
+  if (page == null) return null;
   const tabs: JSX.Element[] = [];
   const p = PAGES[page];
-  if (p == null) return null;
+  if (p == null || isEmpty(p)) return null;
 
   function renderSoftwareEnvs() {
     const links = SOFTWARE_ENV_NAMES.map((name) => {

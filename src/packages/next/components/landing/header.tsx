@@ -50,19 +50,10 @@ export default function Header(props: Props) {
     shareServer,
     landingPages,
     account,
-    imprintOrPolicies,
     onCoCalcCom,
   } = useCustomize();
 
   if (basePath == null) return null;
-
-  const showSubnav =
-    page &&
-    (page === "software" ||
-      page === "features" ||
-      page === "pricing" ||
-      landingPages ||
-      imprintOrPolicies);
 
   function ask() {
     if (onCoCalcCom && !IS_MOBILE) {
@@ -234,9 +225,7 @@ export default function Header(props: Props) {
           </>
         )}
       </Layout.Header>
-      {showSubnav && (
-        <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      )}
+      <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
     </>
   );
 }
