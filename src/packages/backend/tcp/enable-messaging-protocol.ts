@@ -19,6 +19,8 @@ interface Message {
   uuid?: string;
   blob?: Buffer | string;
   ttlSeconds?: number;
+  event?: "sage_raw_input";
+  value?: any;
 }
 
 interface RecvMesgOpts {
@@ -30,6 +32,7 @@ interface RecvMesgOpts {
 
 export interface CoCalcSocket extends Socket {
   id?: string;
+  pid?: number;
   heartbeat?: Date;
   write_mesg: (
     type: Type,
