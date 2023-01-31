@@ -169,6 +169,7 @@ interface KernelParams {
   name: string;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
+  verbose?: boolean;
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
