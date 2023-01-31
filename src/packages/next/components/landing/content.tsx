@@ -6,6 +6,8 @@
 import { Col, Row, Space } from "antd";
 import { ReactNode } from "react";
 
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import SignIn from "components/landing/sign-in";
 import { CSS, Paragraph, Title } from "components/misc";
@@ -13,8 +15,6 @@ import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
-import { COLORS } from "@cocalc/util/theme";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -190,7 +190,10 @@ export default function Content(props: Props) {
         style={{
           padding: "30px 0",
           maxWidth: MAX_WIDTH_LANDING,
-          margin: "0 auto",
+          marginTop: "0",
+          marginBottom: "0",
+          marginLeft: "auto",
+          marginRight: "auto",
         }}
       >
         <Col
