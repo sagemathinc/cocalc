@@ -69,9 +69,12 @@ if (fs.existsSync(DEBUG_FILE)) {
   DEBUG = true;
 }
 
-exports.init = () => {
-  return (exports.client = new exports.Client());
-};
+export let client: Client;
+
+export function init() {
+  client = new Client();
+  return client;
+}
 
 let ALREADY_CREATED = false;
 

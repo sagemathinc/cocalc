@@ -4,10 +4,13 @@ Enable two new functions write_mesg and recv_mesg on a TCP socket.
 
 */
 
-import { from_json_socket, to_json_socket, trunc } from "@cocalc/util/misc";
+import { Socket } from "node:net";
+
 import getLogger from "@cocalc/backend/logger";
-const winston = getLogger("tcp.enable");
 import { error } from "@cocalc/util/message";
+import { from_json_socket, to_json_socket, trunc } from "@cocalc/util/misc";
+
+const winston = getLogger("tcp.enable");
 
 type Type = "json" | "blob";
 
@@ -17,7 +20,25 @@ interface Message {
   blob?: Buffer | string;
 }
 
-export default function enable(socket, desc: string = "") {
+interface RecvMesgOpts {
+  type: Type;
+  id: string; // or uuid
+  cb: (message: object) => void; // called with cb(mesg)
+  timeout?: number; // units of **seconds** (NOT ms!).
+}
+
+export interface CoCalcSocket extends Socket {
+  id?: string;
+  heartbeat?: Date;
+  write_mesg: (
+    type: Type,
+    mesg: Message,
+    cb?: (err?: string | Error) => void
+  ) => void;
+  recv_mesg: (opts: RecvMesgOpts) => void;
+}
+
+export default function enable(socket: CoCalcSocket, desc: string = "") {
   socket.setMaxListeners(500); // we use a lot of listeners for listening for messages
 
   let buf: Buffer | null = null;
@@ -86,7 +107,7 @@ export default function enable(socket, desc: string = "") {
   socket.write_mesg = (
     type: Type,
     data: Message,
-    cb?: (err?: string) => void
+    cb?: (err?: string | Error) => void
   ) => {
     if (data == null) {
       // uncomment this to get a traceback to see what might be causing this...
@@ -115,7 +136,7 @@ export default function enable(socket, desc: string = "") {
         cb?.("socket not writable");
         return;
       } else {
-        return socket.write(s, cb);
+        socket.write(s, "utf8", cb);
       }
     };
 
@@ -146,17 +167,8 @@ export default function enable(socket, desc: string = "") {
   // Wait until we receive exactly *one* message of the given type
   // with the given id, then call the callback with that message.
   // (If the type is 'blob', with the given uuid.)
-  socket.recv_mesg = ({
-    type,
-    id,
-    cb,
-    timeout,
-  }: {
-    type: Type;
-    id: string; // or uuid
-    cb: (message: object) => void; // called with cb(mesg)
-    timeout?: number; // units of **seconds** (NOT ms!).
-  }) => {
+  socket.recv_mesg = (opts: RecvMesgOpts) => {
+    const { type, id, cb, timeout } = opts;
     let done: boolean = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const f = (mesgType: Type, mesg: Message) => {

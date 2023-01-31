@@ -1,17 +1,18 @@
 /* Create the TCP server that communicates with hubs */
 
-import { createServer } from "net";
-import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
-import { getLogger } from "@cocalc/project/logger";
-import { hubPortFile } from "@cocalc/project/data";
-import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
-import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { options } from "@cocalc/project/init-program";
-import { secretToken } from "@cocalc/project/servers/secret-token";
-const client = require("@cocalc/project/client");
+import { writeFile } from "node:fs";
+import { createServer } from "node:net";
 import * as uuid from "uuid";
+
+import enableMessagingProtocol, { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
+import * as client from "@cocalc/project/client";
+import { hubPortFile } from "@cocalc/project/data";
+import { options } from "@cocalc/project/init-program";
+import { getLogger } from "@cocalc/project/logger";
+import { secretToken } from "@cocalc/project/servers/secret-token";
+import { once } from "@cocalc/util/async-utils";
 import handleMessage from "./handle-message";
 
 const winston = getLogger("hub-tcp-server");
@@ -39,7 +40,8 @@ export default async function init(): Promise<void> {
   await callback(writeFile, hubPortFile, `${port}`);
 }
 
-async function handleConnection(socket) {
+
+async function handleConnection(socket: CoCalcSocket) {
   winston.info(`*new* connection from ${socket.remoteAddress}`);
   socket.on("error", (err) => {
     winston.error(`socket '${socket.remoteAddress}' error - ${err}`);
@@ -54,7 +56,7 @@ async function handleConnection(socket) {
     winston.error(
       "failed to unlock socket -- ignoring any future messages and closing connection"
     );
-    socket.destroy("invalid secret token");
+    socket.destroy(new Error("invalid secret token"));
     return;
   }
 
