@@ -56,6 +56,14 @@ export default function Header(props: Props) {
 
   if (basePath == null) return null;
 
+  const showSubnav =
+    page &&
+    (page === "software" ||
+      page === "features" ||
+      page === "pricing" ||
+      landingPages ||
+      imprintOrPolicies);
+
   function ask() {
     if (onCoCalcCom && !IS_MOBILE) {
       return (
@@ -226,14 +234,9 @@ export default function Header(props: Props) {
           </>
         )}
       </Layout.Header>
-      {page &&
-        (page === "software" ||
-          page === "features" ||
-          page === "pricing" ||
-          landingPages ||
-          imprintOrPolicies) && (
-          <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-        )}
+      {showSubnav && (
+        <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
+      )}
     </>
   );
 }
