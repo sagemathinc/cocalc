@@ -264,9 +264,13 @@ export default function CoCalcComFeatures(props: CCFeatures) {
       fontSize: "150%",
     };
 
+    const urlProducts = "/pricing/products";
+    const urlCourses = "/pricing/courses";
+    const urlOnprem = "/pricing/onprem";
+
     const productsLink = (
       <Paragraph style={bottom}>
-        <A href="/pricing/products" style={link}>
+        <A href={urlProducts} style={link}>
           <strong>Products Overview</strong>
         </A>
       </Paragraph>
@@ -274,7 +278,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
 
     const courseLink = (
       <Paragraph style={bottom}>
-        <A href="/pricing/courses" style={link}>
+        <A href={urlCourses} style={link}>
           <strong>Course Licenses</strong>
         </A>
       </Paragraph>
@@ -282,7 +286,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
 
     const onpremLink = (
       <Paragraph style={bottom}>
-        <A href="/pricing/onprem" style={link}>
+        <A href={urlOnprem} style={link}>
           <strong>On-premises Offerings</strong>
         </A>
       </Paragraph>
@@ -300,7 +304,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           <Col md={8}>
             <Tool
               icon="server"
-              href="/pricing/products"
+              href={urlProducts}
               title="Professional use"
               alt="Professional use"
               textStyle={{ color: toolCol }}
@@ -333,7 +337,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           <Col md={8}>
             <Tool
               icon="graduation-cap"
-              href="/pricing/courses"
+              href={urlCourses}
               title="Teaching a Course"
               alt="Teaching a Course"
               textStyle={{ color: toolCol }}
@@ -359,7 +363,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
           <Col md={8}>
             <Tool
               icon="network-wired"
-              href="/features"
+              href={urlOnprem}
               alt="On-premises"
               title={"On-premises"}
               textStyle={{ color: toolCol }}
