@@ -642,7 +642,6 @@ importers:
       sharp: ^0.30.5
       timeago-react: ^3.0.4
       tslib: ^2.3.1
-      typescript: ~4.7.4
       uuid: ^8.3.2
     dependencies:
       '@ant-design/icons': 4.8.0_biqbaboplfbrettd7655fr4n2y
@@ -680,7 +679,6 @@ importers:
       sharp: 0.30.7
       timeago-react: 3.0.5_react@18.2.0
       tslib: 2.4.1
-      typescript: 4.7.4
       uuid: 8.3.2
     devDependencies:
       '@types/node': 18.11.18
@@ -14922,12 +14920,6 @@ packages:
     resolution: {integrity: sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==}
     dependencies:
       is-typedarray: 1.0.0
-
-  /typescript/4.7.4:
-    resolution: {integrity: sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-    dev: false
 
   /typescript/4.9.5:
     resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
