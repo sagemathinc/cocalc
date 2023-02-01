@@ -129,7 +129,7 @@ export default function usePinchToZoom({
     {
       target,
       scaleBounds: { min: 1, max: pinchMax + 1 },
-      axis: "x",
+      axis: "lock",
       from: () => {
         if (getFontSize != null) {
           const fontSize = getFontSize();
@@ -138,7 +138,7 @@ export default function usePinchToZoom({
           //  s = (fontSize - min) / (max - min) = (offset[0] - 1) / pinchMax, so
           //  offset[0] = pinchMax * s + 1.
           const s = (fontSize - min) / (max - min);
-          return [pinchMax * s + 1];
+          return [pinchMax * s + 1, 0];
         }
         // TODO: this needs to return current font size / scale but in terms of our scale bounds param.
         // This is the zoom level that we start with whenever we start pinching.
