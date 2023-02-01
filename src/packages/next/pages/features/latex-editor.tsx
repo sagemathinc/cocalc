@@ -6,7 +6,6 @@
 import { Descriptions, Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Backups from "components/landing/backups";
 import Code from "components/landing/code";
 import Collaboration from "components/landing/collaboration";
@@ -24,7 +23,6 @@ import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import LatexCollab from "public/features/cocalc-latex-concurrent-editing.png";
 import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
 import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
@@ -42,24 +40,23 @@ export default function LatexEditor({ customize }) {
       <Layout>
         <Header page="features" subPage="latex-editor" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={<LaTeX />}
-              logo={Logo}
-              title={"Online LaTeX Editor"}
-              subtitle={
-                <>
-                  Focus on writing LaTeX. CoCalc takes care of everything else.
-                  <hr />
-                  <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
-                    Learn much more about LaTeX in CoCalc from this new blog
-                    post...
-                  </A>
-                </>
-              }
-              image={LatexEditorImage}
-            />
-          </div>
+          <Content
+            landing
+            startup={<LaTeX />}
+            logo={Logo}
+            title={"Online LaTeX Editor"}
+            subtitle={
+              <>
+                Focus on writing LaTeX. CoCalc takes care of everything else.
+                <hr />
+                <A href="https://about.cocalc.com/2023/01/13/cocalcs-online-latex-editor/">
+                  Learn much more about LaTeX in CoCalc from this new blog
+                  post...
+                </A>
+              </>
+            }
+            image={LatexEditorImage}
+          />
 
           <Pitch
             col1={

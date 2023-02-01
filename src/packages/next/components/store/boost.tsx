@@ -6,6 +6,9 @@
 /*
 Create a new site license.
 */
+import { Form, Input, Space, Switch } from "antd";
+import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   get_local_storage,
@@ -13,7 +16,7 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { COLORS } from "@cocalc/util/theme";
-import { Form, Input, Space, Switch, Typography } from "antd";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
@@ -22,7 +25,6 @@ import { useScrollY } from "lib/use-scroll-y";
 import { isEmpty } from "lodash";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
@@ -37,8 +39,6 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType } from "./util";
-
-const { Text, Paragraph } = Typography;
 
 interface Props {
   noAccount: boolean;
@@ -65,27 +65,27 @@ export default function Boost(props: Props) {
 
   return (
     <>
-      <h3 ref={headerRef}>
+      <Title level={3} ref={headerRef}>
         <Icon name={"rocket"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License Booster in Shopping Cart"
           : "Buy a License Booster"}
-      </h3>
+      </Title>
       {router.query.id == null && (
         <Space direction="vertical" style={{ marginBottom: "20px" }}>
-          <Typography>
+          <Paragraph>
             A License Booster adds additional quotas to an already existing,
             valid and currently active regular Site License. A common use case
             is to increase the memory limit after you already bought a Site
             License. Create a boost using the form below then add it to your{" "}
             <A href="/store/cart">shopping cart</A>.
-          </Typography>
-          <Typography>
+          </Paragraph>
+          <Paragraph>
             <Icon name="lightbulb" style={{ color: COLORS.ANTD_ORANGE }} /> If
             you are teaching a course and have to cover more students, you need
             to get an additional <A href="./site-license">Site License</A> with
             a "Run Limit" matching the number of additional of students.
-          </Typography>
+          </Paragraph>
         </Space>
       )}
       <CreateBooster

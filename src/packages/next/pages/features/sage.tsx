@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -36,30 +35,29 @@ export default function Sage({ customize }) {
       <Layout>
         <Header page="features" subPage="sage" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={sageLogo}
-              title={
-                <>
-                  Use <A href="https://www.sagemath.org/">SageMath</A> Online
-                </>
-              }
-              subtitle={
-                <>
-                  The goal of <A href="https://www.sagemath.org/">SageMath</A>{" "}
-                  is to create a viable free open source alternative to Magma,
-                  Maple, Mathematica and Matlab by building on top of many
-                  existing open-source packages, including NumPy, SciPy,
-                  matplotlib, SymPy, Maxima, GAP, FLINT, and{" "}
-                  <A href="/features/r-statistical-software">R</A>.
-                </>
-              }
-              subtitleBelow={true}
-              image={sageScreenshot}
-              alt={"Using Sage in a Worksheet"}
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={sageLogo}
+            title={
+              <>
+                Use <A href="https://www.sagemath.org/">SageMath</A> Online
+              </>
+            }
+            subtitle={
+              <>
+                The goal of <A href="https://www.sagemath.org/">SageMath</A> is
+                to create a viable free open source alternative to Magma, Maple,
+                Mathematica and Matlab by building on top of many existing
+                open-source packages, including NumPy, SciPy, matplotlib, SymPy,
+                Maxima, GAP, FLINT, and{" "}
+                <A href="/features/r-statistical-software">R</A>.
+              </>
+            }
+            subtitleBelow={true}
+            image={sageScreenshot}
+            alt={"Using Sage in a Worksheet"}
+          />
 
           <Pitch
             col1={

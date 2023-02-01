@@ -98,13 +98,20 @@ const Children: React.FC<Props> = React.memo(
       let ds, range;
       if (path != null) {
         const p = path.concat(index);
-        range = Editor.range(editor, p);
-        ds = decorate([n, p]);
-        for (const dec of decorations) {
-          const d = Range.intersection(dec, range);
+        try {
+          // I had the following crash once when pasting, then undoing in production:
+          range = Editor.range(editor, p);
+        } catch (_) {
+          range = null;
+        }
+        if (range != null) {
+          ds = decorate([n, p]);
+          for (const dec of decorations) {
+            const d = Range.intersection(dec, range);
 
-          if (d) {
-            ds.push(d);
+            if (d) {
+              ds.push(d);
+            }
           }
         }
       } else {

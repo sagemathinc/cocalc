@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -20,12 +19,12 @@ import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
+import { Paragraph, Title } from "components/misc";
 import jupyterBash from "public/features/cocalc-jupyter-bash.png";
 import shellScript from "public/features/cocalc-shell-script-run.png";
 import terminalCollab from "public/features/cocalc-terminal-collab.gif";
 import logo from "public/features/linux-logo.svg";
 import postgres from "public/features/terminal-jupyter-postgresql.png";
-import { Paragraph, Title } from "components/misc";
 
 export default function Linux({ customize }) {
   return (
@@ -34,19 +33,18 @@ export default function Linux({ customize }) {
       <Layout>
         <Header page="features" subPage="linux" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={"Linux"}
-              logo={logo}
-              title={"Online Linux Environment"}
-              subtitle={
-                "Learn Linux and Bash Scripting without messing up your own computer."
-              }
-              subtitleBelow={true}
-              image={shellScript}
-              alt={"Running a bash script to count in Linux"}
-            />
-          </div>
+          <Content
+            landing
+            startup={"Linux"}
+            logo={logo}
+            title={"Online Linux Environment"}
+            subtitle={
+              "Learn Linux and Bash Scripting without messing up your own computer."
+            }
+            subtitleBelow={true}
+            image={shellScript}
+            alt={"Running a bash script to count in Linux"}
+          />
 
           <FullLinuxTerminal />
 

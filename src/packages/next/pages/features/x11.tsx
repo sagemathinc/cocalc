@@ -5,7 +5,6 @@
 
 import { Col, Layout, Row } from "antd";
 
-import { COLORS } from "@cocalc/util/theme";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -15,17 +14,16 @@ import Image from "components/landing/image";
 import Info from "components/landing/info";
 import Pitch, { STYLE_PITCH } from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import swirlCourse from "/public/features/swirl-course.png";
 import swirl from "/public/features/swirl_new_large_final.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import applications from "/public/features/x11-applications.png";
 import x11Firefox from "/public/features/x11-firefox.png";
 import x11Logo from "/public/features/x11-logo.svg";
-import { Paragraph, Title } from "components/misc";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -37,26 +35,26 @@ export default function X11({ customize }) {
       <Layout>
         <Header page="features" subPage="x11" />
         <Layout.Content>
-          <div style={{ backgroundColor: COLORS.LANDING.TOP_BG }}>
-            <Content
-              startup={component}
-              logo={x11Logo}
-              title={title}
-              subtitle={
-                <>
-                  <div>
-                    Run {component} scripts,{" "}
-                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>,
-                    or even full graphical applications in a remote {component}{" "}
-                    environment.
-                  </div>
-                </>
-              }
-              image={x11Screenshot}
-              alt={"Screenshot of wxMaxima in X11"}
-              caption={"Using wxMaxima in X11"}
-            />
-          </div>
+          <Content
+            landing
+            startup={component}
+            logo={x11Logo}
+            title={title}
+            subtitleBelow={true}
+            subtitle={
+              <>
+                <div>
+                  Run {component} scripts,{" "}
+                  <A href="/features/jupyter-notebook">Jupyter notebooks</A>, or
+                  even full graphical applications in a remote {component}{" "}
+                  environment.
+                </div>
+              </>
+            }
+            image={x11Screenshot}
+            alt={"Screenshot of wxMaxima in X11"}
+            caption={"Using wxMaxima in X11"}
+          />
 
           <Pitch
             col1={
