@@ -7,15 +7,19 @@
 Some code specific to running a project in the KuCalc environment.
 */
 
-import { execute_code } from "@cocalc/backend/execute-code";
-import * as async from "async";
-import { readFile } from "node:fs";
+import { readFile as readFileAsync } from "node:fs/promises";
 
+// Prometheus client setup -- https://github.com/siimon/prom-client
+import prom_client from "prom-client";
+
+import { execute_code } from "@cocalc/backend/misc_node";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { startswith } from "@cocalc/util/misc";
-import { CB } from "@cocalc/util/types/callback";
 import get_bugs_total from "./bug-counter";
 import { session_id, start_ts } from "./consts";
-const misc_node = require("@cocalc/backend/misc_node");
+import { getLogger } from "./logger";
+
+const L = getLogger("kucalc");
 
 interface Status {
   time: number;
@@ -27,9 +31,6 @@ interface Status {
   processes: { [key: string]: { cpu: number; memory: number } };
   oom_kills: number;
 }
-
-// Prometheus client setup -- https://github.com/siimon/prom-client
-import prom_client from "prom-client";
 
 // additionally, record GC statistics
 // https://www.npmjs.com/package/prometheus-gc-stats
@@ -61,33 +62,28 @@ export function init(client) {
   return setInterval(f, 30000);
 }
 
-function update_project_status(client, cb?: CB<void>) {
+async function update_project_status(client) {
   const dbg = client.dbg("update_status");
   dbg();
-  let status = undefined;
-  return async.series(
-    [
-      (cb) =>
-        compute_status(function (err, s) {
-          status = s;
-          if (!err) {
-            current_status = s;
-          }
-          return cb(err);
-        }),
-      (cb) =>
-        client.query({
-          query: {
-            projects: { project_id: client.client_id(), status },
-          },
-          cb,
-        }),
-    ],
-    (err) => cb?.(err)
-  );
+
+  try {
+    const status = await compute_status();
+    current_status = status;
+    await cb2(client.query, {
+      query: {
+        projects: { project_id: client.client_id(), status },
+      },
+    });
+  } catch (err) {
+    dbg(`ERROR: ${err}`);
+  }
 }
 
-export function compute_status(cb) {
+export async function test_compute_status() {
+  return await compute_status();
+}
+
+async function compute_status(): Promise<Status> {
   const status: Status = {
     time: new Date().getTime(),
     memory: { rss: 0 },
@@ -98,153 +94,142 @@ export function compute_status(cb) {
     processes: {},
     oom_kills: 0,
   };
-  async.parallel(
-    [
-      (cb) => compute_status_disk(status, cb),
-      (cb) => cgroup_stats(status, cb),
-      (cb) => processes_info(status, cb),
-      (cb) => compute_status_tmp(status, cb),
-    ],
-    (err) => cb(err, status)
-  );
+  await Promise.all([
+    compute_status_disk(status),
+    cgroup_stats(status),
+    processes_info(status),
+    compute_status_tmp(status),
+  ]);
+  return status;
 }
 
-function compute_status_disk(status, cb) {
-  disk_usage("$HOME", function (err, x) {
-    status.disk_MB = x;
-    cb(err);
-  });
+async function compute_status_disk(status) {
+  const x = disk_usage("$HOME");
+  status.disk_MB = x;
 }
 
-function processes_info(status, cb) {
+async function processes_info(status): Promise<void> {
   const cols = ["pid", "lstart", "time", "rss", "args"];
-  return misc_node.execute_code({
-    command: "ps",
-    args: ["--no-header", "-o", cols.join(","), "-u", "user"],
-    bash: false,
-    cb(err, out) {
-      if (err || out.exit_code !== 0) {
-        return cb(err);
-      } else {
-        let cnt = -1; // no need to account for the ps process itself!
-        // TODO parsing anything out of ps is really hard :-(
-        // but we want to know how many sage, jupyter, console, etc. instances are running.
-        for (let line of out.stdout.split("\n")) {
-          if (line.length > 0) {
-            cnt += 1;
+
+  return new Promise((resolve, _reject) => {
+    execute_code({
+      command: "ps",
+      args: ["--no-header", "-o", cols.join(","), "-u", "user"], // TODO user should be data.username ?
+      bash: false,
+      cb(err, out) {
+        if (err || out?.exit_code !== 0) {
+          L.warn(`ps failed: ${err} ${out?.stderr}`);
+        } else {
+          let cnt = -1; // no need to account for the ps process itself!
+          // TODO parsing anything out of ps is really hard :-(
+          // but we want to know how many sage, jupyter, console, etc. instances are running.
+          for (let line of out.stdout.split("\n")) {
+            if (line.length > 0) {
+              cnt += 1;
+            }
           }
+          status.processes.count = cnt;
         }
-        status.processes.count = cnt;
-        return cb();
-      }
-    },
+        resolve();
+      },
+    });
   });
 }
 
 // NOTE: we use tmpfs for /tmp, so RAM usage is the **sum** of /tmp and what
 // processes use.
-function compute_status_tmp(status, cb) {
-  disk_usage("/tmp", function (err, x) {
-    status.memory.rss += 1000 * x;
-    return cb(err);
-  });
+async function compute_status_tmp(status) {
+  const x = await disk_usage("/tmp");
+  status.memory.rss += 1000 * x;
 }
 
 // this grabs the memory stats directly from the sysfs cgroup files
 // the actual usage is the sum of the rss values plus cache, but we leave cache aside
-function cgroup_stats(status, cb) {
-  async.parallel(
-    {
-      memory(cb) {
-        return readFile(
-          "/sys/fs/cgroup/memory/memory.stat",
-          "utf8",
-          function (err, data) {
-            if (err) {
-              cb(err);
-              return;
-            }
-            const stats = {};
-            for (let line of data.split("\n")) {
-              const [key, value] = line.split(" ");
-              try {
-                stats[key] = parseInt(value);
-              } catch (error) {}
-            }
-            return cb(null, stats);
-          }
-        );
-      },
+async function cgroup_stats(status) {
+  async function getMemory() {
+    const data = await readFileAsync(
+      "/sys/fs/cgroup/memory/memory.stat",
+      "utf8"
+    );
 
-      cpu(cb) {
-        return readFile(
-          "/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage",
-          "utf8",
-          function (err, data) {
-            if (err) {
-              cb(err);
-              return;
-            }
-            try {
-              return cb(null, parseFloat(data) / Math.pow(10, 9));
-            } catch (error) {
-              return cb(null, 0.0);
-            }
-          }
-        );
-      },
+    const stats: {
+      total_rss?: number;
+      total_cache?: number;
+      hierarchical_memory_limit?: number;
+    } = {};
 
-      oom(cb) {
-        return readFile(
-          "/sys/fs/cgroup/memory/memory.oom_control",
-          "utf8",
-          function (err, data) {
-            if (err) {
-              cb(err);
-              return;
-            }
-            try {
-              for (let line of data.split("\n")) {
-                // search string includes a trailing space, otherwise it matches 'oom_kill_disable'!
-                if (startswith(line, "oom_kill ")) {
-                  cb(null, parseInt(line.split(" ")[1]));
-                  return;
-                }
-              }
-            } catch (error) {}
-            return cb(null, 0);
-          }
-        );
-      },
-    },
-    function (err, res) {
-      if (err) {
-        return cb(err);
-      }
-      const kib = 1024; // convert to kibibyte
-      // total_rss includes total_rss_huge
-      // Ref: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
-      status.memory.rss += (res.memory.total_rss ?? 0) / kib;
-      status.memory.cache = (res.memory.total_cache ?? 0) / kib;
-      status.memory.limit = (res.memory.hierarchical_memory_limit ?? 0) / kib;
-      status.cpu.usage = res.cpu;
-      status.oom_kills = res.oom;
-      cb();
+    for (let line of data.split("\n")) {
+      const [key, value] = line.split(" ");
+      try {
+        stats[key] = parseInt(value);
+      } catch (_err) {}
     }
-  );
+    return stats;
+  }
+
+  async function getCPU() {
+    const data = await readFileAsync(
+      "/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage",
+      "utf8"
+    );
+
+    try {
+      return parseFloat(data) / Math.pow(10, 9);
+    } catch (_err) {
+      return 0.0;
+    }
+  }
+
+  async function getOOM() {
+    const data = await readFileAsync(
+      "/sys/fs/cgroup/memory/memory.oom_control",
+      "utf8"
+    );
+
+    try {
+      for (let line of data.split("\n")) {
+        // search string includes a trailing space, otherwise it matches 'oom_kill_disable'!
+        if (startswith(line, "oom_kill ")) {
+          return parseInt(line.split(" ")[1]);
+        }
+      }
+    } catch (_err) {}
+    return 0;
+  }
+
+  try {
+    const [memory, cpu, oom] = await Promise.all([
+      getMemory(),
+      getCPU(),
+      getOOM(),
+    ]);
+
+    const kib = 1024; // convert to kibibyte
+    // total_rss includes total_rss_huge
+    // Ref: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
+    status.memory.rss += (memory.total_rss ?? 0) / kib;
+    status.memory.cache = (memory.total_cache ?? 0) / kib;
+    status.memory.limit = (memory.hierarchical_memory_limit ?? 0) / kib;
+    status.cpu.usage = cpu;
+    status.oom_kills = oom;
+  } catch (err) {
+    L.warn(`cgroup_stats error: ${err}`);
+  }
 }
 
-function disk_usage(path, cb) {
-  execute_code({
-    command: `df -BM ${path} | tail -1 | awk '{gsub(\"M\",\"\");print $3}'`,
-    bash: true,
-    cb(err, out) {
-      if (err) {
-        return cb(err);
-      } else {
-        return cb(undefined, parseInt(out?.stdout ?? "0"));
-      }
-    },
+async function disk_usage(path): Promise<number> {
+  return new Promise((resolve, reject) => {
+    execute_code({
+      command: `df -BM ${path} | tail -1 | awk '{gsub(\"M\",\"\");print $3}'`,
+      bash: true,
+      cb(err, out) {
+        if (err) {
+          return reject(err);
+        } else {
+          return resolve(parseInt(out?.stdout ?? "0"));
+        }
+      },
+    });
   });
 }
 
