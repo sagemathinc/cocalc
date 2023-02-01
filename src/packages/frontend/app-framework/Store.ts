@@ -14,21 +14,20 @@ import { TypedCollectionMethods } from "./immutable-types";
 import { callback2 } from "@cocalc/util/async-utils";
 import { bind_methods, defaults, required, top_sort } from "@cocalc/util/misc";
 
-export type StoreConstructorType<T, C = Store<T>> = new (
-  name: string,
-  redux: AppRedux,
-  store_def?: T
-) => C;
+export type StoreConstructorType<
+  T extends Record<string, any>,
+  C = Store<T>
+> = new (name: string, redux: AppRedux, store_def?: T) => C;
 
-export interface Selector<State, K extends keyof State> {
+export interface Selector<State extends Record<string, any>, K extends keyof State> {
   dependencies?: readonly (keyof State)[];
-  fn: () => State[K];
+  fn: (state?: TypedMap<State>) => State[K];
 }
 
 /**
  *
  */
-export class Store<State> extends EventEmitter {
+export class Store<State extends Record<string, any>> extends EventEmitter {
   public name: string;
   public getInitialState?: () => State;
   protected redux: AppRedux;
@@ -60,21 +59,23 @@ export class Store<State> extends EventEmitter {
         const dependent_selectors: selector[] = [];
 
         // Names of dependencies
-        const dependencies = this.selectors[selector_name].dependencies || [];
+        const dependencies = this.selectors[selector_name]!.dependencies || [];
         dependency_graph[selector_name] = dependencies;
 
         for (const dep_name of dependencies) {
           if (created_selectors[dep_name] == undefined) {
-            created_selectors[dep_name] = (): any => {
-              return this.get(dep_name);
+            created_selectors[dep_name] = {
+              fn: (): any => {
+                return this.get(dep_name);
+              },
             };
           }
           dependent_selectors.push(created_selectors[dep_name]);
 
           // Set the selector function to the new selector
-          this.selectors[selector_name].fn = createSelector(
+          this.selectors[selector_name]!.fn = createSelector(
             dependent_selectors as any,
-            this.selectors[selector_name].fn
+            this.selectors[selector_name]!.fn
           ) as any;
         }
       }
@@ -110,7 +111,7 @@ export class Store<State> extends EventEmitter {
     notSetValue?: any
   ) => {
     if (this.selectors && this.selectors[field] != undefined) {
-      return this.selectors[field].fn(this.getState());
+      return this.selectors[field]!.fn(this.getState());
     } else {
       return this.redux._redux_store
         .getState()
@@ -128,7 +129,7 @@ export class Store<State> extends EventEmitter {
     // Assumes no nested stores
     const first_key = path[0];
     if (this.selectors && this.selectors[first_key] != undefined) {
-      let top_value = this.selectors[first_key].fn(this.getState());
+      let top_value = this.selectors[first_key]!.fn(this.getState());
       if (path.length == 1) {
         return top_value;
       } else if (typeof top_value.getIn === "function") {
