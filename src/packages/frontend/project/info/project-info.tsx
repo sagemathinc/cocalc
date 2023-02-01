@@ -644,7 +644,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
               <Table.Column<ProcessRow>
                 key="process"
                 title="Process"
-                width="58%"
+                width="40%"
                 align={"left"}
                 ellipsis={true}
                 render={(proc) => (
@@ -657,9 +657,13 @@ export const ProjectInfo: React.FC<Props> = React.memo(
               <Table.Column<ProcessRow>
                 key="cocalc"
                 title={cocalc_title}
-                width="10%"
+                width="15%"
                 align={"left"}
-                render={(proc) => render_cocalc(proc)}
+                render={(proc) => (
+                  <div style={{ width: "100%", overflow: "hidden" }}>
+                    {render_cocalc(proc)}
+                  </div>
+                )}
                 sorter={field_cmp("cocalc")}
               />
               <Table.Column<ProcessRow>
