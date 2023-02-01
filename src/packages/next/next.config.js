@@ -61,6 +61,11 @@ module.exports = {
     // 128 * 1000 * 15 = "1MB" for now.  TODO: Obviously, it would be nice to fix the root causes of this
     // being too big, but that's for another day, since our production website is broken right now.
     largePageDataBytes: 128 * 1000 * 10,
+    // If you click the back button in the browser, it should go back to the previous page and restore the scroll position.
+    // With Next.js in the loop, this doesn't happen by default.
+    // besides the ticket about this, here is a blogpost about this
+    // https://www.joshwcomeau.com/react/nextjs-scroll-restoration/
+    scrollRestoration: true,
   },
   // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
   // We are doing this at all since it improves our Lighthouse accessibility score.
