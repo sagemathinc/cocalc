@@ -19,7 +19,10 @@ export type StoreConstructorType<
   C = Store<T>
 > = new (name: string, redux: AppRedux, store_def?: T) => C;
 
-export interface Selector<State extends Record<string, any>, K extends keyof State> {
+export interface Selector<
+  State extends Record<string, any>,
+  K extends keyof State
+> {
   dependencies?: readonly (keyof State)[];
   fn: (state?: TypedMap<State>) => State[K];
 }
@@ -50,7 +53,8 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
 
   protected setup_selectors(): void {
     if (this.selectors) {
-      type selector = Selector<State, any>;
+      // We barely -- if at all -- use selectors in cocalc now, since hooks are WAY better.
+      type selector = any; // this was what is was before and is definitely obviously wrong -- "Selector<State, any>"";
       const created_selectors: { [K in keyof State]: selector } = {} as any;
       const dependency_graph: any = {}; // Used to check for cycles
 
@@ -64,10 +68,8 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
 
         for (const dep_name of dependencies) {
           if (created_selectors[dep_name] == undefined) {
-            created_selectors[dep_name] = {
-              fn: (): any => {
-                return this.get(dep_name);
-              },
+            created_selectors[dep_name] = (): any => {
+              return this.get(dep_name);
             };
           }
           dependent_selectors.push(created_selectors[dep_name]);
