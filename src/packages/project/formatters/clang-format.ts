@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { writeFile, readFile, unlink } = require("fs");
-const tmp = require("tmp");
-const { callback } = require("awaiting");
-const { spawn } = require("child_process");
+import { callback } from "awaiting";
+import { spawn } from "node:child_process";
+import { readFile, unlink, writeFile } from "node:fs";
+import { file as tmp_file } from "tmp";
+
 import { Options } from "./index";
 
 function close(proc, cb): void {
@@ -34,7 +35,7 @@ export async function clang_format(
 ): Promise<string> {
   // create input temp file
   // we have to set the correct filename extension, because clang format uses it
-  const input_path: string = await callback(tmp.file, { postfix: `.${ext}` });
+  const input_path: string = await callback(tmp_file, { postfix: `.${ext}` });
   try {
     // logger.debug(`clang_format tmp file: ${input_path}`);
     await callback(writeFile, input_path, input);

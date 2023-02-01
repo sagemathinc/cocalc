@@ -119,7 +119,7 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
       cb?.(`write_mesg(type='${type}': data must be defined`);
       return;
     }
-    const send = function (s) {
+    const send = function (s: string | Buffer) {
       const buf = Buffer.alloc(4);
       // This line was 4 hours of work.  It is absolutely
       // *critical* to change the (possibly a string) s into a
@@ -140,7 +140,7 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
         cb?.("socket not writable");
         return;
       } else {
-        socket.write(s, "utf8", cb);
+        socket.write(s, cb);
       }
     };
 

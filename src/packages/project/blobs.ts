@@ -17,13 +17,15 @@ import { CB } from "@cocalc/util/types/database";
 
 const winston = getLogger("blobs");
 
-type CBEntry = [CB, string];
+type BlobCB = CB<any, { sha1: string; error: string }>;
+
+type CBEntry = [BlobCB, string];
 
 const _save_blob_callbacks: { [key: string]: CBEntry[] } = {};
 
 interface Opts {
   sha1: string;
-  cb: CB;
+  cb: BlobCB;
   timeout?: number;
 }
 
@@ -38,10 +40,9 @@ export function receive_save_blob_message(opts: Opts): void {
   const { sha1 } = opts;
   const id = uuid();
   if (_save_blob_callbacks[sha1] == null) {
-    _save_blob_callbacks[sha1] = [[opts.cb, id]];
-  } else {
-    _save_blob_callbacks[sha1].push([opts.cb, id]);
+    _save_blob_callbacks[sha1] = [];
   }
+  _save_blob_callbacks[sha1].push([opts.cb, id]);
 
   // Timeout functionality -- send a response after opts.timeout seconds,
   // in case no hub responded.

@@ -21,40 +21,40 @@ but rather hubs initiate TCP connections to projects:
 That said, this architecture could change, and very little code would change
 as a result.
 */
-
-import fs from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import EventEmitter from "node:events";
-import async from "async";
+import fs from "node:fs";
+import {
+  readFile as readFileAsync,
+  stat as statFileAsync,
+  writeFile,
+} from "node:fs/promises";
+import { join } from "node:path";
 
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
+import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
+import * as synctable2 from "@cocalc/sync/table";
 import { callback2, once } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
-
-const message = require("@cocalc/util/message");
+import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
-const misc_node = require("@cocalc/backend/misc_node");
-const synctable2 = require("@cocalc/sync/table");
-//const syncdb2 = require("@cocalc/sync/editor/db");
-//const schema = require("@cocalc/util/schema");
-
-const ensureContainingDirectoryExists =
-  require("@cocalc/backend/misc/ensure-containing-directory-exists").default;
-const sage_session = require("./sage_session");
+import { defaults, required } from "@cocalc/util/misc";
+import { CB } from "@cocalc/util/types/callback";
+import * as blobs from "./blobs";
+import { symmetric_channel } from "./browser-websocket/symmetric_channel";
+import { json } from "./common";
 import * as jupyter from "./jupyter/jupyter";
 import { get_kernel_data } from "./jupyter/kernel-data";
-import { json } from "./common";
-const kucalc = require("./kucalc");
-const { Watcher } = require("./watcher");
-const blobs = require("./blobs");
-const { get_syncdoc } = require("./sync/sync-doc");
-const { get_listings_table } = require("./sync/listings");
+import * as kucalc from "./kucalc";
+import * as sage_session from "./sage_session";
+import { get_listings_table } from "./sync/listings";
+import { get_syncdoc } from "./sync/sync-doc";
+import { Watcher } from "./watcher";
 
 import { getLogger } from "./logger";
-import { SyncString } from "@cocalc/sync/editor/string/sync";
+import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 const winston = getLogger("project:client");
-
-const { defaults, required } = misc;
 
 const HOME = process.env.HOME ?? "/home/user";
 
@@ -82,7 +82,9 @@ export class Client extends EventEmitter {
   private project_id: string;
   private _connected: boolean;
 
-  private _hub_callbacks: any;
+  private _hub_callbacks: {
+    [key: string]: CB<any, { event: "error"; error?: string }>;
+  };
   private _hub_client_sockets: any;
   private _changefeed_sockets: any;
 
@@ -118,7 +120,7 @@ export class Client extends EventEmitter {
   }
 
   // use to define a logging function that is cleanly used internally
-  dbg(f, trunc = 1000) {
+  private dbg(f, trunc = 1000) {
     if (DEBUG && winston) {
       return (...m) => {
         let s;
@@ -139,7 +141,7 @@ export class Client extends EventEmitter {
     }
   }
 
-  alert_message(opts) {
+  public alert_message(opts) {
     opts = defaults(opts, {
       type: "default",
       title: undefined,
@@ -151,7 +153,7 @@ export class Client extends EventEmitter {
   }
 
   // todo: more could be closed...
-  close(): void {
+  public close(): void {
     if (this._open_syncstrings != null) {
       const object = misc.keys(this._open_syncstrings);
       for (let _ in object) {
@@ -164,36 +166,36 @@ export class Client extends EventEmitter {
   }
 
   // account_id or project_id of this client
-  client_id(): string {
+  public client_id(): string {
     return this.project_id;
   }
 
   // true since this client is a project
-  is_project(): boolean {
+  public is_project(): boolean {
     return true;
   }
 
   // false since this client is not a user
-  is_user(): boolean {
+  public is_user(): boolean {
     return false;
   }
 
-  is_signed_in(): boolean {
+  public is_signed_in(): boolean {
     return true;
   }
 
-  is_connected(): boolean {
+  public is_connected(): boolean {
     return this._connected;
   }
 
   // We trust the time on our own compute servers (unlike random user's browser).
-  server_time(): Date {
+  public server_time(): Date {
     return new Date();
   }
 
   // Declare that the given socket is active right now and can be used for
   // communication with some hub (the one the socket is connected to).
-  active_socket(socket) {
+  public active_socket(socket) {
     const dbg = this.dbg(
       `active_socket(id=${socket.id},ip='${socket.remoteAddress}')`
     );
@@ -271,7 +273,7 @@ export class Client extends EventEmitter {
   // Handle a mesg coming back from some hub. If we have a callback we call it
   // for the given message, then return true. Otherwise, return
   // false, meaning something else should try to handle this message.
-  handle_mesg(mesg, socket) {
+  public handle_mesg(mesg, socket) {
     const dbg = this.dbg(`handle_mesg(${misc.trunc_middle(json(mesg), 512)})`);
     const f = this._hub_callbacks[mesg.id];
     if (f != null) {
@@ -296,7 +298,7 @@ export class Client extends EventEmitter {
   // There is obviously no guarantee to get the same hub if you call this twice!
   // Returns undefined if there are currently no connections from any hub to us
   // (in which case, the project must wait).
-  get_hub_socket() {
+  public get_hub_socket() {
     const socket_ids = misc.keys(this._hub_client_sockets);
     this.dbg("get_hub_socket")(
       `there are ${socket_ids.length} sockets -- ${JSON.stringify(socket_ids)}`
@@ -308,7 +310,12 @@ export class Client extends EventEmitter {
   }
 
   // Send a message to some hub server and await a response (if cb defined).
-  call(opts) {
+  public call(opts: {
+    message: any;
+    timeout?: number;
+    socket?: CoCalcSocket;
+    cb?: CB<any, string>;
+  }) {
     opts = defaults(opts, {
       message: required,
       timeout: undefined, // timeout in seconds; if specified call will error out after this much time
@@ -333,7 +340,7 @@ export class Client extends EventEmitter {
           dbg("failed");
           delete this._hub_callbacks[opts.message.id];
           opts.cb?.(`timeout after ${opts.timeout}s`);
-          return delete opts.cb;
+          delete opts.cb;
         };
         timer = setTimeout(fail, opts.timeout * 1000);
       }
@@ -346,10 +353,10 @@ export class Client extends EventEmitter {
           clearTimeout(timer);
           timer = undefined;
         }
-        if (resp.event === "error") {
-          return opts.cb?.(resp.error ? resp.error : "error");
+        if (resp?.event === "error") {
+          opts.cb?.(resp.error ? resp.error : "error");
         } else {
-          return opts.cb?.(undefined, resp);
+          opts.cb?.(undefined, resp);
         }
       });
       this._hub_client_sockets[socket.id].callbacks[opts.message.id] = cb;
@@ -359,7 +366,7 @@ export class Client extends EventEmitter {
   }
 
   // Do a project_query
-  query(opts) {
+  public query(opts) {
     opts = defaults(opts, {
       query: required, // a query (see schema.coffee)
       changes: undefined, // whether or not to create a changefeed
@@ -413,7 +420,7 @@ export class Client extends EventEmitter {
   }
 
   // Cancel an outstanding changefeed query.
-  private _query_cancel(opts) {
+  private _query_cancel(opts: { id: string; cb?: CB }) {
     opts = defaults(opts, {
       id: required, // changefeed id
       cb: undefined,
@@ -437,13 +444,13 @@ export class Client extends EventEmitter {
     return await callback2(this._query_cancel, { id });
   }
 
-  sync_table(query, options, throttle_changes = undefined) {
+  public sync_table(query, options, throttle_changes = undefined) {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
   // We leave in the project_id for consistency with the browser UI.
   // And maybe someday we'll have tables managed across projects (?).
-  synctable_project = async (_project_id, query, _options) => {
+  public synctable_project = async (_project_id, query, _options) => {
     // TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
     // Also, options are ignored -- since we use whatever was selected by the frontend.
     const the_synctable = await require("./sync/open-synctables").get_synctable(
@@ -467,20 +474,18 @@ export class Client extends EventEmitter {
 
   // Get the synchronized doc with the given path.  Returns undefined
   // if currently no such sync-doc.
-  syncdoc(opts) {
+  public syncdoc(opts: { path: string }): SyncDoc | undefined {
     opts = defaults(opts, { path: required });
     return get_syncdoc(opts.path);
   }
 
-  symmetric_channel(name) {
-    return require("./browser-websocket/symmetric_channel").symmetric_channel(
-      name
-    );
+  public symmetric_channel(name) {
+    return symmetric_channel(name);
   }
 
   // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
   // If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
-  async write_file(opts) {
+  public async write_file(opts: { path: string; data: string; cb: CB<void> }) {
     opts = defaults(opts, {
       path: required,
       data: required,
@@ -520,7 +525,11 @@ export class Client extends EventEmitter {
   // If file is currently being written or read in this process,
   // will retry until it isn't, so we do not get an error and we
   // do NOT get silently corrupted data.
-  path_read(opts) {
+  public async path_read(opts: {
+    path: string;
+    maxsize_MB?: number;
+    cb: CB<string>;
+  }) {
     opts = defaults(opts, {
       path: required,
       maxsize_MB: undefined, // in megabytes; if given and file would be larger than this, then cb(err)
@@ -547,57 +556,52 @@ export class Client extends EventEmitter {
     this._file_io_lock[path] = now;
 
     dbg(`@_file_io_lock = ${misc.to_json(this._file_io_lock)}`);
-    return async.series(
-      [
-        (cb) => {
-          if (opts.maxsize_MB != null) {
-            dbg("check if file too big");
-            return this.file_size({
-              filename: opts.path,
-              cb: (err, size) => {
-                if (err) {
-                  dbg(`error checking -- ${err}`);
-                  return cb(err);
-                } else if (size > opts.maxsize_MB * 1000000) {
-                  dbg("file is too big!");
-                  return cb(
-                    `file '${opts.path}' size (=${
-                      size / 1000000
-                    }MB) too large (must be at most ${
-                      opts.maxsize_MB
-                    }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`
-                  );
-                } else {
-                  dbg("file is fine");
-                  return cb();
-                }
-              },
-            });
-          } else {
-            return cb();
-          }
-        },
-        (cb) => {
-          return fs.readFile(path, (err, data) => {
-            if (err) {
-              dbg(`error reading file -- ${err}`);
-              return cb(err);
-            } else {
-              dbg("read file");
-              content = data.toString();
-              return cb();
-            }
-          });
-        },
-      ],
-      (err) => {
-        if (this._file_io_lock) delete this._file_io_lock[path];
-        return opts.cb(err, content);
+
+    // checking filesize limitations
+    if (opts.maxsize_MB != null) {
+      dbg("check if file too big");
+      let size: number | undefined = undefined;
+      try {
+        size = await this.file_size_async(opts.path);
+      } catch (err) {
+        dbg(`error checking -- ${err}`);
+        throw err;
       }
-    );
+
+      if (size > opts.maxsize_MB * 1000000) {
+        dbg("file is too big!");
+        throw new Error(
+          `file '${opts.path}' size (=${
+            size / 1000000
+          }MB) too large (must be at most ${
+            opts.maxsize_MB
+          }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`
+        );
+      } else {
+        dbg("file is fine");
+      }
+    }
+
+    // if the above passes, actually reading file
+
+    try {
+      const data = await readFileAsync(path);
+      dbg("read file");
+      content = data.toString();
+    } catch (err) {
+      dbg(`error reading file -- ${err}`);
+      throw err;
+    }
+
+    // release lock
+    if (this._file_io_lock) {
+      delete this._file_io_lock[path];
+    }
+
+    opts.cb(undefined, content);
   }
 
-  path_access(opts) {
+  public path_access(opts) {
     opts = defaults(opts, {
       path: required, // string
       mode: required, // string -- sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -613,7 +617,7 @@ export class Client extends EventEmitter {
   // TODO: exists is deprecated.  "To check if a file exists
   // without manipulating it afterwards, fs.access() is
   // recommended."
-  path_exists(opts) {
+  public path_exists(opts) {
     opts = defaults(opts, {
       path: required,
       cb: required,
@@ -626,7 +630,7 @@ export class Client extends EventEmitter {
     }); // err actually never happens with node.js, so we change api to be more consistent
   }
 
-  path_stat(opts) {
+  public path_stat(opts) {
     // see https://nodejs.org/api/fs.html#fs_class_fs_stats
     opts = defaults(opts, {
       path: required,
@@ -636,7 +640,7 @@ export class Client extends EventEmitter {
   }
 
   // Size of file in bytes (divide by 1000 for K, by 10^6 for MB.)
-  file_size(opts) {
+  public file_size(opts) {
     opts = defaults(opts, {
       filename: required,
       cb: required,
@@ -649,13 +653,22 @@ export class Client extends EventEmitter {
     });
   }
 
+  public async file_size_async(filename): Promise<number> {
+    const stat = await this.file_stat_async(filename);
+    return stat.size;
+  }
+
+  public async file_stat_async(filename: string): Promise<fs.Stats> {
+    return await statFileAsync(filename);
+  }
+
   // execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
-  shell(opts) {
-    return misc_node.execute_code(opts);
+  public shell(opts) {
+    return execute_code(opts);
   }
 
   // return new sage session
-  sage_session(opts) {
+  public sage_session(opts) {
     opts = defaults(opts, { path: required });
     return sage_session.sage_session({ path: opts.path, client: this });
   }
@@ -671,7 +684,7 @@ export class Client extends EventEmitter {
   }
 
   // See the file watcher.coffee for docs
-  watch_file(opts) {
+  public watch_file(opts) {
     opts = defaults(opts, {
       path: required,
       interval: 1500, // polling interval in ms
@@ -685,7 +698,7 @@ export class Client extends EventEmitter {
 
   // Save a blob to the central db blobstore.
   // The sha1 is optional.
-  save_blob(opts) {
+  public save_blob(opts) {
     let uuid;
     opts = defaults(opts, {
       blob: required, // Buffer of data
@@ -696,7 +709,7 @@ export class Client extends EventEmitter {
     if (opts.uuid != null) {
       ({ uuid } = opts);
     } else {
-      uuid = misc_node.uuidsha1(opts.blob, opts.sha1);
+      uuid = uuidsha1(opts.blob, opts.sha1);
     }
     const dbg = this.dbg(`save_blob(uuid='${uuid}')`);
     const hub = this.get_hub_socket();
@@ -710,7 +723,7 @@ export class Client extends EventEmitter {
     dbg("sending blob mesg");
     hub.write_mesg("blob", { uuid, blob: opts.blob });
     dbg("waiting for response");
-    return blobs.receive_save_blob_message({
+    blobs.receive_save_blob_message({
       sha1: uuid,
       cb: (resp) => {
         if (resp?.error) {
@@ -724,7 +737,7 @@ export class Client extends EventEmitter {
     });
   }
 
-  get_blob(opts) {
+  public get_blob(opts) {
     opts = defaults(opts, {
       blob: required, // Buffer of data
       sha1: undefined,
@@ -750,10 +763,11 @@ export class Client extends EventEmitter {
   }
 
   // NOTE: returns false if the listings table isn't connected.
-  is_deleted(filename, _project_id) {
+  public is_deleted(filename, _project_id) {
     // project_id is ignored, of course
     try {
       const listings = get_listings_table();
+      if (listings == null) throw new Error("no listings table");
       return listings.is_deleted(filename);
     } catch (error1) {
       // is_deleted can raise an exception if the table is
@@ -764,9 +778,9 @@ export class Client extends EventEmitter {
     }
   }
 
-  set_deleted = async (filename, _project_id) => {
+  public async set_deleted(filename, _project_id) {
     // project_id is ignored
     const listings = get_listings_table();
-    return await listings.set_deleted(filename);
-  };
+    return await listings?.set_deleted(filename);
+  }
 }

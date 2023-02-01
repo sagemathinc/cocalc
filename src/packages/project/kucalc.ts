@@ -49,7 +49,11 @@ prom_client.collectDefaultMetrics();
 
 // This gets **changed** to true, if a certain
 // command line flag is passed in.
-exports.IN_KUCALC = false;
+export let IN_KUCALC = false;
+
+export function setInKucalc(val: boolean) : void {
+  IN_KUCALC = val;
+}
 
 // status information
 let current_status: Partial<Status> = {};
@@ -237,7 +241,7 @@ async function disk_usage(path): Promise<number> {
 // If we receive some information, exit with status code 99.
 export function init_gce_firewall_test(logger, interval_ms = 60 * 1000) {
   if (1 == 1) return; // temporarily disabled
-  if (!exports.IN_KUCALC) {
+  if (!IN_KUCALC) {
     logger?.warn("not running firewall test -- not in kucalc");
     return;
   }
@@ -314,7 +318,7 @@ export function prometheus_metrics(project_id): string {
 
 // called inside raw_server
 export function init_health_metrics(raw_server, project_id): void {
-  if (!exports.IN_KUCALC) {
+  if (!IN_KUCALC) {
     return;
   }
   // Setup health and metrics (no url base prefix needed)
@@ -328,7 +332,7 @@ export function init_health_metrics(raw_server, project_id): void {
   raw_server.use("/metrics", async function (_req, res): Promise<void> {
     res.setHeader("Content-Type", "text/plain; version=0.0.4");
     res.header("Cache-Control", "no-cache, no-store");
-    const part1 = exports.prometheus_metrics(project_id);
+    const part1 = prometheus_metrics(project_id);
     res.send(part1 + "\n" + (await prom_client.register.metrics()) + "\n");
   });
 }
