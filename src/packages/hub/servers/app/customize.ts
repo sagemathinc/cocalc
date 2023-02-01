@@ -1,6 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { send as sendManifest } from "@cocalc/hub/manifest";
 import { WebappConfiguration } from "@cocalc/hub/webapp-configuration";
 import { database } from "../database";
-import { send as sendManifest } from "@cocalc/hub/manifest";
 
 export default function init(router, isPersonal: boolean) {
   const webappConfig = new WebappConfiguration({ db: database });
