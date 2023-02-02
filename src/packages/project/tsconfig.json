@@ -2,7 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["node", "jest"],
-    "lib": ["es7"],
+    "lib": ["ES2021"],
     "rootDir": "./",
     "outDir": "dist"
   },
