@@ -61,6 +61,7 @@ export default function Grid({
 function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
   const v: ReactNode[] = [
     <td
+      key="index"
       style={{
         cursor: "pointer",
         border: "1px solid #eee",
