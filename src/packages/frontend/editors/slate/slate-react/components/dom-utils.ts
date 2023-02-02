@@ -1,7 +1,7 @@
 /* Some utility functions factored out of editable.tsx */
 
 import { ReactEditor } from "..";
-import { Editor } from "slate";
+import { Editor, Element } from "slate";
 
 import { DOMNode, isDOMNode } from "../utils/dom";
 
@@ -15,7 +15,7 @@ export const isTargetInsideVoid = (
 ): boolean => {
   const slateNode =
     hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target);
-  return Editor.isVoid(editor, slateNode);
+  return Element.isElement(slateNode) && Editor.isVoid(editor, slateNode);
 };
 
 /**

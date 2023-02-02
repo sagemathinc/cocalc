@@ -1,4 +1,4 @@
-import { Editor, Node, Path, Point, Range, Transforms } from "slate";
+import { Editor, Element, Node, Path, Point, Range, Transforms } from "slate";
 
 import { Key } from "../utils/key";
 import {
@@ -395,7 +395,7 @@ export const ReactEditor = {
     // If the drop target is inside a void node, move it into either the
     // next or previous node, depending on which side the `x` and `y`
     // coordinates are closest to.
-    if (Editor.isVoid(editor, node)) {
+    if (Element.isElement(node) && Editor.isVoid(editor, node)) {
       const rect = target.getBoundingClientRect();
       const isPrev = editor.isInline(node)
         ? x - rect.left < rect.left + rect.width - x

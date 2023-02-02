@@ -678,7 +678,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                   Editor.deleteFragment(editor);
                 } else {
                   const node = Node.parent(editor, selection.anchor.path);
-                  if (Editor.isVoid(editor, node)) {
+                  if (Element.isElement(node) && Editor.isVoid(editor, node)) {
                     Transforms.delete(editor);
                   }
                 }
@@ -702,7 +702,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               // default, and calling `preventDefault` hides the cursor.
               const node = ReactEditor.toSlateNode(editor, event.target);
 
-              if (Editor.isVoid(editor, node)) {
+              if (Element.isElement(node) && Editor.isVoid(editor, node)) {
                 event.preventDefault();
               }
             }

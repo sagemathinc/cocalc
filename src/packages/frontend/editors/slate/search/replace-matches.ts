@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Range, Transforms } from "slate";
+import { Editor, Element, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { selectNextMatch } from "./find-matches";
 import { nextMatch } from "./search-control";
@@ -30,7 +30,7 @@ export function replaceOne(
   if (selectNextMatch(editor, decorate)) {
     const node = lowestNode(editor);
     if (node != null) {
-      if (!Editor.isVoid(editor, node)) {
+      if (!(Element.isElement(node) && Editor.isVoid(editor, node))) {
         Transforms.insertText(editor, replace);
         // Important -- note that insertText puts the focus **after**
         // the inserted text.  It's important to keep this in mind so that
