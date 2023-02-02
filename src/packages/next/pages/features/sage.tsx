@@ -22,8 +22,9 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 import sageNbgrader from "public/features/sage-nbgrader.png";
-import sageLogo from "public/features/sage-squared.svg";
+import sageLogo from "public/features/sage-circular-v2.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
+import sagetexScreenshot from "public/features/cocalc-sagemath-sagetex.png";
 
 const component = "SageMath";
 const title = `Use SageMath Online`;
@@ -167,6 +168,57 @@ export default function Sage({ customize }) {
           >
             Feature Overview
           </Info.Heading>
+
+          <Info
+            title={"SageMath Worksheets"}
+            image={sageScreenshot}
+            alt={"Using SageMath in a Worksheet"}
+            anchor="sagews"
+          >
+            <Paragraph>
+              CoCalc's{" "}
+              <A href="https://doc.cocalc.com/sagews.html">
+                SageMath Worksheets
+              </A>{" "}
+              are a single document experience that can be more friendly than
+              the Jupyter notebook "multiple cells" approach.
+            </Paragraph>
+            <Paragraph>
+              They are a great way to teach SageMath, since you can easily
+              include text, code, and output in a single document.
+            </Paragraph>
+          </Info>
+
+          <Info
+            title={
+              <>
+                SageMath in <LaTeX /> documents
+              </>
+            }
+            image={sagetexScreenshot}
+            alt={"Using SageMath in a LaTeX document"}
+            anchor="latex"
+          >
+            <Paragraph>
+              You can also embed SageMath code in your{" "}
+              <A href="/features/latex-editor">
+                <LaTeX /> documents
+              </A>
+              .
+            </Paragraph>
+            <Paragraph>
+              This means you no longer have to manually copy and paste output
+              from SageMath worksheets into your LaTeX documents.
+            </Paragraph>
+            <Paragraph>
+              Learn more about{" "}
+              <A href={"https://ctan.org/pkg/sagetex?lang=en"}>SageTeX</A> and{" "}
+              <A href={"https://doc.cocalc.com/latex.html#sage"}>
+                how to use it in CoCalc
+              </A>
+              .
+            </Paragraph>
+          </Info>
 
           <Info
             title={"Teach using SageMath and Nbgrader"}
