@@ -2,7 +2,7 @@ import ReactDOM from "react-dom";
 import {
   Editor,
   Element,
-  Node,
+  Descendant,
   Path,
   Operation,
   Transforms,
@@ -173,16 +173,8 @@ export const withReact = <T extends Editor>(editor: T) => {
 
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
-      const parsed = JSON.parse(decoded) as Node[];
-      if (e.selection != null && e.selection.focus.path.length <= 2) {
-        // We do this at the top level
-        // @ts-ignore -- typing seems to not like an array, but works...
-        e.insertNode(parsed);
-      } else {
-        // When we're in some nested structure, e.g., a list, this
-        // seems to work much better.
-        e.insertFragment(parsed);
-      }
+      const parsed = JSON.parse(decoded) as Descendant[];
+      e.insertFragment(parsed);
       return;
     }
 
