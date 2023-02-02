@@ -10,25 +10,26 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
+import { callback } from "awaiting";
+import bodyParser from "body-parser";
+import compression from "compression";
 import express from "express";
 import { createServer } from "http";
-import { callback } from "awaiting";
-import compression from "compression";
-import bodyParser from "body-parser";
-import { join } from "path";
-import { writeFile } from "fs";
-import { once } from "@cocalc/util/async-utils";
-import { options } from "@cocalc/project/init-program";
+import { writeFile } from "node:fs";
+import { join } from "node:path";
+
 import basePath from "@cocalc/backend/base-path";
-import { getLogger } from "@cocalc/project/logger";
+import initWebsocket from "@cocalc/project/browser-websocket/server";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
+import { options } from "@cocalc/project/init-program";
 import initJupyter from "@cocalc/project/jupyter/http-server";
-import initWebsocket from "@cocalc/project/browser-websocket/server";
+import * as kucalc from "@cocalc/project/kucalc";
+import { getLogger } from "@cocalc/project/logger";
 import initUpload from "@cocalc/project/upload";
-import initStaticServer from "./static";
+import { once } from "@cocalc/util/async-utils";
 import initRootSymbolicLink from "./root-symlink";
-const kucalc = require("@cocalc/project/kucalc");
+import initStaticServer from "./static";
 
 const winston = getLogger("browser-http-server");
 

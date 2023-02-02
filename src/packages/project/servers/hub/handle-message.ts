@@ -10,14 +10,14 @@ import * as message from "@cocalc/util/message";
 import handleNamedServer from "@cocalc/project/named-servers";
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 // Reading and writing files to/from project and sending over socket
-const {
+import {
   read_file_from_project,
   write_file_to_project,
-} = require("@cocalc/project/read_write_files");
-const { print_to_pdf } = require("@cocalc/project/print_to_pdf");
+} from "@cocalc/project/read_write_files";
+import { print_to_pdf } from "@cocalc/project/print_to_pdf";
 import processKill from "@cocalc/backend/misc/process-kill";
-const { handle_save_blob_message } = require("@cocalc/project/blobs");
-const client = require("@cocalc/project/client");
+import { handle_save_blob_message } from "@cocalc/project/blobs";
+import * as client from "@cocalc/project/client";
 import { version } from "@cocalc/util/smc-version";
 import writeTextFileToProject from "./write-text-file-to-project";
 

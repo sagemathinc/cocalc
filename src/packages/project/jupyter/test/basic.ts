@@ -3,9 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {} from "mocha";
-
-const expect = require("expect");
+import expect from "expect";
 
 import { kernel, exec, JupyterKernel } from "./common";
 

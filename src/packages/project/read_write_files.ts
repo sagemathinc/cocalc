@@ -23,8 +23,8 @@ import * as temp from "temp";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { abspath, uuidsha1 } from "@cocalc/backend/misc_node";
 import * as message from "@cocalc/util/message";
+import { path_split } from "@cocalc/util/misc";
 import { check_file_size } from "./common";
-const misc = require("@cocalc/util/misc");
 
 import { getLogger } from "@cocalc/backend/logger";
 const winston = getLogger("read-write-files");
@@ -76,7 +76,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
         // common nuisance with paths to directories
         path = path.slice(0, path.length - 1);
       }
-      const split = misc.path_split(path);
+      const split = path_split(path);
       path = target;
       // TODO same patterns also in project.ts
       const args = [

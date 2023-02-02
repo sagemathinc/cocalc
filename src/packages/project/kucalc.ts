@@ -12,6 +12,8 @@ import { readFile as readFileAsync } from "node:fs/promises";
 // Prometheus client setup -- https://github.com/siimon/prom-client
 import prom_client from "prom-client";
 
+import request from "request";
+
 import { execute_code } from "@cocalc/backend/misc_node";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { startswith } from "@cocalc/util/misc";
@@ -51,7 +53,7 @@ prom_client.collectDefaultMetrics();
 // command line flag is passed in.
 export let IN_KUCALC = false;
 
-export function setInKucalc(val: boolean) : void {
+export function setInKucalc(val: boolean): void {
   IN_KUCALC = val;
 }
 
@@ -248,7 +250,6 @@ export function init_gce_firewall_test(logger, interval_ms = 60 * 1000) {
   const URI = "http://metadata.google.internal/computeMetadata/v1/";
   const test_firewall = function () {
     logger?.log("test_firewall");
-    const request = require("request");
     return request(
       {
         timeout: 3000,

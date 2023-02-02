@@ -1,14 +1,20 @@
-import daemonizeProcess from "daemonize-process";
-import initProgram from "./init-program";
-import initKucalc from "./init-kucalc";
-import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
-const { init: initClient } = require("./client"); // import { Client } from "./client";
-import initInfoJson from "./info-json";
-import initServers from "./servers/init";
-import initPublicPaths from "./public-paths";
-import { getLogger } from "./logger";
-import { init as initBugCounter } from "./bug-counter";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
+import daemonizeProcess from "daemonize-process";
+
+import { init as initBugCounter } from "./bug-counter";
+import { init as initClient } from "./client";
+import initInfoJson from "./info-json";
+import initKucalc from "./init-kucalc";
+import initProgram from "./init-program";
+import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
+import initPublicPaths from "./public-paths";
+import initServers from "./servers/init";
+
+import { getLogger } from "./logger";
 const winston = getLogger("project-main");
 
 export async function main() {

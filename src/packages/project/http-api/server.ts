@@ -23,10 +23,10 @@ import { json, urlencoded } from "body-parser";
 import type { Request } from "express";
 import RateLimit from "express-rate-limit";
 import { apiServerPortFile } from "@cocalc/project/data";
-const theClient = require("@cocalc/project/client");
+import * as theClient from "@cocalc/project/client";
 import { secretToken } from "@cocalc/project/servers/secret-token";
 
-let client: any = undefined;
+let client: theClient.Client | undefined = undefined;
 export { client };
 
 import getSyncdocHistory from "./get-syncdoc-history";

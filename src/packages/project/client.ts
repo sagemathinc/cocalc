@@ -28,10 +28,11 @@ import {
   stat as statFileAsync,
   writeFile,
 } from "node:fs/promises";
-import { join } from "node:path";
+import { join, join as path_join } from "node:path";
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
+import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
@@ -44,16 +45,16 @@ import { CB } from "@cocalc/util/types/callback";
 import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
+import * as data from "./data";
 import * as jupyter from "./jupyter/jupyter";
 import { get_kernel_data } from "./jupyter/kernel-data";
 import * as kucalc from "./kucalc";
 import * as sage_session from "./sage_session";
 import { get_listings_table } from "./sync/listings";
+import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
-import { get_synctable } from "./sync/open-synctables";
 
-import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { getLogger } from "./logger";
 const winston = getLogger("project:client");
 
@@ -98,8 +99,7 @@ export class Client extends EventEmitter {
       throw Error("BUG: Client already created!");
     }
     ALREADY_CREATED = true;
-    const { project_id } = require("./data");
-    this.project_id = project_id;
+    this.project_id = data.project_id;
     this.dbg("constructor")();
     this.setMaxListeners(300); // every open file/table/sync db listens for connect event, which adds up.
     // initialize two caches
@@ -121,7 +121,7 @@ export class Client extends EventEmitter {
   }
 
   // use to define a logging function that is cleanly used internally
-  private dbg(f, trunc = 1000) {
+  public dbg(f, trunc = 1000) {
     if (DEBUG && winston) {
       return (...m) => {
         let s;
@@ -168,6 +168,10 @@ export class Client extends EventEmitter {
 
   // account_id or project_id of this client
   public client_id(): string {
+    return this.project_id;
+  }
+
+  public get_project_id(): string {
     return this.project_id;
   }
 
@@ -451,7 +455,7 @@ export class Client extends EventEmitter {
     return await callback2(this._query_cancel, { id });
   }
 
-  public sync_table(query, options, throttle_changes = undefined) {
+  public sync_table(query, options?: any, throttle_changes = undefined) {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
@@ -694,7 +698,7 @@ export class Client extends EventEmitter {
       interval: 1500, // polling interval in ms
       debounce: 500,
     }); // don't fire until at least this many ms after the file has REMAINED UNCHANGED
-    const path = require("path").join(process.env.HOME, opts.path);
+    const path = path_join(HOME, opts.path);
     const dbg = this.dbg(`watch_file(path='${path}')`);
     dbg(`watching file '${path}'`);
     return new Watcher(path, opts.interval, opts.debounce);

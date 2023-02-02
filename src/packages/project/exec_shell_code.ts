@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-//winston = require('./logger').getLogger('exec-shell-code')
+// import { getLogger } from "@cocalc/backend/logger";
+// const winston = getLogger('exec-shell-code')
 
 import { abspath, execute_code } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";

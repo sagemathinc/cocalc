@@ -11,13 +11,14 @@ for a specific "path" (e.g. the corresponding jupyter process for a notebook)
 from the ProjectInfoServer (which collects data about everything)
 */
 
-import debug from "debug";
-const L = debug("project:usage-info:server");
-import { EventEmitter } from "events";
 import { delay } from "awaiting";
-import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo, Process } from "../project-info/types";
+import { EventEmitter } from "events";
+import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
+import { Process, ProjectInfo } from "../project-info/types";
 import { UsageInfo } from "./types";
+
+import { getLogger } from "../logger";
+const L = getLogger("project:usage-info:server").debug;
 
 function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
   // we assume a,b >= 0, hence we leave out Math.abs operations

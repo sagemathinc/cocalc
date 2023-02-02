@@ -17,6 +17,8 @@ export default async function getSyncdocHistory({
   path,
   patches,
 }): Promise<any> {
+  if (client == null) throw Error("client must be defined");
+
   const dbg = client.dbg("get-syncdoc-history");
   dbg(`path="${path}"`);
   if (typeof path != "string") {
@@ -30,6 +32,6 @@ export default async function getSyncdocHistory({
   }
 
   // compute the string_id
-  const string_id = client_db.sha1(client.project_id, path);
+  const string_id = client_db.sha1(client.get_project_id(), path);
   return await client.get_syncdoc_history(string_id, !!patches);
 }

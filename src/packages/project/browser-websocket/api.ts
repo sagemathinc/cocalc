@@ -78,7 +78,7 @@ export function init_websocket_api(_primus: any): void {
 }
 
 import { run_formatter, run_formatter_string } from "../formatters";
-const theClient = require("@cocalc/project/client");
+import * as theClient from "@cocalc/project/client";
 
 async function handleApiCall0(data: Mesg): Promise<any> {
   const { client } = theClient;

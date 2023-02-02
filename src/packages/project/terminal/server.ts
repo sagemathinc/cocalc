@@ -7,14 +7,19 @@
 Terminal server
 */
 
-const { spawn } = require("node-pty");
-import { readFile, writeFile } from "fs";
-import { promises as fsPromises } from "fs";
-const { readlink } = fsPromises;
-import { console_init_filename, len, merge, path_split } from "@cocalc/util/misc";
-import { exists } from "../jupyter/async-utils-node";
-import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
+import { readFile, writeFile } from "fs";
+import { isEqual, throttle } from "lodash";
+import { spawn } from "node-pty";
+import { readlink } from "node:fs/promises";
+
+import {
+  console_init_filename,
+  len,
+  merge,
+  path_split,
+} from "@cocalc/util/misc";
+import { exists } from "../jupyter/async-utils-node";
 
 interface Terminal {
   channel: any;

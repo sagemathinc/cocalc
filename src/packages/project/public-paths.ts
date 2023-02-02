@@ -13,6 +13,7 @@ const UPDATE_INTERVAL_S: number = 20;
 import { lstat } from "fs";
 import { execFile } from "child_process";
 import { callback, delay } from "awaiting";
+import * as client from "./client";
 
 let monitor: MonitorPublicPaths | undefined = undefined;
 export default function init() {
@@ -20,19 +21,13 @@ export default function init() {
   monitor = new MonitorPublicPaths();
 }
 
-interface Client {
-  dbg: Function;
-  client_id: Function;
-  sync_table: Function;
-  query: Function;
-}
 
 class MonitorPublicPaths {
-  private client: Client;
+  private client: client.Client;
   private table: any;
 
   constructor() {
-    this.client = require("./client").client;
+    this.client = client.client;
     if (this.client == null) {
       throw Error("client must have been initialized first");
     }
