@@ -94,7 +94,6 @@ export default function Search() {
                       actions.show_focused_frame_of_type("whiteboard");
                     if (frameId) {
                       actions.centerElement(element.id, frameId);
-                      actions.zoom100(frameId);
                     }
                   }}
                   style={{
