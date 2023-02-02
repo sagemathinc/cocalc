@@ -4,7 +4,7 @@
  */
 
 /*
-client.coffee -- A project viewed as a client for a hub.
+client.ts -- A project viewed as a client for a hub.
 
 For security reasons, a project does initiate a TCP connection to a hub,
 but rather hubs initiate TCP connections to projects:
@@ -51,9 +51,10 @@ import * as sage_session from "./sage_session";
 import { get_listings_table } from "./sync/listings";
 import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
+import { get_synctable } from "./sync/open-synctables";
 
-import { getLogger } from "./logger";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import { getLogger } from "./logger";
 const winston = getLogger("project:client");
 
 const HOME = process.env.HOME ?? "/home/user";
@@ -366,7 +367,13 @@ export class Client extends EventEmitter {
   }
 
   // Do a project_query
-  public query(opts) {
+  public query(opts: {
+    query: any;
+    options?: { [key: string]: any }[];
+    changes?: boolean;
+    timeout?: number;
+    cb: CB<any, string>;
+  }) {
     opts = defaults(opts, {
       query: required, // a query (see schema.coffee)
       changes: undefined, // whether or not to create a changefeed
@@ -450,13 +457,10 @@ export class Client extends EventEmitter {
 
   // We leave in the project_id for consistency with the browser UI.
   // And maybe someday we'll have tables managed across projects (?).
-  public synctable_project = async (_project_id, query, _options) => {
+  public async synctable_project(_project_id: string, query, _options) {
     // TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
     // Also, options are ignored -- since we use whatever was selected by the frontend.
-    const the_synctable = await require("./sync/open-synctables").get_synctable(
-      query,
-      this
-    );
+    const the_synctable = await get_synctable(query, this);
     // To provide same API, must also wait until done initializing.
     if (the_synctable.get_state() !== "connected") {
       await once(the_synctable, "connected");
@@ -467,7 +471,7 @@ export class Client extends EventEmitter {
       );
     }
     return the_synctable;
-  };
+  }
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
@@ -698,7 +702,12 @@ export class Client extends EventEmitter {
 
   // Save a blob to the central db blobstore.
   // The sha1 is optional.
-  public save_blob(opts) {
+  public save_blob(opts: {
+    blob: Buffer;
+    sha1?: string;
+    uuid?: string;
+    cb?: (err: string | undefined, resp?: any) => void;
+  }) {
     let uuid;
     opts = defaults(opts, {
       blob: required, // Buffer of data
@@ -737,7 +746,12 @@ export class Client extends EventEmitter {
     });
   }
 
-  public get_blob(opts) {
+  public get_blob(opts: {
+    blob: Buffer;
+    sha1?: string;
+    uuid?: string;
+    cb?: (err: string) => void;
+  }) {
     opts = defaults(opts, {
       blob: required, // Buffer of data
       sha1: undefined,
@@ -746,13 +760,13 @@ export class Client extends EventEmitter {
     }); // (err, resp)
     const dbg = this.dbg("get_blob");
     dbg(opts.sha1);
-    return opts.cb?.("get_blob: not implemented");
+    opts.cb?.("get_blob: not implemented");
   }
 
   // no-op; assumed async api
   touch_project(_project_id) {}
 
-  async get_syncdoc_history(string_id, patches = false) {
+  async get_syncdoc_history(string_id: string, patches = false) {
     const dbg = this.dbg("get_syncdoc_history");
     dbg(string_id, patches);
     const mesg = message.get_syncdoc_history({
@@ -763,7 +777,7 @@ export class Client extends EventEmitter {
   }
 
   // NOTE: returns false if the listings table isn't connected.
-  public is_deleted(filename, _project_id) {
+  public is_deleted(filename: string, _project_id: string) {
     // project_id is ignored, of course
     try {
       const listings = get_listings_table();
@@ -778,7 +792,7 @@ export class Client extends EventEmitter {
     }
   }
 
-  public async set_deleted(filename, _project_id) {
+  public async set_deleted(filename: string, _project_id: string) {
     // project_id is ignored
     const listings = get_listings_table();
     return await listings?.set_deleted(filename);
