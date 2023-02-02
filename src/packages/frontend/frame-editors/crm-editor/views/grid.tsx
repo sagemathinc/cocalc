@@ -47,6 +47,7 @@ export default function Grid({
       )}
       itemContent={(index) => (
         <GridRow
+          index={index}
           data={data[index]}
           columns={columns}
           fieldWidths={fieldWidths}
@@ -57,8 +58,20 @@ export default function Grid({
   );
 }
 
-function GridRow({ data, columns, recordHeight, fieldWidths }) {
-  const v: any[] = [];
+function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
+  const v: ReactNode[] = [
+    <td
+      style={{
+        cursor: "pointer",
+        border: "1px solid #eee",
+        padding: "0 5px",
+        color: "#666",
+        textAlign: "center",
+      }}
+    >
+      {index + 1}
+    </td>,
+  ];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
     const text = data?.[column.dataIndex];
@@ -144,6 +157,7 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
+      <ColumnHeading width={30} />
       {columns.map((column) => (
         <ColumnHeading
           {...column}
@@ -178,10 +192,10 @@ function ColumnHeading({
   setWidth,
 }: {
   width: number;
-  title: ReactNode;
+  title?: ReactNode;
   direction?: SortDirection;
-  onSortClick: () => void;
-  setWidth: (number) => void;
+  onSortClick?: () => void;
+  setWidth?: (number) => void;
 }) {
   const ignoreClickRef = useRef<boolean>(false);
   return (
@@ -195,13 +209,17 @@ function ColumnHeading({
         border: "1px solid #eee",
         position: "relative",
       }}
-      onClick={() => {
-        if (ignoreClickRef.current) {
-          ignoreClickRef.current = false;
-          return;
-        }
-        onSortClick();
-      }}
+      onClick={
+        onSortClick
+          ? () => {
+              if (ignoreClickRef.current) {
+                ignoreClickRef.current = false;
+                return;
+              }
+              onSortClick();
+            }
+          : undefined
+      }
     >
       {title}
       {direction && (
@@ -210,13 +228,15 @@ function ColumnHeading({
           name={direction == "ascending" ? "caret-down" : "caret-up"}
         />
       )}
-      <ResizeHandle
-        setWidth={setWidth}
-        width={width}
-        ignoreClick={() => {
-          ignoreClickRef.current = true;
-        }}
-      />
+      {setWidth && (
+        <ResizeHandle
+          setWidth={setWidth}
+          width={width}
+          ignoreClick={() => {
+            ignoreClickRef.current = true;
+          }}
+        />
+      )}
     </th>
   );
 }
