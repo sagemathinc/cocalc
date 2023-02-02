@@ -1,41 +1,31 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/main/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
-//########################################################################
 
-/*
-Start the Sage server and also get a new socket connection to it.
-*/
-
-import * as async from "async";
-
+import processKill from "@cocalc/backend/misc/process-kill";
+import { abspath, enable_mesg, execute_code } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 import * as message from "@cocalc/util/message";
-import { CB } from "@cocalc/util/types/callback";
-import * as secret_token from "./servers/secret-token";
 import {
+  bind_methods,
+  defaults,
   path_split,
+  required,
   retry_until_success,
   to_json,
   trunc,
   trunc_middle,
   uuid,
 } from "@cocalc/util/misc";
-import { abspath, enable_mesg, execute_code } from "@cocalc/backend/misc_node";
-import { forget_port, get_port } from "./port_manager";
+import { CB } from "@cocalc/util/types/callback";
+import { Client } from "./client";
 import * as common from "./common";
-import processKill from "@cocalc/backend/misc/process-kill";
-import { getLogger } from "@cocalc/backend/logger";
-import { required, defaults } from "@cocalc/util/misc";
+import { forget_port, get_port } from "./port_manager";
+import * as secret_token from "./servers/secret-token";
 
+import { getLogger } from "@cocalc/backend/logger";
 const winston = getLogger("sage-session");
 
 //##############################################
@@ -50,7 +40,8 @@ const SAGE_SERVER_MAX_STARTUP_TIME_S = 60;
 
 let _restarting_sage_server = false;
 let _restarted_sage_server = 0; // time when we last restarted it
-const restart_sage_server = function (cb) {
+
+function restart_sage_server(cb) {
   const dbg = (m) => winston.debug(`restart_sage_server: ${to_json(m)}`);
   if (_restarting_sage_server) {
     dbg("hit lock");
@@ -88,119 +79,126 @@ const restart_sage_server = function (cb) {
       cb(err);
     },
   });
-};
+}
 
 // Get a new connection to the Sage server.  If the server
 // isn't running, e.g., it was killed due to running out of memory,
 // attempt to restart it and try to connect.
-const get_sage_socket = function (cb) {
-  // cb(err, socket)
-  let socket = undefined;
-  const try_to_connect = (cb) =>
-    _get_sage_socket(function (err, _socket) {
-      if (!err) {
-        socket = _socket;
-        cb();
-        return;
-      }
+async function get_sage_socket(): Promise<CoCalcSocket> {
+  let socket: CoCalcSocket | undefined = undefined;
+
+  const try_to_connect = async function (cb) {
+    try {
+      socket = await _get_sage_socket();
+    } catch (err) {
       // Failed for some reason: try to restart one time, then try again.
       // We do this because the Sage server can easily get killed due to out of memory conditions.
       // But we don't constantly try to restart the server, since it can easily fail to start if
       // there is something wrong with a local Sage install.
       // Note that restarting the sage server doesn't impact currently running worksheets (they
       // have their own process that isn't killed).
-      restart_sage_server(function (err) {
+      restart_sage_server(async function (err) {
         // won't actually try to restart if called recently.
         if (err) {
           cb(err);
           return;
         }
         // success at restarting sage server: *IMMEDIATELY* try to connect
-        _get_sage_socket(function (err, _socket) {
-          socket = _socket;
+        try {
+          socket = await _get_sage_socket();
+        } catch (err) {
           cb(err);
-        });
+        }
       });
+    }
+  };
+
+  return new Promise<CoCalcSocket>((resolve, reject) => {
+    retry_until_success({
+      f: try_to_connect,
+      start_delay: 50,
+      max_delay: 5000,
+      factor: 1.5,
+      max_time: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,
+      log(m) {
+        return winston.debug(`get_sage_socket: ${m}`);
+      },
+      cb(err) {
+        if (err) {
+          reject(err);
+        } else if (socket == null) {
+          reject(new Error("socket is null"));
+        } else {
+          resolve(socket);
+        }
+      },
     });
-
-  retry_until_success({
-    f: try_to_connect,
-    start_delay: 50,
-    max_delay: 5000,
-    factor: 1.5,
-    max_time: SAGE_SERVER_MAX_STARTUP_TIME_S * 1000,
-    log(m) {
-      return winston.debug(`get_sage_socket: ${m}`);
-    },
-    cb(err) {
-      cb(err, socket);
-    },
   });
-};
+}
 
-function _get_sage_socket(cb) {
+async function _get_sage_socket(): Promise<CoCalcSocket> {
   // cb(err, socket that is ready to use)
   let sage_socket: CoCalcSocket | undefined = undefined;
   let port: number | undefined = undefined;
-  async.series(
-    [
-      (cb) => {
-        winston.debug("get sage server port");
-        get_port("sage", (err, _port) => {
-          if (err) {
-            cb(err);
-            return;
-          } else {
-            port = _port;
-            cb();
-          }
-        });
-      },
-      async (cb) => {
-        if (typeof port !== "number") return cb("port not set");
-        winston.debug("get and unlock socket");
-        try {
-          sage_socket = await connectToLockedSocket({
-            port,
-            token: secret_token.secretToken,
-          });
-          winston.debug("Successfully unlocked a sage session connection.");
-          cb();
-        } catch (error) {
-          const err = error;
-          forget_port("sage");
-          winston.debug(
-            `unlock socket: _new_session: sage session denied connection: ${err}`
-          );
-          cb(`_new_session: sage session denied connection: ${err}`);
-        }
-      },
-      (cb) => {
-        if (sage_socket == null) return cb("sage_socket not set");
-        winston.debug("request sage session from server.");
-        enable_mesg(sage_socket);
-        sage_socket.write_mesg("json", message.start_session({ type: "sage" }));
-        winston.debug(
-          "Waiting to read one JSON message back, which will describe the session...."
-        );
-        // TODO: couldn't this just hang forever :-(
-        sage_socket.once("mesg", (_type, desc) => {
-          winston.debug(
-            `Got message back from Sage server: ${common.json(desc)}`
-          );
-          if (sage_socket == null) return cb("sage_socket not set");
-          sage_socket.pid = desc.pid;
-          cb();
-        });
-      },
-    ],
-    (err) => cb(err, sage_socket)
+
+  winston.debug("get sage server port");
+  port = await get_port("sage");
+
+  if (typeof port !== "number") {
+    throw new Error("port not set");
+  }
+  winston.debug("get and unlock socket");
+  try {
+    sage_socket = await connectToLockedSocket({
+      port,
+      token: secret_token.secretToken,
+    });
+    winston.debug("Successfully unlocked a sage session connection.");
+  } catch (error) {
+    const err = error;
+    forget_port("sage");
+    winston.debug(
+      `unlock socket: _new_session: sage session denied connection: ${err}`
+    );
+    throw new Error(`_new_session: sage session denied connection: ${err}`);
+  }
+
+  if (sage_socket == null) {
+    throw new Error("sage_socket not set");
+  }
+  winston.debug("request sage session from server.");
+  enable_mesg(sage_socket);
+  sage_socket.write_mesg("json", message.start_session({ type: "sage" }));
+  winston.debug(
+    "Waiting to read one JSON message back, which will describe the session...."
   );
+
+  // TODO: couldn't this just hang forever :-(
+  await new Promise<void>((resolve, _reject) => {
+    if (sage_socket == null) {
+      throw new Error("sage_socket not set");
+    }
+    sage_socket.once("mesg", (_type, desc) => {
+      winston.debug(`Got message back from Sage server: ${common.json(desc)}`);
+      if (sage_socket == null) {
+        throw new Error("sage_socket not set");
+      }
+      sage_socket.pid = desc.pid;
+      resolve();
+    });
+  });
+
+  return sage_socket;
+}
+
+interface SageSessionOpts {
+  client: Client;
+  path: string; // the path to the *worksheet* file
 }
 
 const cache = {};
 
-export function sage_session(opts) {
+export function sage_session(opts: SageSessionOpts) {
   opts = defaults(opts, {
     client: required,
     path: required,
@@ -222,30 +220,23 @@ Until you actually try to call it no socket need
 */
 class SageSession {
   private _path: string;
-  private _client: any;
+  private _client: Client;
   private _output_cb: {
-    [key: string]: CB<any, { done: true; error: string }>;
+    [key: string]: CB<any, any>;
   } = {};
   private _socket: CoCalcSocket | undefined;
   private _init_socket_cbs: CB[] | undefined = [];
 
-  constructor(opts) {
-    this.dbg = this.dbg.bind(this);
-    this.close = this.close.bind(this);
-    this.is_running = this.is_running.bind(this);
-    this.init_socket = this.init_socket.bind(this);
-    this._init_path = this._init_path.bind(this);
-    this.call = this.call.bind(this);
-    this._handle_mesg_blob = this._handle_mesg_blob.bind(this);
-    this._handle_mesg_json = this._handle_mesg_json.bind(this);
+  constructor(opts: SageSessionOpts) {
     opts = defaults(opts, {
       client: required,
       path: required,
-    }); // the path to the *worksheet* file
+    });
     this.dbg("constructor")();
     this._path = opts.path;
     this._client = opts.client;
     this._output_cb = {};
+    bind_methods(this);
   }
 
   dbg(f) {
@@ -277,7 +268,7 @@ class SageSession {
   // if e.g., the socket doesn't exist and there are a bunch of calls to @call
   // at the same time.
   // See https://github.com/sagemathinc/cocalc/issues/3506
-  init_socket(cb): void {
+  async init_socket(cb): Promise<void> {
     const dbg = this.dbg("init_socket()");
     dbg();
 
@@ -288,16 +279,8 @@ class SageSession {
 
     this._init_socket_cbs = [cb];
 
-    get_sage_socket((err, socket) => {
-      if (err) {
-        dbg(`fail -- ${err}.`);
-        const cbs = this._init_socket_cbs ?? [];
-        delete this._init_socket_cbs;
-        for (const c of cbs) {
-          c(err);
-        }
-        return;
-      }
+    try {
+      const socket = await get_sage_socket();
 
       dbg("successfully opened a sage session");
       this._socket = socket;
@@ -322,7 +305,15 @@ class SageSession {
           c(err);
         }
       });
-    });
+    } catch (err) {
+      dbg(`fail -- ${err}.`);
+      const cbs = this._init_socket_cbs ?? [];
+      delete this._init_socket_cbs;
+      for (const c of cbs) {
+        c(err);
+      }
+      return;
+    }
   }
 
   _init_path(cb): void {
@@ -339,7 +330,7 @@ class SageSession {
         preparse: false,
       },
       cb: (resp) => {
-        let err = undefined;
+        let err: string | undefined = undefined;
         if (resp.stderr) {
           err = resp.stderr;
           dbg(`error '${err}'`);
@@ -351,7 +342,24 @@ class SageSession {
     });
   }
 
-  call(opts) {
+  async call(opts: {
+    input: {
+      id?: string;
+      signal?: any;
+      value?: any;
+      event?: any; // should be something like: string | { sage_raw_input: string };
+      code?: string;
+      data?: { path: string; file: string };
+      preparse?: boolean;
+    };
+    cb: (resp: {
+      error?: Error;
+      pong?: boolean;
+      running?: boolean;
+      stderr?: string;
+      done?: boolean;
+    }) => void;
+  }): Promise<void> {
     opts = defaults(opts, {
       input: required,
       cb: undefined,
@@ -362,9 +370,11 @@ class SageSession {
       case "ping":
         opts.cb?.({ pong: true });
         return;
+
       case "status":
         opts.cb?.({ running: this.is_running() });
         return;
+
       case "signal":
         if (this._socket != null) {
           dbg(
@@ -375,6 +385,7 @@ class SageSession {
         }
         opts.cb?.({});
         return;
+
       case "restart":
         dbg("restarting sage session");
         if (this._socket != null) {
@@ -388,6 +399,7 @@ class SageSession {
           }
         });
         return;
+
       case "raw_input":
         dbg("sending sage_raw_input event");
         this._socket?.write_mesg("json", {
@@ -395,38 +407,39 @@ class SageSession {
           value: opts.input.value,
         });
         return;
+
       default:
         // send message over socket and get responses
-        return async.series(
-          [
-            (cb) => {
-              if (this._socket != null) {
-                cb();
-              } else {
-                this.init_socket(cb);
-              }
-            },
-            (cb) => {
-              if (this._socket == null) {
-                return cb("no socket"); // should not happen
-              }
-              if (opts.input.id == null) {
-                opts.input.id = uuid();
-                dbg(`generated new random uuid for input: '${opts.input.id}' `);
-              }
-              this._socket.write_mesg("json", opts.input);
-              if (opts.cb != null) {
-                this._output_cb[opts.input.id] = opts.cb; // this is when opts.cb will get called...
-              }
-              cb();
-            },
-          ],
-          (err) => {
-            if (err) {
-              opts.cb?.({ done: true, error: err });
-            }
+        try {
+          if (this._socket != null) {
+            await new Promise<void>((resolve, reject) => {
+              this.init_socket((err) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve();
+                }
+              });
+            });
           }
-        );
+
+          if (this._socket == null) {
+            throw new Error("no socket"); // should not happen
+          }
+
+          if (opts.input.id == null) {
+            opts.input.id = uuid();
+            dbg(`generated new random uuid for input: '${opts.input.id}' `);
+          }
+
+          this._socket.write_mesg("json", opts.input);
+
+          if (opts.cb != null) {
+            this._output_cb[opts.input.id] = opts.cb; // this is when opts.cb will get called...
+          }
+        } catch (err) {
+          opts.cb?.({ done: true, error: err });
+        }
     }
   }
   _handle_mesg_blob(mesg) {

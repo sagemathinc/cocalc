@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { readFile } from "node:fs";
+import { readFile } from "node:fs/promises";
 
 import { abspath } from "@cocalc/backend/misc_node";
-import { CB } from "@cocalc/util/types/database";
 
 /*
 The port_manager manages the ports for the various servers.
@@ -16,28 +15,23 @@ It reads the port from memory or from disk and returns it.
 
 const { SMC } = process.env;
 
-export function port_file(type) : string {
+export function port_file(type): string {
   return `${SMC}/${type}_server/${type}_server.port`;
 }
 
 const ports = {};
 
-export function get_port(type, cb: CB<number>) {
+export async function get_port(type): Promise<number> {
   if (ports[type] != null) {
-    cb(null, ports[type]);
+    return ports[type];
   } else {
-    readFile(abspath(port_file(type)), function (err, content) {
-      if (err) {
-        cb(err);
-      } else {
-        try {
-          ports[type] = parseInt(content.toString());
-          cb(null, ports[type]);
-        } catch (e) {
-          cb(`${type}_server port file corrupted`);
-        }
-      }
-    });
+    const content = await readFile(abspath(port_file(type)));
+    try {
+      ports[type] = parseInt(content.toString());
+      return ports[type];
+    } catch (e) {
+      throw new Error(`${type}_server port file corrupted`);
+    }
   }
 }
 
