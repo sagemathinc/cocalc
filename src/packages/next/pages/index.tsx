@@ -171,9 +171,9 @@ export default function Home(props: Props) {
           <Paragraph>
             <iframe
               style={{ marginTop: "30px" }}
-              width="210"
-              height="375"
-              src="https://www.youtube.com/embed/PQ5p92DN0bs"
+              width="672"
+              height="378"
+              src="https://www.youtube.com/embed/ygVWdH4RKIQ"
               title="YouTube video player"
               frameBorder={0}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
