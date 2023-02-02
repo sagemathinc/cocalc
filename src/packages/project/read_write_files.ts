@@ -141,6 +141,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
       socket.write_mesg("json", message.error({ id: mesg.id, error: err }));
     }
   }
+
   // in any case, clean up the temporary archive
   if (is_dir) {
     try {
