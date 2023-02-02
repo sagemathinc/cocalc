@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -16,15 +15,17 @@ import LaTeX from "components/landing/latex";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import Snapshots from "components/landing/snapshots";
-import { Paragraph, Title } from "components/misc";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-import sageNbgrader from "public/features/sage-nbgrader.png";
-import sageLogo from "public/features/sage-circular-v2.svg";
-import sageScreenshot from "public/features/sage-worksheet.png";
+import SiteName from "components/share/site-name";
 import sagetexScreenshot from "public/features/cocalc-sagemath-sagetex.png";
+import sageLogo from "public/features/sage-circular-v2.svg";
+import sageNbgrader from "public/features/sage-nbgrader.png";
+import sageScreenshot from "public/features/sage-worksheet.png";
+import juypterScreenshot from "public/features/sagemath-jupyter.png";
 
 const component = "SageMath";
 const title = `Use SageMath Online`;
@@ -56,7 +57,7 @@ export default function Sage({ customize }) {
               </>
             }
             subtitleBelow={true}
-            image={sageScreenshot}
+            image={juypterScreenshot}
             alt={"Using Sage in a Worksheet"}
           />
 
@@ -64,53 +65,37 @@ export default function Sage({ customize }) {
             col1={
               <>
                 <Title level={2}>
-                  <Icon name="sagemath" /> Run{" "}
-                  <A href="https://sagemath.org/">SageMath</A> on CoCalc
+                  <Icon name="sagemath" /> Start using{" "}
+                  <A href="https://sagemath.org/">SageMath</A> on <SiteName />
                 </Title>
                 <Paragraph>
+                  <ol>
+                    <li>
+                      Start by <A href="/auth/sign-up">signing up</A> for a free{" "}
+                      <SiteName /> account.
+                    </li>
+                    <li>
+                      Read the{" "}
+                      <A href="https://doc.cocalc.com/getting-started.html">
+                        getting started guide
+                      </A>{" "}
+                      to orient yourself and create your first project.
+                    </li>
+                  </ol>
+                  After creating your first project, go ahead and create
                   <ul>
                     <li>
-                      Use CoCalc's own realtime collaborative{" "}
-                      <strong>
-                        <A href="/features/jupyter-notebook">
-                          Jupyter Notebooks
-                        </A>
-                      </strong>
-                      .
+                      a{" "}
+                      <A href="/features/jupyter-notebook">Jupyter Notebooks</A>{" "}
+                      file,
+                    </li>
+                    <li>a Sage Worksheet,</li>
+                    <li>
+                      a <LaTeX /> document, or
                     </li>
                     <li>
-                      Use SageMath from the collaborative,{" "}
-                      <strong>
-                        <A href="/features/terminal">Linux Terminal</A>
-                      </strong>{" "}
-                      or{" "}
-                      <A href="/features/x11">
-                        virtual X11 graphical Linux desktop
-                      </A>
-                      .
-                    </li>
-                    <li>
-                      Use Sage optimized{" "}
-                      <A href="https://doc.cocalc.com/sagews.html">
-                        Worksheets
-                      </A>
-                      , which provide a single document experience that can be
-                      more friendly than the Jupyter notebook "multiple cells"
-                      approach.
-                    </li>
-                    <li>
-                      Easily embed Sage code in your{" "}
-                      <A href="/features/latex-editor">
-                        <LaTeX /> documents
-                      </A>
-                      .
-                    </li>
-                    <li>
-                      Install almost any{" "}
-                      <A href="https://pypi.org/">Python package</A> for use
-                      with Sage:
-                      <br />
-                      <Code>sage --pip install package_name</Code>
+                      a plaintext <Text code>*.sage</Text> file and run sage in
+                      a <A href="/features/terminal">Linux Terminal</A>.
                     </li>
                   </ul>
                 </Paragraph>
@@ -119,7 +104,7 @@ export default function Sage({ customize }) {
             col2={
               <>
                 <Title level={2}>
-                  Benefits of working with SageMath online
+                  <Icon name="smile" /> Benefits of SageMath on <SiteName />
                 </Title>
                 <Paragraph>
                   <ul>
@@ -174,6 +159,8 @@ export default function Sage({ customize }) {
             image={sageScreenshot}
             alt={"Using SageMath in a Worksheet"}
             anchor="sagews"
+            icon="sagemath"
+            wide
           >
             <Paragraph>
               CoCalc's{" "}
@@ -198,6 +185,7 @@ export default function Sage({ customize }) {
             image={sagetexScreenshot}
             alt={"Using SageMath in a LaTeX document"}
             anchor="latex"
+            wide
           >
             <Paragraph>
               You can also embed SageMath code in your{" "}
@@ -221,10 +209,37 @@ export default function Sage({ customize }) {
           </Info>
 
           <Info
+            title={"SageMath in Jupyter Notebooks"}
+            image={juypterScreenshot}
+            alt={"Using SageMath in a Jupyter Notebook"}
+            anchor="jupyter"
+            icon="jupyter"
+            wide
+          >
+            <Paragraph>
+              You can also use SageMath in{" "}
+              <A href="/features/jupyter-notebook">Jupyter Notebooks</A>.
+            </Paragraph>
+            <Paragraph>
+              This is a great way to teach SageMath, since you can easily
+              include text, code, and output in a single document.
+            </Paragraph>
+            <Paragraph>
+              Learn more about{" "}
+              <A href="https://doc.cocalc.com/jupyter.html">
+                how to use SageMath in Jupyter Notebooks
+              </A>
+              .
+            </Paragraph>
+          </Info>
+
+          <Info
             title={"Teach using SageMath and Nbgrader"}
             image={sageNbgrader}
             alt={"A screenshot using nbgrader with SageMath."}
             anchor="nbgrader"
+            icon="graduation-cap"
+            wide
           >
             <Paragraph>
               CoCalc's{" "}
