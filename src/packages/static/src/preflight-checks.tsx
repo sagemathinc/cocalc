@@ -28,7 +28,7 @@ interface Spec {
 function getSpec(): Spec {
   const mstr = /(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i;
   const ua = navigator.userAgent;
-  let tem: RegExpMatchArray | null;
+  let tem;
   let M = ua.match(mstr) || [];
   if (/trident/i.test(M[1])) {
     tem = /\brv[ :]+(\d+)/g.exec(ua) || [];

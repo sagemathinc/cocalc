@@ -400,7 +400,7 @@ export function getElement(tool: Tool, id: number): Partial<Element> {
   return element;
 }
 
-export function getPresetManager<Params>(
+export function getPresetManager<Params extends AllParams>(
   tool: Tool,
   DEFAULTS: Params[],
   extraIds?: { [id: number]: Params } // typical for negative id's; hardcoded.

@@ -196,7 +196,10 @@ export class AppRedux {
     }
   }
 
-  createStore<State, C extends Store<State> = Store<State>>(
+  createStore<
+    State extends Record<string, any>,
+    C extends Store<State> = Store<State>
+  >(
     name: string,
     store_class?: StoreConstructorType<State, C>,
     init?: {} | State
@@ -244,9 +247,10 @@ export class AppRedux {
   getStore(name: "users"): types.UsersStore;
   getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
 
-  getStore<State>(name: string): Store<State>;
-  getStore<State, C extends Store<State>>(nam: string): C | undefined;
-  //  getStore<State, C extends Store<State>>(name: string): C | undefined
+  getStore<State extends Record<string, any>>(name: string): Store<State>;
+  getStore<State extends Record<string, any>, C extends Store<State>>(
+    nam: string
+  ): C | undefined;
   getStore(name) {
     if (!this.hasStore(name)) {
       return undefined;

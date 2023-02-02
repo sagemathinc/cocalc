@@ -1,5 +1,13 @@
 import ReactDOM from "react-dom";
-import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
+import {
+  Editor,
+  Element,
+  Node,
+  Path,
+  Operation,
+  Transforms,
+  Range,
+} from "slate";
 
 import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
@@ -25,7 +33,8 @@ export const withReact = <T extends Editor>(editor: T) => {
 
     if (editor.selection && Range.isCollapsed(editor.selection)) {
       const parentBlockEntry = Editor.above(editor, {
-        match: (n) => Editor.isBlock(editor, n),
+        match: (node) =>
+          Element.isElement(node) && Editor.isBlock(editor, node),
         at: editor.selection,
       });
 
@@ -267,7 +276,11 @@ export const withReact = <T extends Editor>(editor: T) => {
       // around randomly and you sometimes can't scroll the image into view.
       // Better to just do nothing in this case.
       for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-        if (Editor.isVoid(e, node) && !SCROLL_WHITELIST.has(node["type"])) {
+        if (
+          Element.isElement(node) &&
+          Editor.isVoid(e, node) &&
+          !SCROLL_WHITELIST.has(node["type"])
+        ) {
           return;
         }
       }

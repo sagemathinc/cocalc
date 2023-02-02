@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Node, Location, Editor, Range, Path } from "slate";
+import { Node, Location, Editor, Element, Range, Path } from "slate";
 
 export function containingBlock(editor: Editor): undefined | [Node, Location] {
   for (const x of Editor.nodes(editor, {
-    match: (node) => Editor.isBlock(editor, node),
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
   })) {
     return x;
   }

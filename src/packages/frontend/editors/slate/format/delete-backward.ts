@@ -24,7 +24,7 @@ function customDeleteBackwards(editor: Editor): boolean | undefined {
   if (selection == null || !Range.isCollapsed(selection)) return;
 
   const above = Editor.above(editor, {
-    match: (node) => Editor.isBlock(editor, node) && node.type != "paragraph",
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node) && node.type != "paragraph",
   });
   if (above == null) return;
   const [block, path] = above;
