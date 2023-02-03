@@ -200,7 +200,7 @@ export default function Views({ table, style }: Props) {
         items={items.map((node) => node.key)}
         strategy={verticalListSortingStrategy}
       >
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", borderRight: "6px solid #eee" }}>
           <DefaultTabBar {...tabBarProps} style={{ width }}>
             {(node) =>
               node.key == NEW ? (
@@ -210,6 +210,7 @@ export default function Views({ table, style }: Props) {
                   key={node.key}
                   id={node.key}
                   selected={view == node.key}
+                  select={() => switchToView(node.key)}
                   getView={getView}
                   width={width}
                   onAction={(
@@ -297,6 +298,8 @@ export function SortableItem({
   onAction,
   getView,
   width = 150,
+  select,
+  edit,
 }) {
   const {
     attributes,
@@ -321,24 +324,31 @@ export function SortableItem({
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       {editing ? (
-        <Input
-          autoFocus
-          ref={inputRef}
-          style={{ width, marginLeft: "12px", flex: 1 }}
-          defaultValue={getView(id)?.name}
-          onBlur={() => {
-            const newName = inputRef.current?.input.value;
-            setEditing(false);
-            onAction("rename", newName);
-          }}
-          onPressEnter={() => {
-            const newName = inputRef.current?.input.value;
-            setEditing(false);
-            onAction("rename", newName);
-          }}
-        />
+        <div style={{ flex: 1 }}>
+          <Input
+            autoFocus
+            ref={inputRef}
+            style={{ width: "100%" }}
+            defaultValue={getView(id)?.name}
+            onBlur={() => {
+              const newName = inputRef.current?.input.value;
+              setEditing(false);
+              onAction("rename", newName);
+            }}
+            onPressEnter={() => {
+              const newName = inputRef.current?.input.value;
+              setEditing(false);
+              onAction("rename", newName);
+            }}
+          />
+        </div>
       ) : (
         <div
+          onClick={select}
+          onDoubleClick={() => {
+            select();
+            setEditing(true);
+          }}
           style={{
             flex: 1,
             overflow: "hidden",
