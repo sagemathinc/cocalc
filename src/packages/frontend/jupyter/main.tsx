@@ -7,56 +7,59 @@
 Top-level react component, which ties everything together
 */
 
-import {
-  redux,
-  CSS,
-  React,
-  useRedux,
-  useRef,
-  Rendered,
-} from "../app-framework";
 import * as immutable from "immutable";
 
-import { A, ErrorDisplay } from "../components";
-import { Loading } from "../components/loading";
+import {
+  CSS,
+  React,
+  redux,
+  Rendered,
+  useRedux,
+  useRef,
+} from "@cocalc/frontend/app-framework";
+import { A, ErrorDisplay } from "@cocalc/frontend/components";
+import { Loading } from "@cocalc/frontend/components/loading";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
 
 // React components that implement parts of the Jupyter notebook.
-import { TopMenubar } from "./top-menubar";
-import { TopButtonbar } from "./top-buttonbar";
-import { CellList } from "./cell-list";
-import { Kernel } from "./status";
-import { Mode } from "./mode";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
-import { NBConvert } from "./nbconvert";
-import { InsertImage } from "./insert-image";
+import { JupyterActions } from "./browser-actions";
+import { CellList } from "./cell-list";
+import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
-import { ConfirmDialog } from "./confirm-dialog";
-import { KernelSelector } from "./select-kernel";
+import { InsertImage } from "./insert-image";
+import { JupyterContext } from "./jupyter-context";
+import useKernelUsage from "./kernel-usage";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import { Mode } from "./mode";
+import { NBConvert } from "./nbconvert";
+import { KernelSelector } from "./select-kernel";
+import { Kernel } from "./status";
+import { TopButtonbar } from "./top-buttonbar";
+import { TopMenubar } from "./top-menubar";
+import { Scroll } from "./types";
+import { Kernels as KernelsType } from "./util";
+import { COLORS } from "@cocalc/util/theme";
 // import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
 const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
-import { Kernels as KernelsType } from "./util";
-import { Scroll } from "./types";
-import useKernelUsage from "./kernel-usage";
-import { JupyterActions } from "./browser-actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
-import { JupyterContext } from "./jupyter-context";
 
 const KERNEL_STYLE: CSS = {
   float: "right",
   paddingLeft: "5px",
-  backgroundColor: "#eee",
+  backgroundColor: COLORS.GRAY_LLL,
   display: "block",
   overflow: "hidden",
   borderLeft: "1px solid rgb(231,231,231)",
   borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap",
   margin: "5px",
+  position: "relative",
+  zIndex: 1,
 } as const;
 
 export const ERROR_STYLE: CSS = {
@@ -251,7 +254,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div>
         <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
-
         <ErrorDisplay error={fatal} style={{ margin: "1ex" }} />
       </div>
     );
@@ -311,9 +313,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_heading() {
-    //if (!is_focused) return;
     return (
-      <div style={{ border: "1px solid rgb(231, 231, 231)" }}>
+      <div>
         {render_kernel()}
         {render_menubar()}
         {toolbar ? render_buttonbar() : undefined}
@@ -328,7 +329,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "#888",
+          color: COLORS.GRAY,
         }}
       />
     );

@@ -88,7 +88,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
-    const kernel: undefined | string = useRedux([name, "kernel"]);
+    const kernel: string | null = useRedux([name, "kernel"]);
     const kernels: undefined | immutable.List<any> = useRedux([
       name,
       "kernels",
@@ -108,7 +108,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     // wrap "Logo" component
     function render_logo() {
-      if (project_id == null || kernel == null) {
+      if (project_id == null) {
         return;
       }
       return (
@@ -226,7 +226,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       } else {
         return (
           <Tooltip title={"Notebook is not trusted"}>
-            <Button danger onClick={() => actions.trust_notebook()} size="small">
+            <Button
+              danger
+              onClick={() => actions.trust_notebook()}
+              size="small"
+            >
               Not Trusted
             </Button>
           </Tooltip>
@@ -506,10 +510,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
-    if (kernel == null) {
-      return <span />;
-    }
-
     if (IS_MOBILE) {
       return renderKernelState();
     }
@@ -529,6 +529,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {render_backend_state_icon()}
       </div>
     );
+
     const body = (
       <div
         className="pull-right"
@@ -537,6 +538,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {info}
       </div>
     );
+
     return (
       <span>
         {render_logo()}
