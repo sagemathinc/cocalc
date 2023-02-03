@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import useViews, { View as ViewDescription } from "../syncdb/use-views";
+import useViewsWidth from "../syncdb/use-views-width";
 import useViewControl from "../frame/use-view-control";
 import { suggest_duplicate_filename } from "@cocalc/util/misc";
 import { Button, Card, Dropdown, Input, Space, Tabs } from "antd";
@@ -49,7 +50,7 @@ interface Props {
 export default function Views({ table, style }: Props) {
   const { views, saveView, deleteView } = useViews(table);
   const { view, switchToView } = useViewControl(table, views?.[0]?.id);
-  const [width, setWidth] = useState<number>(200);
+  const [width, setWidth] = useViewsWidth(table);
 
   const getView = useCallback(
     (id: string) => {
@@ -200,8 +201,14 @@ export default function Views({ table, style }: Props) {
         items={items.map((node) => node.key)}
         strategy={verticalListSortingStrategy}
       >
-        <div style={{ display: "flex", borderRight: "6px solid #eee" }}>
-          <DefaultTabBar {...tabBarProps} style={{ width }}>
+        <div
+          style={{
+            display: "flex",
+            borderRight: "6px solid #eee",
+            maxWidth: "90%",
+          }}
+        >
+          <DefaultTabBar {...tabBarProps} style={{ width, maxWidth: "100%" }}>
             {(node) =>
               node.key == NEW ? (
                 node
@@ -212,7 +219,6 @@ export default function Views({ table, style }: Props) {
                   selected={view == node.key}
                   select={() => switchToView(node.key)}
                   getView={getView}
-                  width={width}
                   onAction={(
                     action: "rename" | "duplicate" | "delete",
                     newName?: string
@@ -297,9 +303,7 @@ export function SortableItem({
   selected,
   onAction,
   getView,
-  width = 150,
   select,
-  edit,
 }) {
   const {
     attributes,

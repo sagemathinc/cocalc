@@ -14,6 +14,11 @@
 
 .cocalc-crm-views-resizer {
   cursor: ew-resize;
-  width: 15px;
+  width: 10px;
   height: 100%;
+  margin-right: -6px;
+}
+
+.cocalc-crm-views-resizer:hover {
+  border-right: 6px solid #428bca;
 }
