@@ -74,6 +74,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const collapsed = useCollapsed();
     const { actions } = useFrameContext();
     const { id } = useFrameContext();
+    const justBlurred = useRef<boolean>(false);
 
     const cmRef = useRef<Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
@@ -87,60 +88,40 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       [cmRef]
     );
 
-    const focusEditor = useCallback(() => {
-      const cm = cmRef.current;
-      if (cm == null) return;
-      if (collapsed) {
-        // collapsed = single cursor, rather than a selection range.
-        // Put the cursor at the top or bottom,
-        // depending on where it was recently outside of here in the slate document.
-        const last = editor.lastSelection?.focus?.path;
-        const path = editor.selection?.focus?.path;
-        if (last != null && path != null) {
-          let cur: undefined | { line: number; ch: number } = undefined;
-          if (isEqual(last, path)) {
-            // no-op, e.g., already in there
-          } else if (isLessThan(last, path)) {
-            // from above
-            cur = { line: 0, ch: 0 };
-          } else {
-            // from below
-            cur = {
-              line: cm.lastLine(),
-              ch: isInline ? cm.getLine(cm.lastLine()).length : 0,
-            };
-          }
-          if (cur) {
-            cm.setCursor(cur);
-          }
+    const focusEditor = useCallback(
+      (forceCollapsed?) => {
+        const cm = cmRef.current;
+        if (cm == null) return;
+        if (forceCollapsed || collapsed) {
+          // collapsed = single cursor, rather than a selection range.
+          // focus the CodeMirror editor
+          // It is critical to blur the Slate editor
+          // itself after focusing codemirror, since otherwise we
+          // get stuck in an infinite
+          // loop since slate is confused about whether or not it is
+          // blurring or getting focused, since codemirror is a contenteditable
+          // inside of the slate DOM tree.  Hence this ReactEditor.blur:
+          cm.refresh();
+          cm.focus();
+          ReactEditor.blur(editor);
+
+          // set the CSS to indicate this
+          setCSS({
+            backgroundColor: options?.theme != null ? "" : "#fafafa",
+            color: "",
+          });
+        } else {
+          setCSS({
+            backgroundColor: "#1990ff",
+            color: "white",
+          });
         }
-
-        // focus the CodeMirror editor
-        // It is critical to blur the Slate editor
-        // itself after focusing codemirror, since otherwise we
-        // get stuck in an infinite
-        // loop since slate is confused about whether or not it is
-        // blurring or getting focused, since codemirror is a contenteditable
-        // inside of the slate DOM tree.  Hence this blur:
-        cm.refresh();
-        cm.focus();
-        ReactEditor.blur(editor);
-
-        // set the CSS to indicate this
-        setCSS({
-          backgroundColor: options?.theme != null ? "" : "#fafafa",
-          color: "",
-        });
-      } else {
-        setCSS({
-          backgroundColor: "#1990ff",
-          color: "white",
-        });
-      }
-    }, [collapsed, options?.theme]);
+      },
+      [collapsed, options?.theme]
+    );
 
     useEffect(() => {
-      if (focused && selected) {
+      if (focused && selected && !justBlurred.current) {
         focusEditor();
       } else {
         setCSS({
@@ -235,11 +216,16 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       }
 
       cm.on("blur", () => {
+        justBlurred.current = true;
+        setTimeout(() => {
+          justBlurred.current = false;
+        }, 0);
         setIsFocused(false);
       });
 
       cm.on("focus", () => {
         setIsFocused(true);
+        setTimeout(() => focusEditor(true), 0);
       });
 
       cm.on("copy", (_, event) => {
