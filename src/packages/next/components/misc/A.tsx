@@ -1,31 +1,50 @@
 import Link from "next/link";
-import basePath from "lib/base-path";
 import { join } from "path";
+import { ReactNode } from "react";
 
-export default function A(props: any) {
-  const { href } = props;
+import basePath from "lib/base-path";
+
+interface Props {
+  href?: string;
+  external?: boolean;
+  nofollow?: boolean;
+  title?: string;
+  children?: ReactNode;
+}
+
+export default function A(props: Props) {
+  const { href, external = false, nofollow = false } = props;
+
   if (href == null) {
     return <a {...copyWithout(props, new Set(["external"]))} />;
   }
+
+  const rel = `noopener ${nofollow ? "nofollow" : ""}`;
+
   if (href.includes("://") || href.startsWith("mailto:")) {
     return (
       <a
-        {...copyWithout(props, new Set(["external"]))}
+        {...copyWithout(props, new Set(["external", "nofollow"]))}
         target={"_blank"}
-        rel={"noopener"}
+        rel={rel}
       />
     );
   }
-  if (props.external) {
-    const props2 = copyWithout(props, new Set(["external"]));
+
+  if (external) {
+    const props2 = copyWithout(props, new Set(["external", "nofollow"]));
     if (!href.startsWith(basePath)) {
       // @ts-ignore
       props2.href = join(basePath, href);
     }
-    return <a {...props2} target={"_blank"} rel={"noopener"} />;
+    return <a {...props2} target={"_blank"} rel={rel} />;
   }
+
   return (
-    <Link href={href} {...copyWithout(props, new Set(["external", "href"]))} />
+    <Link
+      href={href}
+      {...copyWithout(props, new Set(["external", "nofollow", "href"]))}
+    />
   );
 }
 

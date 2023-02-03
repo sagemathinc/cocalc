@@ -34,12 +34,8 @@ interface Props {
   truncated?: boolean;
 }
 
-export default function FileContents({
-  id,
-  content,
-  path,
-  relativePath,
-}: Props): JSX.Element {
+export default function FileContents(props: Props): JSX.Element {
+  const { id, content, path, relativePath } = props;
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });

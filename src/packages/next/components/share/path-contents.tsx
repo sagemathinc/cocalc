@@ -18,15 +18,8 @@ interface Props {
   truncated?: string;
 }
 
-export default function PathContents({
-  id,
-  isdir,
-  listing,
-  content,
-  relativePath,
-  path,
-  truncated,
-}: Props) {
+export default function PathContents(props: Props) {
+  const { id, isdir, listing, content, relativePath, path, truncated } = props;
   if (isdir) {
     if (listing == null) return <Loading style={{ fontSize: "30px" }} />;
     return (

@@ -60,30 +60,31 @@ interface Props {
   redirect?: string;
 }
 
-export default function PublicPath({
-  id,
-  path,
-  url,
-  project_id,
-  projectTitle,
-  relativePath = "",
-  description,
-  counter,
-  compute_image,
-  license,
-  contents,
-  error,
-  customize,
-  disabled,
-  unlisted,
-  authenticated,
-  stars = 0,
-  isStarred: isStarred0,
-  githubOrg,
-  githubRepo,
-  projectAvatarImage,
-  redirect,
-}: Props) {
+export default function PublicPath(props: Props) {
+  const {
+    id,
+    path,
+    url,
+    project_id,
+    projectTitle,
+    relativePath = "",
+    description,
+    counter,
+    compute_image,
+    license,
+    contents,
+    error,
+    customize,
+    disabled,
+    unlisted,
+    authenticated,
+    stars = 0,
+    isStarred: isStarred0,
+    githubOrg,
+    githubRepo,
+    projectAvatarImage,
+    redirect,
+  } = props;
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
 

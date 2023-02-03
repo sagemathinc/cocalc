@@ -7,12 +7,15 @@ interface Options {
   relativePath: string;
 }
 
+type URLTransformer = (href: string, tag: string) => string | undefined;
+
 // NOTE: there is a similar function in frontend/project/page/url-transform.ts
-export default function getUrlTransform({
-  id,
-  path,
-  relativePath, // relative path of the directory containing the file we are rendering.
-}: Options): (href: string, tag: string) => string | undefined {
+export default function getUrlTransform(opts: Options): URLTransformer {
+  const {
+    id,
+    path,
+    relativePath, // relative path of the directory containing the file we are rendering.
+  } = opts;
   return (href: string, tag: string) => {
     if (href.startsWith("data:")) return; // never change data: urls in any way.
     if (tag == "a" || href.includes("://")) {
