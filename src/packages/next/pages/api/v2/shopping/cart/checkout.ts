@@ -6,6 +6,7 @@ ever removed from cart, and also everything ever purchased.
 import checkout from "@cocalc/server/shopping/cart/checkout";
 import getAccountId from "lib/account/get-account";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 export default async function handle(req, res) {
   try {
@@ -18,10 +19,13 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  await reCaptcha(req);
   const account_id = await getAccountId(req);
   if (account_id == null) {
     throw Error("must be signed in to check out");
+  }
+  if (!(await userIsInGroup(account_id, "partner"))) {
+    // require the captcha to work unless requesting account is a partner.
+    await reCaptcha(req);
   }
   return await checkout(account_id);
 }
