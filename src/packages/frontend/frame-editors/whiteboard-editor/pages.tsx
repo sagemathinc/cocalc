@@ -115,6 +115,7 @@ export default function Pages() {
         onClick={() => {
           const frameId = actions.show_focused_frame_of_type("whiteboard");
           actions.setPage(frameId, index + 1);
+          actions.fitToScreen(frameId);
         }}
         style={{ ...STYLE }}
       >

@@ -20,6 +20,7 @@ import useTables from "../syncdb/use-tables";
 import { getTables } from "../tables";
 import { PlusOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
+import { cmp } from "@cocalc/util/misc";
 
 interface TabItem {
   label: ReactNode;
@@ -119,7 +120,9 @@ function AddTable({ setAdding, tables, setTables }) {
     const cur = new Set(tables);
     const all = getTables();
     return all
-      .sort()
+      .sort((t0, t1) =>
+        cmp(getTableDescription(t0).title, getTableDescription(t1).title)
+      )
       .filter((x) => !cur.has(x))
       .map((table) => {
         return { value: table, label: <Label table={table} /> };

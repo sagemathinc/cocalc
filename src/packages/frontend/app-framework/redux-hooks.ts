@@ -347,12 +347,14 @@ export function useActions(name: "users"): types.UsersActions;
 // get proper typing.
 export function useActions(x: string): any;
 
-export function useActions<T>({ name: string }): T;
+export function useActions<T>(x: { name: string }): T;
 
 // Return type includes undefined because the actions for a project *do* get
 // destroyed when closing a project, and rendering can still happen during this
 // time, so client code must account for this.
-export function useActions({ project_id: string }): ProjectActions | undefined;
+export function useActions(x: {
+  project_id: string;
+}): ProjectActions | undefined;
 
 // Or an editor actions (any for now)
 export function useActions(x: string, path: string): any;

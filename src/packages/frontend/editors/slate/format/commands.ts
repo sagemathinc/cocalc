@@ -496,7 +496,7 @@ export function selectionToText(editor: Editor): string {
 export function formatHeading(editor, level: number): void {
   const at = getCollapsedSelection(editor);
   const options = {
-    match: (node) => Editor.isBlock(editor, node),
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
     mode: "highest" as "highest",
     at,
   };
@@ -563,7 +563,7 @@ function containingBlocks(editor: Editor, at: Location): Element[] {
   return matchingNodes(editor, {
     at,
     mode: "lowest",
-    match: (node) => Editor.isBlock(editor, node),
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
   });
 }
 
@@ -617,7 +617,7 @@ function formatQuote(editor): void {
     // Quote the blocks containing the selection.
     Transforms.wrapNodes(editor, { type: "blockquote" } as Element, {
       at,
-      match: (node) => Editor.isBlock(editor, node),
+      match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
       mode: "lowest",
     });
   }

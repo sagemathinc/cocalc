@@ -47,6 +47,7 @@ export default function Gallery({
       }}
       itemContent={(index) => (
         <OneCard
+          index={index}
           key={data[index][rowKey]}
           elt={data[index]}
           rowKey={rowKey}
@@ -59,12 +60,14 @@ export default function Gallery({
 }
 
 export function OneCard({
+  index,
   elt,
   rowKey,
   columns,
   style,
   Title,
 }: {
+  index?;
   elt;
   rowKey: string;
   columns: object[];
@@ -81,12 +84,32 @@ export function OneCard({
     />
   );
   const data = <Data elt={elt} columns={columns.slice(1)} />;
+  const head = Title != null ? <Title>{title}</Title> : title;
   const card = (
     <Card
       onClick={() => setOpen(true)}
       hoverable
       key={elt[rowKey]}
-      title={Title != null ? <Title>{title}</Title> : title}
+      title={
+        index != null ? (
+          <div>
+            <div
+              style={{
+                paddingLeft: "5px",
+                float: "right",
+                color: "#666",
+                fontWeight: 200,
+                fontSize: "10pt",
+              }}
+            >
+              {index + 1}
+            </div>
+            {head}
+          </div>
+        ) : (
+          head
+        )
+      }
       style={{
         display: "inline-block",
         margin: "10px",

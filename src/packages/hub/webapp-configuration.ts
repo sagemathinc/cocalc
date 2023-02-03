@@ -9,14 +9,15 @@
 // This manages the webapp's configuration based on the hostname
 // (allows whitelabeling).
 
+import { delay } from "awaiting";
+import debug from "debug";
+
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
-import { delay } from "awaiting";
-import debug from "debug";
 import { parseDomain, ParseResultType } from "parse-domain";
 import { get_passport_manager, PassportManager } from "./auth";
 import getServerSettings from "./servers/server-settings";
@@ -63,7 +64,6 @@ async function get_passport_manager_async(): Promise<PassportManager> {
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
   private data?: any;
-  private passport_manager: PassportManager;
 
   constructor({ db }) {
     this.db = db;
@@ -73,7 +73,7 @@ export class WebappConfiguration {
   private async init(): Promise<void> {
     // this.data.pub updates automatically – do not modify it!
     this.data = await getServerSettings();
-    this.passport_manager = await get_passport_manager_async();
+    await get_passport_manager_async();
   }
 
   // server settings with whitelabeling settings
@@ -155,11 +155,14 @@ export class WebappConfiguration {
     return { ...config, ...vanity, ...{ country, dns: host } };
   }
 
-  private get_strategies(): object {
+  private async get_strategies(): Promise<object> {
     const key = "strategies";
     let strategies = CACHE.get(key);
     if (strategies == null) {
-      strategies = this.passport_manager.get_strategies_v2();
+      // wait until this.passport_manager is initialized.
+      // this could happen right at the start of the server
+      const passport_manager = await get_passport_manager_async();
+      strategies = passport_manager.get_strategies_v2();
       CACHE.set(key, strategies);
     }
     return strategies as object;
@@ -171,7 +174,7 @@ export class WebappConfiguration {
       have_active_registration_tokens(this.db),
       getSoftwareEnvironments("webapp"),
     ]);
-    const strategies = this.get_strategies();
+    const strategies = await this.get_strategies();
     return { configuration, registration, strategies, software };
   }
 

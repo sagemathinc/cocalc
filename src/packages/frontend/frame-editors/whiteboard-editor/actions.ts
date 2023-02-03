@@ -80,7 +80,20 @@ export class Actions extends BaseActions<State> {
   private keyHandler?: (event) => void;
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "whiteboard" };
+    // return { type: "whiteboard" };
+    return {
+      direction: "col",
+      type: "node",
+      first: { type: "whiteboard" },
+      second: {
+        direction: "row",
+        type: "node",
+        pos: 0.6,
+        first: { type: "pages" },
+        second: { type: "search" },
+      },
+      pos: 0.8,
+    };
   }
 
   _init2(): void {
@@ -1271,12 +1284,10 @@ export class Actions extends BaseActions<State> {
         // new page id's:
         this.setPageId(frameId, page);
       }
-      this.fitToScreen(frameId);
       return;
     }
     if (id != null) {
       this.centerElement(id, frameId);
-      this.zoom100(frameId);
       return;
     }
   }
@@ -1360,7 +1371,6 @@ export class Actions extends BaseActions<State> {
     if (node == null) return;
     super.setPage(frameId, pageNumber);
     this.setFragmentIdToPage(frameId);
-    this.fitToScreen(frameId);
   }
 
   setPageId(frameId: string, pageId: string): void {
@@ -1368,7 +1378,6 @@ export class Actions extends BaseActions<State> {
     if (node == null) return;
     this.setPage(frameId, this.pageToNumber(pageId) ?? 1);
     this.setFragmentIdToPage(frameId);
-    this.fitToScreen(frameId);
   }
 
   newPage(frameId: string): string {

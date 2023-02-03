@@ -17,7 +17,7 @@ import { COLORS } from "@cocalc/util/theme";
 import * as feature from "@cocalc/frontend/feature";
 
 import Draggable from "react-draggable";
-const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 2;
+const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 3; // 3 is consistent with width/height of 6 in several other places in cocalc.
 
 const COLS_DRAG_BAR: CSS = {
   padding: `${DRAG_OFFSET}px`,
@@ -26,7 +26,7 @@ const COLS_DRAG_BAR: CSS = {
 } as const;
 
 const DRAG_HOVER: CSS = {
-  background: COLORS.GRAY,
+  background: "#428bca",
   opacity: 0.8,
   zIndex: 100, // so it's on top of editors and other controls
 } as const;

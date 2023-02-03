@@ -142,9 +142,9 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     set_upgrades("min");
   }
 
-  function max_upgrades() {
-    set_upgrades("max");
-  }
+//   function max_upgrades() {
+//     set_upgrades("max");
+//   }
 
   function set_upgrades(description) {
     const info = get_quota_info();
@@ -471,9 +471,9 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
           </div>
         )}
         <div style={{ marginTop: "10px" }}>
-          <Button onClick={max_upgrades}>
+          {/* <Button onClick={max_upgrades}>
             Apply maximum available upgrades to this project...
-          </Button>{" "}
+          </Button>{" "}*/}
           <Button onClick={clear_upgrades}>
             Remove all your upgrades from this project...
           </Button>

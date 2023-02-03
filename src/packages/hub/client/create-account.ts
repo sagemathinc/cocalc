@@ -256,12 +256,12 @@ export async function create_account(
     if (n >= MAX_ACCOUNTS_PER_30MIN) {
       let m = MAX_ACCOUNTS_PER_30MIN;
 
-      // Check if account is being created via API by a "gold" user.
+      // Check if account is being created via API by a user in the "partner" group.
       if (
         opts.client.account_id != null &&
         (await callback2(opts.database.user_is_in_group, {
           account_id: opts.client.account_id,
-          group: "gold",
+          group: "partner",
         }))
       ) {
         m = MAX_ACCOUNTS_PER_30MIN_GOLD;

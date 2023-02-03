@@ -193,15 +193,6 @@ export default function Header(props: Props) {
         >
           Support
         </A>{" "}
-        {!account && anonymousSignup && (
-          <A
-            style={page == "try" ? SelectedStyle : LinkStyle}
-            href={"/auth/try"}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try
-          </A>
-        )}{" "}
         {account ? (
           <AccountNavTab
             style={page == "account" ? SelectedStyle : LinkStyle}
@@ -224,6 +215,15 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
+        {!account && anonymousSignup && (
+          <A
+            style={page == "try" ? SelectedStyle : LinkStyle}
+            href={"/auth/try"}
+            title={`Try ${siteName} immediately without creating an account.`}
+          >
+            Try
+          </A>
+        )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
     </>
