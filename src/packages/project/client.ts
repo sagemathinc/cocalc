@@ -379,7 +379,7 @@ export class Client extends EventEmitter {
     cb: CB<any, string>;
   }) {
     opts = defaults(opts, {
-      query: required, // a query (see schema.coffee)
+      query: required, // a query (see schema.js)
       changes: undefined, // whether or not to create a changefeed
       options: undefined, // options to the query, e.g., [{limit:5}] )
       standby: false, // **IGNORED**
@@ -691,7 +691,7 @@ export class Client extends EventEmitter {
     return await get_kernel_data();
   }
 
-  // See the file watcher.coffee for docs
+  // See the file watcher.ts for docs
   public watch_file(opts) {
     opts = defaults(opts, {
       path: required,
