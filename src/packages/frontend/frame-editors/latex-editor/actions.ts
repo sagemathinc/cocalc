@@ -341,7 +341,8 @@ export class Actions extends BaseActions<LatexEditorState> {
             this.set_build_command(build_command);
             return;
           }
-        } else if (cmd.size > 0) {
+          // https://github.com/sagemathinc/cocalc/issues/6397
+        } else if (List.isList(cmd) && cmd.size > 0) {
           // It's an array so the output-directory option should be
           // set; however, it's possible it isn't in case this is
           // an old document that had the build_command set before
@@ -354,13 +355,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
 
       // fallback
-      const default_cmd = build_command(
-        this.engine_config || "PDFLaTeX",
-        path_split(this.path).tail,
-        this.knitr,
-        this.output_directory
-      );
-      this.set_build_command(default_cmd);
+      this.set_default_build_command();
     };
 
     set_cmd();
@@ -371,6 +366,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       // and it is likely a master latex file, so let's kick off our initial build.
       this.force_build();
     }
+  }
+
+  private set_default_build_command(): string[] {
+    const default_cmd = build_command(
+      this.engine_config || "PDFLaTeX",
+      path_split(this.path).tail,
+      this.knitr,
+      this.output_directory
+    );
+    this.set_build_command(default_cmd);
+    return default_cmd;
   }
 
   private output_directory_cmd_flag(output_dir?: string): string {
