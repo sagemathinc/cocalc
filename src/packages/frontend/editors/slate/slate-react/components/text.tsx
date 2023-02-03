@@ -82,7 +82,10 @@ const Text = (props: {
  * kept in order, and the odd case where they aren't is okay to re-render for.
  */
 
-const isRangeListEqual = (list: Range[], another: Range[]): boolean => {
+const isRangeListEqual = (list?: Range[], another?: Range[]): boolean => {
+  if (list == null || another == null) {
+    return list === another;
+  }
   if (list.length !== another.length) {
     return false;
   }

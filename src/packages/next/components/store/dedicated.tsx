@@ -757,7 +757,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             {renderAdditionalInfo()}
             {renderUsageAndDuration()}
 
-            <Divider plain>Confguration</Divider>
+            <Divider plain>Configuration</Divider>
             {renderConfiguration()}
 
             <TitleDescription showExplanations={showExplanations} />

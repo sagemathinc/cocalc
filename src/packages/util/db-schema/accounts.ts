@@ -99,6 +99,10 @@ Table({
     banned: {
       type: "boolean",
       desc: "Whether or not this user is banned.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
     terminal: {
       type: "map",
@@ -166,6 +170,10 @@ Table({
     unlisted: {
       type: "boolean",
       desc: "If true then exclude user for full name searches (but not exact email address searches).",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
   },
   rules: {
@@ -416,7 +424,11 @@ Table({
       get: {
         pg_where: [],
         admin: true, // only admins can do get queries on this table
-        fields: schema.accounts.user_query?.get?.fields ?? {},
+        fields: {
+          ...schema.accounts.user_query?.get?.fields,
+          banned: null,
+          groups: null,
+        },
       },
       set: {
         admin: true, // only admins can do get queries on this table
@@ -427,6 +439,8 @@ Table({
           last_name: true,
           autosave: true,
           font_size: true,
+          banned: true,
+          unlisted: true,
         },
       },
     },
