@@ -3,14 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-TODO:
-- keyboard with user settings
-*/
-
 import React, {
   CSSProperties,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useCallback,
@@ -28,9 +24,9 @@ import {
 } from "../control";
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
-import { isEqual } from "lodash";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { useRedux } from "@cocalc/frontend/app-framework";
+import { isEqual } from "lodash";
 
 const STYLE = {
   width: "100%",
@@ -64,14 +60,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     onEscape,
     onBlur,
     onFocus,
-    options,
+    options: cmOptions,
     isInline,
     style,
   }) => {
-    const theme = useRedux(["account", "editor_settings"])?.get(
-      "theme",
-      "default"
-    );
     const focused = useFocused();
     const selected = useSelected();
     const editor = useSlate();
@@ -79,10 +71,68 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const { actions } = useFrameContext();
     const { id } = useFrameContext();
     const justBlurred = useRef<boolean>(false);
-
     const cmRef = useRef<Editor | undefined>(undefined);
-    const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
+    const [isFocused, setIsFocused] = useState<boolean>(!!cmOptions?.autofocus);
     const textareaRef = useRef<any>(null);
+
+    const editor_settings = useRedux(["account", "editor_settings"]);
+    const options = useMemo(() => {
+      const selectAllKeyboard = (cm) => {
+        if (cm.getSelection() != cm.getValue()) {
+          // not everything is selected (or editor is empty), so
+          // select everything.
+          commands.selectAll(cm);
+        } else {
+          // everything selected, so now select all editor content.
+          // NOTE that this only makes sense if we change focus
+          // to the enclosing select editor, thus loosing the
+          // cm editor focus, which is a bit weird.
+          ReactEditor.focus(editor);
+          selectAll(editor);
+        }
+      };
+
+      const bindings = editor_settings.get("bindings");
+      return {
+        ...cmOptions,
+        autoCloseBrackets: editor_settings.get("auto_close_brackets", false),
+        lineWrapping: editor_settings.get("line_wrapping", true),
+        lineNumbers: editor_settings.get("line_numbers", false),
+        matchBrackets: editor_settings.get("match_brackets", false),
+        styleActiveLine: editor_settings.get("style_active_line", true),
+        theme: editor_settings.get("theme", "default"),
+        keyMap:
+          bindings == null || bindings == "standard" ? "default" : bindings,
+        // The two lines below MUST match with the useEffect above that reacts to changing info.
+        mode: cmOptions?.mode ?? infoToMode(info),
+        indentUnit:
+          cmOptions?.indentUnit ??
+          file_associations[info ?? ""]?.opts.indent_unit ??
+          4,
+
+        // NOTE: Using the inputStyle of "contenteditable" is challenging
+        // because we have to take care that copy doesn't end up being handled
+        // by slate and being wrong.  In contrast, textarea does work fine for
+        // copy.  However, textarea does NOT work when any CSS transforms
+        // are involved, and we use such transforms extensively in the whiteboard.
+
+        inputStyle: "contenteditable" as "contenteditable", // can't change because of whiteboard usage!
+        extraKeys: {
+          ...cmOptions?.extraKeys,
+          "Shift-Enter": () => {
+            Transforms.move(editor, { distance: 1, unit: "line" });
+            ReactEditor.focus(editor);
+            onShiftEnter?.();
+          },
+          // We make it so doing select all when not everything is
+          // selected selects everything in this local Codemirror.
+          // Doing it *again* then selects the entire external slate editor.
+          "Cmd-A": selectAllKeyboard,
+          "Ctrl-A": selectAllKeyboard,
+          ...(onEscape != null ? { Esc: onEscape } : undefined),
+        },
+      };
+    }, [editor_settings, cmOptions]);
 
     const setCSS = useCallback(
       (css) => {
@@ -108,12 +158,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           cm.refresh();
           cm.focus();
           ReactEditor.blur(editor);
-
-          // set the CSS to indicate this
-          setCSS({
-            backgroundColor: theme != null ? "" : "#fafafa",
-            color: "",
-          });
         } else {
           setCSS({
             backgroundColor: "#1990ff",
@@ -121,19 +165,14 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           });
         }
       },
-      [collapsed, theme]
+      [collapsed, options.theme]
     );
 
     useEffect(() => {
       if (focused && selected && !justBlurred.current) {
         focusEditor();
-      } else {
-        setCSS({
-          backgroundColor: theme != null ? "" : "#fafafa",
-          color: "",
-        });
       }
-    }, [selected, focused, theme]);
+    }, [selected, focused, options.theme]);
 
     // If the info line changes update the mode.
     useEffect(() => {
@@ -147,63 +186,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     useEffect(() => {
       const node: HTMLTextAreaElement = textareaRef.current;
       if (node == null) return;
-      if (options == null) options = {};
-
-      // The two lines below MUST match with the useEffect above that reacts to changing info.
-      options.mode = options.mode ?? infoToMode(info);
-      options.indentUnit =
-        options.indentUnit ??
-        file_associations[info ?? ""]?.opts.indent_unit ??
-        4;
-
-      // NOTE: Using the inputStyle of "contenteditable" is challenging
-      // because we have to take care that copy doesn't end up being handled
-      // by slate and being wrong.  In contrast, textarea does work fine for
-      // copy.  However, textarea does NOT work when any CSS transforms
-      // are involved, and we use such transforms extensively in the whiteboard.
-
-      options.inputStyle = "contenteditable"; // can't change because of whiteboard usage!
-
-      if (options.extraKeys == null) {
-        options.extraKeys = {};
-      }
-
-      options.extraKeys["Shift-Enter"] = () => {
-        Transforms.move(editor, { distance: 1, unit: "line" });
-        ReactEditor.focus(editor);
-        onShiftEnter?.();
-      };
-
-      if (onEscape != null) {
-        options.extraKeys["Esc"] = onEscape;
-      }
-
-      options.extraKeys["Tab"] = (cm) => {
-        const spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
-        cm.replaceSelection(spaces);
-      };
-
-      // We make it so doing select all when not everything is
-      // selected selects everything in this local Codemirror.
-      // Doing it *again* then selects the entire external slate editor.
-      options.extraKeys["Cmd-A"] = options.extraKeys["Ctrl-A"] = (cm) => {
-        if (cm.getSelection() != cm.getValue()) {
-          // not everything is selected (or editor is empty), so
-          // select everything.
-          commands.selectAll(cm);
-        } else {
-          // everything selected, so now select all editor content.
-          // NOTE that this only makes sense if we change focus
-          // to the enclosing select editor, thus loosing the
-          // cm editor focus, which is a bit weird.
-          ReactEditor.focus(editor);
-          selectAll(editor);
-        }
-      };
 
       cursorHandlers(options, editor, isInline);
 
-      const cm = (cmRef.current = fromTextArea(node, { ...options, theme }));
+      const cm = (cmRef.current = fromTextArea(node, options));
 
       cm.on("change", (_, _changeObj) => {
         if (onChange != null) {
@@ -255,9 +241,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         height: "auto",
         padding: "5px",
       };
-      if (theme == null) {
-        css.backgroundColor = "#f7f7f7";
-      }
       setCSS(css);
       cm.refresh();
 
@@ -267,6 +250,19 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cmRef.current = undefined;
       };
     }, []);
+
+    useEffect(() => {
+      const cm = cmRef.current;
+      if (cm == null) return;
+      for (const key in options) {
+        const opt = options[key];
+        if (!isEqual(cm.options[key], opt)) {
+          if (opt != null) {
+            cm.setOption(key as any, opt);
+          }
+        }
+      }
+    }, [editor_settings]);
 
     useEffect(() => {
       cmRef.current?.setValueNoJump(value);
@@ -289,6 +285,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     );
   }
 );
+
+// TODO: vim version of this...
 
 function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   const exitDown = (cm) => {
@@ -345,11 +343,4 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   };
 }
 
-function isLessThan(p1: number[], p2: number[]): boolean {
-  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-    if ((p1[i] ?? 0) < (p2[i] ?? 0)) {
-      return true;
-    }
-  }
-  return false;
-}
+
