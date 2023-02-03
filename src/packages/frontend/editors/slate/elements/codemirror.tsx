@@ -5,7 +5,6 @@
 
 /*
 TODO:
-- syntax highlight in user's theme
 - keyboard with user settings
 */
 
@@ -31,6 +30,7 @@ import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
 import { isEqual } from "lodash";
 import { file_associations } from "@cocalc/frontend/file-associations";
+import { useRedux } from "@cocalc/frontend/app-framework";
 
 const STYLE = {
   width: "100%",
@@ -68,6 +68,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     isInline,
     style,
   }) => {
+    const theme = useRedux(["account", "editor_settings"])?.get(
+      "theme",
+      "default"
+    );
     const focused = useFocused();
     const selected = useSelected();
     const editor = useSlate();
@@ -107,7 +111,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
           // set the CSS to indicate this
           setCSS({
-            backgroundColor: options?.theme != null ? "" : "#fafafa",
+            backgroundColor: theme != null ? "" : "#fafafa",
             color: "",
           });
         } else {
@@ -117,7 +121,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           });
         }
       },
-      [collapsed, options?.theme]
+      [collapsed, theme]
     );
 
     useEffect(() => {
@@ -125,11 +129,11 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         focusEditor();
       } else {
         setCSS({
-          backgroundColor: options?.theme != null ? "" : "#fafafa",
+          backgroundColor: theme != null ? "" : "#fafafa",
           color: "",
         });
       }
-    }, [selected, focused, options?.theme]);
+    }, [selected, focused, theme]);
 
     // If the info line changes update the mode.
     useEffect(() => {
@@ -199,7 +203,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
       cursorHandlers(options, editor, isInline);
 
-      const cm = (cmRef.current = fromTextArea(node, options));
+      const cm = (cmRef.current = fromTextArea(node, { ...options, theme }));
 
       cm.on("change", (_, _changeObj) => {
         if (onChange != null) {
@@ -251,7 +255,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         height: "auto",
         padding: "5px",
       };
-      if (options.theme == null) {
+      if (theme == null) {
         css.backgroundColor = "#f7f7f7";
       }
       setCSS(css);
