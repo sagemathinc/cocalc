@@ -349,10 +349,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       height: button_height(),
     };
     if (is_active) {
-      style.position = "absolute";
       style.boxShadow = "#ccc -2px 0";
-      style.right = 0;
-      style.zIndex = 10; // so can click see buttons when flow around
     }
     return (
       <ButtonGroup style={style} key={"close"}>
@@ -1464,6 +1461,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const style: CSS = {
       flexFlow: "row nowrap",
       display: "flex",
+      flex: 1,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
     };
     return (
       <div style={style}>
