@@ -17,7 +17,7 @@ import initServers from "./servers/init";
 import { getLogger } from "./logger";
 const winston = getLogger("project-main");
 
-export async function main() {
+function checkEnvVariables() {
   const { HOME } = process.env;
   if (HOME == null) {
     throw Error("HOME env var must be set");
@@ -30,7 +30,10 @@ export async function main() {
   // TODO: some code, e.g., smc_pyutil's cc-jupyter script, assumes
   // that SMC is defined still.
   process.env.SMC = process.env.DATA;
+}
 
+export async function main() {
+  checkEnvVariables();
   const options = initProgram(); // must run before anything else.
   if (options.daemon) {
     winston.info("daemonize the process");

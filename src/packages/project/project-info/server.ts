@@ -8,31 +8,33 @@ Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
 */
 
-import debug from "debug";
-const L = debug("project:project-info:server");
 import { delay } from "awaiting";
-import { join } from "path";
-import { exec } from "./utils";
+import { EventEmitter } from "node:events";
+import { readdir, readFile, readlink } from "node:fs/promises";
+import { join } from "node:path";
+
+import { check as df } from "diskusage";
 import { options } from "../init-program";
-import { promises as fsPromises } from "fs";
+import { get_kernel_by_pid } from "../jupyter/jupyter";
 import { pid2path as terminal_pid2path } from "../terminal/server";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
-import { get_kernel_by_pid } from "../jupyter/jupyter";
-const { readFile, readdir, readlink } = fsPromises;
-import { check as df } from "diskusage";
-import { EventEmitter } from "events";
 import {
+  CGroup,
+  CoCalcInfo,
   Cpu,
+  DiskUsage,
   Process,
   Processes,
   ProjectInfo,
   Stat,
   State,
-  DiskUsage,
-  CoCalcInfo,
-  CGroup,
 } from "./types";
+import { exec } from "./utils";
+
 //const { get_sage_path } = require("../sage_session");
+
+import getLogger from "../logger";
+const L = getLogger("project-info:server").debug;
 
 function is_in_dev_project() {
   return process.env.SMC_LOCAL_HUB_HOME != null;
@@ -209,19 +211,14 @@ export class ProjectInfoServer extends EventEmitter {
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
     if (!is_in_dev_project() && !options.kucalc && !this.testing) return;
-    const [
-      mem_stat_raw,
-      cpu_raw,
-      oom_raw,
-      cfs_quota_raw,
-      cfs_period_raw,
-    ] = await Promise.all([
-      readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
-      readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
-      readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
-      readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
-      readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
-    ]);
+    const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
+      await Promise.all([
+        readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
+        readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
+        readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
+        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
+        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
+      ]);
     const mem_stat_keys = [
       "total_rss",
       "total_cache",

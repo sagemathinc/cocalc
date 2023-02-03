@@ -3,24 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as fs from "fs";
-
-import { callback } from "awaiting";
-
-function _exists(path: string, cb: Function): void {
-  fs.exists(path, (exists) => {
-    cb(undefined, exists);
-  });
-}
+import { readFile, unlink, access } from "node:fs/promises";
 
 export async function exists(path: string): Promise<boolean> {
-  return await callback(_exists, path);
+  // fs.exists is deprecated
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export async function readFile(path: string): Promise<Buffer> {
-  return await callback(fs.readFile, path);
-}
-
-export async function unlink(path: string): Promise<void> {
-  return await callback(fs.unlink, path);
-}
+export { readFile, unlink };

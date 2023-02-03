@@ -14,24 +14,24 @@ Requests must be authenticated using the secret token.
 
 const MAX_REQUESTS_PER_MINUTE = 150;
 
-import express from "express";
-import { writeFile } from "fs";
-import { callback } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
-import { split } from "@cocalc/util/misc";
 import { json, urlencoded } from "body-parser";
 import type { Request } from "express";
+import express from "express";
 import RateLimit from "express-rate-limit";
-import { apiServerPortFile } from "@cocalc/project/data";
+import { writeFile } from "node:fs/promises";
+
 import * as theClient from "@cocalc/project/client";
+import { apiServerPortFile } from "@cocalc/project/data";
 import { secretToken } from "@cocalc/project/servers/secret-token";
+import { once } from "@cocalc/util/async-utils";
+import { split } from "@cocalc/util/misc";
 
 let client: theClient.Client | undefined = undefined;
 export { client };
 
 import getSyncdocHistory from "./get-syncdoc-history";
-import writeTextFile from "./write-text-file";
 import readTextFile from "./read-text-file";
+import writeTextFile from "./write-text-file";
 
 export default async function init(): Promise<void> {
   client = theClient.client;
@@ -51,7 +51,7 @@ export default async function init(): Promise<void> {
   }
   const { port } = address;
   dbg(`writing port to file "${apiServerPortFile}"`);
-  await callback(writeFile, apiServerPortFile, `${port}`);
+  await writeFile(apiServerPortFile, `${port}`);
 
   dbg(`express server successfully listening at http://localhost:${port}`);
 }

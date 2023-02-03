@@ -12,13 +12,14 @@ from the ProjectInfoServer (which collects data about everything)
 */
 
 import { delay } from "awaiting";
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
+
 import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
 import { Process, ProjectInfo } from "../project-info/types";
 import { UsageInfo } from "./types";
 
 import { getLogger } from "../logger";
-const L = getLogger("project:usage-info:server").debug;
+const L = getLogger("usage-info:server").debug;
 
 function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
   // we assume a,b >= 0, hence we leave out Math.abs operations

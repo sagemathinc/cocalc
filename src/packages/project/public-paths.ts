@@ -10,9 +10,10 @@ Monitoring of public paths in a running project.
 const UPDATE_INTERVAL_S: number = 20;
 //const UPDATE_INTERVAL_S: number = 3; // for testing
 
-import { lstat } from "fs";
-import { execFile } from "child_process";
 import { callback, delay } from "awaiting";
+import { execFile } from "child_process";
+import { lstat } from "node:fs/promises";
+
 import * as client from "./client";
 
 let monitor: MonitorPublicPaths | undefined = undefined;
@@ -20,7 +21,6 @@ export default function init() {
   if (monitor !== undefined) return;
   monitor = new MonitorPublicPaths();
 }
-
 
 class MonitorPublicPaths {
   private client: client.Client;
@@ -119,7 +119,7 @@ class MonitorPublicPaths {
     let changed: boolean = false; // don't know yet
     let stats: any;
     d("lstat");
-    stats = await callback(lstat, path);
+    stats = await lstat(path);
     if (stats.mtime.valueOf() > last_edited) {
       d("clearly modified, since path changed");
       changed = true;

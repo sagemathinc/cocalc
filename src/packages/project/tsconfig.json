@@ -3,6 +3,7 @@
   "compilerOptions": {
     "types": ["node", "jest"],
     "lib": ["ES2021"],
+    "target": "ES2021",
     "rootDir": "./",
     "outDir": "dist"
   },

@@ -56,7 +56,7 @@ import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
 
 import { getLogger } from "./logger";
-const winston = getLogger("project:client");
+const winston = getLogger("client");
 
 const HOME = process.env.HOME ?? "/home/user";
 

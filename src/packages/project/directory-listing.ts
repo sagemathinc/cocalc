@@ -18,8 +18,9 @@ Browser client code only uses this through the websocket anyways.
 */
 
 import { Router } from "express";
-import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
-import { callback } from "awaiting";
+ import { lstat, stat, readdir, readlink,} from "node:fs/promises"
+import { Dirent, Stats } from "node:fs";
+
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "async-await-utils/hof";
 
@@ -39,7 +40,7 @@ async function getDirectoryListing(
   winston.debug(dir);
   const files: DirectoryListingEntry[] = [];
   let file: Dirent;
-  for (file of await callback(readdir, dir, { withFileTypes: true })) {
+  for (file of await readdir( dir, { withFileTypes: true })) {
     if (!hidden && file.name[0] === ".") {
       continue;
     }
@@ -65,21 +66,21 @@ async function getDirectoryListing(
         // at least right now we only use this symlink stuff to display
         // information to the user in a listing, and nothing else.
         try {
-          entry.link_target = await callback(readlink, dir + "/" + entry.name);
+          entry.link_target = await readlink( dir + "/" + entry.name);
         } catch (err) {
           // If we don't know the link target for some reason; just ignore this.
         }
       }
       try {
-        stats = await callback(stat, dir + "/" + entry.name);
+        stats = await stat( dir + "/" + entry.name);
       } catch (err) {
         // don't have access to target of link (or it is a broken link).
-        stats = await callback(lstat, dir + "/" + entry.name);
+        stats = await lstat( dir + "/" + entry.name);
       }
       entry.mtime = stats.mtime.valueOf() / 1000;
       if (stats.isDirectory()) {
         entry.isdir = true;
-        const v = await callback(readdir, dir + "/" + entry.name);
+        const v = await readdir( dir + "/" + entry.name);
         if (hidden) {
           entry.size = v.length;
         } else {

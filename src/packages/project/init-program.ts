@@ -17,7 +17,7 @@ interface Options {
   init: string;
 }
 
-let options = {
+const options: Options = {
   hubPort: 0,
   browserPort: 0,
   hostname: "127.0.0.1",
@@ -26,7 +26,7 @@ let options = {
   daemon: false,
   sshd: false,
   init: "",
-} as Options;
+};
 
 export { options };
 

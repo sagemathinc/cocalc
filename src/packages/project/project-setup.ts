@@ -7,11 +7,11 @@
 This configures the project hub based on an environment variable or other data.
 */
 
-import { existsSync } from "fs";
-import { setPriority } from "os";
-import { getLogger } from "@cocalc/project/logger";
+import { existsSync } from "node:fs";
+import { setPriority } from "node:os";
 
-const L = getLogger("project:project-setup");
+import { getLogger } from "@cocalc/project/logger";
+const L = getLogger("project-setup").debug;
 
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
@@ -30,12 +30,12 @@ export function getProjectConfig(): ProjectConfig | null {
     return null;
   }
   try {
-    L.debug(`configure(${conf_enc.slice(0, 30)}...)`);
+    L(`configure(${conf_enc.slice(0, 30)}...)`);
     const conf_raw = Buffer.from(conf_enc, "base64").toString("utf8");
     return JSON.parse(conf_raw);
   } catch (err) {
     // we report and ignore errors
-    L.debug(`ERROR parsing COCALC_PROJECT_CONFIG -- '${conf_enc}' -- ${err}`);
+    L(`ERROR parsing COCALC_PROJECT_CONFIG -- '${conf_enc}' -- ${err}`);
     return null;
   }
 }
@@ -44,13 +44,13 @@ export function getProjectConfig(): ProjectConfig | null {
 export function is_free_project(): boolean {
   const conf = getProjectConfig();
   const ifp = conf?.quota?.member_host === false;
-  L.debug(`is_free_project: ${ifp}`);
+  L(`is_free_project: ${ifp}`);
   return ifp;
 }
 
 export function configure() {
   if (is_free_project()) {
-    L.debug(`member_host is false -- renicing everything`);
+    L(`member_host is false -- renicing everything`);
     setPriority(process.pid, DEFAULT_FREE_PROCS_NICENESS);
   }
 }
@@ -60,7 +60,7 @@ export function set_extra_env(): { [key: string]: string } | undefined {
   sage_aarch64_hack();
 
   if (!process.env.COCALC_EXTRA_ENV) {
-    L.debug("set_extra_env: nothing provided");
+    L("set_extra_env: nothing provided");
     return;
   }
 
@@ -68,13 +68,13 @@ export function set_extra_env(): { [key: string]: string } | undefined {
   try {
     const env64 = process.env.COCALC_EXTRA_ENV;
     const raw = Buffer.from(env64, "base64").toString("utf8");
-    L.debug(`set_extra_env: ${raw}`);
+    L(`set_extra_env: ${raw}`);
     const data = JSON.parse(raw);
     if (typeof data === "object") {
       for (let k in data) {
         const v = data[k];
         if (typeof v !== "string" || v.length === 0) {
-          L.debug(
+          L(
             `set_extra_env: ignoring key ${k}, value is not a string or has length 0`
           );
           continue;
@@ -86,7 +86,7 @@ export function set_extra_env(): { [key: string]: string } | undefined {
     }
   } catch (err) {
     // we report and ignore errors
-    L.debug(
+    L(
       `ERROR set_extra_env -- cannot process '${process.env.COCALC_EXTRA_ENV}' -- ${err}`
     );
   }

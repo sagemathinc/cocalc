@@ -10,12 +10,11 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
-import { callback } from "awaiting";
 import bodyParser from "body-parser";
 import compression from "compression";
 import express from "express";
 import { createServer } from "http";
-import { writeFile } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import basePath from "@cocalc/backend/base-path";
@@ -25,12 +24,12 @@ import initDirectoryListing from "@cocalc/project/directory-listing";
 import { options } from "@cocalc/project/init-program";
 import initJupyter from "@cocalc/project/jupyter/http-server";
 import * as kucalc from "@cocalc/project/kucalc";
-import { getLogger } from "@cocalc/project/logger";
 import initUpload from "@cocalc/project/upload";
 import { once } from "@cocalc/util/async-utils";
 import initRootSymbolicLink from "./root-symlink";
 import initStaticServer from "./static";
 
+import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("browser-http-server");
 
 export default async function init(): Promise<void> {
@@ -105,5 +104,5 @@ export default async function init(): Promise<void> {
   );
 
   winston.info(`Writing port to ${browserPortFile}`);
-  await callback(writeFile, browserPortFile, `${assignedPort}`);
+  await writeFile(browserPortFile, `${assignedPort}`);
 }

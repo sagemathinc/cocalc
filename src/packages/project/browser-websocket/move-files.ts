@@ -4,11 +4,11 @@
  */
 
 import { move, pathExists } from "fs-extra";
-import { stat } from "fs";
+import { stat } from "node:fs/promises";
+
+import { move_file_variations } from "@cocalc/util/delete-files";
 import { path_split } from "@cocalc/util/misc";
 import { get_listings_table } from "../sync/listings";
-import { callback } from "awaiting";
-import { move_file_variations } from "@cocalc/util/delete-files";
 
 function home(): string {
   const { HOME } = process.env;
@@ -40,7 +40,7 @@ export async function move_files(
 
     // and the aux files:
     try {
-      const s = await callback(stat, path);
+      const s = await stat(path);
       if (!s.isDirectory()) {
         for (const variation of move_file_variations(path, target)) {
           if (await pathExists(variation.src)) {
@@ -72,7 +72,7 @@ export async function rename_file(
   const to_move: { src: string; dest: string }[] = [{ src, dest }];
 
   try {
-    const s = await callback(stat, src);
+    const s = await stat(src);
     if (!s.isDirectory()) {
       for (const variation of move_file_variations(src, dest)) {
         if (await pathExists(variation.src)) {

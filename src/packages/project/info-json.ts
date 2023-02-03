@@ -5,13 +5,13 @@ by various scripts and programs to get basic information
 about the project.
 */
 
-import { networkInterfaces } from "os";
-import { writeFile } from "fs";
-import { callback } from "awaiting";
-import { getLogger } from "./logger";
+import { writeFile } from "node:fs/promises";
+import { networkInterfaces } from "node:os";
+
+import basePath from "@cocalc/backend/base-path";
 import { infoJson, project_id, username } from "./data";
 import { options } from "./init-program";
-import basePath from "@cocalc/backend/base-path";
+import { getLogger } from "./logger";
 
 let INFO: {
   project_id: string;
@@ -44,6 +44,6 @@ export default async function init() {
     base_path: basePath,
     base_url: basePath, // for backwards compat userspace code
   };
-  await callback(writeFile, infoJson, JSON.stringify(INFO));
+  await writeFile(infoJson, JSON.stringify(INFO));
   winston.info(`Successfully wrote "${infoJson}"`);
 }

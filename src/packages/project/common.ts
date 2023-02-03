@@ -4,8 +4,9 @@
  */
 
 import { to_json, trunc } from "@cocalc/util/misc";
+
 import { getLogger } from "./logger";
-const winston = getLogger("project:common");
+const winston = getLogger("common");
 
 function envVarToInt(name: string, fallback: number): number {
   const x = process.env[name];

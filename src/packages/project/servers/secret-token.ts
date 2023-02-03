@@ -7,12 +7,13 @@
 Generate the "secret_token" file if it does not already exist.
 */
 
-import { writeFile, chmod, readFile } from "fs";
-import { randomBytes } from "crypto";
 import { callback } from "awaiting";
-import { getLogger } from "@cocalc/project/logger";
+import { randomBytes } from "crypto";
+import { chmod, readFile, writeFile } from "node:fs/promises";
+
 import { secretToken as secretTokenPath } from "@cocalc/project/data";
 
+import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("secret-token");
 
 // We use an n-character cryptographic random token, where n
@@ -27,16 +28,16 @@ async function createSecretToken(): Promise<string> {
   winston.info(`creating '${secretTokenPath}'`);
 
   secretToken = (await callback(randomBytes, LENGTH)).toString("base64");
-  await callback(writeFile, secretTokenPath, secretToken);
+  await writeFile(secretTokenPath, secretToken);
   // set restrictive permissions; shouldn't be necessary
-  await callback(chmod, secretTokenPath, 0o600);
+  await chmod(secretTokenPath, 0o600);
   return secretToken;
 }
 
 export default async function init(): Promise<string> {
   try {
     winston.info(`checking for secret token in "${secretTokenPath}"`);
-    secretToken = (await callback(readFile, secretTokenPath)).toString();
+    secretToken = (await readFile(secretTokenPath)).toString();
     return secretToken;
   } catch (err) {
     return await createSecretToken();
