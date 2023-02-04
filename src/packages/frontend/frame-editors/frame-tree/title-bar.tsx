@@ -147,6 +147,8 @@ interface Props {
   available_features?: AvailableFeatures;
   page?: number | string;
   pages?: number | List<string>;
+  is_visible?: boolean;
+  tab_is_visible?: boolean;
 }
 
 export const FrameTitleBar: React.FC<Props> = (props: Props) => {
@@ -353,17 +355,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       padding: 0,
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
       height: button_height(),
+      float: "right",
     };
     return (
-      <>
-        {is_active ? render_types() : undefined}
+      <div style={{ overflow: "hidden" }}>
         <ButtonGroup style={style} key={"close"}>
           {is_active && !props.is_full ? render_split_row() : undefined}
           {is_active && !props.is_full ? render_split_col() : undefined}
           {is_active && !props.is_only ? render_full() : undefined}
           {render_x()}
         </ButtonGroup>
-      </>
+        {is_active ? render_types() : undefined}
+      </div>
     );
   }
 
@@ -1479,21 +1482,26 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function mainButtonsPopover() {
+  function allButtonsPopover() {
     return (
       <Popover
+        open={
+          props.tab_is_visible && props.is_visible && showMainButtonsPopover
+        }
         content={() => {
           return (
             <div style={{ display: "flex" }}>
               <div style={{ width: "3px" }}></div>
-              {render_buttons(true, { maxHeight: "50vh" })}
+              <div style={{ maxWidth: "390px" }}>
+                {render_buttons(true, { maxHeight: "50vh" })}
+              </div>
               <div style={{ width: "3px" }}></div>
-              <div>{render_control()}</div>
+              <div>{render_types()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
                 style={{
-                  color: "#888",
+                  color: "#666",
                   marginTop: "10px",
                   marginLeft: "10px",
                 }}
@@ -1501,7 +1509,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
             </div>
           );
         }}
-        open={showMainButtonsPopover}
       >
         <Button
           style={{ margin: "0 3px" }}
@@ -1783,7 +1790,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
-        {is_active && mainButtonsPopover()}
+        {is_active && allButtonsPopover()}
         {render_control()}
       </div>
       {render_confirm_bar()}
