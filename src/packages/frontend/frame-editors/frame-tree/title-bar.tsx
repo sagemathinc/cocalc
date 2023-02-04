@@ -35,7 +35,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { Input, InputNumber, Popconfirm } from "antd";
+import { Input, InputNumber, Popconfirm, Popover } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
@@ -83,7 +83,6 @@ const title_bar_style: CSS = {
   flexWrap: "nowrap",
   flex: "0 0 auto",
   display: "flex",
-  minHeight: "34px",
 } as const;
 
 const TITLE_STYLE: CSS = {
@@ -156,6 +155,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   >(null);
 
   const force_update = useForceUpdate();
+
+  const [showMainButtonsPopover, setShowMainButtonsPopover] =
+    useState<boolean>(false);
 
   useEffect(() => {
     // clear button cache whenever type changes; otherwise,
@@ -330,7 +332,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <DropdownMenu
         cocalc-test={"types-dropdown"}
         button={true}
-        style={{ float: "left", height: button_height() }}
+        style={{
+          float: "left",
+          height: button_height(),
+          marginBottom: "5px",
+          marginRight: "3px",
+        }}
         key={"types"}
         title={title}
         onClick={select_type}
@@ -344,21 +351,19 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const is_active = props.active_id === props.id;
     const style: CSS = {
       padding: 0,
-      paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
       height: button_height(),
     };
-    if (is_active) {
-      style.boxShadow = "#ccc -2px 0";
-    }
     return (
-      <ButtonGroup style={style} key={"close"}>
+      <>
         {is_active ? render_types() : undefined}
-        {is_active && !props.is_full ? render_split_row() : undefined}
-        {is_active && !props.is_full ? render_split_col() : undefined}
-        {is_active && !props.is_only ? render_full() : undefined}
-        {render_x()}
-      </ButtonGroup>
+        <ButtonGroup style={style} key={"close"}>
+          {is_active && !props.is_full ? render_split_row() : undefined}
+          {is_active && !props.is_full ? render_split_col() : undefined}
+          {is_active && !props.is_only ? render_full() : undefined}
+          {render_x()}
+        </ButtonGroup>
+      </>
     );
   }
 
@@ -1047,7 +1052,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_table_of_contents(): Rendered {
+  function render_table_of_contents(labels): Rendered {
     if (!is_visible("show_table_of_contents")) return;
     return (
       <Button
@@ -1057,7 +1062,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Show the Table of Contents"}
       >
         <Icon name={"align-right"} />{" "}
-        <VisibleMDLG>{show_labels() ? "Contents" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Contents" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1376,27 +1381,28 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         project_id={props.project_id}
         is_public={false}
         label={small ? "" : "File"}
-        style={small ? { height: button_height() } : undefined}
+        style={{ height: button_height() }}
       />
     );
   }
 
-  function render_buttons(): Rendered {
-    let style;
+  function render_buttons(forceLabels?, style?): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
         maxHeight: "30px",
+        ...style,
       };
     } else {
       style = {
         maxHeight: "34px",
         marginLeft: "2px",
+        ...style,
       };
     }
 
-    const labels = show_labels();
+    const labels = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
     v.push(renderPage(true));
@@ -1433,7 +1439,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_terminal());
     v.push(render_shell());
     v.push(render_print());
-    v.push(render_table_of_contents());
+    v.push(render_table_of_contents(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));
 
@@ -1470,6 +1476,40 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         {!is_public ? render_file_menu() : undefined}
         {render_buttons()}
       </div>
+    );
+  }
+
+  function mainButtonsPopover() {
+    return (
+      <Popover
+        content={() => {
+          return (
+            <div style={{ display: "flex" }}>
+              <div style={{ width: "3px" }}></div>
+              {render_buttons(true, { maxHeight: "50vh" })}
+              <div style={{ width: "3px" }}></div>
+              <div>{render_control()}</div>
+              <Icon
+                onClick={() => setShowMainButtonsPopover(false)}
+                name="times"
+                style={{
+                  color: "#888",
+                  marginTop: "10px",
+                  marginLeft: "10px",
+                }}
+              />
+            </div>
+          );
+        }}
+        open={showMainButtonsPopover}
+      >
+        <Button
+          style={{ margin: "0 3px" }}
+          onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
+        >
+          <Icon name="ellipsis" />
+        </Button>
+      </Popover>
     );
   }
 
@@ -1743,6 +1783,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
+        {is_active && mainButtonsPopover()}
         {render_control()}
       </div>
       {render_confirm_bar()}
