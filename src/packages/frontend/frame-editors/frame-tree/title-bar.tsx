@@ -1748,6 +1748,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     style.background = COL_BAR_BACKGROUND;
     if (!props.is_only && !props.is_full) {
       style.maxHeight = "34px";
+    } else {
+      style.maxHeight = "38px";
     }
     // position relative, so we can absolute position the
     // frame controls to the right
