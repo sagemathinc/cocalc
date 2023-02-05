@@ -3,15 +3,12 @@ Tabs in a particular project.
 */
 
 import { ReactNode } from "react";
-import { Tabs } from "antd";
-import type { TabsProps } from "antd";
 import { tab_to_path } from "@cocalc/util/misc";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { ShareIndicator } from "./share-indicator";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { VisibleXS, HiddenXS } from "@cocalc/frontend/components";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -21,7 +18,6 @@ const INDICATOR_STYLE: React.CSSProperties = {
 export default function ProjectTabs({ project_id }) {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  const fullscreen = useTypedRedux("page", "fullscreen");
 
   if (openFiles.size == 0) return <></>;
 
