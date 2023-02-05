@@ -9,7 +9,7 @@ Whiteboard frame Editor Actions
 
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Map as ImmutableMap, fromJS } from "immutable";
-import { FrameTree } from "../frame-tree/types";
+import type { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
   CodeEditorState,
@@ -73,18 +73,21 @@ export interface State extends CodeEditorState {
   contents?: TableOfContentsEntryList; // table of contents data.
 }
 
+type MainFrameType = "whiteboard" | "slides";
+
 export class Actions extends BaseActions<State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];
   private keyHandler?: (event) => void;
+  readonly mainFrameType : MainFrameType = "whiteboard";
 
   _raw_default_frame_tree(): FrameTree {
-    // return { type: "whiteboard" };
+    // return { type: this.mainFrameType };
     return {
       direction: "col",
       type: "node",
-      first: { type: "whiteboard" },
+      first: { type: this.mainFrameType },
       second: {
         direction: "row",
         type: "node",
@@ -475,7 +478,7 @@ export class Actions extends BaseActions<State> {
 
   private setFragmentIdToPage(frameId: string): void {
     const node = this._get_frame_node(frameId);
-    if (node?.get("type") != "whiteboard") return;
+    if (node?.get("type") != this.mainFrameType) return;
     const page = node?.get("page");
     if (this.store.get("visible")) {
       if (page != null) {
@@ -553,7 +556,7 @@ export class Actions extends BaseActions<State> {
       this.setEditFocus(frameId, type == "only" && size(selection) == 1);
       this.set_frame_tree({ id: frameId, selection });
     } finally {
-      if (node.get("type") != "whiteboard") return;
+      if (node.get("type") != this.mainFrameType) return;
 
       if (this.store.get("visible")) {
         if (size(selection) == 0) {
@@ -941,7 +944,7 @@ export class Actions extends BaseActions<State> {
     _value?: string | true | undefined,
     nextTo?: Element[]
   ): void {
-    if (frameId && this._get_frame_type(frameId) != "whiteboard") return;
+    if (frameId && this._get_frame_type(frameId) != this.mainFrameType) return;
     const pastedElements = pasteFromInternalClipboard();
     let target: Point = { x: 0, y: 0 };
     if (nextTo != null) {
@@ -963,7 +966,7 @@ export class Actions extends BaseActions<State> {
   centerElement(id: string, frameId?: string) {
     const element = this.getElement(id);
     if (element == null) return;
-    frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
+    frameId = frameId ?? this.show_focused_frame_of_type(this.mainFrameType);
     this.setPageId(frameId, element.page ?? this.defaultPageId());
     this.setViewportCenter(frameId, centerOfRect(element));
   }
@@ -1176,7 +1179,7 @@ export class Actions extends BaseActions<State> {
   }
 
   enableWhiteboardKeyHandler(frameId: string) {
-    if (this._get_frame_type(frameId) != "whiteboard") return;
+    if (this._get_frame_type(frameId) != this.mainFrameType) return;
     this.keyHandler = getKeyHandler(this, frameId);
     this.set_active_key_handler(this.keyHandler);
   }
@@ -1197,7 +1200,7 @@ export class Actions extends BaseActions<State> {
       id = this._get_active_id();
     }
     const node = this._get_frame_node(id);
-    if (node?.get("type") == "whiteboard") {
+    if (node?.get("type") == this.mainFrameType) {
       this.enableWhiteboardKeyHandler(id);
     } else {
       this.disableWhiteboardKeyHandler();
@@ -1225,7 +1228,7 @@ export class Actions extends BaseActions<State> {
   }
 
   setEditFocus(id: string, editFocus: boolean): void {
-    if (this._get_frame_type(id) != "whiteboard") return;
+    if (this._get_frame_type(id) != this.mainFrameType) return;
     this.set_frame_tree({ id, editFocus });
   }
 
@@ -1261,7 +1264,7 @@ export class Actions extends BaseActions<State> {
       return;
     }
     if (frameId == null) {
-      frameId = this.show_focused_frame_of_type("whiteboard");
+      frameId = this.show_focused_frame_of_type(this.mainFrameType);
     }
 
     const elementId = `${line}`;
@@ -1271,7 +1274,9 @@ export class Actions extends BaseActions<State> {
 
   async gotoFragment(fragmentId: FragmentId) {
     // console.log("gotoFragment ", fragmentId);
-    const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
+    const frameId = await this.waitUntilFrameReady({
+      type: this.mainFrameType,
+    });
     if (!frameId) return;
     const { id, page } = fragmentId as any;
     if (page != null) {

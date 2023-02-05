@@ -61,6 +61,7 @@ export default function ProjectTabs({ project_id }) {
 export function VerticalFixedTabs({ project_id, activeTab }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const items: ReactNode[] = [];
+  // <div style={{ textAlign: "center", color: "#666" }}>Project</div>,
   for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {

@@ -24,6 +24,7 @@ import "./lean-editor/register";
 import "./time-travel-editor/register";
 import "./course-editor/register";
 import "./csv-editor/register";
+import "./slides-editor/register";
 import "./whiteboard-editor/register";
 
 import "./crm-editor/register";

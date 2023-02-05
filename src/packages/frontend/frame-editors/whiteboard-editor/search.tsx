@@ -90,8 +90,9 @@ export default function Search() {
               >
                 <div
                   onClick={() => {
-                    const frameId =
-                      actions.show_focused_frame_of_type("whiteboard");
+                    const frameId = actions.show_focused_frame_of_type(
+                      actions.mainFrameType
+                    );
                     if (frameId) {
                       actions.centerElement(element.id, frameId);
                     }
