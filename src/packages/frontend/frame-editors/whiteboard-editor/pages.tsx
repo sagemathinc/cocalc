@@ -29,7 +29,7 @@ export default function Pages() {
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
-  const pages = pagesMap?.size ?? 1;
+  const pages = Math.max(1, pagesMap?.size ?? 1);
   const sortedPageIds = useEditor("sortedPageIds");
 
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -106,8 +106,8 @@ export default function Pages() {
         </div>
       );
     }
-    const pageId = sortedPageIds?.get(index);
-    if (pageId == null || pagesMap == null) {
+    const pageId = sortedPageIds?.get(index) ?? "";
+    if (pagesMap == null) {
       return <div style={{ height: "1px" }}></div>;
     }
     const thisPage = pagesMap.get(pageId);
@@ -115,7 +115,9 @@ export default function Pages() {
     return (
       <div
         onClick={() => {
-          const frameId = actions.show_focused_frame_of_type(actions.mainFrameType);
+          const frameId = actions.show_focused_frame_of_type(
+            actions.mainFrameType
+          );
           actions.setPage(frameId, index + 1);
           actions.fitToScreen(frameId);
         }}
@@ -163,7 +165,9 @@ export default function Pages() {
         onDragStop={(oldIndex, newIndex) => {
           if (oldIndex == newIndex) return;
           actions.movePage(oldIndex, newIndex);
-          const frameId = actions.show_focused_frame_of_type(actions.mainFrameType);
+          const frameId = actions.show_focused_frame_of_type(
+            actions.mainFrameType
+          );
           actions.setPage(frameId, newIndex + 1);
         }}
       >
