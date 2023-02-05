@@ -78,6 +78,7 @@ import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import useResizeObserver from "use-resize-observer";
 import Grid from "./elements/grid";
+import SlideBackground from "./elements/slide-background";
 import {
   centerOfRect,
   compressPath,
@@ -156,7 +157,7 @@ export default function Canvas({
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
-  const gridDivRef = useRef<any>(null);
+  const backgroundDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   const scaleDivRef = useRef<any>(null);
 
@@ -695,12 +696,28 @@ export default function Canvas({
     }
   }
 
-  const v: ReactNode[] = [];
+  const renderedElements: ReactNode[] = [];
+
+  if (frame.actions.mainFrameType == "slides") {
+    // Add the slide itself as the first element
+    renderedElements.push(
+      processElement({
+        data: { aspectRatio: "16:9", radius: 0.5 },
+        h: 3*197,
+        w: 3*350,
+        type: "slide",
+        id: "the-slide",
+        x: -3*197/2,
+        y: -3*350/2,
+        z: -9999,
+      })
+    );
+  }
 
   for (const element of elements) {
     const x = processElement(element);
     if (x != null) {
-      v.push(x);
+      renderedElements.push(x);
     }
   }
 
@@ -741,7 +758,7 @@ export default function Canvas({
       z: 0,
     };
 
-    v.push(
+    renderedElements.push(
       <Focused
         key={"selection"}
         canvasScale={canvasScale}
@@ -769,7 +786,7 @@ export default function Canvas({
     const element = getToolElement("edge");
     if (element.data == null) throw Error("bug");
     element.data = { ...element.data, from: edgeStart, previewTo: edgePreview };
-    v.push(
+    renderedElements.push(
       <RenderEdge
         key="edge-preview"
         element={element as Element}
@@ -784,7 +801,7 @@ export default function Canvas({
     // The navigator rectangle
     const visible = frame.desc.get("viewport")?.toJS();
     if (visible) {
-      v.unshift(
+      renderedElements.unshift(
         <Draggable
           key="nav"
           position={{ x: 0, y: 0 }}
@@ -905,7 +922,7 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "select") {
-      if (e.target == gridDivRef.current) {
+      if (e.target == backgroundDivRef.current) {
         // clear selection
         frame.actions.clearSelection(frame.id);
         const edgeStart = frame.desc.get("edgeStart");
@@ -975,7 +992,7 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "select" || selectedTool == "frame") {
-      if (e.target != gridDivRef.current) return;
+      if (e.target != backgroundDivRef.current) return;
       // draw a rectangle to select multiple items
       const point = getMousePos(e);
       if (point == null) return;
@@ -1494,10 +1511,19 @@ export default function Canvas({
             height: `${transformsRef.current.height}px`,
           }}
         >
-          {!isNavigator && (
-            <Grid transforms={transformsRef.current} divRef={gridDivRef} />
+          {!isNavigator && frame.actions.mainFrameType == "whiteboard" && (
+            <Grid
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
           )}
-          {v}
+          {!isNavigator && frame.actions.mainFrameType == "slides" && (
+            <SlideBackground
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
+          )}
+          {renderedElements}
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import Icon from "./icon";
 import Pen from "./pen";
 import Code from "./code/static";
 import Frame from "./frame";
+import Slide from "./slide";
 import Timer from "./timer-static";
 import Chat from "./chat-static";
 
@@ -36,6 +37,8 @@ export default function RenderStatic(props) {
       return <Code {...props} />;
     case "frame":
       return <Frame {...props} />;
+    case "slide":
+      return <Slide {...props} />;
     case "timer":
       return <Timer {...props} />;
     case "chat":

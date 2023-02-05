@@ -20,6 +20,7 @@ export type ElementType =
   | "stopwatch"
   | "timer"
   | "frame"
+  | "slide"
   | "edge"
   | "selection"
   | "page";
