@@ -86,11 +86,23 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon="layout"
-              name="Computational Whiteboard"
+              name="Whiteboard"
               on_click={create_file}
               ext="board"
             />
           </Tip>
+          <Tip
+            icon="slides"
+            title="Slides"
+            tip="Create a slideshow with Jupyter code cells."
+          >
+            <NewFileButton
+              icon="slides"
+              name="Slideshow"
+              on_click={create_file}
+              ext="slides"
+            />
+          </Tip>{" "}
           <Tip
             title="Markdown Document"
             icon="markdown"

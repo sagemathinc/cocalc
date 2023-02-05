@@ -352,7 +352,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
           footer={null}
           title={
             <>
-              <Icon name="FundProjectionScreenOutlined" /> Jupyter Notebook
+              <Icon name="slides" /> Jupyter Notebook
               Slideshow
             </>
           }

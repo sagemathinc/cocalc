@@ -22,6 +22,7 @@ type Extension =
   | "course"
   | "sage"
   | "board"
+  | "slides"
   | "py"
   | "sage-chat";
 
@@ -32,15 +33,16 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "ipynb",
   "term",
   "board",
+  "slides",
+  "md",
   "sagews",
   "tex",
-  "md",
+  "course",
   "py",
   "rnw",
   "rtex",
   "rmd",
   "tasks",
-  "course",
   "x11",
   "sage",
   "sage-chat",

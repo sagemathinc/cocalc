@@ -39,7 +39,7 @@ export const EDITOR_SPEC = {
   slides: {
     short: "Slides",
     name: "Slides",
-    icon: "file-image",
+    icon: "slides",
     component: Slides,
     buttons: slidesButtons,
   } as EditorDescription,

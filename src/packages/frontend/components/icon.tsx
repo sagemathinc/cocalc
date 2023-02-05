@@ -319,7 +319,7 @@ const IconSpec = {
   forward: ForwardOutlined,
   frame: { IconFont: "frame" },
   frown: FrownOutlined,
-  FundProjectionScreenOutlined,
+  slides: FundProjectionScreenOutlined,
   gavel: { IconFont: "gavel" },
   gears: ControlOutlined,
   gear: ControlOutlined,
