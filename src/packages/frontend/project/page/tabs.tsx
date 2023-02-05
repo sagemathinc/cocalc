@@ -30,8 +30,8 @@ export default function ProjectTabs({ project_id }) {
       className="smc-file-tabs"
       style={{
         width: "100%",
-        height: "45px",
-        padding: "5px",
+        height: "40px",
+        padding: "2.5px",
         overflow: "hidden",
       }}
     >
@@ -70,16 +70,21 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
+    const color = activeTab == name ? { color: "#1677ff" } : undefined;
     items.push(
       <FileTab
         style={{
           margin: "10px 5px",
-          color: activeTab == name ? "#1677ff" : undefined,
+          ...color,
         }}
         placement={"right"}
         key={name}
         project_id={project_id}
         name={name as FixedTab}
+        iconStyle={{
+          fontSize: "24px",
+          ...color,
+        }}
       />
     );
   }

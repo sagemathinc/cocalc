@@ -159,10 +159,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
             activeTab={active_project_tab}
           />
         </div>
-        <div
-          className="cc-vertical-drag-bar"
-          style={{ width: "6px", background: "#eee" }}
-        ></div>
+        <div style={{ width: "2px", background: "#eee" }}></div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {renderEditorContent()}
           {render_project_content()}

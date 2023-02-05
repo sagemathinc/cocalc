@@ -78,6 +78,7 @@ interface Props0 {
   style?: CSSProperties;
   noPopover?: boolean;
   placement?;
+  iconStyle?: CSSProperties;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -148,8 +149,8 @@ export function FileTab(props: Props) {
   }
 
   const icon_style: CSSProperties = has_activity
-    ? { color: "orange" }
-    : { color: COLORS.FILE_ICON };
+    ? { ...props.iconStyle, color: "orange" }
+    : { color: COLORS.FILE_ICON, ...props.iconStyle };
 
   if (label == null) {
     if (name != null) {
@@ -176,7 +177,8 @@ export function FileTab(props: Props) {
         style={{
           width: "100%",
           cursor: "pointer",
-          display: "flex",
+          display: path != null ? "flex" : undefined,
+          textAlign: "center",
         }}
       >
         <div>
@@ -218,7 +220,7 @@ const LABEL_STYLE = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  margin: "0 -15px 0 -10px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
+  marginRight: "-15px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
 } as CSSProperties;
 
 const FULLPATH_LABEL_STYLE = {
@@ -234,7 +236,7 @@ function DisplayedLabel({ path, label }) {
     // a fixed tab (not an actual file)
     return (
       <HiddenXSSM>
-        <span style={{ marginLeft: "5px" }}>{label}</span>
+        <span style={{ fontSize: "9pt" }}>{label}</span>
       </HiddenXSSM>
     );
   }
