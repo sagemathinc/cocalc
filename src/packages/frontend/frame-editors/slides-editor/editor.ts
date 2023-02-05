@@ -32,7 +32,7 @@ export const slidesButtons = set([
   "copy",
   "paste",
   "show_table_of_contents",
-  "help",
+  /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
 
 export const EDITOR_SPEC = {
