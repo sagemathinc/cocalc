@@ -41,10 +41,6 @@ const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
   color: "#666666",
-  marginBottom: "15px",
-  borderBottom: "1px solid grey",
-  borderTop: "1px solid grey",
-  paddingBottom: "10px",
 } as const;
 
 export const StartButton: React.FC<Props> = ({ project_id }) => {
@@ -117,7 +113,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
                   Connecting... <Icon name="cocalc-ring" spin />
                 </span>
               }
-              type="warning"
+              type="info"
             />
           </div>
         </Delay>
@@ -211,7 +207,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
             {!allowed && render_not_allowed()}
           </>
         }
-        type="warning"
+        type="info"
       />
     );
   }

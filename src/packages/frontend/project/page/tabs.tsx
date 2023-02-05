@@ -70,8 +70,11 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
     items.push(
       <FileTab
         style={{
-          margin: "10px 5px",
+          margin: "10px 0px",
           ...color,
+          borderLeft: `2px solid ${
+            activeTab == name ? "#1677ff" : "transparent"
+          }`,
         }}
         placement={"right"}
         key={name}
@@ -79,6 +82,7 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
         name={name as FixedTab}
         iconStyle={{
           fontSize: "24px",
+          margin: "0px 3px",
           ...color,
         }}
       />

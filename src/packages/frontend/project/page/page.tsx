@@ -153,7 +153,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div>
+        <div style={{ background: "rgba(0, 0, 0, 0.02)" }}>
           <VerticalFixedTabs
             project_id={project_id}
             activeTab={active_project_tab}
