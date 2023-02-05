@@ -26,13 +26,13 @@ import {
   defaultFrameContext,
   FrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import Tabs from "./tabs";
+import Tabs, { VerticalFixedTabs } from "./tabs";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   flex: 1,
-  overflow: "auto",
+  overflow: "hidden",
 } as const;
 
 interface Props {
@@ -152,9 +152,23 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       )}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
-      {renderEditorContent()}
-      {render_project_content()}
-      {render_project_modal()}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div>
+          <VerticalFixedTabs
+            project_id={project_id}
+            activeTab={active_project_tab}
+          />
+        </div>
+        <div
+          className="cc-vertical-drag-bar"
+          style={{ width: "6px", background: "#eee" }}
+        ></div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {renderEditorContent()}
+          {render_project_content()}
+          {render_project_modal()}
+        </div>
+      </div>
     </div>
   );
 };

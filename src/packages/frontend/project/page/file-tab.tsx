@@ -77,6 +77,7 @@ interface Props0 {
   label?: string;
   style?: CSSProperties;
   noPopover?: boolean;
+  placement?;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -179,7 +180,7 @@ export function FileTab(props: Props) {
         }}
       >
         <div>
-          <Icon style={{ ...icon_style, marginRight: "5px" }} name={icon} />
+          <Icon style={{ ...icon_style }} name={icon} />
         </div>
         <DisplayedLabel path={path} label={label} />
       </div>
@@ -205,7 +206,7 @@ export function FileTab(props: Props) {
         </span>
       }
       mouseEnterDelay={0.9}
-      placement={"bottom"}
+      placement={props.placement ?? "bottom"}
     >
       {body}
     </Popover>
@@ -217,6 +218,7 @@ const LABEL_STYLE = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  margin: "0 -15px 0 -10px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
 } as CSSProperties;
 
 const FULLPATH_LABEL_STYLE = {
@@ -230,7 +232,11 @@ const FULLPATH_LABEL_STYLE = {
 function DisplayedLabel({ path, label }) {
   if (path == null) {
     // a fixed tab (not an actual file)
-    return <HiddenXSSM>{label}</HiddenXSSM>;
+    return (
+      <HiddenXSSM>
+        <span style={{ marginLeft: "5px" }}>{label}</span>
+      </HiddenXSSM>
+    );
   }
 
   let ext = filename_extension(label);

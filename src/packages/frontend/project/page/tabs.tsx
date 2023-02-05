@@ -2,6 +2,7 @@
 Tabs in a particular project.
 */
 
+import { ReactNode } from "react";
 import { Tabs } from "antd";
 import type { TabsProps } from "antd";
 import { tab_to_path } from "@cocalc/util/misc";
@@ -22,6 +23,8 @@ export default function ProjectTabs({ project_id }) {
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const fullscreen = useTypedRedux("page", "fullscreen");
 
+  if (openFiles.size == 0) return <></>;
+
   return (
     <div
       className="smc-file-tabs"
@@ -33,26 +36,11 @@ export default function ProjectTabs({ project_id }) {
       }}
     >
       <div style={{ display: "flex" }}>
-        {fullscreen != "kiosk" && (
-          <div style={{ width: "470px", maxWidth: "30%" }}>
-            {/* This fixed width above is to fix the flickering tabs bug! Namely,
-            without it at 80% zoom, tabs go insane.  This bug was very hard to fix.
-            Basically, antd is broken when you have two sets of Tabs next to
-            each other using flex.  But using a fixed width gets around that.
-            The right longterm fix is to move these fixed tabs to a column, like
-            in VSCode, but that takes significantly more care and time.
-            */}
-            <FixedTabs project_id={project_id} activeTab={activeTab} />
-          </div>
-        )}
         <div
           style={{
             display: "flex",
             overflow: "hidden",
             flex: 1,
-            marginLeft: "5px",
-            borderLeft: "1px solid #ddd",
-            paddingLeft: "5px",
           }}
         >
           <FileTabs
@@ -74,36 +62,28 @@ export default function ProjectTabs({ project_id }) {
   );
 }
 
-function FixedTabs({ project_id, activeTab }) {
+export function VerticalFixedTabs({ project_id, activeTab }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
-  const items: TabsProps["items"] = [];
+  const items: ReactNode[] = [];
   for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    items.push({
-      key: name,
-      label: (
-        <FileTab
-          style={{ margin: "0 -10px 0 -5px" }}
-          key={name}
-          project_id={project_id}
-          name={name as FixedTab}
-        />
-      ),
-    });
+    items.push(
+      <FileTab
+        style={{
+          margin: "10px 5px",
+          color: activeTab == name ? "#1677ff" : undefined,
+        }}
+        placement={"right"}
+        key={name}
+        project_id={project_id}
+        name={name as FixedTab}
+      />
+    );
   }
-  return (
-    <>
-      <VisibleXS style={{ maxWidth: "130px" }}>
-        <Tabs size="small" items={items} type="card" activeKey={activeTab} />
-      </VisibleXS>
-      <HiddenXS>
-        <Tabs size="small" items={items} type="card" activeKey={activeTab} />
-      </HiddenXS>
-    </>
-  );
+  return <>{items}</>;
 }
 
 function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
