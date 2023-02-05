@@ -523,7 +523,7 @@ export default function Canvas({
     selectedTool == "edge" ? frame.desc.getIn(["edgeStart", "id"]) : undefined;
 
   let selectionHandled = false;
-  function processElement(element, isNavRectangle = false) {
+  function processElement(element, isNavRectangle = false, noSelect = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transformsRef.current.dataToWindowNoScale(x, y, z);
@@ -597,7 +597,7 @@ export default function Canvas({
         element={element}
         focused={focused}
         canvasScale={canvasScale}
-        readOnly={readOnly || isNavigator}
+        readOnly={readOnly || isNavigator || noSelect}
         cursors={cursors?.[id]}
       />
     );
@@ -682,7 +682,7 @@ export default function Canvas({
           <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
           <NotFocused
             element={element}
-            selectable={selectedTool == "select"}
+            selectable={selectedTool == "select" && !noSelect}
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
             frame={frame}
@@ -701,16 +701,20 @@ export default function Canvas({
   if (frame.actions.mainFrameType == "slides") {
     // Add the slide itself as the first element
     renderedElements.push(
-      processElement({
-        data: { aspectRatio: "16:9", radius: 0.5 },
-        h: 3*197,
-        w: 3*350,
-        type: "slide",
-        id: "the-slide",
-        x: -3*197/2,
-        y: -3*350/2,
-        z: -9999,
-      })
+      processElement(
+        {
+          data: { aspectRatio: "16:9", radius: 0.5 },
+          h: 3 * 197,
+          w: 3 * 350,
+          type: "slide",
+          id: "the-slide",
+          x: (-3 * 197) / 2,
+          y: (-3 * 350) / 2,
+          z: -9999,
+        },
+        false,
+        true
+      )
     );
   }
 

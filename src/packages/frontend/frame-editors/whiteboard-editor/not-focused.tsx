@@ -45,6 +45,8 @@ export default function NotFocused({
         select(id, e, frame);
       } else if (edgeCreate) {
         edge(id, frame);
+      } else {
+        frame.actions.clearSelection(frame.id);
       }
     },
     [selectable, edgeCreate, id, frame, readOnly]
