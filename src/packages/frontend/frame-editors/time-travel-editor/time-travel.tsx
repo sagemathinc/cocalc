@@ -160,6 +160,16 @@ class TimeTravel extends Component<Props> {
             syncdb={syncdoc}
             version={version}
             font_size={this.props.font_size}
+            mainFrameType={"whiteboard"}
+          />
+        );
+      case "slides":
+        return (
+          <Whiteboard
+            syncdb={syncdoc}
+            version={version}
+            font_size={this.props.font_size}
+            mainFrameType={"slides"}
           />
         );
       default:

@@ -41,12 +41,14 @@ export default function NotFocused({
         // because Draggable fires this onStop before that onClick even happens.
         return;
       }
+      if (!selectable) {
+        frame.actions.clearSelection(frame.id);
+        return;
+      }
       if (readOnly || selectable) {
         select(id, e, frame);
       } else if (edgeCreate) {
         edge(id, frame);
-      } else {
-        frame.actions.clearSelection(frame.id);
       }
     },
     [selectable, edgeCreate, id, frame, readOnly]

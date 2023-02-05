@@ -134,6 +134,7 @@ interface Props {
   style?: CSSProperties;
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
   cursors?: { [id: string]: { [account_id: string]: any[] } };
+  mainFrameType: "whiteboard" | "slides";
 }
 
 export default function Canvas({
@@ -150,6 +151,7 @@ export default function Canvas({
   style,
   previewMode,
   cursors,
+  mainFrameType,
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
@@ -698,7 +700,7 @@ export default function Canvas({
 
   const renderedElements: ReactNode[] = [];
 
-  if (frame.actions.mainFrameType == "slides") {
+  if (mainFrameType == "slides") {
     // Add the slide itself as the first element
     renderedElements.push(
       processElement(
@@ -1515,13 +1517,13 @@ export default function Canvas({
             height: `${transformsRef.current.height}px`,
           }}
         >
-          {!isNavigator && frame.actions.mainFrameType == "whiteboard" && (
+          {!isNavigator && mainFrameType == "whiteboard" && (
             <Grid
               transforms={transformsRef.current}
               divRef={backgroundDivRef}
             />
           )}
-          {!isNavigator && frame.actions.mainFrameType == "slides" && (
+          {!isNavigator && mainFrameType == "slides" && (
             <SlideBackground
               transforms={transformsRef.current}
               divRef={backgroundDivRef}

@@ -18,7 +18,8 @@ import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
 
 export default function Whiteboard() {
-  const { isFocused, path, project_id, desc, font_size } = useFrameContext();
+  const { actions, isFocused, path, project_id, desc, font_size } =
+    useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
@@ -108,6 +109,7 @@ export default function Whiteboard() {
       )}
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
+          mainFrameType={actions.mainFrameType}
           elements={elementsOnPage}
           elementsMap={elementsMap}
           font_size={font_size}

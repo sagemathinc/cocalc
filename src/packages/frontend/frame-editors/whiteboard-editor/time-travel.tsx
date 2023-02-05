@@ -10,7 +10,12 @@ import { Map as iMap } from "immutable";
 import { useMemo, useRef } from "react";
 import { field_cmp } from "@cocalc/util/misc";
 
-export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
+export default function WhiteboardTimeTravel({
+  syncdb,
+  version,
+  font_size,
+  mainFrameType,
+}) {
   const { id, isFocused, desc, actions } = useFrameContext();
   const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
   let elements = syncdb.version(version).get();
@@ -75,6 +80,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
         </>
       )}
       <Canvas
+        mainFrameType={mainFrameType}
         elementsMap={elementsMap}
         elements={elementsOnPage}
         font_size={font_size}
