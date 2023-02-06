@@ -24,8 +24,20 @@ import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import { Logo } from "./logo";
+import { Mode } from "./mode";
 import { AlertLevel, BackendState, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
+
+const KERNEL_STYLE: CSS = {
+  float: "right",
+  paddingLeft: "5px",
+  backgroundColor: COLORS.GRAY_LLL,
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  margin: "7px 5px 0px 0px",
+  position: "relative",
+  zIndex: 1,
+} as const;
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -72,7 +84,7 @@ const BACKEND_STATE_HUMAN = {
   ready: "Ready to start",
   starting: "Starting",
   running: "Running",
-};
+} as const;
 
 interface KernelProps {
   actions: JupyterActions;
@@ -322,6 +334,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       if (!backend_state) return <div></div>;
       return (
         <div
+          className="pull-right"
           style={{
             float: "right",
             display: "inline-block",
@@ -329,6 +342,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
             marginRight: "5px",
             color: COLORS.GRAY,
             borderRight: "1px solid grey",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {kernelState()}
@@ -533,6 +548,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
+    function renderMode() {
+      return <Mode name={name} />;
+    }
+
     if (IS_MOBILE) {
       return renderKernelState();
     }
@@ -563,10 +582,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     );
 
     return (
-      <div style={{ whiteSpace: "nowrap" }}>
+      <div style={KERNEL_STYLE}>
         {render_logo()}
         {render_tip(get_kernel_name(), body)}
         {renderKernelState()}
+        {renderMode()}
       </div>
     );
   }

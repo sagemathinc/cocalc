@@ -21,7 +21,7 @@ import { cmp, from_json, startswith } from "@cocalc/util/misc";
 import { export_to_ipynb } from "./export-to-ipynb";
 import { NBGraderStore } from "./nbgrader/store";
 import { KernelSpec } from "./nbviewer/parse";
-import { Cell, CellToolbarName, KernelInfo } from "./types";
+import { Cell, CellToolbarName, KernelInfo, NotebookMode } from "./types";
 import { Kernel, Kernels } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
@@ -73,7 +73,7 @@ export interface JupyterStoreState {
   font_size: number;
   sel_ids: any;
   toolbar?: boolean;
-  mode: string;
+  mode: NotebookMode;
   nbconvert: any;
   about: boolean;
   start_time: any;

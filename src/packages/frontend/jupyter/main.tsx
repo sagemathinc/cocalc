@@ -37,26 +37,13 @@ import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
-import { Mode } from "./mode";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import { TopButtonbar } from "./top-buttonbar";
 import { TopMenubar } from "./top-menubar";
-import { Scroll } from "./types";
+import { NotebookMode, Scroll } from "./types";
 import { Kernels as KernelsType } from "./util";
-
-const KERNEL_STYLE: CSS = {
-  float: "right",
-  paddingLeft: "5px",
-  backgroundColor: COLORS.GRAY_LLL,
-  display: "block",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  margin: "7px 5px 0px 0px",
-  position: "relative",
-  zIndex: 1,
-} as const;
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -77,7 +64,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
-  mode: "edit" | "escape";
+  mode: NotebookMode;
   font_size?: number;
 
   cur_id?: string;
@@ -258,15 +245,12 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   function render_kernel() {
     return (
-      <span style={KERNEL_STYLE}>
-        <Kernel
-          is_fullscreen={is_fullscreen}
-          actions={actions}
-          usage={usage}
-          expected_cell_runtime={expected_cell_runtime}
-        />
-        <Mode name={name} />
-      </span>
+      <Kernel
+        is_fullscreen={is_fullscreen}
+        actions={actions}
+        usage={usage}
+        expected_cell_runtime={expected_cell_runtime}
+      />
     );
   }
 

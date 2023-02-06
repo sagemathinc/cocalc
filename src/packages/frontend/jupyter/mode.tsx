@@ -8,6 +8,7 @@
 import { React, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
+import { NotebookMode } from "./types";
 
 interface ModeProps {
   name: string;
@@ -15,7 +16,7 @@ interface ModeProps {
 
 export const Mode: React.FC<ModeProps> = React.memo((props: ModeProps) => {
   const { name } = props;
-  const mode = useRedux([name, "mode"]);
+  const mode: NotebookMode | undefined = useRedux([name, "mode"]);
 
   if (mode !== "edit") {
     return <span />;
@@ -23,7 +24,7 @@ export const Mode: React.FC<ModeProps> = React.memo((props: ModeProps) => {
     return (
       <div
         className="pull-right"
-        style={{ color: COLORS.GRAY, margin: "5px", paddingRight: "5px" }}
+        style={{ color: COLORS.GRAY, margin: "0px", paddingRight: "5px" }}
       >
         <Icon name="pencil" />
       </div>
