@@ -17,13 +17,14 @@ import {
   useRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay } from "@cocalc/frontend/components";
-import { Loading } from "@cocalc/frontend/components/loading";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
 
 // React components that implement parts of the Jupyter notebook.
+import { A, ErrorDisplay } from "@cocalc/frontend/components";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import { JupyterActions } from "./browser-actions";
@@ -44,9 +45,6 @@ import { TopButtonbar } from "./top-buttonbar";
 import { TopMenubar } from "./top-menubar";
 import { Scroll } from "./types";
 import { Kernels as KernelsType } from "./util";
-import { COLORS } from "@cocalc/util/theme";
-// import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
-const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
 
 const KERNEL_STYLE: CSS = {
   float: "right",
@@ -54,10 +52,8 @@ const KERNEL_STYLE: CSS = {
   backgroundColor: COLORS.GRAY_LLL,
   display: "block",
   overflow: "hidden",
-  borderLeft: "1px solid rgb(231,231,231)",
-  borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap",
-  margin: "5px",
+  margin: "7px 5px 0px 0px",
   position: "relative",
   zIndex: 1,
 } as const;
@@ -226,6 +222,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <ErrorDisplay
         bsStyle="warning"
+        banner={true}
         error_component={
           <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
             {kernel_error}
@@ -481,15 +478,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_snippets_dialog() {
-    return (
-      <SnippetsDialog
-        name={actions.snippet_actions.name}
-        actions={actions.snippet_actions}
-      />
-    );
-  }
-
   function render_main() {
     if (!check_select_kernel_init) {
       return render_loading();
@@ -511,7 +499,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         {render_edit_cell_metadata()}
         {render_find_and_replace()}
         {render_keyboard_shortcuts()}
-        {render_snippets_dialog()}
         {render_confirm_dialog()}
       </>
     );

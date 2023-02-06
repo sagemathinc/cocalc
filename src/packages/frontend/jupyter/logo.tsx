@@ -7,7 +7,7 @@
 The kernel's logo display
 */
 
-import { React } from "../app-framework";
+import { React } from "@cocalc/frontend/app-framework";
 
 import { get_logo_url } from "./server-urls";
 

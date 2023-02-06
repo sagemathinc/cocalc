@@ -5,26 +5,27 @@
 
 // Kernel display
 
-import { ReactNode } from "react";
-import { React, useRedux, CSS } from "../app-framework";
-import * as immutable from "immutable";
 import {
   Button,
-  Popover,
   Popconfirm,
+  Popover,
   Progress,
   Tooltip,
   Typography,
 } from "antd";
-import { COLORS } from "@cocalc/util/theme";
-import { A, Icon, IconName, Loading } from "../components";
-import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { Logo } from "./logo";
-import { JupyterActions } from "./browser-actions";
-import { Usage, AlertLevel, BackendState } from "./types";
-import { ALERT_COLS } from "./usage";
-import { PROJECT_INFO_TITLE } from "../project/info";
+import * as immutable from "immutable";
+import { ReactNode } from "react";
+
+import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { PROJECT_INFO_TITLE } from "../project/info";
+import { JupyterActions } from "./browser-actions";
+import { Logo } from "./logo";
+import { AlertLevel, BackendState, Usage } from "./types";
+import { ALERT_COLS } from "./usage";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -222,7 +223,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     function render_trust() {
       if (trust) {
         if (!is_fullscreen) return;
-        return <div style={{ display: "flex", color: "#888" }}>Trusted</div>;
+        return (
+          <div style={{ display: "flex", color: COLORS.GRAY }}>Trusted</div>
+        );
       } else {
         return (
           <Tooltip title={"Notebook is not trusted"}>
@@ -239,6 +242,23 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     }
 
     function kernelState(): ReactNode {
+      if (kernel === null) {
+        return (
+          <>
+            No kernel{" "}
+            <Tooltip title={"Select a kernel"}>
+              <a
+                onClick={() => {
+                  actions.show_select_kernel("user request");
+                }}
+              >
+                (select...)
+              </a>
+            </Tooltip>
+          </>
+        );
+      }
+
       if (backend_state === "running") {
         switch (kernel_state) {
           case "busy":
@@ -305,8 +325,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           style={{
             float: "right",
             display: "inline-block",
-            paddingRight: "10px",
-            color: "#888",
+            paddingRight: "5px",
+            marginRight: "5px",
+            color: COLORS.GRAY,
             borderRight: "1px solid grey",
           }}
         >
@@ -380,6 +401,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
     function render_usage_graphical() {
+      //if (kernel == null) return;
+
       // unknown, e.g, not reporting/working or old backend.
       if (usage == null || expected_cell_runtime == null) return;
 
@@ -540,11 +563,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     );
 
     return (
-      <span>
+      <div style={{ whiteSpace: "nowrap" }}>
         {render_logo()}
         {render_tip(get_kernel_name(), body)}
         {renderKernelState()}
-      </span>
+      </div>
     );
   }
 );

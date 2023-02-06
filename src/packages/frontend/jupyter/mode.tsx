@@ -5,9 +5,9 @@
 
 // A little mode indicator, next to the Kernel's usage information
 
-import { React, useRedux } from "../app-framework";
+import { React, useRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon } from "../components";
 
 interface ModeProps {
   name: string;

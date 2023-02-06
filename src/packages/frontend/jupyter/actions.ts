@@ -653,6 +653,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
               this.syncdb.commit();
             }
             break;
+
           case "nbconvert":
             if (this.is_project) {
               // before setting in store, let backend start reacting to change
@@ -661,12 +662,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             // Now set in our store.
             this.setState({ nbconvert: record });
             break;
+
           case "settings":
             if (record == null) {
               return;
             }
-            const orig_kernel = this.store.get("kernel");
-            const kernel = record.get("kernel");
+            const orig_kernel = this.store.get("kernel", null);
+            const kernel = record.get("kernel", null);
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
@@ -681,7 +683,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
                 DEFAULT_MAX_OUTPUT_LENGTH
               ),
             };
-            if (kernel !== orig_kernel) {
+            if (kernel !== orig_kernel || kernel === null) {
               obj.kernel = kernel;
               obj.kernel_info = this.store.get_kernel_info(kernel);
               obj.backend_kernel_info = undefined;
@@ -700,7 +702,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
                 this.set_cm_options();
               }
             }
-
             break;
         }
       });

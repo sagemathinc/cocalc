@@ -19,10 +19,10 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
 
 import { export_to_ipynb } from "./export-to-ipynb";
+import { NBGraderStore } from "./nbgrader/store";
 import { KernelSpec } from "./nbviewer/parse";
 import { Cell, CellToolbarName, KernelInfo } from "./types";
 import { Kernel, Kernels } from "./util";
-import { NBGraderStore } from "./nbgrader/store";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.

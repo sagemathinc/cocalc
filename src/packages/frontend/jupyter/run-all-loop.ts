@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { close } from "@cocalc/util/misc";
 import { delay } from "awaiting";
+
+import { close } from "@cocalc/util/misc";
 import { JupyterActions } from "./project-actions";
 
 export class RunAllLoop {
