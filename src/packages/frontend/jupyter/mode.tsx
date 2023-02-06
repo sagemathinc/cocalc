@@ -5,18 +5,17 @@
 
 // A little mode indicator, next to the Kernel's usage information
 
-import { React, useRedux } from "@cocalc/frontend/app-framework";
+import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { NotebookMode } from "./types";
 
 interface ModeProps {
-  name: string;
+  mode: NotebookMode;
 }
 
 export const Mode: React.FC<ModeProps> = React.memo((props: ModeProps) => {
-  const { name } = props;
-  const mode: NotebookMode | undefined = useRedux([name, "mode"]);
+  const { mode } = props;
 
   if (mode !== "edit") {
     return <span />;
@@ -24,7 +23,13 @@ export const Mode: React.FC<ModeProps> = React.memo((props: ModeProps) => {
     return (
       <div
         className="pull-right"
-        style={{ color: COLORS.GRAY, margin: "0px", paddingRight: "5px" }}
+        style={{
+          color: COLORS.GRAY,
+          margin: "0px",
+          paddingRight: "5px",
+          borderRight: "1px solid gray",
+          marginRight: "5px",
+        }}
       >
         <Icon name="pencil" />
       </div>

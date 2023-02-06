@@ -250,6 +250,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         actions={actions}
         usage={usage}
         expected_cell_runtime={expected_cell_runtime}
+        mode={mode}
       />
     );
   }
@@ -339,24 +340,24 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
-        name={name}
         cell_list={cell_list}
-        cells={cells}
-        font_size={font_size}
-        sel_ids={sel_ids}
-        md_edit_ids={md_edit_ids}
-        cur_id={cur_id}
-        mode={mode}
-        hook_offset={hook_offset}
-        cm_options={cm_options}
-        project_id={project_id}
-        directory={directory}
-        scrollTop={scrollTop}
-        complete={is_focused ? complete : undefined}
-        is_focused={is_focused}
-        more_output={more_output}
-        scroll={scroll}
         cell_toolbar={cell_toolbar}
+        cells={cells}
+        cm_options={cm_options}
+        complete={is_focused ? complete : undefined}
+        cur_id={cur_id}
+        directory={directory}
+        font_size={font_size}
+        hook_offset={hook_offset}
+        is_focused={is_focused}
+        md_edit_ids={md_edit_ids}
+        mode={mode}
+        more_output={more_output}
+        name={name}
+        project_id={project_id}
+        scroll={scroll}
+        scrollTop={scrollTop}
+        sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
       />

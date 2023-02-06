@@ -25,7 +25,7 @@ import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import { Logo } from "./logo";
 import { Mode } from "./mode";
-import { AlertLevel, BackendState, Usage } from "./types";
+import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
 
 const KERNEL_STYLE: CSS = {
@@ -91,11 +91,13 @@ interface KernelProps {
   is_fullscreen?: boolean;
   usage?: Usage;
   expected_cell_runtime?: number;
+  mode: NotebookMode;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, usage, expected_cell_runtime } = props;
+    const { actions, is_fullscreen, usage, expected_cell_runtime, mode } =
+      props;
     const name = actions.name;
 
     // redux section
@@ -549,7 +551,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     }
 
     function renderMode() {
-      return <Mode name={name} />;
+      return <Mode mode={mode} />;
     }
 
     if (IS_MOBILE) {
@@ -575,7 +577,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     const body = (
       <div
         className="pull-right"
-        style={{ color: COLORS.GRAY, cursor: "pointer" }}
+        style={{
+          color: COLORS.GRAY,
+          cursor: "pointer",
+        }}
       >
         {info}
       </div>
