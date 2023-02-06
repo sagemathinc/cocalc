@@ -161,10 +161,10 @@
     "utility-types": "^3.10.0",
     "video-extensions": "^1.2.0",
     "xss": "^1.0.11",
-    "xterm": "5.1.0",
-    "xterm-addon-fit": "^0.7.0",
-    "xterm-addon-web-links": "^0.8.0",
-    "xterm-addon-webgl": "^0.14.0",
+    "xterm": "5.0.0",
+    "xterm-addon-fit": "^0.6.0",
+    "xterm-addon-web-links": "^0.7.0",
+    "xterm-addon-webgl": "^0.13.0",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {
