@@ -83,7 +83,7 @@ export default function NotFocused({
         style={{
           width: "100%",
           height: "100%",
-          cursor: selectable ? "pointer" : undefined,
+          cursor: selectable && !element.data?.noSelect ? "pointer" : undefined,
         }}
         onClick={disableDrag ? onClick : undefined}
       >

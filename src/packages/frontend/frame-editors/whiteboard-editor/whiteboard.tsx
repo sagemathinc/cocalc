@@ -100,6 +100,7 @@ export default function Whiteboard() {
             </>
           )}
           <NavigationPanel
+            mainFrameType={actions.mainFrameType}
             fontSize={font_size}
             elements={elementsOnPage}
             elementsMap={elementsMap}

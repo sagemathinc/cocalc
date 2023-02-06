@@ -9,6 +9,8 @@ import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
 import { AspectRatio } from "./tools/frame";
 
+export type MainFrameType = "whiteboard" | "slides";
+
 export type ElementType =
   | "text"
   | "note"

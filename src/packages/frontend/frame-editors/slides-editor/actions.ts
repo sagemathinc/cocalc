@@ -26,7 +26,7 @@ export class Actions extends WhiteboardActions {
       type: "node",
       first: { type: "pages" },
       second: { type: "slides" },
-      pos: 0.2,
+      pos: 0.15,
     };
   }
 }

@@ -20,6 +20,7 @@ import {
   Element,
   ElementsMap,
   ElementType,
+  MainFrameType,
   PagesMap,
   SortedPageList,
   Point,
@@ -72,8 +73,6 @@ export interface State extends CodeEditorState {
   introspect?: ImmutableMap<string, any>; // used for jupyter cells -- displayed in a separate frame.
   contents?: TableOfContentsEntryList; // table of contents data.
 }
-
-type MainFrameType = "whiteboard" | "slides";
 
 export class Actions extends BaseActions<State> {
   protected doctype: string = "syncdb";

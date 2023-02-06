@@ -73,6 +73,7 @@ export default function WhiteboardTimeTravel({
         <>
           <ToolPanel selectedTool={selectedTool} readOnly />
           <NavigationPanel
+            mainFrameType={mainFrameType}
             fontSize={font_size}
             elements={elementsOnPage}
             whiteboardDivRef={whiteboardDivRef}

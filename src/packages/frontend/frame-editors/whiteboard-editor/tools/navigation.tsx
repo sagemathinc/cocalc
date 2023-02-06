@@ -22,7 +22,7 @@ import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS } from "../math";
 import { DEFAULT_FONT_SIZE, MIN_ZOOM, MAX_ZOOM } from "./defaults";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
-import { Element, ElementsMap } from "../types";
+import { Element, ElementsMap, MainFrameType } from "../types";
 import Draggable from "react-draggable";
 import {
   SELECTED_BORDER_COLOR,
@@ -121,6 +121,7 @@ interface Props {
   elements: Element[];
   elementsMap?: ElementsMap;
   whiteboardDivRef: MutableRefObject<HTMLDivElement | null>;
+  mainFrameType?: MainFrameType;
 }
 
 export default function Navigation({
@@ -128,6 +129,7 @@ export default function Navigation({
   elements,
   elementsMap,
   whiteboardDivRef,
+  mainFrameType,
 }: Props) {
   const [resize, setResize] = useState<{ x: number; y: number }>({
     x: 0,
@@ -165,9 +167,13 @@ export default function Navigation({
     setZoomSlider(Math.round(100 * fontSizeToZoom(fontSize)));
   }, [fontSize]);
 
+  const navMap = desc.get("navMap", mainFrameType == "slides" ? "hide" : "map");
+
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
-    v.push(<Tool key={tool} tool={tool} zoomSlider={zoomSlider} />);
+    v.push(
+      <Tool key={tool} tool={tool} zoomSlider={zoomSlider} navMap={navMap} />
+    );
   }
   const setFontSize = useCallback(
     throttle((value) => {
@@ -189,7 +195,6 @@ export default function Navigation({
       }}
     />
   );
-  const navMap = desc.get("navMap", "map");
   const showMap = navMap != "hide" && elements != null;
   return (
     <>
@@ -239,10 +244,9 @@ export default function Navigation({
   );
 }
 
-function Tool({ tool, zoomSlider }) {
-  const { actions, id, desc } = useFrameContext();
+function Tool({ tool, zoomSlider, navMap }) {
+  const { actions, id } = useFrameContext();
   const { icon, tip, click, width } = TOOLS[tool];
-  const navMap = desc.get("navMap", "map");
   return (
     <Tooltip placement="top" title={tip}>
       <Button
