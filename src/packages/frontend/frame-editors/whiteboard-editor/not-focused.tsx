@@ -41,7 +41,7 @@ export default function NotFocused({
         // because Draggable fires this onStop before that onClick even happens.
         return;
       }
-      if (!selectable) {
+      if (element.data?.noSelect) {
         frame.actions.clearSelection(frame.id);
         return;
       }
@@ -54,7 +54,8 @@ export default function NotFocused({
     [selectable, edgeCreate, id, frame, readOnly]
   );
 
-  const disableDrag = readOnly || !(selectable && !element.locked);
+  const disableDrag =
+    readOnly || !(selectable && !element.locked) || element.data?.noSelect;
 
   return (
     <Draggable

@@ -44,7 +44,14 @@ import { SagewsDiff } from "./sagews-diff";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
-const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "board", "md"]);
+const HAS_SPECIAL_VIEWER = new Set([
+  "tasks",
+  "ipynb",
+  "sagews",
+  "board",
+  "slides",
+  "md",
+]);
 
 interface Props {
   actions: TimeTravelActions;

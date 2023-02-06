@@ -700,26 +700,6 @@ export default function Canvas({
 
   const renderedElements: ReactNode[] = [];
 
-  if (mainFrameType == "slides") {
-    // Add the slide itself as the first element
-    renderedElements.push(
-      processElement(
-        {
-          data: { aspectRatio: "16:9", radius: 0.5 },
-          h: 3 * 197,
-          w: 3 * 350,
-          type: "slide",
-          id: "the-slide",
-          x: (-3 * 197) / 2,
-          y: (-3 * 350) / 2,
-          z: -9999,
-        },
-        false,
-        true
-      )
-    );
-  }
-
   for (const element of elements) {
     const x = processElement(element);
     if (x != null) {
@@ -1077,7 +1057,9 @@ export default function Canvas({
         } else {
           // select everything in selection
           const overlapping = getOverlappingElements(elements, rect);
-          const ids = overlapping.map((element) => element.id);
+          const ids = overlapping
+            .filter((element) => !element.data?.noSelect)
+            .map((element) => element.id);
           frame.actions.setSelectionMulti(frame.id, ids, "add");
         }
         return;

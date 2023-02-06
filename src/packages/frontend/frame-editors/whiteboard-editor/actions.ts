@@ -80,7 +80,10 @@ export class Actions extends BaseActions<State> {
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];
   private keyHandler?: (event) => void;
-  readonly mainFrameType : MainFrameType = "whiteboard";
+  readonly mainFrameType: MainFrameType = "whiteboard";
+  // fixedElements are on every page automatically.
+  // They should have {data:{selectable:false},...}
+  readonly fixedElements: { [id: string]: Element } = {};
 
   _raw_default_frame_tree(): FrameTree {
     // return { type: this.mainFrameType };
@@ -130,8 +133,7 @@ export class Actions extends BaseActions<State> {
       const sortedPageIds0 = this.store.get("sortedPageIds");
       let somePageChanged = false;
       let elements = elements0 ?? ImmutableMap({});
-      let pages: PagesMap = (this.store.get("pages") ??
-        ImmutableMap({})) as PagesMap;
+      let pages: PagesMap = (pages0 ?? ImmutableMap()) as PagesMap;
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
@@ -170,7 +172,7 @@ export class Actions extends BaseActions<State> {
             // this is a page
             somePageChanged = true;
             if (!pages.has(id)) {
-              pages = pages.set(id, ImmutableMap({}));
+              pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
             }
             elements = elements.set(id, element);
           } else {
@@ -180,7 +182,8 @@ export class Actions extends BaseActions<State> {
             const oldPage = oldElement?.get("page");
             const newPage = element.get("page");
             if (newPage) {
-              const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
+              const elementsOnNewPage =
+                pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
               pages = pages.set(newPage, elementsOnNewPage.set(id, element));
             }
             if (oldPage && oldPage != newPage) {
@@ -195,6 +198,10 @@ export class Actions extends BaseActions<State> {
                 }
               }
             }
+            //             if (oldPage == null && newPage == null) {
+            //               // element has no page number
+            //               // just a note here.
+            //             }
           }
         }
       });
@@ -218,6 +225,10 @@ export class Actions extends BaseActions<State> {
 
       if (pages !== pages0) {
         this.setState({ pages });
+      }
+
+      if (pages.size == 0) {
+        setTimeout(() => this.createPage(), 0);
       }
     };
 

@@ -51,6 +51,7 @@ export interface Data {
   time?: number; // used by timer
   total?: number; // used by timer
   aspectRatio?: AspectRatio;
+  noSelect?: boolean; // if true, then item can't be selected.
 
   hideInput?: boolean; // used for code cells
   hideOutput?: boolean; // used for code cells
