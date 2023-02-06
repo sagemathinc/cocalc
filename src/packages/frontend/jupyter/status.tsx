@@ -416,7 +416,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
     function render_usage_graphical() {
-      //if (kernel == null) return;
+      if (kernel == null) return;
 
       // unknown, e.g, not reporting/working or old backend.
       if (usage == null || expected_cell_runtime == null) return;
