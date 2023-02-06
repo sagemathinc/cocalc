@@ -357,6 +357,7 @@ const DragBar: React.FC<DragBarProps> = ({
 
   return (
     <Draggable
+      position={{ x: 0, y: 0 }}
       ref={draggable_ref}
       axis="x"
       onStop={handle_drag_bar_stop}

@@ -3,15 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-TODO:
-- syntax highlight in user's theme
-- keyboard with user settings
-*/
-
 import React, {
   CSSProperties,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useCallback,
@@ -29,8 +24,9 @@ import {
 } from "../control";
 import { selectAll } from "../keyboard/select-all";
 import infoToMode from "./code-block/info-to-mode";
-import { isEqual } from "lodash";
 import { file_associations } from "@cocalc/frontend/file-associations";
+import { useRedux } from "@cocalc/frontend/app-framework";
+import { isEqual } from "lodash";
 
 const STYLE = {
   width: "100%",
@@ -64,7 +60,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     onEscape,
     onBlur,
     onFocus,
-    options,
+    options: cmOptions,
     isInline,
     style,
   }) => {
@@ -74,134 +70,14 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const collapsed = useCollapsed();
     const { actions } = useFrameContext();
     const { id } = useFrameContext();
-
+    const justBlurred = useRef<boolean>(false);
     const cmRef = useRef<Editor | undefined>(undefined);
-    const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
+    const [isFocused, setIsFocused] = useState<boolean>(!!cmOptions?.autofocus);
     const textareaRef = useRef<any>(null);
 
-    const setCSS = useCallback(
-      (css) => {
-        if (cmRef.current == null) return;
-        $(cmRef.current.getWrapperElement()).css(css);
-      },
-      [cmRef]
-    );
-
-    const focusEditor = useCallback(() => {
-      const cm = cmRef.current;
-      if (cm == null) return;
-      if (collapsed) {
-        // collapsed = single cursor, rather than a selection range.
-        // Put the cursor at the top or bottom,
-        // depending on where it was recently outside of here in the slate document.
-        const last = editor.lastSelection?.focus?.path;
-        const path = editor.selection?.focus?.path;
-        if (last != null && path != null) {
-          let cur: undefined | { line: number; ch: number } = undefined;
-          if (isEqual(last, path)) {
-            // no-op, e.g., already in there
-          } else if (isLessThan(last, path)) {
-            // from above
-            cur = { line: 0, ch: 0 };
-          } else {
-            // from below
-            cur = {
-              line: cm.lastLine(),
-              ch: isInline ? cm.getLine(cm.lastLine()).length : 0,
-            };
-          }
-          if (cur) {
-            cm.setCursor(cur);
-          }
-        }
-
-        // focus the CodeMirror editor
-        // It is critical to blur the Slate editor
-        // itself after focusing codemirror, since otherwise we
-        // get stuck in an infinite
-        // loop since slate is confused about whether or not it is
-        // blurring or getting focused, since codemirror is a contenteditable
-        // inside of the slate DOM tree.  Hence this blur:
-        cm.refresh();
-        cm.focus();
-        ReactEditor.blur(editor);
-
-        // set the CSS to indicate this
-        setCSS({
-          backgroundColor: options?.theme != null ? "" : "#fafafa",
-          color: "",
-        });
-      } else {
-        setCSS({
-          backgroundColor: "#1990ff",
-          color: "white",
-        });
-      }
-    }, [collapsed, options?.theme]);
-
-    useEffect(() => {
-      if (focused && selected) {
-        focusEditor();
-      } else {
-        setCSS({
-          backgroundColor: options?.theme != null ? "" : "#fafafa",
-          color: "",
-        });
-      }
-    }, [selected, focused, options?.theme]);
-
-    // If the info line changes update the mode.
-    useEffect(() => {
-      const cm = cmRef.current;
-      if (cm == null) return;
-      cm.setOption("mode", infoToMode(info));
-      const indentUnit = file_associations[info ?? ""]?.opts.indent_unit ?? 4;
-      cm.setOption("indentUnit", indentUnit);
-    }, [info]);
-
-    useEffect(() => {
-      const node: HTMLTextAreaElement = textareaRef.current;
-      if (node == null) return;
-      if (options == null) options = {};
-
-      // The two lines below MUST match with the useEffect above that reacts to changing info.
-      options.mode = options.mode ?? infoToMode(info);
-      options.indentUnit =
-        options.indentUnit ??
-        file_associations[info ?? ""]?.opts.indent_unit ??
-        4;
-
-      // NOTE: Using the inputStyle of "contenteditable" is challenging
-      // because we have to take care that copy doesn't end up being handled
-      // by slate and being wrong.  In contrast, textarea does work fine for
-      // copy.  However, textarea does NOT work when any CSS transforms
-      // are involved, and we use such transforms extensively in the whiteboard.
-
-      options.inputStyle = "contenteditable"; // can't change because of whiteboard usage!
-
-      if (options.extraKeys == null) {
-        options.extraKeys = {};
-      }
-
-      options.extraKeys["Shift-Enter"] = () => {
-        Transforms.move(editor, { distance: 1, unit: "line" });
-        ReactEditor.focus(editor);
-        onShiftEnter?.();
-      };
-
-      if (onEscape != null) {
-        options.extraKeys["Esc"] = onEscape;
-      }
-
-      options.extraKeys["Tab"] = (cm) => {
-        const spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
-        cm.replaceSelection(spaces);
-      };
-
-      // We make it so doing select all when not everything is
-      // selected selects everything in this local Codemirror.
-      // Doing it *again* then selects the entire external slate editor.
-      options.extraKeys["Cmd-A"] = options.extraKeys["Ctrl-A"] = (cm) => {
+    const editor_settings = useRedux(["account", "editor_settings"]);
+    const options = useMemo(() => {
+      const selectAllKeyboard = (cm) => {
         if (cm.getSelection() != cm.getValue()) {
           // not everything is selected (or editor is empty), so
           // select everything.
@@ -215,6 +91,101 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           selectAll(editor);
         }
       };
+
+      const bindings = editor_settings.get("bindings");
+      return {
+        ...cmOptions,
+        autoCloseBrackets: editor_settings.get("auto_close_brackets", false),
+        lineWrapping: editor_settings.get("line_wrapping", true),
+        lineNumbers: editor_settings.get("line_numbers", false),
+        matchBrackets: editor_settings.get("match_brackets", false),
+        styleActiveLine: editor_settings.get("style_active_line", true),
+        theme: editor_settings.get("theme", "default"),
+        keyMap:
+          bindings == null || bindings == "standard" ? "default" : bindings,
+        // The two lines below MUST match with the useEffect above that reacts to changing info.
+        mode: cmOptions?.mode ?? infoToMode(info),
+        indentUnit:
+          cmOptions?.indentUnit ??
+          file_associations[info ?? ""]?.opts.indent_unit ??
+          4,
+
+        // NOTE: Using the inputStyle of "contenteditable" is challenging
+        // because we have to take care that copy doesn't end up being handled
+        // by slate and being wrong.  In contrast, textarea does work fine for
+        // copy.  However, textarea does NOT work when any CSS transforms
+        // are involved, and we use such transforms extensively in the whiteboard.
+
+        inputStyle: "contenteditable" as "contenteditable", // can't change because of whiteboard usage!
+        extraKeys: {
+          ...cmOptions?.extraKeys,
+          "Shift-Enter": () => {
+            Transforms.move(editor, { distance: 1, unit: "line" });
+            ReactEditor.focus(editor);
+            onShiftEnter?.();
+          },
+          // We make it so doing select all when not everything is
+          // selected selects everything in this local Codemirror.
+          // Doing it *again* then selects the entire external slate editor.
+          "Cmd-A": selectAllKeyboard,
+          "Ctrl-A": selectAllKeyboard,
+          ...(onEscape != null ? { Esc: onEscape } : undefined),
+        },
+      };
+    }, [editor_settings, cmOptions]);
+
+    const setCSS = useCallback(
+      (css) => {
+        if (cmRef.current == null) return;
+        $(cmRef.current.getWrapperElement()).css(css);
+      },
+      [cmRef]
+    );
+
+    const focusEditor = useCallback(
+      (forceCollapsed?) => {
+        const cm = cmRef.current;
+        if (cm == null) return;
+        if (forceCollapsed || collapsed) {
+          // collapsed = single cursor, rather than a selection range.
+          // focus the CodeMirror editor
+          // It is critical to blur the Slate editor
+          // itself after focusing codemirror, since otherwise we
+          // get stuck in an infinite
+          // loop since slate is confused about whether or not it is
+          // blurring or getting focused, since codemirror is a contenteditable
+          // inside of the slate DOM tree.  Hence this ReactEditor.blur:
+          cm.refresh();
+          cm.focus();
+          ReactEditor.blur(editor);
+        } else {
+          setCSS({
+            backgroundColor: "#1990ff",
+            color: "white",
+          });
+        }
+      },
+      [collapsed, options.theme]
+    );
+
+    useEffect(() => {
+      if (focused && selected && !justBlurred.current) {
+        focusEditor();
+      }
+    }, [selected, focused, options.theme]);
+
+    // If the info line changes update the mode.
+    useEffect(() => {
+      const cm = cmRef.current;
+      if (cm == null) return;
+      cm.setOption("mode", infoToMode(info));
+      const indentUnit = file_associations[info ?? ""]?.opts.indent_unit ?? 4;
+      cm.setOption("indentUnit", indentUnit);
+    }, [info]);
+
+    useEffect(() => {
+      const node: HTMLTextAreaElement = textareaRef.current;
+      if (node == null) return;
 
       cursorHandlers(options, editor, isInline);
 
@@ -235,11 +206,16 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       }
 
       cm.on("blur", () => {
+        justBlurred.current = true;
+        setTimeout(() => {
+          justBlurred.current = false;
+        }, 0);
         setIsFocused(false);
       });
 
       cm.on("focus", () => {
         setIsFocused(true);
+        setTimeout(() => focusEditor(true), 0);
       });
 
       cm.on("copy", (_, event) => {
@@ -265,9 +241,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         height: "auto",
         padding: "5px",
       };
-      if (options.theme == null) {
-        css.backgroundColor = "#f7f7f7";
-      }
       setCSS(css);
       cm.refresh();
 
@@ -277,6 +250,19 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cmRef.current = undefined;
       };
     }, []);
+
+    useEffect(() => {
+      const cm = cmRef.current;
+      if (cm == null) return;
+      for (const key in options) {
+        const opt = options[key];
+        if (!isEqual(cm.options[key], opt)) {
+          if (opt != null) {
+            cm.setOption(key as any, opt);
+          }
+        }
+      }
+    }, [editor_settings]);
 
     useEffect(() => {
       cmRef.current?.setValueNoJump(value);
@@ -299,6 +285,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     );
   }
 );
+
+// TODO: vim version of this...
 
 function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   const exitDown = (cm) => {
@@ -355,11 +343,4 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   };
 }
 
-function isLessThan(p1: number[], p2: number[]): boolean {
-  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
-    if ((p1[i] ?? 0) < (p2[i] ?? 0)) {
-      return true;
-    }
-  }
-  return false;
-}
+

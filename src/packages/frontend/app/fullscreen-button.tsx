@@ -10,7 +10,7 @@ import { user_tracking } from "../user-tracking";
 
 const TIP_STYLE: React.CSSProperties = {
   position: "fixed",
-  zIndex: 10000,
+  zIndex: 100,
   right: 0,
   top: "-1px",
   borderRadius: "3px",

@@ -35,7 +35,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { Input, InputNumber, Popconfirm } from "antd";
+import { Input, InputNumber, Popconfirm, Popover } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
@@ -83,7 +83,6 @@ const title_bar_style: CSS = {
   flexWrap: "nowrap",
   flex: "0 0 auto",
   display: "flex",
-  minHeight: "34px",
 } as const;
 
 const TITLE_STYLE: CSS = {
@@ -148,6 +147,8 @@ interface Props {
   available_features?: AvailableFeatures;
   page?: number | string;
   pages?: number | List<string>;
+  is_visible?: boolean;
+  tab_is_visible?: boolean;
 }
 
 export const FrameTitleBar: React.FC<Props> = (props: Props) => {
@@ -156,6 +157,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   >(null);
 
   const force_update = useForceUpdate();
+
+  const [showMainButtonsPopover, setShowMainButtonsPopover] =
+    useState<boolean>(false);
 
   useEffect(() => {
     // clear button cache whenever type changes; otherwise,
@@ -330,7 +334,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <DropdownMenu
         cocalc-test={"types-dropdown"}
         button={true}
-        style={{ float: "left", height: button_height() }}
+        style={{
+          float: "left",
+          height: button_height(),
+          marginBottom: "5px",
+          marginRight: "3px",
+        }}
         key={"types"}
         title={title}
         onClick={select_type}
@@ -344,24 +353,20 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const is_active = props.active_id === props.id;
     const style: CSS = {
       padding: 0,
-      paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
       height: button_height(),
+      float: "right",
     };
-    if (is_active) {
-      style.position = "absolute";
-      style.boxShadow = "#ccc -2px 0";
-      style.right = 0;
-      style.zIndex = 10; // so can click see buttons when flow around
-    }
     return (
-      <ButtonGroup style={style} key={"close"}>
+      <div style={{ overflow: "hidden" }}>
+        <ButtonGroup style={style} key={"close"}>
+          {is_active && !props.is_full ? render_split_row() : undefined}
+          {is_active && !props.is_full ? render_split_col() : undefined}
+          {is_active && !props.is_only ? render_full() : undefined}
+          {render_x()}
+        </ButtonGroup>
         {is_active ? render_types() : undefined}
-        {is_active && !props.is_full ? render_split_row() : undefined}
-        {is_active && !props.is_full ? render_split_col() : undefined}
-        {is_active && !props.is_only ? render_full() : undefined}
-        {render_x()}
-      </ButtonGroup>
+      </div>
     );
   }
 
@@ -521,11 +526,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_sync(): Rendered {
+  function render_sync(labels): Rendered {
     if (!is_visible("sync") || props.actions.sync == null) {
       return;
     }
-    const labels = show_labels();
     return (
       <StyledButton
         key={"sync"}
@@ -571,7 +575,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_download(): Rendered {
+  function render_download(labels): Rendered {
     if (
       !is_visible("download") ||
       props.editor_actions.download == null ||
@@ -579,7 +583,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     ) {
       return;
     }
-    const labels = show_labels();
     return (
       <StyledButton
         key={"download"}
@@ -838,17 +841,17 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return !!(props.is_only || props.is_full);
   }
 
-  function button_text(button_name: string, def?: string): string | undefined {
-    if (!show_labels()) return;
+  function button_text(
+    button_name: string,
+    labels?: boolean
+  ): string | undefined {
+    if (!labels) return;
     const custom = props.editor_spec[props.type].customize_buttons;
     if (custom != null) {
       const x = custom[button_name];
       if (x != null && x.text != null) {
         return x.text;
       }
-    }
-    if (def != undefined) {
-      return def;
     }
     return capitalize(button_name);
   }
@@ -967,11 +970,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_restart(): Rendered {
+  function render_restart(labels): Rendered {
     if (!is_visible("restart", true)) {
       return;
     }
-    const labels = show_labels();
     return (
       <Button
         key={"restart"}
@@ -1013,8 +1015,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_save_timetravel_group(): Rendered {
-    const labels = show_labels();
+  function render_save_timetravel_group(labels): Rendered {
     const v: Rendered[] = [];
     let x: Rendered;
     if ((x = render_save(labels))) v.push(x);
@@ -1027,7 +1028,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_format(): Rendered {
+  function render_format(labels): Rendered {
     if (
       !is_visible("format") ||
       !props.editor_actions.has_format_support(
@@ -1045,12 +1046,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Canonically format the entire document."}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
-        <VisibleMDLG>{show_labels() ? "Format" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Format" : undefined}</VisibleMDLG>
       </Button>
     );
   }
 
-  function render_table_of_contents(): Rendered {
+  function render_table_of_contents(labels): Rendered {
     if (!is_visible("show_table_of_contents")) return;
     return (
       <Button
@@ -1060,7 +1061,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Show the Table of Contents"}
       >
         <Icon name={"align-right"} />{" "}
-        <VisibleMDLG>{show_labels() ? "Contents" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Contents" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1116,7 +1117,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_clean(): Rendered {
+  function render_clean(labels): Rendered {
     if (!is_visible("clean", true)) {
       return;
     }
@@ -1128,7 +1129,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Clean auxiliary build files"}
       >
         <Icon name={"trash"} />{" "}
-        <VisibleMDLG>{show_labels() ? "Clean" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Clean" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1272,7 +1273,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_print(): Rendered {
+  function render_print(labels): Rendered {
     if (!is_visible("print") || student_project_functionality.disableActions) {
       return;
     }
@@ -1284,12 +1285,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
-        <VisibleMDLG>{show_labels() ? "Print" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Print" : undefined}</VisibleMDLG>
       </Button>
     );
   }
 
-  function render_terminal(): Rendered {
+  function render_terminal(labels): Rendered {
     if (
       !is_visible("terminal") ||
       is_public ||
@@ -1305,12 +1306,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={button_title("terminal", "Open a command line terminal")}
       >
         <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("terminal")}</VisibleMDLG>
+        <VisibleMDLG>{button_text("terminal", labels)}</VisibleMDLG>
       </Button>
     );
   }
 
-  function render_shell(): Rendered {
+  function render_shell(labels): Rendered {
     if (
       !is_visible("shell") ||
       is_public ||
@@ -1326,7 +1327,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={button_title("shell", "Open a shell for running this code")}
       >
         <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("shell")}</VisibleMDLG>
+        <VisibleMDLG>{button_text("shell", labels)}</VisibleMDLG>
       </Button>
     );
   }
@@ -1379,48 +1380,49 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         project_id={props.project_id}
         is_public={false}
         label={small ? "" : "File"}
-        style={small ? { height: button_height() } : undefined}
+        style={{ height: button_height() }}
       />
     );
   }
 
-  function render_buttons(): Rendered {
-    let style;
+  function render_buttons(forceLabels?, style?): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
         maxHeight: "30px",
+        ...style,
       };
     } else {
       style = {
         maxHeight: "34px",
         marginLeft: "2px",
+        ...style,
       };
     }
 
-    const labels = show_labels();
+    const labels = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
     v.push(renderPage(true));
-    v.push(render_save_timetravel_group());
+    v.push(render_save_timetravel_group(labels));
     v.push(render_build());
     v.push(render_force_build());
     v.push(render_edit());
     v.push(render_readonly_view());
-    v.push(render_sync());
+    v.push(render_sync(labels));
     v.push(render_switch_to_file());
-    v.push(render_clean());
+    v.push(render_clean(labels));
     v.push(render_zoom_group());
     v.push(render_rescan_latex_directives());
     if (!is_public) {
       v.push(render_undo_redo_group());
     }
-    v.push(render_restart());
+    v.push(render_restart(labels));
     v.push(render_close_and_halt(labels));
 
     v.push(render_page_width_height_group());
-    v.push(render_download());
+    v.push(render_download(labels));
     v.push(render_pause(labels));
     v.push(render_copy_group());
     v.push(render_find_replace_group());
@@ -1432,11 +1434,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_clear());
     v.push(render_count_words());
     v.push(render_kick_other_users_out());
-    v.push(render_format());
-    v.push(render_terminal());
-    v.push(render_shell());
-    v.push(render_print());
-    v.push(render_table_of_contents());
+    v.push(render_format(labels));
+    v.push(render_terminal(labels));
+    v.push(render_shell(labels));
+    v.push(render_print(labels));
+    v.push(render_table_of_contents(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));
 
@@ -1464,12 +1466,53 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const style: CSS = {
       flexFlow: "row nowrap",
       display: "flex",
+      flex: 1,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
     };
     return (
       <div style={style}>
         {!is_public ? render_file_menu() : undefined}
         {render_buttons()}
       </div>
+    );
+  }
+
+  function allButtonsPopover() {
+    return (
+      <Popover
+        open={
+          props.tab_is_visible && props.is_visible && showMainButtonsPopover
+        }
+        content={() => {
+          return (
+            <div style={{ display: "flex" }}>
+              <div style={{ width: "3px" }}></div>
+              <div style={{ maxWidth: "390px" }}>
+                {render_buttons(true, { maxHeight: "50vh" })}
+              </div>
+              <div style={{ width: "3px" }}></div>
+              <div>{render_types()}</div>
+              <Icon
+                onClick={() => setShowMainButtonsPopover(false)}
+                name="times"
+                style={{
+                  color: "#666",
+                  marginTop: "10px",
+                  marginLeft: "10px",
+                }}
+              />
+            </div>
+          );
+        }}
+      >
+        <Button
+          style={{ margin: "0 3px" }}
+          onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
+        >
+          <Icon name="ellipsis" />
+        </Button>
+      </Popover>
     );
   }
 
@@ -1705,6 +1748,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     style.background = COL_BAR_BACKGROUND;
     if (!props.is_only && !props.is_full) {
       style.maxHeight = "34px";
+    } else {
+      style.maxHeight = "38px";
     }
     // position relative, so we can absolute position the
     // frame controls to the right
@@ -1743,6 +1788,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
+        {is_active && allButtonsPopover()}
         {render_control()}
       </div>
       {render_confirm_bar()}
