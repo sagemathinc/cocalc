@@ -67,12 +67,18 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
       continue;
     }
     const color = activeTab == name ? { color: "#1677ff" } : undefined;
+
+    // uncomment this to move the processes and settings to the bottom like in vscode.
+    // some of us do NOT like that.
+    //     if (name == "info") {
+    //       items.push(<div style={{ flex: 1 }}></div>);
+    //     }
     items.push(
       <FileTab
         style={{
-          margin: "10px 0px",
+          margin: "5px 0px",
           ...color,
-          borderLeft: `2px solid ${
+          borderLeft: `4px solid ${
             activeTab == name ? "#1677ff" : "transparent"
           }`,
         }}
@@ -88,7 +94,11 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
       />
     );
   }
-  return <>{items}</>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {items}
+    </div>
+  );
 }
 
 function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {

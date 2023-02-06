@@ -35,7 +35,13 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { Input, InputNumber, Popconfirm, Popover } from "antd";
+import {
+  Input,
+  InputNumber,
+  Popconfirm,
+  Popover,
+  Button as AntdButton,
+} from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
@@ -1364,13 +1370,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_file_menu(): Rendered {
+  function render_actions_dropdown(labels): Rendered {
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
     // Also, instructors can disable this for students:
     if (student_project_functionality.disableActions) return;
-    const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];
     if (spec != null && spec.hide_file_menu) return;
     return (
@@ -1379,7 +1384,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         filename={props.path}
         project_id={props.project_id}
         is_public={false}
-        label={small ? "" : "File"}
+        label={labels ? "Actions" : ""}
         style={{ height: button_height() }}
       />
     );
@@ -1404,6 +1409,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const labels = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
+    v.push(render_actions_dropdown(labels));
     v.push(renderPage(true));
     v.push(render_save_timetravel_group(labels));
     v.push(render_build());
@@ -1470,12 +1476,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       whiteSpace: "nowrap",
       overflow: "hidden",
     };
-    return (
-      <div style={style}>
-        {!is_public ? render_file_menu() : undefined}
-        {render_buttons()}
-      </div>
-    );
+    return <div style={style}>{render_buttons()}</div>;
   }
 
   function allButtonsPopover() {
@@ -1506,12 +1507,16 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           );
         }}
       >
-        <Button
-          style={{ margin: "0 3px" }}
+        <AntdButton
+          type="text"
+          style={{
+            margin: "0 3px",
+            height: props.is_only || props.is_full ? "34px" : "30px",
+          }}
           onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
         >
           <Icon name="ellipsis" />
-        </Button>
+        </AntdButton>
       </Popover>
     );
   }

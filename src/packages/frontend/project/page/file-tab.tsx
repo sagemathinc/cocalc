@@ -35,7 +35,7 @@ type FixedTabs = {
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
-    label: "Files",
+    label: "Explorer",
     icon: "folder-open",
     tooltip: "Browse files",
     noAnonymous: false,
@@ -58,16 +58,16 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     tooltip: "Search files in the project",
     noAnonymous: false,
   },
-  settings: {
-    label: "Settings",
-    icon: "wrench",
-    tooltip: "Project settings and controls",
-    noAnonymous: true,
-  },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     tooltip: "Running processes, resource usage, …",
+    noAnonymous: true,
+  },
+  settings: {
+    label: "Settings",
+    icon: "wrench",
+    tooltip: "Project settings and controls",
     noAnonymous: true,
   },
 } as const;

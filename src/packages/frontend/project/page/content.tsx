@@ -46,6 +46,7 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import getUrlTransform from "./url-transform";
 import getAnchorTagComponent from "./anchor-tag-component";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
+import { HomePage } from "./home-page";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -124,6 +125,8 @@ export const TabContent: React.FC<TabContentProps> = ({
   const name = project_redux_name(project_id);
 
   switch (tab_name) {
+    case "home":
+      return <HomePage />;
     case "files":
       return (
         <Explorer
