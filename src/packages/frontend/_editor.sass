@@ -539,11 +539,22 @@ code
   cursor        : ew-resize
   background    : #eee
   width         : 6px
-  border        : 0.5px solid lightgrey
+  border        : 3px solid #eee
   &:hover
-    background : #428bca
+    border : 3px solid #428bca
 
 .cc-vertical-drag-bar-dragging
+  z-index       : 100
+
+.cc-horizontal-drag-bar
+  cursor        : ns-resize
+  background    : #eee
+  height         : 6px
+  border        : 3px solid #eee
+  &:hover
+    border : 3px solid #428bca
+
+.cc-horizontal-drag-bar-dragging
   z-index       : 100
 
 .webapp-editor-html-md-preview

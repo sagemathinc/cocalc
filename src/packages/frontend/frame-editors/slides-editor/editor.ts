@@ -16,6 +16,7 @@ import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/intros
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 
+import SpeakerNotes from "./speaker-notes";
 import Slides from "./slides";
 import Search from "../whiteboard-editor/search";
 import Pages from "../whiteboard-editor/pages";
@@ -43,6 +44,13 @@ export const EDITOR_SPEC = {
     component: Slides,
     buttons: slidesButtons,
   } as EditorDescription,
+  speaker_notes: {
+    short: "Notes",
+    name: "Speaker Notes",
+    icon: "pencil" as IconName,
+    component: SpeakerNotes,
+    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+  },
   search: {
     short: "Search",
     name: "Search",

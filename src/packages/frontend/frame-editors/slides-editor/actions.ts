@@ -25,7 +25,19 @@ export class Actions extends WhiteboardActions {
       direction: "col",
       type: "node",
       first: { type: "pages" },
-      second: { type: "slides" },
+      second: {
+        direction: "row",
+        type: "node",
+        first: { type: "slides" },
+        second: {
+          direction: "col",
+          type: "node",
+          first: { type: "speaker_notes" },
+          second: { type: "slides_table_of_contents" },
+          pos: 0.8,
+        },
+        pos: 0.8,
+      },
       pos: 0.15,
     };
   }
