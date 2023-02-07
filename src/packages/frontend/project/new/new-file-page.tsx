@@ -4,42 +4,45 @@
  */
 
 import { useState } from "react";
-import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
+
 import { default_filename } from "@cocalc/frontend/account";
 import {
-  Col,
-  Row,
+  Alert,
   Button,
   ButtonToolbar,
+  Col,
   FormControl,
   FormGroup,
-  Alert,
+  Row,
 } from "@cocalc/frontend/antd-bootstrap";
-import {
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Tip,
-  SettingBox,
-} from "@cocalc/frontend/components";
-import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
-import { FileUpload } from "@cocalc/frontend/file-upload";
-import { NewFileButton } from "./new-file-button";
-import { NewFileDropdown } from "./new-file-dropdown";
-import { FileTypeSelector } from "./file-type-selector";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
-import { PathNavigator } from "../explorer/path-navigator";
 import {
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  SettingBox,
+  Tip,
+} from "@cocalc/frontend/components";
+import { FileUpload } from "@cocalc/frontend/file-upload";
+import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
+import { ProjectMap } from "@cocalc/frontend/todo-types";
+import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
+import { PathNavigator } from "../explorer/path-navigator";
+import { FileTypeSelector } from "./file-type-selector";
+import { NewFileButton } from "./new-file-button";
+import { NewFileDropdown } from "./new-file-dropdown";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;
 }
 
-export default function NewFilePage({ project_id }: Props) {
+export default function NewFilePage(props: Props) {
+  const { project_id } = props;
   const actions = useActions({ project_id });
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -305,7 +308,7 @@ export default function NewFilePage({ project_id }: Props) {
         <Col sm={12}>
           <div
             style={{
-              color: "#666",
+              color: COLORS.GRAY_D,
               paddingBottom: "5px",
               fontSize: "16px",
             }}
