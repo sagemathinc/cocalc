@@ -726,6 +726,21 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
+  public async confirm_remove_kernel(): Promise<void> {
+    const remove = "Remove & Halt";
+    const choice = await this.confirm_dialog({
+      title: "Remove kernel?",
+      body: "You're about to remove the kernel from the notebook, which will also terminate it. All variables will be lost. Afterwards, you have to select a kernel, in order to be able to run code again.",
+      choices: [
+        { title: "Continue running" },
+        { title: remove, style: "danger", default: true },
+      ],
+    });
+    if (choice === remove) {
+      this.select_kernel(""); // this will also call this.halt()
+    }
+  }
+
   public cell_toolbar(name?: CellToolbarName): void {
     // Set which cell toolbar is visible.
     // At most one may be visible.

@@ -597,8 +597,8 @@ export function commands(
     },
 
     "no kernel": {
-      m: "Remove kernel from notebook",
-      f: () => jupyter_actions.select_kernel(null),
+      m: "Remove kernel from notebook...",
+      f: () => jupyter_actions.confirm_remove_kernel(),
     },
 
     "refresh kernels": {

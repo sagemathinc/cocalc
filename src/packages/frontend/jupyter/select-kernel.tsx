@@ -4,25 +4,30 @@
  */
 
 // help users selecting a kernel
-import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
 import * as antd from "antd";
-import { Map as ImmutableMap, List, OrderedMap } from "immutable";
+import { Button, Checkbox, Descriptions, Radio, Typography } from "antd";
+import { List, Map as ImmutableMap, OrderedMap } from "immutable";
 
-import { SiteName } from "@cocalc/frontend/customize";
 import {
+  CSS,
   React,
   Rendered,
-  CSS,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend//app-framework";
+import {
+  Icon,
+  isIconName,
+  Loading,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
 import * as misc from "@cocalc/util/misc";
-import { isIconName, Icon, Loading } from "@cocalc/frontend/components";
-import { Col, Row } from "../antd-bootstrap";
 import { COLORS } from "@cocalc/util/theme";
+import { Col, Row } from "../antd-bootstrap";
 import { JupyterActions } from "./browser-actions";
 import { Kernel as KernelType } from "./util";
-import { Paragraph, Text } from "@cocalc/frontend/components";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
@@ -48,7 +53,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     const { actions } = props;
     const editor_settings = useTypedRedux("account", "editor_settings");
 
-    const kernel: undefined | string = useRedux([actions.name, "kernel"]);
+    const redux_kernel: undefined | string = useRedux([actions.name, "kernel"]);
+    // undefined and empty string are both treated as "null" aka "no kernel"
+    const kernel = !redux_kernel ? null : redux_kernel;
     const default_kernel: undefined | string = useRedux([
       actions.name,
       "default_kernel",
@@ -322,10 +329,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
               without a kernel.
             </Paragraph>
             <Paragraph style={{ textAlign: "center", width: "100%" }}>
-              <Button
-                onClick={() => actions.select_kernel(null)}
-                type="primary"
-              >
+              <Button onClick={() => actions.select_kernel("")} type="primary">
                 Continue without a kernel
               </Button>
             </Paragraph>

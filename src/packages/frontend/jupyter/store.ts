@@ -45,59 +45,59 @@ export function canonical_language(
 }
 
 export interface JupyterStoreState {
-  nbconvert_dialog: any;
-  cell_toolbar: CellToolbarName;
-  edit_attachments?: string;
-  edit_cell_metadata: any;
-  raw_ipynb: any;
+  about: boolean;
   backend_kernel_info: KernelInfo;
   cell_list: List<string>; // list of id's of the cells, in order by pos.
+  cell_toolbar: CellToolbarName;
   cells: Map<string, Cell>; // map from string id to cell; the structure of a cell is complicated...
+  check_select_kernel_init: boolean;
+  closestKernel?: Kernel;
+  cm_options: any;
+  complete: any;
+  confirm_dialog: any;
+  connection_file?: string;
+  contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   cur_id: string;
+  default_kernel?: string;
+  directory: string;
+  edit_attachments?: string;
+  edit_cell_metadata: any;
   error?: string;
   fatal: string;
-  has_unsaved_changes?: boolean;
-  has_uncommitted_changes?: boolean;
-  kernel?: string | null;
-  kernels?: Kernels;
-  kernel_info?: any;
-  max_output_length: number;
-  metadata: any; // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
-  md_edit_ids: Set<string>;
-  path: string;
-  directory: string;
-  more_output: any;
-  read_only: boolean;
-  name: string;
-  project_id: string;
-  font_size: number;
-  sel_ids: any;
-  toolbar?: boolean;
-  mode: NotebookMode;
-  nbconvert: any;
-  about: boolean;
-  start_time: any;
-  complete: any;
-  introspect: any;
-  cm_options: any;
   find_and_replace: any;
-  keyboard_shortcuts: any;
-  confirm_dialog: any;
+  font_size: number;
+  has_uncommitted_changes?: boolean;
+  has_unsaved_changes?: boolean;
   insert_image: string; // id of a markdown cell
-  scroll: any;
-  check_select_kernel_init: boolean;
-  show_kernel_selector: boolean;
-  show_kernel_selector_reason?: show_kernel_selector_reasons;
-  kernel_selection?: Map<string, string>;
-  kernels_by_name?: OrderedMap<string, Map<string, string>>;
-  kernels_by_language?: OrderedMap<string, List<string>>;
-  default_kernel?: string;
-  closestKernel?: Kernel;
-  widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
-  contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
-  connection_file?: string;
+  introspect: any;
   kernel_error?: string;
+  kernel_info?: any;
+  kernel_selection?: Map<string, string>;
   kernel_usage?: ImmutableUsageInfo;
+  kernel?: string | ""; // "": means "no kernel"
+  kernels_by_language?: OrderedMap<string, List<string>>;
+  kernels_by_name?: OrderedMap<string, Map<string, string>>;
+  kernels?: Kernels;
+  keyboard_shortcuts: any;
+  max_output_length: number;
+  md_edit_ids: Set<string>;
+  metadata: any; // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
+  mode: NotebookMode;
+  more_output: any;
+  name: string;
+  nbconvert_dialog: any;
+  nbconvert: any;
+  path: string;
+  project_id: string;
+  raw_ipynb: any;
+  read_only: boolean;
+  scroll: any;
+  sel_ids: any;
+  show_kernel_selector_reason?: show_kernel_selector_reasons;
+  show_kernel_selector: boolean;
+  start_time: any;
+  toolbar?: boolean;
+  widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
 }
 
 export const initial_jupyter_store_state: {

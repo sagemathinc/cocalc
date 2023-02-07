@@ -108,7 +108,9 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
-    const kernel: string | null = useRedux([name, "kernel"]);
+    const redux_kernel = useRedux([name, "kernel"]);
+    // no redux_kernel or empty string (!) means there is no kernel
+    const kernel: string | null = !redux_kernel ? null : redux_kernel;
     const kernels: undefined | immutable.List<any> = useRedux([
       name,
       "kernels",
