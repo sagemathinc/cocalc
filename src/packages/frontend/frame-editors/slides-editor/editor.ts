@@ -73,7 +73,8 @@ export const EDITOR_SPEC = {
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
-  slides_table_of_contents: {
+  whiteboard_table_of_contents: {
+    // must be same name as for whiteboard, since otherwise show_table_of_contents action in whiteboard breaks.
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
