@@ -43,8 +43,6 @@ const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
   display: "block",
   color: COLORS.BS_BLUE_TEXT,
-  borderLeft: `1px solid ${COLORS.GRAY}`,
-  paddingLeft: "5px",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -92,12 +90,19 @@ interface KernelProps {
   usage?: Usage;
   expected_cell_runtime?: number;
   mode?: NotebookMode;
+  style?: CSS;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, usage, expected_cell_runtime, mode } =
-      props;
+    const {
+      actions,
+      expected_cell_runtime,
+      is_fullscreen,
+      mode,
+      style,
+      usage,
+    } = props;
     const name = actions.name;
 
     // redux section
@@ -238,19 +243,35 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       if (trust) {
         if (!is_fullscreen) return;
         return (
-          <div style={{ display: "flex", color: COLORS.GRAY }}>Trusted</div>
+          <div
+            style={{
+              display: "flex",
+              color: COLORS.GRAY,
+              paddingRight: "5px",
+              borderRight: "1px solid gray",
+            }}
+          >
+            Trusted
+          </div>
         );
       } else {
         return (
-          <Tooltip title={"Notebook is not trusted"}>
-            <Button
-              danger
-              onClick={() => actions.trust_notebook()}
-              size="small"
-            >
-              Not Trusted
-            </Button>
-          </Tooltip>
+          <div
+            style={{
+              paddingRight: "5px",
+              borderRight: "1px solid gray",
+            }}
+          >
+            <Tooltip title={"Notebook is not trusted"}>
+              <Button
+                danger
+                onClick={() => actions.trust_notebook()}
+                size="small"
+              >
+                Not Trusted
+              </Button>
+            </Tooltip>
+          </div>
         );
       }
     }
@@ -588,7 +609,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     );
 
     return (
-      <div style={KERNEL_STYLE}>
+      <div style={{ ...KERNEL_STYLE, ...style }}>
         {render_logo()}
         {render_tip(get_kernel_name(), body)}
         {renderKernelState()}

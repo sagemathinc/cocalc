@@ -18,6 +18,13 @@ import {
   JupyterActions,
   openJupyterNotebook,
 } from "./actions";
+import { COLORS } from "@cocalc/util/theme";
+
+const KERNEL_STYLE: CSS = {
+  backgroundColor: "transparent",
+  margin: "5px",
+  padding: 0,
+};
 
 export default function KernelPanel0() {
   const isMountedRef = useIsMountedRef();
@@ -53,7 +60,8 @@ export default function KernelPanel0() {
   return null;
 }
 
-function KernelPanel({ actions }: { actions: JupyterActions }) {
+function KernelPanel(props: { actions: JupyterActions }) {
+  const { actions } = props;
   const { project_id, path } = useFrameContext();
   const showKernelSelector: undefined | boolean = useRedux([
     actions.name,
@@ -62,7 +70,7 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
   const style: CSS = {
     ...PANEL_STYLE,
     maxWidth: "calc(100vw - 200px)",
-    padding: "0 5px 2px 5px",
+    padding: "3px 5px 1px 5px",
     fontSize: "14px",
     right: 0,
     ...(showKernelSelector && {
@@ -75,9 +83,7 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
     <div style={style}>
       <div style={{ display: "flex" }}>
         <div style={{ flex: 1 }}></div>
-        <div>
-          <Kernel actions={actions} />
-        </div>
+        <Kernel actions={actions} style={KERNEL_STYLE} />
         <Popover
           title={
             <>
@@ -94,7 +100,7 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
           }
         >
           <Button
-            style={{ color: "#666" }}
+            style={{ color: COLORS.GRAY_D, position: "relative", top: "2px" }}
             size="small"
             onClick={() => {
               openJupyterNotebook({ project_id, path });
