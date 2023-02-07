@@ -99,6 +99,8 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   flex: "1 1 auto",
   display: "inline-block",
+  textOverflow: "ellipsis",
+  overflow: "auto",
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -1570,15 +1572,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
     }
 
-    const style = is_active
-      ? Object.assign({}, TITLE_STYLE, { background: COL_BAR_BACKGROUND })
-      : TITLE_STYLE;
-
     return (
-      <div style={style}>
-        {icon ? <Icon name={icon} /> : null}
-        <Space />
-        {trunc_middle(title, 25)}
+      <div
+        style={{
+          ...TITLE_STYLE,
+          ...(is_active
+            ? {
+                background: COL_BAR_BACKGROUND,
+                minWidth: "3em",
+                maxWidth: "10em",
+              }
+            : { flex: 1 }),
+        }}
+      >
+        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+        {title}
       </div>
     );
   }
@@ -1785,12 +1793,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         className={"cc-frame-tree-title-bar"}
       >
         {!is_active && renderPage(false)}
+        {props.title && render_title(is_active)}
         {is_active ? render_main_buttons() : undefined}
-        {
-          props.title
-            ? render_title(is_active)
-            : undefined /* used, e.g., for terminal */
-        }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
         {is_active && allButtonsPopover()}
