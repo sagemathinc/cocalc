@@ -34,7 +34,7 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
-import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
+import { capitalize, copy, path_split } from "@cocalc/util/misc";
 import {
   Input,
   InputNumber,
