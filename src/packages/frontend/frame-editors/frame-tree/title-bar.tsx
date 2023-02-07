@@ -1091,6 +1091,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_show_overview(labels): Rendered {
+    if (!is_visible("show_overview")) return;
+    return (
+      <Button
+        key={"overview"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_overview?.(props.id)}
+        title={"Show Overview of all Pages"}
+      >
+        <Icon name={"table"} />{" "}
+        <VisibleMDLG>{labels ? "Overview" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_show_search(labels): Rendered {
     if (!is_visible("show_search")) return;
     return (
@@ -1479,6 +1494,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_print(labels));
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
+    v.push(render_show_overview(labels));
     v.push(render_show_search(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));

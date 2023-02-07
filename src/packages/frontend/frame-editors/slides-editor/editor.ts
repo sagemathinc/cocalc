@@ -20,6 +20,7 @@ import SpeakerNotes from "./speaker-notes";
 import Slides from "./slides";
 import Search from "../whiteboard-editor/search";
 import Pages from "../whiteboard-editor/pages";
+import Overview from "../whiteboard-editor/overview";
 
 export const slidesButtons = set([
   "decrease_font_size",
@@ -35,6 +36,7 @@ export const slidesButtons = set([
   "show_table_of_contents",
   "show_pages",
   "show_search",
+  "show_overview",
   /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
 
@@ -65,6 +67,13 @@ export const EDITOR_SPEC = {
     name: "Pages",
     icon: "files" as IconName,
     component: Pages,
+  },
+  overview: {
+    short: "Overview",
+    name: "Overview",
+    icon: "table" as IconName,
+    component: Overview,
+    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   },
   terminal,
   time_travel,

@@ -1,33 +1,27 @@
 /*
-Shows vertical linear sortable list of the pages in the whiteboard,
-where the page size expands to fit the width.
+
+Shows an overview of all pages in the whiteboard in
+a grid layout, where the size of pages is a function
+of the "font_size" parameter for the frame.
+
 */
 
 import { Button, Popover } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
+import { CSSProperties, useEffect, ReactNode } from "react";
+import { VirtuosoGrid } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Overview } from "./tools/navigation";
+import { Overview as OnePage } from "./tools/navigation";
 import { State, elementsList } from "./actions";
 import { Icon } from "@cocalc/frontend/components/icon";
-import useResizeObserver from "use-resize-observer";
-import {
-  DragHandle,
-  SortableList,
-  SortableItem,
-} from "@cocalc/frontend/components/sortable-list";
+import type { GridItemProps } from "react-virtuoso";
 
-const VMARGIN = 20;
-const HMARGIN = 15;
-
-export default function Pages() {
+export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
-  const [height, setHeight] = useState<number>(200);
-  const [width, setWidth] = useState<number>(200);
+  const size = 12 * (desc?.get("font_size") ?? 14);
 
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
@@ -38,16 +32,6 @@ export default function Pages() {
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `whiteboard-pages-${project_id}-${path}-${desc.get("id")}`,
   });
-
-  const divRef = useRef<any>(null);
-  const resize = useResizeObserver({ ref: divRef });
-  useEffect(() => {
-    const elt = divRef.current;
-    if (elt == null) return;
-    const w = elt.getBoundingClientRect().width;
-    setWidth(w);
-    setHeight(w);
-  }, [resize]);
 
   useEffect(() => {
     // ensure we don't have viewport info left over from a split...
@@ -67,12 +51,26 @@ export default function Pages() {
 
   const STYLE = {
     cursor: "pointer",
-    width: `${width - 2 * HMARGIN}px`,
-    margin: "0 29px 0 5px",
-    padding: `${VMARGIN}px 0`,
+    width: `${size}px`,
+    margin: "5px",
     position: "relative",
     overflow: "hidden",
   } as CSSProperties;
+
+  const ItemContainer: React.FC<GridItemProps & { children?: ReactNode }> = ({
+    children,
+  }) => (
+    <div
+      style={{
+        display: "inline-block",
+        width: size,
+        height: (9 / 16) * size,
+        overflow: "hidden",
+      }}
+    >
+      {children}
+    </div>
+  );
 
   const itemContent = (index) => {
     if (index == pages) {
@@ -128,28 +126,23 @@ export default function Pages() {
           // since the click focuses the pages frame again.
           setTimeout(() => actions.set_active_id(frameId), 0);
         }}
-        style={{ ...STYLE }}
+        style={STYLE}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <DragHandle
-            id={`${sortedPageIds.get(index)}`}
-            style={{ marginRight: "5px", color: "#999" }}
-          />
-          <Overview
-            margin={15}
-            elements={elementsOnPage ?? []}
-            elementsMap={elementsMap}
-            width={width - 2 * HMARGIN}
-            navMap={"page"}
-            style={{
-              pointerEvents: "none",
-              background: "white",
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-            }}
-            maxScale={2}
-          />
-        </div>
+        <OnePage
+          margin={15}
+          elements={elementsOnPage ?? []}
+          elementsMap={elementsMap}
+          width={size}
+          height={(size * 9) / 16}
+          navMap={"page"}
+          style={{
+            pointerEvents: "none",
+            background: "white",
+            border: "1px solid #ccc",
+            borderRadius: "5px",
+          }}
+          maxScale={2}
+        />
         <div
           style={{
             textAlign: "center",
@@ -163,39 +156,20 @@ export default function Pages() {
   };
 
   return (
-    <div className="smc-vfill" ref={divRef} style={{ background: "#eee" }}>
-      <SortableList
-        items={sortedPageIds.toJS()}
-        Item={({ id }) => {
-          return itemContent(sortedPageIds.indexOf(id));
+    <div className="smc-vfill" style={{ background: "#eee" }}>
+      <VirtuosoGrid
+        style={{
+          width: "100%",
+          height: "100%",
+          marginBottom: "10px",
         }}
-        onDragStop={(oldIndex, newIndex) => {
-          if (oldIndex == newIndex) return;
-          actions.movePage(oldIndex, newIndex);
-          const frameId = actions.show_focused_frame_of_type(
-            actions.mainFrameType
-          );
-          actions.setPage(frameId, newIndex + 1);
+        components={{
+          Item: ItemContainer,
         }}
-      >
-        <Virtuoso
-          style={{
-            width: "100%",
-            height: "100%",
-            marginBottom: "10px",
-          }}
-          totalCount={pages + 1}
-          increaseViewportBy={1.5 * height}
-          itemContent={(index) => {
-            return (
-              <SortableItem id={sortedPageIds.get(index) ?? index}>
-                {itemContent(index)}
-              </SortableItem>
-            );
-          }}
-          {...virtuosoScroll}
-        />
-      </SortableList>
+        totalCount={pages + 1}
+        itemContent={itemContent}
+        {...virtuosoScroll}
+      />
     </div>
   );
 }
