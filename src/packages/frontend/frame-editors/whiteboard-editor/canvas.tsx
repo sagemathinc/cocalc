@@ -697,6 +697,10 @@ export default function Canvas({
             frame={frame}
             canvasScale={canvasScale}
             readOnly={readOnly}
+            onDrag={() => {
+              // dragging element cancels any selection in progress.
+              mousePath.current = null;
+            }}
           >
             {elt}
           </NotFocused>
@@ -985,8 +989,10 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "select" || selectedTool == "frame") {
-      if (e.target != backgroundDivRef.current) return;
-      // draw a rectangle to select multiple items
+      if (e.target != backgroundDivRef.current && (selection?.size ?? 0) > 0) {
+        return;
+      }
+      // drawing a rectangle to select multiple items
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current = [point];

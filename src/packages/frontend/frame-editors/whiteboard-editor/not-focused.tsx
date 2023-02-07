@@ -12,6 +12,7 @@ interface Props {
   frame;
   canvasScale: number;
   readOnly?: boolean;
+  onDrag?: () => void;
 }
 
 export default function NotFocused({
@@ -23,6 +24,7 @@ export default function NotFocused({
   frame,
   canvasScale,
   readOnly,
+  onDrag,
 }: Props) {
   const { id } = element;
 
@@ -73,6 +75,7 @@ export default function NotFocused({
           onClick(e);
         }
       }}
+      onDrag={onDrag}
     >
       <div
         className={
