@@ -27,7 +27,7 @@ import {
   FrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import Tabs, { VerticalFixedTabs } from "./tabs";
-import { HomePageButton } from "./home-page";
+import HomePageButton from "./home-page/button";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",

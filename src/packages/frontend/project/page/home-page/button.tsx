@@ -3,7 +3,7 @@ import { Button } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { useActions } from "@cocalc/frontend/app-framework";
 
-export function HomePageButton({ project_id, active }) {
+export default function HomePageButton({ project_id, active }) {
   const actions = useActions({ project_id });
   return (
     <Button
@@ -21,8 +21,4 @@ export function HomePageButton({ project_id, active }) {
       <Icon name="home" style={{ verticalAlign: "5px" }} />
     </Button>
   );
-}
-
-export function HomePage() {
-  return <div>This is the home page for this project.</div>;
 }
