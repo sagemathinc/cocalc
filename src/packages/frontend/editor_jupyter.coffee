@@ -821,12 +821,13 @@ class JupyterNotebook extends EventEmitter
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
-        if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter *classic* does not work on Firefox; please switch to the CoCalc Jupyter notebook.</div>")
-            @element.data("jupyter_notebook", @)
-            @modern()
-            opts.cb?()
-            return
+# As of modern times, this seems to work fine in Firefox.
+#         if $.browser.firefox
+#             @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter *classic* does not work on Firefox; please switch to the CoCalc Jupyter notebook.</div>")
+#             @element.data("jupyter_notebook", @)
+#             @modern()
+#             opts.cb?()
+#             return
         @project_id = @parent.project_id
         @editor = @parent.editor
         @read_only = opts.read_only
@@ -968,7 +969,9 @@ class JupyterNotebook extends EventEmitter
                 # the iframe properly is difficult.
                 # $ 3.0 removed some deprecated methods. http://api.jquery.com/jquery.ajax/
                 misc.retry_until_success
-                    f        : (cb) => $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
+                    f        : (cb) =>
+                        console.log("trying...", @server_url);
+                        $.ajax({url:@server_url}).fail(=>cb(true)).done(=>cb())
                     max_time : 30*1000  # try for at most 30 seconds
                     cb       : cb
             (cb) =>
@@ -1215,7 +1218,7 @@ class JupyterNotebook extends EventEmitter
 
     modern: () =>
         t = "<h3><i class='fa fa-exchange'></i> Switch to the CoCalc Jupyter Notebook</a></h3>"
-        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank' rel='noopener'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='" + require('@cocalc/util/theme').JUPYTER_CLASSIC_MODERN + "' target='_blank' rel='noopener'>More info and the latest status...</a>"
+        t += "<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank' rel='noopener'>some improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, some extensions).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, may NOT work well!<br><br><a href='" + require('@cocalc/util/theme').JUPYTER_CLASSIC_MODERN + "' target='_blank' rel='noopener'>More info and the latest status...</a>"
         t += "<br><hr>"
         t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to CoCalc Jupyter Notebook</a>"
         bootbox.alert(t)

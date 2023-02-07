@@ -27,6 +27,7 @@ import {
   FrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import Tabs, { VerticalFixedTabs } from "./tabs";
+import HomePageButton from "./home-page/button";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -147,19 +148,33 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <OOMWarning project_id={project_id} />
       <SoftwareEnvUpgrade project_id={project_id} />
       <ProjectWarningBanner project_id={project_id} />
-      {(!fullscreen || fullscreen == "project") && (
-        <Tabs project_id={project_id} />
-      )}
+      <div style={{ display: "flex", margin: "2.5px" }}>
+        <HomePageButton
+          project_id={project_id}
+          active={active_project_tab == "home"}
+        />
+        {(!fullscreen || fullscreen == "project") && (
+          <div style={{ flex: 1 }}>
+            <Tabs project_id={project_id} />
+          </div>
+        )}
+      </div>
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div style={{ background: "rgba(0, 0, 0, 0.02)" }}>
+        <div
+          style={{
+            background: "rgba(0, 0, 0, 0.02)",
+            borderTop: "1px solid #eee",
+            borderRight: "1px solid #eee",
+            borderRadius: "5px",
+          }}
+        >
           <VerticalFixedTabs
             project_id={project_id}
             activeTab={active_project_tab}
           />
         </div>
-        <div style={{ width: "2px", background: "#eee" }}></div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {renderEditorContent()}
           {render_project_content()}

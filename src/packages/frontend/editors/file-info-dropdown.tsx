@@ -118,7 +118,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     return (
       <DropdownMenu
         button={true}
-        style={{ ...{ height: "100%", marginRight: "3px" }, ...style }}
+        style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
         title={render_title()}
         onClick={handle_click}
@@ -144,7 +144,7 @@ export function render_file_info_dropdown(
       filename={filename}
       project_id={project_id}
       is_public={is_public}
-      label={"File"}
+      label={"Action"}
       style={{ height: "34px" }}
     />
   );

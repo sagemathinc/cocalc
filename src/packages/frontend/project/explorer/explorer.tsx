@@ -9,6 +9,7 @@ import {
   redux,
   rtypes,
   TypedMap,
+  project_redux_name,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import { BillingPage } from "@cocalc/frontend/billing/billing-page";
@@ -131,9 +132,20 @@ interface State {
   show_pay: boolean;
   shift_is_down: boolean;
 }
+
+export function Explorer({ project_id }) {
+  return (
+    <Explorer0
+      name={project_redux_name(project_id)}
+      project_id={project_id}
+      actions={redux.getProjectActions(project_id)}
+    />
+  );
+}
+
 // TODO: change/rewrite Explorer to not have any rtypes.objects and
 // add a shouldComponentUpdate!!
-export const Explorer = rclass(
+const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps = ({ name }) => {
       return {

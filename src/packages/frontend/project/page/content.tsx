@@ -21,7 +21,6 @@ import { IS_MOBILE, IS_TOUCH } from "../../feature";
 import {
   React,
   ReactDOM,
-  project_redux_name,
   redux,
   useForceUpdate,
   useMemo,
@@ -29,23 +28,24 @@ import {
   useRef,
 } from "../../app-framework";
 import { Loading } from "../../components";
-import { editor_id } from "../utils";
+import { editor_id } from "@cocalc/frontend/project/utils";
 import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import { webapp_client } from "../../webapp-client";
-import DeletedFile from "../deleted-file";
+import DeletedFile from "@cocalc/frontend/project/deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";
-import { Explorer } from "../explorer";
-import { ProjectNew } from "../new";
-import { ProjectInfo } from "../info";
-import { ProjectLog } from "../history";
-import { ProjectSearch } from "../search/search";
-import { ProjectSettings } from "../settings";
-import { SideChat } from "../../chat/side-chat";
-import { log_file_open } from "../open-file";
+import { Explorer } from "@cocalc/frontend/project/explorer";
+import { ProjectNew } from "@cocalc/frontend/project/new";
+import { ProjectInfo } from "@cocalc/frontend/project/info";
+import { ProjectLog } from "@cocalc/frontend/project/history";
+import { ProjectSearch } from "@cocalc/frontend/project/search/search";
+import { ProjectSettings } from "@cocalc/frontend/project/settings";
+import { SideChat } from "@cocalc/frontend/chat/side-chat";
+import { log_file_open } from "@cocalc/frontend/project/open-file";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import getUrlTransform from "./url-transform";
 import getAnchorTagComponent from "./anchor-tag-component";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
+import HomePage from "./home-page";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -119,19 +119,11 @@ export const TabContent: React.FC<TabContentProps> = ({
     return <KioskModeBanner />;
   }
 
-  // TODO: this name thing will disappear when the components
-  // that use it below switch to hooks...
-  const name = project_redux_name(project_id);
-
   switch (tab_name) {
+    case "home":
+      return <HomePage project_id={project_id} />;
     case "files":
-      return (
-        <Explorer
-          name={name}
-          project_id={project_id}
-          actions={redux.getProjectActions(project_id)}
-        />
-      );
+      return <Explorer project_id={project_id} />;
     case "new":
       return <ProjectNew project_id={project_id} />;
     case "log":
@@ -139,15 +131,9 @@ export const TabContent: React.FC<TabContentProps> = ({
     case "search":
       return <ProjectSearch project_id={project_id} />;
     case "settings":
-      return (
-        <ProjectSettings
-          project_id={project_id}
-          name={name}
-          group={redux.getStore("projects").get_my_group(project_id)}
-        />
-      );
+      return <ProjectSettings project_id={project_id} />;
     case "info":
-      return <ProjectInfo name={name} project_id={project_id} />;
+      return <ProjectInfo project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {
