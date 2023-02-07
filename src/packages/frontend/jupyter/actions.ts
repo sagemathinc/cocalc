@@ -1537,6 +1537,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         type: "settings",
         kernel,
       });
+      // clear error when changing the kernel
+      this.set_error(null);
     }
     if (this.store.get("show_kernel_selector") || kernel === "") {
       this.hide_select_kernel();
@@ -2495,7 +2497,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
     let unknown_kernel = false;
-    if (this.store.get("kernels") != null) {
+    if (kernel === "") {
+      unknown_kernel = false; // it's the "no kernel" kernel
+    } else if (this.store.get("kernels") != null) {
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
     }
 

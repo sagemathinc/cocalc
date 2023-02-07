@@ -54,6 +54,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     const editor_settings = useTypedRedux("account", "editor_settings");
 
     const redux_kernel: undefined | string = useRedux([actions.name, "kernel"]);
+    const no_kernel = redux_kernel === "";
     // undefined and empty string are both treated as "null" aka "no kernel"
     const kernel = !redux_kernel ? null : redux_kernel;
     const default_kernel: undefined | string = useRedux([
@@ -325,24 +326,28 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             <Paragraph>
               <Text strong>{msg}</Text> A working kernel is required in order to
               evaluate the code in the notebook. Please select one for the
-              programming language you want to work with. Otherwise continue
-              without a kernel.
-            </Paragraph>
-            <Paragraph style={{ textAlign: "center", width: "100%" }}>
-              <Button onClick={() => actions.select_kernel("")} type="primary">
-                Continue without a kernel
+              programming language you want to work with. Otherwise{" "}
+              <Button
+                size="small"
+                type={no_kernel ? "primary" : "default"}
+                onClick={() => actions.select_kernel("")}
+              >
+                continue without a kernel
               </Button>
+              .
             </Paragraph>
           </Row>
         );
       } else {
         const name = kernel_name(kernel);
         const current =
-          name != null ? `The currently selected kernel is "${name}"` : "";
+          name != null ? `The currently selected kernel is "${name}".` : "";
 
         return (
           <Row style={{ marginLeft: 0, marginRight: 0 }}>
-            <strong>Select a new kernel.</strong> <span>{current}</span>
+            <Paragraph>
+              <Text strong>Select a new kernel.</Text> {current}
+            </Paragraph>
           </Row>
         );
       }
