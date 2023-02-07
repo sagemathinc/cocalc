@@ -509,7 +509,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           (async () => {
             const { name, Editor } = await this.init_file_react_redux(
               path,
-              is_public
+              is_public,
+              this.open_files?.get(path, "ext")
             );
             if (this.open_files == null) return;
             info.redux_name = name;
@@ -796,16 +797,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   private async init_file_react_redux(
     path: string,
-    is_public: boolean
+    is_public: boolean,
+    ext?: string
   ): Promise<{ name: string | undefined; Editor: any }> {
-    const name = await this.initFileRedux(path, is_public);
+    const name = await this.initFileRedux(path, is_public, ext);
 
     // Make the Editor react component
     const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      ext
     );
 
     // Log that we opened the file.

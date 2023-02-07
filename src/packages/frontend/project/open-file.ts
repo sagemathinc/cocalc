@@ -35,6 +35,7 @@ export async function open_file(
   actions: ProjectActions,
   opts: {
     path: string;
+    ext?: string; // if given, use editor for this extension instead of whatever extension path has.
     line?: number; // mainly backward compat for now
     fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
     foreground?: boolean;
@@ -55,6 +56,7 @@ export async function open_file(
 
   opts = defaults(opts, {
     path: required,
+    ext: undefined,
     line: undefined,
     fragmentId: undefined,
     foreground: true,
@@ -163,7 +165,7 @@ export async function open_file(
   } catch (_) {
     // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
   }
-  let ext = filename_extension_notilde(opts.path).toLowerCase();
+  let ext = opts.ext ?? filename_extension_notilde(opts.path).toLowerCase();
 
   // Returns true if the project is closed or the file tab is now closed.
   function is_closed(): boolean {
@@ -255,6 +257,7 @@ export async function open_file(
     }
 
     // Add it to open files
+    actions.open_files.set(opts.path, "ext", ext);
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
     if (opts.chat) {

@@ -57,7 +57,9 @@ export function openJupyterNotebook({
   path: string;
 }): void {
   const aux_path = pathToIpynb(path);
-  redux.getProjectActions(project_id).open_file({ path: aux_path });
+  redux
+    .getProjectActions(project_id)
+    .open_file({ path: aux_path, ext: "ipynb-cocalc-jupyter" });
 }
 
 export function pathToIpynb(pathToWhiteboard: string): string {
