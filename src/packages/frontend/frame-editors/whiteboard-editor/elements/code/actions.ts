@@ -1,10 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import { aux_file } from "@cocalc/util/misc";
+
 export type { JupyterActions };
-import { reuseInFlight } from "async-await-utils/hof";
 
 async function getJupyterActions0({
   project_id,

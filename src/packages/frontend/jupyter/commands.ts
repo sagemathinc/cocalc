@@ -8,12 +8,13 @@ Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
 */
 
-import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
-import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
-import { NotebookMode } from "./types";
 import { IconName } from "@cocalc/frontend/components";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -593,6 +594,11 @@ export function commands(
           frame_actions.paste_cells(1);
         }
       },
+    },
+
+    "no kernel": {
+      m: "Remove kernel from notebook...",
+      f: () => jupyter_actions.confirm_remove_kernel(),
     },
 
     "refresh kernels": {

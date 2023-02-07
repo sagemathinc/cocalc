@@ -4,7 +4,7 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Paragraph } from "components/misc";
+import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import {
@@ -65,6 +65,13 @@ export default function Overview() {
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
+      </Paragraph>
+      <Paragraph>
+        It is also possible to run <SiteName /> on your own infrastructure:{" "}
+        <Text strong>
+          <A href={"/pricing/onprem"}>on-premises offerings</A>
+        </Text>
+        .
       </Paragraph>
       <Paragraph>
         You can also browse your <A href="/billing">billing records</A> or{" "}

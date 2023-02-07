@@ -85,7 +85,7 @@ interface JupyterKernelInterfaceSpawnOpts {
 }
 
 export interface JupyterKernelInterface extends EventEmitterInterface {
-  name: string;
+  name: string | undefined;  // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
   get_state(): string;

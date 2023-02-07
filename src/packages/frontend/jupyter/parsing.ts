@@ -10,7 +10,11 @@ Functions for parsing input, etc.
 import { Syntax } from "@cocalc/util/code-formatter";
 import CodeMirror from "@cocalc/frontend/codemirror/static";
 
-export function run_mode(code: string, mode: string, language: string) {
+export function run_mode(
+  code: string,
+  mode: string,
+  language: string | undefined
+) {
   if (!code) {
     // code assumed trimmed
     return "empty";

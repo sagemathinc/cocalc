@@ -4,30 +4,37 @@
  */
 
 // The Menu bar across the top
-//
 // File, Edit, etc....
-import { React, useTypedRedux, useRedux, Rendered } from "../app-framework";
-import { user_activity } from "../tracker";
+
 import * as immutable from "immutable";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
-  Icon,
-  r_join,
-  DropdownMenu,
-  MenuItem,
-  MenuDivider,
-} from "../components";
-import { KeyboardShortcut } from "./keyboard-shortcuts";
-import { open_new_tab } from "../misc";
+  React,
+  Rendered,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
+  DropdownMenu,
+  Icon,
+  MenuDivider,
+  MenuItem,
+  r_join,
+} from "@cocalc/frontend/components";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { user_activity } from "@cocalc/frontend/tracker";
+import {
+  all_fields_equal,
   capitalize,
   copy,
   endswith,
-  all_fields_equal,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { KeyboardShortcut } from "./keyboard-shortcuts";
 
 type MenuItemName =
   | string
@@ -35,10 +42,12 @@ type MenuItemName =
   | Rendered;
 
 const TITLE_STYLE: React.CSSProperties = {
-  color: "#666",
+  color: COLORS.GRAY_D,
+  margin: 0,
+  padding: "6px 10px",
   border: 0,
-  backgroundColor: "rgb(247,247,247)",
 } as const;
+
 const SELECTED_STYLE: React.CSSProperties = {
   color: "#2196F3",
   fontWeight: "bold",
@@ -91,6 +100,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     const toolbar_state: boolean | undefined = useRedux([name, "toolbar"]);
     const cell_toolbar: string | undefined = useRedux([name, "cell_toolbar"]);
     const read_only: boolean | undefined = useRedux([name, "read_only"]);
+    const trust: boolean | undefined = useRedux([name, "trust"]);
 
     const fullscreen: string | undefined = useTypedRedux("page", "fullscreen");
 
@@ -106,6 +116,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         // changes, rather than only when the notebook loads.
         return;
       }
+
       let script_entry: any = undefined;
       if (backend_kernel_info != null) {
         const ext = backend_kernel_info.getIn([
@@ -122,16 +133,14 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           };
         }
       }
+
       if (script_entry === undefined) {
         script_entry = ">nbconvert script";
       }
 
-      let trust;
-      if (trust) {
-        trust = { name: "<trust notebook", display: "Trusted notebook" };
-      } else {
-        trust = { name: "trust notebook", display: "Trust notebook..." };
-      }
+      const trust_entry = trust
+        ? { name: "<trust notebook", display: "Trusted notebook" }
+        : { name: "trust notebook", display: "Trust notebook..." };
 
       let save = "save notebook";
       if (!has_unsaved_changes || read_only) {
@@ -177,7 +186,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">nbconvert lab html",
         ">nbconvert lab pdf",
         "",
-        trust,
+        trust_entry,
       ];
       if (fullscreen !== "kiosk") {
         names.push("");
@@ -356,9 +365,14 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">confirm restart kernel and run all cells",
         ">confirm restart kernel and run all cells without halting on error",
         "",
-        "<Change kernel...",
       ]
+        .concat([
+          items?.length ?? 0 > 0
+            ? "<Change kernel..."
+            : "<No Kernels available!",
+        ])
         .concat((items as any) || [])
+        .concat(["", "no kernel"])
         .concat(["", "refresh kernels"])
         .concat(["", "custom kernel"]);
 
@@ -526,6 +540,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
             if (name == null) return;
             handle_command(name);
           }}
+          style={TITLE_STYLE}
         >
           {items}
         </DropdownMenu>
@@ -591,22 +606,22 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     }
 
     return (
-      <div
+      <ButtonGroup
+        className="cocalc-jupyter-menu"
         style={{
-          backgroundColor: "rgb(247,247,247)",
-          border: "1px solid #e7e7e7",
+          display: "block",
+          backgroundColor: COLORS.GRAY_LLL,
+          padding: "8px 0px",
         }}
       >
-        <ButtonGroup>
-          {render_file()}
-          {render_edit()}
-          {render_view()}
-          {render_insert()}
-          {render_cell()}
-          {render_kernel()}
-          {render_help()}
-        </ButtonGroup>
-      </div>
+        {render_file()}
+        {render_edit()}
+        {render_view()}
+        {render_insert()}
+        {render_cell()}
+        {render_kernel()}
+        {render_help()}
+      </ButtonGroup>
     );
   },
   should_memoize

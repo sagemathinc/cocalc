@@ -5,33 +5,44 @@
 
 // Kernel display
 
-import { ReactNode } from "react";
-import { React, useRedux, CSS } from "../app-framework";
-import * as immutable from "immutable";
 import {
   Button,
-  Popover,
   Popconfirm,
+  Popover,
   Progress,
   Tooltip,
   Typography,
 } from "antd";
-import { COLORS } from "@cocalc/util/theme";
-import { A, Icon, IconName, Loading } from "../components";
-import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { Logo } from "./logo";
-import { JupyterActions } from "./browser-actions";
-import { Usage, AlertLevel, BackendState } from "./types";
-import { ALERT_COLS } from "./usage";
-import { PROJECT_INFO_TITLE } from "../project/info";
+import * as immutable from "immutable";
+import { ReactNode } from "react";
+
+import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { PROJECT_INFO_TITLE } from "../project/info";
+import { JupyterActions } from "./browser-actions";
+import { Logo } from "./logo";
+import { Mode } from "./mode";
+import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
+import { ALERT_COLS } from "./usage";
+
+const KERNEL_STYLE: CSS = {
+  float: "right",
+  paddingLeft: "5px",
+  backgroundColor: COLORS.GRAY_LLL,
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  margin: "7px 5px 0px 0px",
+  position: "relative",
+  zIndex: 1,
+} as const;
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
   display: "block",
   color: COLORS.BS_BLUE_TEXT,
-  borderLeft: `1px solid ${COLORS.GRAY}`,
-  paddingLeft: "5px",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -71,24 +82,36 @@ const BACKEND_STATE_HUMAN = {
   ready: "Ready to start",
   starting: "Starting",
   running: "Running",
-};
+} as const;
 
 interface KernelProps {
   actions: JupyterActions;
   is_fullscreen?: boolean;
   usage?: Usage;
   expected_cell_runtime?: number;
+  mode?: NotebookMode;
+  style?: CSS;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const { actions, is_fullscreen, usage, expected_cell_runtime } = props;
+    const {
+      actions,
+      expected_cell_runtime,
+      is_fullscreen,
+      mode,
+      style,
+      usage,
+    } = props;
     const name = actions.name;
 
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
-    const kernel: undefined | string = useRedux([name, "kernel"]);
+    const redux_kernel = useRedux([name, "kernel"]);
+    const no_kernel = redux_kernel === "";
+    // no redux_kernel or empty string (!) means there is no kernel
+    const kernel: string | null = !redux_kernel ? null : redux_kernel;
     const kernels: undefined | immutable.List<any> = useRedux([
       name,
       "kernels",
@@ -108,7 +131,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     // wrap "Logo" component
     function render_logo() {
-      if (project_id == null || kernel == null) {
+      if (project_id == null) {
         return;
       }
       return (
@@ -222,19 +245,58 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     function render_trust() {
       if (trust) {
         if (!is_fullscreen) return;
-        return <div style={{ display: "flex", color: "#888" }}>Trusted</div>;
+        return (
+          <div
+            style={{
+              display: "flex",
+              color: COLORS.GRAY,
+              paddingRight: "5px",
+              borderRight: "1px solid gray",
+            }}
+          >
+            Trusted
+          </div>
+        );
       } else {
         return (
-          <Tooltip title={"Notebook is not trusted"}>
-            <Button danger onClick={() => actions.trust_notebook()} size="small">
-              Not Trusted
-            </Button>
-          </Tooltip>
+          <div
+            style={{
+              paddingRight: "5px",
+              borderRight: "1px solid gray",
+            }}
+          >
+            <Tooltip title={"Notebook is not trusted"}>
+              <Button
+                danger
+                onClick={() => actions.trust_notebook()}
+                size="small"
+              >
+                Not Trusted
+              </Button>
+            </Tooltip>
+          </div>
         );
       }
     }
 
     function kernelState(): ReactNode {
+      if (kernel === null) {
+        return (
+          <>
+            No kernel{" "}
+            <Tooltip title={"Select a kernel"}>
+              <a
+                onClick={() => {
+                  actions.show_select_kernel("user request");
+                }}
+              >
+                (select...)
+              </a>
+            </Tooltip>
+          </>
+        );
+      }
+
       if (backend_state === "running") {
         switch (kernel_state) {
           case "busy":
@@ -298,12 +360,16 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       if (!backend_state) return <div></div>;
       return (
         <div
+          className="pull-right"
           style={{
             float: "right",
             display: "inline-block",
-            paddingRight: "10px",
-            color: "#888",
+            paddingRight: "5px",
+            marginRight: "5px",
+            color: COLORS.GRAY,
             borderRight: "1px solid grey",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {kernelState()}
@@ -376,6 +442,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
     function render_usage_graphical() {
+      if (kernel == null) return;
+
       // unknown, e.g, not reporting/working or old backend.
       if (usage == null || expected_cell_runtime == null) return;
 
@@ -506,8 +574,13 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       );
     }
 
-    if (kernel == null) {
-      return <span />;
+    function renderMode() {
+      if (mode == null) return;
+      return <Mode mode={mode} />;
+    }
+
+    if (!no_kernel && kernel == null) {
+      return null;
     }
 
     if (IS_MOBILE) {
@@ -529,20 +602,26 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         {render_backend_state_icon()}
       </div>
     );
+
     const body = (
       <div
         className="pull-right"
-        style={{ color: COLORS.GRAY, cursor: "pointer" }}
+        style={{
+          color: COLORS.GRAY,
+          cursor: "pointer",
+        }}
       >
         {info}
       </div>
     );
+
     return (
-      <span>
+      <div style={{ ...KERNEL_STYLE, ...style }}>
         {render_logo()}
         {render_tip(get_kernel_name(), body)}
         {renderKernelState()}
-      </span>
+        {renderMode()}
+      </div>
     );
   }
 );

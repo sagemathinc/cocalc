@@ -1,8 +1,14 @@
-import Input from "./input-static";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import LRU from "lru-cache";
+
 import CellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import { Element } from "../../types";
+import Input from "./input-static";
 import getStyle from "./style";
-import LRU from "lru-cache";
 
 export default function Code({ element }: { element: Element }) {
   const { hideInput, hideOutput } = element.data ?? {};
