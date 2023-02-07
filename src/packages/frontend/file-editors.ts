@@ -134,7 +134,8 @@ export function register_file_editor(opts: FileEditorInfo): void {
 function get_ed(
   project_id: string | undefined,
   path: string,
-  is_public?: boolean
+  is_public?: boolean,
+  ext?: string
 ): FileEditorSpec {
   const is_pub = `${!!is_public}`;
   const noext = `noext-${path_split(path).tail}`.toLowerCase();
@@ -143,7 +144,7 @@ function get_ed(
   if (e != null) {
     return e;
   }
-  let ext = filename_extension_notilde(path).toLowerCase();
+  ext = ext ?? filename_extension_notilde(path).toLowerCase();
 
   // TODO: temporary hack because we have two kinds of ipynb editors.  This will go away.
   if (
@@ -179,9 +180,10 @@ export async function initializeAsync(
   redux,
   project_id: string | undefined,
   is_public: boolean,
-  content?: string
+  content?: string,
+  ext?: string
 ): Promise<string | undefined> {
-  const editor = get_ed(project_id, path, is_public);
+  const editor = get_ed(project_id, path, is_public, ext);
   if (editor.init != null) {
     return editor.init(path, redux, project_id, content);
   }

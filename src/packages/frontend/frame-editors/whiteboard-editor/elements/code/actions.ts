@@ -38,7 +38,7 @@ export async function getJupyterFrameEditorActions({
     | undefined;
   if (actions == null) {
     const projectActions = redux.getProjectActions(project_id);
-    await projectActions.initFileRedux(aux_path);
+    await projectActions.initFileRedux(aux_path, false, "ipynb-cocalc-jupyter");
     actions = redux.getEditorActions(project_id, aux_path) as
       | JupyterEditorActions
       | undefined;

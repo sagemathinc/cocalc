@@ -775,7 +775,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   */
   async initFileRedux(
     path: string,
-    is_public: boolean = false
+    is_public: boolean = false,
+    ext?: string // use this extension even instead of path's extension.
   ): Promise<string | undefined> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
@@ -786,7 +787,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      undefined,
+      ext
     );
     return name;
   }
