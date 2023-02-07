@@ -86,16 +86,26 @@ export default function DedicatedResource(props: Props) {
           : "Buy a Dedicated Resources License"}
       </Title>
       {router.query.id == null && (
-        <Paragraph>
-          A{" "}
-          <A href="https://doc.cocalc.com/licenses.html">
-            <SiteName /> dedicated resource license
-          </A>{" "}
-          can be used to outfit your project either with additional disk storage
-          or moves your project to a much more powerful virtual machine. Create
-          a dedicated resources license below then add it to your{" "}
-          <A href="/store/cart">shopping cart</A>.
-        </Paragraph>
+        <>
+          <Paragraph>
+            A{" "}
+            <A href="https://doc.cocalc.com/licenses.html">
+              <SiteName /> dedicated resource license
+            </A>{" "}
+            can be used to outfit your project either with additional disk
+            storage or moves your project to a much more powerful virtual
+            machine. Create a dedicated resources license below then add it to
+            your <A href="/store/cart">shopping cart</A>.
+          </Paragraph>
+          <Paragraph>
+            It is also possible to run <SiteName /> on your own hardware. Check
+            out the{" "}
+            <Text strong>
+              <A href={"/pricing/onprem"}>on-premises offerings</A>
+            </Text>{" "}
+            to learn more about this.
+          </Paragraph>
+        </>
       )}
       <CreateDedicatedResource
         showInfoBar={scrollY > offsetHeader}
