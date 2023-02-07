@@ -28,7 +28,7 @@ export const JUPYTER_MIMETYPES = [
   "image/jpeg",
   "application/pdf",
   "text/plain",
-];
+] as const;
 
 export type Kernel = immutable.Map<string, string>;
 export type Kernels = immutable.List<Kernel>;

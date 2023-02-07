@@ -6,11 +6,12 @@
 /*
 NBConvert dialog -- for running nbconvert
 */
-import React, { useEffect, useRef } from "react";
-import { redux } from "../app-framework";
-import * as immutable from "immutable";
-import { Icon, Loading, A, TimeAgo } from "../components";
 import { Button, Modal } from "antd";
+import * as immutable from "immutable";
+import React, { useEffect, useRef } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 

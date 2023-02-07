@@ -1,5 +1,10 @@
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { Element } from "../../types";
 
 export default function InputStatic({

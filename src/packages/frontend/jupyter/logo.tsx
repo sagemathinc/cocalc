@@ -7,12 +7,12 @@
 The kernel's logo display
 */
 
-import { React } from "../app-framework";
+import { React } from "@cocalc/frontend/app-framework";
 
 import { get_logo_url } from "./server-urls";
 
 interface LogoProps {
-  kernel: string;
+  kernel: string | null;
   project_id: string;
   kernel_info_known: boolean;
 }
@@ -25,7 +25,7 @@ export const Logo: React.FC<LogoProps> = React.memo((props: LogoProps) => {
     undefined
   );
 
-  if (logo_failed === kernel) {
+  if (logo_failed === kernel || kernel == null) {
     return <img style={{ width: "0px", height: SIZE }} />;
   } else {
     const src = get_logo_url(project_id, kernel);

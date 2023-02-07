@@ -1,9 +1,15 @@
-import { Icon } from "@cocalc/frontend/components/icon";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Button, Checkbox, Tooltip } from "antd";
-import { Element } from "../../types";
-import { useFrameContext } from "../../hooks";
-import { getJupyterActions } from "./actions";
 import { delay } from "awaiting";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { useFrameContext } from "../../hooks";
+import { Element } from "../../types";
+import { getJupyterActions } from "./actions";
 
 interface Props {
   element: Element;

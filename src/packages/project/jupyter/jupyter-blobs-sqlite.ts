@@ -7,16 +7,18 @@
 Jupyter's blob store (based on sqlite), which hooks into the raw http server.
 */
 
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
-import * as fs from "fs";
-import { readFile } from "./async-utils-node";
-import Logger from "@cocalc/backend/logger";
-import { months_ago, to_json } from "@cocalc/util/misc";
-const misc_node = require("@cocalc/backend/misc_node");
 import Database from "better-sqlite3";
 import { Router } from "express";
-const winston = Logger("jupyter-blobs-sqlite");
+import * as fs from "node:fs";
+
+import Logger from "@cocalc/backend/logger";
+import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
+import { months_ago, to_json } from "@cocalc/util/misc";
+import { readFile } from "./async-utils-node";
+const misc_node = require("@cocalc/backend/misc_node");
+
+const winston = Logger("jupyter-blobs-sqlite");
 
 const JUPYTER_BLOBS_DB_FILE: string =
   process.env.JUPYTER_BLOBS_DB_FILE ??

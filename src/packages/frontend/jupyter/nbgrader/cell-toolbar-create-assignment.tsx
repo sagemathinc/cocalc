@@ -7,23 +7,24 @@
 nbgrader functionality: the create assignment toolbar.
 */
 
-import { DebounceInput } from "react-debounce-input";
-import { Button, FormControl } from "../../antd-bootstrap";
 import { Space } from "antd";
 import { Map } from "immutable";
-import { Rendered, useRef } from "../../app-framework";
-import { Icon } from "../../components/icon";
+import { DebounceInput } from "react-debounce-input";
+
+import { Button, FormControl } from "@cocalc/frontend/antd-bootstrap";
+import { Rendered, useRef } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { popup } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { JupyterActions } from "../browser-actions";
-import { Metadata } from "./types";
-import { popup } from "../../frame-editors/frame-tree/print";
 import {
   CELLTYPE_INFO_LIST,
   CELLTYPE_INFO_MAP,
-  value_to_state,
-  state_to_value,
-  value_to_template_content,
   set_cell_type,
+  state_to_value,
+  value_to_state,
+  value_to_template_content,
 } from "./cell-types";
+import { Metadata } from "./types";
 
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
@@ -66,7 +67,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     actions.nbgrader_actions.set_metadata(id, metadata);
 
     if (cell.get("input", "").trim() == "") {
-      const language: string = actions.store.get_kernel_language();
+      const language = actions.store.get_kernel_language();
       const input = value_to_template_content(
         value,
         language,

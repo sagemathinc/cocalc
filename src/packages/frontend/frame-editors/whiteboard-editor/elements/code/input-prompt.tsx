@@ -1,10 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useState } from "react";
-import { InputPrompt } from "@cocalc/frontend/jupyter/prompt/input";
-import { getJupyterActions } from "./actions";
-import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { useFrameContext } from "../../hooks";
 import { useAsyncEffect } from "use-async-effect";
+
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { InputPrompt } from "@cocalc/frontend/jupyter/prompt/input";
+import { useFrameContext } from "../../hooks";
+import { getJupyterActions } from "./actions";
 
 export default function CodeInputPrompt({ element }) {
   const { project_id, path } = useFrameContext();

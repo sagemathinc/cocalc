@@ -56,12 +56,14 @@ If minimal_stubs is true, use a "friendly" stub that doesn't cause an error.
 */
 function replaceSolutionRegion(
   input: string,
-  language: string,
+  language: string | undefined,
   minimal_stubs?: boolean
 ): string | undefined {
   const lines: string[] = input.split("\n");
 
   const stubs = minimal_stubs ? STUBS_MINIMAL : STUBS;
+
+  if (language == null) return;
 
   if (stubs[language] == null) {
     // unknown -- default to markdown
@@ -122,7 +124,7 @@ function replaceSolutionRegion(
 
 export default function clearSolution(
   cell: Map<string, any>,
-  kernel_language: string,
+  kernel_language: string | undefined,
   minimal_stubs?: boolean
 ): Map<string, any> {
   // Clear the solution region in the input part of the cell, and returns
@@ -131,7 +133,7 @@ export default function clearSolution(
   const input = cell.get("input");
   if (typeof input != "string") return cell;
   const cell_type = cell.get("cell_type", "code");
-  const language: string = cell_type === "code" ? kernel_language : "markdown";
+  const language = cell_type === "code" ? kernel_language : "markdown";
   const input2: string | undefined = replaceSolutionRegion(
     input,
     language,

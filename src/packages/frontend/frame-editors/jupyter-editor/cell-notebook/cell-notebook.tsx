@@ -7,12 +7,13 @@
 Frame that display a Jupyter notebook in the traditional way with input and output cells.
 */
 
-import { Rendered, Component } from "../../../app-framework";
-import { JupyterEditor } from "../../../jupyter/main";
 import { Map } from "immutable";
-import { JupyterEditorActions } from "../actions";
-import { JupyterActions } from "../../../jupyter/browser-actions";
+
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { JupyterEditor } from "@cocalc/frontend/jupyter/main";
 import { EditorState } from "../../frame-tree/types";
+import { JupyterEditorActions } from "../actions";
 
 interface Props {
   id: string;

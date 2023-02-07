@@ -15,13 +15,14 @@ make a much wider range of "json-ish" stuff valid.  Given the use case for
 this (?), it might be fine.
 */
 
-import { useEffect, useRedux } from "../app-framework";
-import { useInterval } from 'react-interval-hook';
 import { Map } from "immutable";
-import { JSONEditor } from "./json-editor";
-import { JupyterActions } from "./browser-actions";
-import { Loading } from "../components";
+import { useInterval } from "react-interval-hook";
+
+import { useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { Loading } from "../components";
+import { JupyterActions } from "./browser-actions";
+import { JSONEditor } from "./json-editor";
 
 interface Props {
   name: string;
