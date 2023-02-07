@@ -33,6 +33,7 @@ export const whiteboardButtons = set([
   "paste",
   "show_table_of_contents",
   "show_pages",
+  "show_search",
   "help",
 ]);
 

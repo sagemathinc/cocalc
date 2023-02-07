@@ -2516,6 +2516,14 @@ export class Actions<
     this.set_active_id(id, true);
   }
 
+  public async show_search(_id: string | undefined = undefined): Promise<void> {
+    const id = this.show_focused_frame_of_type("search", "col", false, 0.8);
+    if (id == null) return;
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
   // Closes the most recently focused frame of the given type.
   public close_recently_focused_frame_of_type(
     type: string

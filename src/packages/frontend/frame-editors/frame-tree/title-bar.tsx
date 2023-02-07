@@ -1091,6 +1091,20 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_show_search(labels): Rendered {
+    if (!is_visible("show_search")) return;
+    return (
+      <Button
+        key={"search"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_search?.(props.id)}
+        title={"Show Search"}
+      >
+        <Icon name={"search"} />{" "}
+        <VisibleMDLG>{labels ? "Search" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
   function render_build(): Rendered {
     if (!is_visible("build", true)) {
       return;
@@ -1465,6 +1479,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_print(labels));
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
+    v.push(render_show_search(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));
 

@@ -34,6 +34,7 @@ export const slidesButtons = set([
   "paste",
   "show_table_of_contents",
   "show_pages",
+  "show_search",
   /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
 
