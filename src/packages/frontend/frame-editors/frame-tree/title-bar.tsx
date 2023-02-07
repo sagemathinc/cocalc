@@ -34,8 +34,14 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
-import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { Input, InputNumber, Popconfirm, Popover } from "antd";
+import { capitalize, copy, path_split } from "@cocalc/util/misc";
+import {
+  Input,
+  InputNumber,
+  Popconfirm,
+  Popover,
+  Button as AntdButton,
+} from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
@@ -93,6 +99,8 @@ const TITLE_STYLE: CSS = {
   whiteSpace: "nowrap",
   flex: "1 1 auto",
   display: "inline-block",
+  textOverflow: "ellipsis",
+  overflow: "auto",
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -1364,13 +1372,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_file_menu(): Rendered {
+  function render_actions_dropdown(labels): Rendered {
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
     // Also, instructors can disable this for students:
     if (student_project_functionality.disableActions) return;
-    const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];
     if (spec != null && spec.hide_file_menu) return;
     return (
@@ -1379,7 +1386,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         filename={props.path}
         project_id={props.project_id}
         is_public={false}
-        label={small ? "" : "File"}
+        label={labels ? "Actions" : ""}
         style={{ height: button_height() }}
       />
     );
@@ -1404,6 +1411,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const labels = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
+    v.push(render_actions_dropdown(labels));
     v.push(renderPage(true));
     v.push(render_save_timetravel_group(labels));
     v.push(render_build());
@@ -1470,12 +1478,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       whiteSpace: "nowrap",
       overflow: "hidden",
     };
-    return (
-      <div style={style}>
-        {!is_public ? render_file_menu() : undefined}
-        {render_buttons()}
-      </div>
-    );
+    return <div style={style}>{render_buttons()}</div>;
   }
 
   function allButtonsPopover() {
@@ -1506,12 +1509,16 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           );
         }}
       >
-        <Button
-          style={{ margin: "0 3px" }}
+        <AntdButton
+          type="text"
+          style={{
+            margin: "0 3px",
+            height: props.is_only || props.is_full ? "34px" : "30px",
+          }}
           onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
         >
           <Icon name="ellipsis" />
-        </Button>
+        </AntdButton>
       </Popover>
     );
   }
@@ -1565,15 +1572,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
     }
 
-    const style = is_active
-      ? Object.assign({}, TITLE_STYLE, { background: COL_BAR_BACKGROUND })
-      : TITLE_STYLE;
-
     return (
-      <div style={style}>
-        {icon ? <Icon name={icon} /> : null}
-        <Space />
-        {trunc_middle(title, 25)}
+      <div
+        style={{
+          ...TITLE_STYLE,
+          ...(is_active
+            ? {
+                background: COL_BAR_BACKGROUND,
+                minWidth: "3em",
+                maxWidth: "10em",
+              }
+            : { flex: 1 }),
+        }}
+      >
+        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+        {title}
       </div>
     );
   }
@@ -1780,12 +1793,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         className={"cc-frame-tree-title-bar"}
       >
         {!is_active && renderPage(false)}
+        {props.title && render_title(is_active)}
         {is_active ? render_main_buttons() : undefined}
-        {
-          props.title
-            ? render_title(is_active)
-            : undefined /* used, e.g., for terminal */
-        }
         {!is_active && !props.title ? render_title(is_active) : undefined}
         {render_connection_status(is_active)}
         {is_active && allButtonsPopover()}

@@ -49,7 +49,6 @@ const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 const DETAILS_BTN_TEXT = "Details";
 
 interface Props {
-  name: string;
   project_id: string;
 }
 
