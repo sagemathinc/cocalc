@@ -8,6 +8,17 @@ FrameTitleBar - title bar in a frame, in the frame tree
 */
 
 import {
+  Button as AntdButton,
+  Input,
+  InputNumber,
+  Popconfirm,
+  Popover,
+} from "antd";
+import { List } from "immutable";
+import { debounce } from "lodash";
+import { ReactNode } from "react";
+
+import {
   Button as AntdBootstrapButton,
   ButtonGroup,
   ButtonStyle,
@@ -35,16 +46,6 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS, IS_TOUCH } from "@cocalc/frontend/feature";
 import { capitalize, copy, path_split } from "@cocalc/util/misc";
-import {
-  Input,
-  InputNumber,
-  Popconfirm,
-  Popover,
-  Button as AntdButton,
-} from "antd";
-import { List } from "immutable";
-import { debounce } from "lodash";
-import { ReactNode } from "react";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
@@ -76,6 +77,7 @@ interface EditorActions extends Actions {
 }
 
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { COLORS } from "@cocalc/util/theme";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
@@ -93,14 +95,14 @@ const title_bar_style: CSS = {
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND_DARK,
-  padding: "5px 5px 0 5px",
-  color: "#333",
+  padding: "8px 5px 0 5px",
+  color: COLORS.GRAY_DD,
   fontSize: "10pt",
   whiteSpace: "nowrap",
   flex: "1 1 auto",
   display: "inline-block",
   textOverflow: "ellipsis",
-  overflow: "auto",
+  overflow: "hidden",
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -1574,6 +1576,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
     return (
       <div
+        title={title}
         style={{
           ...TITLE_STYLE,
           ...(is_active
