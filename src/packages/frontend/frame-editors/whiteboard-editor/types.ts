@@ -3,26 +3,27 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map as iMap, List as iList } from "immutable";
-import { TypedMap } from "../../app-framework";
+import { List as iList, Map as iMap } from "immutable";
+
+import { TypedMap } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
 import { AspectRatio } from "./tools/frame";
 
 export type ElementType =
-  | "text"
-  | "note"
-  | "code"
-  | "icon"
-  | "pen"
   | "chat"
-  | "terminal"
-  | "stopwatch"
-  | "timer"
-  | "frame"
+  | "code"
   | "edge"
+  | "frame"
+  | "icon"
+  | "note"
+  | "page"
+  | "pen"
   | "selection"
-  | "page";
+  | "stopwatch"
+  | "terminal"
+  | "text"
+  | "timer";
 
 export type Point = { x: number; y: number };
 
@@ -34,32 +35,32 @@ export interface Rect {
 }
 
 export interface Data {
-  fontSize?: number;
-  radius?: number;
-  fontFamily?: string;
+  aspectRatio?: AspectRatio;
   color?: string;
+  countdown?: number; // used for countdown timer.
+  dir?: number[]; // dir path part of edge
+  fontFamily?: string;
+  fontSize?: number;
+  from?: string; // id of from node
+  icon?: IconName; // icon
   opacity?: number;
   path?: number[]; // right now is encoded as [x,y,x2,y2,x3,y3] to be simpler to JSON.
-  from?: string; // id of from node
-  to?: string; // id of to node
   previewTo?: Point; // edge: instead of node, position of mouse -- used for preview edge.
-  dir?: number[]; // dir path part of edge
-  icon?: IconName; // icon
-  countdown?: number; // used for countdown timer.
+  radius?: number;
   state?: TimerState; // for timer
   time?: number; // used by timer
+  to?: string; // id of to node
   total?: number; // used by timer
-  aspectRatio?: AspectRatio;
 
+  end?: number;
+  execCount?: number;
   hideInput?: boolean; // used for code cells
   hideOutput?: boolean; // used for code cells
-  output?: { [index: number]: object }; // code
-  runState?: string;
-  execCount?: number;
   kernel?: string;
-  start?: number;
-  end?: number;
+  output?: { [index: number]: object }; // code
   pos?: number; // used for sorting similar objects, e.g., pages
+  runState?: string;
+  start?: number;
 }
 
 /*

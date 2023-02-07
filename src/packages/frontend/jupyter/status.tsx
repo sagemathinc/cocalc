@@ -91,7 +91,7 @@ interface KernelProps {
   is_fullscreen?: boolean;
   usage?: Usage;
   expected_cell_runtime?: number;
-  mode: NotebookMode;
+  mode?: NotebookMode;
 }
 
 export const Kernel: React.FC<KernelProps> = React.memo(
@@ -551,6 +551,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     }
 
     function renderMode() {
+      if (mode == null) return;
       return <Mode mode={mode} />;
     }
 
