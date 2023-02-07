@@ -2,7 +2,7 @@ import type { KernelSpec } from "./nbviewer/parse";
 import { createContext, useContext } from "react";
 
 interface IJupyterContext {
-  kernelspec: KernelSpec;
+  kernelspec?: KernelSpec; // could be undefined if the kernel is unknown
   trust?: boolean;
 }
 

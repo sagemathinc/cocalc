@@ -109,6 +109,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     const trust: undefined | boolean = useRedux([name, "trust"]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
     const redux_kernel = useRedux([name, "kernel"]);
+    const no_kernel = redux_kernel === "";
     // no redux_kernel or empty string (!) means there is no kernel
     const kernel: string | null = !redux_kernel ? null : redux_kernel;
     const kernels: undefined | immutable.List<any> = useRedux([
@@ -576,6 +577,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     function renderMode() {
       if (mode == null) return;
       return <Mode mode={mode} />;
+    }
+
+    if (!no_kernel && kernel == null) {
+      return null;
     }
 
     if (IS_MOBILE) {
