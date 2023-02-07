@@ -33,6 +33,7 @@ export const slidesButtons = set([
   "copy",
   "paste",
   "show_table_of_contents",
+  "show_pages",
   /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
 
@@ -73,8 +74,8 @@ export const EDITOR_SPEC = {
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
-  whiteboard_table_of_contents: {
-    // must be same name as for whiteboard, since otherwise show_table_of_contents action in whiteboard breaks.
+  table_of_contents: {
+    // name = "table_of_contents" must be same name as for whiteboard, since otherwise show_table_of_contents action in whiteboard breaks.
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",

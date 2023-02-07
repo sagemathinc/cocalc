@@ -19,7 +19,7 @@ export class Actions extends WhiteboardActions {
           direction: "col",
           type: "node",
           first: { type: "speaker_notes" },
-          second: { type: "whiteboard_table_of_contents" },
+          second: { type: "table_of_contents" },
           pos: 0.8,
         },
         pos: 0.8,

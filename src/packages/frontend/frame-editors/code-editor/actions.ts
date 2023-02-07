@@ -2411,7 +2411,7 @@ export class Actions<
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
-      if(shell_id == null) return;
+      if (shell_id == null) return;
     }
     if (no_switch) return;
 
@@ -2507,6 +2507,13 @@ export class Actions<
     const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
+  }
+
+  public async show_pages(_id: string | undefined = undefined): Promise<void> {
+    const id = this.show_focused_frame_of_type("pages", "col", true, 0.15);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
   }
 
   // Closes the most recently focused frame of the given type.

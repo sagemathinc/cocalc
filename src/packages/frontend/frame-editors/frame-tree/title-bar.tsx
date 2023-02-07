@@ -1076,6 +1076,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_show_pages(labels): Rendered {
+    if (!is_visible("show_pages")) return;
+    return (
+      <Button
+        key={"pages"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_pages?.(props.id)}
+        title={"Show Pages"}
+      >
+        <Icon name={"map"} />{" "}
+        <VisibleMDLG>{labels ? "Pages" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_build(): Rendered {
     if (!is_visible("build", true)) {
       return;
@@ -1449,6 +1464,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_shell(labels));
     v.push(render_print(labels));
     v.push(render_table_of_contents(labels));
+    v.push(render_show_pages(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));
 

@@ -32,6 +32,7 @@ export const whiteboardButtons = set([
   "copy",
   "paste",
   "show_table_of_contents",
+  "show_pages",
   "help",
 ]);
 
@@ -65,7 +66,7 @@ export const EDITOR_SPEC = {
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
-  whiteboard_table_of_contents: {
+  table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",

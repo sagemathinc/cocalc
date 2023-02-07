@@ -1311,12 +1311,11 @@ export class Actions extends BaseActions<State> {
     _id: string | undefined = undefined
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "whiteboard_table_of_contents",
+      "table_of_contents",
       "col",
       true,
       0.2
     );
-    // the click to select TOC focuses the active id back on the notebook
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
