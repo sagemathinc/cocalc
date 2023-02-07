@@ -114,12 +114,16 @@ export default function Pages() {
     const elementsOnPage = thisPage ? elementsList(thisPage) : [];
     return (
       <div
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation(); // so doesn't focus this frame then page, causing flicker.
           const frameId = actions.show_focused_frame_of_type(
             actions.mainFrameType
           );
           actions.setPage(frameId, index + 1);
           actions.fitToScreen(frameId);
+          // We have to do this again after the click is done,
+          // since the click focuses the pages frame again.
+          setTimeout(() => actions.set_active_id(frameId), 0);
         }}
         style={{ ...STYLE }}
       >

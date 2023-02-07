@@ -19,7 +19,7 @@ import SageWorksheet from "./sage-worksheet";
 import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/share/index";
-//import HTML from "@cocalc/frontend/components/html-ssr";
+import Slides from "@cocalc/frontend/frame-editors/slides-editor/share";
 import A from "components/misc/A";
 import { containingPath } from "lib/share/util";
 import getUrlTransform from "lib/share/url-transform";
@@ -122,6 +122,8 @@ export default function FileContents({
     return withFileContext(<JupyterNotebook content={content} />);
   } else if (ext == "board") {
     return withFileContext(<Whiteboard content={content} />);
+  } else if (ext == "slides") {
+    return withFileContext(<Slides content={content} />);
   }
   return <pre>{content}</pre>;
 }

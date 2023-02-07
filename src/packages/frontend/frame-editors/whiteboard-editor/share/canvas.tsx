@@ -7,9 +7,10 @@ NOTE: This is probably also useful for printing.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
-import { Element, ElementsMap } from "../types";
+import { Element, ElementsMap, MainFrameType } from "../types";
 import { Map as iMap, fromJS } from "immutable";
 import Grid from "../elements/grid";
+import SlideBackground from "../elements/slide-background";
 import Render from "../elements/render-static";
 import Edge from "../elements/edge";
 import { getPosition, getTransforms, Transforms } from "../math";
@@ -18,9 +19,10 @@ import { ColumnWidthOutlined } from "@ant-design/icons";
 
 interface Props {
   elements: Element[];
+  mainFrameType: MainFrameType;
 }
 
-export default function Canvas({ elements }: Props) {
+export default function Canvas({ elements, mainFrameType }: Props) {
   const canvasRef = useRef<any>(null);
   const [canvasScale, setCanvasScale] = useState<number>(1);
   const margin = 20;
@@ -119,7 +121,10 @@ export default function Canvas({ elements }: Props) {
             height: `calc(${canvasScale * 100}%)`,
           }}
         >
-          <Grid transforms={transforms} />
+          {mainFrameType == "whiteboard" && <Grid transforms={transforms} />}
+          {mainFrameType == "slides" && (
+            <SlideBackground transforms={transforms} />
+          )}
           {elements.map((element) => {
             if (element.type == "edge") {
               // edges are rendered differently

@@ -58,7 +58,14 @@ import {
   useState,
   CSSProperties,
 } from "react";
-import { Element, ElementType, ElementsMap, Point, Rect } from "./types";
+import {
+  Element,
+  ElementType,
+  ElementsMap,
+  MainFrameType,
+  Point,
+  Rect,
+} from "./types";
 import { Tool, TOOLS } from "./tools/desc";
 import RenderElement from "./elements/render";
 import RenderReadOnlyElement from "./elements/render-static";
@@ -134,7 +141,7 @@ interface Props {
   style?: CSSProperties;
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
   cursors?: { [id: string]: { [account_id: string]: any[] } };
-  mainFrameType: "whiteboard" | "slides";
+  mainFrameType: MainFrameType;
 }
 
 export default function Canvas({
