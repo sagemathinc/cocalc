@@ -301,7 +301,6 @@ function getCMOptions(mode) {
   const account = redux.getStore("account");
   const immutable_editor_settings = account?.get("editor_settings");
   const editor_settings = immutable_editor_settings?.toJS() ?? {};
-  const line_numbers =
-    immutable_editor_settings?.get("jupyter_line_numbers") ?? false;
+  const line_numbers = false; // always false, since scaling + line numbers is very broken.
   return fromJS(cm_options(mode, editor_settings, line_numbers, false));
 }

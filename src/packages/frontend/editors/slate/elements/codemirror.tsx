@@ -97,7 +97,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         ...cmOptions,
         autoCloseBrackets: editor_settings.get("auto_close_brackets", false),
         lineWrapping: editor_settings.get("line_wrapping", true),
-        lineNumbers: editor_settings.get("line_numbers", false),
+        lineNumbers: false, // editor_settings.get("line_numbers", false), // disabled since breaks when scaling in whiteboard, etc. and is kind of weird in edit mode only.
         matchBrackets: editor_settings.get("match_brackets", false),
         styleActiveLine: editor_settings.get("style_active_line", true),
         theme: editor_settings.get("theme", "default"),
