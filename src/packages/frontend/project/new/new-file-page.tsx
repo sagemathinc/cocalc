@@ -4,42 +4,47 @@
  */
 
 import { useState } from "react";
-import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
+
 import { default_filename } from "@cocalc/frontend/account";
 import {
-  Col,
-  Row,
+  Alert,
   Button,
   ButtonToolbar,
+  Col,
   FormControl,
   FormGroup,
-  Alert,
+  Row,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
-  ErrorDisplay,
-  Icon,
-  Loading,
-  Tip,
-  SettingBox,
-} from "@cocalc/frontend/components";
-import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
-import { FileUpload } from "@cocalc/frontend/file-upload";
-import { NewFileButton } from "./new-file-button";
-import { NewFileDropdown } from "./new-file-dropdown";
-import { FileTypeSelector } from "./file-type-selector";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
-import { PathNavigator } from "../explorer/path-navigator";
-import {
+  ProjectActions,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Paragraph,
+  SettingBox,
+  Tip,
+} from "@cocalc/frontend/components";
+import { FileUpload } from "@cocalc/frontend/file-upload";
+import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
+import { ProjectMap } from "@cocalc/frontend/todo-types";
+import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
+import { PathNavigator } from "../explorer/path-navigator";
+import { FileTypeSelector } from "./file-type-selector";
+import { NewFileButton } from "./new-file-button";
+import { NewFileDropdown } from "./new-file-dropdown";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;
 }
 
-export default function NewFilePage({ project_id }: Props) {
+export default function NewFilePage(props: Props) {
+  const { project_id } = props;
   const actions = useActions({ project_id });
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -65,7 +70,12 @@ export default function NewFilePage({ project_id }: Props) {
     return <Loading theme="medium" />;
   }
 
-  const createFile = (ext?: string) => {
+  function getActions(): ProjectActions {
+    if (actions == null) throw new Error("bug");
+    return actions;
+  }
+
+  function createFile(ext?: string) {
     if (!filename) {
       return;
     }
@@ -76,14 +86,14 @@ export default function NewFilePage({ project_id }: Props) {
       filename_ext && ext && filename_ext != ext
         ? filename.slice(0, filename.length - filename_ext.length - 1)
         : filename;
-    actions.create_file({
+    getActions().create_file({
       name,
       ext,
       current_path,
     });
-  };
+  }
 
-  const submit = (ext?: string) => {
+  function submit(ext?: string) {
     if (!filename) {
       // empty filename
       return;
@@ -97,9 +107,9 @@ export default function NewFilePage({ project_id }: Props) {
     } else {
       setExtensionWarning(true);
     }
-  };
+  }
 
-  const renderError = () => {
+  function renderError() {
     let message;
     const error = file_creation_error;
     if (error === "not running") {
@@ -111,13 +121,13 @@ export default function NewFilePage({ project_id }: Props) {
       <ErrorDisplay
         error={message}
         onClose={(): void => {
-          actions.setState({ file_creation_error: "" });
+          getActions().setState({ file_creation_error: "" });
         }}
       />
     );
-  };
+  }
 
-  const blocked = () => {
+  function blocked() {
     if (project_map == null) {
       return "";
     }
@@ -126,27 +136,27 @@ export default function NewFilePage({ project_id }: Props) {
     } else {
       return " (access blocked -- see project settings)";
     }
-  };
+  }
 
-  const createFolder = () => {
-    actions.create_folder({
+  function createFolder() {
+    getActions().create_folder({
       name: filename,
       current_path,
       switch_over: true,
     });
-  };
+  }
 
-  const renderNoExtensionAlert = () => {
+  function renderNoExtensionAlert() {
     return (
       <Alert
         bsStyle="warning"
-        style={{ marginTop: "10px", fontWeight: "bold" }}
+        style={{ marginTop: "10px", marginBottom: "10px", fontWeight: "bold" }}
       >
-        <p>
+        <Paragraph>
           Warning: Are you sure you want to create a file with no extension?
           This will use a plain text editor. If you do not want this, click a
           button below to create the corresponding type of file.
-        </p>
+        </Paragraph>
         <ButtonToolbar style={{ marginTop: "10px" }}>
           <Button
             onClick={(): void => {
@@ -167,9 +177,9 @@ export default function NewFilePage({ project_id }: Props) {
         </ButtonToolbar>
       </Alert>
     );
-  };
+  }
 
-  const renderUpload = () => {
+  function renderUpload() {
     return (
       <>
         <Row style={{ marginTop: "20px" }}>
@@ -184,7 +194,7 @@ export default function NewFilePage({ project_id }: Props) {
             <FileUpload
               dropzone_handler={{
                 complete: (): void => {
-                  actions.fetch_directory_listing();
+                  getActions().fetch_directory_listing();
                 },
               }}
               project_id={project_id}
@@ -221,7 +231,7 @@ export default function NewFilePage({ project_id }: Props) {
         </Row>
       </>
     );
-  };
+  }
 
   const renderCreate = () => {
     let desc: string;
@@ -303,16 +313,15 @@ export default function NewFilePage({ project_id }: Props) {
     >
       <Row key={"new-file-row"}>
         <Col sm={12}>
-          <div
+          <Paragraph
             style={{
-              color: "#666",
-              paddingBottom: "5px",
+              color: COLORS.GRAY_M,
               fontSize: "16px",
             }}
           >
             Name your file, folder or paste in a link. End filename with / to
             make a folder.
-          </div>
+          </Paragraph>
           <div
             style={{
               display: "flex",
@@ -346,16 +355,15 @@ export default function NewFilePage({ project_id }: Props) {
           </div>
           {extensionWarning && renderNoExtensionAlert()}
           {file_creation_error && renderError()}
-          <div
+          <Paragraph
             style={{
-              color: "#666",
-              paddingBottom: "5px",
+              color: COLORS.GRAY_M,
               fontSize: "16px",
             }}
           >
             What would you like to create? All documents can be simultaneously
             edited in realtime with your collaborators.
-          </div>
+          </Paragraph>
           <FileTypeSelector
             create_file={submit}
             create_folder={createFolder}

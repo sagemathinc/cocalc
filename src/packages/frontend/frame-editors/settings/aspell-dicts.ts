@@ -8,11 +8,11 @@ Got via `aspell dump dicts` on Ubuntu 18.04, after doing `apt-get install aspell
 and removing dups.  Maybe update this someday...
 */
 
-import { language } from "../../misc";
+import { language } from "@cocalc/frontend/misc";
 
-const langs = require("langs");
+import langs from "langs";
 
-export const DICTS: string[] = [
+export const DICTS: Readonly<string[]> = [
   "default",
   "browser",
   "disabled",
@@ -155,7 +155,7 @@ export const DICTS: string[] = [
   "uz",
   "xh",
   "zu",
-];
+] as const;
 
 // Slightly more human readable discription of dict.
 export function dict_desc(dict: string): string {
