@@ -51,8 +51,8 @@ export default function ProjectTabs({ project_id }) {
             marginLeft: "-10px",
           }}
         >
-          <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
           <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
+          <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
         </div>
       </div>
     </div>
