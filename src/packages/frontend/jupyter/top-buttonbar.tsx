@@ -12,14 +12,14 @@ import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import {
   DropdownMenu,
   Icon,
-  MenuItem,
+  MenuItems,
   VisibleLG,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize, endswith } from "@cocalc/util/misc";
-import { FORMAT_SOURCE_ICON } from "../frame-editors/frame-tree/config";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
 
@@ -183,6 +183,30 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code");
     const title = cell_type_title(cell_type);
 
+    const items: MenuItems = [
+      {
+        key: "code",
+        label: cell_type_title("code"),
+        onClick: () => cell_select_type("code"),
+      },
+      {
+        key: "markdown",
+        label: cell_type_title("markdown"),
+        onClick: () => cell_select_type("markdown"),
+      },
+      {
+        key: "raw",
+        label: cell_type_title("raw"),
+        onClick: () => cell_select_type("raw"),
+      },
+      {
+        key: "multi",
+        label: cell_type_title("multi"),
+        disabled: true,
+        onClick: () => cell_select_type("multi"),
+      },
+    ];
+
     return (
       /* The ButtonGroup is for consistent spacing relative to
          all of the other ButtonGroups. */
@@ -196,21 +220,8 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
           key={"cell-type"}
           title={title}
           disabled={read_only}
-          onClick={cell_select_type}
-        >
-          <MenuItem cocalc-test={"code"} key={"code"}>
-            {cell_type_title("code")}
-          </MenuItem>
-          <MenuItem cocalc-test={"markdown"} key={"markdown"}>
-            {cell_type_title("markdown")}
-          </MenuItem>
-          <MenuItem cocalc-test={"raw"} key={"raw"}>
-            {cell_type_title("raw")}
-          </MenuItem>
-          <MenuItem cocalc-test={"multi"} key={"multi"} disabled>
-            {cell_type_title("multi")}
-          </MenuItem>
-        </DropdownMenu>
+          items={items}
+        />
       </ButtonGroup>
     );
   }

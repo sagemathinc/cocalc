@@ -37,7 +37,7 @@ import {
   DropdownMenu,
   Icon,
   IconName,
-  MenuItem,
+  MenuItems,
   r_join,
   Space,
   VisibleMDLG,
@@ -298,7 +298,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const selected_type: string = props.type;
     let selected_icon: IconName | undefined = undefined;
     let selected_short = "";
-    const items: Rendered[] = [];
+    const items: MenuItems = [];
     for (const type in props.editor_spec) {
       const spec = props.editor_spec[type];
       if (spec == null) {
@@ -318,13 +318,16 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         selected_icon = spec.icon;
         selected_short = spec.short;
       }
-      const item = (
-        <MenuItem cocalc-test={type} key={type}>
-          <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
-          {spec.name}
-        </MenuItem>
-      );
-      items.push(item);
+      items.push({
+        key: type,
+        label: (
+          <>
+            <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
+            {spec.name}
+          </>
+        ),
+        onClick: () => select_type(type),
+      });
     }
 
     let title;
@@ -352,10 +355,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
         key={"types"}
         title={title}
-        onClick={select_type}
-      >
-        {items}
-      </DropdownMenu>
+        items={items}
+      />
     );
   }
 
@@ -486,8 +487,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
 
-    const items: Rendered[] = [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
-      return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
+    const items: MenuItems = [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
+      return {
+        key: `${zoom}`,
+        label: `${zoom}%`,
+        onClick: () => {
+          props.actions.set_zoom(zoom / 100, props.id);
+        },
+      };
     });
 
     const title =
@@ -501,12 +508,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         button={true}
         title={title}
         style={{ height: button_height() }}
-        onClick={(key) => {
-          props.actions.set_zoom(parseInt(key) / 100, props.id);
-        }}
-      >
-        {items}
-      </DropdownMenu>
+        items={items}
+      />
     );
   }
 
@@ -563,6 +566,19 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
 
+    const items: MenuItems = switch_to_files.toJS().map((path) => {
+      return {
+        key: path,
+        label: (
+          <>
+            {props.path == path ? <b>{path}</b> : path}
+            {props.actions.path == path ? " (main)" : ""}
+          </>
+        ),
+        onClick: () => props.actions.switch_to_file(path, props.id),
+      };
+    });
+
     return (
       <DropdownMenu
         key={"switch-to-file"}
@@ -571,17 +587,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           height: button_height(),
         }}
         title={path_split(props.path).tail}
-        onClick={(key) => {
-          props.actions.switch_to_file(key, props.id);
-        }}
-      >
-        {switch_to_files.toJS().map((path) => (
-          <MenuItem key={path}>
-            {props.path == path ? <b>{path}</b> : path}
-            {props.actions.path == path ? " (main)" : ""}
-          </MenuItem>
-        ))}
-      </DropdownMenu>
+        items={items}
+      />
     );
   }
 
@@ -1418,7 +1425,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_actions_dropdown(labels): Rendered {
+  function render_actions_dropdown(labels: boolean): Rendered {
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
@@ -1438,7 +1445,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_buttons(forceLabels?, style?): Rendered {
+  function render_buttons(forceLabels?: boolean, style?: CSS): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
@@ -1454,7 +1461,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       };
     }
 
-    const labels = forceLabels ?? show_labels();
+    const labels: boolean = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
     v.push(render_actions_dropdown(labels));

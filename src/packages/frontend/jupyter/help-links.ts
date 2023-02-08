@@ -60,11 +60,11 @@ const LINKS: { [key: string]: Help } = {
     "Singular Manual":
       "https://www.singular.uni-kl.de/index.php/singular-manual.html",
   },
-};
+} as const;
 
 // "lang" is coming from kernel_info.get("language")
 export function get_help_links(lang: string | undefined): Help | undefined {
-  if (typeof lang != "string") return; // since not everything is typescript...
+  if (typeof lang !== "string") return; // since not everything is typescript...
   // sanitize, e.g. the language might be uppercase "R"
   lang = lang.toLowerCase();
   // special case: "scala211" might change version info

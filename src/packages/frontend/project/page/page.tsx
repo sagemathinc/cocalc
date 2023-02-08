@@ -4,30 +4,31 @@
  */
 
 import { Modal } from "antd";
-import { Loading } from "../../components";
-import { DeletedProjectWarning } from "../warnings/deleted";
-import { Content } from "./content";
+
 import {
   React,
+  redux,
   useActions,
   useRedux,
   useTypedRedux,
-  redux,
 } from "@cocalc/frontend/app-framework";
-import { DiskSpaceWarning } from "../warnings/disk-space";
-import { RamWarning } from "../warnings/ram";
-import { OOMWarning } from "../warnings/oom";
-import { ProjectWarningBanner } from "../project-banner";
-import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import { AnonymousName } from "../anonymous-name";
-import { StartButton } from "../start-button";
-import { useProjectStatus } from "./project-status-hook";
+import { Loading } from "@cocalc/frontend/components";
 import {
   defaultFrameContext,
   FrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import Tabs, { VerticalFixedTabs } from "./tabs";
+import { AnonymousName } from "../anonymous-name";
+import { ProjectWarningBanner } from "../project-banner";
+import { StartButton } from "../start-button";
+import { DeletedProjectWarning } from "../warnings/deleted";
+import { DiskSpaceWarning } from "../warnings/disk-space";
+import { OOMWarning } from "../warnings/oom";
+import { RamWarning } from "../warnings/ram";
+import { Content } from "./content";
 import HomePageButton from "./home-page/button";
+import { useProjectStatus } from "./project-status-hook";
+import { SoftwareEnvUpgrade } from "./software-env-upgrade";
+import Tabs, { VerticalFixedTabs } from "./tabs";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -41,7 +42,8 @@ interface Props {
   is_active: boolean;
 }
 
-export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
+export const ProjectPage: React.FC<Props> = (props: Props) => {
+  const { project_id, is_active } = props;
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -116,7 +118,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     return (
       <Modal
         title={modal?.get("title")}
-        visible={is_active && modal != null}
+        open={is_active && modal != null}
         onOk={() => {
           actions?.clear_modal();
           modal?.get("onOk")?.();

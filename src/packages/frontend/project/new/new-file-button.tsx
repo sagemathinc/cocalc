@@ -3,10 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button } from "antd";
 import React from "react";
 
-import { Button } from "antd";
-import { Icon, IconName, Space } from "../../components";
+import { CSS } from "@cocalc/frontend/app-framework";
+import { Icon, IconName } from "@cocalc/frontend/components";
+
+const STYLE: CSS = {
+  marginRight: "5px",
+  marginBottom: "5px",
+  width: "100%",
+  height: "auto",
+  whiteSpace: "normal",
+};
+
+const ICON_STYLE: CSS = {
+  fontSize: "150%",
+};
 
 interface Props {
   name: string;
@@ -16,24 +29,15 @@ interface Props {
   className?: string;
   disabled?: boolean;
   loading?: boolean;
-  children?: React.ReactNode;
 }
 
-export const NewFileButton = React.memo(function NewFileButton({
-  name,
-  icon,
-  on_click,
-  ext,
-  className,
-  disabled,
-  loading,
-  children,
-}: Props) {
-  let displayed_icon = <Icon name={icon} />;
-
-  if (loading) {
-    displayed_icon = <Icon name="cocalc-ring" spin />;
-  }
+export const NewFileButton = React.memo((props: Props) => {
+  const { name, icon, on_click, ext, className, disabled, loading } = props;
+  const displayed_icon = loading ? (
+    <Icon style={ICON_STYLE} name="cocalc-ring" spin />
+  ) : (
+    <Icon style={ICON_STYLE} name={icon} />
+  );
 
   return (
     <Button
@@ -41,14 +45,15 @@ export const NewFileButton = React.memo(function NewFileButton({
       onClick={(): void => {
         on_click?.(ext);
       }}
-      style={{ marginRight: "5px", marginBottom: "5px" }}
+      style={STYLE}
       className={className}
       disabled={disabled || loading}
     >
-      {displayed_icon}
-      <Space />
-      {name}
-      {children}
+      <div>
+        {displayed_icon}
+        <br />
+        {name}
+      </div>
     </Button>
   );
 });
