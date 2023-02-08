@@ -2,9 +2,9 @@ import { useEffect, useMemo } from "react";
 import { useFrameContext } from "../whiteboard-editor/hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import type { State } from "./actions";
-import Text from "../whiteboard-editor/elements/text";
+import { TextEditor } from "../whiteboard-editor/elements/text";
 
-//const PLACEHOLDER = "Speaker notes";
+const PLACEHOLDER = "Speaker notes";
 
 export default function SpeakerNotes() {
   const {
@@ -51,5 +51,18 @@ export default function SpeakerNotes() {
   if (element == null) {
     return null;
   }
-  return <Text element={element} canvasScale={1} focused={isFocused} />;
+  return (
+    <div className="smc-vfill" style={{ overflow: "auto" }}>
+      <TextEditor
+        element={element}
+        canvasScale={1}
+        focused={isFocused}
+        markdownProps={{
+          height: "100%",
+          placeholder: PLACEHOLDER,
+          fontSize: desc.get("font_size"),
+        }}
+      />
+    </div>
+  );
 }

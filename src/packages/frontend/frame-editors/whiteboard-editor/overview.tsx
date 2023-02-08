@@ -16,6 +16,7 @@ import { Overview as OnePage } from "./tools/navigation";
 import { State, elementsList } from "./actions";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { GridItemProps } from "react-virtuoso";
+import { COLORS } from "@cocalc/util/theme";
 
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -102,12 +103,13 @@ export default function Overview() {
                 >
                   pages frame
                 </a>
-                .)
+                .
               </div>
             }
           >
             <Button
               size="large"
+              style={{ height: "auto", padding: "20px" }}
               onClick={() => {
                 const id = actions.show_focused_frame_of_type(
                   actions.mainFrameType
@@ -119,7 +121,11 @@ export default function Overview() {
                 }, 0);
               }}
             >
-              <Icon name="plus-circle" /> New Page
+              <Icon
+                name="plus-circle"
+                style={{ fontSize: "200%", color: COLORS.FILE_ICON }}
+              />
+              <br /> New Page
             </Button>
           </Popover>
         </div>
