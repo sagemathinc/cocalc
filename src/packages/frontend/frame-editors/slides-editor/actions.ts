@@ -67,4 +67,17 @@ export class Actions extends WhiteboardActions<State> {
       this.setState({ speakerNotes });
     }
   }
+
+  setPage(frameId: string, pageNumber: number): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    super.setPage(frameId, pageNumber);
+    if (node.get("type") == this.mainFrameType) {
+      const id: string | undefined =
+        this._get_most_recent_active_frame_id_of_type("speaker_notes");
+      if (id != null && id != frameId) {
+        this.setPage(id, pageNumber);
+      }
+    }
+  }
 }

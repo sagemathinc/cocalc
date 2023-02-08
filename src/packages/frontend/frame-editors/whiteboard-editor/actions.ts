@@ -784,7 +784,6 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       frameId != null
         ? this.numberToPageId(this._get_frame_node(frameId)?.get("page"))
         : this.defaultPageId();
-    console.log("page = ", page);
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -1376,13 +1375,6 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     return this.createPage();
   }
 
-  setPage(frameId: string, pageNumber: number): void {
-    const node = this._get_frame_node(frameId);
-    if (node == null) return;
-    super.setPage(frameId, pageNumber);
-    this.setFragmentIdToPage(frameId);
-  }
-
   setPageId(frameId: string, pageId: string): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
@@ -1471,7 +1463,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   // is one that page.
   deletePage(id: string, commit: boolean = true): void {
     // TODO: this is NOT implemented yet, and not used in the UI, yet.
-    console.log("deletePage", { id, commit });
+    console.warn("deletePage not implemented yet", { id, commit });
   }
 }
 

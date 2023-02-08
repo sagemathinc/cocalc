@@ -13,7 +13,6 @@ interface Props {
 export default function Text({ element, readOnly }: Props) {
   const { actions } = useFrameContext();
   const isEmpty = !element.str?.trim();
-  console.log("Text", element, isEmpty);
   return (
     <MostlyStaticMarkdown
       value={isEmpty ? PLACEHOLDER : element.str ?? ""}
