@@ -1061,11 +1061,15 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_error(): string | undefined {
-    const x = this.syncstring_table.get_one();
-    if (x != null && x.get("init") != null) {
-      return x.get("init").get("error");
+    let x;
+    try {
+      x = this.syncstring_table.get_one();
+    } catch (_err) {
+      // if the table hasn't been initialized yet,
+      // it can't be in error state.
+      return undefined;
     }
-    return undefined;
+    return x?.get("init")?.get("error");
   }
 
   // wait until the syncstring table is ready to be

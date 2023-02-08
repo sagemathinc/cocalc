@@ -20,7 +20,7 @@ export default function SpeakerNotes() {
 
   // initialize page info for this frame.
   useEffect(() => {
-    actions.setPages(frameId, actions.store.get("pages")?.size);
+    actions.setPages(frameId, actions.store.get("pages")?.size ?? 1);
     actions.setPage(frameId, desc.get("page") ?? 1);
   }, []);
 

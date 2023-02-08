@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
@@ -48,44 +48,49 @@ function EditText({
   const { actions } = useFrameContext();
   const [mode, setMode] = useState<string>("");
   const [editFocus, setEditFocus] = useEditFocus(false);
+  const getValueRef = useRef<any>(null);
+  const saveValueRef = useRef<any>(() => {});
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
-  const saveEditorValue = useCallback(
-    (str?) => {
+  useEffect(() => {
+    saveValueRef.current = (str?) => {
+      const id = element.id;
       if (str == null) {
         if (!getValueRef.current) return;
         str = getValueRef.current();
       }
       actions.setElement({
-        obj: { id: element.id, str },
+        obj: { id, str },
       });
-    },
-    [element.id]
-  );
+    };
+    actions._syncstring.on("before-change", saveValueRef.current);
+    return () => {
+      actions._syncstring.removeListener("before-change", saveValueRef.current);
+      saveValueRef.current();
+    };
+  }, [element.id]);
+
+  useEffect(() => {
+    const f = () => saveValueRef.current();
+    actions._syncstring.on("before-change", f);
+    return () => {
+      actions._syncstring.removeListener("before-change", f);
+      //saveValueRef.current();
+    };
+  }, []);
 
   // On component unmount, save any unsaved changes.
   useEffect(() => {
     return () => {
       // has to happen in different exec loop, since it updates store,
       // which updates component right as unmounted, which is a warning in react.
-      setTimeout(saveEditorValue, 0);
+      setTimeout(saveValueRef.current, 0);
     };
   }, []);
-
-  const getValueRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (actions._syncstring == null) return;
-    actions._syncstring.on("before-change", saveEditorValue);
-    return () => {
-      actions._syncstring.removeListener("before-change", saveEditorValue);
-      saveEditorValue();
-    };
-  }, [element.id]);
 
   // Automatic resizing:
   const divRef = useRef<HTMLDivElement>(null);
@@ -171,9 +176,10 @@ function EditText({
           }}
           value={element.str}
           fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-          onChange={
-            saveEditorValue /* MultiMarkdownInput's onChange is debounced by default */
-          }
+          onChange={() => {
+            /* MultiMarkdownInput's onChange is debounced by default */
+            saveValueRef.current();
+          }}
           cmOptions={{
             lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
           }}
