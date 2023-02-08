@@ -148,17 +148,17 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <OOMWarning project_id={project_id} />
       <SoftwareEnvUpgrade project_id={project_id} />
       <ProjectWarningBanner project_id={project_id} />
-      <div style={{ display: "flex", margin: "2.5px" }}>
-        <HomePageButton
-          project_id={project_id}
-          active={active_project_tab == "home"}
-        />
-        {(!fullscreen || fullscreen == "project") && (
+      {(!fullscreen || fullscreen == "project") && (
+        <div style={{ display: "flex", margin: "2.5px" }}>
+          <HomePageButton
+            project_id={project_id}
+            active={active_project_tab == "home"}
+          />
           <div style={{ flex: 1, overflow: "hidden" }}>
             <Tabs project_id={project_id} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
