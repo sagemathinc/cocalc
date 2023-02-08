@@ -11,7 +11,7 @@ import { CSS, React } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "../feature";
 
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
-export type MenuItems = MenuProps["items"];
+export type MenuItems = NonNullable<MenuProps["items"]>;
 
 interface Props {
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)

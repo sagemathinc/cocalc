@@ -34,7 +34,7 @@ export default function HeadingMenu(props: Props) {
       title={<Icon name={"header"} />}
       key={"heading"}
       style={style}
-      items={items ?? []}
+      items={items}
     />
   );
 }

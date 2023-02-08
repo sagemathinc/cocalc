@@ -1374,7 +1374,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_actions_dropdown(labels): Rendered {
+  function render_actions_dropdown(labels: boolean): Rendered {
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
@@ -1394,7 +1394,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_buttons(forceLabels?, style?): Rendered {
+  function render_buttons(forceLabels?: boolean, style?: CSS): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
@@ -1410,7 +1410,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       };
     }
 
-    const labels = forceLabels ?? show_labels();
+    const labels: boolean = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
     v.push(render_actions_dropdown(labels));
