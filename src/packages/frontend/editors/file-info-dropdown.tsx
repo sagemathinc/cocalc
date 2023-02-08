@@ -17,9 +17,9 @@ import {
 } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { file_actions } from "@cocalc/frontend/project_store";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { file_actions } from "../project_store";
 
 interface Props {
   filename: string; // expects the full path name
@@ -128,7 +128,6 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
         title={render_title()}
-        onClick={handle_click}
         items={render_menu_items()}
       />
     );

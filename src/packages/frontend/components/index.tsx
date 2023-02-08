@@ -16,6 +16,7 @@ export { CloseX2 } from "./close-x2";
 export { build_date, smc_git_rev, smc_version, UNIT } from "./constants";
 export { DateTimePicker } from "./date-time-picker";
 export { DropdownMenu, MenuDivider, MenuItem } from "./dropdown-menu";
+export type { MenuItems } from "./dropdown-menu";
 export { ErrorDisplay } from "./error-display";
 export { HelpIcon } from "./help-icon";
 export * from "./hidden-visible";

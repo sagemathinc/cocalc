@@ -56,7 +56,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function file_dropdown_item2(ext: string) {
+  function file_dropdown_item(ext: string) {
     const data = file_options("x." + ext);
     return {
       key: ext,
@@ -110,7 +110,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
   }
 
   const items: MenuProps["items"] = [
-    ...new_file_button_types().map(file_dropdown_item2),
+    ...new_file_button_types().map(file_dropdown_item),
     { type: "divider" },
     {
       key: "folder",
@@ -129,12 +129,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
         {file_dropdown_icon()}{" "}
       </Button>
 
-      <DropdownMenu
-        title={""}
-        onClick={on_dropdown_entry_clicked}
-        button={true}
-        items={items}
-      />
+      <DropdownMenu title={""} button={true} items={items} />
     </Button.Group>
   );
 };

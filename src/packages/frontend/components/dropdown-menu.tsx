@@ -26,13 +26,11 @@ export type MenuItems = NonNullable<MenuProps["items"]>;
 
 interface Props {
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
-  children?: React.ReactNode;
   disabled?: boolean;
   hide_down?: boolean;
   id?: string;
-  items?: MenuItems;
+  items: MenuItems;
   maxHeight?: string;
-  onClick?: (key: string) => void; // remove as well, when everything is switched over to "items"
   style?: CSS;
   title?: JSX.Element | string;
 }
@@ -40,24 +38,8 @@ interface Props {
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
 export const DropdownMenu: React.FC<Props> = (props: Props) => {
-  const {
-    button,
-    children,
-    disabled,
-    hide_down,
-    id,
-    items,
-    maxHeight,
-    onClick,
-    style,
-    title,
-  } = props;
-
-  function on_click(e): void {
-    if (onClick !== undefined) {
-      onClick(e.key);
-    }
-  }
+  const { button, disabled, hide_down, id, items, maxHeight, style, title } =
+    props;
 
   function render_title() {
     if (title !== "") {
@@ -117,30 +99,16 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
   } as const;
 
   // items is the way to go, i.e. instead of instantiating many react elements, Antd wants a list of dicts.
-  if (items != null) {
-    return (
-      <Dropdown
-        trigger={["click"]}
-        placement={"bottomLeft"}
-        menu={{ items, style: menuStyle }}
-      >
-        {body}
-      </Dropdown>
-    );
-  } else {
-    // THIS IS DEPRECATED -- use items={...} instead.
-    const menu = (
-      <Menu onClick={on_click.bind(this)} style={menuStyle}>
-        {children}
-      </Menu>
-    );
-
-    return (
-      <Dropdown overlay={menu} trigger={["click"]} placement={"bottomLeft"}>
-        {body}
-      </Dropdown>
-    );
-  }
+  return (
+    <Dropdown
+      trigger={["click"]}
+      placement={"bottomLeft"}
+      menu={{ items, style: menuStyle }}
+      disabled={disabled}
+    >
+      {body}
+    </Dropdown>
+  );
 };
 
 export function MenuItem(props) {
@@ -148,4 +116,4 @@ export function MenuItem(props) {
   return <M {...props}>{props.children}</M>;
 }
 
-export const MenuDivider = Menu.Divider;
+export const MenuDivider = { type: "divider" } as const;
