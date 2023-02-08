@@ -2519,7 +2519,21 @@ export class Actions<
   public async show_overview(
     _id: string | undefined = undefined
   ): Promise<void> {
-    const id = this.show_focused_frame_of_type("overview", "col", true, 0.40);
+    const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public async show_speaker_notes(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "speaker_notes",
+      "row",
+      false,
+      0.8
+    );
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);

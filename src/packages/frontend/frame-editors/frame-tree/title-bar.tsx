@@ -334,6 +334,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (selected_short) {
       title = (
         <span cocalc-test={"short-" + selected_short}>
+          <Icon name={selected_icon} style={{ marginRight: "5px" }} />
           {title} {selected_short}
         </span>
       );
@@ -1092,7 +1093,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => props.actions.show_pages?.(props.id)}
         title={"Show Pages"}
       >
-        <Icon name={"map"} />{" "}
+        <Icon name={"pic-centered"} />{" "}
         <VisibleMDLG>{labels ? "Pages" : undefined}</VisibleMDLG>
       </Button>
     );
@@ -1107,8 +1108,23 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => props.actions.show_overview?.(props.id)}
         title={"Show Overview of all Pages"}
       >
-        <Icon name={"table"} />{" "}
+        <Icon name={"overview"} />{" "}
         <VisibleMDLG>{labels ? "Overview" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_show_speaker_notes(labels): Rendered {
+    if (!is_visible("show_speaker_notes")) return;
+    return (
+      <Button
+        key={"speaker_notes"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_speaker_notes?.(props.id)}
+        title={"Show Speaker Notes"}
+      >
+        <Icon name={"pencil"} />{" "}
+        <VisibleMDLG>{labels ? "Speaker" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1502,6 +1518,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
     v.push(render_show_overview(labels));
+    v.push(render_show_speaker_notes(labels));
     v.push(render_show_search(labels));
     v.push(render_guide(labels));
     v.push(render_help(labels));

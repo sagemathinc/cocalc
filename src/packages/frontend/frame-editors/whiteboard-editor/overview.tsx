@@ -20,7 +20,7 @@ import type { GridItemProps } from "react-virtuoso";
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
-  const size = 20 * (desc?.get("font_size") ?? 14);
+  const size = 15 * (desc?.get("font_size") ?? 14);
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");

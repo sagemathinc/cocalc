@@ -57,13 +57,13 @@ export const EDITOR_SPEC = {
   pages: {
     short: "Pages",
     name: "Pages",
-    icon: "files" as IconName,
+    icon: "pic-centered" as IconName,
     component: Pages,
   },
   overview: {
     short: "Overview",
     name: "Overview",
-    icon: "table" as IconName,
+    icon: "overview" as IconName,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
     component: Overview,
   },

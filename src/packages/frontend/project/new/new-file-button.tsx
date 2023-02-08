@@ -8,6 +8,7 @@ import React from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 const STYLE: CSS = {
   marginRight: "5px",
@@ -18,7 +19,8 @@ const STYLE: CSS = {
 };
 
 const ICON_STYLE: CSS = {
-  fontSize: "150%",
+  fontSize: "200%",
+  color: COLORS.FILE_ICON,
 };
 
 interface Props {
@@ -52,7 +54,7 @@ export const NewFileButton = React.memo((props: Props) => {
       <div>
         {displayed_icon}
         <br />
-        {name}
+        <span style={{ color: "#666" }}>{name}</span>
       </div>
     </Button>
   );

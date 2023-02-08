@@ -37,6 +37,7 @@ export const slidesButtons = set([
   "show_pages",
   "show_search",
   "show_overview",
+  "show_speaker_notes",
   /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
 
@@ -65,13 +66,13 @@ export const EDITOR_SPEC = {
   pages: {
     short: "Pages",
     name: "Pages",
-    icon: "files" as IconName,
+    icon: "pic-centered" as IconName,
     component: Pages,
   },
   overview: {
     short: "Overview",
     name: "Overview",
-    icon: "table" as IconName,
+    icon: "overview" as IconName,
     component: Overview,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   },
