@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
@@ -20,6 +20,7 @@ interface Props {
   cursors?: { [account_id: string]: any[] };
   markdownProps?: object;
   resizable?: boolean;
+  style?: CSSProperties;
 }
 
 export default function Text(props: Props) {
@@ -66,7 +67,7 @@ export function TextEditor(props: Props) {
   ) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
     // in massive performance problems when there are many notes.
-    return <TextStatic element={props.element} />;
+    return <TextStatic element={props.element} style={props.style} />;
   }
   return <EditText {...props} />;
 }

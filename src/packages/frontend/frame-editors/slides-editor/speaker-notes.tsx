@@ -51,16 +51,18 @@ export default function SpeakerNotes() {
   if (element == null) {
     return null;
   }
+  const fontSize = desc.get("font_size");
   return (
     <div className="smc-vfill" style={{ overflow: "auto" }}>
       <TextEditor
+        style={{ fontSize }}
         element={element}
         canvasScale={1}
         focused={isFocused}
         markdownProps={{
           height: "100%",
           placeholder: PLACEHOLDER,
-          fontSize: desc.get("font_size"),
+          fontSize,
         }}
       />
     </div>
