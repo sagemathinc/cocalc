@@ -1,19 +1,28 @@
-import { useMemo, useState } from "react";
-import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { useEffect, useMemo } from "react";
 import { useFrameContext } from "../whiteboard-editor/hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import type { State } from "./actions";
+import Text from "../whiteboard-editor/elements/text";
 
-const PLACEHOLDER = "Speaker notes";
+//const PLACEHOLDER = "Speaker notes";
 
 export default function SpeakerNotes() {
-  const { /*actions,*/ project_id, path, isFocused, desc } = useFrameContext();
+  const {
+    actions,
+    project_id,
+    path,
+    isFocused,
+    desc,
+    id: frameId,
+  } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
-
-  //const is_loaded = useEditor("is_loaded");
-  const readOnly = useEditor("read_only");
   const sortedPageIds = useEditor("sortedPageIds");
+
+  // initialize page info for this frame.
+  useEffect(() => {
+    actions.setPages(frameId, actions.store.get("pages")?.size);
+    actions.setPage(frameId, desc.get("page") ?? 1);
+  }, []);
 
   const pageId = useMemo(() => {
     if (sortedPageIds == null) return null;
@@ -22,34 +31,25 @@ export default function SpeakerNotes() {
   }, [desc.get("page"), sortedPageIds]);
 
   const speakerNotes = useEditor("speakerNotes");
-  const element = useMemo(() => speakerNotes?.get(pageId)?.toJS(), [pageId]);
+  const element = useMemo(() => {
+    if (!pageId) return null;
+    let cur = speakerNotes?.get(pageId)?.toJS();
+    if (cur == null) {
+      // will create this note.
+      setTimeout(() => {
+        cur = actions.createElement(undefined, {
+          type: "speaker_notes",
+          page: pageId,
+          invisible: true,
+          str: "",
+        });
+      }, 0);
+    }
+    return cur;
+  }, [pageId, speakerNotes]);
 
-  const [value, setValue] = useState<string>("");
-  if (!readOnly && isFocused) {
-    return (
-      <div className="smc-vfill">
-        page = {pageId}
-        {JSON.stringify(element)}
-        <MultiMarkdownInput
-          height={"100%"}
-          value={value}
-          onChange={(value) => {
-            setValue(value);
-          }}
-          placeholder={PLACEHOLDER}
-        />
-      </div>
-    );
-  } else {
-    return (
-      <MostlyStaticMarkdown
-        style={{ margin: "15px", overflow: "auto" }}
-        value={!value ? PLACEHOLDER : value}
-        onChange={(value) => {
-          console.log("value = ", value);
-          setValue(value);
-        }}
-      />
-    );
+  if (element == null) {
+    return null;
   }
+  return <Text element={element} canvasScale={1} focused={isFocused} />;
 }

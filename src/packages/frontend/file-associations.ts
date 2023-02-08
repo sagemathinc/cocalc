@@ -410,7 +410,7 @@ file_associations["slides"] = {
   editor: "slides",
   icon: "slides",
   opts: {},
-  name: "Slideshow",
+  name: "Slides",
 };
 
 file_associations["sage-chat"] = {

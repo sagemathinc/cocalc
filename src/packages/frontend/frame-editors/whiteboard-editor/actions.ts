@@ -74,7 +74,7 @@ export interface State extends CodeEditorState {
   contents?: TableOfContentsEntryList; // table of contents data.
 }
 
-export class Actions extends BaseActions<State> {
+export class Actions<T extends State = State> extends BaseActions<T | State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];

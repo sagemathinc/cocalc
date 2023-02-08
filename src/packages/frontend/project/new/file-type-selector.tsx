@@ -98,7 +98,7 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon="slides"
-              name="Slideshow"
+              name="Slides"
               on_click={create_file}
               ext="slides"
             />

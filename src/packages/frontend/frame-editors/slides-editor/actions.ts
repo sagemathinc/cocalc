@@ -11,7 +11,7 @@ export interface State extends WhiteboardState {
   speakerNotes: ImmutableMap<string, ElementMap>;
 }
 
-export class Actions<State> extends WhiteboardActions {
+export class Actions extends WhiteboardActions<State> {
   readonly mainFrameType = "slides";
   readonly fixedElements = fixedElements;
 
@@ -50,13 +50,15 @@ export class Actions<State> extends WhiteboardActions {
       const id = key.get("id");
       if (!id) continue;
       const element = this._syncstring.get_one(key);
-      if (element.get("type") != "speaker_notes") continue;
       const oldElement = speakerNotes0?.get(id);
       if (!element) {
-        if (oldElement == null) continue;
+        if (oldElement?.get("type") != "speaker_notes") continue;
+        const page = oldElement?.get("page");
+        if (page == null) continue;
         // there is a delete.
-        speakerNotes = speakerNotes.delete(oldElement.get("page"));
+        speakerNotes = speakerNotes.delete(page);
       } else {
+        if (element.get("type") != "speaker_notes") continue;
         speakerNotes = speakerNotes.set(element.get("page"), element);
       }
     }
