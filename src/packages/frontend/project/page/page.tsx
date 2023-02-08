@@ -156,7 +156,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           active={active_project_tab == "home"}
         />
         {(!fullscreen || fullscreen == "project") && (
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, overflow: "hidden" }}>
             <Tabs project_id={project_id} />
           </div>
         )}

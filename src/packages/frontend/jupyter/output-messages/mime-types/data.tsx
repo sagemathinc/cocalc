@@ -33,7 +33,10 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
   return <H type={type} value={data.get(type)} data={data} {...props} />;
 }, shouldMemoize);
 
-function getUntrustedType(kernelspec: KernelSpec, types: string[]) {
+function getUntrustedType(kernelspec: KernelSpec | undefined, types: string[]) {
+  if (kernelspec == null) {
+    return;
+  }
   if (kernelspec.language == "r" || kernelspec.language == "julia") {
     // Using an R kernel with XSS prevention -- prefer image, then plain text,
     // due to unfriendly markdown *and* complicated html that XSS mangles too much.

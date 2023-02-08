@@ -2,11 +2,12 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+import { delay } from "awaiting";
+import * as immutable from "immutable";
 
 import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
 import { close, path_split } from "@cocalc/util/misc";
-import { delay } from "awaiting";
-import * as immutable from "immutable";
+
 import { JupyterActions } from "../browser-actions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
@@ -255,7 +256,8 @@ export class NBGraderActions {
 
   private assign_clear_solutions(minimal_stubs: boolean = false): void {
     const store = this.jupyter_actions.store;
-    const kernel_language: string = store.get_kernel_language();
+    const kernel_language = store.get_kernel_language();
+
     this.jupyter_actions.store.get("cells").forEach((cell) => {
       if (!cell.getIn(["metadata", "nbgrader", "solution"])) return;
       // we keep the "answer" cell of a multiple_choice question as it is

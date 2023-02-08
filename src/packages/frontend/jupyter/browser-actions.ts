@@ -192,7 +192,7 @@ export class JupyterActions extends JupyterActions0 {
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        const syntax: Syntax = this.store.get_kernel_syntax();
+        const syntax: Syntax | undefined = this.store.get_kernel_syntax();
         if (syntax == null) {
           return; // no-op on these.
         }
@@ -723,6 +723,21 @@ export class JupyterActions extends JupyterActions0 {
     });
     if (choice === "Halt") {
       this.halt();
+    }
+  }
+
+  public async confirm_remove_kernel(): Promise<void> {
+    const remove = "Remove & Halt";
+    const choice = await this.confirm_dialog({
+      title: "Remove kernel?",
+      body: "You're about to remove the kernel from the notebook, which will also terminate it. All variables will be lost. Afterwards, you have to select a kernel, in order to be able to run code again.",
+      choices: [
+        { title: "Continue running" },
+        { title: remove, style: "danger", default: true },
+      ],
+    });
+    if (choice === remove) {
+      this.select_kernel(""); // this will also call this.halt()
     }
   }
 

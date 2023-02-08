@@ -16,18 +16,16 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
 declare const localStorage: any;
 
-import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
+import * as immutable from "immutable";
 import { debounce } from "lodash";
 
+import { Actions } from "@cocalc/frontend/app-framework";
+import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
-import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
-
-import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
@@ -35,8 +33,10 @@ import {
 } from "./store";
 import * as cell_utils from "./cell-utils";
 
-// map project_id (string) -> kernels (immutable)
-import { Kernels, Kernel } from "./util";
+const { close, required, defaults } = misc;
+
+// local cache: map project_id (string) -> kernels (immutable)
+import { Kernel, Kernels } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
 import { IPynbImporter } from "./import-from-ipynb";
@@ -46,9 +46,9 @@ import { JupyterKernelInterface } from "./project-interface";
 import { parse_headings } from "./contents";
 
 import {
+  char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-  char_idx_to_js_idx,
 } from "./util";
 
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
@@ -88,7 +88,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public initialize_manager: any;
   public manager_on_cell_change: any;
   public manager_run_cell_process_queue: any;
-  public store: any;
+  public store: JupyterStore;
   public syncdb: SyncDB;
 
   public _init(
@@ -307,7 +307,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cur = this.store.get("error");
     // don't show the same error more than once
-    if ((cur != null ? cur.indexOf(err) : undefined) >= 0) {
+    if ((cur?.indexOf(err) ?? -1) >= 0) {
       return;
     }
     if (cur) {
@@ -365,6 +365,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (cells == null) return; // nothing to do
     for (const id of cell_ids) {
       const cell = cells.get(id);
+      if (cell == null) continue;
       if (cell.get("output") != null || cell.get("exec_count")) {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
@@ -445,7 +446,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       getPos: (index) =>
         this.store.getIn(["cells", cell_list.get(index) ?? "", "pos"]) ?? 0,
     });
-    this.set_cell_pos(cell_list.get(oldIndex), newPos, save);
+    this.set_cell_pos(cell_list.get(oldIndex) ?? "", newPos, save);
   }
 
   public set_cell_type(
@@ -652,6 +653,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
               this.syncdb.commit();
             }
             break;
+
           case "nbconvert":
             if (this.is_project) {
               // before setting in store, let backend start reacting to change
@@ -660,11 +662,12 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             // Now set in our store.
             this.setState({ nbconvert: record });
             break;
+
           case "settings":
             if (record == null) {
               return;
             }
-            const orig_kernel = this.store.get("kernel");
+            const orig_kernel = this.store.get("kernel", null);
             const kernel = record.get("kernel");
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
@@ -699,7 +702,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
                 this.set_cm_options();
               }
             }
-
             break;
         }
       });
@@ -739,7 +741,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_init_kernel = (): void => {
+  private _syncdb_init_kernel(): void {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
@@ -780,7 +782,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         this.set_default_kernel(this.store.get("kernel"));
       }
     }
-  };
+  }
 
   /*
   WARNING: Changes via set that are made when the actions
@@ -858,6 +860,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // *changes* the syncdb by updating the last save time.
     try {
       // Make sure syncdb content is all sent to the project.
+      // This does not actually save the syncdb file to disk.
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
@@ -981,6 +984,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         continue;
       }
       const cell = this.store.getIn(["cells", id]);
+      if (cell == null) continue;
       if (
         cell.get("cell_type", "code") == "code" &&
         cell.get("input", "").trim() == "" &&
@@ -1021,6 +1025,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
     }
+    const kernel = this.store.get("kernel");
+    if (kernel == null || kernel === "") {
+      // just in case, we clear any "running" indicators
+      this._set({ type: "cell", id, state: "done" });
+      // don't attempt to run a code-cell if there is no kernel defined
+      this.set_error(
+        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!"
+      );
+      return;
+    }
+
     if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
       return;
@@ -1387,7 +1402,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const cells = this.store.get("cells");
     if (delta === -1 || delta === 0) {
       // one before first selected
-      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]);
+      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]) ?? "";
     } else if (delta === 1) {
       // last selected
       cell_before_pasted_id = cell_ids[cell_ids.length - 1];
@@ -1512,7 +1527,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: string) => {
+  set_kernel = (kernel: string | null) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
@@ -1522,9 +1537,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         type: "settings",
         kernel,
       });
+      // clear error when changing the kernel
+      this.set_error(null);
     }
-    if (this.store.get("show_kernel_selector")) {
+    if (this.store.get("show_kernel_selector") || kernel === "") {
       this.hide_select_kernel();
+    }
+    if (kernel === "") {
+      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
     }
   };
 
@@ -2202,7 +2222,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this._sync();
   }
 
-  set_default_kernel = (kernel: any): void => {
+  public set_default_kernel(kernel?: string): void {
+    if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
     if (this.is_project) return;
     const account_store = this.redux.getStore("account") as any;
@@ -2218,7 +2239,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur },
     });
-  };
+  }
 
   edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });
@@ -2475,10 +2496,12 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private check_select_kernel(): void {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
-
     let unknown_kernel = false;
-    if (this.store.get("kernels") != null)
+    if (kernel === "") {
+      unknown_kernel = false; // it's the "no kernel" kernel
+    } else if (this.store.get("kernels") != null) {
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
+    }
 
     // a kernel is set, but we don't know it
     if (unknown_kernel) {
@@ -2492,6 +2515,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         this.hide_select_kernel();
       }
     }
+
+    // also in the case when the kernel is "" we have to set this to true
     this.setState({ check_select_kernel_init: true });
   }
 
@@ -2508,7 +2533,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     const kernel = this.store.get("kernel");
     const kernel_info = this.store.get_kernel_info(kernel);
     // unknown kernel, we try to find a close match
-    if (kernel_info == null && kernel != null) {
+    if (kernel_info == null && kernel != null && kernel !== "") {
       // kernel & kernels must be defined
       closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
       // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
@@ -2555,9 +2580,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  select_kernel = (kernel_name: string): void => {
+  select_kernel = (kernel_name: string | null): void => {
     this.set_kernel(kernel_name);
-    this.set_default_kernel(kernel_name);
+    if (kernel_name != null && kernel_name !== "") {
+      this.set_default_kernel(kernel_name);
+    }
     this.focus(true);
     this.hide_select_kernel();
   };

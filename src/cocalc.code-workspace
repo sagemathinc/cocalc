@@ -52,6 +52,10 @@
   "settings": {
     "search.followSymlinks": false,
     "jest.disabledWorkspaceFolders": [],
-    "jest.autoRun": "off"
+    "jest.autoRun": "off",
+    "files.exclude": {
+      "dist": true,
+      "node_modules": true
+    }
   }
 }

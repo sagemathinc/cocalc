@@ -5,6 +5,8 @@
 
 // The static buttonbar at the top.
 
+import * as immutable from "immutable";
+
 import { Button, ButtonGroup, Form } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -17,7 +19,6 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize, endswith } from "@cocalc/util/misc";
-import * as immutable from "immutable";
 import { FORMAT_SOURCE_ICON } from "../frame-editors/frame-tree/config";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
