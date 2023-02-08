@@ -1,31 +1,39 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { CSSProperties, useMemo } from "react";
+
+import { DropdownMenu, Icon } from "@cocalc/frontend/components";
 import { FONT_FACES } from "@cocalc/frontend/editors/editor-button-bar";
-import { DropdownMenu, Icon, MenuItem } from "@cocalc/frontend/components";
-import { CSSProperties } from "react";
+import { MenuItems } from "./dropdown-menu";
 
 interface Props {
   onClick: (family: string) => void;
   style?: CSSProperties;
 }
 
-export default function FontFamilyMenu({ onClick, style }: Props) {
-  const items: JSX.Element[] = [];
-  for (const family of FONT_FACES) {
-    const item: JSX.Element = (
-      <MenuItem key={family} eventKey={family}>
-        <span style={{ fontFamily: family }}>{family}</span>
-      </MenuItem>
-    );
-    items.push(item);
-  }
+export default function FontFamilyMenu(props: Props) {
+  const { onClick, style } = props;
+
+  const items: MenuItems = useMemo((): MenuItems => {
+    return FONT_FACES.map((family) => {
+      return {
+        key: family,
+        onClick: () => onClick(family),
+        label: <span style={{ fontFamily: family }}>{family}</span>,
+      };
+    });
+  }, [onClick]);
+
   return (
     <DropdownMenu
       style={style}
       button={true}
       title={<Icon name={"font"} />}
       key={"font-family"}
-      onClick={onClick}
-    >
-      {items}
-    </DropdownMenu>
+      items={items}
+    />
   );
 }
