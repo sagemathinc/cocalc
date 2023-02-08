@@ -12,9 +12,10 @@ between them.  I think this is acceptable, since it is unlikely
 for people to do that.
 */
 
-import { FC, memo, useState } from "react";
-import { MenuItem, DropdownMenu } from "@cocalc/frontend/components";
+import { FC, memo, useMemo, useState } from "react";
 
+import { DropdownMenu } from "@cocalc/frontend/components";
+import { MenuItems } from "../components/dropdown-menu";
 import { LICENSES } from "./licenses";
 
 interface Props {
@@ -43,23 +44,25 @@ export const License: FC<Props> = memo((props: Props) => {
     }
   }
 
-  function render_items() {
-    return Object.keys(LICENSES).map((key) => (
-      <MenuItem key={key} eventKey={key} active={key === sel_license}>
-        {LICENSES[key]}
-      </MenuItem>
-    ));
+  function render_items(): MenuItems {
+    return Object.keys(LICENSES).map((key) => {
+      return {
+        key: key,
+        onClick: () => select(key),
+        label: LICENSES[key],
+      };
+    });
   }
+
+  const items: MenuItems = useMemo(() => render_items(), [sel_license]);
 
   return (
     <DropdownMenu
       title={displayed_license()}
       id={"license-menu"}
-      onClick={select}
       disabled={disabled}
       button={true}
-    >
-      {render_items()}
-    </DropdownMenu>
+      items={items}
+    />
   );
 });
