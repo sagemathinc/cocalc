@@ -117,15 +117,23 @@ export default function ToolPanel<Params>({
         }}
       >
         <Popover
-          mouseEnterDelay={0.2 /* because tip obstructs column to the right */}
+          mouseEnterDelay={0.3 /* because tip obstructs column to the right */}
           mouseLeaveDelay={0}
           placement="right"
           title={
             <div style={{ textAlign: "center" }}>{buttonTitle?.(params)}</div>
           }
           content={
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Preview {...params} />
+            <div style={{ textAlign: "center" }}>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <Preview {...params} />
+              </div>
+              {!showEditParams && (
+                <div style={{ color: "#666" }}>
+                  ({id == selected ? "click" : "double click"} to
+                  customize)
+                </div>
+              )}
             </div>
           }
         >
