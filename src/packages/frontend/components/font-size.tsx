@@ -1,6 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { CSSProperties, useMemo } from "react";
+
+import { DropdownMenu, Icon } from "@cocalc/frontend/components";
 import { FONT_SIZES } from "@cocalc/frontend/editors/editor-button-bar";
-import { DropdownMenu, Icon, MenuItem } from "@cocalc/frontend/components";
-import { CSSProperties } from "react";
+import { MenuItems } from "./dropdown-menu";
 
 interface Props {
   onClick: (family: string) => void;
@@ -8,26 +15,27 @@ interface Props {
 }
 
 export default function FontSizeMenu({ onClick, style }: Props) {
-  const items: JSX.Element[] = [];
-  for (const size of FONT_SIZES) {
-    const item: JSX.Element = (
-      <MenuItem key={size} eventKey={size}>
-        <span style={{ fontSize: size }}>
-          {size} {size === "medium" ? "(default)" : undefined}
-        </span>
-      </MenuItem>
-    );
-    items.push(item);
-  }
+  const items: MenuItems = useMemo(() => {
+    return FONT_SIZES.map((size) => {
+      return {
+        key: size,
+        onClick: () => onClick(size),
+        label: (
+          <span style={{ fontSize: size }}>
+            {size} {size === "medium" ? "(default)" : undefined}
+          </span>
+        ),
+      };
+    });
+  }, [onClick]);
+
   return (
     <DropdownMenu
       style={style}
       button={true}
       title={<Icon name={"text-height"} />}
       key={"font-size"}
-      onClick={onClick}
-    >
-      {items}
-    </DropdownMenu>
+      items={items}
+    />
   );
 }
