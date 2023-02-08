@@ -16,7 +16,7 @@ export type MenuItems = MenuProps["items"];
 interface Props {
   title?: JSX.Element | string;
   id?: string;
-  onClick?: (key: string) => void;
+  onClick?: (key: string) => void; // remove as well, when everything is switched over to "items"
   style?: CSS;
   disabled?: boolean;
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)

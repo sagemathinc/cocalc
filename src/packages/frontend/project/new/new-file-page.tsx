@@ -16,6 +16,7 @@ import {
   Row,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
+  ProjectActions,
   useActions,
   useRedux,
   useTypedRedux,
@@ -24,6 +25,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
+  Paragraph,
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
@@ -68,7 +70,12 @@ export default function NewFilePage(props: Props) {
     return <Loading theme="medium" />;
   }
 
-  const createFile = (ext?: string) => {
+  function getActions(): ProjectActions {
+    if (actions == null) throw new Error("bug");
+    return actions;
+  }
+
+  function createFile(ext?: string) {
     if (!filename) {
       return;
     }
@@ -79,14 +86,14 @@ export default function NewFilePage(props: Props) {
       filename_ext && ext && filename_ext != ext
         ? filename.slice(0, filename.length - filename_ext.length - 1)
         : filename;
-    actions.create_file({
+    getActions().create_file({
       name,
       ext,
       current_path,
     });
-  };
+  }
 
-  const submit = (ext?: string) => {
+  function submit(ext?: string) {
     if (!filename) {
       // empty filename
       return;
@@ -100,9 +107,9 @@ export default function NewFilePage(props: Props) {
     } else {
       setExtensionWarning(true);
     }
-  };
+  }
 
-  const renderError = () => {
+  function renderError() {
     let message;
     const error = file_creation_error;
     if (error === "not running") {
@@ -114,13 +121,13 @@ export default function NewFilePage(props: Props) {
       <ErrorDisplay
         error={message}
         onClose={(): void => {
-          actions.setState({ file_creation_error: "" });
+          getActions().setState({ file_creation_error: "" });
         }}
       />
     );
-  };
+  }
 
-  const blocked = () => {
+  function blocked() {
     if (project_map == null) {
       return "";
     }
@@ -129,27 +136,27 @@ export default function NewFilePage(props: Props) {
     } else {
       return " (access blocked -- see project settings)";
     }
-  };
+  }
 
-  const createFolder = () => {
-    actions.create_folder({
+  function createFolder() {
+    getActions().create_folder({
       name: filename,
       current_path,
       switch_over: true,
     });
-  };
+  }
 
-  const renderNoExtensionAlert = () => {
+  function renderNoExtensionAlert() {
     return (
       <Alert
         bsStyle="warning"
-        style={{ marginTop: "10px", fontWeight: "bold" }}
+        style={{ marginTop: "10px", marginBottom: "10px", fontWeight: "bold" }}
       >
-        <p>
+        <Paragraph>
           Warning: Are you sure you want to create a file with no extension?
           This will use a plain text editor. If you do not want this, click a
           button below to create the corresponding type of file.
-        </p>
+        </Paragraph>
         <ButtonToolbar style={{ marginTop: "10px" }}>
           <Button
             onClick={(): void => {
@@ -170,9 +177,9 @@ export default function NewFilePage(props: Props) {
         </ButtonToolbar>
       </Alert>
     );
-  };
+  }
 
-  const renderUpload = () => {
+  function renderUpload() {
     return (
       <>
         <Row style={{ marginTop: "20px" }}>
@@ -187,7 +194,7 @@ export default function NewFilePage(props: Props) {
             <FileUpload
               dropzone_handler={{
                 complete: (): void => {
-                  actions.fetch_directory_listing();
+                  getActions().fetch_directory_listing();
                 },
               }}
               project_id={project_id}
@@ -224,7 +231,7 @@ export default function NewFilePage(props: Props) {
         </Row>
       </>
     );
-  };
+  }
 
   const renderCreate = () => {
     let desc: string;
@@ -306,16 +313,15 @@ export default function NewFilePage(props: Props) {
     >
       <Row key={"new-file-row"}>
         <Col sm={12}>
-          <div
+          <Paragraph
             style={{
-              color: COLORS.GRAY_D,
-              paddingBottom: "5px",
+              color: COLORS.GRAY_M,
               fontSize: "16px",
             }}
           >
             Name your file, folder or paste in a link. End filename with / to
             make a folder.
-          </div>
+          </Paragraph>
           <div
             style={{
               display: "flex",
@@ -349,16 +355,15 @@ export default function NewFilePage(props: Props) {
           </div>
           {extensionWarning && renderNoExtensionAlert()}
           {file_creation_error && renderError()}
-          <div
+          <Paragraph
             style={{
-              color: "#666",
-              paddingBottom: "5px",
+              color: COLORS.GRAY_M,
               fontSize: "16px",
             }}
           >
             What would you like to create? All documents can be simultaneously
             edited in realtime with your collaborators.
-          </div>
+          </Paragraph>
           <FileTypeSelector
             create_file={submit}
             create_folder={createFolder}

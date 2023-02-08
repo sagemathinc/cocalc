@@ -7,10 +7,10 @@ import { Button } from "antd";
 
 import { React } from "@cocalc/frontend/app-framework";
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("@cocalc/frontend/editor");
@@ -67,11 +67,7 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
           </span>
         </Button>
 
-        <DropdownMenu
-          onClick={(ext) => create_file(ext)}
-          button={true}
-          items={items}
-        />
+        <DropdownMenu button={true} items={items} />
       </Button.Group>
     </span>
   );
