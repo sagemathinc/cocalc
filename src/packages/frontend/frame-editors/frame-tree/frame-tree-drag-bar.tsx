@@ -23,6 +23,7 @@ const COLS_DRAG_BAR: CSS = {
   padding: `${DRAG_OFFSET}px`,
   background: COLORS.GRAY_LL,
   cursor: "ew-resize",
+  border: "1px solid #ddd",
 } as const;
 
 const DRAG_HOVER: CSS = {

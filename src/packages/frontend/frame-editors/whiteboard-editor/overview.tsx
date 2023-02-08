@@ -21,7 +21,6 @@ export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
   const size = 20 * (desc?.get("font_size") ?? 14);
-
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
@@ -66,24 +65,48 @@ export default function Overview() {
 
   const itemContent = (index) => {
     if (index > pages) {
+      // should never happen
       return <div style={{ height: "10px" }} />;
     }
+    const width = size;
+    const height = (size * 9) / 16;
+
     if (index == pages) {
       // Add a new page
       return (
-        <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            textAlign: "center",
+            width,
+            height,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <Popover
             title={"Create a new page"}
             content={
               <div style={{ maxWidth: "400px" }}>
-                Each page is an independent infinite whiteboard canvas. Click
-                this button to create a new page. Easily jump between pages by
-                clicking on a page here.
+                Easily switch between pages by clicking on any page here. You
+                can drag pages to reorder them in the{" "}
+                <a
+                  onClick={() => {
+                    actions.show_focused_frame_of_type(
+                      "pages",
+                      "col",
+                      true,
+                      0.2
+                    );
+                  }}
+                >
+                  pages frame
+                </a>
+                .)
               </div>
             }
           >
             <Button
-              shape="round"
               size="large"
               onClick={() => {
                 const id = actions.show_focused_frame_of_type(
@@ -96,7 +119,7 @@ export default function Overview() {
                 }, 0);
               }}
             >
-              <Icon name="plus-circle" /> New
+              <Icon name="plus-circle" /> New Page
             </Button>
           </Popover>
         </div>
@@ -127,8 +150,8 @@ export default function Overview() {
           margin={15}
           elements={elementsOnPage ?? []}
           elementsMap={elementsMap}
-          width={size}
-          height={(size * 9) / 16}
+          width={width}
+          height={height}
           navMap={"page"}
           style={{
             pointerEvents: "none",
