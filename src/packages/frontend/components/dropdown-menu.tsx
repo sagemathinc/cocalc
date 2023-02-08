@@ -14,32 +14,32 @@ import { IS_TOUCH } from "../feature";
 export type MenuItems = MenuProps["items"];
 
 interface Props {
-  title?: JSX.Element | string;
+  button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
+  children?: React.ReactNode;
+  disabled?: boolean;
+  hide_down?: boolean;
   id?: string;
+  items?: MenuItems;
+  maxHeight?: string;
   onClick?: (key: string) => void; // remove as well, when everything is switched over to "items"
   style?: CSS;
-  disabled?: boolean;
-  button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
-  hide_down?: boolean;
-  maxHeight?: string;
-  children?: React.ReactNode;
-  items?: MenuItems;
+  title?: JSX.Element | string;
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
 export const DropdownMenu: React.FC<Props> = (props: Props) => {
   const {
-    title,
+    button,
+    children,
+    disabled,
+    hide_down,
     id,
+    items,
+    maxHeight,
     onClick,
     style,
-    disabled,
-    button,
-    hide_down,
-    maxHeight,
-    items,
-    children,
+    title,
   } = props;
 
   function on_click(e): void {
@@ -105,6 +105,7 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
     overflow: "auto",
   } as const;
 
+  // items is the way to go, i.e. instead of instantiating many react elements, Antd wants a list of dicts.
   if (items != null) {
     return (
       <Dropdown
