@@ -133,32 +133,19 @@ export class Actions extends BaseActions<State> {
       let somePageChanged = false;
       let elements = elements0 ?? ImmutableMap({});
       let pages: PagesMap = (pages0 ?? ImmutableMap()) as PagesMap;
-      keys.forEach((key) => {
+      for (const key of keys) {
         const id = key.get("id");
-        if (id) {
-          const element = this._syncstring.get_one(key);
-          const oldElement = elements.get(id);
-          if (!element) {
-            // there is a delete.
-            if (oldElement?.get("type") == "page") {
-              // deleting a page
-              pages = pages.delete(oldElement.get("id"));
-            } else {
-              // deleting an element on a page
-              const page = oldElement?.get("page");
-              if (page) {
-                let elementsOnPage = pages.get(page);
-                if (elementsOnPage != null) {
-                  elementsOnPage = elementsOnPage.delete(id);
-                  pages = pages.set(page, elementsOnPage);
-                }
-              }
-            }
-            elements = elements.delete(id);
-          } else if (!element.get("type")) {
-            // no valid type field - discard
-            this._syncstring.delete({ id });
-            elements = elements.delete(id);
+        if (!id) continue;
+        const element = this._syncstring.get_one(key);
+        if (element?.get("invisible")) continue;
+        const oldElement = elements.get(id);
+        if (!element) {
+          // there is a delete.
+          if (oldElement?.get("type") == "page") {
+            // deleting a page
+            pages = pages.delete(oldElement.get("id"));
+          } else {
+            // deleting an element on a page
             const page = oldElement?.get("page");
             if (page) {
               let elementsOnPage = pages.get(page);
@@ -167,43 +154,52 @@ export class Actions extends BaseActions<State> {
                 pages = pages.set(page, elementsOnPage);
               }
             }
-          } else if (element.get("type") == "page") {
-            // this is a page
-            somePageChanged = true;
-            if (!pages.has(id)) {
-              pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
+          }
+          elements = elements.delete(id);
+        } else if (!element.get("type")) {
+          // no valid type field - discard
+          this._syncstring.delete({ id });
+          elements = elements.delete(id);
+          const page = oldElement?.get("page");
+          if (page) {
+            let elementsOnPage = pages.get(page);
+            if (elementsOnPage != null) {
+              elementsOnPage = elementsOnPage.delete(id);
+              pages = pages.set(page, elementsOnPage);
             }
-            elements = elements.set(id, element);
-          } else {
-            // create or change an element on a specific page
-            // @ts-ignore
-            elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page");
-            const newPage = element.get("page");
-            if (newPage) {
-              const elementsOnNewPage =
-                pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
-              pages = pages.set(newPage, elementsOnNewPage.set(id, element));
-            }
-            if (oldPage && oldPage != newPage) {
-              // change page, so delete element from the old page
-              let elementsOnOldPage = pages.get(oldPage);
-              if (elementsOnOldPage !== undefined) {
-                elementsOnOldPage = elementsOnOldPage.delete(id);
-                if (elementsOnOldPage.size == 0) {
-                  pages = pages.delete(oldPage);
-                } else {
-                  pages = pages.set(oldPage, elementsOnOldPage);
-                }
+          }
+        } else if (element.get("type") == "page") {
+          // this is a page
+          somePageChanged = true;
+          if (!pages.has(id)) {
+            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
+          }
+          elements = elements.set(id, element);
+        } else {
+          // create or change an element on a specific page
+          // @ts-ignore
+          elements = elements.set(id, element);
+          const oldPage = oldElement?.get("page");
+          const newPage = element.get("page");
+          if (newPage) {
+            const elementsOnNewPage =
+              pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
+            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+          }
+          if (oldPage && oldPage != newPage) {
+            // change page, so delete element from the old page
+            let elementsOnOldPage = pages.get(oldPage);
+            if (elementsOnOldPage !== undefined) {
+              elementsOnOldPage = elementsOnOldPage.delete(id);
+              if (elementsOnOldPage.size == 0) {
+                pages = pages.delete(oldPage);
+              } else {
+                pages = pages.set(oldPage, elementsOnOldPage);
               }
             }
-            //             if (oldPage == null && newPage == null) {
-            //               // element has no page number
-            //               // just a note here.
-            //             }
           }
         }
-      });
+      }
 
       if (elements !== elements0) {
         this.setState({ elements });

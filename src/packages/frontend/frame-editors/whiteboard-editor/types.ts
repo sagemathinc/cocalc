@@ -26,7 +26,8 @@ export type ElementType =
   | "stopwatch"
   | "terminal"
   | "text"
-  | "timer";
+  | "timer"
+  | "speaker_notes"; // speaker_notes is used for slides
 
 export type Point = { x: number; y: number };
 
@@ -111,6 +112,7 @@ export interface Element extends Rect {
   group?: string; // group id if object is part of a group
   rotate?: number; // angle in *radians*
   locked?: boolean;
+  invisible?: boolean; // not even included in the whiteboard (e.g., used to store speaker_notes)
   hide?: {
     w?: number; // width before hide
     h?: number; // height before hide
