@@ -343,42 +343,44 @@ export function Overview({
         elementsMap={elementsMap}
         scale={scale}
       />
-      <Draggable
-        disabled={resize == null}
-        position={{ x: 0, y: 0 }}
-        bounds={{
-          right: Math.max(0, width - MAP_WIDTH),
-          bottom: Math.max(0, height - MAP_HEIGHT / 2),
-        }}
-        onDrag={(_, data) => {
-          setResize?.({ x: -data.x, y: -data.y });
-        }}
-        onStop={(_, data) => {
-          setTimeout(() => {
-            setResize?.({ x: 0, y: 0 });
-            actions.set_frame_tree({
-              id,
-              navWidth: (width ?? 100) - data.x,
-              navHeight: (height ?? 100) - data.y,
-            });
-          }, 0);
-        }}
-      >
-        <Icon
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            zIndex: 1011,
-            cursor: "nwse-resize",
-            background: "white",
-            color: "#888",
-            visibility:
-              resize == null || resize.x || resize.y ? "hidden" : undefined,
+      {setResize != null && (
+        <Draggable
+          disabled={resize == null}
+          position={{ x: 0, y: 0 }}
+          bounds={{
+            right: Math.max(0, width - MAP_WIDTH),
+            bottom: Math.max(0, height - MAP_HEIGHT / 2),
           }}
-          name="square"
-        />
-      </Draggable>
+          onDrag={(_, data) => {
+            setResize?.({ x: -data.x, y: -data.y });
+          }}
+          onStop={(_, data) => {
+            setTimeout(() => {
+              setResize?.({ x: 0, y: 0 });
+              actions.set_frame_tree({
+                id,
+                navWidth: (width ?? 100) - data.x,
+                navHeight: (height ?? 100) - data.y,
+              });
+            }, 0);
+          }}
+        >
+          <Icon
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: 1011,
+              cursor: "nwse-resize",
+              background: "white",
+              color: "#888",
+              visibility:
+                resize == null || resize.x || resize.y ? "hidden" : undefined,
+            }}
+            name="square"
+          />
+        </Draggable>
+      )}
     </div>
   );
 }

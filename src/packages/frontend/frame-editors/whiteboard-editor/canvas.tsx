@@ -160,6 +160,7 @@ export default function Canvas({
   cursors,
   mainFrameType,
 }: Props) {
+
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");

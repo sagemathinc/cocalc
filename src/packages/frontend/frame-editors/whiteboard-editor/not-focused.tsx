@@ -59,6 +59,32 @@ export default function NotFocused({
   const disableDrag =
     readOnly || !(selectable && !element.locked) || element.data?.noSelect;
 
+  const body = (
+    <div
+      className={
+        edgeCreate
+          ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
+          : undefined
+      }
+      style={{
+        width: "100%",
+        height: "100%",
+        cursor: selectable && !element.data?.noSelect ? "pointer" : undefined,
+      }}
+      onClick={disableDrag ? onClick : undefined}
+    >
+      {children}
+      {edgeStart && <div style={HINT}>Select target of edge</div>}
+    </div>
+  );
+  if (disableDrag) {
+    // VERY IMPORTANT: do *NOT* wrap this in Draggable with disabled set
+    // since Draggable with disabled=true still sets a css style and
+    // does things to the children, which *totally breaks virtuoso grids*
+    // which messed up the "pages overview".
+    return body;
+  }
+
   return (
     <Draggable
       position={{ x: 0, y: 0 }}
@@ -77,22 +103,7 @@ export default function NotFocused({
       }}
       onDrag={onDrag}
     >
-      <div
-        className={
-          edgeCreate
-            ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
-            : undefined
-        }
-        style={{
-          width: "100%",
-          height: "100%",
-          cursor: selectable && !element.data?.noSelect ? "pointer" : undefined,
-        }}
-        onClick={disableDrag ? onClick : undefined}
-      >
-        {children}
-        {edgeStart && <div style={HINT}>Select target of edge</div>}
-      </div>
+      {body}
     </Draggable>
   );
 }

@@ -21,7 +21,7 @@ import type { GridItemProps } from "react-virtuoso";
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
-  const size = 12 * (desc?.get("font_size") ?? 14);
+  const size = 20 * (desc?.get("font_size") ?? 14);
 
   const isLoaded = useEditor("is_loaded");
   const pagesMap = useEditor("pages");
@@ -51,10 +51,6 @@ export default function Overview() {
 
   const STYLE = {
     cursor: "pointer",
-    width: `${size}px`,
-    margin: "5px",
-    position: "relative",
-    overflow: "hidden",
   } as CSSProperties;
 
   const ItemContainer: React.FC<GridItemProps & { children?: ReactNode }> = ({
@@ -63,20 +59,24 @@ export default function Overview() {
     <div
       style={{
         display: "inline-block",
-        width: size,
-        height: (9 / 16) * size,
+        width: size + 10,
+        height: (9 / 16) * size + 30,
         overflow: "hidden",
+        position: "relative",
       }}
     >
-      {children}
+      <div style={{ position: "absolute", margin: "10px 0" }}>{children}</div>
     </div>
   );
 
   const itemContent = (index) => {
+    if (index > pages) {
+      return <div style={{ height: "10px" }} />;
+    }
     if (index == pages) {
       // Add a new page
       return (
-        <div style={{ ...STYLE, textAlign: "center" }}>
+        <div style={{ textAlign: "center" }}>
           <Popover
             title={"Create a new page"}
             content={
@@ -156,12 +156,18 @@ export default function Overview() {
   };
 
   return (
-    <div className="smc-vfill" style={{ background: "#eee" }}>
+    <div
+      className="smc-vfill"
+      style={{
+        background: "#eee",
+        padding: "0 0 2px 10px" /* bottom padding also stops bouncing */,
+      }}
+    >
       <VirtuosoGrid
+        overscan={1000}
         style={{
           width: "100%",
           height: "100%",
-          marginBottom: "10px",
         }}
         components={{
           Item: ItemContainer,
