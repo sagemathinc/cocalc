@@ -9,7 +9,6 @@ of the "font_size" parameter for the frame.
 import { Button, Popover } from "antd";
 import { CSSProperties, useEffect, ReactNode } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -28,10 +27,6 @@ export default function Overview() {
   const elementsMap = useEditor("elements");
   const pages = Math.max(1, pagesMap?.size ?? 1);
   const sortedPageIds = useEditor("sortedPageIds");
-
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `whiteboard-pages-${project_id}-${path}-${desc.get("id")}`,
-  });
 
   useEffect(() => {
     // ensure we don't have viewport info left over from a split...
@@ -164,7 +159,7 @@ export default function Overview() {
       }}
     >
       <VirtuosoGrid
-        overscan={1000}
+        overscan={500}
         style={{
           width: "100%",
           height: "100%",
@@ -174,7 +169,6 @@ export default function Overview() {
         }}
         totalCount={pages + 1}
         itemContent={itemContent}
-        {...virtuosoScroll}
       />
     </div>
   );
