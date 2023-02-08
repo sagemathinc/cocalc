@@ -13,6 +13,17 @@ import { IS_TOUCH } from "../feature";
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
 export type MenuItems = NonNullable<MenuProps["items"]>;
 
+/**
+ * NOTE: to work with this, make sure your list is typed as MenuItems. Then:
+ *
+ *  const v: MenuItems = [
+ *    { key: "a", label: "A", onClick: () => { action(key); } },
+ *    ...
+ *    { type: "divider" },  // for a divider
+ *    ...
+ * ]
+ */
+
 interface Props {
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
   children?: React.ReactNode;
