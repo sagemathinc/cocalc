@@ -7,6 +7,7 @@ of the "font_size" parameter for the frame.
 */
 
 import NewPage from "./new-page";
+import DeletePage from "./delete-page";
 import { CSSProperties, useEffect, ReactNode } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
 import { useFrameContext } from "./hooks";
@@ -52,7 +53,7 @@ export default function Overview() {
     <div
       style={{
         display: "inline-block",
-        width: size + 10,
+        width: size + 35,
         height: (9 / 16) * size + 30,
         overflow: "hidden",
         position: "relative",
@@ -120,21 +121,31 @@ export default function Overview() {
         }}
         style={STYLE}
       >
-        <OnePage
-          margin={15}
-          elements={elementsOnPage ?? []}
-          elementsMap={elementsMap}
-          width={width}
-          height={height}
-          navMap={"page"}
-          style={{
-            pointerEvents: "none",
-            background: "white",
-            border: "1px solid #ccc",
-            borderRadius: "5px",
-          }}
-          maxScale={2}
-        />
+        <div style={{ display: "flex" }}>
+          <OnePage
+            margin={15}
+            elements={elementsOnPage ?? []}
+            elementsMap={elementsMap}
+            width={width}
+            height={height}
+            navMap={"page"}
+            style={{
+              pointerEvents: "none",
+              background: "white",
+              border: "1px solid #ccc",
+              borderRadius: "5px",
+            }}
+            maxScale={2}
+          />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <DeletePage pageId={`${sortedPageIds.get(index)}`} />
+          </div>
+        </div>
         <div
           style={{
             textAlign: "center",

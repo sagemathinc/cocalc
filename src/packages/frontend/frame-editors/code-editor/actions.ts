@@ -2731,9 +2731,21 @@ export class Actions<
     this.set_frame_tree({ id, page });
   }
 
-  // Set ordered list of all pages in the document
+  // Set ordered list of all pages in the document, or total number of pages
   setPages(id: string, pages: string[] | number | null): void {
     this.set_frame_tree({ id, pages });
+    if (pages != null) {
+      const curPage = this._get_frame_node(id)?.get("page");
+      if (typeof pages == "number") {
+        if (curPage > pages) {
+          this.setPage(id, pages);
+        }
+      } else if (pages.length > 0) {
+        if (!pages.includes(curPage)) {
+          this.setPage(id, pages[0]);
+        }
+      }
+    }
   }
 
   // returns '' if will never be ready; otherwise, returns frame id.

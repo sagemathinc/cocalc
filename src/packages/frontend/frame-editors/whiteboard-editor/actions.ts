@@ -206,7 +206,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         this.setState({ elements });
       }
 
-      if (somePageChanged || sortedPageIds0 == null) {
+      if (
+        somePageChanged ||
+        sortedPageIds0 == null ||
+        pages.size != pages0?.size
+      ) {
         const v: { id: string; pos: number }[] = [];
         for (const [id] of pages ?? []) {
           v.push({
@@ -219,8 +223,14 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         this.setState({ sortedPageIds });
       }
 
-      if (pages !== pages0) {
+      if (pages != pages0) {
         this.setState({ pages });
+        if (pages.size != pages0?.size) {
+          // number of pages changed -- update the page count for every frame.
+          for (const frameId in this._get_leaf_ids()) {
+            this.setPages(frameId, pages.size);
+          }
+        }
       }
 
       if (pages.size == 0) {
@@ -1404,6 +1414,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     const page = this.createPage(false);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
+    this.syncstring_commit();
     return page;
   }
 
@@ -1479,8 +1490,10 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   // delete page with given id along with everything that
   // is one that page.
   deletePage(pageId: string, commit: boolean = true): void {
-    // TODO: this is NOT implemented yet, and not used in the UI, yet.
-    console.warn("deletePage not implemented yet", { pageId, commit });
+    const page = this.store.getIn(["pages", pageId]);
+    if (page == null) return;
+    this.deleteElements(Object.values(page.toJS()), false);
+    this.delete(pageId, commit);
   }
 }
 
