@@ -5,6 +5,7 @@
 
 import { Avatar, Popover, Tabs } from "antd";
 import type { TabsProps } from "antd";
+
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -172,7 +173,13 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   );
 }
 
-export function ProjectsNav({ style }: { style?: CSSProperties }) {
+interface ProjectsNavProps {
+  style?: CSSProperties;
+  height: number; // px
+}
+
+export function ProjectsNav(props: ProjectsNavProps) {
+  const { style, height } = props;
   const actions = useActions("page");
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
@@ -223,7 +230,7 @@ export function ProjectsNav({ style }: { style?: CSSProperties }) {
       style={{
         flex: 1,
         overflow: "hidden",
-        height: "36px",
+        height: `${height}px`,
         ...style,
       }}
     >

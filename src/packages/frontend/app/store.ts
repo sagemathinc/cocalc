@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { parse_target } from "../history";
+import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
-import { redux, Store, TypedMap } from "../app-framework";
+import { parse_target } from "../history";
 
 type TopTab =
   | "about" // the "/help" page
@@ -32,6 +32,7 @@ export interface PageState {
   cookie_warning: boolean;
   local_storage_warning: boolean;
   show_file_use: boolean;
+  show_mentions: boolean;
   num_ghost_tabs: number;
   session?: string; // session query in the URL
   last_status_time?: Date;
@@ -50,6 +51,7 @@ export function init_store() {
     cookie_warning: false,
     local_storage_warning: false,
     show_file_use: false,
+    show_mentions: false,
     num_ghost_tabs: 0,
   } as const;
 

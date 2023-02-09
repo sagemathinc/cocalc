@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, useTypedRedux } from "../app-framework";
 import { APP_ICON } from "../art";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -31,7 +36,12 @@ export const AppLogo: React.FC = React.memo(() => {
         display: "inline-block",
       }}
     >
-      <Tooltip title="Open the main website in a new tab." mouseEnterDelay={1} mouseLeaveDelay={0} placement="right">
+      <Tooltip
+        title="Open the main website in a new tab."
+        mouseEnterDelay={1}
+        mouseLeaveDelay={0}
+        placement="right"
+      >
         <div
           onClick={() => {
             console.log("click");

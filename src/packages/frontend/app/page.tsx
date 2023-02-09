@@ -10,34 +10,33 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
-import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
-import { Tooltip } from "antd";
-import { COLORS } from "@cocalc/util/theme";
-import { IS_SAFARI, IS_MOBILE, IS_IOS } from "../feature";
-import { Button, Navbar, Nav } from "@cocalc/frontend/antd-bootstrap";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
+  CSS,
   React,
   useActions,
   useEffect,
   useState,
   useTypedRedux,
-  CSS,
 } from "@cocalc/frontend/app-framework";
-import { SiteName } from "@cocalc/frontend/customize";
-import { alert_message } from "@cocalc/frontend/alerts";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { NavTab } from "./nav-tab";
 import { Loading } from "@cocalc/frontend/components";
-import { ActiveContent } from "./active-content";
-import { FullscreenButton } from "./fullscreen-button";
-import { VersionWarning, CookieWarning, LocalStorageWarning } from "./warnings";
-import { AppLogo } from "./logo";
-import { ConnectionInfo } from "./connection-info";
-import { ConnectionIndicator } from "./connection-indicator";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
-import { NotificationBell } from "./notification-bell";
+import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import openSupportTab from "@cocalc/frontend/support/open";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
+import { ActiveContent } from "./active-content";
+import { ConnectionIndicator } from "./connection-indicator";
+import { ConnectionInfo } from "./connection-info";
+import { FullscreenButton } from "./fullscreen-button";
+import { AppLogo } from "./logo";
+import { NavTab } from "./nav-tab";
+import { Notification } from "./notification-bell";
+import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 
 // This is not responsive -- but I just need something is actually
 // usable on my phone.  TODO: if you load with phone in landscape mode,
@@ -47,20 +46,12 @@ const IS_PHONE =
   IS_MOBILE && window.innerWidth != null && window.innerWidth <= 480;
 
 const HIDE_LABEL_THRESHOLD = 6;
-const NAV_HEIGHT = IS_PHONE ? 72 : 36;
+const NAV_HEIGHT_NARROW = 36;
+const NAV_HEIGHT = IS_PHONE ? 72 : NAV_HEIGHT_NARROW;
 const NAV_CLASS = "hidden-xs";
 
 const TOP_BAR_STYLE: CSS = {
-  display: "flex",
-  marginBottom: 0,
-  width: "100%",
   minHeight: `${NAV_HEIGHT}px`,
-  position: "fixed",
-  right: 0,
-  zIndex: 100,
-  borderRadius: 0,
-  top: 0,
-  backgroundColor: "black",
 } as const;
 
 const FILE_USE_STYLE: CSS = {
@@ -81,12 +72,6 @@ const FILE_USE_STYLE: CSS = {
   height: "90%",
 } as const;
 
-const PROJECTS_STYLE: CSS = {
-  whiteSpace: "nowrap",
-  float: "right",
-  padding: "10px 7px",
-} as const;
-
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
 // when overflow:hidden, which causes massive UI pain to cocalc.
@@ -96,7 +81,7 @@ const PROJECTS_STYLE: CSS = {
 // https://liuhao.im/english/2015/05/29/ios-safari-window-height.html
 // ...
 // https://lukechannings.com/blog/2021-06-09-does-safari-15-fix-the-vh-bug/
-let page_height: string =
+const PAGE_HEIGHT: string =
   IS_MOBILE || IS_SAFARI
     ? `calc(100vh - env(safe-area-inset-bottom) - ${IS_IOS ? 80 : 20}px)`
     : "100vh";
@@ -104,13 +89,11 @@ let page_height: string =
 const PAGE_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
-  height: page_height, // see note
+  height: PAGE_HEIGHT, // see note
   width: "100vw",
   overflow: "hidden",
   background: "white",
 } as const;
-
-const positionHackHeight = `${NAV_HEIGHT - 4}px`;
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
@@ -150,12 +133,11 @@ export const Page: React.FC = () => {
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
-  function render_account_tab(): JSX.Element {
-    let a, label, style;
+  function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {
-      a = undefined;
+      return <></>;
     } else if (account_id) {
-      a = (
+      return (
         <Avatar
           size={20}
           account_id={account_id}
@@ -164,15 +146,19 @@ export const Page: React.FC = () => {
         />
       );
     } else {
-      a = "cog";
+      return "cog";
     }
+  }
 
+  function render_account_tab(): JSX.Element {
+    const icon = account_tab_icon();
+    let label, style;
     if (is_anonymous) {
       let mesg;
       style = { fontWeight: "bold", opacity: 0 };
       if (
         when_account_created &&
-        new Date().valueOf() - when_account_created.valueOf() >= 1000 * 60 * 60
+        Date.now() - when_account_created.valueOf() >= 1000 * 60 * 60
       ) {
         mesg = "Sign Up NOW to avoid losing all of your work!";
         style.width = "400px";
@@ -184,7 +170,7 @@ export const Page: React.FC = () => {
           {mesg}
         </Button>
       );
-      style = { marginTop: "-10px" }; // compensate for using a button
+      style = { marginTop: "-8px" }; // compensate for using a button
       /* We only actually show the button if it is still there a few
         seconds later.  This avoids flickering it for a moment during
         normal sign in.  This feels like a hack, but was super
@@ -202,7 +188,7 @@ export const Page: React.FC = () => {
         label={label}
         style={style}
         label_class={NAV_CLASS}
-        icon={a}
+        icon={icon}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
       />
@@ -216,7 +202,6 @@ export const Page: React.FC = () => {
         label={"Admin"}
         label_class={NAV_CLASS}
         icon={"users"}
-        inner_style={{ padding: "10px", display: "flex" }}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
       />
@@ -245,7 +230,6 @@ export const Page: React.FC = () => {
         label="Sign in"
         label_class={NAV_CLASS}
         icon="sign-in"
-        inner_style={{ padding: "10px", display: "flex" }}
         on_click={sign_in_tab_clicked}
         active_top_tab={active_top_tab}
         style={style}
@@ -265,15 +249,11 @@ export const Page: React.FC = () => {
     // get rewritten.
     return (
       <NavTab
-        label={
-          <span style={{ paddingTop: "3px", display: "inline-block" }}>
-            Help
-          </span>
-        }
+        name={undefined} // does not open a tab, just a popup
+        active_top_tab={active_top_tab} // it's never supposed to be active!
+        label={"Help"}
         label_class={NAV_CLASS}
         icon={"medkit"}
-        inner_style={{ padding: "10px", display: "flex" }}
-        active_top_tab={active_top_tab}
         on_click={openSupportTab}
         hide_label={!show_label}
       />
@@ -281,18 +261,23 @@ export const Page: React.FC = () => {
   }
 
   function render_bell(): JSX.Element | undefined {
-    if (!is_logged_in || is_anonymous) {
-      return;
-    }
-    return <NotificationBell active={show_file_use} />;
+    if (!is_logged_in || is_anonymous) return;
+    return <Notification type="bell" active={show_file_use} />;
+  }
+
+  function render_messages(): JSX.Element | undefined {
+    if (!is_logged_in || is_anonymous) return;
+    return <Notification type="mentions" active={show_mentions} />;
   }
 
   function render_right_nav(): JSX.Element {
     const logged_in = is_logged_in;
     return (
-      <Nav
-        id="smc-right-tabs-fixed"
+      <div
+        className="smc-right-tabs-fixed"
         style={{
+          display: "flex",
+          flex: "0 0 auto",
           height: `${NAV_HEIGHT}px`,
           lineHeight: "20px",
           margin: "0",
@@ -303,34 +288,23 @@ export const Page: React.FC = () => {
         {!logged_in && render_sign_in_tab()}
         {render_support()}
         {logged_in && render_account_tab()}
+        {render_messages()}
         {render_bell()}
-        {!is_anonymous && <ConnectionIndicator />}
-      </Nav>
+        {!is_anonymous && <ConnectionIndicator height={NAV_HEIGHT_NARROW} />}
+      </div>
     );
   }
 
   function render_project_nav_button(): JSX.Element {
     return (
-      <Nav
+      <NavTab
         style={{ height: `${NAV_HEIGHT}px`, margin: "0", overflow: "hidden" }}
-      >
-        <NavTab
-          name={"projects"}
-          inner_style={{ padding: "0px" }}
-          active_top_tab={active_top_tab}
-        >
-          <Tooltip
-            title="Show all the projects on which you collaborate."
-            mouseEnterDelay={1}
-            mouseLeaveDelay={0}
-            placement="right"
-          >
-            <div style={PROJECTS_STYLE} cocalc-test="project-button">
-              <Icon name="edit" /> Projects
-            </div>
-          </Tooltip>
-        </NavTab>
-      </Nav>
+        name={"projects"}
+        active_top_tab={active_top_tab}
+        tooltip="Show all the projects on which you collaborate."
+        icon="edit"
+        label="Projects"
+      />
     );
   }
 
@@ -392,26 +366,24 @@ export const Page: React.FC = () => {
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
-        <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
+        <nav className="smc-top-bar" style={TOP_BAR_STYLE}>
           <AppLogo />
           {is_logged_in && render_project_nav_button()}
           <ProjectsNav
+            height={NAV_HEIGHT_NARROW}
             style={
-              IS_PHONE
-                ? {
-                    /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-                    top: "32px",
-                    left: 0,
-                    position: "absolute",
-                    width: "100vw",
-                  }
-                : undefined
+              IS_PHONE && {
+                /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
+                top: "32px",
+                left: 0,
+                position: "absolute",
+                width: "100vw",
+              }
             }
           />
           {render_right_nav()}
-        </Navbar>
+        </nav>
       )}
-      {!fullscreen && <div style={{ minHeight: positionHackHeight }}></div>}
       {!is_anonymous && <FullscreenButton />}
       <ActiveContent />
     </div>

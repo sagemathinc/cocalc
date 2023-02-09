@@ -15,10 +15,17 @@
   &:hover
     color: $COL_TOP_BAR_TEXT
 
-.smc-top-bar > .container
-  position        : absolute
+
+.smc-top-bar
+  position        : relative
+  top             : 0px
+  right           : 0px
+  left            : 0px
   display         : flex
   padding         : 0px
+  margin          : 0px
+  zIndex          : 100
+  border-radius   : 0
   width           : 100%
   background-color: $COL_GRAY_L0
   > ul > li > a
@@ -71,3 +78,5 @@
     height: 39px !important
     padding: 2px 10px !important
 
+.cocalc-top-bar-element:hover
+  background-color: $COL_TOP_BAR_HOVER
