@@ -7,7 +7,6 @@ The official Photoshop keyboard shortcuts are here and can be useful inspiration
 import { Actions } from "./actions";
 import { TOOLS, Tool } from "./tools/desc";
 import { DEFAULT_FONT_SIZE } from "./tools/defaults";
-import { centerOfRect } from "./math";
 
 const selectTool: { [key: string]: Tool } = {};
 for (const tool in TOOLS) {
@@ -41,7 +40,7 @@ export default function getKeyHandler(
       return;
     }
     const key = e.key.toLowerCase();
-    //console.log(key);
+    // console.log(key);
 
     if (key == "s" && (e.metaKey || e.ctrlKey)) {
       actions.save(true);
@@ -104,18 +103,32 @@ export default function getKeyHandler(
 
     if (selection == null || selection.size == 0) {
       // nothing selected.
-      if (key.startsWith("arrow")) {
-        // arrow key with no selection - -move canvas center.
-        const viewport = node.get("viewport")?.toJS();
-        if (viewport != null) {
-          const center = centerOfRect(viewport);
-          const pt = KEY_TO_POINT[key];
-          if (pt != null) {
-            center.x += pt.x * 10;
-            center.y += pt.y * 10;
-            actions.setViewportCenter(frameId, center);
-          }
+      if (
+        key.startsWith("arrow") ||
+        key.startsWith("page") ||
+        key == "home" ||
+        key == "end"
+      ) {
+        // arrow key with no selection - change page, which is what
+        // Powerpoint and google slides do.
+        let page = node.get("page");
+        if (page == null) return;
+        if (key == "arrowup" || key == "arrowleft" || key == "pageup") {
+          // previous page
+          page = Math.max(1, page - 1);
+        } else if (
+          key == "arrowdown" ||
+          key == "arrowright" ||
+          key == "pagedown"
+        ) {
+          page = Math.min(node.get("pages", 1), page + 1);
+        } else if (key == "home") {
+          page = 1;
+        } else if (key == "end") {
+          page = node.get("pages", 1);
         }
+        actions.setPage(frameId, page);
+        return;
       }
     }
 
