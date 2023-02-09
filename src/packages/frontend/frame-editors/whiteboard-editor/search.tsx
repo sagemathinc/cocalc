@@ -94,7 +94,7 @@ export default function Search() {
                       actions.mainFrameType
                     );
                     if (frameId) {
-                      actions.centerElement(element.id, frameId);
+                      actions.scrollElementIntoView(element.id, frameId, "top");
                     }
                   }}
                   style={{

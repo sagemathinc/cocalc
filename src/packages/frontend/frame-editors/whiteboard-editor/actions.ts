@@ -33,6 +33,7 @@ import {
   getPageSpan,
   centerRectsAt,
   centerOfRect,
+  topOfRect,
   rectSpan,
   translateRectsZ,
   roundRectParams,
@@ -684,14 +685,14 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.set_frame_tree({ id, viewport });
   }
 
-  setViewportCenter(id: string, center: Point) {
+  setViewportCenter(frameId: string, center: Point) {
     // translates whatever the last saved viewport is to have the given center.
-    const node = this._get_frame_node(id);
+    const node = this._get_frame_node(frameId);
     if (node == null) return;
     const viewport = node.get("viewport")?.toJS();
     if (viewport == null) return;
     centerRectsAt([viewport], center);
-    this.saveViewport(id, viewport);
+    this.saveViewport(frameId, viewport);
   }
 
   // define this, so icon shows up at top
@@ -968,17 +969,32 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     }
   }
 
-  centerElement(id: string, frameId?: string) {
+  scrollElementIntoView(
+    id: string,
+    frameId: string | undefined = undefined,
+    loc: "center" | "top" = "top"
+  ) {
     const element = this.getElement(id);
     if (element == null) return;
     frameId = frameId ?? this.show_focused_frame_of_type(this.mainFrameType);
+    if (frameId == null) return;
     this.setPageId(frameId, element.page ?? this.defaultPageId());
-    this.setViewportCenter(frameId, centerOfRect(element));
-  }
-
-  scrollElementIntoView(id: string, frameId?: string) {
-    // TODO: for now just center it
-    this.centerElement(id, frameId);
+    let center;
+    if (loc == "center") {
+      center = centerOfRect(element);
+    } else {
+      const node = this._get_frame_node(frameId);
+      const viewport = node?.get("viewport")?.toJS();
+      if (viewport == null) return;
+      const top = topOfRect(element);
+      center = { x: top.x, y: top.y + viewport.h / 2 - viewport.h / 10 };
+    }
+    this.setViewportCenter(frameId, center);
+    setTimeout(() => {
+      if (frameId != null) { // just for typescript
+        this.setViewportCenter(frameId, center);
+      }
+    }, 1);
   }
 
   gotoUser(account_id: string, frameId?: string) {
@@ -989,7 +1005,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     if (locs == null) return; // no info
     for (const loc of locs) {
       if (loc.id != null) {
-        this.centerElement(loc.id, frameId);
+        this.scrollElementIntoView(loc.id, frameId);
         return;
       }
     }
@@ -1273,7 +1289,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     }
 
     const elementId = `${line}`;
-    this.centerElement(elementId, frameId);
+    this.scrollElementIntoView(elementId, frameId);
     this.zoom100(frameId);
   }
 
@@ -1297,7 +1313,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       return;
     }
     if (id != null) {
-      this.centerElement(id, frameId);
+      this.scrollElementIntoView(id, frameId);
       return;
     }
   }

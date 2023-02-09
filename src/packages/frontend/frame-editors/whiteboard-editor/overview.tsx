@@ -6,7 +6,7 @@ of the "font_size" parameter for the frame.
 
 */
 
-import { Button, Popover } from "antd";
+import NewPage from "./new-page";
 import { CSSProperties, useEffect, ReactNode } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
 import { useFrameContext } from "./hooks";
@@ -14,9 +14,7 @@ import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Overview as OnePage } from "./tools/navigation";
 import { State, elementsList } from "./actions";
-import { Icon } from "@cocalc/frontend/components/icon";
 import type { GridItemProps } from "react-virtuoso";
-import { COLORS } from "@cocalc/util/theme";
 
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -75,7 +73,7 @@ export default function Overview() {
     if (index == pages) {
       // Add a new page
       return (
-        <div
+        <NewPage
           style={{
             textAlign: "center",
             width,
@@ -84,51 +82,21 @@ export default function Overview() {
             alignItems: "center",
             justifyContent: "center",
           }}
-        >
-          <Popover
-            title={"Create a new page"}
-            content={
-              <div style={{ maxWidth: "400px" }}>
-                Easily switch between pages by clicking on any page here. You
-                can drag pages to reorder them in the{" "}
-                <a
-                  onClick={() => {
-                    actions.show_focused_frame_of_type(
-                      "pages",
-                      "col",
-                      true,
-                      0.2
-                    );
-                  }}
-                >
-                  pages frame
-                </a>
-                .
-              </div>
-            }
-          >
-            <Button
-              size="large"
-              style={{ height: "auto", padding: "20px" }}
-              onClick={() => {
-                const id = actions.show_focused_frame_of_type(
-                  actions.mainFrameType
-                );
-                actions.newPage(id);
-                setTimeout(() => {
-                  // after the click
-                  actions.show_focused_frame_of_type(actions.mainFrameType);
-                }, 0);
-              }}
-            >
-              <Icon
-                name="plus-circle"
-                style={{ fontSize: "200%", color: COLORS.FILE_ICON }}
-              />
-              <br /> New Page
-            </Button>
-          </Popover>
-        </div>
+          tip={
+            <>
+              Click to create a page. Switch between pages by clicking on any
+              page here. You can drag pages to reorder them in the{" "}
+              <a
+                onClick={() => {
+                  actions.show_focused_frame_of_type("pages", "col", true, 0.2);
+                }}
+              >
+                pages frame
+              </a>
+              .
+            </>
+          }
+        />
       );
     }
     const pageId = sortedPageIds?.get(index) ?? "";

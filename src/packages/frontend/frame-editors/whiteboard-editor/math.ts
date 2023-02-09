@@ -248,6 +248,14 @@ export function centerOfRect(r: Rect): Point {
   };
 }
 
+// horizontally center, but vertically at the top
+export function topOfRect(r: Rect): Point {
+  return {
+    x: (r.x ?? 0) + (r.w ?? DEFAULT_WIDTH) / 2,
+    y: r.y ?? 0,
+  };
+}
+
 // Point right between two points.
 export function midPoint(p0: Point, p1: Point): Point {
   return { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };

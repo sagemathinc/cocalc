@@ -3,7 +3,6 @@ Shows vertical linear sortable list of the pages in the whiteboard,
 where the page size expands to fit the width.
 */
 
-import { Button, Popover } from "antd";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
@@ -12,13 +11,13 @@ import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Overview } from "./tools/navigation";
 import { State, elementsList } from "./actions";
-import { Icon } from "@cocalc/frontend/components/icon";
 import useResizeObserver from "use-resize-observer";
 import {
   DragHandle,
   SortableList,
   SortableItem,
 } from "@cocalc/frontend/components/sortable-list";
+import NewPage from "./new-page";
 
 const VMARGIN = 20;
 const HMARGIN = 15;
@@ -78,35 +77,12 @@ export default function Pages() {
     if (index == pages) {
       // Add a new page
       return (
-        <div style={{ ...STYLE, textAlign: "center" }}>
-          <Popover
-            title={"Create a new page"}
-            content={
-              <div style={{ maxWidth: "400px" }}>
-                Each page is an independent infinite whiteboard canvas. Click
-                this button to create a new page. Easily jump between pages by
-                clicking on a page here.
-              </div>
-            }
-          >
-            <Button
-              shape="round"
-              size="large"
-              onClick={() => {
-                const id = actions.show_focused_frame_of_type(
-                  actions.mainFrameType
-                );
-                actions.newPage(id);
-                setTimeout(() => {
-                  // after the click
-                  actions.show_focused_frame_of_type(actions.mainFrameType);
-                }, 0);
-              }}
-            >
-              <Icon name="plus-circle" /> New
-            </Button>
-          </Popover>
-        </div>
+        <NewPage
+          style={STYLE}
+          tip={
+            "Click to create a new page.  You can also switch between pages by clicking on a page here, and drag and drop to reorder the pages."
+          }
+        />
       );
     }
     const pageId = sortedPageIds?.get(index) ?? "";

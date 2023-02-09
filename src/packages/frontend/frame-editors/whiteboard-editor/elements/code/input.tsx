@@ -138,7 +138,7 @@ export default function Input({
               if (!id) return;
               frame.actions.setSelectedTool(frame.id, "select");
               frame.actions.setSelection(frame.id, id);
-              frame.actions.centerElement(id);
+              frame.actions.scrollElementIntoView(id);
               */
             } else if (e.ctrlKey) {
               // this is "evaluate keeping focus", so nothing further to do.
