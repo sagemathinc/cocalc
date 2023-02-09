@@ -81,11 +81,11 @@ export class Actions extends WhiteboardActions<State> {
     }
   }
 
-  newPage(frameId: string, commit: boolean = true): string {
-    const page = super.newPage(frameId, false);
+  createPage(commit: boolean = true): string {
+    const page = super.createPage(false);
     // add some "template content". Obviously, this is very preliminary!
     this.createElement(
-      frameId,
+      undefined,
       {
         data: { color: "#252937", fontSize: 24 },
         h: 123,
@@ -101,7 +101,7 @@ export class Actions extends WhiteboardActions<State> {
       false
     );
     this.createElement(
-      frameId,
+      undefined,
       {
         data: { color: "#525252", fontSize: 18 },
         h: 110,

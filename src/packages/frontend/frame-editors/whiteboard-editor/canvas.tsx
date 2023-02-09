@@ -513,7 +513,7 @@ export default function Canvas({
       const rect = rectSpan(elements);
       const s =
         Math.min(
-          1 / 0.95,
+          2 / 0.95,
           Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
         ) * 0.95; // 0.95 for extra room too.
       scale.set(s);

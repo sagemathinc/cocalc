@@ -164,19 +164,21 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <div
-          style={{
-            background: "rgba(0, 0, 0, 0.02)",
-            borderTop: "1px solid #eee",
-            borderRight: "1px solid #eee",
-            borderRadius: "5px",
-          }}
-        >
-          <VerticalFixedTabs
-            project_id={project_id}
-            activeTab={active_project_tab}
-          />
-        </div>
+        {(!fullscreen || fullscreen == "project") && (
+          <div
+            style={{
+              background: "rgba(0, 0, 0, 0.02)",
+              borderTop: "1px solid #eee",
+              borderRight: "1px solid #eee",
+              borderRadius: "5px",
+            }}
+          >
+            <VerticalFixedTabs
+              project_id={project_id}
+              activeTab={active_project_tab}
+            />
+          </div>
+        )}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {renderEditorContent()}
           {render_project_content()}

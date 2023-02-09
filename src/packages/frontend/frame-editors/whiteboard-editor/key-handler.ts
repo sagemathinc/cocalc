@@ -104,10 +104,11 @@ export default function getKeyHandler(
     if (selection == null || selection.size == 0) {
       // nothing selected.
       if (
-        key.startsWith("arrow") ||
-        key.startsWith("page") ||
-        key == "home" ||
-        key == "end"
+        actions.mainFrameType == node.get("type") &&
+        (key.startsWith("arrow") ||
+          key.startsWith("page") ||
+          key == "home" ||
+          key == "end")
       ) {
         // arrow key with no selection - change page, which is what
         // Powerpoint and google slides do.
@@ -128,6 +129,12 @@ export default function getKeyHandler(
           page = node.get("pages", 1);
         }
         actions.setPage(frameId, page);
+        // without doing the fit to screen the pages are often coming
+        // up blank for a moment after switching.  This is a bug.
+        // but fit to screen is nice anyways to avoid feeling disoriented.
+        setTimeout(() => {
+          actions.fitToScreen(frameId);
+        }, 0);
         return;
       }
     }
