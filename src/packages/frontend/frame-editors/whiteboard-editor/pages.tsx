@@ -18,6 +18,7 @@ import {
   SortableItem,
 } from "@cocalc/frontend/components/sortable-list";
 import NewPage from "./new-page";
+import DeletePage from "./delete-page";
 
 const VMARGIN = 20;
 const HMARGIN = 15;
@@ -125,6 +126,7 @@ export default function Pages() {
             }}
             maxScale={2}
           />
+          <DeletePage pageId={`${sortedPageIds.get(index)}`} />
         </div>
         <div
           style={{

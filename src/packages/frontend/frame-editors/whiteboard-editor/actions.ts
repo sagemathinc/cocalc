@@ -991,7 +991,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     }
     this.setViewportCenter(frameId, center);
     setTimeout(() => {
-      if (frameId != null) { // just for typescript
+      if (frameId != null) {
+        // just for typescript
         this.setViewportCenter(frameId, center);
       }
     }, 1);
@@ -1477,9 +1478,9 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 
   // delete page with given id along with everything that
   // is one that page.
-  deletePage(id: string, commit: boolean = true): void {
+  deletePage(pageId: string, commit: boolean = true): void {
     // TODO: this is NOT implemented yet, and not used in the UI, yet.
-    console.warn("deletePage not implemented yet", { id, commit });
+    console.warn("deletePage not implemented yet", { pageId, commit });
   }
 }
 
