@@ -1409,12 +1409,14 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.setFragmentIdToPage(frameId);
   }
 
-  newPage(frameId: string): string {
+  newPage(frameId: string, commit: boolean = true): string {
     const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
-    this.syncstring_commit();
+    if (commit) {
+      this.syncstring_commit();
+    }
     return page;
   }
 

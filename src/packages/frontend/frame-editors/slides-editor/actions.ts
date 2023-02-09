@@ -80,4 +80,45 @@ export class Actions extends WhiteboardActions<State> {
       }
     }
   }
+
+  newPage(frameId: string, commit: boolean = true): string {
+    const page = super.newPage(frameId, false);
+    // add some "template content". Obviously, this is very preliminary!
+    this.createElement(
+      frameId,
+      {
+        data: { color: "#252937", fontSize: 24 },
+        h: 123,
+        id: "be9e3736",
+        page,
+        str: "# Click to edit title\n\n",
+        type: "text",
+        w: 847,
+        x: -200,
+        y: -492,
+        z: 0,
+      },
+      false
+    );
+    this.createElement(
+      frameId,
+      {
+        data: { color: "#525252", fontSize: 18 },
+        h: 110,
+        id: "cdf12aea",
+        page,
+        str: "## Click to edit subtitle\n\n",
+        type: "text",
+        w: 847,
+        x: -200,
+        y: -393,
+        z: 1,
+      },
+      false
+    );
+    if (commit) {
+      this.syncstring_commit();
+    }
+    return page;
+  }
 }
