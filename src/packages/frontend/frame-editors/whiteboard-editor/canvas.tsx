@@ -160,7 +160,6 @@ export default function Canvas({
   cursors,
   mainFrameType,
 }: Props) {
-
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");
@@ -533,7 +532,7 @@ export default function Canvas({
     selectedTool == "edge" ? frame.desc.getIn(["edgeStart", "id"]) : undefined;
 
   let selectionHandled = false;
-  function processElement(element, isNavRectangle = false, noSelect = false) {
+  function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transformsRef.current.dataToWindowNoScale(x, y, z);
@@ -607,7 +606,7 @@ export default function Canvas({
         element={element}
         focused={focused}
         canvasScale={canvasScale}
-        readOnly={readOnly || isNavigator || noSelect}
+        readOnly={readOnly || isNavigator || !isFinite(element.z)}
         cursors={cursors?.[id]}
       />
     );
@@ -692,7 +691,7 @@ export default function Canvas({
           <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
           <NotFocused
             element={element}
-            selectable={selectedTool == "select" && !noSelect}
+            selectable={selectedTool == "select"}
             edgeCreate={selectedTool == "edge"}
             edgeStart={isEdgeStart}
             frame={frame}
@@ -1072,7 +1071,7 @@ export default function Canvas({
           // select everything in selection
           const overlapping = getOverlappingElements(elements, rect);
           const ids = overlapping
-            .filter((element) => !element.data?.noSelect)
+            .filter((element) => isFinite(element.z))
             .map((element) => element.id);
           frame.actions.setSelectionMulti(frame.id, ids, "add");
         }

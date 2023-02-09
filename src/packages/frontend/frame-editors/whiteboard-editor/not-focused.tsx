@@ -43,7 +43,7 @@ export default function NotFocused({
         // because Draggable fires this onStop before that onClick even happens.
         return;
       }
-      if (element.data?.noSelect) {
+      if (!isFinite(element.z)) {
         frame.actions.clearSelection(frame.id);
         return;
       }
@@ -57,7 +57,7 @@ export default function NotFocused({
   );
 
   const disableDrag =
-    readOnly || !(selectable && !element.locked) || element.data?.noSelect;
+    readOnly || !(selectable && !element.locked) || !isFinite(element.z);
 
   const body = (
     <div
@@ -69,7 +69,7 @@ export default function NotFocused({
       style={{
         width: "100%",
         height: "100%",
-        cursor: selectable && !element.data?.noSelect ? "pointer" : undefined,
+        cursor: selectable && isFinite(element.z) ? "pointer" : undefined,
       }}
       onClick={disableDrag ? onClick : undefined}
     >

@@ -69,6 +69,8 @@ export function getPageSpan(
   let xMin, xMax, yMin, yMax, zMin, zMax;
   let init = false;
   for (const element of elements) {
+    // note -- element.z = -Infinity is used for things like a "slide base layer".  We
+    // don't include that in the z.
     if (element.w == 0 || element.h == 0) continue;
     if (!init) {
       init = true;
@@ -76,12 +78,12 @@ export function getPageSpan(
       xMax = (element.x ?? 0) + (element.w ?? DEFAULT_WIDTH);
       yMin = element.y ?? 0;
       yMax = (element.y ?? 0) + (element.h ?? DEFAULT_HEIGHT);
-      zMin = element.z ?? 0;
-      zMax = element.z ?? 0;
+      zMin = isFinite(element.z) ? element.z : 0;
+      zMax = isFinite(element.z) ? element.z : 0;
     }
     const x = element.x ?? xMin;
     const y = element.y ?? yMin;
-    const z = element.z ?? zMin;
+    const z = isFinite(element.z) ? element.z : zMin;
     const w = element.w ?? DEFAULT_WIDTH;
     const h = element.h ?? DEFAULT_HEIGHT;
     if (x < xMin) xMin = x;

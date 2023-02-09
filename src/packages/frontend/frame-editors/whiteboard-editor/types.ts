@@ -55,7 +55,7 @@ export interface Data {
   to?: string; // id of to node
   total?: number; // used by timer
   aspectRatio?: AspectRatio;
-  noSelect?: boolean; // if true, then item can't be selected.
+  base?: boolean; // if true, then item part of the "base layer" -- can't be selected; z-index is considered -oo
   end?: number;
   execCount?: number;
   hideInput?: boolean; // used for code cells
