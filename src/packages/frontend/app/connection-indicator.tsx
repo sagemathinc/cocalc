@@ -91,7 +91,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
           cursor: "pointer",
           float: "left",
           maxHeight: `${height}px`,
-          marginRight: "30px",
+          marginRight: "35px",
         }}
         onClick={connection_click}
       >

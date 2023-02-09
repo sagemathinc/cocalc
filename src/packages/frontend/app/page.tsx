@@ -35,7 +35,7 @@ import { ConnectionInfo } from "./connection-info";
 import { FullscreenButton } from "./fullscreen-button";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
-import { Notification } from "./notification-bell";
+import { Notification } from "./notifications";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 
 // This is not responsive -- but I just need something is actually
@@ -114,6 +114,7 @@ export const Page: React.FC = () => {
   }, []);
 
   const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
   const show_file_use = useTypedRedux("page", "show_file_use");
   const fullscreen = useTypedRedux("page", "fullscreen");
@@ -265,7 +266,7 @@ export const Page: React.FC = () => {
     return <Notification type="bell" active={show_file_use} />;
   }
 
-  function render_messages(): JSX.Element | undefined {
+  function render_mentions(): JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return <Notification type="mentions" active={show_mentions} />;
   }
@@ -288,7 +289,7 @@ export const Page: React.FC = () => {
         {!logged_in && render_sign_in_tab()}
         {render_support()}
         {logged_in && render_account_tab()}
-        {render_messages()}
+        {render_mentions()}
         {render_bell()}
         {!is_anonymous && <ConnectionIndicator height={NAV_HEIGHT_NARROW} />}
       </div>

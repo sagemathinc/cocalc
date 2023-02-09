@@ -240,11 +240,6 @@ export class PageActions extends Actions<PageState> {
     this.setState({ show_file_use: !currently_shown });
   }
 
-  toggle_show_mentions() {
-    const is_shown = redux.getStore("page").get("show_mentions");
-    this.setState({ show_mentions: !is_shown });
-  }
-
   set_ping(ping, avgping) {
     this.setState({ ping, avgping });
   }

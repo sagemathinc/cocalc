@@ -3,25 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { List as iList, Map as iMap } from "immutable";
 import { useEffect, useRef, useState } from "react";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import { Map as iMap, List as iList } from "immutable";
-import { FileUseInfo } from "./info";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import { Alert, Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
-import { SearchInput, Icon, VisibleMDLG } from "@cocalc/frontend/components";
-import { FileUseActions } from "./actions";
-import { open_file_use_entry } from "./util";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import {
+  Icon,
+  SearchInput,
+  Title,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
 import { search_match, search_split } from "@cocalc/util/misc";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { plural } from "@cocalc/util/misc";
+import { FileUseActions } from "./actions";
+import { FileUseInfo } from "./info";
+import { open_file_use_entry } from "./util";
 
 interface Props {
   file_use_list: iList<FileUseInfoMap>;
   user_map: iMap<string, any>;
   project_map: iMap<string, any>;
   account_id: string;
-  unseen_mentions_size: number;
 }
 
 type FileUseInfoMap = iMap<string, any>;
@@ -31,7 +35,6 @@ export default function FileUseViewer({
   user_map,
   project_map,
   account_id,
-  unseen_mentions_size,
 }: Props) {
   const [search, _setSearch] = useState<string>("");
   const [cursor, setCursor] = useState<number>(0); // cursor position
@@ -177,38 +180,12 @@ export default function FileUseViewer({
     );
   }
 
-  function mentionsLink() {
-    let notifications_page_text:
-      | string
-      | JSX.Element = `You have ${unseen_mentions_size} unread ${plural(
-      unseen_mentions_size,
-      "mention"
-    )}...`;
-    if (unseen_mentions_size > 0) {
-      notifications_page_text = <b>{notifications_page_text}</b>;
-    }
-    return (
-      <Link
-        style={{ fontSize: "20px", textAlign: "center" }}
-        on_click={() => {
-          redux.getActions("page").set_active_tab("notifications");
-          redux.getActions("page").toggle_show_file_use();
-        }}
-      >
-        {notifications_page_text}
-      </Link>
-    );
-  }
-
-  const link = mentionsLink();
   return (
     <div className={"smc-vfill smc-file-use-viewer"}>
       <VisibleMDLG>
-        <h3 style={{ margin: "15px" }}>Mentions</h3>
-      </VisibleMDLG>
-      {link}
-      <VisibleMDLG>
-        <h3 style={{ margin: "15px" }}>Recently edited documents and chat</h3>
+        <Title level={4} style={{ margin: "15px", textAlign: "center" }}>
+          Recently edited documents and chat
+        </Title>
       </VisibleMDLG>
       <Row key="top" style={{ marginBottom: "5px" }}>
         <Col sm={9}>{render_search_box()}</Col>
@@ -223,18 +200,5 @@ export default function FileUseViewer({
         itemContent={row_renderer}
       />
     </div>
-  );
-}
-
-function Link({ on_click, children, style }) {
-  const _on_click = (e) => {
-    e.preventDefault();
-    on_click(e);
-  };
-
-  return (
-    <a role="button" href="" onClick={_on_click} style={style}>
-      {children}{" "}
-    </a>
   );
 }

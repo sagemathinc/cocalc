@@ -55,7 +55,7 @@ export const FullscreenButton: React.FC = React.memo(() => {
     <Tip
       style={TIP_STYLE}
       title={"Fullscreen mode, focused on the current document or page."}
-      placement={"bottomLeft"}
+      placement={"bottomRight"}
       delayShow={2000}
     >
       <Icon
