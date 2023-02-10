@@ -24,6 +24,7 @@ import {
   LabeledRow,
   Markdown,
   Space,
+  Title,
 } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
@@ -757,13 +758,17 @@ class SiteSettingsComponent extends Component<
 
   render_header(): Rendered {
     return (
-      <h4 onClick={() => this.toggle_view()} style={{ cursor: "pointer" }}>
+      <Title
+        level={4}
+        onClick={() => this.toggle_view()}
+        style={{ cursor: "pointer" }}
+      >
         <Icon
           style={{ width: "20px" }}
           name={this.state.state == "edit" ? "caret-down" : "caret-right"}
         />{" "}
         Site Settings
-      </h4>
+      </Title>
     );
   }
 

@@ -18,11 +18,12 @@ import {
   React,
   useActions,
   useEffect,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
@@ -36,41 +37,92 @@ import { FullscreenButton } from "./fullscreen-button";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
+import {
+  FONT_SIZE_ICONS_NARROW,
+  FONT_SIZE_ICONS_NORMAL,
+  HIDE_LABEL_THRESHOLD,
+  NAV_CLASS,
+  NAV_HEIGHT_PX,
+  PageStyle,
+} from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 
-// This is not responsive -- but I just need something is actually
-// usable on my phone.  TODO: if you load with phone in landscape mode,
-// then switch to portrait, this is broken.  But it's better than
-// always being 100% broken.
-const IS_PHONE =
-  IS_MOBILE && window.innerWidth != null && window.innerWidth <= 480;
+// below this, the "page" is considered "narrow" and we use a different style
+export const NARROW_THRESHOLD_PX = 500;
 
-const HIDE_LABEL_THRESHOLD = 6;
-const NAV_HEIGHT_NARROW = 36;
-const NAV_HEIGHT = IS_PHONE ? 72 : NAV_HEIGHT_NARROW;
-const NAV_CLASS = "hidden-xs";
+function calcStyle(isNarrow: boolean): PageStyle {
+  const fontSizeIcons: string = isNarrow
+    ? FONT_SIZE_ICONS_NARROW
+    : FONT_SIZE_ICONS_NORMAL;
+  const topPaddingIcons: string = isNarrow ? "5px" : "5px";
+  const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
 
-const TOP_BAR_STYLE: CSS = {
-  minHeight: `${NAV_HEIGHT}px`,
-} as const;
+  const topBarStyle: CSS = {
+    height: `${NAV_HEIGHT_PX}px`,
+  } as const;
 
-const FILE_USE_STYLE: CSS = {
-  zIndex: 110,
-  marginLeft: "0",
-  position: "fixed",
-  boxShadow: "0 0 15px #aaa",
-  border: "2px solid #ccc",
-  top: `${NAV_HEIGHT - 2}px`,
-  background: "#fff",
-  right: "2em",
-  overflowY: "auto",
-  overflowX: "hidden",
-  fontSize: "10pt",
-  padding: "4px",
-  borderRadius: "5px",
-  width: "50%",
-  height: "90%",
-} as const;
+  const fileUseStyle: CSS = {
+    background: "white",
+    border: `2px solid ${COLORS.GRAY_DDD}`,
+    borderRadius: "5px",
+    boxShadow: "0 0 15px #aaa",
+    fontSize: "10pt",
+    height: "90%",
+    margin: 0,
+    overflowX: "hidden",
+    overflowY: "auto",
+    padding: "4px",
+    position: "fixed",
+    right: "5vw",
+    top: `${NAV_HEIGHT_PX}px`,
+    width: isNarrow ? "90vw" : "50vw",
+    zIndex: 110,
+  } as const;
+
+  const projectsNavStyle: CSS | undefined = isNarrow
+    ? {
+        /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
+        width: "100vw",
+        marginTop: "4px",
+        height: `${NAV_HEIGHT_PX}px`,
+      }
+    : {
+        flex: "1 1 auto", // necessary to stretch out to the full width
+      };
+
+  return {
+    topBarStyle,
+    fileUseStyle,
+    projectsNavStyle,
+    isNarrow,
+    sidePaddingIcons,
+    topPaddingIcons,
+    fontSizeIcons,
+  };
+}
+
+function isNarrow(): boolean {
+  return window.innerWidth != null && window.innerWidth <= NARROW_THRESHOLD_PX;
+}
+
+function usePageStyle(): PageStyle {
+  //const [style, setStyle] = useState<PageStyle>(calcStyle(narrow()));
+
+  const [narrow, setNarrow] = useState<boolean>(isNarrow());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setNarrow(isNarrow());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // avoid updating the style on every resize event
+  return useMemo(() => {
+    return calcStyle(narrow);
+  }, [narrow]);
+}
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -97,6 +149,9 @@ const PAGE_STYLE: CSS = {
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
+
+  const pageStyle = usePageStyle();
+  const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -263,12 +318,20 @@ export const Page: React.FC = () => {
 
   function render_bell(): JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
-    return <Notification type="bell" active={show_file_use} />;
+    return (
+      <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
+    );
   }
 
   function render_mentions(): JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
-    return <Notification type="mentions" active={show_mentions} />;
+    return (
+      <Notification
+        type="mentions"
+        active={show_mentions}
+        pageStyle={pageStyle}
+      />
+    );
   }
 
   function render_right_nav(): JSX.Element {
@@ -279,10 +342,10 @@ export const Page: React.FC = () => {
         style={{
           display: "flex",
           flex: "0 0 auto",
-          height: `${NAV_HEIGHT}px`,
-          lineHeight: "20px",
+          height: `${NAV_HEIGHT_PX}px`,
           margin: "0",
           overflowY: "hidden",
+          alignItems: "center",
         }}
       >
         {logged_in && groups?.includes("admin") && render_admin_tab()}
@@ -291,7 +354,13 @@ export const Page: React.FC = () => {
         {logged_in && render_account_tab()}
         {render_mentions()}
         {render_bell()}
-        {!is_anonymous && <ConnectionIndicator height={NAV_HEIGHT_NARROW} />}
+        {!is_anonymous && (
+          <ConnectionIndicator
+            height={NAV_HEIGHT_PX}
+            narrow={isNarrow}
+            pageStyle={pageStyle}
+          />
+        )}
       </div>
     );
   }
@@ -299,7 +368,11 @@ export const Page: React.FC = () => {
   function render_project_nav_button(): JSX.Element {
     return (
       <NavTab
-        style={{ height: `${NAV_HEIGHT}px`, margin: "0", overflow: "hidden" }}
+        style={{
+          height: `${NAV_HEIGHT_PX}px`,
+          margin: "0",
+          overflow: "hidden",
+        }}
         name={"projects"}
         active_top_tab={active_top_tab}
         tooltip="Show all the projects on which you collaborate."
@@ -358,7 +431,7 @@ export const Page: React.FC = () => {
       onDrop={drop}
     >
       {show_file_use && (
-        <div style={FILE_USE_STYLE} className="smc-vfill">
+        <div style={fileUseStyle} className="smc-vfill">
           <FileUsePage />
         </div>
       )}
@@ -367,25 +440,22 @@ export const Page: React.FC = () => {
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
-        <nav className="smc-top-bar" style={TOP_BAR_STYLE}>
+        <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo />
           {is_logged_in && render_project_nav_button()}
-          <ProjectsNav
-            height={NAV_HEIGHT_NARROW}
-            style={
-              IS_PHONE && {
-                /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-                top: "32px",
-                left: 0,
-                position: "absolute",
-                width: "100vw",
-              }
-            }
-          />
+          {!isNarrow ? (
+            <ProjectsNav height={NAV_HEIGHT_PX} style={projectsNavStyle} />
+          ) : (
+            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+            <div style={{ flex: "1 1 auto" }} />
+          )}
           {render_right_nav()}
         </nav>
       )}
-      {!is_anonymous && <FullscreenButton />}
+      {!isNarrow && !is_anonymous && <FullscreenButton pageStyle={pageStyle} />}
+      {isNarrow && (
+        <ProjectsNav height={NAV_HEIGHT_PX} style={projectsNavStyle} />
+      )}
       <ActiveContent />
     </div>
   );

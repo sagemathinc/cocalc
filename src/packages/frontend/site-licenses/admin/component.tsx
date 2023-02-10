@@ -23,6 +23,7 @@ import {
   Loading,
   r_join,
   Space,
+  Title,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
@@ -116,13 +117,17 @@ export const SiteLicenses: React.FC<{}> = () => {
 
   function render_header_toggle(): Rendered {
     return (
-      <h4 onClick={() => actions.set_view(!view)} style={{ cursor: "pointer" }}>
+      <Title
+        level={4}
+        onClick={() => actions.set_view(!view)}
+        style={{ cursor: "pointer" }}
+      >
         <Icon
           style={{ width: "20px" }}
           name={view ? "caret-down" : "caret-right"}
         />{" "}
         Licenses
-      </h4>
+      </Title>
     );
   }
 

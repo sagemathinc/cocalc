@@ -12,7 +12,11 @@ import {
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
-import { FONT_SIZE_ICONS, TOP_PADDING_ICONS } from "./top-nav-consts";
+import {
+  NAV_HEIGHT_PX,
+  PageStyle,
+  TOP_BAR_ELEMENT_CLASS,
+} from "./top-nav-consts";
 
 const TIP_STYLE: CSS = {
   position: "fixed",
@@ -21,22 +25,14 @@ const TIP_STYLE: CSS = {
   top: 0,
 } as const;
 
-const ICON_STYLE: CSS = {
-  fontSize: FONT_SIZE_ICONS,
-  padding: `${TOP_PADDING_ICONS}`,
-  color: COLORS.GRAY,
-  cursor: "pointer",
-} as const;
+interface Props {
+  pageStyle: PageStyle;
+}
 
-const ICON_STYLE_FULLSCREEN: CSS = {
-  ...ICON_STYLE,
-  fontSize: "14px",
-  background: "white",
-  opacity: 0.7,
-  border: "1px solid grey",
-};
+export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
+  const { pageStyle } = props;
+  const { fontSizeIcons } = pageStyle;
 
-export const FullscreenButton: React.FC = React.memo(() => {
   const fullscreen: undefined | "default" | "kiosk" | "project" = useRedux(
     "page",
     "fullscreen"
@@ -49,7 +45,24 @@ export const FullscreenButton: React.FC = React.memo(() => {
   }
 
   const icon = fullscreen ? "compress" : "expand";
-  const icon_style = fullscreen ? ICON_STYLE_FULLSCREEN : ICON_STYLE;
+  const icon_style: CSS = {
+    fontSize: fontSizeIcons,
+    color: COLORS.GRAY,
+    cursor: "pointer",
+    ...(fullscreen
+      ? {
+          background: "white",
+          opacity: 0.7,
+          border: "1px solid grey",
+        }
+      : {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: `${NAV_HEIGHT_PX}px`,
+          width: `${NAV_HEIGHT_PX}px`,
+        }),
+  };
 
   return (
     <Tip
@@ -59,7 +72,7 @@ export const FullscreenButton: React.FC = React.memo(() => {
       delayShow={2000}
     >
       <Icon
-        className="smc-top-bar-topright-element"
+        className={TOP_BAR_ELEMENT_CLASS}
         style={icon_style}
         name={icon}
         onClick={(_) => {

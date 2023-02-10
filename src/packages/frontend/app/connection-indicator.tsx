@@ -12,42 +12,56 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
-import { blur_active_element } from "./util";
 import {
-  FONT_SIZE_ICONS,
-  SIDE_PADDING_ICONS,
-  TOP_PADDING_ICONS,
+  FONT_SIZE_ICONS_NORMAL,
+  NAV_HEIGHT_PX,
+  PageStyle,
+  TOP_BAR_ELEMENT_CLASS,
 } from "./top-nav-consts";
+import { blur_active_element } from "./util";
 
 interface Props {
   height: number; // px
+  narrow: boolean; // if true, there is need to have room for the fullscreen button
+  pageStyle: PageStyle;
   on_click?: () => void;
 }
 
-const CONNECTING_STYLE: CSS = {
-  backgroundColor: "#FFA500",
-  color: "white",
-  padding: `${TOP_PADDING_ICONS} ${SIDE_PADDING_ICONS}`,
-  overflow: "hidden",
-  zIndex: 101, // tick more than fullscreen!
-};
-
 const BASE_STYLE: CSS = {
-  fontSize: "18px",
+  fontSize: FONT_SIZE_ICONS_NORMAL,
   display: "inline",
   color: "grey",
 };
 
 export const ConnectionIndicator: React.FC<Props> = React.memo(
   (props: Props) => {
-    const { on_click, height } = props;
+    const { on_click, height, narrow, pageStyle } = props;
+    const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
     const connection_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
 
+    const CONNECTING_STYLE: CSS = {
+      backgroundColor: "#FFA500",
+      color: "white",
+      padding: `${topPaddingIcons} ${sidePaddingIcons}`,
+      overflow: "hidden",
+      zIndex: 101, // tick more than fullscreen!
+    };
+
+    const style: CSS = {
+      display: "flex",
+      flex: "0 0 auto",
+      color: COLORS.GRAY_M,
+      lineHeight: "18px",
+      cursor: "pointer",
+      maxHeight: `${height}px`,
+      marginRight: narrow ? "0px" : `${NAV_HEIGHT_PX + 5}px`,
+    };
+
     function render_connection_status() {
       if (connection_status === "connected") {
-        const icon_style: CSS = { ...BASE_STYLE, fontSize: FONT_SIZE_ICONS };
+        const icon_style: CSS = { ...BASE_STYLE, fontSize: fontSizeIcons };
         if (mesg_info?.get("enqueued") ?? 0 > 6) {
           // serious backlog of data!
           icon_style.color = "red";
@@ -81,18 +95,8 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
 
     return (
       <div
-        className="smc-top-bar-topright-element"
-        style={{
-          display: "flex",
-          flex: "0 0 auto",
-          color: COLORS.GRAY_M,
-          fontSize: "14px",
-          lineHeight: "18px",
-          cursor: "pointer",
-          float: "left",
-          maxHeight: `${height}px`,
-          marginRight: "35px",
-        }}
+        className={TOP_BAR_ELEMENT_CLASS}
+        style={style}
         onClick={connection_click}
       >
         {render_connection_status()}

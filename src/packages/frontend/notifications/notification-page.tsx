@@ -4,12 +4,12 @@
  */
 
 import React from "react";
-import { NotificationNav } from "./notification-nav";
-import { NotificationList } from "./notification-list";
-import { MentionFilter } from "./mentions/types";
-import { A, VisibleMDLG } from "@cocalc/frontend/components";
 
-import { redux, rclass, rtypes } from "../app-framework";
+import { rclass, redux, rtypes } from "@cocalc/frontend/app-framework";
+import { A, VisibleMDLG } from "@cocalc/frontend/components";
+import { MentionFilter } from "./mentions/types";
+import { NotificationList } from "./notification-list";
+import { NotificationNav } from "./notification-nav";
 
 interface ReduxProps {
   account_id?: string;

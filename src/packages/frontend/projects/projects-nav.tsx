@@ -228,7 +228,6 @@ export function ProjectsNav(props: ProjectsNavProps) {
   return (
     <div
       style={{
-        flex: 1,
         overflow: "hidden",
         height: `${height}px`,
         ...style,
