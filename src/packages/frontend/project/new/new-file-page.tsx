@@ -38,6 +38,8 @@ import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { COLORS } from "@cocalc/util/theme";
+import { Modal } from "antd";
+import FakeProgress from "@cocalc/frontend/components/fake-progress";
 
 interface Props {
   project_id: string;
@@ -75,7 +77,8 @@ export default function NewFilePage(props: Props) {
     return actions;
   }
 
-  function createFile(ext?: string) {
+  const [creatingFile, setCreatingFile] = useState<string>("");
+  async function createFile(ext?: string) {
     if (!filename) {
       return;
     }
@@ -86,11 +89,16 @@ export default function NewFilePage(props: Props) {
       filename_ext && ext && filename_ext != ext
         ? filename.slice(0, filename.length - filename_ext.length - 1)
         : filename;
-    getActions().create_file({
-      name,
-      ext,
-      current_path,
-    });
+    try {
+      setCreatingFile(name + (ext ? "." + ext : ""));
+      await getActions().create_file({
+        name,
+        ext,
+        current_path,
+      });
+    } finally {
+      setCreatingFile("");
+    }
   }
 
   function submit(ext?: string) {
@@ -311,6 +319,16 @@ export default function NewFilePage(props: Props) {
       }
       close={showFiles}
     >
+      <Modal
+        onCancel={() => setCreatingFile("")}
+        open={!!creatingFile}
+        title={`Creating ${creatingFile}...`}
+        footer={<></>}
+      >
+        <div style={{ textAlign: "center" }}>
+          <FakeProgress time={4000} />
+        </div>
+      </Modal>
       <Row key={"new-file-row"}>
         <Col sm={12}>
           <Paragraph
