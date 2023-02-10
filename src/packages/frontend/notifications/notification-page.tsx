@@ -5,11 +5,31 @@
 
 import React from "react";
 
-import { rclass, redux, rtypes } from "@cocalc/frontend/app-framework";
+import { CSS, rclass, redux, rtypes } from "@cocalc/frontend/app-framework";
 import { A, VisibleMDLG } from "@cocalc/frontend/components";
 import { MentionFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
+
+const OUTER_STYLE: CSS = {
+  overflow: "scroll",
+  margin: "0 auto",
+  maxWidth: "800px",
+  padding: "15px",
+} as const;
+
+const INNER_STYLE: CSS = {
+  display: "flex",
+} as const;
+
+const NAV_STYLE: CSS = {
+  margin: "15px 15px 15px 0px",
+} as const;
+
+const LIST_STYLE: CSS = {
+  flex: "1",
+  margin: "15px 0px 15px 15px",
+} as const;
 
 interface ReduxProps {
   account_id?: string;
@@ -41,7 +61,7 @@ export const NotificationPage = rclass(
         return <div />;
       }
       return (
-        <div style={outer_container_style} className="smc-vfill">
+        <div style={OUTER_STYLE} className="smc-vfill">
           <h1 style={{ color: "#666", textAlign: "center" }}>Mentions</h1>
           <VisibleMDLG>
             <div
@@ -71,16 +91,16 @@ export const NotificationPage = rclass(
               make it easy to find something later.
             </div>
           </VisibleMDLG>
-          <div style={inner_container_style}>
+          <div style={INNER_STYLE}>
             <NotificationNav
               filter={filter}
               on_click={redux.getActions("mentions").set_filter}
-              style={nav_style}
+              style={NAV_STYLE}
             />
             <NotificationList
               account_id={account_id}
               mentions={mentions}
-              style={list_style}
+              style={LIST_STYLE}
               user_map={user_map}
               filter={filter}
             />
@@ -90,23 +110,3 @@ export const NotificationPage = rclass(
     }
   }
 );
-
-const outer_container_style: React.CSSProperties = {
-  overflow: "scroll",
-  paddingLeft: "8%",
-  paddingRight: "8%",
-  paddingTop: "20px",
-};
-
-const inner_container_style: React.CSSProperties = {
-  display: "flex",
-};
-
-const nav_style: React.CSSProperties = {
-  margin: "15px 15px 15px 0px",
-};
-
-const list_style: React.CSSProperties = {
-  flex: "1",
-  margin: "15px 0px 15px 15px",
-};
