@@ -3,26 +3,27 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Col, Row } from "antd";
+import { ReactNode } from "react";
+
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   Rendered,
   useActions,
   useRef,
-  useState,
+  useState
 } from "@cocalc/frontend/app-framework";
-import { ReactNode } from "react";
 import {
   ErrorDisplay,
   Icon,
   Markdown,
   Space,
-  Tip,
+  Tip
 } from "@cocalc/frontend/components";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { to_json } from "@cocalc/util/misc";
-import { Col, Row } from "antd";
 import { BigTime } from ".";
 import { CourseActions } from "../actions";
 import { NbgraderScores } from "../nbgrader/scores";
@@ -30,7 +31,7 @@ import {
   AssignmentRecord,
   LastCopyInfo,
   NBgraderRunInfo,
-  StudentRecord,
+  StudentRecord
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
@@ -199,7 +200,6 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
             onClick={() => set_edited_feedback()}
             bsStyle={"default"}
             disabled={is_editing}
-            style={{ marginRight: "5px" }}
             bsSize={bsSize}
           >
             {text}
@@ -642,12 +642,12 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       return (
         <Col md={width} key="grade">
           {show_grade_col && (
-            <>
+            <div>
               {render_save_button()}
               {render_grade()}
               {render_comments()}
               {render_nbgrader()}
-            </>
+            </div>
           )}
         </Col>
       );
