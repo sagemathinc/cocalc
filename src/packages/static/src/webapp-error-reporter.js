@@ -427,8 +427,6 @@ const sendLogLine = (severity, args) =>
     });
   });
 
-window.sendLogLine = sendLogLine;
-
 const wrapFunction = function (object, property, newFunction) {
   const oldFunction = object[property];
   return (object[property] = function () {
