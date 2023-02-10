@@ -125,7 +125,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
           title={tooltip}
           mouseEnterDelay={1}
           mouseLeaveDelay={0}
-          placement="right"
+          placement="bottom"
         >
           {inner}
         </Tooltip>

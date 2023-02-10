@@ -26,11 +26,6 @@ interface Props {
   pageStyle: PageStyle;
 }
 
-const INNER_STYLE: CSS = {
-  fontSize: "14px",
-  cursor: "pointer",
-};
-
 export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const { active, type, pageStyle } = props;
   const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
@@ -39,15 +34,6 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const mentions_store = redux.getStore("mentions");
   const mentions = useTypedRedux("mentions", "mentions");
   const notify_count = useTypedRedux("file_use", "notify_count");
-
-  const OUTER_STYLE: CSS = {
-    padding: `${topPaddingIcons} ${sidePaddingIcons}`,
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    height: "100%",
-    ...(active ? { backgroundColor: COLORS.TOP_BAR.ACTIVE } : {}),
-  } as const;
 
   const count = useMemo(() => {
     switch (type) {
@@ -60,6 +46,26 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         return 0;
     }
   }, [type, notify_count, mentions]);
+
+  const outer_style: CSS = {
+    padding: `${topPaddingIcons} ${sidePaddingIcons}`,
+    display: "flex",
+    alignItems: "center",
+    height: "100%",
+    ...(active ? { backgroundColor: COLORS.TOP_BAR.ACTIVE } : {}),
+  };
+
+  const inner_style: CSS = {
+    cursor: "pointer",
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    ...(type === "mentions" && count > 0
+      ? {
+          top: 3, // bit offset to make room for the badge
+        }
+      : {}),
+  };
 
   function onClick(e) {
     e.preventDefault();
@@ -105,14 +111,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
             count={count}
             size="small"
           >
-            <Icon
-              style={{
-                top: count > 0 ? 3 : 0,
-                position: "relative",
-                fontSize: fontSizeIcons,
-              }}
-              name="mail"
-            />
+            <Icon style={{ fontSize: fontSizeIcons }} name="mail" />
           </Badge>
         );
 
@@ -124,8 +123,8 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const className = TOP_BAR_ELEMENT_CLASS + (active ? " active" : "");
 
   return (
-    <div style={OUTER_STYLE} onClick={onClick} className={className}>
-      <div style={INNER_STYLE}>{renderBadge()}</div>
+    <div style={outer_style} onClick={onClick} className={className}>
+      <div style={inner_style}>{renderBadge()}</div>
     </div>
   );
 });
