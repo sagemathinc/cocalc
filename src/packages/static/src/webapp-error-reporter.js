@@ -385,22 +385,26 @@ if (ENABLED && window.setImmediate) {
 // console terminal
 
 function argsToJson(args) {
-  let s = "[";
+  let v = [];
   try {
     const misc = require("@cocalc/util/misc");
     for (const arg of args) {
       try {
-        s += misc.trunc_middle(JSON.stringify(arg), 300) + ", ";
+        const s = JSON.stringify(arg);
+        v.push(s.length > 1000 ? misc.trunc_middle(s) : JSON.parse(s));
       } catch (_) {
-        s += "(non-jsonable-arg), ";
+        v.push("(non-jsonable-arg)");
       }
-      if (s.length > 10000) break;
+      if (v.length > 10) {
+        v.push("(skipping JSON of some args)");
+        break;
+      }
     }
   } catch (_) {
     // must be robust.
-    s += "(unable to JSON args)";
+    v.push("(unable to JSON some args)");
   }
-  return s + "]";
+  return JSON.stringify(v);
 }
 
 const sendLogLine = (severity, args) =>
@@ -422,6 +426,8 @@ const sendLogLine = (severity, args) =>
       severity,
     });
   });
+
+window.sendLogLine = sendLogLine;
 
 const wrapFunction = function (object, property, newFunction) {
   const oldFunction = object[property];
