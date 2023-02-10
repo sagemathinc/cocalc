@@ -233,7 +233,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         }
       }
 
-      if (pages.size == 0) {
+      if (pages.size == 0 && pages0 == null) {
         setTimeout(() => this.createPage(), 0);
       }
     };
