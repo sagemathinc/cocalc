@@ -14,7 +14,7 @@ export default function Text({ element }: Props) {
   const isEmpty = !element.str?.trim();
   return (
     <StaticMarkdown
-      value={isEmpty ? PLACEHOLDER : element.str ?? ""}
+      value={isEmpty ? element.data?.placeholder ?? PLACEHOLDER : element.str ?? ""}
       style={getFullStyle(element, isEmpty)}
     />
   );

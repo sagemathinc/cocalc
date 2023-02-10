@@ -65,6 +65,8 @@ export interface Data {
   pos?: number; // used for sorting similar objects, e.g., pages
   runState?: string;
   start?: number;
+  placeholder?: string; // use as placeholder text whenever this element is empty
+  initStr?: string; // initial string when focused to edit and nothing set.
 }
 
 /*
