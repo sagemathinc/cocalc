@@ -384,12 +384,30 @@ if (ENABLED && window.setImmediate) {
 
 // console terminal
 
+function argsToJson(args) {
+  let s = "[";
+  try {
+    const misc = require("@cocalc/util/misc");
+    for (const arg of args) {
+      try {
+        s += misc.trunc_middle(JSON.stringify(arg), 300) + ", ";
+      } catch (_) {
+        s += "(non-jsonable-arg), ";
+      }
+      if (s.length > 10000) break;
+    }
+  } catch (_) {
+    // must be robust.
+    s += "(unable to JSON args)";
+  }
+  return s + "]";
+}
+
 const sendLogLine = (severity, args) =>
   require.ensure([], () => {
     let message;
-    const misc = require("@cocalc/util/misc");
     if (typeof args === "object") {
-      message = misc.trunc_middle(misc.to_json(args), 1000);
+      message = argsToJson(args);
     } else {
       message = Array.prototype.slice.call(args).join(", ");
     }
