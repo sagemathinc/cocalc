@@ -6,28 +6,39 @@
 import React from "react";
 
 import { CSS, rclass, redux, rtypes } from "@cocalc/frontend/app-framework";
-import { A, VisibleMDLG } from "@cocalc/frontend/components";
+import { A, Title } from "@cocalc/frontend/components";
 import { MentionFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
 
 const OUTER_STYLE: CSS = {
-  overflow: "scroll",
-  margin: "0 auto",
-  maxWidth: "800px",
-  padding: "15px",
+  overflow: "none",
 } as const;
 
 const INNER_STYLE: CSS = {
   display: "flex",
+  height: "100%",
+  overflow: "none",
+  padding: "0 10px",
+  margin: "0 auto",
+  maxWidth: "800px",
+  flexDirection: "column",
+  flex: "1 0 auto",
 } as const;
+
+const CONTENT_STYLE: CSS = {
+  height: "100%",
+  display: "flex",
+  flex: "1 0 auto",
+  overflow: "none",
+  outline: "1px solid red",
+};
 
 const NAV_STYLE: CSS = {
   margin: "15px 15px 15px 0px",
 } as const;
 
 const LIST_STYLE: CSS = {
-  flex: "1",
   margin: "15px 0px 15px 15px",
 } as const;
 
@@ -62,10 +73,20 @@ export const NotificationPage = rclass(
       }
       return (
         <div style={OUTER_STYLE} className="smc-vfill">
-          <h1 style={{ color: "#666", textAlign: "center" }}>Mentions</h1>
-          <VisibleMDLG>
+          <div style={INNER_STYLE}>
+            <Title
+              level={2}
+              style={{
+                display: "block",
+                textAlign: "center",
+                flex: "0 0 auto",
+              }}
+            >
+              Mentions
+            </Title>
             <div
               style={{
+                flex: "0 0 auto",
                 maxWidth: "800px",
                 margin: "0 auto",
                 color: "#666",
@@ -90,20 +111,29 @@ export const NotificationPage = rclass(
               mentioned them. You can also @mention yourself for testing or to
               make it easy to find something later.
             </div>
-          </VisibleMDLG>
-          <div style={INNER_STYLE}>
-            <NotificationNav
-              filter={filter}
-              on_click={redux.getActions("mentions").set_filter}
-              style={NAV_STYLE}
-            />
-            <NotificationList
-              account_id={account_id}
-              mentions={mentions}
-              style={LIST_STYLE}
-              user_map={user_map}
-              filter={filter}
-            />
+            <div style={CONTENT_STYLE}>
+              <NotificationNav
+                filter={filter}
+                on_click={redux.getActions("mentions").set_filter}
+                style={NAV_STYLE}
+              />
+              <div
+                style={{
+                  flex: "1 0 auto",
+                  flexDirection: "column",
+                  height: "100%",
+                  overflow: "auto",
+                }}
+              >
+                <NotificationList
+                  account_id={account_id}
+                  mentions={mentions}
+                  style={LIST_STYLE}
+                  user_map={user_map}
+                  filter={filter}
+                />
+              </div>
+            </div>
           </div>
         </div>
       );

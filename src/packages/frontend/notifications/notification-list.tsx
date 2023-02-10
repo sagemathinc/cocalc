@@ -5,18 +5,19 @@
 
 import React from "react";
 
-import { MentionsMap, MentionFilter } from "./mentions/types";
-import { MentionRow } from "./mentions/mention-row";
-
-import { NoNewNotifications } from "./no-new-notifications";
-
-import { ProjectTitle } from "../projects/project-title";
-
 const { Panel } = require("react-bootstrap");
 
-function assertNever(x: never): never {
-  throw new Error("Unexpected filter: " + x);
-}
+import { MentionsMap, MentionFilter } from "./mentions/types";
+import { MentionRow } from "./mentions/mention-row";
+import { NoNewNotifications } from "./no-new-notifications";
+import { ProjectTitle } from "../projects/project-title";
+import { unreachable } from "@cocalc/util/misc";
+
+const notification_list_style: React.CSSProperties = {
+  padding: "0px",
+  height: "100%",
+  overflow: "auto",
+};
 
 export function NotificationList({
   account_id,
@@ -56,7 +57,7 @@ export function NotificationList({
         case "all":
           return true;
         default:
-          assertNever(filter);
+          unreachable(filter);
       }
     })
     .map((notification, id) => {
@@ -93,7 +94,7 @@ export function NotificationList({
   return (
     <div
       className={"smc-notificationlist"}
-      style={Object.assign({}, notification_list_style, style)}
+      style={{ ...notification_list_style, ...style }}
     >
       {project_panels}
     </div>
@@ -122,13 +123,7 @@ function NoMentions({
       text = "No mentions";
       break;
     default:
-      assertNever(filter);
+      unreachable(filter);
   }
   return <NoNewNotifications text={text} style={style} />;
 }
-
-const notification_list_style: React.CSSProperties = {
-  height: "100%",
-  width: "100%",
-  padding: "0px",
-};
