@@ -30,12 +30,27 @@ function Label({ path, project_id, label }) {
   );
 }
 
+// This mapping back and forth is needed because of, I guess, a bug
+// in antd, where the key can't include a double quote.  This was
+// the closest thing in the antd bug tracker:
+//   https://github.com/ant-design/ant-design/issues/33928
+// I hope there are no other special characters to exclude.
+// This doesn't impact projects since they use the project_id.
+function pathToKey(s: string): string {
+  return s.replace(/"/g, '\\"');
+}
+
+function keyToPath(s: string): string {
+  return s.replace(/\\"/g, '"');
+}
+
 export default function FileTabs({ openFiles, project_id, activeTab }) {
   const actions = useActions({ project_id });
   if (openFiles == null) {
     return null;
   }
   const paths: string[] = [];
+  const keys: string[] = [];
   openFiles.map((path) => {
     if (path == null) {
       // see https://github.com/sagemathinc/cocalc/issues/3450
@@ -46,6 +61,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       );
     }
     paths.push(path);
+    keys.push(pathToKey(path));
   });
 
   const labels = file_tab_labels(paths);
@@ -53,7 +69,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
 
   for (let index = 0; index < labels.length; index++) {
     items.push({
-      key: paths[index],
+      key: pathToKey(paths[index]),
       label: (
         <Label
           path={paths[index]}
@@ -78,26 +94,25 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     const { active, over } = event;
     if (active == null || over == null || active.id == over.id) return;
     actions.move_file_tab({
-      old_index: paths.indexOf(active.id),
-      new_index: paths.indexOf(over.id),
+      old_index: keys.indexOf(active.id),
+      new_index: keys.indexOf(over.id),
     });
   }
 
   const activeKey = activeTab.startsWith("editor-")
-    ? activeTab.slice("editor-".length)
+    ? pathToKey(activeTab.slice("editor-".length))
     : "";
 
   function onDragStart(event) {
     if (actions == null) return;
     if (event?.active?.id != activeKey) {
-      actions.set_active_tab(path_to_tab(event?.active?.id));
+      actions.set_active_tab(path_to_tab(keyToPath(event?.active?.id)));
     }
   }
 
   return (
-    <SortableTabs items={paths} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <SortableTabs items={keys} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <Tabs
-        hideAdd
         animated={false}
         renderTabBar={renderTabBar}
         tabBarStyle={{ minHeight: "36px" }}

@@ -37,6 +37,10 @@ function parseSyncdbFileUsingPageIds(
   for (const line of content.split("\n")) {
     try {
       const element = JSON.parse(line);
+      if (element.invisible) {
+        // e.g., speaker notes are not visible and shouldn't get rendered
+        continue;
+      }
       if (element.type == "page") {
         v.push({ pos: element.data.pos, id: element.id });
         if (pageMap[element.id] == null) {

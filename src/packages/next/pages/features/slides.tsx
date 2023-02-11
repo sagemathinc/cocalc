@@ -10,59 +10,44 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import Image from "components/landing/image";
 import Pitch from "components/landing/pitch";
 import SignIn from "components/landing/sign-in";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import WhiteboardPostIt from "/public/features/whiteboard-post-it.png";
-import WhiteboardImage from "/public/features/whiteboard-sage.png";
+import SlidesImage from "/public/features/slides-sage.png";
 
-export default function Whiteboard({ customize }) {
+export default function Slides({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Computational Whiteboard" />
+      <Head title="Computational Slides" />
       <Layout>
-        <Header page="features" subPage="whiteboard" />
+        <Header page="features" subPage="slides" />
         <Layout.Content>
           <Content
             landing
-            logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
-            startup={"Whiteboard"}
+            logo={<Icon name="slides" style={{ fontSize: "100px" }} />}
+            startup={"Slides"}
             title={
-              "Online Collaborative Whiteboard with Jupyter Code Cells and LaTeX Mathematics"
+              "Online Collaborative Slides with Jupyter Code Cells and LaTeX Mathematics"
             }
             subtitleBelow={true}
             subtitle={
               <>
-                Sketch out ideas and run Jupyter code cells with CoCalc
-                Whiteboard
+                Give presentations with code and mathematics using CoCalc Slides
               </>
             }
-            image={WhiteboardImage}
-            alt={"Collaborative Computational Whiteboard"}
+            image={SlidesImage}
+            alt={"Collaborative Computational Slides"}
           />
 
           <Pitch
             col1={
               <>
                 <Title level={2}>
-                  Full featured online collaborative computational whiteboard
+                  Full featured online collaborative computational slides
                 </Title>
-                <Paragraph>
-                  As explained in{" "}
-                  <A href="https://about.cocalc.com/2022/09/08/all-about-computational-whiteboard/">
-                    our blog
-                  </A>{" "}
-                  and{" "}
-                  <A href="https://doc.cocalc.com/whiteboard.html">
-                    documentation
-                  </A>
-                  , CoCalc{"'"}s collaborative computational whiteboards support
-                  an infinite canvas with
-                </Paragraph>
                 <Paragraph>
                   <ul>
                     <li>
@@ -104,7 +89,7 @@ export default function Whiteboard({ customize }) {
             col2={
               <>
                 <Title level={2}>
-                  A Computational Whiteboard with Jupyter cells and more!
+                  Computational Slides with Jupyter cells and more!
                 </Title>
                 <Paragraph>
                   You can{" "}
@@ -115,27 +100,24 @@ export default function Whiteboard({ customize }) {
                   pre-installed software and interactive widgets. You
                   <ul>
                     <li>
-                      Create <strong>edges</strong> between all objects,
-                    </li>
-                    <li>
-                      Use <strong>frames</strong> to organize the whiteboard
+                      Use <strong>slides</strong> to organize your presentation
                       into sections,
                     </li>
                     <li>
                       <strong>Split your editor</strong> windows to view
-                      multiple parts of the whiteboard simultaneously,
+                      multiple sections of your slides simultaneously,
                     </li>
                     <li>
-                      Easily navigate with an <strong>overview map</strong> with
-                      two preview modes,
+                      Easily navigate with an{" "}
+                      <strong>overview map and pages</strong>,
                     </li>
                     <li>
-                      Every change you and your collaborators make is recorded
-                      via browsable <strong>TimeTravel</strong> and you can
-                      copy/paste from any point in the history, and
+                      Every change that you and your collaborators make is
+                      recorded via browsable <strong>TimeTravel</strong> and you
+                      can copy/paste from any point in the history, and
                     </li>
                     <li>
-                      <strong>Publish</strong> your whiteboards to{" "}
+                      <strong>Publish</strong> your slides to{" "}
                       <A href="/share">the share server</A>.
                     </li>
                   </ul>
@@ -153,32 +135,16 @@ export default function Whiteboard({ customize }) {
           }}
         >
           <Title level={1}>Now Available!</Title>
-          <Paragraph style={{ fontSize: "14pt", margin: "15px" }}>
-            Read much more about the computational whiteboard in{" "}
-            <A href="https://about.cocalc.com/2022/09/08/all-about-computational-whiteboard/">
-              our blog
-            </A>{" "}
-            and{" "}
-            <A href="https://doc.cocalc.com/whiteboard.html">
-              the documentation.
-            </A>
-          </Paragraph>
           <Paragraph>
             Try it in any CoCalc project by clicking +New, then clicking
-            "Whiteboard".
+            "Slides".
             <br />
             <br />
-            We also offer <A href="/features/slides">
-              slide presentations
-            </A>{" "}
-            with similar functionality.
+            We also offer an{" "}
+            <A href="/features/whiteboard">infinite canvas whiteboard</A> with
+            similar functionality.
             <br />
-            <SignIn startup={"Whiteboard"} />
-            <Image
-              alt="Screenshot showing whiteboard with post-it notes."
-              src={WhiteboardPostIt}
-              style={{ margin: "15px auto", maxWidth: "1512px" }}
-            />
+            <SignIn startup={"Slides"} />
           </Paragraph>
         </div>
         <Footer />

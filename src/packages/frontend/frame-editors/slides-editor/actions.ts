@@ -87,11 +87,15 @@ export class Actions extends WhiteboardActions<State> {
     this.createElement(
       undefined,
       {
-        data: { color: "#252937", fontSize: 24 },
+        data: {
+          color: "#252937",
+          fontSize: 24,
+          placeholder: "# Click to edit title\n\n",
+          initStr: "\n# \n",
+        },
         h: 123,
         id: "be9e3736",
         page,
-        str: "# Click to edit title\n\n",
         type: "text",
         w: 847,
         x: -200,
@@ -103,11 +107,15 @@ export class Actions extends WhiteboardActions<State> {
     this.createElement(
       undefined,
       {
-        data: { color: "#525252", fontSize: 18 },
+        data: {
+          color: "#525252",
+          fontSize: 18,
+          placeholder: "## Click to edit subtitle\n\n",
+          initStr: "\n## \n",
+        },
         h: 110,
         id: "cdf12aea",
         page,
-        str: "## Click to edit subtitle\n\n",
         type: "text",
         w: 847,
         x: -200,

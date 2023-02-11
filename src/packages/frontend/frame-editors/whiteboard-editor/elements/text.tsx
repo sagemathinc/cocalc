@@ -202,7 +202,7 @@ function EditText({
         // still want to consider it focused, e.g., editing math and code
         // cells, and clicking a checkbox.
       }}
-      value={element.str}
+      value={element.str ? element.str : element.data?.initStr ?? ""}
       fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
       onChange={() => {
         /* MultiMarkdownInput's onChange is debounced by default */

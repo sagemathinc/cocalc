@@ -16,6 +16,7 @@ import NavigationPanel from "./tools/navigation";
 import { useFrameContext, usePageInfo } from "./hooks";
 import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
+import NewPage from "./new-page";
 
 export default function Whiteboard() {
   const { actions, isFocused, path, project_id, desc, font_size } =
@@ -72,6 +73,18 @@ export default function Whiteboard() {
         }}
       >
         <Loading />
+      </div>
+    );
+  }
+
+  if (pageId == null) {
+    // there are no pages at all.
+    return (
+      <div className="smc-vfill" style={{ justifyContent: "center" }}>
+        <NewPage
+          tip={"There are no pages.  Click here to create the first page."}
+          label={"Create Page"}
+        />
       </div>
     );
   }

@@ -104,8 +104,7 @@ export default function Canvas({ elements, mainFrameType }: Props) {
       <div
         ref={canvasRef}
         style={{
-          width: "100%",
-          height: "70vh",
+          height: "80vh",
           overflow: "auto",
           border: "1px solid #ccc",
           borderRadius: "5px",

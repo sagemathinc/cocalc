@@ -2369,7 +2369,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
-  async create_file(opts) {
+  async create_file(opts: {
+    name: string;
+    ext?: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }) {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2387,7 +2392,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (misc.is_only_downloadable(name)) {
-      this.new_file_from_web(name, opts.current_path);
+      this.new_file_from_web(name, opts.current_path ?? "");
       return;
     }
     if (name[name.length - 1] === "/") {

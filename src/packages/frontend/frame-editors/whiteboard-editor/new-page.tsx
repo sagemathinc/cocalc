@@ -2,8 +2,17 @@ import { Button, Popover } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "./hooks";
 import { COLORS } from "@cocalc/util/theme";
+import { CSSProperties, ReactNode } from "react";
 
-export default function NewPage({ style, tip }) {
+export default function NewPage({
+  style,
+  tip,
+  label,
+}: {
+  style?: CSSProperties;
+  tip?: ReactNode;
+  label?: ReactNode;
+}) {
   const { actions } = useFrameContext();
   return (
     <div style={{ ...style, textAlign: "center" }}>
@@ -35,7 +44,8 @@ export default function NewPage({ style, tip }) {
             name="plus-circle"
             style={{ fontSize: "200%", color: COLORS.FILE_ICON }}
           />
-          <br /> New Page
+          <br />
+          {label ?? "New Page"}
         </Button>
       </Popover>
     </div>
