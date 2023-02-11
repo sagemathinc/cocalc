@@ -36,12 +36,14 @@ function Label({ path, project_id, label }) {
 //   https://github.com/ant-design/ant-design/issues/33928
 // I hope there are no other special characters to exclude.
 // This doesn't impact projects since they use the project_id.
+// Note that \uFE32 is an "unused unicode character"; we use
+// this same trick in various places throughout cocalc.
 function pathToKey(s: string): string {
-  return s.replace(/"/g, '\\"');
+  return s.replace(/"/g, "\uFE32");
 }
 
 function keyToPath(s: string): string {
-  return s.replace(/\\"/g, '"');
+  return s.replace(/\uFE32/g, '"');
 }
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
