@@ -36,14 +36,17 @@ function Label({ path, project_id, label }) {
 //   https://github.com/ant-design/ant-design/issues/33928
 // I hope there are no other special characters to exclude.
 // This doesn't impact projects since they use the project_id.
-// Note that \uFE32 is an "unused unicode character"; we use
+// Note the "unused unicode character"; we use
 // this same trick in various places throughout cocalc.
 function pathToKey(s: string): string {
-  return s.replace(/"/g, "\uFE32");
+  if (s.includes("\uFE35")) {
+    throw Error(`invalid path: ${JSON.stringify(s)}`);
+  }
+  return s.replace(/"/g, "\uFE35");
 }
 
 function keyToPath(s: string): string {
-  return s.replace(/\uFE32/g, '"');
+  return s.replace(/\uFE35/g, '"');
 }
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
@@ -81,11 +84,12 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       ),
     });
   }
-  const onEdit = (path: string, action: "add" | "remove") => {
+  const onEdit = (key: string, action: "add" | "remove") => {
     if (actions == null) return;
     if (action == "add") {
       actions.set_active_tab("files");
     } else {
+      const path = keyToPath(key);
       // close given file
       actions.close_tab(path);
     }
@@ -124,9 +128,9 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         items={items}
         activeKey={activeKey}
         type={"editable-card"}
-        onChange={(path) => {
+        onChange={(key) => {
           if (actions == null) return;
-          actions.set_active_tab(path_to_tab(path));
+          actions.set_active_tab(path_to_tab(keyToPath(key)));
         }}
       />
     </SortableTabs>

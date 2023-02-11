@@ -398,7 +398,7 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <AntdModal visible={props.show} footer={null} closable={false}>
+    <AntdModal open={props.show} footer={null} closable={false}>
       {props.children}
     </AntdModal>
   );
