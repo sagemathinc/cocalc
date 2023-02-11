@@ -63,7 +63,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
           : undefined),
       }}
     >
-      <div style={{ display: "flex" }}>
+      <Button.Group>
         {!(readOnly || locked || hidden) && (
           <>
             {configParams.has("color") && <ColorButton {...props} />}
@@ -83,7 +83,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
         {!readOnly && !locked && <HideButton elements={elements} />}
         {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
         <OtherOperations {...props} />
-      </div>
+      </Button.Group>
     </div>
   );
 }
@@ -105,8 +105,7 @@ function DeleteButton({ elements }: ButtonProps) {
   return (
     <Tooltip title="Delete selected">
       <Button
-        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
+        style={{ ...BUTTON_STYLE }}
         onClick={() => {
           actions.deleteElements(elements);
           actions.clearSelection(id);
@@ -124,7 +123,6 @@ function DuplicateButton({ elements }: ButtonProps) {
     <Tooltip title="Duplicate selected">
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
         onClick={() => {
           actions.duplicateElements(elements, id);
         }}
@@ -149,7 +147,6 @@ function ColorButton({ actions, elements }: ButtonProps) {
       <Tooltip title="Color">
         <Button
           style={BUTTON_STYLE}
-          type="text"
           onClick={() => setShowPicker(!showPicker)}
         >
           <BrushPreview radius={maxRadius} color={color ?? "black"} />
@@ -189,7 +186,6 @@ function GroupButton({ actions, elements }: ButtonProps) {
     >
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
         onClick={() => {
           const ids = elements.map((element) => element.id);
           if (grouped) {

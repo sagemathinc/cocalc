@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   Icon,
   MenuDivider,
-  MenuItem,
   MenuItems,
   r_join,
 } from "@cocalc/frontend/components";
@@ -328,25 +327,22 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       user_activity("cocal_jupyter", "change kernel", kernel_name);
     }
 
-    function render_kernel_item(kernel: any): Rendered {
+    function render_kernel_item(kernel: any): MenuItems[0] {
       const style: React.CSSProperties = { marginLeft: "4ex" };
       if (kernel.name === kernel) {
         style.color = "#2196F3";
         style.fontWeight = "bold";
       }
-      return (
-        <MenuItem
-          key={kernel.name}
-          onClick={() => {
-            handle_kernel_select(kernel.name);
-          }}
-        >
-          <span style={style}> {kernel.display_name} </span>
-        </MenuItem>
-      );
+      return {
+        key: kernel.name,
+        label: <span style={style}> {kernel.display_name} </span>,
+        onClick: () => {
+          handle_kernel_select(kernel.name);
+        },
+      };
     }
 
-    function render_kernel_items(): Rendered[] | undefined {
+    function render_kernel_items(): MenuItems[0][] | undefined {
       if (kernels == null) {
         return;
       }
@@ -413,8 +409,15 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       };
     }
 
-    function render_menu_item(key: string, name1: MenuItemName): MenuItems[0] {
-      if (name1 === "") return MenuDivider;
+    function render_menu_item(
+      key: string,
+      name1: MenuItemName | MenuItems[0]
+    ): MenuItems[0] {
+      if (!name1) return MenuDivider;
+      if (name1["label"] != null) {
+        // it is of type MenuItem[0]
+        return name1 as MenuItems[0];
+      }
 
       let name = typeof name1 === "string" ? name1 : undefined;
       let display: undefined | string;
@@ -429,20 +432,9 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       } else {
         display = undefined;
       }
+      if (!name) return MenuDivider;
 
       style ??= {};
-
-      if (typeof name !== "string") {
-        // HEISENBUG: This was reported once in production and led to a complete browser crash, preventing
-        // the user to use Jupyter.  No clue how this is possible, and it's probably the result
-        // of some other mystery problem.  But it probably can't hurt to make this non-fatal,
-        // just in case it happens in some edge case that we're just not thinking of.
-        console.warn(
-          "bug -- name must be a string at this point; working around this.  name=",
-          name
-        );
-        name = `${name}`;
-      }
 
       let disabled: boolean;
       if (name[0] === "<") {
