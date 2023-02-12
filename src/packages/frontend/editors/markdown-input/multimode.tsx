@@ -315,7 +315,6 @@ export default function MultiMarkdownInput({
           fontSize={fontSize}
           cmOptions={cmOptions}
           height={height}
-          instructionsStyle={editBarStyle}
           style={style}
           autoFocus={focused}
           submitMentionsRef={submitMentionsRef}

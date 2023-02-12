@@ -326,7 +326,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           />
           {is_preview && render_preview_message()}
         </div>
-        <div style={{ display: "flex", marginBottom: "5px" }}>
+        <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
           <div
             style={{
               flex: "1",
@@ -343,6 +343,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
+              editBarStyle={{ overflow: "auto" }}
             />
           </div>
           <div

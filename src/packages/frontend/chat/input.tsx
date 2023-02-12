@@ -26,6 +26,7 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   syncdb?;
+  editBarStyle?;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -150,6 +151,7 @@ export const ChatInput: React.FC<Props> = (props) => {
         saveChat.cancel();
         syncdb?.redo();
       }}
+      editBarStyle={props.editBarStyle}
     />
   );
 };
