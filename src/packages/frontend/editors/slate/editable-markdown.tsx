@@ -1,4 +1,4 @@
-/*d
+/*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
@@ -44,6 +44,8 @@ import { applyOperations, preserveScrollPosition } from "./operations";
 import { getScrollState, setScrollState } from "./scroll";
 import { slatePointToMarkdownPosition } from "./sync";
 import { useMentions } from "./slate-mentions";
+import { useEmojis } from "./slate-emojis";
+import { createEmoji } from "./elements/emoji/index";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { createMention } from "./elements/mention/editable";
 import { Mention } from "./elements/mention/index";
@@ -323,6 +325,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
+    const emojis = useEmojis({
+      editor,
+      insertEmoji: (editor, content, markup) => {
+        Transforms.insertNodes(editor, [
+          createEmoji(content, markup),
+          { text: " " },
+        ]);
+      },
+    });
+
     useEffect(() => {
       if (submitMentionsRef != null) {
         submitMentionsRef.current = (fragmentId?: FragmentId) => {
@@ -493,6 +505,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
 
       mentions.onKeyDown(e);
+      emojis.onKeyDown(e);
+
       if (e.defaultPrevented) return;
 
       if (!ReactEditor.isFocused(editor)) {
@@ -793,6 +807,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // Update mentions state whenever editor actually changes.
       // This may pop up the mentions selector.
       mentions.onChange();
+      // Similar for emojis.
+      emojis.onChange();
 
       if (!is_current) {
         // Do not save when editor not current since user could be typing
@@ -905,6 +921,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           }}
         >
           {mentions.Mentions}
+          {emojis.Emojis}
           {slate}
         </div>
       </div>
