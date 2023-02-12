@@ -9,7 +9,9 @@ import { join } from "path";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
-import CoCalcComFeatures from "components/landing/cocalc-com-features";
+import CoCalcComFeatures, {
+  Hero,
+} from "components/landing/cocalc-com-features";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -170,7 +172,7 @@ export default function Home(props: Props) {
           </Title>
           <Paragraph>
             <iframe
-              style={{ marginTop: "30px" }}
+              style={{ marginTop: "30px", maxWidth: "100%" }}
               width="672"
               height="378"
               src="https://www.youtube.com/embed/ygVWdH4RKIQ"
@@ -205,6 +207,7 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
+          <Hero />
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>
