@@ -7,15 +7,27 @@
 CRM Editor Actions
 */
 
-import { Actions as CodeEditorActions } from "../code-editor/actions";
+import {
+  Actions as CodeEditorActions,
+  CodeEditorState,
+} from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
+import { fromJS, Map as iMap, Set as iSet } from "immutable";
 
-export class Actions extends CodeEditorActions {
+interface CRMEditorState extends CodeEditorState {
+  // The selection is a map from view id to set of primary keys.
+  // It records which records are selected in a given view.
+  selection: iMap<string, iSet<any>>;
+}
+
+export class Actions extends CodeEditorActions<CRMEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["table", "id"];
   protected string_cols: string[] = [];
 
-  _init2(): void {}
+  _init2(): void {
+    this.setState({ selection: fromJS({}) });
+  }
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "tables" };
