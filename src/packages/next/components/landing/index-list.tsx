@@ -87,7 +87,10 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
       </div>
     );
     const extra = item.image && (
-      <div style={{ width: item.imageWidth ?? "275px" }}>
+      <div
+        className="hidden-mobile"
+        style={{ width: item.imageWidth ?? "275px" }}
+      >
         <A href={item.link}>
           <Image
             src={item.image}
