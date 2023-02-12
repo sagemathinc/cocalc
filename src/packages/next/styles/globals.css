@@ -54,7 +54,7 @@ h6 {
 }
 
 @media (max-width: 767px) {
-  .hidden-mobile {
+  .cc-hidden-mobile {
     display: none;
   }
 }
