@@ -14,6 +14,7 @@ export default function Component({ editor, font }) {
         ...BUTTON_STYLE,
         height: "24px",
         padding: "0px 0px 0px 2.5px",
+        fontSize: "13px",
       }}
       onClick={(font_family) => {
         formatAction(editor, "font_family", font_family);
