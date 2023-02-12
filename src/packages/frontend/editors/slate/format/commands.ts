@@ -25,6 +25,7 @@ import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 import { SlateEditor } from "../editable-markdown";
+import { getMarks } from "../edit-bar/marks";
 
 // currentWord:
 //
@@ -335,19 +336,27 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
     if (cmd == "color") {
       // args = #aa00bc (the hex color)
       unformatSelectedText(editor, { prefix: "color:" });
-      formatSelectedText(editor, `color:${args.toLowerCase()}`);
+      if (args) {
+        formatSelectedText(editor, `color:${args.toLowerCase()}`);
+      } else {
+        for (const mark in getMarks(editor)) {
+          if (mark.startsWith("color:")) {
+            Editor.removeMark(editor, mark);
+          }
+        }
+      }
       return;
     }
 
     if (cmd == "font_family") {
       unformatSelectedText(editor, { prefix: "font-family:" });
-      formatSelectedText(editor, `font-family:${args.toLowerCase()}`);
+      formatSelectedText(editor, `font-family:${args}`);
       return;
     }
 
     if (startswith(cmd, "font_size")) {
       unformatSelectedText(editor, { prefix: "font-size:" });
-      formatSelectedText(editor, `font-size:${args.toLowerCase()}`);
+      formatSelectedText(editor, `font-size:${args}`);
       return;
     }
 

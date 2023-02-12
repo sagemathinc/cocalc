@@ -819,7 +819,9 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     str,
   }: {
     id: string; // id of cell to run
-    str?: string; // input -- we allow specifying this instead of taking it from the store, in case it just changed and hasn't been saved to the store yet.
+    // str of input-- we allow specifying this instead of taking it from the store,
+    // in case it just changed and hasn't been saved to the store yet.
+    str?: string;
   }) {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null || element.type != "code") {
