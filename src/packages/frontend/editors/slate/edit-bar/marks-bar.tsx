@@ -86,13 +86,39 @@ export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
       />
     );
   }
-  v.push(<FontFamily key={"font"} editor={editor} />);
-  v.push(<FontSize key={"size"} editor={editor} />);
+  v.push(<FontSize key={"size"} editor={editor} size={getSizeMark(marks)} />);
   v.push(<Heading key="heading" editor={editor} />);
-  v.push(<ColorButton key={"color"} editor={editor} />);
+  v.push(
+    <ColorButton key={"color"} editor={editor} color={getColorMark(marks)} />
+  );
+  v.push(<FontFamily key={"font"} editor={editor} font={getFontMark(marks)} />);
   return (
     <div style={{ paddingRight: "10px", flex: 1, whiteSpace: "nowrap" }}>
       {v}
     </div>
   );
 };
+
+function getColorMark(marks): string | undefined {
+  for (const key in marks) {
+    if (key.startsWith("color:") && marks[key]) {
+      return key.slice("color:".length);
+    }
+  }
+}
+
+function getFontMark(marks): string | undefined {
+  for (const key in marks) {
+    if (key.startsWith("font-family:") && marks[key]) {
+      return key.slice("font-family:".length);
+    }
+  }
+}
+
+function getSizeMark(marks): string | undefined {
+  for (const key in marks) {
+    if (key.startsWith("font-size:") && marks[key]) {
+      return key.slice("font-size:".length);
+    }
+  }
+}

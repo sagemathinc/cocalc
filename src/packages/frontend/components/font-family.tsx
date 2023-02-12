@@ -5,13 +5,14 @@
 
 import { CSSProperties, useMemo } from "react";
 
-import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { DropdownMenu } from "@cocalc/frontend/components";
 import { FONT_FACES } from "@cocalc/frontend/editors/editor-button-bar";
 import { MenuItems } from "./dropdown-menu";
 
 interface Props {
   onClick: (family: string) => void;
   style?: CSSProperties;
+  font?: string;
 }
 
 export default function FontFamilyMenu(props: Props) {
@@ -31,7 +32,13 @@ export default function FontFamilyMenu(props: Props) {
     <DropdownMenu
       style={style}
       button={true}
-      title={<Icon name={"font"} />}
+      title={
+        props.font ? (
+          <span style={{ fontFamily: props.font }}>{props.font}</span>
+        ) : (
+          "Sans"
+        )
+      }
       key={"font-family"}
       items={items}
     />

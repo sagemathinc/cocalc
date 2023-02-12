@@ -12,7 +12,7 @@ export interface Marks {
   [mark: string]: boolean | undefined;
 }
 
-function getMarks(editor) {
+export function getMarks(editor) {
   try {
     return Editor.marks(editor) ?? {};
   } catch (err) {

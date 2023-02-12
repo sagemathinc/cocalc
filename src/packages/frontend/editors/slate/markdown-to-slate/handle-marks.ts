@@ -80,7 +80,7 @@ function handleMarks({ token, state }) {
 
   if (token.type == "html_inline") {
     // special cases for underlining, sup, sub, which markdown doesn't have.
-    const x = token.content.toLowerCase();
+    const x = token.content;
     const t = HOOKS[x];
     if (t != null) {
       for (const mark in t) {

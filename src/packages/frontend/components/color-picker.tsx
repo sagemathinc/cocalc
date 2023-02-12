@@ -126,12 +126,21 @@ interface ButtonProps {
   title?: ReactNode;
   style?: CSSProperties;
   type?: "default" | "link" | "text" | "ghost" | "primary" | "dashed";
+  onClick?: () => boolean | undefined;
 }
-export function ColorButton({ onChange, title, style, type }: ButtonProps) {
+export function ColorButton({
+  onChange,
+  title,
+  style,
+  type,
+  onClick,
+}: ButtonProps) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
       <Modal
+        transitionName=""
+        maskTransitionName=""
         title={title ?? "Select a Color"}
         visible={show}
         onOk={() => setShow(false)}
@@ -144,7 +153,14 @@ export function ColorButton({ onChange, title, style, type }: ButtonProps) {
           }}
         />
       </Modal>
-      <Button onClick={() => setShow(!show)} style={style} type={type}>
+      <Button
+        onClick={() => {
+          if (onClick?.()) return;
+          setShow(!show);
+        }}
+        style={style}
+        type={type}
+      >
         <Icon name="colors" />
       </Button>
     </>

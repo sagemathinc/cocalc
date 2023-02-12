@@ -48,7 +48,7 @@ export default function Text(props: Props) {
           top: "-82px",
           left: "-18px",
         },
-        placeholder: PLACEHOLDER,
+        placeholder: props.element.data?.placeholder ?? PLACEHOLDER,
         noVfill: true,
         minimal: true,
         compact: true,

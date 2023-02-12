@@ -14,10 +14,13 @@ interface Props {
 
 export default function Text({ element, readOnly, style }: Props) {
   const { actions } = useFrameContext();
-  const isEmpty = !element.str?.trim();
+  const val = element.str?.trim();
+  const isEmpty = !val || val == element.data?.initStr?.trim();
   return (
     <MostlyStaticMarkdown
-      value={isEmpty ? element.data?.placeholder ?? PLACEHOLDER : element.str ?? ""}
+      value={
+        isEmpty ? element.data?.placeholder ?? PLACEHOLDER : element.str ?? ""
+      }
       style={{ ...getFullStyle(element, isEmpty), ...style }}
       onChange={
         readOnly || actions == null
