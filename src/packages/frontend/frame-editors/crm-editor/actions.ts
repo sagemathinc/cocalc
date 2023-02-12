@@ -13,11 +13,18 @@ import {
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { fromJS, Map as iMap, Set as iSet } from "immutable";
+import { useEditorRedux } from "@cocalc/frontend/app-framework";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface CRMEditorState extends CodeEditorState {
   // The selection is a map from view id to set of primary keys.
   // It records which records are selected in a given view.
   selection: iMap<string, iSet<any>>;
+}
+
+export function useEditor() {
+  const { project_id, path } = useFrameContext();
+  return useEditorRedux<CRMEditorState>({ project_id, path });
 }
 
 export class Actions extends CodeEditorActions<CRMEditorState> {

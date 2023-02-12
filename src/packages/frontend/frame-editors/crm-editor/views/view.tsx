@@ -273,6 +273,7 @@ export default function View({
           columns={columns}
           sortFields={sortFields}
           setSortField={setSortField}
+          rowKey={rowKey}
         />
       );
       break;

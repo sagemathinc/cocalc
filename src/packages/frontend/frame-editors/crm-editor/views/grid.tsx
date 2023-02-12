@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { Divider, Modal } from "antd";
+import { Checkbox, Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
@@ -9,6 +9,7 @@ import Json from "./json";
 import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
 import Draggable from "react-draggable";
+import useSelection from "./use-selection";
 
 const DEFAULT_WIDTH = 150;
 
@@ -18,6 +19,7 @@ interface Props {
   sortFields;
   setSortField;
   recordHeight?: number;
+  rowKey?: string; // the primary key
   id: string;
 }
 
@@ -27,8 +29,10 @@ export default function Grid({
   sortFields,
   setSortField,
   recordHeight,
+  rowKey,
   id,
 }: Props) {
+  const selection = useSelection(id);
   const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
 
   return (
@@ -48,17 +52,49 @@ export default function Grid({
       itemContent={(index) => (
         <GridRow
           index={index}
+          rowKey={rowKey}
           data={data[index]}
           columns={columns}
           fieldWidths={fieldWidths}
           recordHeight={recordHeight}
+          selection={selection}
         />
       )}
     />
   );
 }
 
-function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
+function SelectableIndex({ index, primaryKey, selection }) {
+  if (selection.has(primaryKey)) {
+    return (
+      <Checkbox
+        onClick={() => {
+          selection.delete(primaryKey);
+        }}
+        checked
+      />
+    );
+  }
+  return (
+    <span
+      onClick={() => {
+        selection.add(primaryKey);
+      }}
+    >
+      {index + 1}
+    </span>
+  );
+}
+
+function GridRow({
+  index,
+  data,
+  columns,
+  recordHeight,
+  fieldWidths,
+  rowKey,
+  selection,
+}) {
   const v: ReactNode[] = [
     <td
       key="index"
@@ -70,7 +106,11 @@ function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
         textAlign: "center",
       }}
     >
-      {index + 1}
+      <SelectableIndex
+        index={index}
+        primaryKey={data[rowKey]}
+        selection={selection}
+      />
     </td>,
   ];
   const [open, setOpen] = useState<boolean>(false);
