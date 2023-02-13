@@ -392,35 +392,6 @@ export default function CoCalcComFeatures(props: CCFeatures) {
 
   return (
     <>
-      <Info.Heading
-        level={2}
-        textStyle={{ color: "white" }}
-        style={{
-          backgroundColor: COLORS.BLUE_D,
-          paddingBottom: "30px",
-          marginTop: "30px",
-          paddingTop: "45px",
-        }}
-        description={
-          <Paragraph
-            italic
-            style={{
-              color: COLORS.GRAY_LL,
-              paddingTop: "30px",
-              maxWidth: MAX_WIDTH, // bit less wide on wide screens, so its easier to read
-              margin: "0 auto",
-            }}
-          >
-            <strong>Mission</strong>: Redefining collaboration in science,
-            engineering and mathematics by providing easily accessible and
-            sustainably supported tools for computing, teaching, and publishing
-            research.
-          </Paragraph>
-        }
-      >
-        <Icon name="lightbulb" /> CoCalc is a cloud-based collaborative software
-        oriented towards research, teaching, and scientific publishing purposes.
-      </Info.Heading>
       {renderSandbox()}
       {renderShareServer()}
       {renderCollaboration()}
@@ -430,5 +401,46 @@ export default function CoCalcComFeatures(props: CCFeatures) {
       {renderAvailableProducts()}
       <SignIn startup={siteName} hideFree={true} />
     </>
+  );
+}
+
+export function Hero() {
+  return (
+    <Info.Heading
+      level={2}
+      textStyle={{ color: "white" }}
+      style={{
+        backgroundColor: COLORS.BLUE_D,
+        paddingBottom: "30px",
+        marginTop: "30px",
+        paddingTop: "45px",
+      }}
+      description={
+        <Paragraph
+          italic
+          style={{
+            color: COLORS.GRAY_LL,
+            paddingTop: "30px",
+            maxWidth: MAX_WIDTH, // bit less wide on wide screens, so its easier to read
+            margin: "0 auto",
+          }}
+        >
+          <strong>Mission</strong>: Enable better collaboration in science,
+          engineering and mathematics by providing easily accessible and
+          sustainable tools for computing, teaching, and publishing.
+        </Paragraph>
+      }
+    >
+      <Icon name="user-plus" /> Improve your research, teaching, and publishing
+      using realtime collaborative{" "}
+      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
+        Jupyter notebooks
+      </A>
+      ,{" "}
+      <A href="/features/latex-editor" style={{ color: "white" }}>
+        LaTeX
+      </A>
+      , Markdown, and Linux.
+    </Info.Heading>
   );
 }
