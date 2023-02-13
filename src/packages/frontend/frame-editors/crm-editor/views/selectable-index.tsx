@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Checkbox } from "antd";
 import { Selection } from "./use-selection";
-import useHover from "@react-hook/hover";
+import useMouse from "@react-hook/mouse-position";
 
 interface Props {
   index: number; // the record number (0-based)
@@ -15,17 +15,18 @@ export default function SelectableIndex({
   selection,
 }: Props) {
   const eltRef = useRef<any>(null);
-  const isHovering = useHover(eltRef);
+  const mouse = useMouse(eltRef, { enterDelay: 100, leaveDelay: 100 });
 
   let body;
-  if (isHovering || selection.has(primaryKey)) {
+  if (mouse.isOver || selection.has(primaryKey)) {
     body = (
       <Checkbox
-        onClick={() => {
+        disabled={selection.all}
+        onClick={(/*e*/) => {
           if (selection.has(primaryKey)) {
             selection.delete(primaryKey);
           } else {
-            selection.add(primaryKey);
+            selection.add(primaryKey /*, e.shiftKey*/);
           }
         }}
         checked={selection.has(primaryKey)}
@@ -49,10 +50,31 @@ export default function SelectableIndex({
       style={{
         minWidth: "30px",
         padding: "5px",
-        background: isHovering ? "#eee" : undefined,
+        background: mouse.isOver ? "#eee" : undefined,
       }}
     >
       {body}
+    </div>
+  );
+}
+
+export function SelectAll({
+  selection,
+}: {
+  selection: Selection;
+  numItems: number;
+}) {
+  return (
+    <div
+      style={{
+        minWidth: "30px",
+        padding: "5px",
+      }}
+    >
+      <Checkbox
+        checked={selection.all}
+        onChange={(e) => selection.setAll(e.target.checked)}
+      />
     </div>
   );
 }

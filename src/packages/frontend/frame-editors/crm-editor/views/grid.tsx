@@ -10,7 +10,7 @@ import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
 import Draggable from "react-draggable";
 import useSelection from "./use-selection";
-import SelectableIndex from "./selectable-index";
+import SelectableIndex, { SelectAll } from "./selectable-index";
 
 const DEFAULT_WIDTH = 150;
 
@@ -48,6 +48,8 @@ export default function Grid({
           setSortField={setSortField}
           fieldWidths={fieldWidths}
           setFieldWidths={setFieldWidths}
+          selection={selection}
+          numItems={data.length}
         />
       )}
       itemContent={(index) => (
@@ -169,6 +171,8 @@ function Header({
   setSortField,
   fieldWidths,
   setFieldWidths,
+  selection,
+  numItems,
 }) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
@@ -177,7 +181,10 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
-      <ColumnHeading width={30} />
+      <ColumnHeading
+        width={30}
+        title={<SelectAll selection={selection} numItems={numItems} />}
+      />
       {columns.map((column) => (
         <ColumnHeading
           {...column}
