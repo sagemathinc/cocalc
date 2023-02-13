@@ -5,36 +5,68 @@
 
 import React from "react";
 
-const { Panel } = require("react-bootstrap");
+import { Button, Collapse, Space } from "antd";
+const { Panel } = Collapse;
 
-import { MentionsMap, MentionFilter } from "./mentions/types";
-import { MentionRow } from "./mentions/mention-row";
-import { NoNewNotifications } from "./no-new-notifications";
-import { ProjectTitle } from "../projects/project-title";
+import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { unreachable } from "@cocalc/util/misc";
+import { MentionRow } from "./mentions/mention-row";
+import { MentionFilter, MentionsMap } from "./mentions/types";
+import { NoNewNotifications } from "./no-new-notifications";
 
-const notification_list_style: React.CSSProperties = {
-  padding: "0px",
-  height: "100%",
-  overflow: "auto",
-};
-
-export function NotificationList({
-  account_id,
-  mentions,
-  filter,
-  style,
-  user_map,
-}: {
+interface Props {
   account_id: string;
   mentions: MentionsMap;
   filter: MentionFilter;
-  style: React.CSSProperties;
-  user_map: any;
-}) {
+  style: CSS;
+  user_map;
+}
+
+export const NotificationList: React.FC<Props> = (props: Props) => {
+  const { account_id, mentions, filter, style, user_map } = props;
+
   if (mentions == undefined || mentions.size == 0) {
     return <NoMentions filter={filter} style={style} />;
   }
+
+  function markRead(project_id: string, filter: "read" | "unread") {
+    const actions = redux.getActions("mentions");
+    actions.markAll(project_id, filter);
+  }
+
+  function saveAll(project_id: string, filter: "read" | "unread") {
+    const actions = redux.getActions("mentions");
+    actions.saveAll(project_id, filter);
+  }
+
+  function renderMarkAll(project_id: string) {
+    if (filter === "saved" || filter === "all") return null;
+    const opposite: MentionFilter = filter === "read" ? "unread" : "read";
+    return (
+      <Space direction="horizontal" size="small">
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            markRead(project_id, opposite);
+          }}
+          size="small"
+        >
+          Mark all {opposite}
+        </Button>
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            saveAll(project_id, filter);
+          }}
+          size="small"
+        >
+          Save all
+        </Button>
+      </Space>
+    );
+  }
+
   const mentions_per_project: any = {};
   const project_panels: any = [];
   const project_id_order: string[] = [];
@@ -85,29 +117,32 @@ export function NotificationList({
 
   for (const project_id of project_id_order) {
     project_panels.push(
-      <Panel key={project_id} header={<ProjectTitle project_id={project_id} />}>
-        <ul>{mentions_per_project[project_id]}</ul>
-      </Panel>
+      <Collapse
+        defaultActiveKey={project_id_order}
+        key={project_id}
+        className="cocalc-notification-list"
+      >
+        <Panel
+          key={project_id}
+          header={<ProjectTitle project_id={project_id} />}
+          extra={renderMarkAll(project_id)}
+        >
+          <ul>{mentions_per_project[project_id]}</ul>
+        </Panel>
+      </Collapse>
     );
   }
 
   return (
-    <div
-      className={"smc-notificationlist"}
-      style={{ ...notification_list_style, ...style }}
-    >
-      {project_panels}
+    <div className={"smc-notificationlist"} style={style}>
+      <Space direction="vertical" size="large">
+        {project_panels}
+      </Space>
     </div>
   );
-}
+};
 
-function NoMentions({
-  filter,
-  style,
-}: {
-  filter: MentionFilter;
-  style: React.CSSProperties;
-}) {
+function NoMentions({ filter, style }: { filter: MentionFilter; style: CSS }) {
   let text = "No new mentions";
   switch (filter) {
     case "unread":

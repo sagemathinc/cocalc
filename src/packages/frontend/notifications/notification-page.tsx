@@ -5,138 +5,135 @@
 
 import React from "react";
 
-import { CSS, rclass, redux, rtypes } from "@cocalc/frontend/app-framework";
-import { A, Title } from "@cocalc/frontend/components";
+import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A, Paragraph, Title } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
+import { Col, Row } from "antd";
 import { MentionFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
 
 const OUTER_STYLE: CSS = {
+  display: "flex",
+  flex: "1",
+  flexDirection: "column",
+  height: "100%",
+  margin: "0",
   overflow: "none",
 } as const;
 
 const INNER_STYLE: CSS = {
   display: "flex",
   height: "100%",
-  overflow: "none",
-  padding: "0 10px",
-  margin: "0 auto",
-  maxWidth: "800px",
+  flex: "1",
   flexDirection: "column",
-  flex: "1 0 auto",
+  margin: "0px auto",
+  maxWidth: "800px",
+  overflow: "none",
 } as const;
 
 const CONTENT_STYLE: CSS = {
-  height: "100%",
   display: "flex",
-  flex: "1 0 auto",
+  flex: "1 1 0",
+  flexDirection: "row",
+  height: "100%",
   overflow: "none",
-  outline: "1px solid red",
 };
 
 const NAV_STYLE: CSS = {
-  margin: "15px 15px 15px 0px",
+  width: "200px",
+  margin: "0",
+  borderInlineEnd: "none",
+} as const;
+
+const LIST_CONTAINER_STYLE: CSS = {
+  flex: "1 1 0",
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  overflow: "none",
 } as const;
 
 const LIST_STYLE: CSS = {
-  margin: "15px 0px 15px 15px",
+  flex: "1 1 0",
+  height: "100%",
+  overflow: "auto",
+  margin: "0",
 } as const;
 
-interface ReduxProps {
-  account_id?: string;
-  mentions?: any;
-  user_map?: any;
-  filter?: MentionFilter;
-}
+export const NotificationPage: React.FC<{}> = () => {
+  const account_id = useTypedRedux("account", "account_id");
+  const mentions = useTypedRedux("mentions", "mentions");
+  const user_map = useTypedRedux("users", "user_map");
+  const filter: MentionFilter = useTypedRedux("mentions", "filter");
 
-export const NotificationPage = rclass(
-  class NotificationPage extends React.Component<ReduxProps> {
-    public static reduxProps() {
-      return {
-        account: {
-          account_id: rtypes.string,
-        },
-        mentions: {
-          mentions: rtypes.immutable.Map,
-          filter: rtypes.string,
-        },
-        users: {
-          user_map: rtypes.immutable.Map,
-        },
-      };
-    }
-
-    render() {
-      const { account_id, mentions, user_map, filter } = this.props;
-      if (filter == null || account_id == null) {
-        return <div />;
-      }
-      return (
-        <div style={OUTER_STYLE} className="smc-vfill">
-          <div style={INNER_STYLE}>
-            <Title
-              level={2}
-              style={{
-                display: "block",
-                textAlign: "center",
-                flex: "0 0 auto",
-              }}
-            >
-              Mentions
-            </Title>
-            <div
-              style={{
-                flex: "0 0 auto",
-                maxWidth: "800px",
-                margin: "0 auto",
-                color: "#666",
-                border: "1px solid #ddd",
-                padding: "15px",
-                borderRadius: "5px",
-                fontSize: "11pt",
-              }}
-            >
-              Use @mention to explicitly mention your collaborators{" "}
-              <A href="https://doc.cocalc.com/chat.html">in</A>{" "}
-              <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
-                chatrooms
-              </A>
-              , and{" "}
-              <A href="https://doc.cocalc.com/markdown.html#mentions">
-                when editing files.
-              </A>{" "}
-              For example, when editing text in a Jupyter notebook or
-              whiteboard, type an @ symbol, then select the name of a
-              collaborator, and they will receive an email telling them that you
-              mentioned them. You can also @mention yourself for testing or to
-              make it easy to find something later.
-            </div>
-            <div style={CONTENT_STYLE}>
-              <NotificationNav
-                filter={filter}
-                on_click={redux.getActions("mentions").set_filter}
-                style={NAV_STYLE}
-              />
-              <div
-                style={{
-                  flex: "1 0 auto",
-                  flexDirection: "column",
-                  height: "100%",
-                  overflow: "auto",
-                }}
-              >
-                <NotificationList
-                  account_id={account_id}
-                  mentions={mentions}
-                  style={LIST_STYLE}
-                  user_map={user_map}
-                  filter={filter}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
+  if (filter == null || account_id == null) {
+    return <div />;
   }
-);
+
+  function renderExplanation() {
+    return (
+      <Paragraph
+        ellipsis={{
+          rows: 1,
+          expandable: true,
+          symbol: <strong>more…</strong>,
+        }}
+        style={{ color: COLORS.GRAY_D }}
+      >
+        Someone used @your_name to explicitly mention you as a collaborator.
+        This could have happened in a{" "}
+        <A href="https://doc.cocalc.com/chat.html">Chatroom</A>, in the context
+        of{" "}
+        <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
+          teaching
+        </A>{" "}
+        , or{" "}
+        <A href="https://doc.cocalc.com/markdown.html#mentions">
+          when editing files.
+        </A>{" "}
+        For example, when editing text in a Jupyter notebook or whiteboard, type
+        an @ symbol, then select the name of a collaborator, and they will
+        receive an email telling them that you mentioned them. You can also
+        @mention yourself for testing or to make it easy to find something
+        later.
+      </Paragraph>
+    );
+  }
+
+  function renderContent() {
+    return (
+      <Row style={CONTENT_STYLE}>
+        <Col span={6}>
+          <NotificationNav
+            filter={filter}
+            on_click={redux.getActions("mentions").set_filter}
+            style={NAV_STYLE}
+          />
+        </Col>
+
+        <Col span={18} style={LIST_CONTAINER_STYLE}>
+          <NotificationList
+            account_id={account_id}
+            mentions={mentions}
+            style={LIST_STYLE}
+            user_map={user_map}
+            filter={filter}
+          />
+        </Col>
+      </Row>
+    );
+  }
+
+  return (
+    <div style={OUTER_STYLE}>
+      <div style={INNER_STYLE}>
+        <Title level={2} style={{ textAlign: "center" }}>
+          Mentions of You
+        </Title>
+        {renderExplanation()}
+        {renderContent()}
+      </div>
+    </div>
+  );
+};

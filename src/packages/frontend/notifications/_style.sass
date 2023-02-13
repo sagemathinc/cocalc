@@ -4,6 +4,11 @@
  */
 
 .smc-notificationlist
+
+  overflow: none
+  display: flex
+  flex-direction: column
+
   ul
     margin: 0px
     padding: 0px
@@ -21,3 +26,11 @@
 
   .panel-body
     padding: 0px
+
+.cocalc-notification-row-entry:hover
+  background: $COL_GRAY_LL
+
+.cocalc-notification-list
+  .ant-collapse-content-box
+    margin: 0
+    padding: 0 !important

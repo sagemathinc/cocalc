@@ -34,19 +34,7 @@ export class MentionsActions extends Actions<MentionsState> {
     this.setState({ mentions: current_mentions });
   };
 
-  mark_read = (mention: MentionInfo, id: string): void => {
-    const account_store = this.redux.getStore("account");
-    if (account_store == undefined) {
-      return;
-    }
-    const account_id = account_store.get("account_id");
-    const adjusted_mention = mention.setIn(["users", account_id, "read"], true);
-
-    this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention);
-  };
-
-  mark_unread = (mention: MentionInfo, id: string): void => {
+  mark = (mention: MentionInfo, id: string, type: "read" | "unread"): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -54,14 +42,67 @@ export class MentionsActions extends Actions<MentionsState> {
     const account_id = account_store.get("account_id");
     const adjusted_mention = mention.setIn(
       ["users", account_id, "read"],
-      false
+      type === "read"
     );
 
     this.update_mention(adjusted_mention, id);
     this.set(adjusted_mention);
   };
 
-  mark_saved = (mention: MentionInfo, id: string): void => {
+  markAll = (project_id: string, as: "read" | "unread"): void => {
+    const store = this.redux.getStore("mentions");
+    if (store == undefined) {
+      return;
+    }
+    const current_mentions = store.get("mentions");
+    const account_store = this.redux.getStore("account");
+    if (account_store == undefined) {
+      return;
+    }
+    const account_id = account_store.get("account_id");
+    const adjusted_mentions = current_mentions.map((mention) => {
+      if (mention.get("project_id") == project_id) {
+        return mention.setIn(["users", account_id, "read"], as === "read");
+      } else {
+        return mention;
+      }
+    });
+
+    this.setState({ mentions: adjusted_mentions });
+    this.set(adjusted_mentions);
+  };
+
+  saveAll = (project_id: string, filter: "read" | "unread") => {
+    const store = this.redux.getStore("mentions");
+    if (store == undefined) {
+      return;
+    }
+    const current_mentions = store.get("mentions");
+    const account_store = this.redux.getStore("account");
+    if (account_store == undefined) {
+      return;
+    }
+    const account_id = account_store.get("account_id");
+    const adjusted_mentions = current_mentions.map((mention) => {
+      if (
+        mention.get("project_id") == project_id &&
+        mention.getIn(["users", account_id, "read"]) == (filter === "read")
+      ) {
+        return mention.setIn(["users", account_id, "saved"], true);
+      } else {
+        return mention;
+      }
+    });
+
+    this.setState({ mentions: adjusted_mentions });
+    this.set(adjusted_mentions);
+  };
+
+  markSaved = (
+    mention: MentionInfo,
+    id: string,
+    as: "saved" | "unsaved"
+  ): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -69,22 +110,7 @@ export class MentionsActions extends Actions<MentionsState> {
     const account_id = account_store.get("account_id");
     const adjusted_mention = mention.setIn(
       ["users", account_id, "saved"],
-      true
-    );
-
-    this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention);
-  };
-
-  mark_unsaved = (mention: MentionInfo, id: string): void => {
-    const account_store = this.redux.getStore("account");
-    if (account_store == undefined) {
-      return;
-    }
-    const account_id = account_store.get("account_id");
-    const adjusted_mention = mention.setIn(
-      ["users", account_id, "saved"],
-      false
+      as === "saved"
     );
 
     this.update_mention(adjusted_mention, id);

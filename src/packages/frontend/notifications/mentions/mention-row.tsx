@@ -3,75 +3,67 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties } from "react";
+import { Tooltip } from "antd";
 
-import { redux } from "@cocalc/frontend/app-framework";
-import { MentionInfo } from "./types";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeAgo } from "@cocalc/frontend/components";
-import { User } from "@cocalc/frontend/users";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { Tooltip } from "antd";
+import { User } from "@cocalc/frontend/users";
+import { MentionInfo } from "./types";
 
-export function MentionRow({
-  id,
-  mention,
-  user_map,
-}: {
+const DESCRIPTION_STYLE: CSS = {
+  flex: "1",
+} as const;
+
+const AVATAR_WRAPPING_STYLE: CSS = {
+  margin: ".9em",
+} as const;
+
+const ROW_STYLE: CSS = {
+  padding: "10px 5px",
+} as const;
+
+interface Props {
   id: string;
   mention: MentionInfo;
   user_map: any;
-}) {
+}
+
+export function MentionRow(props: Props) {
+  const { id, mention, user_map } = props;
   const { path, project_id, source, time, target, description, fragment_id } =
     mention.toJS();
 
   const fragmentId = Fragment.decode(fragment_id);
   const is_read = mention.getIn(["users", target, "read"]);
   const is_saved = mention.getIn(["users", target, "saved"]);
-  let read_icon: IconName = "square-o";
-  let save_icon: IconName = "book";
-  let row_style: CSSProperties = {};
 
-  if (is_read) {
-    read_icon = "check-square-o";
-    row_style = {
-      color: "rgb(88, 96, 105)",
-    };
-  }
-
-  if (is_saved) {
-    save_icon = "book";
-  }
+  const read_icon: IconName = is_read ? "check-square-o" : "square-o";
+  const save_icon: IconName = "book";
+  const row_style: CSS = is_read
+    ? { ...ROW_STYLE, color: "rgb(88, 96, 105)" }
+    : ROW_STYLE;
 
   const on_read_unread_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
-
-    if (is_read) {
-      actions.mark_unread(mention, id);
-    } else {
-      actions.mark_read(mention, id);
-    }
+    actions.mark(mention, id, is_read ? "unread" : "read");
   };
 
   const on_save_unsave_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const actions = redux.getActions("mentions");
-
-    if (is_saved) {
-      actions.mark_unsaved(mention, id);
-    } else {
-      actions.mark_saved(mention, id);
-    }
+    actions.markSaved(mention, id, is_saved ? "unsaved" : "saved");
   };
 
   return (
     <li
-      className="cocalc-highlight-on-hover"
+      className="cocalc-notification-row-entry"
       onClick={() => {
         // Regarding chat -- if no fragment, assume chat.
         // If fragment given, then it can explicitly specify chat, e.g.,
@@ -84,16 +76,16 @@ export function MentionRow({
         // the timeout is because visually seeing the mention disappear
         // right when you click on it is disturbing.
         setTimeout(
-          () => redux.getActions("mentions")?.mark_read(mention, id),
+          () => redux.getActions("mentions")?.mark(mention, id, "read"),
           1000
         );
       }}
       style={row_style}
     >
-      <div style={avatar_wrapping_style}>
+      <div style={AVATAR_WRAPPING_STYLE}>
         <Avatar account_id={source} />
       </div>
-      <div style={description_style}>
+      <div style={DESCRIPTION_STYLE}>
         <strong>
           <User account_id={source} user_map={user_map} />
         </strong>{" "}
@@ -139,8 +131,3 @@ export function MentionRow({
     </li>
   );
 }
-
-const description_style: CSSProperties = { flex: "1" };
-const avatar_wrapping_style: CSSProperties = {
-  margin: ".9em",
-};
