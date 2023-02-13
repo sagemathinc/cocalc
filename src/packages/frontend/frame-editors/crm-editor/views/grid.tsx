@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { Checkbox, Divider, Modal } from "antd";
+import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
@@ -10,6 +10,7 @@ import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
 import Draggable from "react-draggable";
 import useSelection from "./use-selection";
+import SelectableIndex from "./selectable-index";
 
 const DEFAULT_WIDTH = 150;
 
@@ -61,28 +62,6 @@ export default function Grid({
         />
       )}
     />
-  );
-}
-
-function SelectableIndex({ index, primaryKey, selection }) {
-  if (selection.has(primaryKey)) {
-    return (
-      <Checkbox
-        onClick={() => {
-          selection.delete(primaryKey);
-        }}
-        checked
-      />
-    );
-  }
-  return (
-    <span
-      onClick={() => {
-        selection.add(primaryKey);
-      }}
-    >
-      {index + 1}
-    </span>
   );
 }
 

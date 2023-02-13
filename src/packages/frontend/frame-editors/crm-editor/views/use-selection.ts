@@ -2,7 +2,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { useEditor, Actions } from "../actions";
 import { Set } from "immutable";
 
-interface Selection {
+export interface Selection {
   has: (key: any) => boolean;
   add: (key: any) => void;
   delete: (key: any) => void;
