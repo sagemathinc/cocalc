@@ -51,7 +51,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     if (!hide_label && label != null) {
       return (
         <span
-          style={{ marginLeft: "5px", marginTop: "-3px" }}
+          style={{ marginLeft: "5px" }}
           className={label_class}
           cocalc-test={name}
         >
@@ -106,6 +106,8 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
   const inner_style: CSS = {
     padding: "12px",
     display: "flex",
+    flexDirection: "row",
+    verticalAlign: "middle",
     alignItems: "center",
     whiteSpace: "nowrap",
     ...add_inner_style,
