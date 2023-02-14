@@ -3,7 +3,7 @@ import { parse } from "csv-parse/sync";
 import { AgGridReact } from "ag-grid-react";
 
 import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import "ag-grid-community/styles/ag-theme-balham.css";
 
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
@@ -22,14 +22,25 @@ function trim(x) {
 export default function Grid({ value }) {
   const { desc } = useFrameContext();
 
-  const { rowData, columnDefs } = useMemo(() => {
-    const records = parse(value, {
+  const records = useMemo(() => {
+    return parse(value, {
       relax_quotes: true,
       skip_empty_lines: true,
     });
-    const columnDefs = records[0].map((field) => {
-      return { field: trim(field) };
+  }, [value]);
+
+  const columnDefs = useMemo(() => {
+    return records[0].map((field) => {
+      return {
+        field: trim(field),
+        headerName: trim(field),
+        cellStyle: { fontSize: desc.get("font_size") },
+        resizable: true,
+      };
     });
+  }, [records, desc.get("font_size")]);
+
+  const rowData = useMemo(() => {
     const rowData: any[] = [];
     for (let n = 1; n < records.length; n++) {
       const row: any = {};
@@ -38,12 +49,12 @@ export default function Grid({ value }) {
       }
       rowData.push(row);
     }
-    return { rowData, columnDefs };
-  }, [value]);
+    return rowData;
+  }, [records]);
 
   return (
     <div
-      className="ag-theme-alpine"
+      className="ag-theme-balham"
       style={{ fontSize: desc.get("font_size"), height: "100%" }}
     >
       <AgGridReact rowData={rowData} columnDefs={columnDefs} />
