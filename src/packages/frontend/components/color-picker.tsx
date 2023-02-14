@@ -19,7 +19,11 @@ import {
 
 const { Option } = Select;
 
-import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
+// must be imported from misc/local-storage, because otherwise the "static" build fails
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
