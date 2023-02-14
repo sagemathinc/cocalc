@@ -53,7 +53,7 @@ function calcStyle(isNarrow: boolean): PageStyle {
   const fontSizeIcons: string = isNarrow
     ? FONT_SIZE_ICONS_NARROW
     : FONT_SIZE_ICONS_NORMAL;
-  const topPaddingIcons: string = isNarrow ? "5px" : "5px";
+  const topPaddingIcons: string = isNarrow ? "2px" : "5px";
   const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
 
   const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;

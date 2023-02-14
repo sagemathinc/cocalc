@@ -49,22 +49,16 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
 
   const outer_style: CSS = {
     padding: `${topPaddingIcons} ${sidePaddingIcons}`,
-    display: "flex",
-    alignItems: "center",
-    height: "100%",
+    height: `${pageStyle.height}px`,
     ...(active ? { backgroundColor: COLORS.TOP_BAR.ACTIVE } : {}),
   };
 
   const inner_style: CSS = {
     cursor: "pointer",
     position: "relative",
-    display: "flex",
-    alignItems: "center",
-    ...(type === "mentions" && count > 0
-      ? {
-          top: 3, // bit offset to make room for the badge
-        }
-      : {}),
+    ...(type === "mentions"
+      ? { top: Math.floor(pageStyle.height / 10) + 1 } // bit offset to make room for the badge
+      : { top: 1 }),
   };
 
   function onClick(e) {
