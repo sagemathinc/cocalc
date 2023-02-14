@@ -170,11 +170,15 @@ export default function getKeyHandler(
       return;
     }
     if (key == "backspace" || key == "delete") {
-      actions.deleteElements(
-        selection?.toJS().map((id) => ({
-          id,
-        }))
-      );
+      const selectedElements = selection?.toJS().map((id) => ({
+        id,
+      }));
+      if (!selectedElements) {
+        // nothing to do.
+        // deleteElements below breaks with undefined as input -- I hit this crash in production once.
+        return;
+      }
+      actions.deleteElements(selectedElements);
       actions.clearSelection(frameId);
       return;
     }
