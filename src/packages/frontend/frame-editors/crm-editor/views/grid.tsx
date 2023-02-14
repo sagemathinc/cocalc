@@ -11,6 +11,7 @@ import useFieldWidths from "../syncdb/use-field-widths";
 import Draggable from "react-draggable";
 import useSelection from "./use-selection";
 import SelectableIndex, { SelectAll } from "./selectable-index";
+import { rowBackground } from "@cocalc/util/misc";
 
 const DEFAULT_WIDTH = 150;
 
@@ -79,6 +80,10 @@ function GridRow({
   rowKey,
   selection,
 }) {
+  const background = rowBackground({
+    index,
+    checked: selection.has(data[rowKey]),
+  });
   const v: ReactNode[] = [
     <td
       key="index"
@@ -88,6 +93,7 @@ function GridRow({
         padding: "0 5px",
         color: "#666",
         textAlign: "center",
+        background,
       }}
     >
       <SelectableIndex
@@ -111,6 +117,7 @@ function GridRow({
           cursor: "pointer",
           width,
           border: "1px solid #eee",
+          background,
         }}
       >
         <div
