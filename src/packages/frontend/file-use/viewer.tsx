@@ -7,11 +7,10 @@ import { List as iList, Map as iMap } from "immutable";
 import { useEffect, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
-import { Alert, Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import {
-  Icon,
   MarkAll,
   SearchInput,
   Title,

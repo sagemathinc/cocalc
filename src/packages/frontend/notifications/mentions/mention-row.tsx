@@ -6,13 +6,14 @@
 import { Tooltip } from "antd";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { CSS, redux, useState } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeAgo } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { User } from "@cocalc/frontend/users";
-import { MentionInfo } from "./types";
+import { COLORS } from "@cocalc/util/theme";
+import { MentionFilter, MentionInfo } from "./types";
 import { BOOKMARK_ICON_NAME } from "./util";
 
 const DESCRIPTION_STYLE: CSS = {
@@ -33,19 +34,28 @@ interface Props {
   id: string;
   mention: MentionInfo;
   user_map: any;
+  filter: MentionFilter;
 }
 
 export function MentionRow(props: Props) {
-  const { id, mention, user_map } = props;
+  const { id, mention, user_map, filter } = props;
   const { path, project_id, source, time, target, description, fragment_id } =
     mention.toJS();
+
+  const [clicked, setClicked] = useState(false);
 
   const fragmentId = Fragment.decode(fragment_id);
   const is_read = mention.getIn(["users", target, "read"]);
   const is_saved = mention.getIn(["users", target, "saved"]);
 
   const read_icon: IconName = is_read ? "check-square-o" : "square-o";
-  const row_style: CSS = is_read ? { color: "rgb(88, 96, 105)" } : {};
+  const clickedStyle: CSS =
+    !is_read && clicked && filter === "unread"
+      ? { backgroundColor: COLORS.GRAY }
+      : {};
+  const row_style: CSS = is_read
+    ? { color: "rgb(88, 96, 105)", ...clickedStyle }
+    : { ...clickedStyle };
 
   function on_read_unread_click(e) {
     e.preventDefault();
@@ -70,12 +80,19 @@ export function MentionRow(props: Props) {
       chat: !fragmentId ? true : fragmentId["chat"],
       fragmentId,
     });
-    // the timeout is because visually seeing the mention disappear
-    // right when you click on it is disturbing.
-    setTimeout(
-      () => redux.getActions("mentions")?.mark(mention, id, "read"),
-      1000
-    );
+
+    if (filter === "unread") {
+      // the timeout is because visually seeing the mention disappear
+      // right when you click on it is disturbing.
+      setClicked(true); // a visual feedback, that user did just click on it
+      setTimeout(() => {
+        setClicked(false);
+        redux.getActions("mentions")?.mark(mention, id, "read");
+      }, 1000);
+    } else {
+      // row won't disappear, hence no need to indicate a click + delay
+      redux.getActions("mentions")?.mark(mention, id, "read");
+    }
   }
 
   return (

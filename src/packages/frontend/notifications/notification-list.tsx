@@ -14,8 +14,8 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { unreachable } from "@cocalc/util/misc";
 import { MentionRow } from "./mentions/mention-row";
 import { MentionFilter, MentionsMap } from "./mentions/types";
-import { NoNewNotifications } from "./no-new-notifications";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
+import { NoNewNotifications } from "./no-new-notifications";
 
 interface Props {
   account_id: string;
@@ -100,6 +100,7 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
       }
       mentions_per_project[project_id].push(
         <MentionRow
+          filter={filter}
           key={path + time.getTime()}
           id={id}
           mention={notification}

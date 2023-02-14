@@ -77,7 +77,7 @@ export const NotificationPage: React.FC<{}> = () => {
         ellipsis={{
           rows: 1,
           expandable: true,
-          symbol: <strong>more…</strong>,
+          symbol: <strong>read more…</strong>,
         }}
         style={{ color: COLORS.GRAY_D }}
       >
